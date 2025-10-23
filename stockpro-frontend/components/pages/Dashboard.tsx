@@ -1,5 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import { UsersIcon, BoxIcon, ReceiptIcon, ShoppingCartIcon } from '../icons';
+import { useGetSessionsQuery } from '../store/slices/session/sessionApi';
 
 declare var Chart: any;
 
@@ -29,6 +30,9 @@ const Dashboard: React.FC<{ title: string }> = ({ title }) => {
   const barChartRef = useRef<HTMLCanvasElement>(null);
   const doughnutChartRef = useRef<HTMLCanvasElement>(null);
   const chartInstances = useRef<{ bar?: any; doughnut?: any }>({});
+  
+  // Test sessions endpoint
+  const { data: sessions, error, isLoading } = useGetSessionsQuery(undefined);
 
   useEffect(() => {
     // Bar Chart for Monthly Performance
@@ -153,6 +157,33 @@ const Dashboard: React.FC<{ title: string }> = ({ title }) => {
                 <canvas ref={doughnutChartRef}></canvas>
             </div>
         </div>
+      </div>
+      
+      {/* Sessions Testing Section */}
+      <div className="mt-8 bg-white p-6 rounded-lg shadow">
+        <h2 className="text-xl font-bold mb-4 text-brand-dark">اختبار Sessions API</h2>
+        {isLoading && (
+          <div className="text-center py-4">
+            <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-brand-blue"></div>
+            <p className="mt-2 text-gray-600">جاري تحميل البيانات...</p>
+          </div>
+        )}
+        {error && (
+          <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-md">
+            <p className="font-semibold">خطأ في تحميل البيانات:</p>
+            <p className="text-sm mt-1">{JSON.stringify(error, null, 2)}</p>
+          </div>
+        )}
+        {sessions && (
+          <div>
+            <p className="text-green-600 font-semibold mb-4">تم تحميل البيانات بنجاح! ({(sessions as any[]).length} جلسة)</p>
+            <div className="bg-gray-50 p-4 rounded-md">
+              <pre className="text-sm overflow-auto max-h-64">
+                {JSON.stringify(sessions, null, 2)}
+              </pre>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
