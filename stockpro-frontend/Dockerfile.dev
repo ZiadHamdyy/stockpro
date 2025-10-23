@@ -1,0 +1,15 @@
+FROM node:20-bullseye-slim
+
+WORKDIR /app
+
+ENV NODE_ENV=development
+
+# Install dependencies based on lockfile if present
+COPY package*.json ./
+RUN npm ci || npm install
+
+# Default port for Vite/React dev server
+EXPOSE 3000
+
+# Run Vite dev server binding to all interfaces for Docker
+CMD ["npm", "run", "dev", "--", "--host", "0.0.0.0", "--port", "3000"]

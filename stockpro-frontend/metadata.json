@@ -1,0 +1,7 @@
+{
+  "name": "StockPro",
+  "description": "An advanced and professional program for inventory and stock management, sales, and purchases.",
+  "requestFramePermissions": [
+    "camera"
+  ]
+}

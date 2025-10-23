@@ -1,0 +1,12 @@
+{
+  "editor.defaultFormatter": "esbenp.prettier-vscode",
+  "[javascript]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "typescript.tsc.autoDetect": "off",
+  "files.exclude": {
+    "**/*.js": {
+      "when": "$(basename).ts"
+    }
+  }
+}

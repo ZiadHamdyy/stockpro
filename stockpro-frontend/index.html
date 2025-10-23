@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>StockPro</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf-autotable.min.js"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'brand-blue': '#1E40AF',
+                        'brand-blue-bg': '#EFF6FF',
+                        'brand-green': '#16a34a',
+                        'brand-green-active': '#4ade80',
+                        'brand-green-bg': '#ECFDF5',
+                        'brand-dark': '#1F2937',
+                        'brand-light-gray': '#F8FAFC',
+                        'brand-text': '#111827',
+                    },
+                },
+            },
+        };
+    </script>
+    <style type="text/tailwindcss">
+        @layer base {
+            body {
+                font-family: 'Cairo', sans-serif;
+                color: theme('colors.brand-text');
+                background-color: theme('colors.brand-blue-bg'); /* Fallback */
+                background-image: linear-gradient(to bottom right, theme('colors.brand-blue-bg'), theme('colors.brand-green-bg'));
+            }
+            .sidebar-scrollbar::-webkit-scrollbar {
+                width: 6px;
+            }
+            .sidebar-scrollbar::-webkit-scrollbar-track {
+                background: theme('colors.brand-blue');
+            }
+            .sidebar-scrollbar::-webkit-scrollbar-thumb {
+                background: #1e3a8a; /* A darker shade of brand-blue */
+                border-radius: 3px;
+            }
+            .sidebar-scrollbar::-webkit-scrollbar-thumb:hover {
+                 background: #2563EB; /* A lighter shade */
+            }
+        }
+        @media print {
+          @page {
+            size: A4 portrait;
+            margin: 1cm;
+          }
+          aside, header, .no-print {
+            display: none !important;
+          }
+          main {
+            padding: 0 !important;
+            margin: 0 !important;
+            overflow: visible !important;
+            height: auto !important;
+            background-image: none !important;
+            background-color: white !important;
+          }
+          body {
+            -webkit-print-color-adjust: exact !important;
+            color-adjust: exact !important;
+            background-image: none !important;
+            background-color: white !important;
+          }
+          .bg-white {
+            box-shadow: none !important;
+            border: none !important;
+          }
+        }
+        /* Style for date picker calendar icon */
+        input[type="date"]::-webkit-calendar-picker-indicator {
+            cursor: pointer;
+            border-radius: 4px;
+            background-color: theme('colors.brand-green-bg');
+            padding: 6px;
+            margin-inline-end: 0.5rem;
+            border: 1px solid theme('colors.brand-green-active');
+            transition: background-color 0.2s;
+        }
+        input[type="date"]::-webkit-calendar-picker-indicator:hover {
+             background-color: #D1FAE5;
+        }
+    </style>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/index.css">
+</head>
+<body>
+    <div id="root"></div>
+    <script type="importmap">
+    {
+      "imports": {
+        "react": "https://aistudiocdn.com/react@^19.2.0",
+        "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.0/",
+        "react/": "https://aistudiocdn.com/react@^19.2.0/"
+      }
+    }
+    </script>
+    <script type="module" src="/index.tsx"></script>
+</body>
+</html>
