@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { UserIcon, LockIcon } from '../icons';
+import { useLoginUserMutation } from '../store/slices/auth/authApi';
 
 interface LoginProps {
-    onLogin: (username: string, password: string) => void;
+    onLogin: (email: string, password: string) => void;
 }
 
 const StockProLogo: React.FC<{ size?: 'normal' | 'large', textColorClass?: string }> = ({ size = 'normal', textColorClass = 'text-white' }) => {
@@ -25,12 +26,24 @@ const StockProLogo: React.FC<{ size?: 'normal' | 'large', textColorClass?: strin
 
 
 const Login: React.FC<LoginProps> = ({ onLogin }) => {
-    const [username, setUsername] = useState('');
+    const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
+    const [error, setError] = useState('');
+    
+    const [loginUser, { isLoading }] = useLoginUserMutation();
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        onLogin(username, password);
+        setError('');
+
+        try {
+            await loginUser({ email, password }).unwrap();
+            // Call the parent onLogin callback
+            onLogin(email, password);
+        } catch (error: any) {
+            console.error('Login error:', error);
+            setError(error?.data?.message || error?.message || 'حدث خطأ أثناء تسجيل الدخول');
+        }
     };
 
     return (
@@ -54,25 +67,31 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
                         <StockProLogo size="large" textColorClass="text-brand-blue" />
                     </div>
                     <h2 className="text-3xl font-bold text-center text-brand-dark mb-2">تسجيل الدخول</h2>
-                    <p className="text-center text-gray-500 mb-8">أدخل اسم المستخدم وكلمة المرور للوصول لحسابك</p>
+                    <p className="text-center text-gray-500 mb-8">أدخل البريد الإلكتروني وكلمة المرور للوصول لحسابك</p>
 
                     <form onSubmit={handleSubmit} className="space-y-6">
+                        {error && (
+                            <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-md">
+                                {error}
+                            </div>
+                        )}
+                        
                         <div>
-                            <label htmlFor="username" className="block text-sm font-medium text-gray-700 mb-1">اسم المستخدم</label>
+                            <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">البريد الإلكتروني</label>
                             <div className="relative">
                                 <span className="absolute inset-y-0 right-0 flex items-center pr-3">
                                     <UserIcon className="h-5 w-5 text-gray-400" />
                                 </span>
                                 <input
-                                    id="username"
-                                    name="username"
-                                    type="text"
-                                    autoComplete="username"
+                                    id="email"
+                                    name="email"
+                                    type="email"
+                                    autoComplete="email"
                                     required
-                                    value={username}
-                                    onChange={(e) => setUsername(e.target.value)}
+                                    value={email}
+                                    onChange={(e) => setEmail(e.target.value)}
                                     className="w-full pr-10 pl-4 py-3 bg-white border-2 border-gray-300 rounded-md text-brand-blue placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-brand-blue focus:border-brand-blue"
-                                    placeholder="admin"
+                                    placeholder="user@example.com"
                                 />
                             </div>
                         </div>
@@ -103,9 +122,10 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
                         <div>
                             <button
                                 type="submit"
-                                className="w-full flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-lg font-medium text-white bg-brand-blue hover:bg-blue-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-blue transition-colors duration-200"
+                                disabled={isLoading}
+                                className="w-full flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-lg font-medium text-white bg-brand-blue hover:bg-blue-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-blue transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
                             >
-                                تسجيل الدخول
+                                {isLoading ? 'جاري تسجيل الدخول...' : 'تسجيل الدخول'}
                             </button>
                         </div>
                     </form>

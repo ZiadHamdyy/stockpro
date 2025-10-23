@@ -86,13 +86,18 @@ const Header: React.FC<HeaderProps> = ({ title, currentUser, onLogout, searchTer
                 </div>
             )}
         </div>
-        <div className="flex items-center space-x-2 cursor-pointer">
-          <img src={currentUser?.avatar || "https://i.pravatar.cc/40"} alt="User" className="w-10 h-10 rounded-full" />
-          <div>
-            <div className="font-semibold text-sm text-brand-dark text-right">{currentUser?.fullName || 'مستخدم'}</div>
-            <div className="text-xs text-gray-500 text-right">{currentUser?.permissionGroup || 'غير محدد'}</div>
+        <div className="flex items-center cursor-pointer">
+          {currentUser?.avatar ? (
+            <img src={currentUser.avatar} alt="User" className="w-10 h-10 rounded-full" />
+          ) : (
+            <div className="w-10 h-10 rounded-full bg-brand-blue text-white flex items-center justify-center font-semibold text-sm">
+              {currentUser?.name?.charAt(0)?.toUpperCase() || 'م'}
+            </div>
+          )}
+          <div className="flex-1 mr-4">
+            <div className="font-semibold text-sm text-brand-dark text-right">{currentUser?.name || 'مستخدم'}</div>
+            <div className="text-xs text-gray-500 text-right">{currentUser?.email || 'غير محدد'}</div>
           </div>
-          <ChevronDownIcon className="w-4 h-4 text-gray-500" />
         </div>
          <button onClick={onLogout} title="تسجيل الخروج" className="p-2 rounded-full text-brand-blue hover:bg-red-100 hover:text-red-600 transition-colors">
           <LogOutIcon />

@@ -1,4 +1,10 @@
-import React, { useState, useCallback, useMemo, useEffect } from 'react';
+import { useState, useCallback, useMemo, useEffect } from 'react';
+import { Provider } from 'react-redux';
+import { PersistGate } from 'redux-persist/integration/react';
+import { store, persistor } from './components/store/store';
+import { useAppDispatch } from './components/store/hooks';
+import { useAuth } from './components/hook/Auth';
+import { useSendLogOutMutation } from './components/store/slices/auth/authApi';
 import Sidebar from './components/layout/Sidebar';
 import Header from './components/layout/Header';
 import Dashboard from './components/pages/Dashboard';
@@ -56,7 +62,7 @@ import TaxDeclarationReport from './components/pages/reports/financials/TaxDecla
 import IncomeStatement from './components/pages/final_accounts/IncomeStatement';
 import BalanceSheet from './components/pages/final_accounts/BalanceSheet';
 
-import { initialBranches, initialStores, initialUsers, initialItemGroups, initialUnits, initialItems, initialCustomers, initialSuppliers, initialExpenseCodes, initialExpenses, initialExpenseTypes, initialCurrentAccounts, initialSafes, initialBanks, initialSalesInvoices, initialSalesReturns, initialPurchaseInvoices, initialPurchaseReturns, initialReceiptVouchers, initialPaymentVouchers, initialStoreReceiptVouchers, initialStoreIssueVouchers, initialStoreTransferVouchers } from './data';
+import { initialBranches, initialStores, initialItemGroups, initialUnits, initialItems, initialCustomers, initialSuppliers, initialExpenseCodes, initialExpenses, initialExpenseTypes, initialCurrentAccounts, initialSafes, initialBanks, initialSalesInvoices, initialSalesReturns, initialPurchaseInvoices, initialPurchaseReturns, initialReceiptVouchers, initialPaymentVouchers, initialStoreReceiptVouchers, initialStoreIssueVouchers, initialStoreTransferVouchers } from './data';
 // FIX: Aliased StoreIssueVoucher type to avoid name collision with component.
 import type { Branch, CompanyInfo, Store, User, ItemGroup, Unit, Item, Customer, Supplier, ExpenseCode, Expense, ExpenseType, CurrentAccount, Safe, Bank, Invoice, Voucher, StoreReceiptVoucher as StoreReceiptVoucherType, StoreIssueVoucher as StoreIssueVoucherType, StoreTransferVoucher, Notification } from './types';
 import { ToastProvider, useToast } from './components/common/ToastProvider';
@@ -81,12 +87,28 @@ const rolePermissions: Record<string, string[]> = {
 };
 
 
-const App: React.FC = () => {
-    const [isLoggedIn, setIsLoggedIn] = useState(false);
-    const [currentUser, setCurrentUser] = useState<User | null>(null);
-    const [userPermissions, setUserPermissions] = useState<string[]>([]);
+const AppContent = () => {
+    // Redux state
+    const dispatch = useAppDispatch();
+    const { Token, User, isAuthed } = useAuth();
+    const isLoggedIn = isAuthed;
+    const currentUser = User;
+    const [sendLogOut] = useSendLogOutMutation();
+    
+    // Local state
     const [activePage, setActivePage] = useState('dashboard');
     const [pageTitle, setPageTitle] = useState('الرئيسية');
+    
+    // Compute user permissions from Redux store (persistent)
+    const userPermissions = useMemo(() => {
+        if (currentUser && currentUser.permissionGroup) {
+            const permissions = rolePermissions[currentUser.permissionGroup] || [];
+            console.log('User permissions computed:', { currentUser, permissionGroup: currentUser.permissionGroup, permissions });
+            return permissions;
+        }
+        console.log('Using default permissions - no user or permissionGroup');
+        return ['all']; // Default permissions for testing
+    }, [currentUser]);
     const [searchTerm, setSearchTerm] = useState('');
     const [editingId, setEditingId] = useState<number | null>(null);
     const [viewingId, setViewingId] = useState<string | number | null>(null);
@@ -98,7 +120,7 @@ const App: React.FC = () => {
     const [isVatEnabled, setIsVatEnabled] = useState(true);
     const [branches, setBranches] = useState<Branch[]>(initialBranches);
     const [stores, setStores] = useState<Store[]>(initialStores);
-    const [users, setUsers] = useState<User[]>(initialUsers);
+    const [users, setUsers] = useState<User[]>([]);
     const [itemGroups, setItemGroups] = useState<ItemGroup[]>(initialItemGroups);
     const [units, setUnits] = useState<Unit[]>(initialUnits);
     const [items, setItems] = useState<Item[]>(initialItems);
@@ -203,24 +225,18 @@ const App: React.FC = () => {
     }, [itemsWithLiveStock, salesInvoices, purchaseInvoices]);
 
 
-    const handleLogin = (username: string, password) => {
-        const user = users.find(u => u.username === username);
-        if (user && user.password === password) {
-            setIsLoggedIn(true);
-            setCurrentUser(user);
-            
-            const permissions = rolePermissions[user.permissionGroup] || [];
-            setUserPermissions(permissions);
-            showToast(`مرحباً بك، ${user.fullName}`);
-        } else {
-            showToast('اسم المستخدم أو كلمة المرور غير صحيحة.');
-        }
+    const handleLogin = async (email: string, password: string) => {
+        // RTK Query handles the login automatically in the Login component
+        // This function is called after successful login to set up local state
+        showToast(`مرحباً بك، ${currentUser?.name || 'مستخدم'}`);
     };
 
-    const handleLogout = () => {
-        setIsLoggedIn(false);
-        setCurrentUser(null);
-        setUserPermissions([]);
+    const handleLogout = async () => {
+        try {
+            await sendLogOut(undefined).unwrap();
+        } catch (error) {
+            console.error('Logout error:', error);
+        }
     };
 
     const handleBackup = useCallback(() => {
@@ -273,14 +289,6 @@ const App: React.FC = () => {
         setExpenses(prev => [...prev, { ...expense, id: Date.now(), code: newCode } as Expense]);
     };
 
-    const handleSaveUser = (user: Partial<User> & { id?: number }) => {
-        setUsers(prev => 
-            user.id 
-                ? prev.map(u => u.id === user.id ? { ...u, ...user, password: user.password || u.password } : u)
-                : [...prev, { ...user, id: Date.now() } as User]
-        );
-    };
-
     const renderPage = () => {
         switch (activePage) {
             case 'dashboard': return <Dashboard title={pageTitle} />;
@@ -288,7 +296,7 @@ const App: React.FC = () => {
             case 'company_data': return <CompanyData title={pageTitle} vatRate={vatRate} setVatRate={setVatRate} isVatEnabled={isVatEnabled} setIsVatEnabled={setIsVatEnabled} companyInfo={companyInfo} setCompanyInfo={setCompanyInfo} onGoHome={() => handleNavigation('dashboard', 'الرئيسية')} />;
             case 'branches_data': return <BranchesData title={pageTitle} branches={branches} onSave={(branch) => setBranches(prev => branch.id ? prev.map(b => b.id === branch.id ? branch : b) : [...prev, { ...branch, id: Date.now() }])} onDelete={(id) => setBranches(prev => prev.filter(b => b.id !== id))} />;
             case 'stores_data': return <StoresData title={pageTitle} stores={stores} branches={branches} users={users} onSave={(store) => setStores(prev => store.id ? prev.map(w => w.id === store.id ? store : w) : [...prev, { ...store, id: Date.now() }])} onDelete={(id) => setStores(prev => prev.filter(w => w.id !== id))} />;
-            case 'users_data': return <UsersData title={pageTitle} users={users} branches={branches} onSave={handleSaveUser} onDelete={(id) => setUsers(prev => prev.filter(u => u.id !== id))} />;
+            case 'users_data': return <UsersData title={pageTitle} users={users} branches={branches} onSave={(user) => setUsers(prev => user.id ? prev.map(u => u.id === user.id ? user : u) : [...prev, { ...user, id: Date.now() }])} onDelete={(id) => setUsers(prev => prev.filter(u => u.id !== id))} />;
             case 'permissions': return <Permissions title={pageTitle} />;
             // Items
             case 'add_item': return <AddItem title={pageTitle} editingId={editingId} items={items} onSave={(item) => setItems(prev => 'id' in item && item.id ? prev.map(i => i.id === item.id ? item : i) : [...prev, { ...item, id: Date.now(), code: (Math.max(...prev.map(i => parseInt(i.code, 10) || 0)) + 1).toString() } as Item])} onDelete={(id) => { setItems(prev => prev.filter(i => i.id !== id)); handleNavigation('items_list', 'قائمة الأصناف'); }} itemGroups={itemGroups} units={units} onNavigate={handleNavigation} />;
@@ -366,13 +374,17 @@ const App: React.FC = () => {
     );
 }
 
-const AppWrapper: React.FC = () => (
-    <ToastProvider>
-        <ModalProvider>
-            <App />
-        </ModalProvider>
-        <Toast />
-    </ToastProvider>
+const AppWrapper = () => (
+    <Provider store={store}>
+        <PersistGate loading={null} persistor={persistor}>
+            <ToastProvider>
+                <ModalProvider>
+                    <AppContent />
+                </ModalProvider>
+                <Toast />
+            </ToastProvider>
+        </PersistGate>
+    </Provider>
 );
 
 export default AppWrapper;
