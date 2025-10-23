@@ -20,8 +20,9 @@ export class SessionService {
   ) {
     try {
       // Hash the refresh token before storing (Security Best Practice)
-      const hashedRefreshToken = await this.helperService.hashPassword(refreshToken);
-      
+      const hashedRefreshToken =
+        await this.helperService.hashPassword(refreshToken);
+
       return await this.prisma.session.create({
         data: {
           userId: user.id,
@@ -69,7 +70,9 @@ export class SessionService {
     }
   }
 
-  async getSessionCount(userId: string): Promise<{ total: number; active: number }> {
+  async getSessionCount(
+    userId: string,
+  ): Promise<{ total: number; active: number }> {
     try {
       const [total, active] = await Promise.all([
         this.prisma.session.count({
@@ -88,8 +91,6 @@ export class SessionService {
       );
     }
   }
-
-  
 
   async terminateAllSessions(userId: string): Promise<void> {
     try {
@@ -139,5 +140,4 @@ export class SessionService {
       );
     }
   }
-
 }

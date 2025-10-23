@@ -26,20 +26,10 @@ export class UserService {
     const where: any = {};
 
     if (search) {
-      const searchUpper = search.toUpperCase();
-      const roleMatch = [
-        'ADMIN',
-        'CAMPAIGN_SUPERVISOR',
-        'EXPENSES_SUPERVISOR',
-        'MARKETING_SUPERVISOR',
-      ].includes(searchUpper)
-        ? searchUpper
-        : undefined;
-
       where.OR = [
         { name: { contains: search, mode: 'insensitive' } },
         { email: { contains: search, mode: 'insensitive' } },
-        ...(roleMatch ? [{ role: roleMatch }] : []),
+        { role: { name: { contains: search, mode: 'insensitive' } } },
       ];
     }
 
@@ -48,6 +38,9 @@ export class UserService {
     const total = await this.prisma.user.count({ where });
     const users = await this.prisma.user.findMany({
       where,
+      include: {
+        role: true,
+      },
       orderBy: { [sortBy]: sortOrder },
       skip,
       take: limit,
@@ -70,6 +63,11 @@ export class UserService {
     // Check if user already exists
     await this.errorIfUserExists(data.email);
 
+    // Get default role (manager)
+    const defaultRole = await this.prisma.role.findFirst({
+      where: { name: 'manager' },
+    });
+
     // Create user directly with hashed password
     const user = await this.prisma.user.create({
       data: {
@@ -79,6 +77,10 @@ export class UserService {
         name: data.name,
         emailVerified: true,
         active: true,
+        roleId: defaultRole?.id,
+      },
+      include: {
+        role: true,
       },
     });
 
@@ -99,11 +101,7 @@ export class UserService {
     return { id: user.id };
   }
 
-  async getLoginUserOrError({
-    email,
-  }: {
-    email: string;
-  }) {
+  async getLoginUserOrError({ email }: { email: string }) {
     const user = await this.prisma.user.findUnique({
       where: {
         email,
@@ -122,10 +120,7 @@ export class UserService {
     return user;
   }
 
-  async toggleUserActivity(
-    userId: string,
-    currentUserId: string,
-  ) {
+  async toggleUserActivity(userId: string, currentUserId: string) {
     // Check if user exists
     const existingUser = await this.prisma.user.findFirst({
       where: {
@@ -155,9 +150,7 @@ export class UserService {
     return user;
   }
 
-  async deleteUser(
-    userId: string,
-  ) {
+  async deleteUser(userId: string) {
     // Check if user exists
     const existingUser = await this.prisma.user.findFirst({
       where: {
@@ -174,7 +167,6 @@ export class UserService {
         HttpStatus.NOT_FOUND,
       );
     }
-
 
     // Delete related sessions first
     await this.prisma.session.deleteMany({
@@ -230,5 +222,28 @@ export class UserService {
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
+  }
+
+  async getUserPermissions(userId: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      include: {
+        role: {
+          include: {
+            rolePermissions: {
+              include: {
+                permission: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    if (!user || !user.role) {
+      return [];
+    }
+
+    return user.role.rolePermissions.map((rp) => rp.permission);
   }
 }

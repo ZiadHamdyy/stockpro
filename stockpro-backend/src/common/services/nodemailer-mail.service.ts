@@ -21,9 +21,12 @@ export class NodemailerMailService implements IMailService {
 
   async sendMail(options: MailOptions): Promise<void> {
     try {
-      const fromEmail = this.configService.get<string>('SMTP_FROM_EMAIL') || this.configService.get<string>('SMTP_USER');
-      const fromName = this.configService.get<string>('SMTP_FROM_NAME') || 'StockPro Platform';
-      
+      const fromEmail =
+        this.configService.get<string>('SMTP_FROM_EMAIL') ||
+        this.configService.get<string>('SMTP_USER');
+      const fromName =
+        this.configService.get<string>('SMTP_FROM_NAME') || 'StockPro Platform';
+
       const mailOptions = {
         from: `"${fromName}" <${fromEmail}>`,
         to: options.to,
@@ -32,7 +35,7 @@ export class NodemailerMailService implements IMailService {
         html: options.html,
       };
 
-    await this.transporter.sendMail(mailOptions);
+      await this.transporter.sendMail(mailOptions);
     } catch (error) {
       console.error('Error sending email:', error);
       throw error;

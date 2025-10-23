@@ -56,7 +56,12 @@ export class AuthController {
     @userAgent() userAgent: string,
     @Res({ passthrough: true }) response: Response,
   ) {
-    return await this.authService.loginWithCookie(user, ipAddress, userAgent, response);
+    return await this.authService.loginWithCookie(
+      user,
+      ipAddress,
+      userAgent,
+      response,
+    );
   }
 
   @Post('refresh')
@@ -67,7 +72,10 @@ export class AuthController {
     @RefreshToken() refreshToken: string,
     @Res({ passthrough: true }) response: Response,
   ) {
-    return await this.authService.refreshTokensWithCookie(refreshToken, response);
+    return await this.authService.refreshTokensWithCookie(
+      refreshToken,
+      response,
+    );
   }
 
   @Delete('logout')
@@ -77,7 +85,11 @@ export class AuthController {
     @currentUser() user: currentUserType,
     @Res({ passthrough: true }) response: Response,
   ) {
-    return await this.authService.logoutWithCookie(user, user.session?.id, response);
+    return await this.authService.logoutWithCookie(
+      user,
+      user.session?.id,
+      response,
+    );
   }
 
   @Delete('logout-all')
@@ -106,8 +118,12 @@ export class AuthController {
 
   @Patch('verify-forgot-password')
   @HttpCode(HttpStatus.OK)
-  async verifyForgotPassword(@Body() verifyForgotPasswordRequest: VerifyForgotPasswordRequest) {
-    return await this.authService.verifyForgotPassword(verifyForgotPasswordRequest);
+  async verifyForgotPassword(
+    @Body() verifyForgotPasswordRequest: VerifyForgotPasswordRequest,
+  ) {
+    return await this.authService.verifyForgotPassword(
+      verifyForgotPasswordRequest,
+    );
   }
 
   @Patch('reset-password')
@@ -135,18 +151,31 @@ export class AuthController {
     @userAgent() userAgent: string,
     @Res({ passthrough: true }) response: Response,
   ) {
-    return await this.authService.verifyEmail(verifyEmailRequest, ipAddress, userAgent, response);
+    return await this.authService.verifyEmail(
+      verifyEmailRequest,
+      ipAddress,
+      userAgent,
+      response,
+    );
   }
 
   @Post('resend-verification')
   @HttpCode(HttpStatus.OK)
-  async resendVerification(@Body() resendVerificationRequest: ResendVerificationRequest) {
-    return await this.authService.resendVerificationCode(resendVerificationRequest);
+  async resendVerification(
+    @Body() resendVerificationRequest: ResendVerificationRequest,
+  ) {
+    return await this.authService.resendVerificationCode(
+      resendVerificationRequest,
+    );
   }
 
   @Post('resend-forgot-password')
   @HttpCode(HttpStatus.OK)
-  async resendForgotPassword(@Body() resendForgotPasswordRequest: ResendForgotPasswordRequest) {
-    return await this.authService.resendForgotPasswordCode(resendForgotPasswordRequest);
+  async resendForgotPassword(
+    @Body() resendForgotPasswordRequest: ResendForgotPasswordRequest,
+  ) {
+    return await this.authService.resendForgotPasswordCode(
+      resendForgotPasswordRequest,
+    );
   }
 }

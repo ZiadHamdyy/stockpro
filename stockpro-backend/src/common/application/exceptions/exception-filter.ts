@@ -125,5 +125,4 @@ export class HttpExceptionFilter implements ExceptionFilter {
       .status(HttpStatus.INTERNAL_SERVER_ERROR)
       .json(this.response);
   }
-
 }

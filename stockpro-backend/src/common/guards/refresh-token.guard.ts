@@ -41,17 +41,23 @@ export class RefreshTokenGuard implements CanActivate {
     return request.cookies?.[TOKEN_CONSTANTS.COOKIE.REFRESH_TOKEN_NAME];
   }
 
-  private async handleExpiredRefreshToken(refreshToken: string, response: Response): Promise<void> {
+  private async handleExpiredRefreshToken(
+    refreshToken: string,
+    response: Response,
+  ): Promise<void> {
     try {
       // Try to find the session with this refresh token
       // This will work even if the token is expired because we're comparing hashed values
-      const session = await this.sessionService.findByRefreshToken(refreshToken);
+      const session =
+        await this.sessionService.findByRefreshToken(refreshToken);
       if (session) {
         // Delete the session associated with the expired refresh token
         await this.sessionService.remove(session);
-        console.log(`🗑️ Deleted session ${session.id} due to expired refresh token`);
+        console.log(
+          `🗑️ Deleted session ${session.id} due to expired refresh token`,
+        );
       }
-      
+
       // Clear the refresh token cookie from the browser
       this.clearRefreshTokenCookie(response);
       console.log(`🍪 Cleared refresh token cookie due to expired token`);

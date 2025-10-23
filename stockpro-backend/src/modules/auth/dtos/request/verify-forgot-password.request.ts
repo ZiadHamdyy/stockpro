@@ -22,7 +22,8 @@ export class VerifyForgotPasswordRequest {
   @IsDefined({ message: ERROR_MESSAGES.OTP_REQUIRED })
   @IsNotEmpty({ message: ERROR_MESSAGES.OTP_REQUIRED })
   @IsString({ message: ERROR_MESSAGES.OTP_SHOULD_BE_STRING })
-  @Matches(new RegExp(`^\\d{${TOKEN_CONSTANTS.OTP.LENGTH}}$`), { message: ERROR_MESSAGES.OTP_MUST_BE_6_DIGITS })
+  @Matches(new RegExp(`^\\d{${TOKEN_CONSTANTS.OTP.LENGTH}}$`), {
+    message: ERROR_MESSAGES.OTP_MUST_BE_6_DIGITS,
+  })
   otp: string;
 }
-

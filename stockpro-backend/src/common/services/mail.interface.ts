@@ -8,4 +8,3 @@ export interface MailOptions {
 export interface IMailService {
   sendMail(options: MailOptions): Promise<void>;
 }
-

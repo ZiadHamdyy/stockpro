@@ -1,6 +1,7 @@
 import { Session, User } from '@prisma/client';
 import { TokenPayload } from '../../types/auth-token-payload.type';
 import { Request } from 'express';
+import type { currentUserType } from '../../types/current-user.type';
 
 export const IContextAuthServiceToken = 'IContextAuthService';
 
@@ -11,5 +12,12 @@ export interface IContextAuthService {
 
   getUserFromReqHeaders(req: Request): Promise<User | null>;
 
-  hasPermission(permission: string, user: User): boolean;
+  hasPermission(permission: string, user: User & { role?: any }): boolean;
+
+  hasAllPermissions(
+    permissions: string[],
+    user: User & { role?: any },
+  ): boolean;
+
+  getUserWithRoleAndPermissions(userId: string): Promise<User & { role?: any }>;
 }

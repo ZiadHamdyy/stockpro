@@ -10,4 +10,3 @@ export class VerifyEmailRequest {
   @Length(6, 6, { message: 'OTP must be exactly 6 digits' })
   otp: string;
 }
-

@@ -44,7 +44,8 @@ export const APP_CONSTANTS = {
   VALIDATION: {
     EMAIL_REGEX: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
     PHONE_REGEX: /^\+?[1-9]\d{1,14}$/,
-    UUID_REGEX: /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i,
+    UUID_REGEX:
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i,
   },
 
   // Cache Configuration
@@ -63,5 +64,7 @@ export const APP_CONSTANTS = {
 
 // Type definitions
 export type LogLevel = 'error' | 'warn' | 'info' | 'debug';
-export type ImageType = typeof APP_CONSTANTS.UPLOAD.ALLOWED_IMAGE_TYPES[number];
-export type DocumentType = typeof APP_CONSTANTS.UPLOAD.ALLOWED_DOCUMENT_TYPES[number];
+export type ImageType =
+  (typeof APP_CONSTANTS.UPLOAD.ALLOWED_IMAGE_TYPES)[number];
+export type DocumentType =
+  (typeof APP_CONSTANTS.UPLOAD.ALLOWED_DOCUMENT_TYPES)[number];

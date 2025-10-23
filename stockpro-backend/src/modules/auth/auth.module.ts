@@ -21,12 +21,12 @@ import { TOKEN_CONSTANTS } from '../../common/constants';
       useFactory: async (configService: ConfigService) => {
         const options: JwtModuleOptions = {
           secret: configService.get('JWT_SECRET'),
-          signOptions: { 
+          signOptions: {
             algorithm: TOKEN_CONSTANTS.ACCESS_TOKEN.ALGORITHM,
             issuer: TOKEN_CONSTANTS.SECURITY.JWT_ISSUER,
             audience: TOKEN_CONSTANTS.SECURITY.JWT_AUDIENCE,
           },
-          verifyOptions: { 
+          verifyOptions: {
             algorithms: [TOKEN_CONSTANTS.ACCESS_TOKEN.ALGORITHM],
             issuer: TOKEN_CONSTANTS.SECURITY.JWT_ISSUER,
             audience: TOKEN_CONSTANTS.SECURITY.JWT_AUDIENCE,

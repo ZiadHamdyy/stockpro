@@ -90,7 +90,9 @@ function setupSwagger(app: NestExpressApplication) {
 async function bootstrap(): Promise<void> {
   if (get('NODE_ENV').asString() === 'production') initializeLogging();
 
-  const frontendUrl = get('FRONTEND_URL').default('http://localhost:5173').asString();
+  const frontendUrl = get('FRONTEND_URL')
+    .default('http://localhost:5173')
+    .asString();
   const isProduction = get('NODE_ENV').asString() === 'production';
 
   const app = await NestFactory.create<NestExpressApplication>(AppModule, {
@@ -115,6 +117,8 @@ async function bootstrap(): Promise<void> {
   await app.listen(port);
 
   console.log(`Application is running on: http://localhost:${port}`);
-  console.log(`Swagger documentation available at: http://localhost:${port}/${APP_CONSTANTS.API.DOCS_PATH}`);
+  console.log(
+    `Swagger documentation available at: http://localhost:${port}/${APP_CONSTANTS.API.DOCS_PATH}`,
+  );
 }
 bootstrap();

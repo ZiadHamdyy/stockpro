@@ -13,6 +13,8 @@ import { ContextModule } from './common/application/context/context.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { UserModule } from './modules/user/user.module';
 import { SessionModule } from './modules/session/session.module';
+import { RoleModule } from './modules/role/role.module';
+import { PermissionModule } from './modules/permission/permission.module';
 
 @Module({
   imports: [
@@ -25,6 +27,8 @@ import { SessionModule } from './modules/session/session.module';
     AuthModule,
     UserModule,
     SessionModule,
+    RoleModule,
+    PermissionModule,
   ],
   controllers: [AppController],
   providers: [

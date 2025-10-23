@@ -43,9 +43,15 @@ export class AuthService {
     });
 
     // Generate email verification OTP
-    const otp = Math.floor(TOKEN_CONSTANTS.OTP.MIN_VALUE + Math.random() * (TOKEN_CONSTANTS.OTP.MAX_VALUE - TOKEN_CONSTANTS.OTP.MIN_VALUE + 1)).toString();
+    const otp = Math.floor(
+      TOKEN_CONSTANTS.OTP.MIN_VALUE +
+        Math.random() *
+          (TOKEN_CONSTANTS.OTP.MAX_VALUE - TOKEN_CONSTANTS.OTP.MIN_VALUE + 1),
+    ).toString();
     const otpHash = await this.helperService.hashPassword(otp);
-    const otpExpiresAt = new Date(Date.now() + TOKEN_CONSTANTS.OTP.EXPIRES_IN_MS);
+    const otpExpiresAt = new Date(
+      Date.now() + TOKEN_CONSTANTS.OTP.EXPIRES_IN_MS,
+    );
 
     // Create email verification OTP record
     await this.prisma.otp.create({
@@ -59,7 +65,11 @@ export class AuthService {
     });
 
     // Send email verification OTP
-    await this.emailService.sendEmailVerificationOtp(email, otp, TOKEN_CONSTANTS.OTP.EXPIRES_IN_MINUTES);
+    await this.emailService.sendEmailVerificationOtp(
+      email,
+      otp,
+      TOKEN_CONSTANTS.OTP.EXPIRES_IN_MINUTES,
+    );
 
     return user;
   }
@@ -139,14 +149,18 @@ export class AuthService {
     response: Response,
   ) {
     const result = await this.login(user, ipAddress, userAgent);
-    
+
     // Set HttpOnly cookie for refresh token
     this.setRefreshTokenCookie(response, result.refreshToken);
-    
+
     return result;
   }
 
-  async appendAuthTokenToResponse(user: User, session: Session, refreshToken: string) {
+  async appendAuthTokenToResponse(
+    user: User,
+    session: Session,
+    refreshToken: string,
+  ) {
     const accessToken = this.generateAccessToken({
       userId: user.id,
       sessionId: session.id,
@@ -179,7 +193,8 @@ export class AuthService {
       const payload = this.jwtService.verify<TokenPayload>(refreshToken);
 
       // Find the session with this refresh token
-      const session = await this.sessionService.findByRefreshToken(refreshToken);
+      const session =
+        await this.sessionService.findByRefreshToken(refreshToken);
 
       if (!session || session.userId !== payload.userId) {
         // If session not found or user ID doesn't match, delete the session
@@ -227,10 +242,10 @@ export class AuthService {
   async refreshTokensWithCookie(refreshToken: string, response: Response) {
     try {
       const result = await this.refreshTokens(refreshToken);
-      
+
       // No need to update the refresh token cookie since it remains the same
       // The refresh token stays valid until it expires or user logs out
-      
+
       return result;
     } catch (error) {
       // If refresh fails (e.g., expired token), clear the refresh token cookie
@@ -265,21 +280,25 @@ export class AuthService {
     }
   }
 
-  async logoutWithCookie(user: User, sessionId: string | undefined, response: Response) {
+  async logoutWithCookie(
+    user: User,
+    sessionId: string | undefined,
+    response: Response,
+  ) {
     const result = await this.logout(user, sessionId);
-    
+
     // Clear refresh token cookie
     this.clearRefreshTokenCookie(response);
-    
+
     return result;
   }
 
   async logoutAllWithCookie(user: User, response: Response) {
     const result = await this.logout(user);
-    
+
     // Clear refresh token cookie
     this.clearRefreshTokenCookie(response);
-    
+
     return result;
   }
 
@@ -317,13 +336,19 @@ export class AuthService {
       }
 
       // Generate 6-digit OTP
-      const otp = Math.floor(TOKEN_CONSTANTS.OTP.MIN_VALUE + Math.random() * (TOKEN_CONSTANTS.OTP.MAX_VALUE - TOKEN_CONSTANTS.OTP.MIN_VALUE + 1)).toString();
+      const otp = Math.floor(
+        TOKEN_CONSTANTS.OTP.MIN_VALUE +
+          Math.random() *
+            (TOKEN_CONSTANTS.OTP.MAX_VALUE - TOKEN_CONSTANTS.OTP.MIN_VALUE + 1),
+      ).toString();
 
       // Hash OTP
       const otpHash = await this.helperService.hashPassword(otp);
 
       // Set expiration time (10 minutes from now)
-      const otpExpiresAt = new Date(Date.now() + TOKEN_CONSTANTS.OTP.EXPIRES_IN_MS);
+      const otpExpiresAt = new Date(
+        Date.now() + TOKEN_CONSTANTS.OTP.EXPIRES_IN_MS,
+      );
 
       // Delete any existing OTP records for this user
       await this.prisma.otp.deleteMany({
@@ -342,7 +367,11 @@ export class AuthService {
       });
 
       // Send OTP email
-      await this.emailService.sendOtpEmail(email, otp, TOKEN_CONSTANTS.OTP.EXPIRES_IN_MINUTES);
+      await this.emailService.sendOtpEmail(
+        email,
+        otp,
+        TOKEN_CONSTANTS.OTP.EXPIRES_IN_MINUTES,
+      );
 
       return {
         success: true,
@@ -402,7 +431,10 @@ export class AuthService {
     }
 
     // Verify OTP
-    const isOtpValid = await this.helperService.comparePassword(otp, otpRecord.otpHash);
+    const isOtpValid = await this.helperService.comparePassword(
+      otp,
+      otpRecord.otpHash,
+    );
 
     if (!isOtpValid) {
       throw new GenericHttpException(
@@ -537,7 +569,8 @@ export class AuthService {
       }
 
       // Hash new password
-      const hashedNewPassword = await this.helperService.hashPassword(newPassword);
+      const hashedNewPassword =
+        await this.helperService.hashPassword(newPassword);
 
       // Update password
       await this.prisma.user.update({
@@ -595,16 +628,22 @@ export class AuthService {
 
     // Delete any existing email verification OTP records for this user
     await this.prisma.otp.deleteMany({
-      where: { 
+      where: {
         userId: user.id,
         type: 'EMAIL_VERIFICATION',
       },
     });
 
     // Generate new email verification OTP
-    const otp = Math.floor(TOKEN_CONSTANTS.OTP.MIN_VALUE + Math.random() * (TOKEN_CONSTANTS.OTP.MAX_VALUE - TOKEN_CONSTANTS.OTP.MIN_VALUE + 1)).toString();
+    const otp = Math.floor(
+      TOKEN_CONSTANTS.OTP.MIN_VALUE +
+        Math.random() *
+          (TOKEN_CONSTANTS.OTP.MAX_VALUE - TOKEN_CONSTANTS.OTP.MIN_VALUE + 1),
+    ).toString();
     const otpHash = await this.helperService.hashPassword(otp);
-    const otpExpiresAt = new Date(Date.now() + TOKEN_CONSTANTS.OTP.EXPIRES_IN_MS);
+    const otpExpiresAt = new Date(
+      Date.now() + TOKEN_CONSTANTS.OTP.EXPIRES_IN_MS,
+    );
 
     // Create new email verification OTP record
     await this.prisma.otp.create({
@@ -618,7 +657,11 @@ export class AuthService {
     });
 
     // Send email verification OTP
-    await this.emailService.sendEmailVerificationOtp(email, otp, TOKEN_CONSTANTS.OTP.EXPIRES_IN_MINUTES);
+    await this.emailService.sendEmailVerificationOtp(
+      email,
+      otp,
+      TOKEN_CONSTANTS.OTP.EXPIRES_IN_MINUTES,
+    );
 
     return {
       success: true,
@@ -644,16 +687,22 @@ export class AuthService {
 
     // Delete any existing password reset OTP records for this user
     await this.prisma.otp.deleteMany({
-      where: { 
+      where: {
         userId: user.id,
         type: 'PASSWORD_RESET',
       },
     });
 
     // Generate new password reset OTP
-    const otp = Math.floor(TOKEN_CONSTANTS.OTP.MIN_VALUE + Math.random() * (TOKEN_CONSTANTS.OTP.MAX_VALUE - TOKEN_CONSTANTS.OTP.MIN_VALUE + 1)).toString();
+    const otp = Math.floor(
+      TOKEN_CONSTANTS.OTP.MIN_VALUE +
+        Math.random() *
+          (TOKEN_CONSTANTS.OTP.MAX_VALUE - TOKEN_CONSTANTS.OTP.MIN_VALUE + 1),
+    ).toString();
     const otpHash = await this.helperService.hashPassword(otp);
-    const otpExpiresAt = new Date(Date.now() + TOKEN_CONSTANTS.OTP.EXPIRES_IN_MS);
+    const otpExpiresAt = new Date(
+      Date.now() + TOKEN_CONSTANTS.OTP.EXPIRES_IN_MS,
+    );
 
     // Create new password reset OTP record
     await this.prisma.otp.create({
@@ -667,7 +716,11 @@ export class AuthService {
     });
 
     // Send password reset OTP
-    await this.emailService.sendOtpEmail(email, otp, TOKEN_CONSTANTS.OTP.EXPIRES_IN_MINUTES);
+    await this.emailService.sendOtpEmail(
+      email,
+      otp,
+      TOKEN_CONSTANTS.OTP.EXPIRES_IN_MINUTES,
+    );
 
     return {
       success: true,
@@ -675,7 +728,12 @@ export class AuthService {
     };
   }
 
-  async verifyEmail(request: { email: string; otp: string }, ipAddress?: string, userAgent?: string, response?: any) {
+  async verifyEmail(
+    request: { email: string; otp: string },
+    ipAddress?: string,
+    userAgent?: string,
+    response?: any,
+  ) {
     const { email, otp } = request;
 
     // Find user by email
@@ -693,12 +751,12 @@ export class AuthService {
 
     // Check if email is already verified
     if (user.emailVerified) {
-      return {user};
+      return { user };
     }
 
     // Find the most recent email verification OTP record for this user
     const otpRecord = await this.prisma.otp.findFirst({
-      where: { 
+      where: {
         userId: user.id,
         type: 'EMAIL_VERIFICATION',
         otpVerified: false, // Ensure OTP hasn't been used already
@@ -728,7 +786,10 @@ export class AuthService {
     }
 
     // Verify OTP
-    const isOtpValid = await this.helperService.comparePassword(otp, otpRecord.otpHash);
+    const isOtpValid = await this.helperService.comparePassword(
+      otp,
+      otpRecord.otpHash,
+    );
 
     if (!isOtpValid) {
       throw new GenericHttpException(
@@ -752,7 +813,12 @@ export class AuthService {
 
     // Create session and log user in
     if (ipAddress && userAgent) {
-      return await this.loginWithCookie(updatedUser, ipAddress, userAgent, response);
+      return await this.loginWithCookie(
+        updatedUser,
+        ipAddress,
+        userAgent,
+        response,
+      );
     }
 
     // If no session creation, return user without tokens (same as login structure)
@@ -760,5 +826,4 @@ export class AuthService {
       user: updatedUser,
     };
   }
-
 }

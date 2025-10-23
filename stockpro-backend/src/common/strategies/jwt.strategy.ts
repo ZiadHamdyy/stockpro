@@ -27,11 +27,16 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       throw new GenericHttpException('Invalid token', 401);
 
     const result = await this.authService.getUserAndSessionFromPayload(payload);
-    
-    if (!result)
-      throw new GenericHttpException('Invalid token', 401);
+
+    if (!result) throw new GenericHttpException('Invalid token', 401);
 
     const { user, session } = result;
-    return { ...user, session };
+
+    // Load user with role and permissions
+    const userWithRole = await this.authService.getUserWithRoleAndPermissions(
+      user.id,
+    );
+
+    return { ...userWithRole, session };
   }
 }

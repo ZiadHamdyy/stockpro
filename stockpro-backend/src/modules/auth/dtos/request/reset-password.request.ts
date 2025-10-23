@@ -26,4 +26,3 @@ export class ResetPasswordRequest {
   @MaxLength(25, { message: ERROR_MESSAGES.PASSWORD_MIN_LENGTH_8_MAX_25 })
   newPassword: string;
 }
-

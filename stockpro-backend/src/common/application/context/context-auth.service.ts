@@ -12,8 +12,61 @@ import { DatabaseService } from '../../../configs/database/database.service';
 export class ContextAuthService implements IContextAuthService {
   constructor(private readonly prisma: DatabaseService) {}
 
-  public hasPermission(permission: string, user: User): boolean {
-    return true;
+  public hasPermission(
+    permission: string,
+    user: User & { role?: any },
+  ): boolean {
+    if (!user.role || !user.role.rolePermissions) {
+      return false;
+    }
+
+    // Check if user has the specific permission
+    const hasPermission = user.role.rolePermissions.some(
+      (rp: any) =>
+        rp.permission.resource === permission.split(':')[0] &&
+        rp.permission.action === permission.split(':')[1],
+    );
+
+    return hasPermission;
+  }
+
+  public hasAllPermissions(
+    permissions: string[],
+    user: User & { role?: any },
+  ): boolean {
+    if (!user.role || !user.role.rolePermissions) {
+      return false;
+    }
+
+    // Check if user has ALL specified permissions
+    return permissions.every((permission) =>
+      this.hasPermission(permission, user),
+    );
+  }
+
+  async getUserWithRoleAndPermissions(
+    userId: string,
+  ): Promise<User & { role?: any }> {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      include: {
+        role: {
+          include: {
+            rolePermissions: {
+              include: {
+                permission: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    if (!user) {
+      throw new GenericHttpException('User not found', 404);
+    }
+
+    return user;
   }
 
   async getUserFromReqHeaders(req: Request): Promise<User | null> {

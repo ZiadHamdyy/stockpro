@@ -33,9 +33,11 @@ export const ERROR_MESSAGES = {
   SESSION_DELETE_FAILED: 'Failed to delete session. Please try again',
   SESSION_RETRIEVE_FAILED: 'Failed to retrieve sessions. Please try again',
   SESSION_COUNT_FAILED: 'Failed to count sessions. Please try again',
-  SESSION_NOT_FOUND: 'Session not found or you do not have permission to access it',
+  SESSION_NOT_FOUND:
+    'Session not found or you do not have permission to access it',
   SESSION_TERMINATE_FAILED: 'Failed to terminate session. Please try again',
-  SESSION_TERMINATE_ALL_FAILED: 'Failed to terminate all sessions. Please try again',
+  SESSION_TERMINATE_ALL_FAILED:
+    'Failed to terminate all sessions. Please try again',
 
   // Validation Messages (DTOs)
   EMAIL_REQUIRED: 'Email is required',
@@ -84,16 +86,17 @@ export const ERROR_MESSAGES = {
   // Email Verification Messages
   EMAIL_VERIFICATION_SUCCESS: 'Email verified successfully',
   EMAIL_ALREADY_VERIFIED: 'Email is already verified',
-  SIGNUP_SUCCESS: 'Signup successful. Please check your email to verify your account.',
+  SIGNUP_SUCCESS:
+    'Signup successful. Please check your email to verify your account.',
 
   // Session Messages
   ALREADY_SIGNED_IN: 'You are already signed in with this device',
 
   // Resend Verification Messages
   VERIFICATION_CODE_RESENT: 'Verification code has been resent to your email',
-  FORGOT_PASSWORD_CODE_RESENT: 'Password reset code has been resent to your email',
+  FORGOT_PASSWORD_CODE_RESENT:
+    'Password reset code has been resent to your email',
 } as const;
 
 // Type for error message keys
 export type ErrorMessageKey = keyof typeof ERROR_MESSAGES;
-

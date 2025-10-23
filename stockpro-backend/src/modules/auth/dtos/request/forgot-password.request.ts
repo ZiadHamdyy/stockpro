@@ -17,4 +17,3 @@ export class ForgotPasswordRequest {
   @Transform(({ value }) => value.toLowerCase(), { toClassOnly: true })
   email: string;
 }
-

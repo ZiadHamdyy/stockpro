@@ -22,4 +22,3 @@ import { NodemailerMailService } from './nodemailer-mail.service';
   exports: [EmailService],
 })
 export class EmailModule {}
-

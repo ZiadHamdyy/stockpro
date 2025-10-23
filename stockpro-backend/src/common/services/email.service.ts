@@ -6,7 +6,11 @@ import { MailOptions } from './mail.interface';
 export class EmailService {
   constructor(private readonly mailService: IMailService) {}
 
-  async sendOtpEmail(email: string, otp: string, expiryMinutes: number = 10): Promise<void> {
+  async sendOtpEmail(
+    email: string,
+    otp: string,
+    expiryMinutes: number = 10,
+  ): Promise<void> {
     const mailOptions: MailOptions = {
       to: email,
       subject: 'Password Reset OTP',
@@ -29,7 +33,11 @@ export class EmailService {
     await this.mailService.sendMail(mailOptions);
   }
 
-  async sendEmailVerificationOtp(email: string, otp: string, expiryMinutes: number = 10): Promise<void> {
+  async sendEmailVerificationOtp(
+    email: string,
+    otp: string,
+    expiryMinutes: number = 10,
+  ): Promise<void> {
     const mailOptions: MailOptions = {
       to: email,
       subject: 'Email Verification - StockPro Platform',
@@ -56,4 +64,3 @@ export class EmailService {
     await this.mailService.sendMail(options);
   }
 }
-

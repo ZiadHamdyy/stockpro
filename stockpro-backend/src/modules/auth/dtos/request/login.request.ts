@@ -1,4 +1,10 @@
-import { IsDefined, IsNotEmpty, IsString, MaxLength, MinLength } from 'class-validator';
+import {
+  IsDefined,
+  IsNotEmpty,
+  IsString,
+  MaxLength,
+  MinLength,
+} from 'class-validator';
 import { Transform } from 'class-transformer';
 
 export class LoginRequest {
