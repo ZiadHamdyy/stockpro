@@ -78,6 +78,17 @@ export class AuthService {
     // Find user without throwing errors to prevent info leakage
     const user = await this.prisma.user.findUnique({
       where: { email },
+      include: {
+        role: {
+          include: {
+            rolePermissions: {
+              include: {
+                permission: true,
+              },
+            },
+          },
+        },
+      },
     });
 
     // Return generic error for all cases: not found, inactive, no password, wrong password
@@ -101,7 +112,11 @@ export class AuthService {
       );
     }
 
-    return user;
+    // Format user with permissions
+    return {
+      ...user,
+      permissions: user.role?.rolePermissions?.map((rp) => rp.permission) || [],
+    };
   }
 
   async login(user: User, ipAddress?: string, userAgent?: string) {
@@ -156,7 +171,7 @@ export class AuthService {
     return result;
   }
 
-  async appendAuthTokenToResponse(
+  appendAuthTokenToResponse(
     user: User,
     session: Session,
     refreshToken: string,
@@ -272,7 +287,7 @@ export class AuthService {
         success: true,
         message: 'Logged out successfully',
       };
-    } catch (error) {
+    } catch {
       throw new GenericHttpException(
         ERROR_MESSAGES.LOGOUT_FAILED,
         HttpStatus.INTERNAL_SERVER_ERROR,

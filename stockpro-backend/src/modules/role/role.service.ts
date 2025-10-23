@@ -20,9 +20,19 @@ export class RoleService {
   async findAll(): Promise<RoleResponse[]> {
     const roles = await this.prisma.role.findMany({
       orderBy: { name: 'asc' },
+      include: {
+        rolePermissions: {
+          include: {
+            permission: true,
+          },
+        },
+      },
     });
 
-    return roles;
+    return roles.map(role => ({
+      ...role,
+      permissions: role.rolePermissions.map((rp) => rp.permission),
+    })) as RoleResponse[];
   }
 
   async findOne(id: string): Promise<RoleResponse | null> {

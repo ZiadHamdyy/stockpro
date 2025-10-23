@@ -199,7 +199,6 @@ export const authApi = apiSlice.injectEndpoints({
       async onQueryStarted(_arg: any, { queryFulfilled }: any) {
         try {
           const { data } = await queryFulfilled;
-          console.log('Reset password response:', data);
         } catch (error) {
           console.error('Reset password failed:', error);
         }

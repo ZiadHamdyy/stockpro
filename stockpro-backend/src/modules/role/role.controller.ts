@@ -34,7 +34,7 @@ export class RoleController {
   @Get()
   @HttpCode(HttpStatus.OK)
   @Serialize(RoleResponse)
-  @Auth({ permissions: ['roles:read'] })
+  @Auth({ permissions: ['permissions:read'] })
   async findAll(): Promise<RoleResponse[]> {
     return await this.roleService.findAll();
   }
@@ -42,7 +42,7 @@ export class RoleController {
   @Get(':id')
   @HttpCode(HttpStatus.OK)
   @Serialize(RoleResponse)
-  @Auth({ permissions: ['roles:read'] })
+  @Auth({ permissions: ['permissions:read'] })
   async findOne(@Param('id') id: string): Promise<RoleResponse | null> {
     return await this.roleService.findOne(id);
   }
@@ -50,7 +50,7 @@ export class RoleController {
   @Patch(':id')
   @HttpCode(HttpStatus.OK)
   @Serialize(RoleResponse)
-  @Auth({ permissions: ['roles:update'] })
+  @Auth({ permissions: ['permissions:update'] })
   async update(
     @Param('id') id: string,
     @Body() updateRoleRequest: UpdateRoleRequest,
@@ -60,7 +60,7 @@ export class RoleController {
 
   @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)
-  @Auth({ permissions: ['roles:delete'] })
+  @Auth({ permissions: ['permissions:delete'] })
   async remove(@Param('id') id: string): Promise<void> {
     return await this.roleService.remove(id);
   }
@@ -68,7 +68,7 @@ export class RoleController {
   @Post(':id/permissions')
   @HttpCode(HttpStatus.OK)
   @Serialize(RoleResponse)
-  @Auth({ permissions: ['roles:update'] })
+  @Auth({ permissions: ['permissions:update'] })
   async assignPermissions(
     @Param('id') id: string,
     @Body() assignPermissionsRequest: AssignPermissionsRequest,
@@ -81,7 +81,7 @@ export class RoleController {
 
   @Delete(':roleId/permissions/:permissionId')
   @HttpCode(HttpStatus.NO_CONTENT)
-  @Auth({ permissions: ['roles:update'] })
+  @Auth({ permissions: ['permissions:update'] })
   async removePermission(
     @Param('roleId') roleId: string,
     @Param('permissionId') permissionId: string,

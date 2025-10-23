@@ -164,3 +164,29 @@ export const MENU_ITEMS: MenuItem[] = [
     ]
   },
 ];
+
+// Permission mappings between Arabic frontend and English backend
+export const ARABIC_TO_ENGLISH_ACTIONS = {
+  'قراءة': 'read',
+  'جديد': 'create', 
+  'تعديل': 'update',
+  'حذف': 'delete',
+  'بحث': 'search',
+  'طباعة': 'print'
+} as const;
+
+export const ARABIC_TO_ENGLISH_ROLES = {
+  'مدير': 'manager',
+  'محاسب': 'accountant', 
+  'بائع': 'salesperson',
+  'مدخل بيانات': 'data_entry'
+} as const;
+
+export const ENGLISH_TO_ARABIC_ROLES = {
+  'manager': 'مدير',
+  'accountant': 'محاسب',
+  'salesperson': 'بائع', 
+  'data_entry': 'مدخل بيانات'
+} as const;
+
+export const PERMISSION_ACTIONS = ['قراءة', 'جديد', 'تعديل', 'حذف', 'بحث', 'طباعة'];

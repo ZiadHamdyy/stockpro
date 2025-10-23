@@ -222,3 +222,26 @@ export interface Voucher {
     userName: string;
     branchName: string;
 }
+
+export interface Permission {
+    id: string;
+    resource: string;
+    action: string;
+    description?: string | null;
+    createdAt: Date;
+    updatedAt: Date;
+}
+
+export interface Role {
+    id: string;
+    name: string;
+    description?: string | null;
+    isSystem: boolean;
+    createdAt: Date;
+    updatedAt: Date;
+    permissions?: Permission[];
+}
+
+export interface AssignPermissionsRequest {
+    permissionIds: string[];
+}

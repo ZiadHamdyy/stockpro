@@ -106,7 +106,7 @@ export class AuthController {
   @Serialize(UserResponse)
   @HttpCode(HttpStatus.OK)
   @UseGuards(JwtAuthenticationGuard)
-  async getMe(@currentUser() user: currentUserType) {
+  getMe(@currentUser() user: currentUserType) {
     return user;
   }
 

@@ -103,10 +103,8 @@ const AppContent = () => {
     const userPermissions = useMemo(() => {
         if (currentUser && currentUser.permissionGroup) {
             const permissions = rolePermissions[currentUser.permissionGroup] || [];
-            console.log('User permissions computed:', { currentUser, permissionGroup: currentUser.permissionGroup, permissions });
             return permissions;
         }
-        console.log('Using default permissions - no user or permissionGroup');
         return ['all']; // Default permissions for testing
     }, [currentUser]);
     const [searchTerm, setSearchTerm] = useState('');
