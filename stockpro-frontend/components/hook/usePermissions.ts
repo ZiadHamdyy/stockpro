@@ -2,10 +2,11 @@ import { useState, useEffect, useMemo } from 'react';
 import { useGetRolesQuery, useAssignPermissionsMutation } from '../store/slices/role/roleApi';
 import { useToast } from '../common/ToastProvider';
 import { ARABIC_TO_ENGLISH_ACTIONS, ARABIC_TO_ENGLISH_ROLES, ENGLISH_TO_ARABIC_ROLES, PERMISSION_ACTIONS } from '../../constants';
-import type { PermissionNode } from '../../types';
+import type { PermissionNode, Permission } from '../../types';
 import { MENU_ITEMS } from '../../constants';
 import { useSelector } from 'react-redux';
 import { selectCurrentUser } from '../store/slices/auth/auth';
+import { getPermissionSet } from '../../utils/permissions';
 
 const permissionTreeData: PermissionNode[] = MENU_ITEMS.map(item => ({
     key: item.key,
@@ -29,6 +30,25 @@ const getAllKeys = (nodes: PermissionNode[]): string[] => {
 };
 
 const allItemKeys = getAllKeys(permissionTreeData);
+
+/**
+ * Hook to get current user's permissions
+ * Returns permissions as a Set of strings in "resource-action" format
+ */
+export const useUserPermissions = () => {
+    const currentUser = useSelector(selectCurrentUser);
+    
+    const userPermissions: Permission[] = currentUser?.role?.permissions || [];
+    const permissionSet = useMemo(() => getPermissionSet(userPermissions), [userPermissions]);
+    
+    return {
+        permissions: userPermissions,
+        permissionSet,
+        hasPermission: (requiredPermission: string) => {
+            return permissionSet.has(requiredPermission);
+        }
+    };
+};
 
 export const usePermissions = () => {
     const [selectedRole, setSelectedRole] = useState<string>('');

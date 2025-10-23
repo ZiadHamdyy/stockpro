@@ -1,5 +1,25 @@
 import { Expose, Type } from 'class-transformer';
 
+export class PermissionResponse {
+  @Expose()
+  id: string;
+
+  @Expose()
+  resource: string;
+
+  @Expose()
+  action: string;
+
+  @Expose()
+  description?: string | null;
+
+  @Expose()
+  createdAt: Date;
+
+  @Expose()
+  updatedAt: Date;
+}
+
 export class RoleResponse {
   @Expose()
   id: string;
@@ -12,6 +32,10 @@ export class RoleResponse {
 
   @Expose()
   isSystem: boolean;
+
+  @Expose()
+  @Type(() => PermissionResponse)
+  permissions?: PermissionResponse[];
 }
 
 export class UserIdResponse {

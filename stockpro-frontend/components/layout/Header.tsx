@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useLocation } from 'react-router-dom';
 import { BellIcon, ChevronDownIcon, LogOutIcon, BoxIcon, ReceiptIcon } from '../icons';
 import type { User, Notification } from '../../types';
+import { getLabelByPath } from '../../routes/routeConfig';
 
 interface HeaderProps {
-  title: string;
   currentUser: User | null;
   onLogout: () => void;
   searchTerm: string;
@@ -11,7 +12,9 @@ interface HeaderProps {
   notifications: Notification[];
 }
 
-const Header: React.FC<HeaderProps> = ({ title, currentUser, onLogout, searchTerm, setSearchTerm, notifications }) => {
+const Header: React.FC<HeaderProps> = ({ currentUser, onLogout, searchTerm, setSearchTerm, notifications }) => {
+  const location = useLocation();
+  const title = getLabelByPath(location.pathname);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 

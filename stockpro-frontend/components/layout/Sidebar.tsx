@@ -1,12 +1,14 @@
 import React, { useState, useMemo } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { MENU_ITEMS } from '../../constants';
 import type { MenuItem } from '../../types';
 import { ChevronDownIcon } from '../icons';
+import { getPathFromMenuKey, getMenuKeyFromPath } from '../../utils/menuPathMapper';
 
 interface SidebarProps {
-  onMenuSelect: (key: string, label: string) => void;
   searchTerm: string;
   userPermissions: string[];
+  onDatabaseBackup?: () => void;
 }
 
 const StockProLogo: React.FC = () => (
@@ -26,7 +28,13 @@ const filterByPermissions = (items: MenuItem[], permissions: string[]): MenuItem
         return items;
     }
 
-    const allowedKeys = new Set(permissions);
+    // Extract allowed keys from permissions (remove -action suffix)
+    // Convert "dashboard-read" to "dashboard", "items_list-read" to "items_list", etc.
+    const allowedKeys = new Set<string>();
+    permissions.forEach(permission => {
+        const [resource] = permission.split('-');
+        allowedKeys.add(resource);
+    });
     
     // Add parent keys for any allowed child
     const addParents = (item: MenuItem) => {
@@ -91,11 +99,16 @@ const filterMenuItems = (items: MenuItem[], term: string): MenuItem[] => {
 };
 
 
-const Sidebar: React.FC<SidebarProps> = ({ onMenuSelect, searchTerm, userPermissions }) => {
+const Sidebar: React.FC<SidebarProps> = ({ searchTerm, userPermissions, onDatabaseBackup }) => {
+  const navigate = useNavigate();
+  const location = useLocation();
   const [openMenus, setOpenMenus] = useState<Record<string, boolean>>({settings: true, reports: true});
 
   const menuFilteredByPermissions = useMemo(() => filterByPermissions(MENU_ITEMS, userPermissions), [userPermissions]);
   const filteredMenu = useMemo(() => filterMenuItems(menuFilteredByPermissions, searchTerm), [searchTerm, menuFilteredByPermissions]);
+
+  // Get current active menu key from path
+  const activeMenuKey = useMemo(() => getMenuKeyFromPath(location.pathname), [location.pathname]);
 
   const toggleMenu = (key: string) => {
     setOpenMenus(prev => ({ ...prev, [key]: !prev[key] }));
@@ -103,7 +116,15 @@ const Sidebar: React.FC<SidebarProps> = ({ onMenuSelect, searchTerm, userPermiss
 
   const handleSelect = (item: MenuItem) => {
     if (!item.children) {
-      onMenuSelect(item.key, item.label);
+      // Special handling for database backup
+      if (item.key === 'database_backup' && onDatabaseBackup) {
+        onDatabaseBackup();
+        return;
+      }
+      
+      // Navigate to the route
+      const path = getPathFromMenuKey(item.key);
+      navigate(path);
     } else {
       toggleMenu(item.key);
     }
@@ -113,11 +134,14 @@ const Sidebar: React.FC<SidebarProps> = ({ onMenuSelect, searchTerm, userPermiss
     const paddingClass = `pr-${4 + level * 4}`;
     const isOpen = !!searchTerm || openMenus[item.key] || false;
     const hasChildren = !!item.children;
+    const isActive = activeMenuKey === item.key;
 
     let styleClass = '';
     const isParentOpen = isOpen && hasChildren;
 
-    if (isParentOpen) {
+    if (isActive && !hasChildren) {
+        styleClass = 'text-white bg-brand-green';
+    } else if (isParentOpen) {
         styleClass = 'text-white bg-brand-green';
     } else {
         styleClass = 'text-gray-200 hover:bg-brand-green hover:text-white';
