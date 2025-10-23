@@ -13,10 +13,10 @@ export const initialStores: Store[] = [
 ];
 
 export const initialUsers: User[] = [
-    { id: 1, fullName: 'مدير النظام', username: 'admin', password: '12345', permissionGroup: 'مدير', branch: 'الفرع الرئيسي', avatar: null },
-    { id: 2, fullName: 'علي حسن', username: 'ali.hassan', password: '12345', permissionGroup: 'محاسب', branch: 'الفرع الرئيسي', avatar: null },
-    { id: 3, fullName: 'فاطمة الزهراء', username: 'fatima.z', password: '12345', permissionGroup: 'بائع', branch: 'فرع جدة', avatar: null },
-    { id: 4, fullName: 'سارة خالد', username: 'sara.khalid', password: '12345', permissionGroup: 'مدخل بيانات', branch: 'فرع الدمام', avatar: null },
+    { id: 1, name: 'مدير النظام', email: 'admin@example.com', avatar: null },
+    { id: 2, name: 'علي حسن', email: 'ali.hassan@example.com', avatar: null },
+    { id: 3, name: 'فاطمة الزهراء', email: 'fatima.z@example.com', avatar: null },
+    { id: 4, name: 'سارة خالد', email: 'sara.khalid@example.com', avatar: null },
 ];
 
 export const initialItemGroups: ItemGroup[] = [
