@@ -34,6 +34,11 @@ export interface User {
     name: string;
     email: string;
     avatar?: string | null;
+    fullName?: string;
+    username?: string;
+    password?: string;
+    branch?: string;
+    permissionGroup?: string;
 }
 
 export interface PermissionNode {
@@ -63,6 +68,7 @@ export interface Item {
     salePrice: number;
     stock: number;
     reorderLimit: number;
+    stock_date_placeholder?: string;
 }
 
 

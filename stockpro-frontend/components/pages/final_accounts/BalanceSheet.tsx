@@ -119,10 +119,10 @@ const BalanceSheet: React.FC<BalanceSheetProps> = (props) => {
         }, 0);
         
         // VAT Payable Calculation
-        const salesTax = salesInvoices.filter(filterByDate).reduce((sum, i) => sum + i.totals.tax, 0);
-        const salesReturnsTax = salesReturns.filter(filterByDate).reduce((sum, i) => sum + i.totals.tax, 0);
-        const purchasesTax = purchaseInvoices.filter(filterByDate).reduce((sum, i) => sum + i.totals.tax, 0);
-        const purchaseReturnsTax = purchaseReturns.filter(filterByDate).reduce((sum, i) => sum + i.totals.tax, 0);
+        const salesTax = salesInvoices.filter(i => filterByDate(i.date)).reduce((sum, i) => sum + i.totals.tax, 0);
+        const salesReturnsTax = salesReturns.filter(i => filterByDate(i.date)).reduce((sum, i) => sum + i.totals.tax, 0);
+        const purchasesTax = purchaseInvoices.filter(i => filterByDate(i.date)).reduce((sum, i) => sum + i.totals.tax, 0);
+        const purchaseReturnsTax = purchaseReturns.filter(i => filterByDate(i.date)).reduce((sum, i) => sum + i.totals.tax, 0);
         const outputVat = salesTax - salesReturnsTax;
         const inputVat = purchasesTax - purchaseReturnsTax;
         const vatPayable = outputVat - inputVat;

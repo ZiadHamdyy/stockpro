@@ -12,6 +12,8 @@ interface UserModalProps {
 
 const UserModal: React.FC<UserModalProps> = ({ isOpen, onClose, onSave, userToEdit, branches }) => {
     const [userData, setUserData] = useState<Omit<User, 'id'>>({
+        name: '',
+        email: '',
         fullName: '',
         username: '',
         password: '',
@@ -25,7 +27,7 @@ const UserModal: React.FC<UserModalProps> = ({ isOpen, onClose, onSave, userToEd
         if (userToEdit) {
             setUserData({ ...userToEdit, password: '' }); // Don't show password on edit
         } else {
-            setUserData({ fullName: '', username: '', password: '', permissionGroup: 'بائع', branch: '', avatar: null });
+            setUserData({ name: '', email: '', fullName: '', username: '', password: '', permissionGroup: 'بائع', branch: '', avatar: null });
         }
     }, [userToEdit, isOpen]);
 

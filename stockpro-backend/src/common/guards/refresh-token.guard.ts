@@ -30,7 +30,7 @@ export class RefreshTokenGuard implements CanActivate {
       this.jwtService.verify<TokenPayload>(refreshToken);
       request['refreshToken'] = refreshToken;
       return true;
-    } catch (error) {
+    } catch {
       // Token is invalid/expired - clean up the session and clear cookie
       await this.handleExpiredRefreshToken(refreshToken, response);
       throw new UnauthorizedException(ERROR_MESSAGES.INVALID_REFRESH_TOKEN);
@@ -38,7 +38,9 @@ export class RefreshTokenGuard implements CanActivate {
   }
 
   private extractTokenFromCookie(request: Request): string | undefined {
-    return request.cookies?.[TOKEN_CONSTANTS.COOKIE.REFRESH_TOKEN_NAME];
+    return request.cookies?.[TOKEN_CONSTANTS.COOKIE.REFRESH_TOKEN_NAME] as
+      | string
+      | undefined;
   }
 
   private async handleExpiredRefreshToken(
