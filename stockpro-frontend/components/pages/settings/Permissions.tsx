@@ -13,6 +13,7 @@ const PermissionTree: React.FC<{
     onPermissionChange: (itemKey: string, action: string, isChecked: boolean) => void;
     PERMISSION_ACTIONS: string[];
 }> = ({ node, level = 0, permissions, onPermissionChange, PERMISSION_ACTIONS }) => {
+    const isPermissionsResource = node.key === 'permissions';
     const [isOpen, setIsOpen] = useState(level < 1);
     const hasChildren = node.children && node.children.length > 0;
     const padding = level * 24;
@@ -35,13 +36,15 @@ const PermissionTree: React.FC<{
                     const englishAction = ARABIC_TO_ENGLISH_ACTIONS[action as keyof typeof ARABIC_TO_ENGLISH_ACTIONS];
                     const permissionKey = `${node.key}-${englishAction}`;
                     const isChecked = permissions.has(permissionKey);
+                    const isDisabled = isPermissionsResource && isChecked; // Disable unchecking permissions resource
                     
                     return (
                         <div key={action} className="text-center" onClick={(e) => e.stopPropagation()}>
                             <input 
                                 type="checkbox" 
-                                className="form-checkbox h-5 w-5 text-brand-blue rounded focus:ring-brand-blue border-gray-300 cursor-pointer"
+                                className={`form-checkbox h-5 w-5 text-brand-blue rounded focus:ring-brand-blue border-gray-300 ${isDisabled ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'}`}
                                 checked={isChecked}
+                                disabled={isDisabled}
                                 onChange={(e) => onPermissionChange(node.key, action, e.target.checked)}
                             />
                         </div>

@@ -152,6 +152,14 @@ export const usePermissions = () => {
                 }
             });
 
+            // Ensure permissions resource is always included (can't be removed from admin)
+            const permissionsResourcePermissions = allPermissions.filter(p => p.resource === 'permissions');
+            permissionsResourcePermissions.forEach(p => {
+                if (!permissionIds.includes(p.id)) {
+                    permissionIds.push(p.id);
+                }
+            });
+
             await assignPermissions({
                 roleId: role.id,
                 permissions: { permissionIds }
