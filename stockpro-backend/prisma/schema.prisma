@@ -14,29 +14,29 @@ datasource db {
 }
 
 model User {
-  id            String   @id @default(uuid())
-  email         String   @unique
+  id            String  @id @default(uuid())
+  email         String  @unique
   name          String?
   image         String?
   password      String?
-  emailVerified Boolean  @default(false)
-  active        Boolean  @default(true)
+  emailVerified Boolean @default(false)
+  active        Boolean @default(true)
 
   // Role relationship
-  roleId        String?
-  role          Role?    @relation(fields: [roleId], references: [id])
+  roleId String?
+  role   Role?   @relation(fields: [roleId], references: [id])
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  Session        Session[]
-  Otp            Otp[]
+  Session Session[]
+  Otp     Otp[]
 }
 
 model Session {
-  id     String        @id @default(uuid())
-  status SessionStatus @default(ACTIVE)
-  refreshToken  String?
+  id           String        @id @default(uuid())
+  status       SessionStatus @default(ACTIVE)
+  refreshToken String?
 
   ipAddress String?
   userAgent String?
@@ -53,17 +53,17 @@ enum SessionStatus {
 }
 
 model Otp {
-  id           String    @id @default(uuid())
+  id           String   @id @default(uuid())
   otpHash      String
   otpExpiresAt DateTime
-  otpVerified  Boolean   @default(false)
+  otpVerified  Boolean  @default(false)
 
-  type         OtpType
-  userId       String
-  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
+  type   OtpType
+  userId String
+  user   User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([userId])
   @@index([otpExpiresAt])
@@ -75,27 +75,27 @@ enum OtpType {
 }
 
 model Role {
-  id          String   @id @default(uuid())
-  name        String   @unique
+  id          String  @id @default(uuid())
+  name        String  @unique
   description String?
-  isSystem    Boolean  @default(false) // Prevents deletion of system roles
-  
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  isSystem    Boolean @default(false) // Prevents deletion of system roles
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   // Relationships
-  users       User[]
+  users           User[]
   rolePermissions RolePermission[]
 }
 
 model Permission {
-  id          String   @id @default(uuid())
-  resource    String   // e.g., "sales", "items", "reports"
-  action      String   // e.g., "create", "read", "update", "delete", "view"
+  id          String  @id @default(uuid())
+  resource    String // e.g., "sales", "items", "reports"
+  action      String // e.g., "create", "read", "update", "delete", "view"
   description String?
-  
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   // Relationships
   rolePermissions RolePermission[]
@@ -105,15 +105,15 @@ model Permission {
 }
 
 model RolePermission {
-  id           String     @id @default(uuid())
+  id           String @id @default(uuid())
   roleId       String
   permissionId String
-  
-  role         Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
-  permission   Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
-  
-  createdAt    DateTime   @default(now())
-  updatedAt    DateTime   @updatedAt
+
+  role       Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@unique([roleId, permissionId])
   @@index([roleId])
@@ -121,52 +121,70 @@ model RolePermission {
 }
 
 model ItemGroup {
-  id          String   @id @default(uuid())
-  name        String   @unique
+  id          String  @id @default(uuid())
+  name        String  @unique
   description String?
-  
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   // Relationships
-  items       Item[]
+  items Item[]
 }
 
 model Unit {
-  id          String   @id @default(uuid())
-  name        String   @unique
+  id          String  @id @default(uuid())
+  name        String  @unique
   description String?
-  
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   // Relationships
-  items       Item[]
+  items Item[]
 }
 
 model Item {
-  id            String   @id @default(uuid())
-  code          String   @unique
+  id            String  @id @default(uuid())
+  code          String  @unique
   barcode       String?
   name          String
   purchasePrice Float
   salePrice     Float
-  stock         Float    @default(0)
-  reorderLimit  Float    @default(0)
-  
+  stock         Float   @default(0)
+  reorderLimit  Float   @default(0)
+
   // Foreign keys
-  groupId       String
-  unitId        String
-  
+  groupId String
+  unitId  String
+
   // Relationships
-  group         ItemGroup @relation(fields: [groupId], references: [id])
-  unit          Unit      @relation(fields: [unitId], references: [id])
-  
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  group ItemGroup @relation(fields: [groupId], references: [id])
+  unit  Unit      @relation(fields: [unitId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([code])
   @@index([barcode])
   @@index([groupId])
   @@index([unitId])
+}
+
+model Company {
+  id            String  @id @default(uuid())
+  name          String
+  activity      String
+  address       String
+  phone         String
+  taxNumber     String
+  commercialReg String
+  currency      String
+  capital       Float
+  vatRate       Float   @default(0)
+  isVatEnabled  Boolean @default(false)
+  logoPath      String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }

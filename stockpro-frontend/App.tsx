@@ -303,7 +303,7 @@ const AppContent = () => {
                         {/* Settings */}
                         <Route path="/settings/company-data" element={
                             <ProtectedRoute requiredPermission="company_data-read">
-                                <CompanyData title={currentPageTitle} vatRate={vatRate} setVatRate={setVatRate} isVatEnabled={isVatEnabled} setIsVatEnabled={setIsVatEnabled} companyInfo={companyInfo} setCompanyInfo={setCompanyInfo} onGoHome={() => {}} />
+                                <CompanyData title={currentPageTitle} />
                             </ProtectedRoute>
                         } />
                         <Route path="/settings/branches-data" element={

@@ -82,6 +82,8 @@ export interface CompanyInfo {
   currency: string;
   logo: string | null;
   capital: number;
+  vatRate: number;
+  isVatEnabled: boolean;
 }
 
 export interface InvoiceItem {

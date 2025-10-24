@@ -470,6 +470,29 @@ async function main() {
     console.log('✅ Assigned default role to existing users');
   }
 
+  // Create default company
+  console.log('🏢 Creating default company...');
+  const existingCompany = await prisma.company.findFirst();
+  if (!existingCompany) {
+    await prisma.company.create({
+      data: {
+        name: 'اسم الشركة',
+        activity: 'النشاط التجاري',
+        address: 'العنوان',
+        phone: '+966000000000',
+        taxNumber: '000000000000003',
+        commercialReg: '0000000000',
+        currency: 'SAR',
+        capital: 0,
+        vatRate: 15,
+        isVatEnabled: true,
+      },
+    });
+    console.log('✅ Created default company');
+  } else {
+    console.log('✅ Company already exists');
+  }
+
   console.log('🎉 Seed process completed successfully!');
 }
 

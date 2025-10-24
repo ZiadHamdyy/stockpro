@@ -24,8 +24,8 @@ function initializeLogging() {
 }
 
 function setupMiddlewares(app: NestExpressApplication) {
-  // Setup JSON parsing for all routes
-  app.use(json());
+  // Setup JSON parsing for all routes with increased payload limit
+  app.use(json({ limit: '10mb' }));
   app.use(compression());
   app.use(cookieParser()); // Enable cookie parsing for HttpOnly cookies
   app.use(

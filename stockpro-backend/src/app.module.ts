@@ -18,6 +18,7 @@ import { PermissionModule } from './modules/permission/permission.module';
 import { ItemModule } from './modules/item/item.module';
 import { ItemGroupModule } from './modules/item-group/item-group.module';
 import { UnitModule } from './modules/unit/unit.module';
+import { CompanyModule } from './modules/company/company.module';
 
 @Module({
   imports: [
@@ -35,6 +36,7 @@ import { UnitModule } from './modules/unit/unit.module';
     ItemModule,
     ItemGroupModule,
     UnitModule,
+    CompanyModule,
   ],
   controllers: [AppController],
   providers: [
