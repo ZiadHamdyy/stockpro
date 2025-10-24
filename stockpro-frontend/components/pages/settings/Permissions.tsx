@@ -61,6 +61,11 @@ const PermissionTree: React.FC<{
           const isDisabled =
             isPermissionsResource && selectedRoleName === "manager";
 
+          // Debug logging
+          if (node.key === 'dashboard' && action === 'قراءة') {
+            console.log('Checkbox state:', { nodeKey: node.key, action, permissionKey, isChecked, isDisabled, permissionsSize: permissions.size });
+          }
+
           return (
             <div
               key={action}
@@ -76,9 +81,10 @@ const PermissionTree: React.FC<{
                 }`}
                 checked={isChecked}
                 disabled={isDisabled}
-                onChange={(e) =>
-                  onPermissionChange(node.key, action, e.target.checked)
-                }
+                onChange={(e) => {
+                  console.log('Checkbox onChange triggered:', { nodeKey: node.key, action, checked: e.target.checked });
+                  onPermissionChange(node.key, action, e.target.checked);
+                }}
               />
             </div>
           );
