@@ -1,18 +1,20 @@
 import React, { useState, useEffect } from "react";
-import type { Supplier } from "../../../types";
-import { useModal } from "../../common/ModalProvider.tsx";
-import { useToast } from "../../common/ToastProvider.tsx";
+import { useToast } from "../../common/ToastProvider";
+import { useSuppliers } from "../../hook/useSuppliers";
+import PermissionWrapper from "../../common/PermissionWrapper";
+import {
+  Resources,
+  Actions,
+  buildPermission,
+} from "../../../enums/permissions.enum";
 
 interface AddSupplierProps {
   title: string;
-  editingId: number | null;
-  suppliers: Supplier[];
-  onSave: (supplier: Supplier | Omit<Supplier, "id">) => void;
-  onDelete: (id: number) => void;
-  onNavigate: (key: string, label: string, id?: number | null) => void;
+  editingId: string | null;
+  onNavigate: (key: string, label: string, id?: string | null) => void;
 }
 
-const emptySupplier: Omit<Supplier, "id"> = {
+const emptySupplier = {
   code: "",
   name: "",
   commercialReg: "",
@@ -25,38 +27,25 @@ const emptySupplier: Omit<Supplier, "id"> = {
 const AddSupplier: React.FC<AddSupplierProps> = ({
   title,
   editingId,
-  suppliers,
-  onSave,
-  onDelete,
   onNavigate,
 }) => {
-  const [supplierData, setSupplierData] = useState<
-    Supplier | Omit<Supplier, "id">
-  >(emptySupplier);
+  const { suppliers, isLoading, handleSave, handleDeleteClick } =
+    useSuppliers();
+  const [supplierData, setSupplierData] = useState<any>(emptySupplier);
   const [isReadOnly, setIsReadOnly] = useState(true);
   const [currentIndex, setCurrentIndex] = useState(-1);
-  const { showModal } = useModal();
   const { showToast } = useToast();
 
   useEffect(() => {
     if (editingId !== null) {
-      const index = suppliers.findIndex((c) => c.id === editingId);
+      const index = suppliers.findIndex((s) => s.id === editingId);
       if (index !== -1) {
         setSupplierData(suppliers[index]);
         setCurrentIndex(index);
         setIsReadOnly(true);
       }
     } else {
-      const nextCodeNumber =
-        suppliers.length > 0
-          ? Math.max(
-              ...suppliers.map(
-                (s) => parseInt(s.code.replace("S", ""), 10) || 0,
-              ),
-            ) + 1
-          : 1;
-      const newCode = `S${String(nextCodeNumber).padStart(3, "0")}`;
-      setSupplierData({ ...emptySupplier, code: newCode });
+      setSupplierData(emptySupplier);
       setIsReadOnly(false);
       setCurrentIndex(-1);
     }
@@ -64,17 +53,17 @@ const AddSupplier: React.FC<AddSupplierProps> = ({
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    setSupplierData((prev) => ({
+    setSupplierData((prev: any) => ({
       ...prev,
       [name]: name === "openingBalance" ? parseFloat(value) : value,
     }));
   };
 
-  const handleSave = () => {
-    onSave(supplierData);
-    showToast(`تم حفظ المورد "${supplierData.name}" بنجاح!`);
+  const onSave = async () => {
+    await handleSave(supplierData, editingId || undefined);
     if (!("id" in supplierData)) {
-      // New supplier saved
+      // After saving new supplier, navigate back to list
+      onNavigate("suppliers_list", "قائمة الموردين");
     } else {
       setIsReadOnly(true);
     }
@@ -82,25 +71,12 @@ const AddSupplier: React.FC<AddSupplierProps> = ({
 
   const handleDelete = () => {
     if ("id" in supplierData) {
-      showModal({
-        title: "تأكيد الحذف",
-        message: `هل أنت متأكد من حذف المورد "${supplierData.name}"؟`,
-        onConfirm: () => {
-          onDelete(supplierData.id as number);
-          showToast("تم الحذف بنجاح.");
-        },
-        type: "delete",
-      });
+      handleDeleteClick(supplierData);
     }
   };
 
   const handleEdit = () => {
-    showModal({
-      title: "تأكيد التعديل",
-      message: "هل أنت متأكد من رغبتك في تعديل بيانات هذا المورد؟",
-      onConfirm: () => setIsReadOnly(false),
-      type: "edit",
-    });
+    setIsReadOnly(false);
   };
 
   const navigate = (direction: "first" | "prev" | "next" | "last") => {
@@ -129,7 +105,15 @@ const AddSupplier: React.FC<AddSupplierProps> = ({
   };
 
   const inputStyle =
-    "mt-1 block w-full bg-brand-green-bg border-2 border-brand-green rounded-md shadow-sm text-black placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-brand-green-active focus:border-brand-green-active py-3 px-4 disabled:bg-gray-200 disabled:text-gray-500";
+    "mt-1 block w-full bg-brand-blue-bg border-2 border-brand-blue rounded-md shadow-sm text-black placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-brand-blue focus:border-brand-blue py-3 px-4 disabled:bg-gray-200 disabled:text-gray-500";
+
+  if (isLoading) {
+    return (
+      <div className="flex justify-center items-center h-64">
+        <p className="text-gray-500">جاري التحميل...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="bg-white p-6 rounded-lg shadow">
@@ -137,7 +121,7 @@ const AddSupplier: React.FC<AddSupplierProps> = ({
       <form
         onSubmit={(e) => {
           e.preventDefault();
-          handleSave();
+          onSave();
         }}
       >
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -273,29 +257,70 @@ const AddSupplier: React.FC<AddSupplierProps> = ({
               جديد
             </button>
             {isReadOnly ? (
+              <PermissionWrapper
+                requiredPermission={buildPermission(
+                  Resources.SUPPLIERS,
+                  Actions.UPDATE,
+                )}
+              >
+                <button
+                  type="button"
+                  onClick={handleEdit}
+                  className="px-4 py-2 bg-yellow-500 text-white rounded-md hover:bg-yellow-600 font-semibold"
+                >
+                  تعديل
+                </button>
+              </PermissionWrapper>
+            ) : (
+              <>
+                <PermissionWrapper
+                  requiredPermission={buildPermission(
+                    Resources.SUPPLIERS,
+                    "id" in supplierData ? Actions.UPDATE : Actions.CREATE,
+                  )}
+                >
+                  <button
+                    type="submit"
+                    className="px-4 py-2 bg-brand-green text-white rounded-md hover:bg-green-700 font-semibold"
+                  >
+                    حفظ
+                  </button>
+                </PermissionWrapper>
+                {"id" in supplierData && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      // Reload the supplier data to reset any changes
+                      const index = suppliers.findIndex(
+                        (s) => s.id === supplierData.id,
+                      );
+                      if (index !== -1) {
+                        setSupplierData(suppliers[index]);
+                      }
+                      setIsReadOnly(true);
+                    }}
+                    className="px-4 py-2 bg-gray-500 text-white rounded-md hover:bg-gray-600 font-semibold"
+                  >
+                    إلغاء
+                  </button>
+                )}
+              </>
+            )}
+            <PermissionWrapper
+              requiredPermission={buildPermission(
+                Resources.SUPPLIERS,
+                Actions.DELETE,
+              )}
+            >
               <button
                 type="button"
-                onClick={handleEdit}
-                className="px-4 py-2 bg-yellow-500 text-white rounded-md hover:bg-yellow-600 font-semibold"
+                onClick={handleDelete}
+                disabled={!("id" in supplierData)}
+                className="px-4 py-2 bg-red-500 text-white rounded-md hover:bg-red-600 font-semibold disabled:bg-gray-400"
               >
-                تعديل
+                حذف
               </button>
-            ) : (
-              <button
-                type="submit"
-                className="px-4 py-2 bg-brand-green text-white rounded-md hover:bg-green-700 font-semibold"
-              >
-                حفظ
-              </button>
-            )}
-            <button
-              type="button"
-              onClick={handleDelete}
-              disabled={!("id" in supplierData)}
-              className="px-4 py-2 bg-red-500 text-white rounded-md hover:bg-red-600 font-semibold disabled:bg-gray-400"
-            >
-              حذف
-            </button>
+            </PermissionWrapper>
             <button
               type="button"
               onClick={() => onNavigate("suppliers_list", "قائمة الموردين")}
@@ -322,7 +347,7 @@ const AddSupplier: React.FC<AddSupplierProps> = ({
             >
               السابق
             </button>
-            <div className="px-4 py-2 bg-brand-green-bg border-2 border-brand-green rounded-md">
+            <div className="px-4 py-2 bg-brand-blue-bg border-2 border-brand-blue rounded-md">
               <span className="font-bold">
                 {currentIndex > -1
                   ? `${currentIndex + 1} / ${suppliers.length}`

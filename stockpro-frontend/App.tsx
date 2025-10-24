@@ -194,6 +194,34 @@ const AddCustomerWrapper = ({
   );
 };
 
+// Wrapper component to handle URL-based editing for AddSupplier
+const AddSupplierWrapper = ({
+  title,
+  companyInfo,
+}: {
+  title: string;
+  companyInfo: CompanyInfo;
+}) => {
+  const { id } = useParams<{ id?: string }>();
+  const navigate = useNavigate();
+
+  return (
+    <AddSupplier
+      title={title}
+      editingId={id || null}
+      onNavigate={(key, label, editingId) => {
+        if (key === "add_supplier") {
+          navigate(
+            editingId ? `/suppliers/add/${editingId}` : "/suppliers/add",
+          );
+        } else if (key === "suppliers_list") {
+          navigate("/suppliers/list");
+        }
+      }}
+    />
+  );
+};
+
 const AppContent = () => {
   const location = useLocation();
   const navigate = useNavigate();
@@ -984,26 +1012,12 @@ const AppContent = () => {
 
             {/* Suppliers */}
             <Route
-              path="/suppliers/add"
+              path="/suppliers/add/:id?"
               element={
                 <ProtectedRoute requiredPermission="add_supplier-read">
-                  <AddSupplier
+                  <AddSupplierWrapper
                     title={currentPageTitle}
-                    editingId={null}
-                    suppliers={suppliers}
-                    onSave={(supplier) =>
-                      setSuppliers((prev) =>
-                        "id" in supplier && supplier.id
-                          ? prev.map((s) =>
-                              s.id === supplier.id ? supplier : s,
-                            )
-                          : [...prev, { ...supplier, id: Date.now() }],
-                      )
-                    }
-                    onDelete={(id) => {
-                      setSuppliers((prev) => prev.filter((s) => s.id !== id));
-                    }}
-                    onNavigate={() => {}}
+                    companyInfo={companyInfo}
                   />
                 </ProtectedRoute>
               }
@@ -1014,11 +1028,15 @@ const AppContent = () => {
                 <ProtectedRoute requiredPermission="suppliers_list-read">
                   <SuppliersList
                     title={currentPageTitle}
-                    suppliers={suppliers}
-                    onNavigate={() => {}}
-                    onDelete={(id) =>
-                      setSuppliers((prev) => prev.filter((s) => s.id !== id))
-                    }
+                    onNavigate={(key, label, id) => {
+                      if (key === "add_supplier") {
+                        navigate(
+                          id ? `/suppliers/add/${id}` : "/suppliers/add",
+                        );
+                      } else if (key === "suppliers_list") {
+                        navigate("/suppliers/list");
+                      }
+                    }}
                     companyInfo={companyInfo}
                   />
                 </ProtectedRoute>

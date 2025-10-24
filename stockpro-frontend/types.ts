@@ -145,7 +145,7 @@ export interface Customer {
 }
 
 export interface Supplier {
-  id: number;
+  id: string;
   code: string;
   name: string;
   commercialReg: string;

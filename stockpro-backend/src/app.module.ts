@@ -21,6 +21,7 @@ import { UnitModule } from './modules/unit/unit.module';
 import { CompanyModule } from './modules/company/company.module';
 import { BankModule } from './modules/bank/bank.module';
 import { CustomerModule } from './modules/customer/customer.module';
+import { SupplierModule } from './modules/supplier/supplier.module';
 
 @Module({
   imports: [
@@ -41,6 +42,7 @@ import { CustomerModule } from './modules/customer/customer.module';
     CompanyModule,
     BankModule,
     CustomerModule,
+    SupplierModule,
   ],
   controllers: [AppController],
   providers: [

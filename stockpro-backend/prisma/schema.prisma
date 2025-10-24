@@ -218,3 +218,19 @@ model Customer {
 
   @@index([code])
 }
+
+model Supplier {
+  id             String  @id @default(uuid())
+  code           String  @unique
+  name           String
+  commercialReg  String
+  taxNumber      String
+  nationalAddress String
+  phone          String
+  openingBalance Float   @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([code])
+}
