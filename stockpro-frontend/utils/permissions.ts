@@ -1,5 +1,5 @@
-import { Permission } from '../types';
-import { Resources, Actions, buildPermission } from '../enums/permissions.enum';
+import { Permission } from "../types";
+import { Resources, Actions, buildPermission } from "../enums/permissions.enum";
 
 // Re-export enums and helper for convenience
 export { Resources, Actions, buildPermission };
@@ -13,16 +13,17 @@ export { Resources, Actions, buildPermission };
  */
 export const hasPermission = (
   userPermissions: Permission[],
-  requiredPermission: string
+  requiredPermission: string,
 ): boolean => {
   if (!userPermissions || userPermissions.length === 0) {
     return false;
   }
 
-  const [resource, action] = requiredPermission.split('-');
-  
+  const [resource, action] = requiredPermission.split("-");
+
   return userPermissions.some(
-    (permission) => permission.resource === resource && permission.action === action
+    (permission) =>
+      permission.resource === resource && permission.action === action,
   );
 };
 
@@ -34,10 +35,10 @@ export const hasPermission = (
  */
 export const hasAnyPermission = (
   userPermissions: Permission[],
-  requiredPermissions: string[]
+  requiredPermissions: string[],
 ): boolean => {
   return requiredPermissions.some((permission) =>
-    hasPermission(userPermissions, permission)
+    hasPermission(userPermissions, permission),
   );
 };
 
@@ -49,10 +50,10 @@ export const hasAnyPermission = (
  */
 export const hasAllPermissions = (
   userPermissions: Permission[],
-  requiredPermissions: string[]
+  requiredPermissions: string[],
 ): boolean => {
   return requiredPermissions.every((permission) =>
-    hasPermission(userPermissions, permission)
+    hasPermission(userPermissions, permission),
   );
 };
 
@@ -61,13 +62,17 @@ export const hasAllPermissions = (
  * @param userPermissions - Array of user permissions from backend
  * @returns Set of permission strings
  */
-export const getPermissionSet = (userPermissions: Permission[]): Set<string> => {
+export const getPermissionSet = (
+  userPermissions: Permission[],
+): Set<string> => {
   if (!userPermissions || userPermissions.length === 0) {
     return new Set();
   }
 
   return new Set(
-    userPermissions.map((permission) => `${permission.resource}-${permission.action}`)
+    userPermissions.map(
+      (permission) => `${permission.resource}-${permission.action}`,
+    ),
   );
 };
 
@@ -79,10 +84,9 @@ export const getPermissionSet = (userPermissions: Permission[]): Set<string> => 
  */
 export const isMenuItemVisible = (
   menuKey: string,
-  userPermissions: Set<string>
+  userPermissions: Set<string>,
 ): boolean => {
   // Check if user has read permission for this resource
   const readPermission = `${menuKey}-read`;
   return userPermissions.has(readPermission);
 };
-

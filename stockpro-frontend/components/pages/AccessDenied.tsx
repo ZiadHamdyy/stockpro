@@ -1,6 +1,6 @@
-import React from 'react';
-import { useNavigate } from 'react-router-dom';
-import { HomeIcon } from '../icons';
+import React from "react";
+import { useNavigate } from "react-router-dom";
+import { HomeIcon } from "../icons";
 
 const AccessDenied: React.FC = () => {
   const navigate = useNavigate();
@@ -30,11 +30,11 @@ const AccessDenied: React.FC = () => {
           الوصول مرفوض
         </h2>
         <p className="text-gray-600 mb-8">
-          ليس لديك الصلاحية للوصول إلى هذه الصفحة. يرجى التواصل مع المدير
-          إذا كنت تعتقد أن هذا خطأ.
+          ليس لديك الصلاحية للوصول إلى هذه الصفحة. يرجى التواصل مع المدير إذا
+          كنت تعتقد أن هذا خطأ.
         </p>
         <button
-          onClick={() => navigate('/dashboard')}
+          onClick={() => navigate("/dashboard")}
           className="inline-flex items-center gap-2 px-6 py-3 bg-brand-blue text-white rounded-lg hover:bg-blue-700 transition-colors"
         >
           <HomeIcon className="w-5 h-5" />
@@ -46,4 +46,3 @@ const AccessDenied: React.FC = () => {
 };
 
 export default AccessDenied;
-

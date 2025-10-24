@@ -1,5 +1,5 @@
-import { apiSlice } from '../ApiSlice';
-import type { CompanyInfo } from '../../../types';
+import { apiSlice } from "../ApiSlice";
+import type { CompanyInfo } from "../../../types";
 
 interface CompanyResponse {
   id: string;
@@ -35,8 +35,8 @@ interface UpsertCompanyRequest {
 export const companyApiSlice = apiSlice.injectEndpoints({
   endpoints: (builder) => ({
     getCompany: builder.query<CompanyInfo, void>({
-      query: () => '/company',
-      providesTags: ['Company'],
+      query: () => "/company",
+      providesTags: ["Company"],
       transformResponse: (response: { data: CompanyResponse }): CompanyInfo => {
         const company = response.data;
         return {
@@ -56,11 +56,11 @@ export const companyApiSlice = apiSlice.injectEndpoints({
     }),
     upsertCompany: builder.mutation<CompanyInfo, UpsertCompanyRequest>({
       query: (data) => ({
-        url: '/company',
-        method: 'PUT',
+        url: "/company",
+        method: "PUT",
         body: data,
       }),
-      invalidatesTags: ['Company'],
+      invalidatesTags: ["Company"],
       transformResponse: (response: { data: CompanyResponse }): CompanyInfo => {
         const company = response.data;
         return {
@@ -82,4 +82,3 @@ export const companyApiSlice = apiSlice.injectEndpoints({
 });
 
 export const { useGetCompanyQuery, useUpsertCompanyMutation } = companyApiSlice;
-

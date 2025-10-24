@@ -1,5 +1,5 @@
-import React from 'react';
-import { useUserPermissions } from '../hook/usePermissions';
+import React from "react";
+import { useUserPermissions } from "../hook/usePermissions";
 
 interface PermissionWrapperProps {
   /**
@@ -8,12 +8,12 @@ interface PermissionWrapperProps {
    * If array is provided, user needs ANY of the permissions (OR logic)
    */
   requiredPermission: string | string[];
-  
+
   /**
    * Children to render if permission is granted
    */
   children: React.ReactNode;
-  
+
   /**
    * Optional fallback to render if permission is denied
    * If not provided, returns null (hides the content)
@@ -25,39 +25,39 @@ interface PermissionWrapperProps {
 
 /**
  * PermissionWrapper - A reusable component to conditionally render content based on user permissions
- * 
+ *
  * @example Basic usage with enum:
  * ```tsx
  * import { Resources, Actions, buildPermission } from '../../enums/permissions.enum';
- * 
+ *
  * <PermissionWrapper requiredPermission={buildPermission(Resources.DASHBOARD, Actions.READ)}>
  *   <Dashboard />
  * </PermissionWrapper>
  * ```
- * 
+ *
  * @example With custom fallback (disabled state):
  * ```tsx
- * <PermissionWrapper 
+ * <PermissionWrapper
  *   requiredPermission="items-delete"
  *   fallback={<button disabled>Delete Item</button>}
  * >
  *   <button onClick={handleDelete}>Delete Item</button>
  * </PermissionWrapper>
  * ```
- * 
+ *
  * @example With null fallback (hide completely):
  * ```tsx
- * <PermissionWrapper 
+ * <PermissionWrapper
  *   requiredPermission="settings-update"
  *   fallback={null}
  * >
  *   <SettingsPanel />
  * </PermissionWrapper>
  * ```
- * 
+ *
  * @example Multiple permissions (user needs ANY of them):
  * ```tsx
- * <PermissionWrapper 
+ * <PermissionWrapper
  *   requiredPermission={[
  *     buildPermission(Resources.SALES, Actions.CREATE),
  *     buildPermission(Resources.SALES, Actions.UPDATE)
@@ -76,7 +76,7 @@ const PermissionWrapper: React.FC<PermissionWrapperProps> = ({
 
   // Check if user has any of the required permissions
   const hasAccess = Array.isArray(requiredPermission)
-    ? requiredPermission.some(permission => hasPermission(permission))
+    ? requiredPermission.some((permission) => hasPermission(permission))
     : hasPermission(requiredPermission);
 
   if (hasAccess) {
@@ -88,4 +88,3 @@ const PermissionWrapper: React.FC<PermissionWrapperProps> = ({
 };
 
 export default PermissionWrapper;
-

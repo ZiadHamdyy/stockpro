@@ -4,18 +4,16 @@ import type { Permission } from "../../../../types";
 export const permissionApi = apiSlice.injectEndpoints({
   endpoints: (builder) => ({
     getPermissions: builder.query<Permission[], void>({
-      query: () => 'permissions',
+      query: () => "permissions",
       transformResponse: (response: { data: Permission[] }) => response.data,
-      providesTags: ['Permission'],
+      providesTags: ["Permission"],
     }),
     getPermissionsGrouped: builder.query<any[], void>({
-      query: () => 'permissions/grouped',
-      providesTags: ['Permission'],
+      query: () => "permissions/grouped",
+      providesTags: ["Permission"],
     }),
   }),
 });
 
-export const {
-  useGetPermissionsQuery,
-  useGetPermissionsGroupedQuery,
-} = permissionApi;
+export const { useGetPermissionsQuery, useGetPermissionsGroupedQuery } =
+  permissionApi;

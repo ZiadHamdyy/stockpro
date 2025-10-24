@@ -1,21 +1,28 @@
-import { useState, useEffect } from 'react';
-import { useGetCompanyQuery, useUpsertCompanyMutation } from '../store/slices/companyApiSlice';
-import type { CompanyInfo } from '../../types';
-import { useToast } from '../common/ToastProvider';
+import { useState, useEffect } from "react";
+import {
+  useGetCompanyQuery,
+  useUpsertCompanyMutation,
+} from "../store/slices/companyApiSlice";
+import type { CompanyInfo } from "../../types";
+import { useToast } from "../common/ToastProvider";
 
 export const useCompanyData = () => {
-  const { data: company, isLoading: isFetching, error: fetchError } = useGetCompanyQuery();
+  const {
+    data: company,
+    isLoading: isFetching,
+    error: fetchError,
+  } = useGetCompanyQuery();
   const [upsertCompany, { isLoading: isSaving }] = useUpsertCompanyMutation();
   const { showToast } = useToast();
 
   const [formData, setFormData] = useState<CompanyInfo>({
-    name: '',
-    activity: '',
-    address: '',
-    phone: '',
-    taxNumber: '',
-    commercialReg: '',
-    currency: 'SAR',
+    name: "",
+    activity: "",
+    address: "",
+    phone: "",
+    taxNumber: "",
+    commercialReg: "",
+    currency: "SAR",
     logo: null,
     capital: 0,
     vatRate: 15,
@@ -35,34 +42,35 @@ export const useCompanyData = () => {
   }, [company]);
 
   const handleFieldChange = (field: keyof CompanyInfo, value: any) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
+    setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
   const handleLogoChange = (file: File | null) => {
     if (file) {
       const reader = new FileReader();
       reader.onloadend = () => {
-        setFormData(prev => ({ ...prev, logo: reader.result as string }));
+        setFormData((prev) => ({ ...prev, logo: reader.result as string }));
       };
       reader.readAsDataURL(file);
     } else {
-      setFormData(prev => ({ ...prev, logo: null }));
+      setFormData((prev) => ({ ...prev, logo: null }));
     }
   };
 
   const removeLogo = () => {
-    setFormData(prev => ({ ...prev, logo: null }));
+    setFormData((prev) => ({ ...prev, logo: null }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     try {
       // Only send logoPath if it's a file path, not a base64 string
       // Base64 logos are too large and should be uploaded separately if needed
-      const logoPath = formData.logo && !formData.logo.startsWith('data:') 
-        ? formData.logo 
-        : undefined;
+      const logoPath =
+        formData.logo && !formData.logo.startsWith("data:")
+          ? formData.logo
+          : undefined;
 
       await upsertCompany({
         name: formData.name,
@@ -78,10 +86,10 @@ export const useCompanyData = () => {
         logoPath: logoPath,
       }).unwrap();
 
-      showToast('تم حفظ البيانات بنجاح!');
+      showToast("تم حفظ البيانات بنجاح!");
     } catch (error) {
-      showToast('حدث خطأ أثناء حفظ البيانات');
-      console.error('Error saving company data:', error);
+      showToast("حدث خطأ أثناء حفظ البيانات");
+      console.error("Error saving company data:", error);
     }
   };
 
@@ -99,4 +107,3 @@ export const useCompanyData = () => {
     fetchError,
   };
 };
-

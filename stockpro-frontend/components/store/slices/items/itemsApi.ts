@@ -79,57 +79,57 @@ export const itemsApiSlice = apiSlice.injectEndpoints({
   endpoints: (builder: any) => ({
     // Item Groups
     getItemGroups: builder.query({
-      query: () => 'item-groups',
+      query: () => "item-groups",
     }),
     createItemGroup: builder.mutation({
       query: (data) => ({
-        url: 'item-groups',
-        method: 'POST',
+        url: "item-groups",
+        method: "POST",
         body: data,
       }),
     }),
     updateItemGroup: builder.mutation({
       query: ({ id, data }) => ({
         url: `item-groups/${id}`,
-        method: 'PATCH',
+        method: "PATCH",
         body: data,
       }),
     }),
     deleteItemGroup: builder.mutation({
       query: (id) => ({
         url: `item-groups/${id}`,
-        method: 'DELETE',
+        method: "DELETE",
       }),
     }),
 
     // Units
     getUnits: builder.query({
-      query: () => 'units',
+      query: () => "units",
     }),
     createUnit: builder.mutation({
       query: (data) => ({
-        url: 'units',
-        method: 'POST',
+        url: "units",
+        method: "POST",
         body: data,
       }),
     }),
     updateUnit: builder.mutation({
       query: ({ id, data }) => ({
         url: `units/${id}`,
-        method: 'PATCH',
+        method: "PATCH",
         body: data,
       }),
     }),
     deleteUnit: builder.mutation({
       query: (id) => ({
         url: `units/${id}`,
-        method: 'DELETE',
+        method: "DELETE",
       }),
     }),
 
     // Items
     getItems: builder.query({
-      query: () => 'items',
+      query: () => "items",
     }),
     getItemById: builder.query({
       query: (id) => `items/${id}`,
@@ -139,22 +139,22 @@ export const itemsApiSlice = apiSlice.injectEndpoints({
     }),
     createItem: builder.mutation({
       query: (data) => ({
-        url: 'items',
-        method: 'POST',
+        url: "items",
+        method: "POST",
         body: data,
       }),
     }),
     updateItem: builder.mutation({
       query: ({ id, data }) => ({
         url: `items/${id}`,
-        method: 'PATCH',
+        method: "PATCH",
         body: data,
       }),
     }),
     deleteItem: builder.mutation({
       query: (id) => ({
         url: `items/${id}`,
-        method: 'DELETE',
+        method: "DELETE",
       }),
     }),
   }),
@@ -176,5 +176,3 @@ export const {
   useUpdateItemMutation,
   useDeleteItemMutation,
 } = itemsApiSlice;
-
-

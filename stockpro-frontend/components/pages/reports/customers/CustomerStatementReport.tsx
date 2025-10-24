@@ -1,14 +1,24 @@
-import React, { useState, useMemo, useCallback, useEffect } from 'react';
-import type { CompanyInfo, Customer, User, Invoice, Voucher } from '../../../../types';
-import { ExcelIcon, PdfIcon, PrintIcon, SearchIcon } from '../../../icons';
-import ReportHeader from '../ReportHeader';
-import { formatNumber } from '../../../../utils/formatting';
+import React, { useState, useMemo, useCallback, useEffect } from "react";
+import type {
+  CompanyInfo,
+  Customer,
+  User,
+  Invoice,
+  Voucher,
+} from "../../../../types";
+import { ExcelIcon, PdfIcon, PrintIcon, SearchIcon } from "../../../icons";
+import ReportHeader from "../ReportHeader";
+import { formatNumber } from "../../../../utils/formatting";
 
 interface CustomerStatementReportProps {
   title: string;
   companyInfo: CompanyInfo;
   customers: Customer[];
-  onNavigate: (pageKey: string, pageLabel: string, recordId: string | number) => void;
+  onNavigate: (
+    pageKey: string,
+    pageLabel: string,
+    recordId: string | number,
+  ) => void;
   currentUser: User | null;
   salesInvoices: Invoice[];
   salesReturns: Invoice[];
@@ -16,103 +26,209 @@ interface CustomerStatementReportProps {
   paymentVouchers: Voucher[];
 }
 
-const CustomerStatementReport: React.FC<CustomerStatementReportProps> = ({ title, companyInfo, customers, onNavigate, currentUser, salesInvoices, salesReturns, receiptVouchers, paymentVouchers }) => {
-    const currentYear = new Date().getFullYear();
-    const [startDate, setStartDate] = useState(`${currentYear}-01-01`);
-    const [endDate, setEndDate] = useState(new Date().toISOString().substring(0, 10));
-    const [customerSearchTerm, setCustomerSearchTerm] = useState('');
-    const [selectedCustomerId, setSelectedCustomerId] = useState<string | null>(customers.length > 0 ? customers[0].id.toString() : null);
+const CustomerStatementReport: React.FC<CustomerStatementReportProps> = ({
+  title,
+  companyInfo,
+  customers,
+  onNavigate,
+  currentUser,
+  salesInvoices,
+  salesReturns,
+  receiptVouchers,
+  paymentVouchers,
+}) => {
+  const currentYear = new Date().getFullYear();
+  const [startDate, setStartDate] = useState(`${currentYear}-01-01`);
+  const [endDate, setEndDate] = useState(
+    new Date().toISOString().substring(0, 10),
+  );
+  const [customerSearchTerm, setCustomerSearchTerm] = useState("");
+  const [selectedCustomerId, setSelectedCustomerId] = useState<string | null>(
+    customers.length > 0 ? customers[0].id.toString() : null,
+  );
 
-    const [reportData, setReportData] = useState<any[]>([]);
-    const [openingBalance, setOpeningBalance] = useState(0);
+  const [reportData, setReportData] = useState<any[]>([]);
+  const [openingBalance, setOpeningBalance] = useState(0);
 
-    const filteredCustomers = customers.filter(c => c.name.toLowerCase().includes(customerSearchTerm.toLowerCase()));
-    
-    const selectedCustomer = useMemo(() => customers.find(c => c.id.toString() === selectedCustomerId), [customers, selectedCustomerId]);
-    const selectedCustomerName = selectedCustomer?.name || 'غير محدد';
-    
-    const handleViewReport = useCallback(() => {
-        if (!selectedCustomer) {
-            setReportData([]);
-            setOpeningBalance(0);
-            return;
-        }
+  const filteredCustomers = customers.filter((c) =>
+    c.name.toLowerCase().includes(customerSearchTerm.toLowerCase()),
+  );
 
-        const customerId = selectedCustomer.id;
-        const customerIdStr = customerId.toString();
+  const selectedCustomer = useMemo(
+    () => customers.find((c) => c.id.toString() === selectedCustomerId),
+    [customers, selectedCustomerId],
+  );
+  const selectedCustomerName = selectedCustomer?.name || "غير محدد";
 
-        const salesBefore = salesInvoices
-            .filter(i => i.customerOrSupplier?.id === customerIdStr && i.date < startDate)
-            .reduce((sum, i) => sum + i.totals.net, 0);
+  const handleViewReport = useCallback(() => {
+    if (!selectedCustomer) {
+      setReportData([]);
+      setOpeningBalance(0);
+      return;
+    }
 
-        const returnsBefore = salesReturns
-            .filter(i => i.customerOrSupplier?.id === customerIdStr && i.date < startDate)
-            .reduce((sum, i) => sum + i.totals.net, 0);
-        
-        const receiptsBefore = receiptVouchers
-            .filter(v => v.entity.type === 'customer' && v.entity.id == customerId && v.date < startDate)
-            .reduce((sum, v) => sum + v.amount, 0);
-            
-        const paymentsBefore = paymentVouchers // Refunds to customer
-            .filter(v => v.entity.type === 'customer' && v.entity.id == customerId && v.date < startDate)
-            .reduce((sum, v) => sum + v.amount, 0);
+    const customerId = selectedCustomer.id;
+    const customerIdStr = customerId.toString();
 
-        const currentOpeningBalance = selectedCustomer.openingBalance + salesBefore + paymentsBefore - returnsBefore - receiptsBefore;
-        setOpeningBalance(currentOpeningBalance);
-        
-        const transactions: {date: string, description: string, ref: string, debit: number, credit: number, link: {page: string, label: string} | null}[] = [];
+    const salesBefore = salesInvoices
+      .filter(
+        (i) => i.customerOrSupplier?.id === customerIdStr && i.date < startDate,
+      )
+      .reduce((sum, i) => sum + i.totals.net, 0);
 
-        salesInvoices.forEach(inv => {
-            if(inv.customerOrSupplier?.id === customerIdStr && inv.date >= startDate && inv.date <= endDate) {
-                transactions.push({ date: inv.date, description: 'فاتورة مبيعات', ref: inv.id, debit: inv.totals.net, credit: 0, link: {page: 'sales_invoice', label: 'فاتورة مبيعات'} });
-            }
+    const returnsBefore = salesReturns
+      .filter(
+        (i) => i.customerOrSupplier?.id === customerIdStr && i.date < startDate,
+      )
+      .reduce((sum, i) => sum + i.totals.net, 0);
+
+    const receiptsBefore = receiptVouchers
+      .filter(
+        (v) =>
+          v.entity.type === "customer" &&
+          v.entity.id == customerId &&
+          v.date < startDate,
+      )
+      .reduce((sum, v) => sum + v.amount, 0);
+
+    const paymentsBefore = paymentVouchers // Refunds to customer
+      .filter(
+        (v) =>
+          v.entity.type === "customer" &&
+          v.entity.id == customerId &&
+          v.date < startDate,
+      )
+      .reduce((sum, v) => sum + v.amount, 0);
+
+    const currentOpeningBalance =
+      selectedCustomer.openingBalance +
+      salesBefore +
+      paymentsBefore -
+      returnsBefore -
+      receiptsBefore;
+    setOpeningBalance(currentOpeningBalance);
+
+    const transactions: {
+      date: string;
+      description: string;
+      ref: string;
+      debit: number;
+      credit: number;
+      link: { page: string; label: string } | null;
+    }[] = [];
+
+    salesInvoices.forEach((inv) => {
+      if (
+        inv.customerOrSupplier?.id === customerIdStr &&
+        inv.date >= startDate &&
+        inv.date <= endDate
+      ) {
+        transactions.push({
+          date: inv.date,
+          description: "فاتورة مبيعات",
+          ref: inv.id,
+          debit: inv.totals.net,
+          credit: 0,
+          link: { page: "sales_invoice", label: "فاتورة مبيعات" },
         });
-        salesReturns.forEach(inv => {
-            if(inv.customerOrSupplier?.id === customerIdStr && inv.date >= startDate && inv.date <= endDate) {
-                transactions.push({ date: inv.date, description: 'مرتجع مبيعات', ref: inv.id, debit: 0, credit: inv.totals.net, link: {page: 'sales_return', label: 'مرتجع مبيعات'} });
-            }
+      }
+    });
+    salesReturns.forEach((inv) => {
+      if (
+        inv.customerOrSupplier?.id === customerIdStr &&
+        inv.date >= startDate &&
+        inv.date <= endDate
+      ) {
+        transactions.push({
+          date: inv.date,
+          description: "مرتجع مبيعات",
+          ref: inv.id,
+          debit: 0,
+          credit: inv.totals.net,
+          link: { page: "sales_return", label: "مرتجع مبيعات" },
         });
-        receiptVouchers.forEach(v => {
-            if(v.entity.type === 'customer' && v.entity.id == customerId && v.date >= startDate && v.date <= endDate) {
-                transactions.push({ date: v.date, description: 'سند قبض', ref: v.id, debit: 0, credit: v.amount, link: {page: 'receipt_voucher', label: 'سند قبض'} });
-            }
+      }
+    });
+    receiptVouchers.forEach((v) => {
+      if (
+        v.entity.type === "customer" &&
+        v.entity.id == customerId &&
+        v.date >= startDate &&
+        v.date <= endDate
+      ) {
+        transactions.push({
+          date: v.date,
+          description: "سند قبض",
+          ref: v.id,
+          debit: 0,
+          credit: v.amount,
+          link: { page: "receipt_voucher", label: "سند قبض" },
         });
-        paymentVouchers.forEach(v => { // Refund
-            if(v.entity.type === 'customer' && v.entity.id == customerId && v.date >= startDate && v.date <= endDate) {
-                transactions.push({ date: v.date, description: 'سند صرف (رد مبلغ)', ref: v.id, debit: v.amount, credit: 0, link: {page: 'payment_voucher', label: 'سند صرف'} });
-            }
+      }
+    });
+    paymentVouchers.forEach((v) => {
+      // Refund
+      if (
+        v.entity.type === "customer" &&
+        v.entity.id == customerId &&
+        v.date >= startDate &&
+        v.date <= endDate
+      ) {
+        transactions.push({
+          date: v.date,
+          description: "سند صرف (رد مبلغ)",
+          ref: v.id,
+          debit: v.amount,
+          credit: 0,
+          link: { page: "payment_voucher", label: "سند صرف" },
         });
+      }
+    });
 
-        transactions.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+    transactions.sort(
+      (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime(),
+    );
 
-        let balance = currentOpeningBalance;
-        const finalData = transactions.map(t => {
-            balance = balance + t.debit - t.credit;
-            return { ...t, balance };
-        });
-        setReportData(finalData);
+    let balance = currentOpeningBalance;
+    const finalData = transactions.map((t) => {
+      balance = balance + t.debit - t.credit;
+      return { ...t, balance };
+    });
+    setReportData(finalData);
+  }, [
+    selectedCustomer,
+    salesInvoices,
+    salesReturns,
+    receiptVouchers,
+    paymentVouchers,
+    startDate,
+    endDate,
+  ]);
 
-    }, [selectedCustomer, salesInvoices, salesReturns, receiptVouchers, paymentVouchers, startDate, endDate]);
+  useEffect(() => {
+    handleViewReport();
+  }, [handleViewReport]);
 
-    useEffect(() => {
-        handleViewReport();
-    }, [handleViewReport]);
-    
-    const totalDebit = reportData.reduce((sum, item) => sum + item.debit, 0);
-    const totalCredit = reportData.reduce((sum, item) => sum + item.credit, 0);
-    const finalBalance = openingBalance + totalDebit - totalCredit;
-    
-    const inputStyle = "p-2 border-2 border-brand-blue rounded-md focus:outline-none focus:ring-2 focus:ring-brand-blue bg-brand-blue-bg";
+  const totalDebit = reportData.reduce((sum, item) => sum + item.debit, 0);
+  const totalCredit = reportData.reduce((sum, item) => sum + item.credit, 0);
+  const finalBalance = openingBalance + totalDebit - totalCredit;
 
-    const handlePrint = () => {
-        const reportContent = document.getElementById('printable-area');
-        if (!reportContent) return;
+  const inputStyle =
+    "p-2 border-2 border-brand-blue rounded-md focus:outline-none focus:ring-2 focus:ring-brand-blue bg-brand-blue-bg";
 
-        const printWindow = window.open('', '', 'height=800,width=1200');
-        printWindow?.document.write('<html><head><title>طباعة التقرير</title>');
-        printWindow?.document.write('<script src="https://cdn.tailwindcss.com"></script>');
-        printWindow?.document.write('<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet">');
-        printWindow?.document.write(`
+  const handlePrint = () => {
+    const reportContent = document.getElementById("printable-area");
+    if (!reportContent) return;
+
+    const printWindow = window.open("", "", "height=800,width=1200");
+    printWindow?.document.write("<html><head><title>طباعة التقرير</title>");
+    printWindow?.document.write(
+      '<script src="https://cdn.tailwindcss.com"></script>',
+    );
+    printWindow?.document.write(
+      '<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet">',
+    );
+    printWindow?.document.write(`
             <style>
                 body { font-family: "Cairo", sans-serif; direction: rtl; }
                 @media print {
@@ -130,103 +246,189 @@ const CustomerStatementReport: React.FC<CustomerStatementReportProps> = ({ title
                 }
             </style>
         `);
-        printWindow?.document.write('</head><body>');
-        printWindow?.document.write(reportContent.innerHTML);
-        printWindow?.document.write('</body></html>');
-        printWindow?.document.close();
-        printWindow?.focus();
-        setTimeout(() => {
-            printWindow?.print();
-            printWindow?.close();
-        }, 500);
-    };
+    printWindow?.document.write("</head><body>");
+    printWindow?.document.write(reportContent.innerHTML);
+    printWindow?.document.write("</body></html>");
+    printWindow?.document.close();
+    printWindow?.focus();
+    setTimeout(() => {
+      printWindow?.print();
+      printWindow?.close();
+    }, 500);
+  };
 
-    return (
-        <div className="bg-white p-6 rounded-lg shadow">
-            <div id="printable-area">
-                <ReportHeader title={title} companyInfo={companyInfo} />
-                <div className="px-6 py-2 text-sm print:block hidden border-t-2 mt-2 space-y-1">
-                    <p><strong>العميل:</strong> {selectedCustomerName}</p>
-                    <p><strong>الفترة من:</strong> {startDate} <strong>إلى:</strong> {endDate}</p>
-                    <p><strong>فرع الطباعة:</strong> {currentUser?.branch}</p>
-                    <p><strong>المستخدم:</strong> {currentUser?.fullName}</p>
-                </div>
-
-                <div className="flex justify-between items-center my-4 bg-gray-50 p-3 rounded-md border-2 border-gray-200 no-print">
-                    <div className="flex items-center gap-4 flex-wrap">
-                        <input type="text" placeholder="بحث عن عميل..." className={inputStyle + " w-48"} value={customerSearchTerm} onChange={e => setCustomerSearchTerm(e.target.value)} />
-                        <select className={inputStyle} value={selectedCustomerId || ''} onChange={(e) => setSelectedCustomerId(e.target.value)}>
-                            <option value="">اختر العميل...</option>
-                            {filteredCustomers.map(customer => <option key={customer.id} value={customer.id}>{customer.name}</option>)}
-                        </select>
-                        <label className="font-semibold">من:</label>
-                        <input type="date" className={inputStyle} value={startDate} onChange={e => setStartDate(e.target.value)} />
-                        <label className="font-semibold">إلى:</label>
-                        <input type="date" className={inputStyle} value={endDate} onChange={e => setEndDate(e.target.value)} />
-                        <button onClick={handleViewReport} className="px-6 py-2 bg-brand-blue text-white rounded-md hover:bg-blue-800 font-semibold flex items-center gap-2">
-                            <SearchIcon className="w-5 h-5" />
-                            <span>عرض التقرير</span>
-                        </button>
-                    </div>
-                    <div className="flex items-center gap-2">
-                        <button title="تصدير Excel" className="p-3 border-2 border-gray-200 rounded-md hover:bg-gray-100">
-                            <ExcelIcon className="w-6 h-6" />
-                        </button>
-                        <button title="تصدير PDF" className="p-3 border-2 border-gray-200 rounded-md hover:bg-gray-100">
-                            <PdfIcon className="w-6 h-6" />
-                        </button>
-                        <button onClick={handlePrint} title="طباعة" className="p-3 border-2 border-gray-200 rounded-md hover:bg-gray-100">
-                            <PrintIcon className="w-6 h-6" />
-                        </button>
-                    </div>
-                </div>
-
-                <div className="overflow-x-auto border-2 border-brand-blue rounded-lg">
-                    <table className="min-w-full divide-y divide-gray-200">
-                        <thead className="bg-brand-blue">
-                            <tr>
-                                <th className="px-6 py-3 text-right text-sm font-semibold text-white uppercase">التاريخ</th>
-                                <th className="px-6 py-3 text-right text-sm font-semibold text-white uppercase">البيان</th>
-                                <th className="px-6 py-3 text-right text-sm font-semibold text-white uppercase">مدين</th>
-                                <th className="px-6 py-3 text-right text-sm font-semibold text-white uppercase">دائن</th>
-                                <th className="px-6 py-3 text-right text-sm font-semibold text-white uppercase">الرصيد</th>
-                            </tr>
-                        </thead>
-                        <tbody className="bg-white divide-y divide-gray-200">
-                            <tr className="bg-gray-50"><td colSpan={4} className="px-6 py-3 font-bold">رصيد أول المدة</td><td className="px-6 py-3 font-bold">{formatNumber(openingBalance)}</td></tr>
-                            {reportData.map((item, index) => (
-                                <tr key={index} className="hover:bg-brand-blue-bg">
-                                    <td className="px-6 py-4">{item.date}</td>
-                                    <td className="px-6 py-4 font-medium text-brand-dark">
-                                        {item.description}{' '}
-                                        {item.link ? (
-                                            <button onClick={() => onNavigate(item.link.page, `${item.link.label} #${item.ref}`, item.ref)} className="text-brand-blue hover:underline font-semibold no-print">
-                                                ({item.ref})
-                                            </button>
-                                        ) : (
-                                            `(${item.ref})`
-                                        )}
-                                        <span className="print:inline hidden">({item.ref})</span>
-                                    </td>
-                                    <td className="px-6 py-4 text-red-600">{formatNumber(item.debit)}</td>
-                                    <td className="px-6 py-4 text-green-600">{formatNumber(item.credit)}</td>
-                                    <td className="px-6 py-4 font-bold">{formatNumber(item.balance)}</td>
-                                </tr>
-                            ))}
-                        </tbody>
-                        <tfoot className="bg-gray-100">
-                            <tr className="font-bold text-brand-dark">
-                                <td colSpan={2} className="px-6 py-3 text-right">الإجمالي</td>
-                                <td className="px-6 py-3 text-right text-red-600">{formatNumber(totalDebit)}</td>
-                                <td className="px-6 py-3 text-right text-green-600">{formatNumber(totalCredit)}</td>
-                                <td className="px-6 py-3 text-right">{formatNumber(finalBalance)}</td>
-                            </tr>
-                        </tfoot>
-                    </table>
-                </div>
-            </div>
+  return (
+    <div className="bg-white p-6 rounded-lg shadow">
+      <div id="printable-area">
+        <ReportHeader title={title} companyInfo={companyInfo} />
+        <div className="px-6 py-2 text-sm print:block hidden border-t-2 mt-2 space-y-1">
+          <p>
+            <strong>العميل:</strong> {selectedCustomerName}
+          </p>
+          <p>
+            <strong>الفترة من:</strong> {startDate} <strong>إلى:</strong>{" "}
+            {endDate}
+          </p>
+          <p>
+            <strong>فرع الطباعة:</strong> {currentUser?.branch}
+          </p>
+          <p>
+            <strong>المستخدم:</strong> {currentUser?.fullName}
+          </p>
         </div>
-    );
+
+        <div className="flex justify-between items-center my-4 bg-gray-50 p-3 rounded-md border-2 border-gray-200 no-print">
+          <div className="flex items-center gap-4 flex-wrap">
+            <input
+              type="text"
+              placeholder="بحث عن عميل..."
+              className={inputStyle + " w-48"}
+              value={customerSearchTerm}
+              onChange={(e) => setCustomerSearchTerm(e.target.value)}
+            />
+            <select
+              className={inputStyle}
+              value={selectedCustomerId || ""}
+              onChange={(e) => setSelectedCustomerId(e.target.value)}
+            >
+              <option value="">اختر العميل...</option>
+              {filteredCustomers.map((customer) => (
+                <option key={customer.id} value={customer.id}>
+                  {customer.name}
+                </option>
+              ))}
+            </select>
+            <label className="font-semibold">من:</label>
+            <input
+              type="date"
+              className={inputStyle}
+              value={startDate}
+              onChange={(e) => setStartDate(e.target.value)}
+            />
+            <label className="font-semibold">إلى:</label>
+            <input
+              type="date"
+              className={inputStyle}
+              value={endDate}
+              onChange={(e) => setEndDate(e.target.value)}
+            />
+            <button
+              onClick={handleViewReport}
+              className="px-6 py-2 bg-brand-blue text-white rounded-md hover:bg-blue-800 font-semibold flex items-center gap-2"
+            >
+              <SearchIcon className="w-5 h-5" />
+              <span>عرض التقرير</span>
+            </button>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              title="تصدير Excel"
+              className="p-3 border-2 border-gray-200 rounded-md hover:bg-gray-100"
+            >
+              <ExcelIcon className="w-6 h-6" />
+            </button>
+            <button
+              title="تصدير PDF"
+              className="p-3 border-2 border-gray-200 rounded-md hover:bg-gray-100"
+            >
+              <PdfIcon className="w-6 h-6" />
+            </button>
+            <button
+              onClick={handlePrint}
+              title="طباعة"
+              className="p-3 border-2 border-gray-200 rounded-md hover:bg-gray-100"
+            >
+              <PrintIcon className="w-6 h-6" />
+            </button>
+          </div>
+        </div>
+
+        <div className="overflow-x-auto border-2 border-brand-blue rounded-lg">
+          <table className="min-w-full divide-y divide-gray-200">
+            <thead className="bg-brand-blue">
+              <tr>
+                <th className="px-6 py-3 text-right text-sm font-semibold text-white uppercase">
+                  التاريخ
+                </th>
+                <th className="px-6 py-3 text-right text-sm font-semibold text-white uppercase">
+                  البيان
+                </th>
+                <th className="px-6 py-3 text-right text-sm font-semibold text-white uppercase">
+                  مدين
+                </th>
+                <th className="px-6 py-3 text-right text-sm font-semibold text-white uppercase">
+                  دائن
+                </th>
+                <th className="px-6 py-3 text-right text-sm font-semibold text-white uppercase">
+                  الرصيد
+                </th>
+              </tr>
+            </thead>
+            <tbody className="bg-white divide-y divide-gray-200">
+              <tr className="bg-gray-50">
+                <td colSpan={4} className="px-6 py-3 font-bold">
+                  رصيد أول المدة
+                </td>
+                <td className="px-6 py-3 font-bold">
+                  {formatNumber(openingBalance)}
+                </td>
+              </tr>
+              {reportData.map((item, index) => (
+                <tr key={index} className="hover:bg-brand-blue-bg">
+                  <td className="px-6 py-4">{item.date}</td>
+                  <td className="px-6 py-4 font-medium text-brand-dark">
+                    {item.description}{" "}
+                    {item.link ? (
+                      <button
+                        onClick={() =>
+                          onNavigate(
+                            item.link.page,
+                            `${item.link.label} #${item.ref}`,
+                            item.ref,
+                          )
+                        }
+                        className="text-brand-blue hover:underline font-semibold no-print"
+                      >
+                        ({item.ref})
+                      </button>
+                    ) : (
+                      `(${item.ref})`
+                    )}
+                    <span className="print:inline hidden">({item.ref})</span>
+                  </td>
+                  <td className="px-6 py-4 text-red-600">
+                    {formatNumber(item.debit)}
+                  </td>
+                  <td className="px-6 py-4 text-green-600">
+                    {formatNumber(item.credit)}
+                  </td>
+                  <td className="px-6 py-4 font-bold">
+                    {formatNumber(item.balance)}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+            <tfoot className="bg-gray-100">
+              <tr className="font-bold text-brand-dark">
+                <td colSpan={2} className="px-6 py-3 text-right">
+                  الإجمالي
+                </td>
+                <td className="px-6 py-3 text-right text-red-600">
+                  {formatNumber(totalDebit)}
+                </td>
+                <td className="px-6 py-3 text-right text-green-600">
+                  {formatNumber(totalCredit)}
+                </td>
+                <td className="px-6 py-3 text-right">
+                  {formatNumber(finalBalance)}
+                </td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+      </div>
+    </div>
+  );
 };
 
 export default CustomerStatementReport;

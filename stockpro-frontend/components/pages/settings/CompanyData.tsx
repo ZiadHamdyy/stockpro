@@ -1,9 +1,13 @@
-import React from 'react';
-import { HomeIcon } from '../../icons';
-import { useCompanyData } from '../../hook/useCompanyData';
-import { Link } from 'react-router-dom';
-import PermissionWrapper from '../../common/PermissionWrapper';
-import { Resources, Actions, buildPermission } from '../../../enums/permissions.enum';
+import React from "react";
+import { HomeIcon } from "../../icons";
+import { useCompanyData } from "../../hook/useCompanyData";
+import { Link } from "react-router-dom";
+import PermissionWrapper from "../../common/PermissionWrapper";
+import {
+  Resources,
+  Actions,
+  buildPermission,
+} from "../../../enums/permissions.enum";
 
 interface CompanyDataProps {
   title: string;
@@ -23,11 +27,17 @@ const CompanyData: React.FC<CompanyDataProps> = ({ title }) => {
     handleSubmit,
   } = useCompanyData();
 
-  const inputStyle = "mt-1 block w-full bg-brand-blue-bg border-2 border-brand-blue rounded-md shadow-sm text-black placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-brand-blue focus:border-brand-blue py-3 px-4";
+  const inputStyle =
+    "mt-1 block w-full bg-brand-blue-bg border-2 border-brand-blue rounded-md shadow-sm text-black placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-brand-blue focus:border-brand-blue py-3 px-4";
 
-  const handleInfoChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+  const handleInfoChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>,
+  ) => {
     const { id, value } = e.target;
-    handleFieldChange(id as keyof typeof company, id === 'capital' ? parseFloat(value) || 0 : value);
+    handleFieldChange(
+      id as keyof typeof company,
+      id === "capital" ? parseFloat(value) || 0 : value,
+    );
   };
 
   const handleLogoFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -37,142 +47,290 @@ const CompanyData: React.FC<CompanyDataProps> = ({ title }) => {
 
   const handleRemoveLogo = () => {
     removeLogo();
-    const fileInput = document.getElementById('logo-upload') as HTMLInputElement;
-    if(fileInput) fileInput.value = '';
-  }
-
+    const fileInput = document.getElementById(
+      "logo-upload",
+    ) as HTMLInputElement;
+    if (fileInput) fileInput.value = "";
+  };
 
   return (
     <div className="bg-white p-6 rounded-lg shadow-md">
       <div className="flex items-center gap-4 mb-6 border-b border-gray-200 pb-4">
-        <Link to="/dashboard" title="العودة للرئيسية" className="p-2 rounded-full hover:bg-gray-100 transition-colors">
-            <HomeIcon className="w-6 h-6 text-brand-dark" />
+        <Link
+          to="/dashboard"
+          title="العودة للرئيسية"
+          className="p-2 rounded-full hover:bg-gray-100 transition-colors"
+        >
+          <HomeIcon className="w-6 h-6 text-brand-dark" />
         </Link>
         <h1 className="text-2xl font-bold text-brand-dark">{title}</h1>
       </div>
       <form onSubmit={handleSubmit}>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          
           <div className="md:col-span-2">
-            <label htmlFor="name" className="block text-sm font-medium text-gray-700">اسم الشركة</label>
-            <input type="text" id="name" value={company.name} onChange={handleInfoChange} className={inputStyle} placeholder="ادخل اسم الشركة" />
+            <label
+              htmlFor="name"
+              className="block text-sm font-medium text-gray-700"
+            >
+              اسم الشركة
+            </label>
+            <input
+              type="text"
+              id="name"
+              value={company.name}
+              onChange={handleInfoChange}
+              className={inputStyle}
+              placeholder="ادخل اسم الشركة"
+            />
           </div>
 
           <div>
-            <label htmlFor="activity" className="block text-sm font-medium text-gray-700">النشاط التجاري</label>
-            <input type="text" id="activity" value={company.activity} onChange={handleInfoChange} className={inputStyle} placeholder="ادخل النشاط التجاري" />
+            <label
+              htmlFor="activity"
+              className="block text-sm font-medium text-gray-700"
+            >
+              النشاط التجاري
+            </label>
+            <input
+              type="text"
+              id="activity"
+              value={company.activity}
+              onChange={handleInfoChange}
+              className={inputStyle}
+              placeholder="ادخل النشاط التجاري"
+            />
           </div>
-          
+
           <div className="md:col-span-3">
-            <label htmlFor="address" className="block text-sm font-medium text-gray-700">العنوان</label>
-            <input type="text" id="address" value={company.address} onChange={handleInfoChange} className={inputStyle} placeholder="ادخل العنوان بالتفصيل" />
+            <label
+              htmlFor="address"
+              className="block text-sm font-medium text-gray-700"
+            >
+              العنوان
+            </label>
+            <input
+              type="text"
+              id="address"
+              value={company.address}
+              onChange={handleInfoChange}
+              className={inputStyle}
+              placeholder="ادخل العنوان بالتفصيل"
+            />
           </div>
 
           <div>
-            <label htmlFor="phone" className="block text-sm font-medium text-gray-700">رقم الهاتف</label>
-            <input type="tel" id="phone" value={company.phone} onChange={handleInfoChange} className={inputStyle} placeholder="ادخل رقم الهاتف" />
+            <label
+              htmlFor="phone"
+              className="block text-sm font-medium text-gray-700"
+            >
+              رقم الهاتف
+            </label>
+            <input
+              type="tel"
+              id="phone"
+              value={company.phone}
+              onChange={handleInfoChange}
+              className={inputStyle}
+              placeholder="ادخل رقم الهاتف"
+            />
           </div>
 
           <div>
-            <label htmlFor="taxNumber" className="block text-sm font-medium text-gray-700">الرقم الضريبي</label>
-            <input type="text" id="taxNumber" value={company.taxNumber} onChange={handleInfoChange} className={inputStyle} placeholder="ادخل الرقم الضريبي" />
-          </div>
-          
-          <div>
-            <label htmlFor="commercialReg" className="block text-sm font-medium text-gray-700">السجل التجاري</label>
-            <input type="text" id="commercialReg" value={company.commercialReg} onChange={handleInfoChange} className={inputStyle} placeholder="ادخل رقم السجل التجاري" />
+            <label
+              htmlFor="taxNumber"
+              className="block text-sm font-medium text-gray-700"
+            >
+              الرقم الضريبي
+            </label>
+            <input
+              type="text"
+              id="taxNumber"
+              value={company.taxNumber}
+              onChange={handleInfoChange}
+              className={inputStyle}
+              placeholder="ادخل الرقم الضريبي"
+            />
           </div>
 
           <div>
-            <label htmlFor="currency" className="block text-sm font-medium text-gray-700">العملة</label>
-            <select id="currency" value={company.currency} onChange={handleInfoChange} className={inputStyle}>
+            <label
+              htmlFor="commercialReg"
+              className="block text-sm font-medium text-gray-700"
+            >
+              السجل التجاري
+            </label>
+            <input
+              type="text"
+              id="commercialReg"
+              value={company.commercialReg}
+              onChange={handleInfoChange}
+              className={inputStyle}
+              placeholder="ادخل رقم السجل التجاري"
+            />
+          </div>
+
+          <div>
+            <label
+              htmlFor="currency"
+              className="block text-sm font-medium text-gray-700"
+            >
+              العملة
+            </label>
+            <select
+              id="currency"
+              value={company.currency}
+              onChange={handleInfoChange}
+              className={inputStyle}
+            >
               <option value="SAR">الريال السعودي (SAR)</option>
               <option value="USD">الدولار الأمريكي (USD)</option>
               <option value="EGP">الجنيه المصري (EGP)</option>
               <option value="AED">الدرهم الإماراتي (AED)</option>
             </select>
           </div>
-           <div>
-            <label htmlFor="capital" className="block text-sm font-medium text-gray-700">رأس المال</label>
-            <input type="number" id="capital" name="capital" value={company.capital} onChange={handleInfoChange} className={inputStyle} placeholder="ادخل رأس المال" />
+          <div>
+            <label
+              htmlFor="capital"
+              className="block text-sm font-medium text-gray-700"
+            >
+              رأس المال
+            </label>
+            <input
+              type="number"
+              id="capital"
+              name="capital"
+              value={company.capital}
+              onChange={handleInfoChange}
+              className={inputStyle}
+              placeholder="ادخل رأس المال"
+            />
           </div>
-          
+
           <div className="grid grid-cols-2 gap-4 items-end">
             <div>
-                <label htmlFor="vatRate" className="block text-sm font-medium text-gray-700">ضريبة القيمة المضافة</label>
-                <div className="relative mt-1">
-                <input 
-                    type="number" 
-                    id="vatRate" 
-                    value={vatRate}
-                    onChange={(e) => setVatRate(parseFloat(e.target.value) || 0)}
-                    className={inputStyle + " pl-7 text-left"} 
-                    placeholder="15" 
-                    disabled={!isVatEnabled}
+              <label
+                htmlFor="vatRate"
+                className="block text-sm font-medium text-gray-700"
+              >
+                ضريبة القيمة المضافة
+              </label>
+              <div className="relative mt-1">
+                <input
+                  type="number"
+                  id="vatRate"
+                  value={vatRate}
+                  onChange={(e) => setVatRate(parseFloat(e.target.value) || 0)}
+                  className={inputStyle + " pl-7 text-left"}
+                  placeholder="15"
+                  disabled={!isVatEnabled}
                 />
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <span className="text-gray-500 sm:text-sm">%</span>
+                  <span className="text-gray-500 sm:text-sm">%</span>
                 </div>
-                </div>
+              </div>
             </div>
-             <div className="flex items-center gap-2 pb-3">
-                <input 
-                    type="checkbox" 
-                    id="isVatEnabled" 
-                    checked={isVatEnabled} 
-                    onChange={(e) => setIsVatEnabled(e.target.checked)} 
-                    className="h-5 w-5 rounded border-gray-300 text-brand-blue focus:ring-brand-blue" 
-                />
-                <label htmlFor="isVatEnabled" className="text-sm font-medium text-gray-700">تفعيل ضريبة القيمة المضافة</label>
+            <div className="flex items-center gap-2 pb-3">
+              <input
+                type="checkbox"
+                id="isVatEnabled"
+                checked={isVatEnabled}
+                onChange={(e) => setIsVatEnabled(e.target.checked)}
+                className="h-5 w-5 rounded border-gray-300 text-brand-blue focus:ring-brand-blue"
+              />
+              <label
+                htmlFor="isVatEnabled"
+                className="text-sm font-medium text-gray-700"
+              >
+                تفعيل ضريبة القيمة المضافة
+              </label>
             </div>
           </div>
-          
+
           <div className="md:col-span-3">
-            <label htmlFor="logo" className="block text-sm font-medium text-gray-700">شعار الشركة</label>
+            <label
+              htmlFor="logo"
+              className="block text-sm font-medium text-gray-700"
+            >
+              شعار الشركة
+            </label>
             <div className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-brand-blue border-dashed rounded-md bg-brand-blue-bg">
-                {company.logo ? (
-                    <div className="text-center relative">
-                        <img src={company.logo} alt="Company Logo Preview" className="mx-auto h-32 w-auto" />
-                        <button type="button" onClick={handleRemoveLogo} className="absolute top-0 right-0 mt-1 mr-1 bg-red-500 text-white rounded-full h-6 w-6 flex items-center justify-center font-bold">&times;</button>
-                    </div>
-                ) : (
-                    <div className="space-y-1 text-center">
-                        <svg className="mx-auto h-12 w-12 text-gray-400" stroke="currentColor" fill="none" viewBox="0 0 48 48" aria-hidden="true">
-                            <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                        </svg>
-                        <div className="flex text-sm text-gray-600">
-                            <label htmlFor="logo-upload" className="relative cursor-pointer bg-white rounded-md font-medium text-brand-blue hover:text-blue-800 focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-brand-blue">
-                                <span>ارفع ملف</span>
-                                <input id="logo-upload" name="logo-upload" type="file" className="sr-only" onChange={handleLogoFileChange} accept="image/png, image/jpeg" />
-                            </label>
-                            <p className="pr-1">أو اسحبه هنا</p>
-                        </div>
-                        <p className="text-xs text-gray-500">PNG, JPG up to 2MB</p>
-                    </div>
-                )}
+              {company.logo ? (
+                <div className="text-center relative">
+                  <img
+                    src={company.logo}
+                    alt="Company Logo Preview"
+                    className="mx-auto h-32 w-auto"
+                  />
+                  <button
+                    type="button"
+                    onClick={handleRemoveLogo}
+                    className="absolute top-0 right-0 mt-1 mr-1 bg-red-500 text-white rounded-full h-6 w-6 flex items-center justify-center font-bold"
+                  >
+                    &times;
+                  </button>
+                </div>
+              ) : (
+                <div className="space-y-1 text-center">
+                  <svg
+                    className="mx-auto h-12 w-12 text-gray-400"
+                    stroke="currentColor"
+                    fill="none"
+                    viewBox="0 0 48 48"
+                    aria-hidden="true"
+                  >
+                    <path
+                      d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  </svg>
+                  <div className="flex text-sm text-gray-600">
+                    <label
+                      htmlFor="logo-upload"
+                      className="relative cursor-pointer bg-white rounded-md font-medium text-brand-blue hover:text-blue-800 focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-brand-blue"
+                    >
+                      <span>ارفع ملف</span>
+                      <input
+                        id="logo-upload"
+                        name="logo-upload"
+                        type="file"
+                        className="sr-only"
+                        onChange={handleLogoFileChange}
+                        accept="image/png, image/jpeg"
+                      />
+                    </label>
+                    <p className="pr-1">أو اسحبه هنا</p>
+                  </div>
+                  <p className="text-xs text-gray-500">PNG, JPG up to 2MB</p>
+                </div>
+              )}
             </div>
           </div>
         </div>
 
         <div className="pt-5 border-t border-gray-200 mt-6 flex justify-end">
-          <PermissionWrapper 
-            requiredPermission={buildPermission(Resources.COMPANY_DATA, Actions.UPDATE)}
+          <PermissionWrapper
+            requiredPermission={buildPermission(
+              Resources.COMPANY_DATA,
+              Actions.UPDATE,
+            )}
             fallback={
-              <button 
-                type="button" 
-                disabled 
+              <button
+                type="button"
+                disabled
                 className="px-8 py-2 bg-gray-400 text-white rounded-md cursor-not-allowed opacity-50"
               >
                 حفظ البيانات
               </button>
             }
           >
-            <button 
-              type="submit" 
-              disabled={isLoading} 
+            <button
+              type="submit"
+              disabled={isLoading}
               className="px-8 py-2 bg-brand-blue text-white rounded-md hover:bg-blue-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-blue transition duration-150 ease-in-out disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {isLoading ? 'جاري الحفظ...' : 'حفظ البيانات'}
+              {isLoading ? "جاري الحفظ..." : "حفظ البيانات"}
             </button>
           </PermissionWrapper>
         </div>

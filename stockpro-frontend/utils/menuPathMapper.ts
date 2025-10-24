@@ -4,94 +4,95 @@
 export const getPathFromMenuKey = (key: string): string => {
   const pathMap: Record<string, string> = {
     // Dashboard
-    'dashboard': '/dashboard',
-    
+    dashboard: "/dashboard",
+
     // Settings
-    'company_data': '/settings/company-data',
-    'branches_data': '/settings/branches-data',
-    'stores_data': '/settings/stores-data',
-    'users_data': '/settings/users-data',
-    'permissions': '/settings/permissions',
-    'database_backup': '/dashboard', // Special handling - trigger backup
-    
+    company_data: "/settings/company-data",
+    branches_data: "/settings/branches-data",
+    stores_data: "/settings/stores-data",
+    users_data: "/settings/users-data",
+    permissions: "/settings/permissions",
+    database_backup: "/dashboard", // Special handling - trigger backup
+
     // Items
-    'add_item': '/items/add',
-    'items_list': '/items/list',
-    'item_groups': '/items/groups',
-    'units': '/items/units',
-    
+    add_item: "/items/add",
+    items_list: "/items/list",
+    item_groups: "/items/groups",
+    units: "/items/units",
+
     // Warehouse Operations
-    'store_receipt_voucher': '/warehouse/receipt-voucher',
-    'store_issue_voucher': '/warehouse/issue-voucher',
-    'store_transfer': '/warehouse/transfer',
-    
+    store_receipt_voucher: "/warehouse/receipt-voucher",
+    store_issue_voucher: "/warehouse/issue-voucher",
+    store_transfer: "/warehouse/transfer",
+
     // Sales
-    'sales_invoice': '/sales/invoice',
-    'sales_return': '/sales/return',
-    'daily_sales': '/sales/daily',
-    'daily_sales_returns': '/sales/daily-returns',
-    
+    sales_invoice: "/sales/invoice",
+    sales_return: "/sales/return",
+    daily_sales: "/sales/daily",
+    daily_sales_returns: "/sales/daily-returns",
+
     // Purchases
-    'purchase_invoice': '/purchases/invoice',
-    'purchase_return': '/purchases/return',
-    'daily_purchases': '/purchases/daily',
-    'daily_purchase_returns': '/purchases/daily-returns',
-    
+    purchase_invoice: "/purchases/invoice",
+    purchase_return: "/purchases/return",
+    daily_purchases: "/purchases/daily",
+    daily_purchase_returns: "/purchases/daily-returns",
+
     // Customers
-    'add_customer': '/customers/add',
-    'customers_list': '/customers/list',
-    
+    add_customer: "/customers/add",
+    customers_list: "/customers/list",
+
     // Suppliers
-    'add_supplier': '/suppliers/add',
-    'suppliers_list': '/suppliers/list',
-    
+    add_supplier: "/suppliers/add",
+    suppliers_list: "/suppliers/list",
+
     // Financials - Expenses
-    'expenses_list': '/financials/expenses/list',
-    'expense_codes': '/financials/expenses/codes',
-    'expense_types': '/financials/expenses/types',
-    
+    expenses_list: "/financials/expenses/list",
+    expense_codes: "/financials/expenses/codes",
+    expense_types: "/financials/expenses/types",
+
     // Financials - Current Accounts
-    'add_current_account': '/financials/current-accounts/add',
-    'current_accounts_list': '/financials/current-accounts/list',
-    
+    add_current_account: "/financials/current-accounts/add",
+    current_accounts_list: "/financials/current-accounts/list",
+
     // Financials - Safes & Banks
-    'safes': '/financials/safes',
-    'banks': '/financials/banks',
-    
+    safes: "/financials/safes",
+    banks: "/financials/banks",
+
     // Financials - Vouchers
-    'receipt_voucher': '/financials/receipt-voucher',
-    'payment_voucher': '/financials/payment-voucher',
-    
+    receipt_voucher: "/financials/receipt-voucher",
+    payment_voucher: "/financials/payment-voucher",
+
     // Reports - Items
-    'item_movement_report': '/reports/items/movement',
-    'item_balance_report': '/reports/items/balance',
-    'inventory_valuation_report': '/reports/items/valuation',
-    
+    item_movement_report: "/reports/items/movement",
+    item_balance_report: "/reports/items/balance",
+    inventory_valuation_report: "/reports/items/valuation",
+
     // Reports - Customers
-    'customer_statement_report': '/reports/customers/statement',
-    'customer_balance_report': '/reports/customers/balance',
-    
+    customer_statement_report: "/reports/customers/statement",
+    customer_balance_report: "/reports/customers/balance",
+
     // Reports - Suppliers
-    'supplier_statement_report': '/reports/suppliers/statement',
-    'supplier_balance_report': '/reports/suppliers/balance',
-    
+    supplier_statement_report: "/reports/suppliers/statement",
+    supplier_balance_report: "/reports/suppliers/balance",
+
     // Reports - Financials
-    'daily_collections_report': '/reports/financials/daily-collections',
-    'daily_payments_report': '/reports/financials/daily-payments',
-    'expense_statement_report': '/reports/financials/expense-statement',
-    'total_expenses_report': '/reports/financials/total-expenses',
-    'current_account_statement_report': '/reports/financials/current-account-statement',
-    'total_current_accounts_report': '/reports/financials/total-current-accounts',
-    'safe_statement_report': '/reports/financials/safe-statement',
-    'bank_statement_report': '/reports/financials/bank-statement',
-    'tax_declaration_report': '/reports/financials/tax-declaration',
-    
+    daily_collections_report: "/reports/financials/daily-collections",
+    daily_payments_report: "/reports/financials/daily-payments",
+    expense_statement_report: "/reports/financials/expense-statement",
+    total_expenses_report: "/reports/financials/total-expenses",
+    current_account_statement_report:
+      "/reports/financials/current-account-statement",
+    total_current_accounts_report: "/reports/financials/total-current-accounts",
+    safe_statement_report: "/reports/financials/safe-statement",
+    bank_statement_report: "/reports/financials/bank-statement",
+    tax_declaration_report: "/reports/financials/tax-declaration",
+
     // Final Accounts
-    'income_statement': '/final-accounts/income-statement',
-    'balance_sheet': '/final-accounts/balance-sheet',
+    income_statement: "/final-accounts/income-statement",
+    balance_sheet: "/final-accounts/balance-sheet",
   };
-  
-  return pathMap[key] || '/dashboard';
+
+  return pathMap[key] || "/dashboard";
 };
 
 /**
@@ -99,60 +100,61 @@ export const getPathFromMenuKey = (key: string): string => {
  */
 export const getMenuKeyFromPath = (path: string): string => {
   const pathToKeyMap: Record<string, string> = {
-    '/dashboard': 'dashboard',
-    '/settings/company-data': 'company_data',
-    '/settings/branches-data': 'branches_data',
-    '/settings/stores-data': 'stores_data',
-    '/settings/users-data': 'users_data',
-    '/settings/permissions': 'permissions',
-    '/items/add': 'add_item',
-    '/items/list': 'items_list',
-    '/items/groups': 'item_groups',
-    '/items/units': 'units',
-    '/warehouse/receipt-voucher': 'store_receipt_voucher',
-    '/warehouse/issue-voucher': 'store_issue_voucher',
-    '/warehouse/transfer': 'store_transfer',
-    '/sales/invoice': 'sales_invoice',
-    '/sales/return': 'sales_return',
-    '/sales/daily': 'daily_sales',
-    '/sales/daily-returns': 'daily_sales_returns',
-    '/purchases/invoice': 'purchase_invoice',
-    '/purchases/return': 'purchase_return',
-    '/purchases/daily': 'daily_purchases',
-    '/purchases/daily-returns': 'daily_purchase_returns',
-    '/customers/add': 'add_customer',
-    '/customers/list': 'customers_list',
-    '/suppliers/add': 'add_supplier',
-    '/suppliers/list': 'suppliers_list',
-    '/financials/expenses/list': 'expenses_list',
-    '/financials/expenses/codes': 'expense_codes',
-    '/financials/expenses/types': 'expense_types',
-    '/financials/current-accounts/add': 'add_current_account',
-    '/financials/current-accounts/list': 'current_accounts_list',
-    '/financials/safes': 'safes',
-    '/financials/banks': 'banks',
-    '/financials/receipt-voucher': 'receipt_voucher',
-    '/financials/payment-voucher': 'payment_voucher',
-    '/reports/items/movement': 'item_movement_report',
-    '/reports/items/balance': 'item_balance_report',
-    '/reports/items/valuation': 'inventory_valuation_report',
-    '/reports/customers/statement': 'customer_statement_report',
-    '/reports/customers/balance': 'customer_balance_report',
-    '/reports/suppliers/statement': 'supplier_statement_report',
-    '/reports/suppliers/balance': 'supplier_balance_report',
-    '/reports/financials/daily-collections': 'daily_collections_report',
-    '/reports/financials/daily-payments': 'daily_payments_report',
-    '/reports/financials/expense-statement': 'expense_statement_report',
-    '/reports/financials/total-expenses': 'total_expenses_report',
-    '/reports/financials/current-account-statement': 'current_account_statement_report',
-    '/reports/financials/total-current-accounts': 'total_current_accounts_report',
-    '/reports/financials/safe-statement': 'safe_statement_report',
-    '/reports/financials/bank-statement': 'bank_statement_report',
-    '/reports/financials/tax-declaration': 'tax_declaration_report',
-    '/final-accounts/income-statement': 'income_statement',
-    '/final-accounts/balance-sheet': 'balance_sheet',
+    "/dashboard": "dashboard",
+    "/settings/company-data": "company_data",
+    "/settings/branches-data": "branches_data",
+    "/settings/stores-data": "stores_data",
+    "/settings/users-data": "users_data",
+    "/settings/permissions": "permissions",
+    "/items/add": "add_item",
+    "/items/list": "items_list",
+    "/items/groups": "item_groups",
+    "/items/units": "units",
+    "/warehouse/receipt-voucher": "store_receipt_voucher",
+    "/warehouse/issue-voucher": "store_issue_voucher",
+    "/warehouse/transfer": "store_transfer",
+    "/sales/invoice": "sales_invoice",
+    "/sales/return": "sales_return",
+    "/sales/daily": "daily_sales",
+    "/sales/daily-returns": "daily_sales_returns",
+    "/purchases/invoice": "purchase_invoice",
+    "/purchases/return": "purchase_return",
+    "/purchases/daily": "daily_purchases",
+    "/purchases/daily-returns": "daily_purchase_returns",
+    "/customers/add": "add_customer",
+    "/customers/list": "customers_list",
+    "/suppliers/add": "add_supplier",
+    "/suppliers/list": "suppliers_list",
+    "/financials/expenses/list": "expenses_list",
+    "/financials/expenses/codes": "expense_codes",
+    "/financials/expenses/types": "expense_types",
+    "/financials/current-accounts/add": "add_current_account",
+    "/financials/current-accounts/list": "current_accounts_list",
+    "/financials/safes": "safes",
+    "/financials/banks": "banks",
+    "/financials/receipt-voucher": "receipt_voucher",
+    "/financials/payment-voucher": "payment_voucher",
+    "/reports/items/movement": "item_movement_report",
+    "/reports/items/balance": "item_balance_report",
+    "/reports/items/valuation": "inventory_valuation_report",
+    "/reports/customers/statement": "customer_statement_report",
+    "/reports/customers/balance": "customer_balance_report",
+    "/reports/suppliers/statement": "supplier_statement_report",
+    "/reports/suppliers/balance": "supplier_balance_report",
+    "/reports/financials/daily-collections": "daily_collections_report",
+    "/reports/financials/daily-payments": "daily_payments_report",
+    "/reports/financials/expense-statement": "expense_statement_report",
+    "/reports/financials/total-expenses": "total_expenses_report",
+    "/reports/financials/current-account-statement":
+      "current_account_statement_report",
+    "/reports/financials/total-current-accounts":
+      "total_current_accounts_report",
+    "/reports/financials/safe-statement": "safe_statement_report",
+    "/reports/financials/bank-statement": "bank_statement_report",
+    "/reports/financials/tax-declaration": "tax_declaration_report",
+    "/final-accounts/income-statement": "income_statement",
+    "/final-accounts/balance-sheet": "balance_sheet",
   };
-  
-  return pathToKeyMap[path] || '';
-};
 
+  return pathToKeyMap[path] || "";
+};

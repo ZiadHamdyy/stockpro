@@ -3,5 +3,10 @@
  * This makes imports cleaner throughout the application
  */
 
-export { Resources, Actions, buildPermission, isResource, isAction } from './permissions.enum';
-
+export {
+  Resources,
+  Actions,
+  buildPermission,
+  isResource,
+  isAction,
+} from "./permissions.enum";

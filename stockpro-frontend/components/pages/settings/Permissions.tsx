@@ -12,7 +12,7 @@ const PermissionTree: React.FC<{
   onPermissionChange: (
     itemKey: string,
     action: string,
-    isChecked: boolean
+    isChecked: boolean,
   ) => void;
   PERMISSION_ACTIONS: string[];
   selectedRoleName: string;
@@ -62,8 +62,15 @@ const PermissionTree: React.FC<{
             isPermissionsResource && selectedRoleName === "manager";
 
           // Debug logging
-          if (node.key === 'dashboard' && action === 'قراءة') {
-            console.log('Checkbox state:', { nodeKey: node.key, action, permissionKey, isChecked, isDisabled, permissionsSize: permissions.size });
+          if (node.key === "dashboard" && action === "قراءة") {
+            console.log("Checkbox state:", {
+              nodeKey: node.key,
+              action,
+              permissionKey,
+              isChecked,
+              isDisabled,
+              permissionsSize: permissions.size,
+            });
           }
 
           return (
@@ -82,7 +89,11 @@ const PermissionTree: React.FC<{
                 checked={isChecked}
                 disabled={isDisabled}
                 onChange={(e) => {
-                  console.log('Checkbox onChange triggered:', { nodeKey: node.key, action, checked: e.target.checked });
+                  console.log("Checkbox onChange triggered:", {
+                    nodeKey: node.key,
+                    action,
+                    checked: e.target.checked,
+                  });
                   onPermissionChange(node.key, action, e.target.checked);
                 }}
               />
@@ -129,8 +140,10 @@ const Permissions: React.FC<{ title: string }> = ({ title }) => {
   } = usePermissions();
 
   // Find the selected role object to get its English name
-  const selectedRoleObj = roles.find(role => role.arabicName === selectedRole);
-  const selectedRoleName = selectedRoleObj?.name || '';
+  const selectedRoleObj = roles.find(
+    (role) => role.arabicName === selectedRole,
+  );
+  const selectedRoleName = selectedRoleObj?.name || "";
 
   const selectStyle =
     "block w-full md:w-1/3 bg-brand-blue-bg border-2 border-brand-blue rounded-md shadow-sm text-black placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-brand-blue focus:border-brand-blue py-3 px-4";
