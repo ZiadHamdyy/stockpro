@@ -1,4 +1,14 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, HttpCode, HttpStatus } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Param,
+  Delete,
+  HttpCode,
+  HttpStatus,
+} from '@nestjs/common';
 import { ItemGroupService } from './item-group.service';
 import { CreateItemGroupRequest } from './dtos/request/create-item-group.request';
 import { UpdateItemGroupRequest } from './dtos/request/update-item-group.request';
@@ -10,7 +20,9 @@ export class ItemGroupController {
 
   @Post()
   @HttpCode(HttpStatus.CREATED)
-  async create(@Body() createItemGroupDto: CreateItemGroupRequest): Promise<ItemGroupResponse> {
+  async create(
+    @Body() createItemGroupDto: CreateItemGroupRequest,
+  ): Promise<ItemGroupResponse> {
     return this.itemGroupService.create(createItemGroupDto);
   }
 
@@ -38,4 +50,3 @@ export class ItemGroupController {
     return this.itemGroupService.remove(id);
   }
 }
-

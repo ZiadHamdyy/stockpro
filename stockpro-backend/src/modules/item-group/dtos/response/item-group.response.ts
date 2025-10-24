@@ -5,4 +5,3 @@ export class ItemGroupResponse {
   createdAt: Date;
   updatedAt: Date;
 }
-

@@ -9,4 +9,3 @@ export class UpdateItemGroupRequest {
   @IsString()
   description?: string;
 }
-

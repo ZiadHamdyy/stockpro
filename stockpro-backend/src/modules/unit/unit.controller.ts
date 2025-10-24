@@ -1,4 +1,14 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, HttpCode, HttpStatus } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Param,
+  Delete,
+  HttpCode,
+  HttpStatus,
+} from '@nestjs/common';
 import { UnitService } from './unit.service';
 import { CreateUnitRequest } from './dtos/request/create-unit.request';
 import { UpdateUnitRequest } from './dtos/request/update-unit.request';
@@ -10,7 +20,9 @@ export class UnitController {
 
   @Post()
   @HttpCode(HttpStatus.CREATED)
-  async create(@Body() createUnitDto: CreateUnitRequest): Promise<UnitResponse> {
+  async create(
+    @Body() createUnitDto: CreateUnitRequest,
+  ): Promise<UnitResponse> {
     return this.unitService.create(createUnitDto);
   }
 
@@ -38,4 +50,3 @@ export class UnitController {
     return this.unitService.remove(id);
   }
 }
-

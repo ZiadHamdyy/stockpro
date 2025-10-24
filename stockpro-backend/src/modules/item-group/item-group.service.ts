@@ -21,7 +21,7 @@ export class ItemGroupService {
       orderBy: { name: 'asc' },
     });
 
-    return itemGroups.map(itemGroup => this.mapToResponse(itemGroup));
+    return itemGroups.map((itemGroup) => this.mapToResponse(itemGroup));
   }
 
   async findOne(id: string): Promise<ItemGroupResponse> {
@@ -36,7 +36,10 @@ export class ItemGroupService {
     return this.mapToResponse(itemGroup);
   }
 
-  async update(id: string, data: UpdateItemGroupRequest): Promise<ItemGroupResponse> {
+  async update(
+    id: string,
+    data: UpdateItemGroupRequest,
+  ): Promise<ItemGroupResponse> {
     const itemGroup = await this.prisma.itemGroup.update({
       where: { id },
       data,

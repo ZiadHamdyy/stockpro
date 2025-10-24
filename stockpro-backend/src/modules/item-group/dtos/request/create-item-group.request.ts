@@ -8,4 +8,3 @@ export class CreateItemGroupRequest {
   @IsString()
   description?: string;
 }
-

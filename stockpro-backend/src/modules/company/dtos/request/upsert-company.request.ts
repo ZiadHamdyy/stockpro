@@ -35,4 +35,3 @@ export class UpsertCompanyRequest {
   @IsString()
   logoPath?: string;
 }
-

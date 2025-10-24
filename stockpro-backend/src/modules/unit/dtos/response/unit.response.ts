@@ -5,4 +5,3 @@ export class UnitResponse {
   createdAt: Date;
   updatedAt: Date;
 }
-

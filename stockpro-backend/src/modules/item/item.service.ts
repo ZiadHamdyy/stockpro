@@ -33,7 +33,7 @@ export class ItemService {
       orderBy: { name: 'asc' },
     });
 
-    return items.map(item => this.mapToResponse(item));
+    return items.map((item) => this.mapToResponse(item));
   }
 
   async findOne(id: string): Promise<ItemResponse> {

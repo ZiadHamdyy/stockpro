@@ -14,4 +14,3 @@ export class CompanyResponse {
   createdAt: Date;
   updatedAt: Date;
 }
-

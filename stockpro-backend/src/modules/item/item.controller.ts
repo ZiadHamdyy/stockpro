@@ -1,4 +1,15 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, HttpCode, HttpStatus, Query } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Param,
+  Delete,
+  HttpCode,
+  HttpStatus,
+  Query,
+} from '@nestjs/common';
 import { ItemService } from './item.service';
 import { CreateItemRequest } from './dtos/request/create-item.request';
 import { UpdateItemRequest } from './dtos/request/update-item.request';
@@ -10,7 +21,9 @@ export class ItemController {
 
   @Post()
   @HttpCode(HttpStatus.CREATED)
-  async create(@Body() createItemDto: CreateItemRequest): Promise<ItemResponse> {
+  async create(
+    @Body() createItemDto: CreateItemRequest,
+  ): Promise<ItemResponse> {
     return this.itemService.create(createItemDto);
   }
 
@@ -43,4 +56,3 @@ export class ItemController {
     return this.itemService.remove(id);
   }
 }
-

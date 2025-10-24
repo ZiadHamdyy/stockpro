@@ -8,4 +8,3 @@ import { CompanyController } from './company.controller';
   exports: [CompanyService],
 })
 export class CompanyModule {}
-

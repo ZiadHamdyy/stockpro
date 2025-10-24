@@ -24,4 +24,3 @@ export class CompanyController {
     return this.companyService.upsertCompany(data);
   }
 }
-

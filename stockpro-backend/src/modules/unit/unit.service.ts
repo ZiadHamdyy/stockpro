@@ -21,7 +21,7 @@ export class UnitService {
       orderBy: { name: 'asc' },
     });
 
-    return units.map(unit => this.mapToResponse(unit));
+    return units.map((unit) => this.mapToResponse(unit));
   }
 
   async findOne(id: string): Promise<UnitResponse> {
