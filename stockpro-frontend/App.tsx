@@ -1,4 +1,5 @@
 import { useState, useCallback, useMemo, useEffect } from 'react';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { Provider } from 'react-redux';
 import { PersistGate } from 'redux-persist/integration/react';
 import { store, persistor } from './components/store/store';
@@ -68,6 +69,11 @@ import type { Branch, CompanyInfo, Store, User, ItemGroup, Unit, Item, Customer,
 import { ToastProvider, useToast } from './components/common/ToastProvider';
 import { ModalProvider } from './components/common/ModalProvider';
 import Toast from './components/common/Toast';
+import ProtectedRoute from './components/common/ProtectedRoute';
+import { routeConfig, getLabelByPath } from './routes/routeConfig';
+import { getPermissionSet } from './utils/permissions';
+import type { Permission } from './types';
+import { useLocation } from 'react-router-dom';
 
 // Simplified role-based permissions
 const rolePermissions: Record<string, string[]> = {
@@ -91,6 +97,9 @@ const rolePermissions: Record<string, string[]> = {
 
 
 const AppContent = () => {
+    const location = useLocation();
+    const currentPageTitle = getLabelByPath(location.pathname);
+    
     // Redux state
     const dispatch = useAppDispatch();
     const { Token, User, isAuthed } = useAuth();
@@ -99,23 +108,19 @@ const AppContent = () => {
     const [sendLogOut] = useSendLogOutMutation();
     
     // Local state
-    const [activePage, setActivePage] = useState('dashboard');
-    const [pageTitle, setPageTitle] = useState('الرئيسية');
+    const [searchTerm, setSearchTerm] = useState('');
+    const { showToast } = useToast();
     
     // Compute user permissions from Redux store (persistent)
     const userPermissions = useMemo(() => {
-        if (currentUser && currentUser.permissionGroup) {
-            const permissions = rolePermissions[currentUser.permissionGroup] || [];
-            console.log('User permissions computed:', { currentUser, permissionGroup: currentUser.permissionGroup, permissions });
-            return permissions;
+        if (currentUser?.role?.permissions) {
+            const permissions: Permission[] = currentUser.role.permissions;
+            const permissionSet = getPermissionSet(permissions);
+            // Convert to array of permission strings for backward compatibility with filterByPermissions
+            return Array.from(permissionSet);
         }
-        console.log('Using default permissions - no user or permissionGroup');
         return ['all']; // Default permissions for testing
     }, [currentUser]);
-    const [searchTerm, setSearchTerm] = useState('');
-    const [editingId, setEditingId] = useState<number | null>(null);
-    const [viewingId, setViewingId] = useState<string | number | null>(null);
-    const { showToast } = useToast();
 
     // App state
     const [companyInfo, setCompanyInfo] = useState<CompanyInfo>({ name: 'StockPro Inc.', activity: 'Trading', address: '123 Business Bay, Riyadh', phone: '920000000', taxNumber: '300123456700003', commercialReg: '1010123456', currency: 'SAR', logo: null, capital: 150000 });
@@ -268,96 +273,10 @@ const AppContent = () => {
     ]);
 
 
-    const handleNavigation = useCallback((key: string, label: string, id: number | null = null) => {
-        if (key === 'database_backup') {
-            handleBackup();
-            return;
-        }
-        setActivePage(key);
-        setPageTitle(label);
-        setEditingId(id);
-        setViewingId(null);
-    }, [handleBackup]);
-    
-    const handleViewRecord = useCallback((pageKey: string, pageLabel: string, recordId: string | number) => {
-        setActivePage(pageKey);
-        setPageTitle(pageLabel);
-        setViewingId(recordId);
-        setEditingId(null);
-    }, []);
-
     const handleAddExpense = (expense: Omit<Expense, 'id' | 'code'>) => {
         const nextCodeNumber = expenses.length > 0 ? Math.max(...expenses.map(e => parseInt(e.code.split('-')[1]) || 0)) + 1 : 1;
         const newCode = `MSR-${String(nextCodeNumber).padStart(3, '0')}`;
         setExpenses(prev => [...prev, { ...expense, id: Date.now(), code: newCode } as Expense]);
-    };
-
-    const renderPage = () => {
-        switch (activePage) {
-            case 'dashboard': return <Dashboard title={pageTitle} />;
-            // Settings
-            case 'company_data': return <CompanyData title={pageTitle} vatRate={vatRate} setVatRate={setVatRate} isVatEnabled={isVatEnabled} setIsVatEnabled={setIsVatEnabled} companyInfo={companyInfo} setCompanyInfo={setCompanyInfo} onGoHome={() => handleNavigation('dashboard', 'الرئيسية')} />;
-            case 'branches_data': return <BranchesData title={pageTitle} branches={branches} onSave={(branch) => setBranches(prev => branch.id ? prev.map(b => b.id === branch.id ? branch : b) : [...prev, { ...branch, id: Date.now() }])} onDelete={(id) => setBranches(prev => prev.filter(b => b.id !== id))} />;
-            case 'stores_data': return <StoresData title={pageTitle} stores={stores} branches={branches} users={users} onSave={(store) => setStores(prev => store.id ? prev.map(w => w.id === store.id ? store : w) : [...prev, { ...store, id: Date.now() }])} onDelete={(id) => setStores(prev => prev.filter(w => w.id !== id))} />;
-            case 'users_data': return <UsersData title={pageTitle} users={users} branches={branches} onSave={(user) => setUsers(prev => user.id ? prev.map(u => u.id === user.id ? user : u) : [...prev, { ...user, id: Date.now() }])} onDelete={(id) => setUsers(prev => prev.filter(u => u.id !== id))} />;
-            case 'permissions': return <Permissions title={pageTitle} />;
-            // Items
-            case 'add_item': return <AddItem title={pageTitle} editingId={editingId} onNavigate={handleNavigation} />;
-            case 'items_list': return <ItemsList title={pageTitle} onNavigate={handleNavigation} />;
-            case 'item_groups': return <ItemGroups title={pageTitle} />;
-            case 'units': return <Units title={pageTitle} />;
-            // Warehouse Operations
-            case 'store_receipt_voucher': return <StoreReceiptVoucher title={pageTitle} companyInfo={companyInfo} items={itemsWithLiveStock.map(i => ({id: i.code, name: i.name, unit: i.unit, stock: i.stock}))} branches={branches} vouchers={storeReceiptVouchers} onSave={(v) => setStoreReceiptVouchers(prev => prev.find(i => i.id === v.id) ? prev.map(i => i.id === v.id ? v : i) : [...prev, v])} onDelete={(id) => setStoreReceiptVouchers(prev => prev.filter(v => v.id !== id))} />;
-            case 'store_issue_voucher': return <StoreIssueVoucher title={pageTitle} companyInfo={companyInfo} items={itemsWithLiveStock.map(i => ({id: i.code, name: i.name, unit: i.unit, stock: i.stock}))} branches={branches} vouchers={storeIssueVouchers} onSave={(v) => setStoreIssueVouchers(prev => prev.find(i => i.id === v.id) ? prev.map(i => i.id === v.id ? v : i) : [...prev, v])} onDelete={(id) => setStoreIssueVouchers(prev => prev.filter(v => v.id !== id))} />;
-            case 'store_transfer': return <StoreTransfer title={pageTitle} companyInfo={companyInfo} items={itemsWithLiveStock.map(i => ({id: i.code, name: i.name, unit: i.unit, stock: i.stock}))} stores={stores} vouchers={storeTransferVouchers} onSave={(v) => setStoreTransferVouchers(prev => prev.find(i => i.id === v.id) ? prev.map(i => i.id === v.id ? v : i) : [...prev, v])} onDelete={(id) => setStoreTransferVouchers(prev => prev.filter(v => v.id !== id))} />;
-            // Sales
-            case 'sales_invoice': return <SalesInvoice title={pageTitle} vatRate={vatRate} isVatEnabled={isVatEnabled} companyInfo={companyInfo} items={itemsWithLiveStock.map(i => ({id: i.code, name: i.name, unit: i.unit, price: i.salePrice, stock: i.stock, barcode: i.barcode}))} customers={customers} invoices={salesInvoices} onSave={(inv) => setSalesInvoices(prev => prev.find(i => i.id === inv.id) ? prev.map(i => i.id === inv.id ? inv : i) : [...prev, inv])} onDelete={(id) => setSalesInvoices(prev => prev.filter(i => i.id !== id))} currentUser={currentUser} viewingId={viewingId} onClearViewingId={() => setViewingId(null)} safes={safes} banks={banks} />;
-            case 'sales_return': return <SalesReturn title={pageTitle} vatRate={vatRate} isVatEnabled={isVatEnabled} companyInfo={companyInfo} items={itemsWithLiveStock.map(i => ({id: i.code, name: i.name, unit: i.unit, price: i.salePrice, stock: i.stock, barcode: i.barcode}))} customers={customers} invoices={salesReturns} onSave={(inv) => setSalesReturns(prev => prev.find(i => i.id === inv.id) ? prev.map(i => i.id === inv.id ? inv : i) : [...prev, inv])} onDelete={(id) => setSalesReturns(prev => prev.filter(i => i.id !== id))} currentUser={currentUser} viewingId={viewingId} onClearViewingId={() => setViewingId(null)} safes={safes} banks={banks} />;
-            case 'daily_sales': return <DailySales title={pageTitle} companyInfo={companyInfo} salesInvoices={salesInvoices} />;
-            case 'daily_sales_returns': return <DailySalesReturns title={pageTitle} companyInfo={companyInfo} salesReturns={salesReturns} />;
-            // Purchases
-            case 'purchase_invoice': return <PurchaseInvoice title={pageTitle} vatRate={vatRate} isVatEnabled={isVatEnabled} companyInfo={companyInfo} items={itemsWithLiveStock.map(i => ({id: i.code, name: i.name, unit: i.unit, price: i.purchasePrice, stock: i.stock, barcode: i.barcode}))} suppliers={suppliers} invoices={purchaseInvoices} onSave={(inv) => setPurchaseInvoices(prev => prev.find(i => i.id === inv.id) ? prev.map(i => i.id === inv.id ? inv : i) : [...prev, inv])} onDelete={(id) => setPurchaseInvoices(prev => prev.filter(i => i.id !== id))} currentUser={currentUser} viewingId={viewingId} onClearViewingId={() => setViewingId(null)} setItems={setItems} safes={safes} banks={banks} />;
-            case 'purchase_return': return <PurchaseReturn title={pageTitle} vatRate={vatRate} isVatEnabled={isVatEnabled} companyInfo={companyInfo} items={itemsWithLiveStock.map(i => ({id: i.code, name: i.name, unit: i.unit, price: i.purchasePrice, stock: i.stock, barcode: i.barcode}))} suppliers={suppliers} invoices={purchaseReturns} onSave={(inv) => setPurchaseReturns(prev => prev.find(i => i.id === inv.id) ? prev.map(i => i.id === inv.id ? inv : i) : [...prev, inv])} onDelete={(id) => setPurchaseReturns(prev => prev.filter(i => i.id !== id))} currentUser={currentUser} viewingId={viewingId} onClearViewingId={() => setViewingId(null)} safes={safes} banks={banks} />;
-            case 'daily_purchases': return <DailyPurchases title={pageTitle} companyInfo={companyInfo} purchaseInvoices={purchaseInvoices} />;
-            case 'daily_purchase_returns': return <DailyPurchaseReturns title={pageTitle} companyInfo={companyInfo} purchaseReturns={purchaseReturns} />;
-            // Customers
-            case 'add_customer': return <AddCustomer title={pageTitle} editingId={editingId} customers={customers} onSave={(customer) => setCustomers(prev => 'id' in customer && customer.id ? prev.map(c => c.id === customer.id ? customer : c) : [...prev, { ...customer, id: Date.now() }])} onDelete={(id) => { setCustomers(prev => prev.filter(c => c.id !== id)); handleNavigation('customers_list', 'قائمة العملاء'); }} onNavigate={handleNavigation}/>;
-            case 'customers_list': return <CustomersList title={pageTitle} customers={customers} onNavigate={handleNavigation} onDelete={(id) => setCustomers(prev => prev.filter(c => c.id !== id))} companyInfo={companyInfo} />;
-            // Suppliers
-            case 'add_supplier': return <AddSupplier title={pageTitle} editingId={editingId} suppliers={suppliers} onSave={(supplier) => setSuppliers(prev => 'id' in supplier && supplier.id ? prev.map(s => s.id === supplier.id ? supplier : s) : [...prev, { ...supplier, id: Date.now() }])} onDelete={(id) => { setSuppliers(prev => prev.filter(s => s.id !== id)); handleNavigation('suppliers_list', 'قائمة الموردين'); }} onNavigate={handleNavigation} />;
-            case 'suppliers_list': return <SuppliersList title={pageTitle} suppliers={suppliers} onNavigate={handleNavigation} onDelete={(id) => setSuppliers(prev => prev.filter(s => s.id !== id))} companyInfo={companyInfo} />;
-            // Financials
-            case 'receipt_voucher': return <ReceiptVoucher title={pageTitle} companyInfo={companyInfo} vouchers={receiptVouchers} onSave={(v) => setReceiptVouchers(prev => prev.find(i => i.id === v.id) ? prev.map(i => i.id === v.id ? v : i) : [...prev, v])} onDelete={(id) => setReceiptVouchers(prev => prev.filter(v => v.id !== id))} customers={customers} suppliers={suppliers} currentAccounts={currentAccounts} currentUser={currentUser} safes={safes} banks={banks} viewingId={viewingId} onClearViewingId={() => setViewingId(null)} />;
-            case 'payment_voucher': return <PaymentVoucher title={pageTitle} companyInfo={companyInfo} vouchers={paymentVouchers} onSave={(v) => setPaymentVouchers(prev => prev.find(i => i.id === v.id) ? prev.map(i => i.id === v.id ? v : i) : [...prev, v])} onDelete={(id) => setPaymentVouchers(prev => prev.filter(v => v.id !== id))} customers={customers} suppliers={suppliers} currentAccounts={currentAccounts} currentUser={currentUser} expenseCodes={expenseCodes} onAddExpense={handleAddExpense} safes={safes} banks={banks} viewingId={viewingId} onClearViewingId={() => setViewingId(null)} />;
-            case 'expenses_list': return <ExpensesList title={pageTitle} expenses={expenses} onDelete={(id) => setExpenses(prev => prev.filter(e => e.id !== id))} />;
-            case 'expense_codes': return <ExpenseCodes title={pageTitle} codes={expenseCodes} expenseTypes={expenseTypes} onSave={(code) => setExpenseCodes(prev => code.id ? prev.map(c => c.id === code.id ? code : c) : [...prev, { ...code, id: Date.now() }])} onDelete={(id) => setExpenseCodes(prev => prev.filter(c => c.id !== id))} />;
-            case 'expense_types': return <ExpenseTypes title={pageTitle} types={expenseTypes} onSave={(type) => setExpenseTypes(prev => type.id ? prev.map(t => t.id === type.id ? type : t) : [...prev, { ...type, id: Date.now() }])} onDelete={(id) => setExpenseTypes(prev => prev.filter(t => t.id !== id))} />;
-            case 'add_current_account': return <AddCurrentAccount title={pageTitle} editingId={editingId} accounts={currentAccounts} onSave={(acc) => setCurrentAccounts(prev => 'id' in acc && acc.id ? prev.map(a => a.id === acc.id ? acc : a) : [...prev, { ...acc, id: Date.now() }])} onDelete={(id) => { setCurrentAccounts(prev => prev.filter(a => a.id !== id)); handleNavigation('current_accounts_list', 'قائمة الحسابات الجارية'); }} onNavigate={handleNavigation} />;
-            case 'current_accounts_list': return <CurrentAccountsList title={pageTitle} accounts={currentAccounts} onAddNew={() => handleNavigation('add_current_account', 'إضافة حساب جاري')} onEdit={(id) => handleNavigation('add_current_account', `تعديل حساب #${id}`, id)} onDelete={(id) => setCurrentAccounts(prev => prev.filter(a => a.id !== id))} />;
-            case 'safes': return <Safes title={pageTitle} safes={safes} branches={branches} onSave={(safe) => setSafes(prev => safe.id ? prev.map(s => s.id === safe.id ? safe : s) : [...prev, { ...safe, id: Date.now() }])} onDelete={(id) => setSafes(prev => prev.filter(s => s.id !== id))} />;
-            case 'banks': return <Banks title={pageTitle} banks={banks} onSave={(bank) => setBanks(prev => bank.id ? prev.map(b => b.id === bank.id ? bank : b) : [...prev, { ...bank, id: Date.now() }])} onDelete={(id) => setBanks(prev => prev.filter(b => b.id !== id))} />;
-            // Reports
-            case 'item_movement_report': return <ItemMovementReport title={pageTitle} companyInfo={companyInfo} items={items} salesInvoices={salesInvoices} purchaseInvoices={purchaseInvoices} salesReturns={salesReturns} purchaseReturns={purchaseReturns} storeReceiptVouchers={storeReceiptVouchers} storeIssueVouchers={storeIssueVouchers} storeTransferVouchers={storeTransferVouchers} onNavigate={handleViewRecord} currentUser={currentUser} branches={branches} stores={stores} />;
-            case 'item_balance_report': return <ItemBalanceReport title={pageTitle} companyInfo={companyInfo} items={items} branches={branches} currentUser={currentUser} salesInvoices={salesInvoices} salesReturns={salesReturns} purchaseInvoices={purchaseInvoices} purchaseReturns={purchaseReturns} storeReceiptVouchers={storeReceiptVouchers} storeIssueVouchers={storeIssueVouchers} storeTransferVouchers={storeTransferVouchers} stores={stores} />;
-            case 'inventory_valuation_report': return <InventoryValuationReport title={pageTitle} companyInfo={companyInfo} items={items} branches={branches} currentUser={currentUser} salesInvoices={salesInvoices} salesReturns={salesReturns} purchaseInvoices={purchaseInvoices} purchaseReturns={purchaseReturns} storeReceiptVouchers={storeReceiptVouchers} storeIssueVouchers={storeIssueVouchers} storeTransferVouchers={storeTransferVouchers} stores={stores} />;
-            case 'customer_statement_report': return <CustomerStatementReport title={pageTitle} companyInfo={companyInfo} customers={customers} onNavigate={handleViewRecord} currentUser={currentUser} salesInvoices={salesInvoices} salesReturns={salesReturns} receiptVouchers={receiptVouchers} paymentVouchers={paymentVouchers} />;
-            case 'customer_balance_report': return <CustomerBalanceReport title={pageTitle} companyInfo={companyInfo} customers={customers} salesInvoices={salesInvoices} salesReturns={salesReturns} receiptVouchers={receiptVouchers} paymentVouchers={paymentVouchers} branches={branches} currentUser={currentUser} />;
-            case 'supplier_statement_report': return <SupplierStatementReport title={pageTitle} companyInfo={companyInfo} suppliers={suppliers} onNavigate={handleViewRecord} currentUser={currentUser} purchaseInvoices={purchaseInvoices} purchaseReturns={purchaseReturns} receiptVouchers={receiptVouchers} paymentVouchers={paymentVouchers} />;
-            case 'supplier_balance_report': return <SupplierBalanceReport title={pageTitle} companyInfo={companyInfo} suppliers={suppliers} purchaseInvoices={purchaseInvoices} purchaseReturns={purchaseReturns} paymentVouchers={paymentVouchers} receiptVouchers={receiptVouchers} branches={branches} currentUser={currentUser} />;
-            case 'daily_collections_report': return <DailyCollectionsReport title={pageTitle} companyInfo={companyInfo} receiptVouchers={receiptVouchers} currentUser={currentUser} />;
-            case 'daily_payments_report': return <DailyPaymentsReport title={pageTitle} companyInfo={companyInfo} paymentVouchers={paymentVouchers} currentUser={currentUser} />;
-            case 'expense_statement_report': return <ExpenseStatementReport title={pageTitle} companyInfo={companyInfo} expenseCodes={expenseCodes} paymentVouchers={paymentVouchers} currentUser={currentUser} />;
-            case 'total_expenses_report': return <TotalExpensesReport title={pageTitle} companyInfo={companyInfo} paymentVouchers={paymentVouchers} currentUser={currentUser} />;
-            case 'current_account_statement_report': return <CurrentAccountStatementReport title={pageTitle} companyInfo={companyInfo} currentAccounts={currentAccounts} receiptVouchers={receiptVouchers} paymentVouchers={paymentVouchers} currentUser={currentUser} />;
-            case 'total_current_accounts_report': return <TotalCurrentAccountsReport title={pageTitle} companyInfo={companyInfo} currentUser={currentUser} />;
-            case 'safe_statement_report': return <SafeStatementReport title={pageTitle} companyInfo={companyInfo} safes={safes} receiptVouchers={receiptVouchers} paymentVouchers={paymentVouchers} currentUser={currentUser} />;
-            case 'bank_statement_report': return <BankStatementReport title={pageTitle} companyInfo={companyInfo} banks={banks} receiptVouchers={receiptVouchers} paymentVouchers={paymentVouchers} currentUser={currentUser} />;
-            case 'tax_declaration_report': return <TaxDeclarationReport title={pageTitle} companyInfo={companyInfo} salesInvoices={salesInvoices} salesReturns={salesReturns} purchaseInvoices={purchaseInvoices} purchaseReturns={purchaseReturns} branches={branches} currentUser={currentUser} />;
-            // Final Accounts
-            case 'income_statement': return <IncomeStatement title={pageTitle} companyInfo={companyInfo} salesInvoices={salesInvoices} salesReturns={salesReturns} purchaseInvoices={purchaseInvoices} purchaseReturns={purchaseReturns} items={items} paymentVouchers={paymentVouchers} expenseCodes={expenseCodes} storeReceiptVouchers={storeReceiptVouchers} storeIssueVouchers={storeIssueVouchers} />;
-            case 'balance_sheet': return <BalanceSheet title={pageTitle} companyInfo={companyInfo} safes={safes} banks={banks} customers={customers} suppliers={suppliers} items={items} salesInvoices={salesInvoices} salesReturns={salesReturns} purchaseInvoices={purchaseInvoices} purchaseReturns={purchaseReturns} receiptVouchers={receiptVouchers} paymentVouchers={paymentVouchers} expenses={expenses} expenseTypes={expenseTypes} currentUser={currentUser} storeReceiptVouchers={storeReceiptVouchers} storeIssueVouchers={storeIssueVouchers} currentAccounts={currentAccounts} />;
-            default: return <Placeholder title={pageTitle} />;
-        }
     };
 
     if (!isLoggedIn) {
@@ -366,11 +285,135 @@ const AppContent = () => {
 
     return (
         <div className="flex h-screen bg-brand-bg font-sans" dir="rtl">
-            <Sidebar onMenuSelect={handleNavigation} searchTerm={searchTerm} userPermissions={userPermissions} />
+            <Sidebar searchTerm={searchTerm} userPermissions={userPermissions} onDatabaseBackup={handleBackup} />
             <div className="flex-1 flex flex-col overflow-hidden">
-                <Header title={pageTitle} currentUser={currentUser} onLogout={handleLogout} searchTerm={searchTerm} setSearchTerm={setSearchTerm} notifications={notifications} />
+                <Header currentUser={currentUser} onLogout={handleLogout} searchTerm={searchTerm} setSearchTerm={setSearchTerm} notifications={notifications} />
                 <main className="flex-1 overflow-x-hidden overflow-y-auto bg-brand-bg p-6">
-                    {renderPage()}
+                    <Routes>
+                        {/* Login */}
+                        <Route path="/login" element={<Login onLogin={handleLogin} />} />
+                        
+                        {/* Dashboard */}
+                        <Route path="/dashboard" element={
+                            <ProtectedRoute requiredPermission="dashboard-read">
+                                <Dashboard title="الرئيسية" />
+                            </ProtectedRoute>
+                        } />
+                        
+                        {/* Settings */}
+                        <Route path="/settings/company-data" element={
+                            <ProtectedRoute requiredPermission="company_data-read">
+                                <CompanyData title={currentPageTitle} vatRate={vatRate} setVatRate={setVatRate} isVatEnabled={isVatEnabled} setIsVatEnabled={setIsVatEnabled} companyInfo={companyInfo} setCompanyInfo={setCompanyInfo} onGoHome={() => {}} />
+                            </ProtectedRoute>
+                        } />
+                        <Route path="/settings/branches-data" element={
+                            <ProtectedRoute requiredPermission="branches_data-read">
+                                <BranchesData title={currentPageTitle} branches={branches} onSave={(branch) => setBranches(prev => branch.id ? prev.map(b => b.id === branch.id ? branch : b) : [...prev, { ...branch, id: Date.now() }])} onDelete={(id) => setBranches(prev => prev.filter(b => b.id !== id))} />
+                            </ProtectedRoute>
+                        } />
+                        <Route path="/settings/stores-data" element={
+                            <ProtectedRoute requiredPermission="stores_data-read">
+                                <StoresData title={currentPageTitle} stores={stores} branches={branches} users={users} onSave={(store) => setStores(prev => store.id ? prev.map(w => w.id === store.id ? store : w) : [...prev, { ...store, id: Date.now() }])} onDelete={(id) => setStores(prev => prev.filter(w => w.id !== id))} />
+                            </ProtectedRoute>
+                        } />
+                        <Route path="/settings/users-data" element={
+                            <ProtectedRoute requiredPermission="users_data-read">
+                                <UsersData title={currentPageTitle} users={users} branches={branches} onSave={(user) => setUsers(prev => user.id ? prev.map(u => u.id === user.id ? user : u) : [...prev, { ...user, id: Date.now() }])} onDelete={(id) => setUsers(prev => prev.filter(u => u.id !== id))} />
+                            </ProtectedRoute>
+                        } />
+                        <Route path="/settings/permissions" element={
+                            <ProtectedRoute requiredPermission="permissions-update">
+                                <Permissions title={currentPageTitle} />
+                            </ProtectedRoute>
+                        } />
+                        
+                        {/* Items */}
+                        <Route path="/items/add" element={
+                            <ProtectedRoute requiredPermission="add_item-read">
+                                <AddItem title={currentPageTitle} editingId={null} items={items} onSave={(item) => setItems(prev => 'id' in item && item.id ? prev.map(i => i.id === item.id ? item : i) : [...prev, { ...item, id: Date.now(), code: (Math.max(...prev.map(i => parseInt(i.code, 10) || 0)) + 1).toString() } as Item])} onDelete={(id) => { setItems(prev => prev.filter(i => i.id !== id)); }} itemGroups={itemGroups} units={units} onNavigate={() => {}} />
+                            </ProtectedRoute>
+                        } />
+                        <Route path="/items/list" element={
+                            <ProtectedRoute requiredPermission="items_list-read">
+                                <ItemsList title={currentPageTitle} items={itemsWithLiveStock} onAddNew={() => {}} onEdit={(id) => {}} onDelete={(id) => setItems(prev => prev.filter(i => i.id !== id))} />
+                            </ProtectedRoute>
+                        } />
+                        <Route path="/items/groups" element={
+                            <ProtectedRoute requiredPermission="item_groups-read">
+                                <ItemGroups title={currentPageTitle} groups={itemGroups} onSave={(group) => setItemGroups(prev => group.id ? prev.map(g => g.id === group.id ? group : g) : [...prev, { ...group, id: Date.now() }])} onDelete={(id) => setItemGroups(prev => prev.filter(g => g.id !== id))} />
+                            </ProtectedRoute>
+                        } />
+                        <Route path="/items/units" element={
+                            <ProtectedRoute requiredPermission="units-read">
+                                <Units title={currentPageTitle} units={units} onSave={(unit) => setUnits(prev => unit.id ? prev.map(u => u.id === unit.id ? unit : u) : [...prev, { ...unit, id: Date.now() }])} onDelete={(id) => setUnits(prev => prev.filter(u => u.id !== id))} />
+                            </ProtectedRoute>
+                        } />
+                        
+                        {/* Warehouse Operations */}
+                        <Route path="/warehouse/receipt-voucher" element={
+                            <ProtectedRoute requiredPermission="store_receipt_voucher-read">
+                                <StoreReceiptVoucher title={currentPageTitle} companyInfo={companyInfo} items={itemsWithLiveStock.map(i => ({id: i.code, name: i.name, unit: i.unit, stock: i.stock}))} branches={branches} vouchers={storeReceiptVouchers} onSave={(v) => setStoreReceiptVouchers(prev => prev.find(i => i.id === v.id) ? prev.map(i => i.id === v.id ? v : i) : [...prev, v])} onDelete={(id) => setStoreReceiptVouchers(prev => prev.filter(v => v.id !== id))} />
+                            </ProtectedRoute>
+                        } />
+                        <Route path="/warehouse/issue-voucher" element={
+                            <ProtectedRoute requiredPermission="store_issue_voucher-read">
+                                <StoreIssueVoucher title={currentPageTitle} companyInfo={companyInfo} items={itemsWithLiveStock.map(i => ({id: i.code, name: i.name, unit: i.unit, stock: i.stock}))} branches={branches} vouchers={storeIssueVouchers} onSave={(v) => setStoreIssueVouchers(prev => prev.find(i => i.id === v.id) ? prev.map(i => i.id === v.id ? v : i) : [...prev, v])} onDelete={(id) => setStoreIssueVouchers(prev => prev.filter(v => v.id !== id))} />
+                            </ProtectedRoute>
+                        } />
+                        <Route path="/warehouse/transfer" element={
+                            <ProtectedRoute requiredPermission="store_transfer-read">
+                                <StoreTransfer title={currentPageTitle} companyInfo={companyInfo} items={itemsWithLiveStock.map(i => ({id: i.code, name: i.name, unit: i.unit, stock: i.stock}))} stores={stores} vouchers={storeTransferVouchers} onSave={(v) => setStoreTransferVouchers(prev => prev.find(i => i.id === v.id) ? prev.map(i => i.id === v.id ? v : i) : [...prev, v])} onDelete={(id) => setStoreTransferVouchers(prev => prev.filter(v => v.id !== id))} />
+                            </ProtectedRoute>
+                        } />
+                        
+                        {/* Sales */}
+                        <Route path="/sales/invoice" element={
+                            <ProtectedRoute requiredPermission="sales_invoice-read">
+                                <SalesInvoice title={currentPageTitle} vatRate={vatRate} isVatEnabled={isVatEnabled} companyInfo={companyInfo} items={itemsWithLiveStock.map(i => ({id: i.code, name: i.name, unit: i.unit, price: i.salePrice, stock: i.stock, barcode: i.barcode}))} customers={customers} invoices={salesInvoices} onSave={(inv) => setSalesInvoices(prev => prev.find(i => i.id === inv.id) ? prev.map(i => i.id === inv.id ? inv : i) : [...prev, inv])} onDelete={(id) => setSalesInvoices(prev => prev.filter(i => i.id !== id))} currentUser={currentUser} viewingId={null} onClearViewingId={() => {}} safes={safes} banks={banks} />
+                            </ProtectedRoute>
+                        } />
+                        <Route path="/sales/return" element={
+                            <ProtectedRoute requiredPermission="sales_return-read">
+                                <SalesReturn title={currentPageTitle} vatRate={vatRate} isVatEnabled={isVatEnabled} companyInfo={companyInfo} items={itemsWithLiveStock.map(i => ({id: i.code, name: i.name, unit: i.unit, price: i.salePrice, stock: i.stock, barcode: i.barcode}))} customers={customers} invoices={salesReturns} onSave={(inv) => setSalesReturns(prev => prev.find(i => i.id === inv.id) ? prev.map(i => i.id === inv.id ? inv : i) : [...prev, inv])} onDelete={(id) => setSalesReturns(prev => prev.filter(i => i.id !== id))} currentUser={currentUser} viewingId={null} onClearViewingId={() => {}} safes={safes} banks={banks} />
+                            </ProtectedRoute>
+                        } />
+                        <Route path="/sales/daily" element={
+                            <ProtectedRoute requiredPermission="daily_sales-read">
+                                <DailySales title={currentPageTitle} companyInfo={companyInfo} salesInvoices={salesInvoices} />
+                            </ProtectedRoute>
+                        } />
+                        <Route path="/sales/daily-returns" element={
+                            <ProtectedRoute requiredPermission="daily_sales_returns-read">
+                                <DailySalesReturns title={currentPageTitle} companyInfo={companyInfo} salesReturns={salesReturns} />
+                            </ProtectedRoute>
+                        } />
+                        
+                        {/* Purchases */}
+                        <Route path="/purchases/invoice" element={
+                            <ProtectedRoute requiredPermission="purchase_invoice-read">
+                                <PurchaseInvoice title={currentPageTitle} vatRate={vatRate} isVatEnabled={isVatEnabled} companyInfo={companyInfo} items={itemsWithLiveStock.map(i => ({id: i.code, name: i.name, unit: i.unit, price: i.purchasePrice, stock: i.stock, barcode: i.barcode}))} suppliers={suppliers} invoices={purchaseInvoices} onSave={(inv) => setPurchaseInvoices(prev => prev.find(i => i.id === inv.id) ? prev.map(i => i.id === inv.id ? inv : i) : [...prev, inv])} onDelete={(id) => setPurchaseInvoices(prev => prev.filter(i => i.id !== id))} currentUser={currentUser} viewingId={null} onClearViewingId={() => {}} setItems={setItems} safes={safes} banks={banks} />
+                            </ProtectedRoute>
+                        } />
+                        <Route path="/purchases/return" element={
+                            <ProtectedRoute requiredPermission="purchase_return-read">
+                                <PurchaseReturn title={currentPageTitle} vatRate={vatRate} isVatEnabled={isVatEnabled} companyInfo={companyInfo} items={itemsWithLiveStock.map(i => ({id: i.code, name: i.name, unit: i.unit, price: i.purchasePrice, stock: i.stock, barcode: i.barcode}))} suppliers={suppliers} invoices={purchaseReturns} onSave={(inv) => setPurchaseReturns(prev => prev.find(i => i.id === inv.id) ? prev.map(i => i.id === inv.id ? inv : i) : [...prev, inv])} onDelete={(id) => setPurchaseReturns(prev => prev.filter(i => i.id !== id))} currentUser={currentUser} viewingId={null} onClearViewingId={() => {}} safes={safes} banks={banks} />
+                            </ProtectedRoute>
+                        } />
+                        <Route path="/purchases/daily" element={
+                            <ProtectedRoute requiredPermission="daily_purchases-read">
+                                <DailyPurchases title={currentPageTitle} companyInfo={companyInfo} purchaseInvoices={purchaseInvoices} />
+                            </ProtectedRoute>
+                        } />
+                        <Route path="/purchases/daily-returns" element={
+                            <ProtectedRoute requiredPermission="daily_purchase_returns-read">
+                                <DailyPurchaseReturns title={currentPageTitle} companyInfo={companyInfo} purchaseReturns={purchaseReturns} />
+                            </ProtectedRoute>
+                        } />
+                        
+                        {/* Root and catch-all */}
+                        <Route path="/" element={<Navigate to="/dashboard" replace />} />
+                        <Route path="*" element={<Navigate to="/dashboard" replace />} />
+                    </Routes>
                 </main>
             </div>
         </div>
@@ -380,12 +423,14 @@ const AppContent = () => {
 const AppWrapper = () => (
     <Provider store={store}>
         <PersistGate loading={null} persistor={persistor}>
-            <ToastProvider>
-                <ModalProvider>
-                    <AppContent />
-                </ModalProvider>
-                <Toast />
-            </ToastProvider>
+            <BrowserRouter>
+                <ToastProvider>
+                    <ModalProvider>
+                        <AppContent />
+                    </ModalProvider>
+                    <Toast />
+                </ToastProvider>
+            </BrowserRouter>
         </PersistGate>
     </Provider>
 );

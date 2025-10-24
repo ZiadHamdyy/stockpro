@@ -78,6 +78,17 @@ export class AuthService {
     // Find user without throwing errors to prevent info leakage
     const user = await this.prisma.user.findUnique({
       where: { email },
+      include: {
+        role: {
+          include: {
+            rolePermissions: {
+              include: {
+                permission: true,
+              },
+            },
+          },
+        },
+      },
     });
 
     // Return generic error for all cases: not found, inactive, no password, wrong password
@@ -101,7 +112,11 @@ export class AuthService {
       );
     }
 
-    return user;
+    // Format user with permissions
+    return {
+      ...user,
+      permissions: user.role?.rolePermissions?.map((rp) => rp.permission) || [],
+    };
   }
 
   async login(user: User, ipAddress?: string, userAgent?: string) {
@@ -139,7 +154,7 @@ export class AuthService {
     );
 
     // Return tokens and user (refreshToken for cookie, accessToken for response)
-    return this.appendAuthTokenToResponse(user, session, refreshToken);
+    return await this.appendAuthTokenToResponse(user, session, refreshToken);
   }
 
   async loginWithCookie(
@@ -157,7 +172,7 @@ export class AuthService {
   }
 
   async appendAuthTokenToResponse(
-    user: User,
+    user: User & { permissions?: any[] },
     session: Session,
     refreshToken: string,
   ) {
@@ -166,10 +181,42 @@ export class AuthService {
       sessionId: session.id,
     });
 
+    // Load user with role and permissions
+    const userWithRole = await this.prisma.user.findUnique({
+      where: { id: user.id },
+      include: {
+        role: {
+          include: {
+            rolePermissions: {
+              include: {
+                permission: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    // Format permissions array for response
+    const formattedUser = userWithRole
+      ? {
+          ...userWithRole,
+          role: userWithRole.role
+            ? {
+                ...userWithRole.role,
+                permissions:
+                  userWithRole.role.rolePermissions?.map(
+                    (rp) => rp.permission,
+                  ) || [],
+              }
+            : null,
+        }
+      : user;
+
     // Return both tokens internally - controller will use refreshToken for cookie
     // Serializer will only expose accessToken and user in response body
     return {
-      user,
+      user: formattedUser,
       accessToken,
       refreshToken, // For HttpOnly cookie only (not serialized in response)
     };
@@ -272,7 +319,7 @@ export class AuthService {
         success: true,
         message: 'Logged out successfully',
       };
-    } catch (error) {
+    } catch {
       throw new GenericHttpException(
         ERROR_MESSAGES.LOGOUT_FAILED,
         HttpStatus.INTERNAL_SERVER_ERROR,

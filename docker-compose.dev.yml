@@ -31,7 +31,7 @@ services:
     stdin_open: true
     tty: true
     # Generate Prisma client and start in development mode
-    command: sh -c "pnpm prisma generate && pnpm run start:dev"
+    command: sh -c "pnpm prisma generate && pnpm prisma:seed && pnpm run start:dev"
 
   frontend:
     build:
