@@ -75,14 +75,17 @@ const rolePermissions: Record<string, string[]> = {
     'محاسب': [
         'dashboard',
         'sales', 'purchases', 'customers', 'suppliers', 'financials',
-        'reports', 'final_accounts'
+        'reports', 'final_accounts',
+        'items', 'add_item', 'items_list', 'item_groups', 'units'
     ],
     'بائع': [
         'dashboard', 'sales_invoice', 'sales_return', 'daily_sales',
         'add_customer', 'customers_list'
     ],
     'مدخل بيانات': [
-        'dashboard', 'items', 'warehouse_operations'
+        'dashboard', 'items', 'warehouse_operations',
+        'add_item', 'items_list', 'item_groups', 'units',
+        'store_receipt_voucher', 'store_issue_voucher', 'store_transfer'
     ]
 };
 
@@ -299,10 +302,10 @@ const AppContent = () => {
             case 'users_data': return <UsersData title={pageTitle} users={users} branches={branches} onSave={(user) => setUsers(prev => user.id ? prev.map(u => u.id === user.id ? user : u) : [...prev, { ...user, id: Date.now() }])} onDelete={(id) => setUsers(prev => prev.filter(u => u.id !== id))} />;
             case 'permissions': return <Permissions title={pageTitle} />;
             // Items
-            case 'add_item': return <AddItem title={pageTitle} editingId={editingId} items={items} onSave={(item) => setItems(prev => 'id' in item && item.id ? prev.map(i => i.id === item.id ? item : i) : [...prev, { ...item, id: Date.now(), code: (Math.max(...prev.map(i => parseInt(i.code, 10) || 0)) + 1).toString() } as Item])} onDelete={(id) => { setItems(prev => prev.filter(i => i.id !== id)); handleNavigation('items_list', 'قائمة الأصناف'); }} itemGroups={itemGroups} units={units} onNavigate={handleNavigation} />;
-            case 'items_list': return <ItemsList title={pageTitle} items={itemsWithLiveStock} onAddNew={() => handleNavigation('add_item', 'إضافة صنف')} onEdit={(id) => handleNavigation('add_item', `تعديل صنف #${id}`, id)} onDelete={(id) => setItems(prev => prev.filter(i => i.id !== id))} />;
-            case 'item_groups': return <ItemGroups title={pageTitle} groups={itemGroups} onSave={(group) => setItemGroups(prev => group.id ? prev.map(g => g.id === group.id ? group : g) : [...prev, { ...group, id: Date.now() }])} onDelete={(id) => setItemGroups(prev => prev.filter(g => g.id !== id))} />;
-            case 'units': return <Units title={pageTitle} units={units} onSave={(unit) => setUnits(prev => unit.id ? prev.map(u => u.id === unit.id ? unit : u) : [...prev, { ...unit, id: Date.now() }])} onDelete={(id) => setUnits(prev => prev.filter(u => u.id !== id))} />;
+            case 'add_item': return <AddItem title={pageTitle} editingId={editingId} onNavigate={handleNavigation} />;
+            case 'items_list': return <ItemsList title={pageTitle} onNavigate={handleNavigation} />;
+            case 'item_groups': return <ItemGroups title={pageTitle} />;
+            case 'units': return <Units title={pageTitle} />;
             // Warehouse Operations
             case 'store_receipt_voucher': return <StoreReceiptVoucher title={pageTitle} companyInfo={companyInfo} items={itemsWithLiveStock.map(i => ({id: i.code, name: i.name, unit: i.unit, stock: i.stock}))} branches={branches} vouchers={storeReceiptVouchers} onSave={(v) => setStoreReceiptVouchers(prev => prev.find(i => i.id === v.id) ? prev.map(i => i.id === v.id ? v : i) : [...prev, v])} onDelete={(id) => setStoreReceiptVouchers(prev => prev.filter(v => v.id !== id))} />;
             case 'store_issue_voucher': return <StoreIssueVoucher title={pageTitle} companyInfo={companyInfo} items={itemsWithLiveStock.map(i => ({id: i.code, name: i.name, unit: i.unit, stock: i.stock}))} branches={branches} vouchers={storeIssueVouchers} onSave={(v) => setStoreIssueVouchers(prev => prev.find(i => i.id === v.id) ? prev.map(i => i.id === v.id ? v : i) : [...prev, v])} onDelete={(id) => setStoreIssueVouchers(prev => prev.filter(v => v.id !== id))} />;

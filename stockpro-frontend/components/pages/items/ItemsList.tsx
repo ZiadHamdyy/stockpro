@@ -1,43 +1,72 @@
-import React, { useState } from 'react';
-import type { Item } from '../../../types';
+import React, { useState, useEffect } from 'react';
 import { ExcelIcon, PdfIcon, PrintIcon, SearchIcon, TrashIcon } from '../../icons';
 import { useModal } from '../../common/ModalProvider';
 import { exportToExcel, exportToPdf } from '../../../utils/formatting';
+import { useAppDispatch, useAppSelector } from '../../store/hooks';
+import { useGetItemsQuery, useDeleteItemMutation, type Item } from '../../store/slices/items/itemsApi';
+import { setItems, removeItem } from '../../store/slices/items/items';
 
 interface ItemsListProps {
     title: string;
-    items: Item[];
-    onAddNew: () => void;
-    onEdit: (id: number) => void;
-    onDelete: (id: number) => void;
+    onNavigate: (key: string, label: string, id?: string | null) => void;
 }
 
-const ItemsList: React.FC<ItemsListProps> = ({ title, items, onAddNew, onEdit, onDelete }) => {
+const ItemsList: React.FC<ItemsListProps> = ({ title, onNavigate }) => {
     const [searchTerm, setSearchTerm] = useState('');
     const inputStyle = "w-64 pr-10 pl-4 py-3 bg-brand-blue-bg border-2 border-brand-blue rounded-md text-black placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-brand-blue";
     const { showModal } = useModal();
+    const dispatch = useAppDispatch();
 
-    const handleDeleteClick = (id: number, name: string) => {
+    // Get data from Redux state
+    const items = useAppSelector(state => state.items.items);
+    const isLoading = useAppSelector(state => state.items.isLoading);
+
+    // API hooks
+    const { data: apiItems = [], isLoading: apiLoading, error } = useGetItemsQuery(undefined);
+    const [deleteItem] = useDeleteItemMutation();
+
+    // Update Redux state when API data changes
+    useEffect(() => {
+        const response = apiItems as any;
+        if (response && response.data && Array.isArray(response.data) && response.data.length > 0) {
+            dispatch(setItems(response.data));
+        }
+    }, [apiItems, dispatch]);
+
+    // Debug logging
+    console.log('ItemsList - Redux Data:', items);
+    console.log('ItemsList - API Data:', apiItems);
+    console.log('ItemsList - Loading:', apiLoading);
+    console.log('ItemsList - Error:', error);
+
+    const handleDeleteClick = (id: string, name: string) => {
         showModal({
             title: 'تأكيد الحذف',
             message: `هل أنت متأكد من رغبتك في حذف الصنف "${name}"؟ لا يمكن التراجع عن هذا الإجراء.`,
-            onConfirm: () => onDelete(id),
+            onConfirm: async () => {
+                try {
+                    await deleteItem(id).unwrap();
+                    dispatch(removeItem(id));
+                } catch (error: any) {
+                    console.error('Delete error:', error);
+                }
+            },
             type: 'delete',
             showPassword: true,
         });
     };
 
-    const filteredItems = items.filter(item =>
+    const filteredItems = Array.isArray(items) ? items.filter(item =>
         item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         item.code.toLowerCase().includes(searchTerm.toLowerCase())
-    );
+    ) : [];
 
     const handleExcelExport = () => {
         const dataToExport = filteredItems.map(({ code, name, group, unit, purchasePrice, salePrice, stock }) => ({
             'الكود': code,
             'الاسم': name,
-            'المجموعة': group,
-            'الوحدة': unit,
+            'المجموعة': group.name,
+            'الوحدة': unit.name,
             'سعر الشراء': purchasePrice,
             'سعر البيع': salePrice,
             'الرصيد': stock,
@@ -51,8 +80,8 @@ const ItemsList: React.FC<ItemsListProps> = ({ title, items, onAddNew, onEdit, o
             item.stock.toString(),
             item.salePrice.toFixed(2),
             item.purchasePrice.toFixed(2),
-            item.unit,
-            item.group,
+            item.unit.name,
+            item.group.name,
             item.name,
             item.code,
         ]);
@@ -64,7 +93,7 @@ const ItemsList: React.FC<ItemsListProps> = ({ title, items, onAddNew, onEdit, o
         <div className="bg-white p-6 rounded-lg shadow">
             <div className="flex justify-between items-center mb-4 border-b pb-4 no-print">
                 <h1 className="text-2xl font-bold text-brand-dark">{title}</h1>
-                 <button onClick={onAddNew} className="px-6 py-2 bg-brand-green text-white rounded-md hover:bg-green-700 font-semibold transition-colors">
+                 <button onClick={() => onNavigate('add_item', 'إضافة صنف')} className="px-6 py-2 bg-brand-green text-white rounded-md hover:bg-green-700 font-semibold transition-colors">
                     إضافة صنف جديد
                 </button>
             </div>
@@ -106,21 +135,47 @@ const ItemsList: React.FC<ItemsListProps> = ({ title, items, onAddNew, onEdit, o
                         </tr>
                     </thead>
                     <tbody className="bg-white divide-y divide-gray-200">
-                        {filteredItems.map((item) => (
-                            <tr key={item.id} className="hover:bg-brand-blue-bg">
-                                <td className="px-6 py-4">{item.code}</td>
-                                <td className="px-6 py-4 font-medium text-brand-dark">{item.name}</td>
-                                <td className="px-6 py-4">{item.group}</td>
-                                <td className="px-6 py-4">{item.unit}</td>
-                                <td className="px-6 py-4">{item.purchasePrice.toFixed(2)}</td>
-                                <td className="px-6 py-4">{item.salePrice.toFixed(2)}</td>
-                                <td className="px-6 py-4 font-bold">{item.stock}</td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium no-print">
-                                    <button onClick={() => onEdit(item.id)} className="text-brand-blue hover:text-blue-800 font-semibold ml-4">تعديل</button>
-                                    <button onClick={() => handleDeleteClick(item.id, item.name)} className="text-red-600 hover:text-red-900 font-semibold">حذف</button>
+                        {apiLoading ? (
+                            <tr>
+                                <td colSpan={8} className="px-6 py-8 text-center">
+                                    <div className="flex items-center justify-center">
+                                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand-blue"></div>
+                                        <span className="mr-3 text-gray-600">جاري تحميل البيانات...</span>
+                                    </div>
                                 </td>
                             </tr>
-                        ))}
+                        ) : error ? (
+                            <tr>
+                                <td colSpan={8} className="px-6 py-8 text-center">
+                                    <div className="text-red-600">
+                                        <p className="font-semibold">خطأ في تحميل البيانات</p>
+                                        <p className="text-sm mt-1">يرجى المحاولة مرة أخرى</p>
+                                    </div>
+                                </td>
+                            </tr>
+                        ) : filteredItems.length === 0 ? (
+                            <tr>
+                                <td colSpan={8} className="px-6 py-8 text-center text-gray-500">
+                                    {searchTerm ? 'لا توجد أصناف تطابق البحث' : 'لا توجد أصناف متاحة'}
+                                </td>
+                            </tr>
+                        ) : (
+                            filteredItems.map((item) => (
+                                <tr key={item.id} className="hover:bg-brand-blue-bg">
+                                    <td className="px-6 py-4">{item.code}</td>
+                                    <td className="px-6 py-4 font-medium text-brand-dark">{item.name}</td>
+                                    <td className="px-6 py-4">{item.group.name}</td>
+                                    <td className="px-6 py-4">{item.unit.name}</td>
+                                    <td className="px-6 py-4">{item.purchasePrice.toFixed(2)}</td>
+                                    <td className="px-6 py-4">{item.salePrice.toFixed(2)}</td>
+                                    <td className="px-6 py-4 font-bold">{item.stock}</td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium no-print">
+                                        <button onClick={() => onNavigate('add_item', `تعديل صنف #${item.code}`, item.id)} className="text-brand-blue hover:text-blue-800 font-semibold ml-4">تعديل</button>
+                                        <button onClick={() => handleDeleteClick(item.id, item.name)} className="text-red-600 hover:text-red-900 font-semibold">حذف</button>
+                                    </td>
+                                </tr>
+                            ))
+                        )}
                     </tbody>
                 </table>
             </div>

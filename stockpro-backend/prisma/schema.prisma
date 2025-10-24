@@ -119,3 +119,54 @@ model RolePermission {
   @@index([roleId])
   @@index([permissionId])
 }
+
+model ItemGroup {
+  id          String   @id @default(uuid())
+  name        String   @unique
+  description String?
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relationships
+  items       Item[]
+}
+
+model Unit {
+  id          String   @id @default(uuid())
+  name        String   @unique
+  description String?
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relationships
+  items       Item[]
+}
+
+model Item {
+  id            String   @id @default(uuid())
+  code          String   @unique
+  barcode       String?
+  name          String
+  purchasePrice Float
+  salePrice     Float
+  stock         Float    @default(0)
+  reorderLimit  Float    @default(0)
+  
+  // Foreign keys
+  groupId       String
+  unitId        String
+  
+  // Relationships
+  group         ItemGroup @relation(fields: [groupId], references: [id])
+  unit          Unit      @relation(fields: [unitId], references: [id])
+  
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([code])
+  @@index([barcode])
+  @@index([groupId])
+  @@index([unitId])
+}

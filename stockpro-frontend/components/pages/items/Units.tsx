@@ -1,21 +1,51 @@
-import React, { useState } from 'react';
-import type { Unit } from '../../../types';
+import React, { useState, useEffect } from 'react';
 import { PrintIcon, SearchIcon } from '../../icons';
 import UnitModal from './UnitModal';
 import { useModal } from '../../common/ModalProvider';
+import { useAppDispatch, useAppSelector } from '../../store/hooks';
+import { 
+  useGetUnitsQuery, 
+  useCreateUnitMutation, 
+  useUpdateUnitMutation, 
+  useDeleteUnitMutation,
+  type Unit 
+} from '../../store/slices/items/itemsApi';
+import { setUnits, removeUnit } from '../../store/slices/items/items';
 
 interface UnitsProps {
     title: string;
-    units: Unit[];
-    onSave: (unit: Unit) => void;
-    onDelete: (id: number) => void;
 }
 
-const Units: React.FC<UnitsProps> = ({ title, units, onSave, onDelete }) => {
+const Units: React.FC<UnitsProps> = ({ title }) => {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [unitToEdit, setUnitToEdit] = useState<Unit | null>(null);
     const [searchTerm, setSearchTerm] = useState('');
     const { showModal } = useModal();
+    const dispatch = useAppDispatch();
+
+    // Get data from Redux state
+    const units = useAppSelector(state => state.items.units);
+    const isLoading = useAppSelector(state => state.items.isLoading);
+
+    // API hooks
+    const { data: apiUnits = [], isLoading: apiLoading, error } = useGetUnitsQuery(undefined);
+    const [createUnit] = useCreateUnitMutation();
+    const [updateUnit] = useUpdateUnitMutation();
+    const [deleteUnit] = useDeleteUnitMutation();
+
+    // Update Redux state when API data changes
+    useEffect(() => {
+        const response = apiUnits as any;
+        if (response && response.data && Array.isArray(response.data) && response.data.length > 0) {
+            dispatch(setUnits(response.data));
+        }
+    }, [apiUnits, dispatch]);
+
+    // Debug logging
+    console.log('Units - Redux Data:', units);
+    console.log('Units - API Data:', apiUnits);
+    console.log('Units - Loading:', apiLoading);
+    console.log('Units - Error:', error);
 
     const handleOpenModal = (unit: Unit | null = null) => {
         setUnitToEdit(unit);
@@ -41,15 +71,22 @@ const Units: React.FC<UnitsProps> = ({ title, units, onSave, onDelete }) => {
         showModal({
             title: 'تأكيد الحذف',
             message: `هل أنت متأكد من حذف الوحدة "${unit.name}"؟`,
-            onConfirm: () => onDelete(unit.id),
+            onConfirm: async () => {
+                try {
+                    await deleteUnit(unit.id).unwrap();
+                    dispatch(removeUnit(unit.id));
+                } catch (error: any) {
+                    console.error('Delete error:', error);
+                }
+            },
             type: 'delete',
             showPassword: true,
         });
     };
     
-    const filteredUnits = units.filter(unit =>
+    const filteredUnits = Array.isArray(units) ? units.filter(unit =>
         unit.name.toLowerCase().includes(searchTerm.toLowerCase())
-    );
+    ) : [];
 
     const inputStyle = "w-64 pr-10 pl-4 py-3 bg-brand-blue-bg border-2 border-brand-blue rounded-md text-black placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-brand-blue";
 
@@ -85,16 +122,42 @@ const Units: React.FC<UnitsProps> = ({ title, units, onSave, onDelete }) => {
                             </tr>
                         </thead>
                         <tbody className="bg-white divide-y divide-gray-200">
-                            {filteredUnits.map((unit) => (
-                                <tr key={unit.id} className="hover:bg-brand-blue-bg">
-                                    <td className="px-6 py-4 whitespace-nowrap">{unit.id}</td>
-                                    <td className="px-6 py-4 whitespace-nowrap font-medium text-brand-dark">{unit.name}</td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium no-print">
-                                        <button onClick={() => handleEditClick(unit)} className="text-brand-blue hover:text-blue-800 font-semibold ml-4">تعديل</button>
-                                        <button onClick={() => handleDeleteClick(unit)} className="text-red-600 hover:text-red-900 font-semibold">حذف</button>
+                            {apiLoading ? (
+                                <tr>
+                                    <td colSpan={3} className="px-6 py-8 text-center">
+                                        <div className="flex items-center justify-center">
+                                            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand-blue"></div>
+                                            <span className="mr-3 text-gray-600">جاري تحميل البيانات...</span>
+                                        </div>
                                     </td>
                                 </tr>
-                            ))}
+                            ) : error ? (
+                                <tr>
+                                    <td colSpan={3} className="px-6 py-8 text-center">
+                                        <div className="text-red-600">
+                                            <p className="font-semibold">خطأ في تحميل البيانات</p>
+                                            <p className="text-sm mt-1">يرجى المحاولة مرة أخرى</p>
+                                        </div>
+                                    </td>
+                                </tr>
+                            ) : filteredUnits.length === 0 ? (
+                                <tr>
+                                    <td colSpan={3} className="px-6 py-8 text-center text-gray-500">
+                                        {searchTerm ? 'لا توجد وحدات تطابق البحث' : 'لا توجد وحدات متاحة'}
+                                    </td>
+                                </tr>
+                            ) : (
+                                filteredUnits.map((unit) => (
+                                    <tr key={unit.id} className="hover:bg-brand-blue-bg">
+                                        <td className="px-6 py-4 whitespace-nowrap">{unit.id}</td>
+                                        <td className="px-6 py-4 whitespace-nowrap font-medium text-brand-dark">{unit.name}</td>
+                                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium no-print">
+                                            <button onClick={() => handleEditClick(unit)} className="text-brand-blue hover:text-blue-800 font-semibold ml-4">تعديل</button>
+                                            <button onClick={() => handleDeleteClick(unit)} className="text-red-600 hover:text-red-900 font-semibold">حذف</button>
+                                        </td>
+                                    </tr>
+                                ))
+                            )}
                         </tbody>
                     </table>
                 </div>
@@ -102,7 +165,6 @@ const Units: React.FC<UnitsProps> = ({ title, units, onSave, onDelete }) => {
             <UnitModal 
                 isOpen={isModalOpen} 
                 onClose={handleCloseModal} 
-                onSave={onSave}
                 unitToEdit={unitToEdit}
             />
         </>

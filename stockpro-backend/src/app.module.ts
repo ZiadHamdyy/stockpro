@@ -15,6 +15,9 @@ import { UserModule } from './modules/user/user.module';
 import { SessionModule } from './modules/session/session.module';
 import { RoleModule } from './modules/role/role.module';
 import { PermissionModule } from './modules/permission/permission.module';
+import { ItemModule } from './modules/item/item.module';
+import { ItemGroupModule } from './modules/item-group/item-group.module';
+import { UnitModule } from './modules/unit/unit.module';
 
 @Module({
   imports: [
@@ -29,6 +32,9 @@ import { PermissionModule } from './modules/permission/permission.module';
     SessionModule,
     RoleModule,
     PermissionModule,
+    ItemModule,
+    ItemGroupModule,
+    UnitModule,
   ],
   controllers: [AppController],
   providers: [
