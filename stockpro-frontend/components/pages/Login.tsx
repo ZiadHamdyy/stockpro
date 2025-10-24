@@ -1,9 +1,12 @@
 import { useState } from 'react';
 import { UserIcon, LockIcon } from '../icons';
 import { useLoginUserMutation } from '../store/slices/auth/authApi';
+import ForgotPassword from './ForgotPassword';
+import VerifyOtp from './VerifyOtp';
+import ResetPassword from './ResetPassword';
 
 interface LoginProps {
-    onLogin: (email: string, password: string) => void;
+    onLogin: (email: string, password: string, userData?: any) => void;
 }
 
 const StockProLogo: React.FC<{ size?: 'normal' | 'large', textColorClass?: string }> = ({ size = 'normal', textColorClass = 'text-white' }) => {
@@ -29,6 +32,8 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
+    const [currentPage, setCurrentPage] = useState('login');
+    const [forgotPasswordEmail, setForgotPasswordEmail] = useState('');
     
     const [loginUser, { isLoading }] = useLoginUserMutation();
 
@@ -37,14 +42,38 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
         setError('');
 
         try {
-            await loginUser({ email, password }).unwrap();
-            // Call the parent onLogin callback
-            onLogin(email, password);
+            const result = await loginUser({ email, password }).unwrap();
+            // Call the parent onLogin callback with user data
+            onLogin(email, password, (result as any)?.data?.user);
         } catch (error: any) {
             console.error('Login error:', error);
             setError(error?.data?.message || error?.message || 'حدث خطأ أثناء تسجيل الدخول');
         }
     };
+
+    const handleForgotPassword = () => {
+        setCurrentPage('forgot-password');
+    };
+
+    const handleNavigate = (page: string, email?: string) => {
+        if (page === 'verify-otp') {
+            setForgotPasswordEmail(email || '');
+        }
+        setCurrentPage(page);
+    };
+
+    // Render different pages based on current state
+    if (currentPage === 'forgot-password') {
+        return <ForgotPassword onNavigate={handleNavigate} />;
+    }
+    
+    if (currentPage === 'verify-otp') {
+        return <VerifyOtp email={forgotPasswordEmail} onNavigate={handleNavigate} />;
+    }
+    
+    if (currentPage === 'reset-password') {
+        return <ResetPassword email={forgotPasswordEmail} onNavigate={handleNavigate} />;
+    }
 
     return (
         <div className="min-h-screen flex">
@@ -99,7 +128,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
                         <div>
                             <div className="flex justify-between items-center">
                                 <label htmlFor="password"className="block text-sm font-medium text-gray-700 mb-1">كلمة المرور</label>
-                                <a href="#" className="text-sm text-brand-blue hover:underline">نسيت كلمة المرور؟</a>
+                                <button type="button" onClick={handleForgotPassword} className="text-sm text-brand-blue hover:underline">نسيت كلمة المرور؟</button>
                             </div>
                             <div className="relative">
                                  <span className="absolute inset-y-0 right-0 flex items-center pr-3">

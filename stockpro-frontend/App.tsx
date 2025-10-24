@@ -233,10 +233,11 @@ const AppContent = () => {
     }, [itemsWithLiveStock, salesInvoices, purchaseInvoices]);
 
 
-    const handleLogin = async (email: string, password: string) => {
+    const handleLogin = async (email: string, password: string, userData?: any) => {
         // RTK Query handles the login automatically in the Login component
         // This function is called after successful login to set up local state
-        showToast(`مرحباً بك، ${currentUser?.name || 'مستخدم'}`);
+        const userName = userData?.name || userData?.firstName || currentUser?.name || currentUser?.firstName || email || 'مستخدم';
+        showToast(`مرحباً بك، ${userName}`);
     };
 
     const handleLogout = async () => {
