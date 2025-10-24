@@ -4,9 +4,8 @@ import type { Bank } from "../../../types";
 interface BankModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSave: (bank: Bank) => void;
+  onSave: (bank: Partial<Bank>) => Promise<void>;
   bankToEdit: Bank | null;
-  banks: Bank[];
 }
 
 const BankModal: React.FC<BankModalProps> = ({
@@ -14,10 +13,8 @@ const BankModal: React.FC<BankModalProps> = ({
   onClose,
   onSave,
   bankToEdit,
-  banks,
 }) => {
-  const [bankData, setBankData] = useState<Omit<Bank, "id">>({
-    code: "",
+  const [bankData, setBankData] = useState<Partial<Bank>>({
     name: "",
     accountNumber: "",
     iban: "",
@@ -28,22 +25,14 @@ const BankModal: React.FC<BankModalProps> = ({
     if (bankToEdit) {
       setBankData(bankToEdit);
     } else {
-      const nextCodeNumber =
-        banks.length > 0
-          ? Math.max(
-              ...banks.map((b) => parseInt(b.code.replace("BK-", ""), 10) || 0),
-            ) + 1
-          : 1;
-      const newCode = `BK-${String(nextCodeNumber).padStart(3, "0")}`;
       setBankData({
-        code: newCode,
         name: "",
         accountNumber: "",
         iban: "",
         openingBalance: 0,
       });
     }
-  }, [bankToEdit, isOpen, banks]);
+  }, [bankToEdit, isOpen]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -53,14 +42,9 @@ const BankModal: React.FC<BankModalProps> = ({
     }));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const bankToSave: Bank = {
-      ...bankData,
-      id: bankToEdit?.id || 0,
-    };
-    onSave(bankToSave);
-    onClose();
+    await onSave(bankData);
   };
 
   if (!isOpen) return null;
@@ -84,23 +68,24 @@ const BankModal: React.FC<BankModalProps> = ({
         </div>
         <form onSubmit={handleSubmit}>
           <div className="p-6 space-y-4">
-            <div>
-              <label
-                htmlFor="code"
-                className="block text-sm font-medium text-gray-700"
-              >
-                كود البنك
-              </label>
-              <input
-                type="text"
-                id="code"
-                name="code"
-                value={bankData.code}
-                className={inputStyle + " bg-gray-200"}
-                required
-                readOnly
-              />
-            </div>
+            {bankToEdit && (
+              <div>
+                <label
+                  htmlFor="code"
+                  className="block text-sm font-medium text-gray-700"
+                >
+                  كود البنك
+                </label>
+                <input
+                  type="text"
+                  id="code"
+                  name="code"
+                  value={bankToEdit.code}
+                  className={inputStyle + " bg-gray-200"}
+                  readOnly
+                />
+              </div>
+            )}
             <div>
               <label
                 htmlFor="name"

@@ -64,15 +64,60 @@ import TaxDeclarationReport from './components/pages/reports/financials/TaxDecla
 import IncomeStatement from './components/pages/final_accounts/IncomeStatement';
 import BalanceSheet from './components/pages/final_accounts/BalanceSheet';
 
-import { initialBranches, initialStores, initialItemGroups, initialUnits, initialItems, initialCustomers, initialSuppliers, initialExpenseCodes, initialExpenses, initialExpenseTypes, initialCurrentAccounts, initialSafes, initialBanks, initialSalesInvoices, initialSalesReturns, initialPurchaseInvoices, initialPurchaseReturns, initialReceiptVouchers, initialPaymentVouchers, initialStoreReceiptVouchers, initialStoreIssueVouchers, initialStoreTransferVouchers } from './data';
+import {
+  initialBranches,
+  initialStores,
+  initialItemGroups,
+  initialUnits,
+  initialItems,
+  initialCustomers,
+  initialSuppliers,
+  initialExpenseCodes,
+  initialExpenses,
+  initialExpenseTypes,
+  initialCurrentAccounts,
+  initialSafes,
+  initialBanks,
+  initialSalesInvoices,
+  initialSalesReturns,
+  initialPurchaseInvoices,
+  initialPurchaseReturns,
+  initialReceiptVouchers,
+  initialPaymentVouchers,
+  initialStoreReceiptVouchers,
+  initialStoreIssueVouchers,
+  initialStoreTransferVouchers,
+} from "./data";
 // FIX: Aliased StoreIssueVoucher type to avoid name collision with component.
-import type { Branch, CompanyInfo, Store, User, ItemGroup, Unit, Item, Customer, Supplier, ExpenseCode, Expense, ExpenseType, CurrentAccount, Safe, Bank, Invoice, Voucher, StoreReceiptVoucher as StoreReceiptVoucherType, StoreIssueVoucher as StoreIssueVoucherType, StoreTransferVoucher, Notification } from './types';
-import { ToastProvider, useToast } from './components/common/ToastProvider';
-import { ModalProvider } from './components/common/ModalProvider';
-import Toast from './components/common/Toast';
-import { getLabelByPath } from './routes/routeConfig';
-import ProtectedRoute from './components/common/ProtectedRoute';
-import { getPermissionSet } from './utils/permissions';
+import type {
+  Branch,
+  CompanyInfo,
+  Store,
+  User,
+  ItemGroup,
+  Unit,
+  Item,
+  Customer,
+  Supplier,
+  ExpenseCode,
+  Expense,
+  ExpenseType,
+  CurrentAccount,
+  Safe,
+  Bank,
+  Invoice,
+  Voucher,
+  StoreReceiptVoucher as StoreReceiptVoucherType,
+  StoreIssueVoucher as StoreIssueVoucherType,
+  StoreTransferVoucher,
+  Notification,
+} from "./types";
+import { ToastProvider, useToast } from "./components/common/ToastProvider";
+import { ModalProvider } from "./components/common/ModalProvider";
+import Toast from "./components/common/Toast";
+import { getLabelByPath } from "./routes/routeConfig";
+import ProtectedRoute from "./components/common/ProtectedRoute";
+import { getPermissionSet } from "./utils/permissions";
 
 // Simplified role-based permissions
 const rolePermissions: Record<string, string[]> = {
@@ -114,8 +159,65 @@ const rolePermissions: Record<string, string[]> = {
   ],
 };
 
+// Wrapper component to handle URL-based editing for AddCustomer
+const AddCustomerWrapper = ({
+  title,
+  companyInfo,
+}: {
+  title: string;
+  companyInfo: CompanyInfo;
+}) => {
+  const { id } = useParams<{ id?: string }>();
+  const navigate = useNavigate();
+
+  return (
+    <AddCustomer
+      title={title}
+      editingId={id || null}
+      onNavigate={(key, label, editingId) => {
+        if (key === "add_customer") {
+          navigate(
+            editingId ? `/customers/add/${editingId}` : "/customers/add",
+          );
+        } else if (key === "customers_list") {
+          navigate("/customers/list");
+        }
+      }}
+    />
+  );
+};
+
+// Wrapper component to handle URL-based editing for AddSupplier
+const AddSupplierWrapper = ({
+  title,
+  companyInfo,
+}: {
+  title: string;
+  companyInfo: CompanyInfo;
+}) => {
+  const { id } = useParams<{ id?: string }>();
+  const navigate = useNavigate();
+
+  return (
+    <AddSupplier
+      title={title}
+      editingId={id || null}
+      onNavigate={(key, label, editingId) => {
+        if (key === "add_supplier") {
+          navigate(
+            editingId ? `/suppliers/add/${editingId}` : "/suppliers/add",
+          );
+        } else if (key === "suppliers_list") {
+          navigate("/suppliers/list");
+        }
+      }}
+    />
+  );
+};
+
 const AppContent = () => {
   const location = useLocation();
+  const navigate = useNavigate();
   const currentPageTitle = getLabelByPath(location.pathname);
 
   // Redux state
@@ -486,10 +588,7 @@ const AppContent = () => {
               path="/items/add"
               element={
                 <ProtectedRoute requiredPermission="add_item-read">
-                  <AddItem
-                    title={currentPageTitle}
-                    editingId={null}
-                  />
+                  <AddItem title={currentPageTitle} editingId={null} />
                 </ProtectedRoute>
               }
             />
@@ -497,10 +596,7 @@ const AppContent = () => {
               path="/items/add/:id"
               element={
                 <ProtectedRoute requiredPermission="add_item-read">
-                  <AddItem
-                    title={currentPageTitle}
-                    editingId={null}
-                  />
+                  <AddItem title={currentPageTitle} editingId={null} />
                 </ProtectedRoute>
               }
             />
@@ -768,24 +864,12 @@ const AppContent = () => {
 
             {/* Customers */}
             <Route
-              path="/customers/add"
+              path="/customers/add/:id?"
               element={
                 <ProtectedRoute requiredPermission="add_customer-read">
-                  <AddCustomer
+                  <AddCustomerWrapper
                     title={currentPageTitle}
-                    editingId={null}
-                    customers={customers}
-                    onSave={(customer) =>
-                      setCustomers((prev) =>
-                        'id' in customer && customer.id
-                          ? prev.map((c) => (c.id === customer.id ? customer : c))
-                          : [...prev, { ...customer, id: Date.now() }],
-                      )
-                    }
-                    onDelete={(id) => {
-                      setCustomers((prev) => prev.filter((c) => c.id !== id));
-                    }}
-                    onNavigate={() => {}}
+                    companyInfo={companyInfo}
                   />
                 </ProtectedRoute>
               }
@@ -796,9 +880,15 @@ const AppContent = () => {
                 <ProtectedRoute requiredPermission="customers_list-read">
                   <CustomersList
                     title={currentPageTitle}
-                    customers={customers}
-                    onNavigate={() => {}}
-                    onDelete={(id) => setCustomers((prev) => prev.filter((c) => c.id !== id))}
+                    onNavigate={(key, label, id) => {
+                      if (key === "add_customer") {
+                        navigate(
+                          id ? `/customers/add/${id}` : "/customers/add",
+                        );
+                      } else if (key === "customers_list") {
+                        navigate("/customers/list");
+                      }
+                    }}
                     companyInfo={companyInfo}
                   />
                 </ProtectedRoute>
@@ -807,24 +897,12 @@ const AppContent = () => {
 
             {/* Suppliers */}
             <Route
-              path="/suppliers/add"
+              path="/suppliers/add/:id?"
               element={
                 <ProtectedRoute requiredPermission="add_supplier-read">
-                  <AddSupplier
+                  <AddSupplierWrapper
                     title={currentPageTitle}
-                    editingId={null}
-                    suppliers={suppliers}
-                    onSave={(supplier) =>
-                      setSuppliers((prev) =>
-                        'id' in supplier && supplier.id
-                          ? prev.map((s) => (s.id === supplier.id ? supplier : s))
-                          : [...prev, { ...supplier, id: Date.now() }],
-                      )
-                    }
-                    onDelete={(id) => {
-                      setSuppliers((prev) => prev.filter((s) => s.id !== id));
-                    }}
-                    onNavigate={() => {}}
+                    companyInfo={companyInfo}
                   />
                 </ProtectedRoute>
               }
@@ -835,9 +913,15 @@ const AppContent = () => {
                 <ProtectedRoute requiredPermission="suppliers_list-read">
                   <SuppliersList
                     title={currentPageTitle}
-                    suppliers={suppliers}
-                    onNavigate={() => {}}
-                    onDelete={(id) => setSuppliers((prev) => prev.filter((s) => s.id !== id))}
+                    onNavigate={(key, label, id) => {
+                      if (key === "add_supplier") {
+                        navigate(
+                          id ? `/suppliers/add/${id}` : "/suppliers/add",
+                        );
+                      } else if (key === "suppliers_list") {
+                        navigate("/suppliers/list");
+                      }
+                    }}
                     companyInfo={companyInfo}
                   />
                 </ProtectedRoute>
@@ -861,7 +945,9 @@ const AppContent = () => {
                       )
                     }
                     onDelete={(id) =>
-                      setReceiptVouchers((prev) => prev.filter((v) => v.id !== id))
+                      setReceiptVouchers((prev) =>
+                        prev.filter((v) => v.id !== id),
+                      )
                     }
                     customers={customers}
                     suppliers={suppliers}
@@ -891,7 +977,9 @@ const AppContent = () => {
                       )
                     }
                     onDelete={(id) =>
-                      setPaymentVouchers((prev) => prev.filter((v) => v.id !== id))
+                      setPaymentVouchers((prev) =>
+                        prev.filter((v) => v.id !== id),
+                      )
                     }
                     customers={customers}
                     suppliers={suppliers}
@@ -914,7 +1002,9 @@ const AppContent = () => {
                   <ExpensesList
                     title={currentPageTitle}
                     expenses={expenses}
-                    onDelete={(id) => setExpenses((prev) => prev.filter((e) => e.id !== id))}
+                    onDelete={(id) =>
+                      setExpenses((prev) => prev.filter((e) => e.id !== id))
+                    }
                   />
                 </ProtectedRoute>
               }
@@ -926,7 +1016,9 @@ const AppContent = () => {
                   <ExpensesList
                     title={currentPageTitle}
                     expenses={expenses}
-                    onDelete={(id) => setExpenses((prev) => prev.filter((e) => e.id !== id))}
+                    onDelete={(id) =>
+                      setExpenses((prev) => prev.filter((e) => e.id !== id))
+                    }
                   />
                 </ProtectedRoute>
               }
@@ -1027,13 +1119,15 @@ const AppContent = () => {
                     accounts={currentAccounts}
                     onSave={(acc) =>
                       setCurrentAccounts((prev) =>
-                        'id' in acc && acc.id
+                        "id" in acc && acc.id
                           ? prev.map((a) => (a.id === acc.id ? acc : a))
                           : [...prev, { ...acc, id: Date.now() }],
                       )
                     }
                     onDelete={(id) => {
-                      setCurrentAccounts((prev) => prev.filter((a) => a.id !== id));
+                      setCurrentAccounts((prev) =>
+                        prev.filter((a) => a.id !== id),
+                      );
                     }}
                     onNavigate={() => {}}
                   />
@@ -1050,13 +1144,15 @@ const AppContent = () => {
                     accounts={currentAccounts}
                     onSave={(acc) =>
                       setCurrentAccounts((prev) =>
-                        'id' in acc && acc.id
+                        "id" in acc && acc.id
                           ? prev.map((a) => (a.id === acc.id ? acc : a))
                           : [...prev, { ...acc, id: Date.now() }],
                       )
                     }
                     onDelete={(id) => {
-                      setCurrentAccounts((prev) => prev.filter((a) => a.id !== id));
+                      setCurrentAccounts((prev) =>
+                        prev.filter((a) => a.id !== id),
+                      );
                     }}
                     onNavigate={() => {}}
                   />
@@ -1072,7 +1168,11 @@ const AppContent = () => {
                     accounts={currentAccounts}
                     onAddNew={() => {}}
                     onEdit={(id) => {}}
-                    onDelete={(id) => setCurrentAccounts((prev) => prev.filter((a) => a.id !== id))}
+                    onDelete={(id) =>
+                      setCurrentAccounts((prev) =>
+                        prev.filter((a) => a.id !== id),
+                      )
+                    }
                   />
                 </ProtectedRoute>
               }
@@ -1086,7 +1186,11 @@ const AppContent = () => {
                     accounts={currentAccounts}
                     onAddNew={() => {}}
                     onEdit={(id) => {}}
-                    onDelete={(id) => setCurrentAccounts((prev) => prev.filter((a) => a.id !== id))}
+                    onDelete={(id) =>
+                      setCurrentAccounts((prev) =>
+                        prev.filter((a) => a.id !== id),
+                      )
+                    }
                   />
                 </ProtectedRoute>
               }
@@ -1106,7 +1210,9 @@ const AppContent = () => {
                           : [...prev, { ...safe, id: Date.now() }],
                       )
                     }
-                    onDelete={(id) => setSafes((prev) => prev.filter((s) => s.id !== id))}
+                    onDelete={(id) =>
+                      setSafes((prev) => prev.filter((s) => s.id !== id))
+                    }
                   />
                 </ProtectedRoute>
               }
@@ -1115,18 +1221,7 @@ const AppContent = () => {
               path="/financials/banks"
               element={
                 <ProtectedRoute requiredPermission="banks-read">
-                  <Banks
-                    title={currentPageTitle}
-                    banks={banks}
-                    onSave={(bank) =>
-                      setBanks((prev) =>
-                        bank.id
-                          ? prev.map((b) => (b.id === bank.id ? bank : b))
-                          : [...prev, { ...bank, id: Date.now() }],
-                      )
-                    }
-                    onDelete={(id) => setBanks((prev) => prev.filter((b) => b.id !== id))}
-                  />
+                  <Banks title={currentPageTitle} />
                 </ProtectedRoute>
               }
             />

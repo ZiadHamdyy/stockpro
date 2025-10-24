@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from "react";
-import type { Customer, CompanyInfo } from "../../../types";
+import type { CompanyInfo } from "../../../types";
 import {
   DollarSignIcon,
   MoreVerticalIcon,
@@ -10,12 +10,17 @@ import {
 import { useModal } from "../../common/ModalProvider";
 import { formatNumber } from "../../../utils/formatting";
 import DataTableModal from "../../common/DataTableModal";
+import { useCustomers } from "../../hook/useCustomers";
+import PermissionWrapper from "../../common/PermissionWrapper";
+import {
+  Resources,
+  Actions,
+  buildPermission,
+} from "../../../enums/permissions.enum";
 
 interface CustomersListProps {
   title: string;
-  customers: Customer[];
-  onNavigate: (key: string, label: string, id?: number | null) => void;
-  onDelete: (id: number) => void;
+  onNavigate: (key: string, label: string, id?: string | null) => void;
   companyInfo: CompanyInfo;
 }
 
@@ -38,29 +43,22 @@ const StatCard: React.FC<{
 
 const CustomersList: React.FC<CustomersListProps> = ({
   title,
-  customers,
   onNavigate,
-  onDelete,
   companyInfo,
 }) => {
+  const { customers, isLoading, handleDeleteClick } = useCustomers();
   const [searchTerm, setSearchTerm] = useState("");
   const [sortBy, setSortBy] = useState<"name" | "balance_high" | "balance_low">(
     "name",
   );
-  const [activeDropdown, setActiveDropdown] = useState<number | null>(null);
+  const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
   const [isListModalOpen, setIsListModalOpen] = useState(false);
 
-  const { showModal } = useModal();
-
-  const handleDeleteClick = (id: number, name: string) => {
-    showModal({
-      title: "تأكيد الحذف",
-      message: `هل أنت متأكد من رغبتك في حذف العميل "${name}"؟`,
-      onConfirm: () => onDelete(id),
-      type: "delete",
-      showPassword: true,
-    });
-    setActiveDropdown(null);
+  const onDelete = (id: string) => {
+    const customer = customers.find((c) => c.id === id);
+    if (customer) {
+      handleDeleteClick(customer);
+    }
   };
 
   const stats = useMemo(() => {
@@ -99,16 +97,31 @@ const CustomersList: React.FC<CustomersListProps> = ({
   const inputStyle =
     "w-full md:w-72 pr-10 pl-4 py-3 bg-brand-blue-bg border-2 border-brand-blue rounded-md text-black placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-brand-blue";
 
+  if (isLoading) {
+    return (
+      <div className="flex justify-center items-center h-64">
+        <p className="text-gray-500">جاري التحميل...</p>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center no-print">
         <h1 className="text-2xl font-bold text-brand-dark">{title}</h1>
-        <button
-          onClick={() => onNavigate("add_customer", "إضافة عميل")}
-          className="px-6 py-2 bg-brand-green text-white rounded-md hover:bg-green-700 font-semibold transition-colors"
+        <PermissionWrapper
+          requiredPermission={buildPermission(
+            Resources.CUSTOMERS,
+            Actions.CREATE,
+          )}
         >
-          إضافة عميل جديد
-        </button>
+          <button
+            onClick={() => onNavigate("add_customer", "إضافة عميل")}
+            className="px-6 py-2 bg-brand-green text-white rounded-md hover:bg-green-700 font-semibold transition-colors"
+          >
+            إضافة عميل جديد
+          </button>
+        </PermissionWrapper>
       </div>
 
       {/* Stats Cards */}
@@ -165,13 +178,20 @@ const CustomersList: React.FC<CustomersListProps> = ({
               <option value="balance_high">الرصيد (الأعلى)</option>
               <option value="balance_low">الرصيد (الأدنى)</option>
             </select>
-            <button
-              title="طباعة"
-              onClick={() => window.print()}
-              className="p-3 border-2 border-gray-200 rounded-md hover:bg-gray-100"
+            <PermissionWrapper
+              requiredPermission={buildPermission(
+                Resources.CUSTOMERS,
+                Actions.PRINT,
+              )}
             >
-              <PrintIcon className="w-6 h-6" />
-            </button>
+              <button
+                title="طباعة"
+                onClick={() => window.print()}
+                className="p-3 border-2 border-gray-200 rounded-md hover:bg-gray-100"
+              >
+                <PrintIcon className="w-6 h-6" />
+              </button>
+            </PermissionWrapper>
           </div>
         </div>
       </div>
@@ -219,27 +239,39 @@ const CustomersList: React.FC<CustomersListProps> = ({
                       >
                         كشف حساب
                       </a>
-                      <a
-                        onClick={() => {
-                          onNavigate(
-                            "add_customer",
-                            `تعديل عميل #${customer.id}`,
-                            customer.id,
-                          );
-                          setActiveDropdown(null);
-                        }}
-                        className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer"
+                      <PermissionWrapper
+                        requiredPermission={buildPermission(
+                          Resources.CUSTOMERS,
+                          Actions.UPDATE,
+                        )}
                       >
-                        تعديل
-                      </a>
-                      <a
-                        onClick={() =>
-                          handleDeleteClick(customer.id, customer.name)
-                        }
-                        className="block px-4 py-2 text-sm text-red-600 hover:bg-red-50 cursor-pointer"
+                        <a
+                          onClick={() => {
+                            onNavigate(
+                              "add_customer",
+                              `تعديل عميل #${customer.id}`,
+                              customer.id,
+                            );
+                            setActiveDropdown(null);
+                          }}
+                          className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer"
+                        >
+                          تعديل
+                        </a>
+                      </PermissionWrapper>
+                      <PermissionWrapper
+                        requiredPermission={buildPermission(
+                          Resources.CUSTOMERS,
+                          Actions.DELETE,
+                        )}
                       >
-                        حذف
-                      </a>
+                        <a
+                          onClick={() => onDelete(customer.id)}
+                          className="block px-4 py-2 text-sm text-red-600 hover:bg-red-50 cursor-pointer"
+                        >
+                          حذف
+                        </a>
+                      </PermissionWrapper>
                     </div>
                   )}
                 </div>

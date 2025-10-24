@@ -135,7 +135,7 @@ export interface StoreTransferVoucher {
 }
 
 export interface Customer {
-  id: number;
+  id: string;
   code: string;
   name: string;
   commercialReg: string;
@@ -146,7 +146,7 @@ export interface Customer {
 }
 
 export interface Supplier {
-  id: number;
+  id: string;
   code: string;
   name: string;
   commercialReg: string;
@@ -197,7 +197,7 @@ export interface Safe {
 }
 
 export interface Bank {
-  id: number;
+  id: string;
   code: string;
   name: string;
   accountNumber: string;

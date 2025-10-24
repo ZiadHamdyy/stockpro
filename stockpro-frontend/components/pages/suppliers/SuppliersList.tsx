@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from "react";
-import type { Supplier, CompanyInfo } from "../../../types";
+import type { CompanyInfo } from "../../../types";
 import {
   DollarSignIcon,
   MoreVerticalIcon,
@@ -7,15 +7,19 @@ import {
   SearchIcon,
   TruckIcon,
 } from "../../icons";
-import { useModal } from "../../common/ModalProvider.tsx";
 import { formatNumber } from "../../../utils/formatting";
 import DataTableModal from "../../common/DataTableModal";
+import { useSuppliers } from "../../hook/useSuppliers";
+import PermissionWrapper from "../../common/PermissionWrapper";
+import {
+  Resources,
+  Actions,
+  buildPermission,
+} from "../../../enums/permissions.enum";
 
 interface SuppliersListProps {
   title: string;
-  suppliers: Supplier[];
-  onNavigate: (key: string, label: string, id?: number | null) => void;
-  onDelete: (id: number) => void;
+  onNavigate: (key: string, label: string, id?: string | null) => void;
   companyInfo: CompanyInfo;
 }
 
@@ -38,29 +42,22 @@ const StatCard: React.FC<{
 
 const SuppliersList: React.FC<SuppliersListProps> = ({
   title,
-  suppliers,
   onNavigate,
-  onDelete,
   companyInfo,
 }) => {
+  const { suppliers, isLoading, handleDeleteClick } = useSuppliers();
   const [searchTerm, setSearchTerm] = useState("");
   const [sortBy, setSortBy] = useState<"name" | "balance_high" | "balance_low">(
     "name",
   );
-  const [activeDropdown, setActiveDropdown] = useState<number | null>(null);
+  const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
   const [isListModalOpen, setIsListModalOpen] = useState(false);
 
-  const { showModal } = useModal();
-
-  const handleDeleteClick = (id: number, name: string) => {
-    showModal({
-      title: "تأكيد الحذف",
-      message: `هل أنت متأكد من رغبتك في حذف المورد "${name}"؟`,
-      onConfirm: () => onDelete(id),
-      type: "delete",
-      showPassword: true,
-    });
-    setActiveDropdown(null);
+  const onDelete = (id: string) => {
+    const supplier = suppliers.find((s) => s.id === id);
+    if (supplier) {
+      handleDeleteClick(supplier);
+    }
   };
 
   const stats = useMemo(() => {
@@ -99,20 +96,36 @@ const SuppliersList: React.FC<SuppliersListProps> = ({
   }, [suppliers, searchTerm, sortBy]);
 
   const inputStyle =
-    "w-full md:w-72 pr-10 pl-4 py-3 bg-brand-green-bg border-2 border-brand-green rounded-md text-black placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-brand-green";
+    "w-full md:w-72 pr-10 pl-4 py-3 bg-brand-blue-bg border-2 border-brand-blue rounded-md text-black placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-brand-blue";
+
+  if (isLoading) {
+    return (
+      <div className="flex justify-center items-center h-64">
+        <p className="text-gray-500">جاري التحميل...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center no-print">
         <h1 className="text-2xl font-bold text-brand-dark">{title}</h1>
-        <button
-          onClick={() => onNavigate("add_supplier", "إضافة مورد")}
-          className="px-6 py-2 bg-brand-green text-white rounded-md hover:bg-green-700 font-semibold transition-colors"
+        <PermissionWrapper
+          requiredPermission={buildPermission(
+            Resources.SUPPLIERS,
+            Actions.CREATE,
+          )}
         >
-          إضافة مورد جديد
-        </button>
+          <button
+            onClick={() => onNavigate("add_supplier", "إضافة مورد")}
+            className="px-6 py-2 bg-brand-green text-white rounded-md hover:bg-green-700 font-semibold transition-colors"
+          >
+            إضافة مورد جديد
+          </button>
+        </PermissionWrapper>
       </div>
 
+      {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 no-print">
         <div
           className="cursor-pointer transition-transform hover:scale-105"
@@ -127,18 +140,19 @@ const SuppliersList: React.FC<SuppliersListProps> = ({
         </div>
         <StatCard
           title="إجمالي المستحقات (دائن)"
-          value={`${formatNumber(stats.totalLiability)}`}
+          value={`${formatNumber(Math.abs(stats.totalAsset))}`}
           icon={<DollarSignIcon className="w-8 h-8 text-red-500" />}
           color="border-red-500"
         />
         <StatCard
           title="إجمالي الأرصدة (مدين)"
-          value={`${formatNumber(Math.abs(stats.totalAsset))}`}
+          value={`${formatNumber(stats.totalLiability)}`}
           icon={<DollarSignIcon className="w-8 h-8 text-blue-500" />}
           color="border-blue-500"
         />
       </div>
 
+      {/* Controls */}
       <div className="bg-white p-4 rounded-lg shadow-sm no-print">
         <div className="flex flex-col md:flex-row justify-between items-center gap-4">
           <div className="relative w-full md:w-auto">
@@ -159,28 +173,36 @@ const SuppliersList: React.FC<SuppliersListProps> = ({
               id="sort"
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value as any)}
-              className="bg-brand-green-bg border-2 border-brand-green rounded-md py-2 px-3 focus:outline-none focus:ring-2 focus:ring-brand-green"
+              className="bg-brand-blue-bg border-2 border-brand-blue rounded-md py-2 px-3 focus:outline-none focus:ring-2 focus:ring-brand-blue"
             >
               <option value="name">الاسم</option>
               <option value="balance_high">الرصيد (الأعلى)</option>
               <option value="balance_low">الرصيد (الأدنى)</option>
             </select>
-            <button
-              title="طباعة"
-              onClick={() => window.print()}
-              className="p-3 border-2 border-gray-200 rounded-md hover:bg-gray-100"
+            <PermissionWrapper
+              requiredPermission={buildPermission(
+                Resources.SUPPLIERS,
+                Actions.PRINT,
+              )}
             >
-              <PrintIcon className="w-6 h-6" />
-            </button>
+              <button
+                title="طباعة"
+                onClick={() => window.print()}
+                className="p-3 border-2 border-gray-200 rounded-md hover:bg-gray-100"
+              >
+                <PrintIcon className="w-6 h-6" />
+              </button>
+            </PermissionWrapper>
           </div>
         </div>
       </div>
 
+      {/* Supplier Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
         {sortedAndFilteredSuppliers.map((supplier) => (
           <div
             key={supplier.id}
-            className="bg-white rounded-lg shadow-md border-t-4 border-brand-green p-5 flex flex-col justify-between relative transition-all hover:shadow-xl"
+            className="bg-white rounded-lg shadow-md border-t-4 border-brand-blue p-5 flex flex-col justify-between relative transition-all hover:shadow-xl"
           >
             <div>
               <div className="flex justify-between items-start">
@@ -218,27 +240,39 @@ const SuppliersList: React.FC<SuppliersListProps> = ({
                       >
                         كشف حساب
                       </a>
-                      <a
-                        onClick={() => {
-                          onNavigate(
-                            "add_supplier",
-                            `تعديل مورد #${supplier.id}`,
-                            supplier.id,
-                          );
-                          setActiveDropdown(null);
-                        }}
-                        className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer"
+                      <PermissionWrapper
+                        requiredPermission={buildPermission(
+                          Resources.SUPPLIERS,
+                          Actions.UPDATE,
+                        )}
                       >
-                        تعديل
-                      </a>
-                      <a
-                        onClick={() =>
-                          handleDeleteClick(supplier.id, supplier.name)
-                        }
-                        className="block px-4 py-2 text-sm text-red-600 hover:bg-red-50 cursor-pointer"
+                        <a
+                          onClick={() => {
+                            onNavigate(
+                              "add_supplier",
+                              `تعديل مورد #${supplier.id}`,
+                              supplier.id,
+                            );
+                            setActiveDropdown(null);
+                          }}
+                          className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer"
+                        >
+                          تعديل
+                        </a>
+                      </PermissionWrapper>
+                      <PermissionWrapper
+                        requiredPermission={buildPermission(
+                          Resources.SUPPLIERS,
+                          Actions.DELETE,
+                        )}
                       >
-                        حذف
-                      </a>
+                        <a
+                          onClick={() => onDelete(supplier.id)}
+                          className="block px-4 py-2 text-sm text-red-600 hover:bg-red-50 cursor-pointer"
+                        >
+                          حذف
+                        </a>
+                      </PermissionWrapper>
                     </div>
                   )}
                 </div>
@@ -253,7 +287,7 @@ const SuppliersList: React.FC<SuppliersListProps> = ({
               </div>
             </div>
             <div
-              className={`mt-4 p-3 rounded-md text-center ${supplier.openingBalance >= 0 ? "bg-red-100 text-red-700" : "bg-green-100 text-green-700"}`}
+              className={`mt-4 p-3 rounded-md text-center ${supplier.openingBalance >= 0 ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"}`}
             >
               <span className="text-sm font-semibold">الرصيد الحالي</span>
               <p className="text-2xl font-bold">
