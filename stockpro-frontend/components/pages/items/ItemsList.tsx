@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   ExcelIcon,
   PdfIcon,
@@ -18,10 +19,11 @@ import { setItems, removeItem } from "../../store/slices/items/items";
 
 interface ItemsListProps {
   title: string;
-  onNavigate: (key: string, label: string, id?: string | null) => void;
+  onNavigate?: (key: string, label: string, id?: string | null) => void;
 }
 
 const ItemsList: React.FC<ItemsListProps> = ({ title, onNavigate }) => {
+  const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState("");
   const inputStyle =
     "w-64 pr-10 pl-4 py-3 bg-brand-blue-bg border-2 border-brand-blue rounded-md text-black placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-brand-blue";
@@ -129,7 +131,7 @@ const ItemsList: React.FC<ItemsListProps> = ({ title, onNavigate }) => {
       <div className="flex justify-between items-center mb-4 border-b pb-4 no-print">
         <h1 className="text-2xl font-bold text-brand-dark">{title}</h1>
         <button
-          onClick={() => onNavigate("add_item", "إضافة صنف")}
+          onClick={() => navigate("/items/add")}
           className="px-6 py-2 bg-brand-green text-white rounded-md hover:bg-green-700 font-semibold transition-colors"
         >
           إضافة صنف جديد

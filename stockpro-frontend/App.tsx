@@ -1,124 +1,77 @@
-import { useState, useCallback, useMemo, useEffect } from "react";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-import { Provider } from "react-redux";
-import { PersistGate } from "redux-persist/integration/react";
-import { store, persistor } from "./components/store/store";
-import { useAppDispatch } from "./components/store/hooks";
-import { useAuth } from "./components/hook/Auth";
-import { useSendLogOutMutation } from "./components/store/slices/auth/authApi";
-import Sidebar from "./components/layout/Sidebar";
-import Header from "./components/layout/Header";
-import Dashboard from "./components/pages/Dashboard";
-import Placeholder from "./components/pages/Placeholder";
-import Login from "./components/pages/Login";
-import CompanyData from "./components/pages/settings/CompanyData";
-import BranchesData from "./components/pages/settings/BranchesData";
-import StoresData from "./components/pages/settings/StoresData";
-import UsersData from "./components/pages/settings/UsersData";
-import Permissions from "./components/pages/settings/Permissions";
-import AddItem from "./components/pages/items/AddItem";
-import ItemsList from "./components/pages/items/ItemsList";
-import ItemGroups from "./components/pages/items/ItemGroups";
-import Units from "./components/pages/items/Units";
-import StoreReceiptVoucher from "./components/pages/warehouse/StoreReceiptVoucher";
-import StoreIssueVoucher from "./components/pages/warehouse/StoreIssueVoucher";
-import StoreTransfer from "./components/pages/warehouse/StoreTransfer";
-import SalesInvoice from "./components/pages/sales/SalesInvoice";
-import SalesReturn from "./components/pages/sales/SalesReturn";
-import DailySales from "./components/pages/sales/DailySales";
-import DailySalesReturns from "./components/pages/sales/DailySalesReturns";
-import PurchaseInvoice from "./components/pages/purchases/PurchaseInvoice";
-import PurchaseReturn from "./components/pages/purchases/PurchaseReturn";
-import DailyPurchases from "./components/pages/purchases/DailyPurchases";
-import DailyPurchaseReturns from "./components/pages/purchases/DailyPurchaseReturns";
-import AddCustomer from "./components/pages/customers/AddCustomer";
-import CustomersList from "./components/pages/customers/CustomersList";
-import AddSupplier from "./components/pages/suppliers/AddSupplier";
-import SuppliersList from "./components/pages/suppliers/SuppliersList";
-import ReceiptVoucher from "./components/pages/financials/ReceiptVoucher";
-import PaymentVoucher from "./components/pages/financials/PaymentVoucher";
-import ExpensesList from "./components/pages/financials/ExpensesList";
-import ExpenseCodes from "./components/pages/financials/ExpenseCodes";
-import ExpenseTypes from "./components/pages/financials/ExpenseTypes";
-import AddCurrentAccount from "./components/pages/financials/AddCurrentAccount";
-import CurrentAccountsList from "./components/pages/financials/CurrentAccountsList";
-import Safes from "./components/pages/financials/Safes";
-import Banks from "./components/pages/financials/Banks";
-import ItemMovementReport from "./components/pages/reports/items/ItemMovementReport";
-import ItemBalanceReport from "./components/pages/reports/items/ItemBalanceReport";
-import InventoryValuationReport from "./components/pages/reports/items/InventoryValuationReport";
-import CustomerStatementReport from "./components/pages/reports/customers/CustomerStatementReport";
-import CustomerBalanceReport from "./components/pages/reports/customers/CustomerBalanceReport";
-import SupplierStatementReport from "./components/pages/reports/suppliers/SupplierStatementReport";
-import SupplierBalanceReport from "./components/pages/reports/suppliers/SupplierBalanceReport";
-import DailyCollectionsReport from "./components/pages/reports/financials/DailyCollectionsReport";
-import DailyPaymentsReport from "./components/pages/reports/financials/DailyPaymentsReport";
-import ExpenseStatementReport from "./components/pages/reports/financials/ExpenseStatementReport";
-import TotalExpensesReport from "./components/pages/reports/financials/TotalExpensesReport";
-import CurrentAccountStatementReport from "./components/pages/reports/financials/CurrentAccountStatementReport";
-import TotalCurrentAccountsReport from "./components/pages/reports/financials/TotalCurrentAccountsReport";
-import SafeStatementReport from "./components/pages/reports/financials/SafeStatementReport";
-import BankStatementReport from "./components/pages/reports/financials/BankStatementReport";
-import TaxDeclarationReport from "./components/pages/reports/financials/TaxDeclarationReport";
-import IncomeStatement from "./components/pages/final_accounts/IncomeStatement";
-import BalanceSheet from "./components/pages/final_accounts/BalanceSheet";
+import { useState, useCallback, useMemo, useEffect } from 'react';
+import { BrowserRouter, Routes, Route, Navigate, useNavigate, useParams, useLocation } from 'react-router-dom';
+import { Provider } from 'react-redux';
+import { PersistGate } from 'redux-persist/integration/react';
+import { store, persistor } from './components/store/store';
+import { useAppDispatch } from './components/store/hooks';
+import { useAuth } from './components/hook/Auth';
+import { useSendLogOutMutation } from './components/store/slices/auth/authApi';
+import Sidebar from './components/layout/Sidebar';
+import Header from './components/layout/Header';
+import Dashboard from './components/pages/Dashboard';
+import Placeholder from './components/pages/Placeholder';
+import Login from './components/pages/Login';
+import CompanyData from './components/pages/settings/CompanyData';
+import BranchesData from './components/pages/settings/BranchesData';
+import StoresData from './components/pages/settings/StoresData';
+import UsersData from './components/pages/settings/UsersData';
+import Permissions from './components/pages/settings/Permissions';
+import AddItem from './components/pages/items/AddItem';
+import ItemsList from './components/pages/items/ItemsList';
+import ItemGroups from './components/pages/items/ItemGroups';
+import Units from './components/pages/items/Units';
+import StoreReceiptVoucher from './components/pages/warehouse/StoreReceiptVoucher';
+import StoreIssueVoucher from './components/pages/warehouse/StoreIssueVoucher';
+import StoreTransfer from './components/pages/warehouse/StoreTransfer';
+import SalesInvoice from './components/pages/sales/SalesInvoice';
+import SalesReturn from './components/pages/sales/SalesReturn';
+import DailySales from './components/pages/sales/DailySales';
+import DailySalesReturns from './components/pages/sales/DailySalesReturns';
+import PurchaseInvoice from './components/pages/purchases/PurchaseInvoice';
+import PurchaseReturn from './components/pages/purchases/PurchaseReturn';
+import DailyPurchases from './components/pages/purchases/DailyPurchases';
+import DailyPurchaseReturns from './components/pages/purchases/DailyPurchaseReturns';
+import AddCustomer from './components/pages/customers/AddCustomer';
+import CustomersList from './components/pages/customers/CustomersList';
+import AddSupplier from './components/pages/suppliers/AddSupplier';
+import SuppliersList from './components/pages/suppliers/SuppliersList';
+import ReceiptVoucher from './components/pages/financials/ReceiptVoucher';
+import PaymentVoucher from './components/pages/financials/PaymentVoucher';
+import ExpensesList from './components/pages/financials/ExpensesList';
+import ExpenseCodes from './components/pages/financials/ExpenseCodes';
+import ExpenseTypes from './components/pages/financials/ExpenseTypes';
+import AddCurrentAccount from './components/pages/financials/AddCurrentAccount';
+import CurrentAccountsList from './components/pages/financials/CurrentAccountsList';
+import Safes from './components/pages/financials/Safes';
+import Banks from './components/pages/financials/Banks';
+import ItemMovementReport from './components/pages/reports/items/ItemMovementReport';
+import ItemBalanceReport from './components/pages/reports/items/ItemBalanceReport';
+import InventoryValuationReport from './components/pages/reports/items/InventoryValuationReport';
+import CustomerStatementReport from './components/pages/reports/customers/CustomerStatementReport';
+import CustomerBalanceReport from './components/pages/reports/customers/CustomerBalanceReport';
+import SupplierStatementReport from './components/pages/reports/suppliers/SupplierStatementReport';
+import SupplierBalanceReport from './components/pages/reports/suppliers/SupplierBalanceReport';
+import DailyCollectionsReport from './components/pages/reports/financials/DailyCollectionsReport';
+import DailyPaymentsReport from './components/pages/reports/financials/DailyPaymentsReport';
+import ExpenseStatementReport from './components/pages/reports/financials/ExpenseStatementReport';
+import TotalExpensesReport from './components/pages/reports/financials/TotalExpensesReport';
+import CurrentAccountStatementReport from './components/pages/reports/financials/CurrentAccountStatementReport';
+import TotalCurrentAccountsReport from './components/pages/reports/financials/TotalCurrentAccountsReport';
+import SafeStatementReport from './components/pages/reports/financials/SafeStatementReport';
+import BankStatementReport from './components/pages/reports/financials/BankStatementReport';
+import TaxDeclarationReport from './components/pages/reports/financials/TaxDeclarationReport';
+import IncomeStatement from './components/pages/final_accounts/IncomeStatement';
+import BalanceSheet from './components/pages/final_accounts/BalanceSheet';
 
-import {
-  initialBranches,
-  initialStores,
-  initialItemGroups,
-  initialUnits,
-  initialItems,
-  initialCustomers,
-  initialSuppliers,
-  initialExpenseCodes,
-  initialExpenses,
-  initialExpenseTypes,
-  initialCurrentAccounts,
-  initialSafes,
-  initialBanks,
-  initialSalesInvoices,
-  initialSalesReturns,
-  initialPurchaseInvoices,
-  initialPurchaseReturns,
-  initialReceiptVouchers,
-  initialPaymentVouchers,
-  initialStoreReceiptVouchers,
-  initialStoreIssueVouchers,
-  initialStoreTransferVouchers,
-} from "./data";
+import { initialBranches, initialStores, initialItemGroups, initialUnits, initialItems, initialCustomers, initialSuppliers, initialExpenseCodes, initialExpenses, initialExpenseTypes, initialCurrentAccounts, initialSafes, initialBanks, initialSalesInvoices, initialSalesReturns, initialPurchaseInvoices, initialPurchaseReturns, initialReceiptVouchers, initialPaymentVouchers, initialStoreReceiptVouchers, initialStoreIssueVouchers, initialStoreTransferVouchers } from './data';
 // FIX: Aliased StoreIssueVoucher type to avoid name collision with component.
-import type {
-  Branch,
-  CompanyInfo,
-  Store,
-  User,
-  ItemGroup,
-  Unit,
-  Item,
-  Customer,
-  Supplier,
-  ExpenseCode,
-  Expense,
-  ExpenseType,
-  CurrentAccount,
-  Safe,
-  Bank,
-  Invoice,
-  Voucher,
-  StoreReceiptVoucher as StoreReceiptVoucherType,
-  StoreIssueVoucher as StoreIssueVoucherType,
-  StoreTransferVoucher,
-  Notification,
-} from "./types";
-import { ToastProvider, useToast } from "./components/common/ToastProvider";
-import { ModalProvider } from "./components/common/ModalProvider";
-import Toast from "./components/common/Toast";
-import ProtectedRoute from "./components/common/ProtectedRoute";
-import { routeConfig, getLabelByPath } from "./routes/routeConfig";
-import { getPermissionSet } from "./utils/permissions";
-import type { Permission } from "./types";
-import { useLocation } from "react-router-dom";
+import type { Branch, CompanyInfo, Store, User, ItemGroup, Unit, Item, Customer, Supplier, ExpenseCode, Expense, ExpenseType, CurrentAccount, Safe, Bank, Invoice, Voucher, StoreReceiptVoucher as StoreReceiptVoucherType, StoreIssueVoucher as StoreIssueVoucherType, StoreTransferVoucher, Notification } from './types';
+import { ToastProvider, useToast } from './components/common/ToastProvider';
+import { ModalProvider } from './components/common/ModalProvider';
+import Toast from './components/common/Toast';
+import { getLabelByPath } from './routes/routeConfig';
+import ProtectedRoute from './components/common/ProtectedRoute';
+import { getPermissionSet } from './utils/permissions';
 
 // Simplified role-based permissions
 const rolePermissions: Record<string, string[]> = {
@@ -178,7 +131,7 @@ const AppContent = () => {
   // Compute user permissions from Redux store (persistent)
   const userPermissions = useMemo(() => {
     if (currentUser?.role?.permissions) {
-      const permissions: Permission[] = currentUser.role.permissions;
+      const permissions = currentUser.role.permissions;
       const permissionSet = getPermissionSet(permissions);
       // Convert to array of permission strings for backward compatibility with filterByPermissions
       return Array.from(permissionSet);
@@ -197,6 +150,8 @@ const AppContent = () => {
     currency: "SAR",
     logo: null,
     capital: 150000,
+    vatRate: 15,
+    isVatEnabled: true,
   });
   const [vatRate, setVatRate] = useState(15);
   const [isVatEnabled, setIsVatEnabled] = useState(true);
@@ -572,7 +527,17 @@ const AppContent = () => {
                   <AddItem
                     title={currentPageTitle}
                     editingId={null}
-                    onNavigate={() => {}}
+                  />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/items/add/:id"
+              element={
+                <ProtectedRoute requiredPermission="add_item-read">
+                  <AddItem
+                    title={currentPageTitle}
+                    editingId={null}
                   />
                 </ProtectedRoute>
               }
@@ -581,7 +546,7 @@ const AppContent = () => {
               path="/items/list"
               element={
                 <ProtectedRoute requiredPermission="items_list-read">
-                  <ItemsList title={currentPageTitle} onNavigate={() => {}} />
+                  <ItemsList title={currentPageTitle} />
                 </ProtectedRoute>
               }
             />
@@ -903,6 +868,711 @@ const AppContent = () => {
                     title={currentPageTitle}
                     companyInfo={companyInfo}
                     purchaseReturns={purchaseReturns}
+                  />
+                </ProtectedRoute>
+              }
+            />
+
+            {/* Customers */}
+            <Route
+              path="/customers/add"
+              element={
+                <ProtectedRoute requiredPermission="add_customer-read">
+                  <AddCustomer
+                    title={currentPageTitle}
+                    editingId={null}
+                    customers={customers}
+                    onSave={(customer) =>
+                      setCustomers((prev) =>
+                        'id' in customer && customer.id
+                          ? prev.map((c) => (c.id === customer.id ? customer : c))
+                          : [...prev, { ...customer, id: Date.now() }],
+                      )
+                    }
+                    onDelete={(id) => {
+                      setCustomers((prev) => prev.filter((c) => c.id !== id));
+                    }}
+                    onNavigate={() => {}}
+                  />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/customers/list"
+              element={
+                <ProtectedRoute requiredPermission="customers_list-read">
+                  <CustomersList
+                    title={currentPageTitle}
+                    customers={customers}
+                    onNavigate={() => {}}
+                    onDelete={(id) => setCustomers((prev) => prev.filter((c) => c.id !== id))}
+                    companyInfo={companyInfo}
+                  />
+                </ProtectedRoute>
+              }
+            />
+
+            {/* Suppliers */}
+            <Route
+              path="/suppliers/add"
+              element={
+                <ProtectedRoute requiredPermission="add_supplier-read">
+                  <AddSupplier
+                    title={currentPageTitle}
+                    editingId={null}
+                    suppliers={suppliers}
+                    onSave={(supplier) =>
+                      setSuppliers((prev) =>
+                        'id' in supplier && supplier.id
+                          ? prev.map((s) => (s.id === supplier.id ? supplier : s))
+                          : [...prev, { ...supplier, id: Date.now() }],
+                      )
+                    }
+                    onDelete={(id) => {
+                      setSuppliers((prev) => prev.filter((s) => s.id !== id));
+                    }}
+                    onNavigate={() => {}}
+                  />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/suppliers/list"
+              element={
+                <ProtectedRoute requiredPermission="suppliers_list-read">
+                  <SuppliersList
+                    title={currentPageTitle}
+                    suppliers={suppliers}
+                    onNavigate={() => {}}
+                    onDelete={(id) => setSuppliers((prev) => prev.filter((s) => s.id !== id))}
+                    companyInfo={companyInfo}
+                  />
+                </ProtectedRoute>
+              }
+            />
+
+            {/* Financials */}
+            <Route
+              path="/financials/receipt-voucher"
+              element={
+                <ProtectedRoute requiredPermission="receipt_voucher-read">
+                  <ReceiptVoucher
+                    title={currentPageTitle}
+                    companyInfo={companyInfo}
+                    vouchers={receiptVouchers}
+                    onSave={(v) =>
+                      setReceiptVouchers((prev) =>
+                        prev.find((i) => i.id === v.id)
+                          ? prev.map((i) => (i.id === v.id ? v : i))
+                          : [...prev, v],
+                      )
+                    }
+                    onDelete={(id) =>
+                      setReceiptVouchers((prev) => prev.filter((v) => v.id !== id))
+                    }
+                    customers={customers}
+                    suppliers={suppliers}
+                    currentAccounts={currentAccounts}
+                    currentUser={currentUser}
+                    safes={safes}
+                    banks={banks}
+                    viewingId={null}
+                    onClearViewingId={() => {}}
+                  />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/financials/payment-voucher"
+              element={
+                <ProtectedRoute requiredPermission="payment_voucher-read">
+                  <PaymentVoucher
+                    title={currentPageTitle}
+                    companyInfo={companyInfo}
+                    vouchers={paymentVouchers}
+                    onSave={(v) =>
+                      setPaymentVouchers((prev) =>
+                        prev.find((i) => i.id === v.id)
+                          ? prev.map((i) => (i.id === v.id ? v : i))
+                          : [...prev, v],
+                      )
+                    }
+                    onDelete={(id) =>
+                      setPaymentVouchers((prev) => prev.filter((v) => v.id !== id))
+                    }
+                    customers={customers}
+                    suppliers={suppliers}
+                    currentAccounts={currentAccounts}
+                    currentUser={currentUser}
+                    expenseCodes={expenseCodes}
+                    onAddExpense={handleAddExpense}
+                    safes={safes}
+                    banks={banks}
+                    viewingId={null}
+                    onClearViewingId={() => {}}
+                  />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/financials/expenses/list"
+              element={
+                <ProtectedRoute requiredPermission="expenses_list-read">
+                  <ExpensesList
+                    title={currentPageTitle}
+                    expenses={expenses}
+                    onDelete={(id) => setExpenses((prev) => prev.filter((e) => e.id !== id))}
+                  />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/financials/expenses-list"
+              element={
+                <ProtectedRoute requiredPermission="expenses_list-read">
+                  <ExpensesList
+                    title={currentPageTitle}
+                    expenses={expenses}
+                    onDelete={(id) => setExpenses((prev) => prev.filter((e) => e.id !== id))}
+                  />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/financials/expenses/codes"
+              element={
+                <ProtectedRoute requiredPermission="expense_codes-read">
+                  <ExpenseCodes
+                    title={currentPageTitle}
+                    codes={expenseCodes}
+                    expenseTypes={expenseTypes}
+                    onSave={(code) =>
+                      setExpenseCodes((prev) =>
+                        code.id
+                          ? prev.map((c) => (c.id === code.id ? code : c))
+                          : [...prev, { ...code, id: Date.now() }],
+                      )
+                    }
+                    onDelete={(id) =>
+                      setExpenseCodes((prev) => prev.filter((c) => c.id !== id))
+                    }
+                  />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/financials/expense-codes"
+              element={
+                <ProtectedRoute requiredPermission="expense_codes-read">
+                  <ExpenseCodes
+                    title={currentPageTitle}
+                    codes={expenseCodes}
+                    expenseTypes={expenseTypes}
+                    onSave={(code) =>
+                      setExpenseCodes((prev) =>
+                        code.id
+                          ? prev.map((c) => (c.id === code.id ? code : c))
+                          : [...prev, { ...code, id: Date.now() }],
+                      )
+                    }
+                    onDelete={(id) =>
+                      setExpenseCodes((prev) => prev.filter((c) => c.id !== id))
+                    }
+                  />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/financials/expenses/types"
+              element={
+                <ProtectedRoute requiredPermission="expense_types-read">
+                  <ExpenseTypes
+                    title={currentPageTitle}
+                    types={expenseTypes}
+                    onSave={(type) =>
+                      setExpenseTypes((prev) =>
+                        type.id
+                          ? prev.map((t) => (t.id === type.id ? type : t))
+                          : [...prev, { ...type, id: Date.now() }],
+                      )
+                    }
+                    onDelete={(id) =>
+                      setExpenseTypes((prev) => prev.filter((t) => t.id !== id))
+                    }
+                  />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/financials/expense-types"
+              element={
+                <ProtectedRoute requiredPermission="expense_types-read">
+                  <ExpenseTypes
+                    title={currentPageTitle}
+                    types={expenseTypes}
+                    onSave={(type) =>
+                      setExpenseTypes((prev) =>
+                        type.id
+                          ? prev.map((t) => (t.id === type.id ? type : t))
+                          : [...prev, { ...type, id: Date.now() }],
+                      )
+                    }
+                    onDelete={(id) =>
+                      setExpenseTypes((prev) => prev.filter((t) => t.id !== id))
+                    }
+                  />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/financials/current-accounts/add"
+              element={
+                <ProtectedRoute requiredPermission="add_current_account-read">
+                  <AddCurrentAccount
+                    title={currentPageTitle}
+                    editingId={null}
+                    accounts={currentAccounts}
+                    onSave={(acc) =>
+                      setCurrentAccounts((prev) =>
+                        'id' in acc && acc.id
+                          ? prev.map((a) => (a.id === acc.id ? acc : a))
+                          : [...prev, { ...acc, id: Date.now() }],
+                      )
+                    }
+                    onDelete={(id) => {
+                      setCurrentAccounts((prev) => prev.filter((a) => a.id !== id));
+                    }}
+                    onNavigate={() => {}}
+                  />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/financials/add-current-account"
+              element={
+                <ProtectedRoute requiredPermission="add_current_account-read">
+                  <AddCurrentAccount
+                    title={currentPageTitle}
+                    editingId={null}
+                    accounts={currentAccounts}
+                    onSave={(acc) =>
+                      setCurrentAccounts((prev) =>
+                        'id' in acc && acc.id
+                          ? prev.map((a) => (a.id === acc.id ? acc : a))
+                          : [...prev, { ...acc, id: Date.now() }],
+                      )
+                    }
+                    onDelete={(id) => {
+                      setCurrentAccounts((prev) => prev.filter((a) => a.id !== id));
+                    }}
+                    onNavigate={() => {}}
+                  />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/financials/current-accounts/list"
+              element={
+                <ProtectedRoute requiredPermission="current_accounts_list-read">
+                  <CurrentAccountsList
+                    title={currentPageTitle}
+                    accounts={currentAccounts}
+                    onAddNew={() => {}}
+                    onEdit={(id) => {}}
+                    onDelete={(id) => setCurrentAccounts((prev) => prev.filter((a) => a.id !== id))}
+                  />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/financials/current-accounts-list"
+              element={
+                <ProtectedRoute requiredPermission="current_accounts_list-read">
+                  <CurrentAccountsList
+                    title={currentPageTitle}
+                    accounts={currentAccounts}
+                    onAddNew={() => {}}
+                    onEdit={(id) => {}}
+                    onDelete={(id) => setCurrentAccounts((prev) => prev.filter((a) => a.id !== id))}
+                  />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/financials/safes"
+              element={
+                <ProtectedRoute requiredPermission="safes-read">
+                  <Safes
+                    title={currentPageTitle}
+                    safes={safes}
+                    branches={branches}
+                    onSave={(safe) =>
+                      setSafes((prev) =>
+                        safe.id
+                          ? prev.map((s) => (s.id === safe.id ? safe : s))
+                          : [...prev, { ...safe, id: Date.now() }],
+                      )
+                    }
+                    onDelete={(id) => setSafes((prev) => prev.filter((s) => s.id !== id))}
+                  />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/financials/banks"
+              element={
+                <ProtectedRoute requiredPermission="banks-read">
+                  <Banks
+                    title={currentPageTitle}
+                    banks={banks}
+                    onSave={(bank) =>
+                      setBanks((prev) =>
+                        bank.id
+                          ? prev.map((b) => (b.id === bank.id ? bank : b))
+                          : [...prev, { ...bank, id: Date.now() }],
+                      )
+                    }
+                    onDelete={(id) => setBanks((prev) => prev.filter((b) => b.id !== id))}
+                  />
+                </ProtectedRoute>
+              }
+            />
+
+            {/* Reports */}
+            <Route
+              path="/reports/items/movement"
+              element={
+                <ProtectedRoute requiredPermission="item_movement_report-read">
+                  <ItemMovementReport
+                    title={currentPageTitle}
+                    companyInfo={companyInfo}
+                    items={items}
+                    salesInvoices={salesInvoices}
+                    purchaseInvoices={purchaseInvoices}
+                    salesReturns={salesReturns}
+                    purchaseReturns={purchaseReturns}
+                    storeReceiptVouchers={storeReceiptVouchers}
+                    storeIssueVouchers={storeIssueVouchers}
+                    storeTransferVouchers={storeTransferVouchers}
+                    onNavigate={() => {}}
+                    currentUser={currentUser}
+                    branches={branches}
+                    stores={stores}
+                  />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/reports/items/balance"
+              element={
+                <ProtectedRoute requiredPermission="item_balance_report-read">
+                  <ItemBalanceReport
+                    title={currentPageTitle}
+                    companyInfo={companyInfo}
+                    items={items}
+                    branches={branches}
+                    currentUser={currentUser}
+                    salesInvoices={salesInvoices}
+                    salesReturns={salesReturns}
+                    purchaseInvoices={purchaseInvoices}
+                    purchaseReturns={purchaseReturns}
+                    storeReceiptVouchers={storeReceiptVouchers}
+                    storeIssueVouchers={storeIssueVouchers}
+                    storeTransferVouchers={storeTransferVouchers}
+                    stores={stores}
+                  />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/reports/items/valuation"
+              element={
+                <ProtectedRoute requiredPermission="inventory_valuation_report-read">
+                  <InventoryValuationReport
+                    title={currentPageTitle}
+                    companyInfo={companyInfo}
+                    items={items}
+                    branches={branches}
+                    currentUser={currentUser}
+                    salesInvoices={salesInvoices}
+                    salesReturns={salesReturns}
+                    purchaseInvoices={purchaseInvoices}
+                    purchaseReturns={purchaseReturns}
+                    storeReceiptVouchers={storeReceiptVouchers}
+                    storeIssueVouchers={storeIssueVouchers}
+                    storeTransferVouchers={storeTransferVouchers}
+                    stores={stores}
+                  />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/reports/items/inventory-valuation"
+              element={
+                <ProtectedRoute requiredPermission="inventory_valuation_report-read">
+                  <InventoryValuationReport
+                    title={currentPageTitle}
+                    companyInfo={companyInfo}
+                    items={items}
+                    branches={branches}
+                    currentUser={currentUser}
+                    salesInvoices={salesInvoices}
+                    salesReturns={salesReturns}
+                    purchaseInvoices={purchaseInvoices}
+                    purchaseReturns={purchaseReturns}
+                    storeReceiptVouchers={storeReceiptVouchers}
+                    storeIssueVouchers={storeIssueVouchers}
+                    storeTransferVouchers={storeTransferVouchers}
+                    stores={stores}
+                  />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/reports/customers/statement"
+              element={
+                <ProtectedRoute requiredPermission="customer_statement_report-read">
+                  <CustomerStatementReport
+                    title={currentPageTitle}
+                    companyInfo={companyInfo}
+                    customers={customers}
+                    onNavigate={() => {}}
+                    currentUser={currentUser}
+                    salesInvoices={salesInvoices}
+                    salesReturns={salesReturns}
+                    receiptVouchers={receiptVouchers}
+                    paymentVouchers={paymentVouchers}
+                  />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/reports/customers/balance"
+              element={
+                <ProtectedRoute requiredPermission="customer_balance_report-read">
+                  <CustomerBalanceReport
+                    title={currentPageTitle}
+                    companyInfo={companyInfo}
+                    customers={customers}
+                    salesInvoices={salesInvoices}
+                    salesReturns={salesReturns}
+                    receiptVouchers={receiptVouchers}
+                    paymentVouchers={paymentVouchers}
+                    branches={branches}
+                    currentUser={currentUser}
+                  />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/reports/suppliers/statement"
+              element={
+                <ProtectedRoute requiredPermission="supplier_statement_report-read">
+                  <SupplierStatementReport
+                    title={currentPageTitle}
+                    companyInfo={companyInfo}
+                    suppliers={suppliers}
+                    onNavigate={() => {}}
+                    currentUser={currentUser}
+                    purchaseInvoices={purchaseInvoices}
+                    purchaseReturns={purchaseReturns}
+                    receiptVouchers={receiptVouchers}
+                    paymentVouchers={paymentVouchers}
+                  />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/reports/suppliers/balance"
+              element={
+                <ProtectedRoute requiredPermission="supplier_balance_report-read">
+                  <SupplierBalanceReport
+                    title={currentPageTitle}
+                    companyInfo={companyInfo}
+                    suppliers={suppliers}
+                    purchaseInvoices={purchaseInvoices}
+                    purchaseReturns={purchaseReturns}
+                    paymentVouchers={paymentVouchers}
+                    receiptVouchers={receiptVouchers}
+                    branches={branches}
+                    currentUser={currentUser}
+                  />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/reports/financials/daily-collections"
+              element={
+                <ProtectedRoute requiredPermission="daily_collections_report-read">
+                  <DailyCollectionsReport
+                    title={currentPageTitle}
+                    companyInfo={companyInfo}
+                    receiptVouchers={receiptVouchers}
+                    currentUser={currentUser}
+                  />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/reports/financials/daily-payments"
+              element={
+                <ProtectedRoute requiredPermission="daily_payments_report-read">
+                  <DailyPaymentsReport
+                    title={currentPageTitle}
+                    companyInfo={companyInfo}
+                    paymentVouchers={paymentVouchers}
+                    currentUser={currentUser}
+                  />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/reports/financials/expense-statement"
+              element={
+                <ProtectedRoute requiredPermission="expense_statement_report-read">
+                  <ExpenseStatementReport
+                    title={currentPageTitle}
+                    companyInfo={companyInfo}
+                    expenseCodes={expenseCodes}
+                    paymentVouchers={paymentVouchers}
+                    currentUser={currentUser}
+                  />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/reports/financials/total-expenses"
+              element={
+                <ProtectedRoute requiredPermission="total_expenses_report-read">
+                  <TotalExpensesReport
+                    title={currentPageTitle}
+                    companyInfo={companyInfo}
+                    paymentVouchers={paymentVouchers}
+                    currentUser={currentUser}
+                  />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/reports/financials/current-account-statement"
+              element={
+                <ProtectedRoute requiredPermission="current_account_statement_report-read">
+                  <CurrentAccountStatementReport
+                    title={currentPageTitle}
+                    companyInfo={companyInfo}
+                    currentAccounts={currentAccounts}
+                    receiptVouchers={receiptVouchers}
+                    paymentVouchers={paymentVouchers}
+                    currentUser={currentUser}
+                  />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/reports/financials/total-current-accounts"
+              element={
+                <ProtectedRoute requiredPermission="total_current_accounts_report-read">
+                  <TotalCurrentAccountsReport
+                    title={currentPageTitle}
+                    companyInfo={companyInfo}
+                    currentUser={currentUser}
+                  />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/reports/financials/safe-statement"
+              element={
+                <ProtectedRoute requiredPermission="safe_statement_report-read">
+                  <SafeStatementReport
+                    title={currentPageTitle}
+                    companyInfo={companyInfo}
+                    safes={safes}
+                    receiptVouchers={receiptVouchers}
+                    paymentVouchers={paymentVouchers}
+                    currentUser={currentUser}
+                  />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/reports/financials/bank-statement"
+              element={
+                <ProtectedRoute requiredPermission="bank_statement_report-read">
+                  <BankStatementReport
+                    title={currentPageTitle}
+                    companyInfo={companyInfo}
+                    banks={banks}
+                    receiptVouchers={receiptVouchers}
+                    paymentVouchers={paymentVouchers}
+                    currentUser={currentUser}
+                  />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/reports/financials/tax-declaration"
+              element={
+                <ProtectedRoute requiredPermission="tax_declaration_report-read">
+                  <TaxDeclarationReport
+                    title={currentPageTitle}
+                    companyInfo={companyInfo}
+                    salesInvoices={salesInvoices}
+                    salesReturns={salesReturns}
+                    purchaseInvoices={purchaseInvoices}
+                    purchaseReturns={purchaseReturns}
+                    branches={branches}
+                    currentUser={currentUser}
+                  />
+                </ProtectedRoute>
+              }
+            />
+
+            {/* Final Accounts */}
+            <Route
+              path="/final-accounts/income-statement"
+              element={
+                <ProtectedRoute requiredPermission="income_statement-read">
+                  <IncomeStatement
+                    title={currentPageTitle}
+                    companyInfo={companyInfo}
+                    salesInvoices={salesInvoices}
+                    salesReturns={salesReturns}
+                    purchaseInvoices={purchaseInvoices}
+                    purchaseReturns={purchaseReturns}
+                    items={items}
+                    paymentVouchers={paymentVouchers}
+                    expenseCodes={expenseCodes}
+                    storeReceiptVouchers={storeReceiptVouchers}
+                    storeIssueVouchers={storeIssueVouchers}
+                  />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/final-accounts/balance-sheet"
+              element={
+                <ProtectedRoute requiredPermission="balance_sheet-read">
+                  <BalanceSheet
+                    title={currentPageTitle}
+                    companyInfo={companyInfo}
+                    safes={safes}
+                    banks={banks}
+                    customers={customers}
+                    suppliers={suppliers}
+                    items={items}
+                    salesInvoices={salesInvoices}
+                    salesReturns={salesReturns}
+                    purchaseInvoices={purchaseInvoices}
+                    purchaseReturns={purchaseReturns}
+                    receiptVouchers={receiptVouchers}
+                    paymentVouchers={paymentVouchers}
+                    expenses={expenses}
+                    expenseTypes={expenseTypes}
+                    currentUser={currentUser}
+                    storeReceiptVouchers={storeReceiptVouchers}
+                    storeIssueVouchers={storeIssueVouchers}
+                    currentAccounts={currentAccounts}
                   />
                 </ProtectedRoute>
               }

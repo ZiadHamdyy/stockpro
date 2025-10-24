@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { useNavigate, useParams } from "react-router-dom";
 import { useModal } from "../../common/ModalProvider";
 import { useToast } from "../../common/ToastProvider";
 import {
@@ -15,11 +16,16 @@ import {
 
 interface AddItemProps {
   title: string;
-  editingId: string | null;
-  onNavigate: (key: string, label: string, id?: string | null) => void;
+  editingId?: string | null;
+  onNavigate?: (key: string, label: string, id?: string | null) => void;
 }
 
 const AddItem: React.FC<AddItemProps> = ({ title, editingId, onNavigate }) => {
+  const navigate = useNavigate();
+  const params = useParams();
+  
+  // Get the item ID from URL parameters or props
+  const itemId = params.id || editingId;
   const [itemData, setItemData] = useState<
     Partial<Item> & { groupId?: string; unitId?: string }
   >({
@@ -66,9 +72,9 @@ const AddItem: React.FC<AddItemProps> = ({ title, editingId, onNavigate }) => {
   console.log("AddItem - Units Error:", unitsError);
 
   useEffect(() => {
-    if (editingId !== null) {
+    if (itemId !== null && itemId !== undefined) {
       const foundItem = Array.isArray(items)
-        ? items.find((item) => item.id === editingId)
+        ? items.find((item) => item.id === itemId)
         : null;
       if (foundItem) {
         setItemData(foundItem);
@@ -92,7 +98,7 @@ const AddItem: React.FC<AddItemProps> = ({ title, editingId, onNavigate }) => {
       });
       setIsReadOnly(false);
     }
-  }, [editingId, items]);
+  }, [itemId, items]);
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>,
@@ -155,7 +161,7 @@ const AddItem: React.FC<AddItemProps> = ({ title, editingId, onNavigate }) => {
           unitId: itemData.unitId,
         }).unwrap();
         showToast(`تم إنشاء الصنف "${itemData.name}" بنجاح!`);
-        onNavigate("items_list", "قائمة الأصناف");
+        navigate("/items/list");
       }
     } catch (error: any) {
       showToast(error?.data?.message || "حدث خطأ أثناء حفظ الصنف");
@@ -171,7 +177,7 @@ const AddItem: React.FC<AddItemProps> = ({ title, editingId, onNavigate }) => {
           try {
             await deleteItem(itemData.id).unwrap();
             showToast("تم الحذف بنجاح.");
-            onNavigate("items_list", "قائمة الأصناف");
+            navigate("/items/list");
           } catch (error: any) {
             showToast(error?.data?.message || "حدث خطأ أثناء الحذف");
           }
@@ -193,7 +199,7 @@ const AddItem: React.FC<AddItemProps> = ({ title, editingId, onNavigate }) => {
     });
   };
 
-  const navigate = (direction: "first" | "prev" | "next" | "last") => {
+  const navigateToItem = (direction: "first" | "prev" | "next" | "last") => {
     if (!Array.isArray(items) || items.length === 0) return;
 
     const isNewItem = !itemData.id;
@@ -216,7 +222,8 @@ const AddItem: React.FC<AddItemProps> = ({ title, editingId, onNavigate }) => {
 
     if (newIndex !== -1 && items[newIndex]) {
       const newId = items[newIndex].id;
-      onNavigate("add_item", `تعديل صنف #${newId}`, newId);
+      // Use React Router navigation with path parameter
+      navigate(`/items/add/${newId}`);
     }
   };
 
@@ -439,7 +446,7 @@ const AddItem: React.FC<AddItemProps> = ({ title, editingId, onNavigate }) => {
           <div className="flex justify-start gap-2 flex-wrap">
             <button
               type="button"
-              onClick={() => onNavigate("add_item", "إضافة صنف")}
+              onClick={() => navigate("/items/add")}
               className="px-4 py-2 bg-brand-blue text-white rounded-md hover:bg-blue-800 font-semibold"
             >
               جديد
@@ -461,7 +468,7 @@ const AddItem: React.FC<AddItemProps> = ({ title, editingId, onNavigate }) => {
             </button>
             <button
               type="button"
-              onClick={() => onNavigate("items_list", "قائمة الأصناف")}
+              onClick={() => navigate("/items/list")}
               className="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 font-semibold"
             >
               بحث
@@ -479,7 +486,7 @@ const AddItem: React.FC<AddItemProps> = ({ title, editingId, onNavigate }) => {
           <div className="flex items-center justify-start gap-2">
             <button
               type="button"
-              onClick={() => navigate("first")}
+              onClick={() => navigateToItem("first")}
               disabled={!Array.isArray(items) || items.length === 0}
               className="p-2 bg-gray-200 rounded-md hover:bg-gray-300 disabled:opacity-50"
             >
@@ -487,7 +494,7 @@ const AddItem: React.FC<AddItemProps> = ({ title, editingId, onNavigate }) => {
             </button>
             <button
               type="button"
-              onClick={() => navigate("prev")}
+              onClick={() => navigateToItem("prev")}
               disabled={!Array.isArray(items) || items.length === 0}
               className="p-2 bg-gray-200 rounded-md hover:bg-gray-300 disabled:opacity-50"
             >
@@ -500,7 +507,7 @@ const AddItem: React.FC<AddItemProps> = ({ title, editingId, onNavigate }) => {
             </div>
             <button
               type="button"
-              onClick={() => navigate("next")}
+              onClick={() => navigateToItem("next")}
               disabled={!Array.isArray(items) || items.length === 0}
               className="p-2 bg-gray-200 rounded-md hover:bg-gray-300 disabled:opacity-50"
             >
@@ -508,7 +515,7 @@ const AddItem: React.FC<AddItemProps> = ({ title, editingId, onNavigate }) => {
             </button>
             <button
               type="button"
-              onClick={() => navigate("last")}
+              onClick={() => navigateToItem("last")}
               disabled={!Array.isArray(items) || items.length === 0}
               className="p-2 bg-gray-200 rounded-md hover:bg-gray-300 disabled:opacity-50"
             >
