@@ -9,6 +9,7 @@ import {
 } from "../icons";
 import type { User, Notification } from "../../types";
 import { getLabelByPath } from "../../routes/routeConfig";
+import { useTitle } from "../context/TitleContext";
 
 interface HeaderProps {
   currentUser: User | null;
@@ -26,7 +27,9 @@ const Header: React.FC<HeaderProps> = ({
   notifications,
 }) => {
   const location = useLocation();
-  const title = getLabelByPath(location.pathname);
+  const { title: dynamicTitle } = useTitle();
+  const routeTitle = getLabelByPath(location.pathname);
+  const title = dynamicTitle || routeTitle;
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 

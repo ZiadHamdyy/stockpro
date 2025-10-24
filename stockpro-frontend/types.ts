@@ -110,10 +110,11 @@ export interface Invoice {
 }
 
 export interface StoreVoucherItem {
-  id: string; // item code
+  id: string; // item id
   name: string;
   unit: string;
   qty: number;
+  code: string; // item code
 }
 
 export interface StoreReceiptVoucher {

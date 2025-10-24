@@ -224,6 +224,69 @@ export class UserService {
     }
   }
 
+  async getUserById(userId: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      include: {
+        role: true,
+      },
+    });
+
+    if (!user) {
+      throw new GenericHttpException(
+        ERROR_MESSAGES.USER_NOT_FOUND,
+        HttpStatus.NOT_FOUND,
+      );
+    }
+
+    return user;
+  }
+
+  async updateUser(userId: string, data: CreateUserRequest) {
+    // Check if user exists
+    const existingUser = await this.prisma.user.findUnique({
+      where: { id: userId },
+    });
+
+    if (!existingUser) {
+      throw new GenericHttpException(
+        ERROR_MESSAGES.USER_NOT_FOUND,
+        HttpStatus.NOT_FOUND,
+      );
+    }
+
+    // Check if email is being changed and if new email already exists
+    if (data.email !== existingUser.email) {
+      await this.errorIfUserExists(data.email);
+    }
+
+    // Get default role (manager)
+    const defaultRole = await this.prisma.role.findFirst({
+      where: { name: 'manager' },
+    });
+
+    const updateData: any = {
+      image: data.image,
+      email: data.email,
+      name: data.name,
+    };
+
+    // Only update password if provided
+    if (data.password) {
+      updateData.password = await this.helperService.hashPassword(data.password);
+    }
+
+    const user = await this.prisma.user.update({
+      where: { id: userId },
+      data: updateData,
+      include: {
+        role: true,
+      },
+    });
+
+    return user;
+  }
+
   async getUserPermissions(userId: string) {
     const user = await this.prisma.user.findUnique({
       where: { id: userId },

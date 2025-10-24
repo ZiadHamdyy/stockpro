@@ -44,22 +44,11 @@ const ItemsList: React.FC<ItemsListProps> = ({ title, onNavigate }) => {
 
   // Update Redux state when API data changes
   useEffect(() => {
-    const response = apiItems as any;
-    if (
-      response &&
-      response.data &&
-      Array.isArray(response.data) &&
-      response.data.length > 0
-    ) {
-      dispatch(setItems(response.data));
+    if (apiItems && Array.isArray(apiItems) && apiItems.length > 0) {
+      dispatch(setItems(apiItems));
     }
   }, [apiItems, dispatch]);
 
-  // Debug logging
-  console.log("ItemsList - Redux Data:", items);
-  console.log("ItemsList - API Data:", apiItems);
-  console.log("ItemsList - Loading:", apiLoading);
-  console.log("ItemsList - Error:", error);
 
   const handleDeleteClick = (id: string, name: string) => {
     showModal({

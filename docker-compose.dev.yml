@@ -4,7 +4,7 @@ services:
     container_name: stockpro-postgres-dev
     restart: always
     env_file:
-      - ./stockpro-backend/.env
+      - ./stockpro-backend/.env.docker
     ports:
       - '5432:5432'
     volumes:
@@ -21,7 +21,7 @@ services:
     ports:
       - '4000:4000'
     env_file:
-      - ./stockpro-backend/.env
+      - ./stockpro-backend/.env.docker
     volumes:
       - ./stockpro-backend:/app
     depends_on:
@@ -63,7 +63,7 @@ services:
     ports:
       - '5555:5555'
     env_file:
-      - ./stockpro-backend/.env
+      - ./stockpro-backend/.env.docker
     volumes:
       - ./stockpro-backend:/app
     depends_on:

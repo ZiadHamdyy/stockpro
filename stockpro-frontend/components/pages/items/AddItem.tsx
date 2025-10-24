@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useModal } from "../../common/ModalProvider";
 import { useToast } from "../../common/ToastProvider";
+import { useTitle } from "../../context/TitleContext";
 import {
   useGetItemsQuery,
   useCreateItemMutation,
@@ -23,13 +24,14 @@ interface AddItemProps {
 const AddItem: React.FC<AddItemProps> = ({ title, editingId, onNavigate }) => {
   const navigate = useNavigate();
   const params = useParams();
+  const { setTitle } = useTitle();
   
   // Get the item ID from URL parameters or props
   const itemId = params.id || editingId;
+  
   const [itemData, setItemData] = useState<
     Partial<Item> & { groupId?: string; unitId?: string }
   >({
-    code: "",
     barcode: "",
     name: "",
     purchasePrice: 0,
@@ -38,6 +40,7 @@ const AddItem: React.FC<AddItemProps> = ({ title, editingId, onNavigate }) => {
     reorderLimit: 0,
   });
   const [isReadOnly, setIsReadOnly] = useState(true);
+  const [itemPosition, setItemPosition] = useState<number | null>(null);
   const { showModal } = useModal();
   const { showToast } = useToast();
 
@@ -56,20 +59,32 @@ const AddItem: React.FC<AddItemProps> = ({ title, editingId, onNavigate }) => {
   } = useGetUnitsQuery(undefined);
 
   // Extract data from API response
-  const items = (itemsResponse as any)?.data || [];
-  const itemGroups = (itemGroupsResponse as any)?.data || [];
-  const units = (unitsResponse as any)?.data || [];
+  const items = itemsResponse || [];
+  const itemGroups = itemGroupsResponse || [];
+  const units = unitsResponse || [];
   const [createItem, { isLoading: createLoading }] = useCreateItemMutation();
   const [updateItem, { isLoading: updateLoading }] = useUpdateItemMutation();
   const [deleteItem] = useDeleteItemMutation();
 
-  // Debug logging
-  console.log("AddItem - Item Groups:", itemGroups);
-  console.log("AddItem - Units:", units);
-  console.log("AddItem - Groups Loading:", groupsLoading);
-  console.log("AddItem - Units Loading:", unitsLoading);
-  console.log("AddItem - Groups Error:", groupsError);
-  console.log("AddItem - Units Error:", unitsError);
+
+  // Calculate item position when items data is available
+  useEffect(() => {
+    if (Array.isArray(items) && items.length > 0 && itemId) {
+      const index = items.findIndex(item => item.id === itemId);
+      const position = index !== -1 ? index + 1 : null;
+      setItemPosition(position);
+      
+      // Update title context for the header
+      if (position) {
+        setTitle(`تعديل صنف #${position}`);
+      } else {
+        setTitle(`تعديل صنف`);
+      }
+    } else {
+      setItemPosition(null);
+      setTitle(`تعديل صنف`);
+    }
+  }, [items, itemId, setTitle]);
 
   useEffect(() => {
     if (itemId !== null && itemId !== undefined) {
@@ -81,14 +96,7 @@ const AddItem: React.FC<AddItemProps> = ({ title, editingId, onNavigate }) => {
         setIsReadOnly(true);
       }
     } else {
-      const nextCode =
-        Array.isArray(items) && items.length > 0
-          ? (
-              Math.max(...items.map((i) => parseInt(i.code, 10) || 0)) + 1
-            ).toString()
-          : "101";
       setItemData({
-        code: nextCode,
         barcode: "",
         name: "",
         purchasePrice: 0,
@@ -119,7 +127,6 @@ const AddItem: React.FC<AddItemProps> = ({ title, editingId, onNavigate }) => {
 
   const handleSave = async () => {
     if (
-      !itemData.code ||
       !itemData.name ||
       !itemData.groupId ||
       !itemData.unitId
@@ -134,7 +141,6 @@ const AddItem: React.FC<AddItemProps> = ({ title, editingId, onNavigate }) => {
         await updateItem({
           id: itemData.id,
           data: {
-            code: itemData.code,
             barcode: itemData.barcode,
             name: itemData.name,
             purchasePrice: itemData.purchasePrice,
@@ -150,7 +156,6 @@ const AddItem: React.FC<AddItemProps> = ({ title, editingId, onNavigate }) => {
       } else {
         // Create new item
         await createItem({
-          code: itemData.code,
           barcode: itemData.barcode,
           name: itemData.name,
           purchasePrice: itemData.purchasePrice,
@@ -232,7 +237,9 @@ const AddItem: React.FC<AddItemProps> = ({ title, editingId, onNavigate }) => {
 
   return (
     <div className="bg-white p-6 rounded-lg shadow">
-      <h1 className="text-2xl font-bold mb-4 text-brand-dark">{title}</h1>
+      <h1 className="text-2xl font-bold mb-4 text-brand-dark">
+        {itemPosition ? `تعديل صنف #${itemPosition}` : title}
+      </h1>
       {(groupsLoading || unitsLoading) && (
         <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-md">
           <div className="flex items-center">
@@ -262,7 +269,7 @@ const AddItem: React.FC<AddItemProps> = ({ title, editingId, onNavigate }) => {
               type="text"
               name="code"
               id="code"
-              value={itemData.code}
+              value={itemData.code || ""}
               onChange={handleChange}
               className={inputStyle}
               disabled
@@ -502,7 +509,7 @@ const AddItem: React.FC<AddItemProps> = ({ title, editingId, onNavigate }) => {
             </button>
             <div className="px-4 py-2 bg-brand-blue-bg border-2 border-brand-blue rounded-md">
               <span className="font-bold">
-                {itemData.id ? `تعديل صنف` : `سجل جديد`}
+                {itemPosition ? `تعديل صنف #${itemPosition}` : (itemData.id ? `تعديل صنف` : `سجل جديد`)}
               </span>
             </div>
             <button

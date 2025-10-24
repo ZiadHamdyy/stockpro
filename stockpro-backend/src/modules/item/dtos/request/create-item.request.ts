@@ -1,8 +1,9 @@
 import { IsString, IsNumber, IsOptional, IsUUID } from 'class-validator';
 
 export class CreateItemRequest {
+  @IsOptional()
   @IsString()
-  code: string;
+  code?: string;
 
   @IsOptional()
   @IsString()

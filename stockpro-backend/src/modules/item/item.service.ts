@@ -9,9 +9,13 @@ export class ItemService {
   constructor(private readonly prisma: DatabaseService) {}
 
   async create(data: CreateItemRequest): Promise<ItemResponse> {
+    // Generate next code automatically
+    const nextCode = await this.generateNextCode();
+    
     const item = await this.prisma.item.create({
       data: {
         ...data,
+        code: nextCode, // Use auto-generated code
         stock: data.stock || 0,
         reorderLimit: data.reorderLimit || 0,
       },
@@ -30,7 +34,7 @@ export class ItemService {
         group: true,
         unit: true,
       },
-      orderBy: { name: 'asc' },
+      orderBy: { createdAt: 'desc' },
     });
 
     return items.map((item) => this.mapToResponse(item));
@@ -85,6 +89,27 @@ export class ItemService {
     await this.prisma.item.delete({
       where: { id },
     });
+  }
+
+  private async generateNextCode(): Promise<string> {
+    // Always start from 001 and find the next available code
+    return await this.findNextAvailableCode(1);
+  }
+
+  private async findNextAvailableCode(startFrom: number): Promise<string> {
+    let code = startFrom;
+    while (true) {
+      const paddedCode = code.toString().padStart(3, '0');
+      const existingItem = await this.prisma.item.findUnique({
+        where: { code: paddedCode },
+        select: { id: true },
+      });
+      
+      if (!existingItem) {
+        return paddedCode;
+      }
+      code++;
+    }
   }
 
   private mapToResponse(item: any): ItemResponse {

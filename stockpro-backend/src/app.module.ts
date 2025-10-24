@@ -19,6 +19,11 @@ import { ItemModule } from './modules/item/item.module';
 import { ItemGroupModule } from './modules/item-group/item-group.module';
 import { UnitModule } from './modules/unit/unit.module';
 import { CompanyModule } from './modules/company/company.module';
+import { BranchModule } from './modules/branch/branch.module';
+import { StoreModule } from './modules/store/store.module';
+import { StoreReceiptVoucherModule } from './modules/store-receipt-voucher/store-receipt-voucher.module';
+import { StoreIssueVoucherModule } from './modules/store-issue-voucher/store-issue-voucher.module';
+import { StoreTransferVoucherModule } from './modules/store-transfer-voucher/store-transfer-voucher.module';
 
 @Module({
   imports: [
@@ -37,6 +42,11 @@ import { CompanyModule } from './modules/company/company.module';
     ItemGroupModule,
     UnitModule,
     CompanyModule,
+    BranchModule,
+    StoreModule,
+    StoreReceiptVoucherModule,
+    StoreIssueVoucherModule,
+    StoreTransferVoucherModule,
   ],
   controllers: [AppController],
   providers: [

@@ -31,6 +31,12 @@ model User {
 
   Session Session[]
   Otp     Otp[]
+  Store   Store[]
+  
+  // Warehouse operations
+  storeReceiptVouchers StoreReceiptVoucher[]
+  storeIssueVouchers   StoreIssueVoucher[]
+  storeTransferVouchers StoreTransferVoucher[]
 }
 
 model Session {
@@ -162,6 +168,11 @@ model Item {
   group ItemGroup @relation(fields: [groupId], references: [id])
   unit  Unit      @relation(fields: [unitId], references: [id])
 
+  // Warehouse operations
+  storeReceiptVoucherItems StoreReceiptVoucherItem[]
+  storeIssueVoucherItems   StoreIssueVoucherItem[]
+  storeTransferVoucherItems StoreTransferVoucherItem[]
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -187,4 +198,181 @@ model Company {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+model Branch {
+  id          String  @id @default(uuid())
+  name        String
+  address     String?
+  phone       String?
+  description String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relationships
+  stores Store[]
+}
+
+model Store {
+  id          String  @id @default(uuid())
+  name        String
+  address     String?
+  phone       String?
+  description String?
+
+  // Foreign keys
+  branchId String
+  userId   String
+
+  // Relationships
+  branch Branch @relation(fields: [branchId], references: [id])
+  user   User   @relation(fields: [userId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Warehouse operations
+  storeReceiptVouchers StoreReceiptVoucher[]
+  storeIssueVouchers   StoreIssueVoucher[]
+  fromTransfers        StoreTransferVoucher[] @relation("FromStore")
+  toTransfers          StoreTransferVoucher[] @relation("ToStore")
+}
+
+model StoreReceiptVoucher {
+  id          String   @id @default(uuid())
+  voucherNumber String @unique
+  date        DateTime @default(now())
+  notes       String?
+  totalAmount Float    @default(0)
+
+  // Foreign keys
+  storeId String
+  userId  String
+
+  // Relationships
+  store Store @relation(fields: [storeId], references: [id])
+  user  User  @relation(fields: [userId], references: [id])
+  items StoreReceiptVoucherItem[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([voucherNumber])
+  @@index([date])
+  @@index([storeId])
+}
+
+model StoreIssueVoucher {
+  id          String   @id @default(uuid())
+  voucherNumber String @unique
+  date        DateTime @default(now())
+  notes       String?
+  totalAmount Float    @default(0)
+
+  // Foreign keys
+  storeId String
+  userId  String
+
+  // Relationships
+  store Store @relation(fields: [storeId], references: [id])
+  user  User  @relation(fields: [userId], references: [id])
+  items StoreIssueVoucherItem[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([voucherNumber])
+  @@index([date])
+  @@index([storeId])
+}
+
+model StoreTransferVoucher {
+  id          String   @id @default(uuid())
+  voucherNumber String @unique
+  date        DateTime @default(now())
+  notes       String?
+  totalAmount Float    @default(0)
+
+  // Foreign keys
+  fromStoreId String
+  toStoreId   String
+  userId      String
+
+  // Relationships
+  fromStore Store @relation("FromStore", fields: [fromStoreId], references: [id])
+  toStore   Store @relation("ToStore", fields: [toStoreId], references: [id])
+  user      User  @relation(fields: [userId], references: [id])
+  items     StoreTransferVoucherItem[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([voucherNumber])
+  @@index([date])
+  @@index([fromStoreId])
+  @@index([toStoreId])
+}
+
+model StoreReceiptVoucherItem {
+  id          String @id @default(uuid())
+  quantity    Float
+  unitPrice   Float
+  totalPrice  Float
+
+  // Foreign keys
+  voucherId String
+  itemId    String
+
+  // Relationships
+  voucher StoreReceiptVoucher @relation(fields: [voucherId], references: [id], onDelete: Cascade)
+  item    Item                @relation(fields: [itemId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([voucherId])
+  @@index([itemId])
+}
+
+model StoreIssueVoucherItem {
+  id          String @id @default(uuid())
+  quantity    Float
+  unitPrice   Float
+  totalPrice  Float
+
+  // Foreign keys
+  voucherId String
+  itemId    String
+
+  // Relationships
+  voucher StoreIssueVoucher @relation(fields: [voucherId], references: [id], onDelete: Cascade)
+  item    Item              @relation(fields: [itemId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([voucherId])
+  @@index([itemId])
+}
+
+model StoreTransferVoucherItem {
+  id          String @id @default(uuid())
+  quantity    Float
+  unitPrice   Float
+  totalPrice  Float
+
+  // Foreign keys
+  voucherId String
+  itemId    String
+
+  // Relationships
+  voucher StoreTransferVoucher @relation(fields: [voucherId], references: [id], onDelete: Cascade)
+  item    Item                 @relation(fields: [itemId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([voucherId])
+  @@index([itemId])
 }

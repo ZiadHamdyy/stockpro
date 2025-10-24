@@ -80,6 +80,8 @@ export const itemsApiSlice = apiSlice.injectEndpoints({
     // Item Groups
     getItemGroups: builder.query({
       query: () => "item-groups",
+      transformResponse: (response: any) => response.data || [],
+      providesTags: ["ItemGroup"],
     }),
     createItemGroup: builder.mutation({
       query: (data) => ({
@@ -105,6 +107,8 @@ export const itemsApiSlice = apiSlice.injectEndpoints({
     // Units
     getUnits: builder.query({
       query: () => "units",
+      transformResponse: (response: any) => response.data || [],
+      providesTags: ["Unit"],
     }),
     createUnit: builder.mutation({
       query: (data) => ({
@@ -130,6 +134,8 @@ export const itemsApiSlice = apiSlice.injectEndpoints({
     // Items
     getItems: builder.query({
       query: () => "items",
+      transformResponse: (response: any) => response.data || [],
+      providesTags: ["Item"],
     }),
     getItemById: builder.query({
       query: (id) => `items/${id}`,

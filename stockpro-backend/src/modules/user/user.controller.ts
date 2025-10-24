@@ -27,17 +27,17 @@ import type { currentUserType } from '../../common/types/current-user.type';
 export class UserController {
   constructor(private readonly userService: UserService) {}
 
-  // @Get()
-  // async getAllUsers(@Query() filters: UserListFilterInput) {
-  //   return await this.userService.getAllUsers(filters);
-  // }
+  @Get()
+  async getAllUsers(@Query() filters: UserListFilterInput) {
+    return await this.userService.getAllUsers(filters);
+  }
 
-  // @Post()
-  // @HttpCode(HttpStatus.CREATED)
-  // @Serialize(UserResponse)
-  // async createUser(@Body() data: CreateUserRequest) {
-  //   return await this.userService.createUser(data);
-  // }
+  @Post()
+  @HttpCode(HttpStatus.CREATED)
+  @Serialize(UserResponse)
+  async createUser(@Body() data: CreateUserRequest) {
+    return await this.userService.createUser(data);
+  }
 
   // @Get('by-email')
   // @Serialize(UserIdResponse)
@@ -53,6 +53,19 @@ export class UserController {
     @currentUser() currentUser: currentUserType,
   ) {
     return await this.userService.toggleUserActivity(userId, currentUser.id);
+  }
+
+  @Get(':id')
+  @Serialize(UserResponse)
+  async getUserById(@Param('id') userId: string) {
+    return await this.userService.getUserById(userId);
+  }
+
+  @Patch(':id')
+  @HttpCode(HttpStatus.OK)
+  @Serialize(UserResponse)
+  async updateUser(@Param('id') userId: string, @Body() data: CreateUserRequest) {
+    return await this.userService.updateUser(userId, data);
   }
 
   @Delete(':id')

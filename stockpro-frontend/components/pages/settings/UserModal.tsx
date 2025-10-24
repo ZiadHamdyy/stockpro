@@ -1,47 +1,45 @@
 import React, { useState, useEffect } from "react";
 import type { User, Branch } from "../../../types";
 import { EyeIcon, EyeOffIcon, UserIcon } from "../../icons";
+import { useCreateUserMutation, useUpdateUserMutation, type User as ReduxUser } from "../../store/slices/user/userApi";
+import { useGetBranchesQuery } from "../../store/slices/branch/branchApi";
 
 interface UserModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSave: (user: Partial<User> & { id?: number }) => void;
-  userToEdit: User | null;
-  branches: Branch[];
+  userToEdit: ReduxUser | null;
 }
 
 const UserModal: React.FC<UserModalProps> = ({
   isOpen,
   onClose,
-  onSave,
   userToEdit,
-  branches,
 }) => {
-  const [userData, setUserData] = useState<Omit<User, "id">>({
+  const [createUser, { isLoading: isCreating }] = useCreateUserMutation();
+  const [updateUser, { isLoading: isUpdating }] = useUpdateUserMutation();
+  const { data: branches = [], isLoading: isLoadingBranches } = useGetBranchesQuery();
+  const [userData, setUserData] = useState({
     name: "",
     email: "",
-    fullName: "",
-    username: "",
     password: "",
-    permissionGroup: "بائع",
-    branch: "",
-    avatar: null,
+    image: "",
   });
   const [isPasswordVisible, setIsPasswordVisible] = useState(false);
 
   useEffect(() => {
     if (userToEdit) {
-      setUserData({ ...userToEdit, password: "" }); // Don't show password on edit
+      setUserData({ 
+        name: userToEdit.name,
+        email: userToEdit.email,
+        password: "",
+        image: userToEdit.image || "",
+      });
     } else {
       setUserData({
         name: "",
         email: "",
-        fullName: "",
-        username: "",
         password: "",
-        permissionGroup: "بائع",
-        branch: "",
-        avatar: null,
+        image: "",
       });
     }
   }, [userToEdit, isOpen]);
@@ -58,26 +56,39 @@ const UserModal: React.FC<UserModalProps> = ({
     if (file) {
       const reader = new FileReader();
       reader.onloadend = () => {
-        setUserData((prev) => ({ ...prev, avatar: reader.result as string }));
+        setUserData((prev) => ({ ...prev, image: reader.result as string }));
       };
       reader.readAsDataURL(file);
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    const userToSave: Partial<User> & { id?: number } = {
-      ...userData,
-      id: userToEdit?.id,
-    };
+    try {
+      const userDataToSave = {
+        name: userData.name,
+        email: userData.email,
+        password: userData.password,
+        image: userData.image,
+      };
 
-    if (userToEdit && !userToSave.password) {
-      delete userToSave.password;
+      if (userToEdit) {
+        // Update existing user
+        await updateUser({
+          id: userToEdit.id,
+          data: userDataToSave,
+        }).unwrap();
+      } else {
+        // Create new user
+        await createUser(userDataToSave).unwrap();
+      }
+
+      onClose();
+    } catch (error) {
+      console.error("Error saving user:", error);
+      // You might want to show a toast notification here
     }
-
-    onSave(userToSave);
-    onClose();
   };
 
   if (!isOpen) return null;
@@ -103,9 +114,9 @@ const UserModal: React.FC<UserModalProps> = ({
           <div className="p-6 grid grid-cols-1 md:grid-cols-3 gap-6 items-start">
             <div className="md:col-span-1 flex flex-col items-center">
               <div className="w-32 h-32 rounded-full bg-brand-blue-bg border-2 border-brand-blue flex items-center justify-center mb-4 overflow-hidden">
-                {userData.avatar ? (
+                {userData.image ? (
                   <img
-                    src={userData.avatar}
+                    src={userData.image}
                     alt="User Avatar"
                     className="w-full h-full object-cover"
                   />
@@ -131,16 +142,16 @@ const UserModal: React.FC<UserModalProps> = ({
             <div className="md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label
-                  htmlFor="fullName"
+                  htmlFor="name"
                   className="block text-sm font-medium text-gray-700"
                 >
                   الاسم الكامل
                 </label>
                 <input
                   type="text"
-                  id="fullName"
-                  name="fullName"
-                  value={userData.fullName}
+                  id="name"
+                  name="name"
+                  value={userData.name}
                   onChange={handleChange}
                   className={inputStyle}
                   required
@@ -148,16 +159,16 @@ const UserModal: React.FC<UserModalProps> = ({
               </div>
               <div>
                 <label
-                  htmlFor="username"
+                  htmlFor="email"
                   className="block text-sm font-medium text-gray-700"
                 >
-                  اسم المستخدم
+                  البريد الإلكتروني
                 </label>
                 <input
-                  type="text"
-                  id="username"
-                  name="username"
-                  value={userData.username}
+                  type="email"
+                  id="email"
+                  name="email"
+                  value={userData.email}
                   onChange={handleChange}
                   className={inputStyle}
                   required
@@ -188,49 +199,6 @@ const UserModal: React.FC<UserModalProps> = ({
                   {isPasswordVisible ? <EyeOffIcon /> : <EyeIcon />}
                 </button>
               </div>
-              <div>
-                <label
-                  htmlFor="permissionGroup"
-                  className="block text-sm font-medium text-gray-700"
-                >
-                  مجموعة الصلاحيات
-                </label>
-                <select
-                  id="permissionGroup"
-                  name="permissionGroup"
-                  value={userData.permissionGroup}
-                  onChange={handleChange}
-                  className={inputStyle}
-                >
-                  <option>مدير</option>
-                  <option>محاسب</option>
-                  <option>بائع</option>
-                  <option>مدخل بيانات</option>
-                </select>
-              </div>
-              <div className="md:col-span-2">
-                <label
-                  htmlFor="branch"
-                  className="block text-sm font-medium text-gray-700"
-                >
-                  الفرع
-                </label>
-                <select
-                  id="branch"
-                  name="branch"
-                  value={userData.branch}
-                  onChange={handleChange}
-                  className={inputStyle}
-                  required
-                >
-                  <option value="">اختر فرع...</option>
-                  {branches.map((branch) => (
-                    <option key={branch.id} value={branch.name}>
-                      {branch.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
             </div>
           </div>
           <div className="p-4 border-t border-gray-200 flex justify-end gap-2">
@@ -243,9 +211,10 @@ const UserModal: React.FC<UserModalProps> = ({
             </button>
             <button
               type="submit"
-              className="px-6 py-2 bg-brand-blue text-white rounded-md hover:bg-blue-800 font-semibold"
+              disabled={isCreating || isUpdating}
+              className="px-6 py-2 bg-brand-blue text-white rounded-md hover:bg-blue-800 font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              حفظ
+              {isCreating || isUpdating ? "جاري الحفظ..." : "حفظ"}
             </button>
           </div>
         </form>

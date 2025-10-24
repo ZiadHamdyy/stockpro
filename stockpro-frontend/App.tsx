@@ -8,6 +8,7 @@ import { useAuth } from './components/hook/Auth';
 import { useSendLogOutMutation } from './components/store/slices/auth/authApi';
 import Sidebar from './components/layout/Sidebar';
 import Header from './components/layout/Header';
+import { TitleProvider } from './components/context/TitleContext';
 import Dashboard from './components/pages/Dashboard';
 import Placeholder from './components/pages/Placeholder';
 import Login from './components/pages/Login';
@@ -157,7 +158,6 @@ const AppContent = () => {
   const [isVatEnabled, setIsVatEnabled] = useState(true);
   const [branches, setBranches] = useState<Branch[]>(initialBranches);
   const [stores, setStores] = useState<Store[]>(initialStores);
-  const [users, setUsers] = useState<User[]>([]);
   const [itemGroups, setItemGroups] = useState<ItemGroup[]>(initialItemGroups);
   const [units, setUnits] = useState<Unit[]>(initialUnits);
   const [items, setItems] = useState<Item[]>(initialItems);
@@ -324,7 +324,6 @@ const AppContent = () => {
       isVatEnabled,
       branches,
       stores,
-      users,
       itemGroups,
       units,
       items,
@@ -363,7 +362,6 @@ const AppContent = () => {
     isVatEnabled,
     branches,
     stores,
-    users,
     itemGroups,
     units,
     items,
@@ -450,17 +448,6 @@ const AppContent = () => {
                 <ProtectedRoute requiredPermission="branches_data-read">
                   <BranchesData
                     title={currentPageTitle}
-                    branches={branches}
-                    onSave={(branch) =>
-                      setBranches((prev) =>
-                        branch.id
-                          ? prev.map((b) => (b.id === branch.id ? branch : b))
-                          : [...prev, { ...branch, id: Date.now() }],
-                      )
-                    }
-                    onDelete={(id) =>
-                      setBranches((prev) => prev.filter((b) => b.id !== id))
-                    }
                   />
                 </ProtectedRoute>
               }
@@ -471,19 +458,6 @@ const AppContent = () => {
                 <ProtectedRoute requiredPermission="stores_data-read">
                   <StoresData
                     title={currentPageTitle}
-                    stores={stores}
-                    branches={branches}
-                    users={users}
-                    onSave={(store) =>
-                      setStores((prev) =>
-                        store.id
-                          ? prev.map((w) => (w.id === store.id ? store : w))
-                          : [...prev, { ...store, id: Date.now() }],
-                      )
-                    }
-                    onDelete={(id) =>
-                      setStores((prev) => prev.filter((w) => w.id !== id))
-                    }
                   />
                 </ProtectedRoute>
               }
@@ -494,18 +468,6 @@ const AppContent = () => {
                 <ProtectedRoute requiredPermission="users_data-read">
                   <UsersData
                     title={currentPageTitle}
-                    users={users}
-                    branches={branches}
-                    onSave={(user) =>
-                      setUsers((prev) =>
-                        user.id
-                          ? prev.map((u) => (u.id === user.id ? user : u))
-                          : [...prev, { ...user, id: Date.now() }],
-                      )
-                    }
-                    onDelete={(id) =>
-                      setUsers((prev) => prev.filter((u) => u.id !== id))
-                    }
                   />
                 </ProtectedRoute>
               }
@@ -572,30 +534,7 @@ const AppContent = () => {
               path="/warehouse/receipt-voucher"
               element={
                 <ProtectedRoute requiredPermission="store_receipt_voucher-read">
-                  <StoreReceiptVoucher
-                    title={currentPageTitle}
-                    companyInfo={companyInfo}
-                    items={itemsWithLiveStock.map((i) => ({
-                      id: i.code,
-                      name: i.name,
-                      unit: i.unit,
-                      stock: i.stock,
-                    }))}
-                    branches={branches}
-                    vouchers={storeReceiptVouchers}
-                    onSave={(v) =>
-                      setStoreReceiptVouchers((prev) =>
-                        prev.find((i) => i.id === v.id)
-                          ? prev.map((i) => (i.id === v.id ? v : i))
-                          : [...prev, v],
-                      )
-                    }
-                    onDelete={(id) =>
-                      setStoreReceiptVouchers((prev) =>
-                        prev.filter((v) => v.id !== id),
-                      )
-                    }
-                  />
+                  <StoreReceiptVoucher title={currentPageTitle} />
                 </ProtectedRoute>
               }
             />
@@ -603,30 +542,7 @@ const AppContent = () => {
               path="/warehouse/issue-voucher"
               element={
                 <ProtectedRoute requiredPermission="store_issue_voucher-read">
-                  <StoreIssueVoucher
-                    title={currentPageTitle}
-                    companyInfo={companyInfo}
-                    items={itemsWithLiveStock.map((i) => ({
-                      id: i.code,
-                      name: i.name,
-                      unit: i.unit,
-                      stock: i.stock,
-                    }))}
-                    branches={branches}
-                    vouchers={storeIssueVouchers}
-                    onSave={(v) =>
-                      setStoreIssueVouchers((prev) =>
-                        prev.find((i) => i.id === v.id)
-                          ? prev.map((i) => (i.id === v.id ? v : i))
-                          : [...prev, v],
-                      )
-                    }
-                    onDelete={(id) =>
-                      setStoreIssueVouchers((prev) =>
-                        prev.filter((v) => v.id !== id),
-                      )
-                    }
-                  />
+                  <StoreIssueVoucher title={currentPageTitle} />
                 </ProtectedRoute>
               }
             />
@@ -634,30 +550,7 @@ const AppContent = () => {
               path="/warehouse/transfer"
               element={
                 <ProtectedRoute requiredPermission="store_transfer-read">
-                  <StoreTransfer
-                    title={currentPageTitle}
-                    companyInfo={companyInfo}
-                    items={itemsWithLiveStock.map((i) => ({
-                      id: i.code,
-                      name: i.name,
-                      unit: i.unit,
-                      stock: i.stock,
-                    }))}
-                    stores={stores}
-                    vouchers={storeTransferVouchers}
-                    onSave={(v) =>
-                      setStoreTransferVouchers((prev) =>
-                        prev.find((i) => i.id === v.id)
-                          ? prev.map((i) => (i.id === v.id ? v : i))
-                          : [...prev, v],
-                      )
-                    }
-                    onDelete={(id) =>
-                      setStoreTransferVouchers((prev) =>
-                        prev.filter((v) => v.id !== id),
-                      )
-                    }
-                  />
+                  <StoreTransfer title={currentPageTitle} />
                 </ProtectedRoute>
               }
             />
@@ -1592,12 +1485,14 @@ const AppWrapper = () => (
   <Provider store={store}>
     <PersistGate loading={null} persistor={persistor}>
       <BrowserRouter>
-        <ToastProvider>
-          <ModalProvider>
-            <AppContent />
-          </ModalProvider>
-          <Toast />
-        </ToastProvider>
+        <TitleProvider>
+          <ToastProvider>
+            <ModalProvider>
+              <AppContent />
+            </ModalProvider>
+            <Toast />
+          </ToastProvider>
+        </TitleProvider>
       </BrowserRouter>
     </PersistGate>
   </Provider>

@@ -1,28 +1,32 @@
 import React, { useState } from "react";
+import { useSelector, useDispatch } from "react-redux";
 import type { Branch } from "../../../types";
 import { PrintIcon, SearchIcon } from "../../icons";
 import BranchModal from "./BranchModal";
 import { useModal } from "../../common/ModalProvider";
+import { RootState } from "../../store/store";
+import { useGetBranchesQuery } from "../../store/slices/branch/branchApi";
+import { useCreateBranchMutation, useUpdateBranchMutation, useDeleteBranchMutation } from "../../store/slices/branch/branchApi";
 
 interface BranchesDataProps {
   title: string;
-  branches: Branch[];
-  onSave: (branch: Branch) => void;
-  onDelete: (id: number) => void;
 }
 
 const BranchesData: React.FC<BranchesDataProps> = ({
   title,
-  branches,
-  onSave,
-  onDelete,
 }) => {
+  const dispatch = useDispatch();
+  const { data: branches = [], isLoading, error } = useGetBranchesQuery();
+  const [createBranch] = useCreateBranchMutation();
+  const [updateBranch] = useUpdateBranchMutation();
+  const [deleteBranch] = useDeleteBranchMutation();
+  
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [branchToEdit, setBranchToEdit] = useState<Branch | null>(null);
+  const [branchToEdit, setBranchToEdit] = useState<any | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const { showModal } = useModal();
 
-  const handleOpenModal = (branch: Branch | null = null) => {
+  const handleOpenModal = (branch: any | null = null) => {
     setBranchToEdit(branch);
     setIsModalOpen(true);
   };
@@ -32,7 +36,7 @@ const BranchesData: React.FC<BranchesDataProps> = ({
     setBranchToEdit(null);
   };
 
-  const handleEditClick = (branch: Branch) => {
+  const handleEditClick = (branch: any) => {
     showModal({
       title: "تأكيد التعديل",
       message: "هل أنت متأكد من رغبتك في تعديل بيانات هذا الفرع؟",
@@ -44,21 +48,56 @@ const BranchesData: React.FC<BranchesDataProps> = ({
     });
   };
 
-  const handleDeleteClick = (branch: Branch) => {
+  const handleDeleteClick = (branch: any) => {
     showModal({
       title: "تأكيد الحذف",
       message: `هل أنت متأكد من حذف الفرع "${branch.name}"؟`,
-      onConfirm: () => onDelete(branch.id),
+      onConfirm: () => deleteBranch(branch.id),
       type: "delete",
       showPassword: true,
     });
   };
 
+  const handleSave = async (branch: any) => {
+    try {
+      if (branchToEdit) {
+        // Update existing branch
+        await updateBranch({
+          id: branch.id,
+          data: {
+            name: branch.name,
+            address: branch.address,
+            phone: branch.phone,
+            description: branch.description || '',
+          }
+        }).unwrap();
+      } else {
+        // Create new branch
+        await createBranch({
+          name: branch.name,
+          address: branch.address,
+          phone: branch.phone,
+          description: branch.description || '',
+        }).unwrap();
+      }
+    } catch (error) {
+      console.error('Error saving branch:', error);
+    }
+  };
+
   const filteredBranches = branches.filter(
     (branch) =>
       branch.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      branch.address.toLowerCase().includes(searchTerm.toLowerCase()),
+      (branch.address && branch.address.toLowerCase().includes(searchTerm.toLowerCase())),
   );
+
+  if (isLoading) {
+    return <div className="p-6">Loading branches...</div>;
+  }
+
+  if (error) {
+    return <div className="p-6 text-red-600">Error loading branches</div>;
+  }
 
   const inputStyle =
     "w-64 pr-10 pl-4 py-3 bg-brand-blue-bg border-2 border-brand-blue rounded-md text-black placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-brand-blue";
@@ -150,7 +189,7 @@ const BranchesData: React.FC<BranchesDataProps> = ({
       <BranchModal
         isOpen={isModalOpen}
         onClose={handleCloseModal}
-        onSave={onSave}
+        onSave={handleSave}
         branchToEdit={branchToEdit}
       />
     </>

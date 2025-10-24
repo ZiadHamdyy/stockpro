@@ -39,14 +39,8 @@ const Units: React.FC<UnitsProps> = ({ title }) => {
 
   // Update Redux state when API data changes
   useEffect(() => {
-    const response = apiUnits as any;
-    if (
-      response &&
-      response.data &&
-      Array.isArray(response.data) &&
-      response.data.length > 0
-    ) {
-      dispatch(setUnits(response.data));
+    if (apiUnits && Array.isArray(apiUnits) && apiUnits.length > 0) {
+      dispatch(setUnits(apiUnits));
     }
   }, [apiUnits, dispatch]);
 

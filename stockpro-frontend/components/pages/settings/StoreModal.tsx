@@ -1,13 +1,13 @@
 import React, { useState, useEffect } from "react";
-import type { Store, Branch, User } from "../../../types";
+import type { Store, Branch } from "../../../types";
+import { useGetUsersQuery } from "../../store/slices/user/userApi";
+import { useGetBranchesQuery } from "../../store/slices/branch/branchApi";
 
 interface StoreModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSave: (store: Store) => void;
   storeToEdit: Store | null;
-  branches: Branch[];
-  users: User[];
 }
 
 const StoreModal: React.FC<StoreModalProps> = ({
@@ -15,9 +15,9 @@ const StoreModal: React.FC<StoreModalProps> = ({
   onClose,
   onSave,
   storeToEdit,
-  branches,
-  users,
 }) => {
+  const { data: users = [], isLoading: isLoadingUsers } = useGetUsersQuery();
+  const { data: branches = [], isLoading: isLoadingBranches } = useGetBranchesQuery();
   const [storeData, setStoreData] = useState<Omit<Store, "id">>({
     name: "",
     branch: "",
@@ -127,8 +127,8 @@ const StoreModal: React.FC<StoreModalProps> = ({
               >
                 <option value="">اختر أمين مخزن...</option>
                 {users.map((user) => (
-                  <option key={user.id} value={user.fullName}>
-                    {user.fullName}
+                  <option key={user.id} value={user.name}>
+                    {user.name}
                   </option>
                 ))}
               </select>

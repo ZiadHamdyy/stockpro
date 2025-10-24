@@ -39,14 +39,8 @@ const ItemGroups: React.FC<ItemGroupsProps> = ({ title }) => {
 
   // Update Redux state when API data changes
   useEffect(() => {
-    const response = apiGroups as any;
-    if (
-      response &&
-      response.data &&
-      Array.isArray(response.data) &&
-      response.data.length > 0
-    ) {
-      dispatch(setItemGroups(response.data));
+    if (apiGroups && Array.isArray(apiGroups) && apiGroups.length > 0) {
+      dispatch(setItemGroups(apiGroups));
     }
   }, [apiGroups, dispatch]);
 

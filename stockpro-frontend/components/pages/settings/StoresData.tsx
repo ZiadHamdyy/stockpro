@@ -1,32 +1,36 @@
 import React, { useState } from "react";
+import { useSelector, useDispatch } from "react-redux";
 import type { Store, Branch, User } from "../../../types";
 import { PrintIcon, SearchIcon } from "../../icons";
 import StoreModal from "./StoreModal.tsx";
 import { useModal } from "../../common/ModalProvider.tsx";
+import { RootState } from "../../store/store";
+import { useGetBranchesQuery } from "../../store/slices/branch/branchApi";
+import { useGetStoresQuery } from "../../store/slices/store/storeApi";
+import { useCreateStoreMutation, useUpdateStoreMutation, useDeleteStoreMutation } from "../../store/slices/store/storeApi";
+import { useGetUsersQuery } from "../../store/slices/user/userApi";
 
 interface StoresDataProps {
   title: string;
-  stores: Store[];
-  branches: Branch[];
-  users: User[];
-  onSave: (store: Store) => void;
-  onDelete: (id: number) => void;
 }
 
 const StoresData: React.FC<StoresDataProps> = ({
   title,
-  stores,
-  branches,
-  users,
-  onSave,
-  onDelete,
 }) => {
+  const dispatch = useDispatch();
+  const { data: stores = [], isLoading: storesLoading, error: storesError } = useGetStoresQuery();
+  const { data: branches = [], isLoading: branchesLoading } = useGetBranchesQuery();
+  const { data: users = [], isLoading: usersLoading } = useGetUsersQuery();
+  const [createStore] = useCreateStoreMutation();
+  const [updateStore] = useUpdateStoreMutation();
+  const [deleteStore] = useDeleteStoreMutation();
+  
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [storeToEdit, setStoreToEdit] = useState<Store | null>(null);
+  const [storeToEdit, setStoreToEdit] = useState<any | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const { showModal } = useModal();
 
-  const handleOpenModal = (store: Store | null = null) => {
+  const handleOpenModal = (store: any | null = null) => {
     setStoreToEdit(store);
     setIsModalOpen(true);
   };
@@ -36,7 +40,7 @@ const StoresData: React.FC<StoresDataProps> = ({
     setStoreToEdit(null);
   };
 
-  const handleEditClick = (store: Store) => {
+  const handleEditClick = (store: any) => {
     showModal({
       title: "تأكيد التعديل",
       message: "هل أنت متأكد من رغبتك في تعديل بيانات هذا المخزن؟",
@@ -48,19 +52,58 @@ const StoresData: React.FC<StoresDataProps> = ({
     });
   };
 
-  const handleDeleteClick = (store: Store) => {
+  const handleDeleteClick = (store: any) => {
     showModal({
       title: "تأكيد الحذف",
       message: `هل أنت متأكد من حذف المخزن "${store.name}"؟`,
-      onConfirm: () => onDelete(store.id),
+      onConfirm: () => deleteStore(store.id),
       type: "delete",
       showPassword: true,
     });
   };
 
+  const handleSave = async (store: any) => {
+    try {
+      if (storeToEdit) {
+        // Update existing store
+        await updateStore({
+          id: store.id,
+          data: {
+            name: store.name,
+            address: store.address || '',
+            phone: store.phone || '',
+            description: store.description || '',
+            branchId: branches.find(b => b.name === store.branch)?.id || '',
+            userId: users.find(u => u.name === store.manager)?.id || '',
+          }
+        }).unwrap();
+      } else {
+        // Create new store
+        await createStore({
+          name: store.name,
+          address: store.address || '',
+          phone: store.phone || '',
+          description: store.description || '',
+          branchId: branches.find(b => b.name === store.branch)?.id || '',
+          userId: users.find(u => u.name === store.manager)?.id || '',
+        }).unwrap();
+      }
+    } catch (error) {
+      console.error('Error saving store:', error);
+    }
+  };
+
   const filteredStores = stores.filter((store) =>
     store.name.toLowerCase().includes(searchTerm.toLowerCase()),
   );
+
+  if (storesLoading || branchesLoading || usersLoading) {
+    return <div className="p-6">Loading stores...</div>;
+  }
+
+  if (storesError) {
+    return <div className="p-6 text-red-600">Error loading stores</div>;
+  }
 
   const inputStyle =
     "w-64 pr-10 pl-4 py-3 bg-brand-blue-bg border-2 border-brand-blue rounded-md text-black placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-brand-blue";
@@ -124,10 +167,10 @@ const StoresData: React.FC<StoresDataProps> = ({
                     {store.name}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    {store.branch}
+                    {store.branch.name}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    {store.manager}
+                    {store.user?.name || ''}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium no-print">
                     <button
@@ -152,10 +195,8 @@ const StoresData: React.FC<StoresDataProps> = ({
       <StoreModal
         isOpen={isModalOpen}
         onClose={handleCloseModal}
-        onSave={onSave}
+        onSave={handleSave}
         storeToEdit={storeToEdit}
-        branches={branches}
-        users={users}
       />
     </>
   );
