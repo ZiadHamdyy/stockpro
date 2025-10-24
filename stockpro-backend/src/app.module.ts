@@ -19,6 +19,7 @@ import { ItemModule } from './modules/item/item.module';
 import { ItemGroupModule } from './modules/item-group/item-group.module';
 import { UnitModule } from './modules/unit/unit.module';
 import { CompanyModule } from './modules/company/company.module';
+import { BankModule } from './modules/bank/bank.module';
 
 @Module({
   imports: [
@@ -37,6 +38,7 @@ import { CompanyModule } from './modules/company/company.module';
     ItemGroupModule,
     UnitModule,
     CompanyModule,
+    BankModule,
   ],
   controllers: [AppController],
   providers: [

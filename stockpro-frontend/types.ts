@@ -196,7 +196,7 @@ export interface Safe {
 }
 
 export interface Bank {
-  id: number;
+  id: string;
   code: string;
   name: string;
   accountNumber: string;

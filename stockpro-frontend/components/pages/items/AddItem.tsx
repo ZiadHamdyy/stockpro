@@ -23,7 +23,7 @@ interface AddItemProps {
 const AddItem: React.FC<AddItemProps> = ({ title, editingId, onNavigate }) => {
   const navigate = useNavigate();
   const params = useParams();
-  
+
   // Get the item ID from URL parameters or props
   const itemId = params.id || editingId;
   const [itemData, setItemData] = useState<

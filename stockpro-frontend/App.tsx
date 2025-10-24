@@ -1,77 +1,130 @@
-import { useState, useCallback, useMemo, useEffect } from 'react';
-import { BrowserRouter, Routes, Route, Navigate, useNavigate, useParams, useLocation } from 'react-router-dom';
-import { Provider } from 'react-redux';
-import { PersistGate } from 'redux-persist/integration/react';
-import { store, persistor } from './components/store/store';
-import { useAppDispatch } from './components/store/hooks';
-import { useAuth } from './components/hook/Auth';
-import { useSendLogOutMutation } from './components/store/slices/auth/authApi';
-import Sidebar from './components/layout/Sidebar';
-import Header from './components/layout/Header';
-import Dashboard from './components/pages/Dashboard';
-import Placeholder from './components/pages/Placeholder';
-import Login from './components/pages/Login';
-import CompanyData from './components/pages/settings/CompanyData';
-import BranchesData from './components/pages/settings/BranchesData';
-import StoresData from './components/pages/settings/StoresData';
-import UsersData from './components/pages/settings/UsersData';
-import Permissions from './components/pages/settings/Permissions';
-import AddItem from './components/pages/items/AddItem';
-import ItemsList from './components/pages/items/ItemsList';
-import ItemGroups from './components/pages/items/ItemGroups';
-import Units from './components/pages/items/Units';
-import StoreReceiptVoucher from './components/pages/warehouse/StoreReceiptVoucher';
-import StoreIssueVoucher from './components/pages/warehouse/StoreIssueVoucher';
-import StoreTransfer from './components/pages/warehouse/StoreTransfer';
-import SalesInvoice from './components/pages/sales/SalesInvoice';
-import SalesReturn from './components/pages/sales/SalesReturn';
-import DailySales from './components/pages/sales/DailySales';
-import DailySalesReturns from './components/pages/sales/DailySalesReturns';
-import PurchaseInvoice from './components/pages/purchases/PurchaseInvoice';
-import PurchaseReturn from './components/pages/purchases/PurchaseReturn';
-import DailyPurchases from './components/pages/purchases/DailyPurchases';
-import DailyPurchaseReturns from './components/pages/purchases/DailyPurchaseReturns';
-import AddCustomer from './components/pages/customers/AddCustomer';
-import CustomersList from './components/pages/customers/CustomersList';
-import AddSupplier from './components/pages/suppliers/AddSupplier';
-import SuppliersList from './components/pages/suppliers/SuppliersList';
-import ReceiptVoucher from './components/pages/financials/ReceiptVoucher';
-import PaymentVoucher from './components/pages/financials/PaymentVoucher';
-import ExpensesList from './components/pages/financials/ExpensesList';
-import ExpenseCodes from './components/pages/financials/ExpenseCodes';
-import ExpenseTypes from './components/pages/financials/ExpenseTypes';
-import AddCurrentAccount from './components/pages/financials/AddCurrentAccount';
-import CurrentAccountsList from './components/pages/financials/CurrentAccountsList';
-import Safes from './components/pages/financials/Safes';
-import Banks from './components/pages/financials/Banks';
-import ItemMovementReport from './components/pages/reports/items/ItemMovementReport';
-import ItemBalanceReport from './components/pages/reports/items/ItemBalanceReport';
-import InventoryValuationReport from './components/pages/reports/items/InventoryValuationReport';
-import CustomerStatementReport from './components/pages/reports/customers/CustomerStatementReport';
-import CustomerBalanceReport from './components/pages/reports/customers/CustomerBalanceReport';
-import SupplierStatementReport from './components/pages/reports/suppliers/SupplierStatementReport';
-import SupplierBalanceReport from './components/pages/reports/suppliers/SupplierBalanceReport';
-import DailyCollectionsReport from './components/pages/reports/financials/DailyCollectionsReport';
-import DailyPaymentsReport from './components/pages/reports/financials/DailyPaymentsReport';
-import ExpenseStatementReport from './components/pages/reports/financials/ExpenseStatementReport';
-import TotalExpensesReport from './components/pages/reports/financials/TotalExpensesReport';
-import CurrentAccountStatementReport from './components/pages/reports/financials/CurrentAccountStatementReport';
-import TotalCurrentAccountsReport from './components/pages/reports/financials/TotalCurrentAccountsReport';
-import SafeStatementReport from './components/pages/reports/financials/SafeStatementReport';
-import BankStatementReport from './components/pages/reports/financials/BankStatementReport';
-import TaxDeclarationReport from './components/pages/reports/financials/TaxDeclarationReport';
-import IncomeStatement from './components/pages/final_accounts/IncomeStatement';
-import BalanceSheet from './components/pages/final_accounts/BalanceSheet';
+import { useState, useCallback, useMemo, useEffect } from "react";
+import {
+  BrowserRouter,
+  Routes,
+  Route,
+  Navigate,
+  useNavigate,
+  useParams,
+  useLocation,
+} from "react-router-dom";
+import { Provider } from "react-redux";
+import { PersistGate } from "redux-persist/integration/react";
+import { store, persistor } from "./components/store/store";
+import { useAppDispatch } from "./components/store/hooks";
+import { useAuth } from "./components/hook/Auth";
+import { useSendLogOutMutation } from "./components/store/slices/auth/authApi";
+import Sidebar from "./components/layout/Sidebar";
+import Header from "./components/layout/Header";
+import Dashboard from "./components/pages/Dashboard";
+import Placeholder from "./components/pages/Placeholder";
+import Login from "./components/pages/Login";
+import CompanyData from "./components/pages/settings/CompanyData";
+import BranchesData from "./components/pages/settings/BranchesData";
+import StoresData from "./components/pages/settings/StoresData";
+import UsersData from "./components/pages/settings/UsersData";
+import Permissions from "./components/pages/settings/Permissions";
+import AddItem from "./components/pages/items/AddItem";
+import ItemsList from "./components/pages/items/ItemsList";
+import ItemGroups from "./components/pages/items/ItemGroups";
+import Units from "./components/pages/items/Units";
+import StoreReceiptVoucher from "./components/pages/warehouse/StoreReceiptVoucher";
+import StoreIssueVoucher from "./components/pages/warehouse/StoreIssueVoucher";
+import StoreTransfer from "./components/pages/warehouse/StoreTransfer";
+import SalesInvoice from "./components/pages/sales/SalesInvoice";
+import SalesReturn from "./components/pages/sales/SalesReturn";
+import DailySales from "./components/pages/sales/DailySales";
+import DailySalesReturns from "./components/pages/sales/DailySalesReturns";
+import PurchaseInvoice from "./components/pages/purchases/PurchaseInvoice";
+import PurchaseReturn from "./components/pages/purchases/PurchaseReturn";
+import DailyPurchases from "./components/pages/purchases/DailyPurchases";
+import DailyPurchaseReturns from "./components/pages/purchases/DailyPurchaseReturns";
+import AddCustomer from "./components/pages/customers/AddCustomer";
+import CustomersList from "./components/pages/customers/CustomersList";
+import AddSupplier from "./components/pages/suppliers/AddSupplier";
+import SuppliersList from "./components/pages/suppliers/SuppliersList";
+import ReceiptVoucher from "./components/pages/financials/ReceiptVoucher";
+import PaymentVoucher from "./components/pages/financials/PaymentVoucher";
+import ExpensesList from "./components/pages/financials/ExpensesList";
+import ExpenseCodes from "./components/pages/financials/ExpenseCodes";
+import ExpenseTypes from "./components/pages/financials/ExpenseTypes";
+import AddCurrentAccount from "./components/pages/financials/AddCurrentAccount";
+import CurrentAccountsList from "./components/pages/financials/CurrentAccountsList";
+import Safes from "./components/pages/financials/Safes";
+import Banks from "./components/pages/financials/Banks";
+import ItemMovementReport from "./components/pages/reports/items/ItemMovementReport";
+import ItemBalanceReport from "./components/pages/reports/items/ItemBalanceReport";
+import InventoryValuationReport from "./components/pages/reports/items/InventoryValuationReport";
+import CustomerStatementReport from "./components/pages/reports/customers/CustomerStatementReport";
+import CustomerBalanceReport from "./components/pages/reports/customers/CustomerBalanceReport";
+import SupplierStatementReport from "./components/pages/reports/suppliers/SupplierStatementReport";
+import SupplierBalanceReport from "./components/pages/reports/suppliers/SupplierBalanceReport";
+import DailyCollectionsReport from "./components/pages/reports/financials/DailyCollectionsReport";
+import DailyPaymentsReport from "./components/pages/reports/financials/DailyPaymentsReport";
+import ExpenseStatementReport from "./components/pages/reports/financials/ExpenseStatementReport";
+import TotalExpensesReport from "./components/pages/reports/financials/TotalExpensesReport";
+import CurrentAccountStatementReport from "./components/pages/reports/financials/CurrentAccountStatementReport";
+import TotalCurrentAccountsReport from "./components/pages/reports/financials/TotalCurrentAccountsReport";
+import SafeStatementReport from "./components/pages/reports/financials/SafeStatementReport";
+import BankStatementReport from "./components/pages/reports/financials/BankStatementReport";
+import TaxDeclarationReport from "./components/pages/reports/financials/TaxDeclarationReport";
+import IncomeStatement from "./components/pages/final_accounts/IncomeStatement";
+import BalanceSheet from "./components/pages/final_accounts/BalanceSheet";
 
-import { initialBranches, initialStores, initialItemGroups, initialUnits, initialItems, initialCustomers, initialSuppliers, initialExpenseCodes, initialExpenses, initialExpenseTypes, initialCurrentAccounts, initialSafes, initialBanks, initialSalesInvoices, initialSalesReturns, initialPurchaseInvoices, initialPurchaseReturns, initialReceiptVouchers, initialPaymentVouchers, initialStoreReceiptVouchers, initialStoreIssueVouchers, initialStoreTransferVouchers } from './data';
+import {
+  initialBranches,
+  initialStores,
+  initialItemGroups,
+  initialUnits,
+  initialItems,
+  initialCustomers,
+  initialSuppliers,
+  initialExpenseCodes,
+  initialExpenses,
+  initialExpenseTypes,
+  initialCurrentAccounts,
+  initialSafes,
+  initialBanks,
+  initialSalesInvoices,
+  initialSalesReturns,
+  initialPurchaseInvoices,
+  initialPurchaseReturns,
+  initialReceiptVouchers,
+  initialPaymentVouchers,
+  initialStoreReceiptVouchers,
+  initialStoreIssueVouchers,
+  initialStoreTransferVouchers,
+} from "./data";
 // FIX: Aliased StoreIssueVoucher type to avoid name collision with component.
-import type { Branch, CompanyInfo, Store, User, ItemGroup, Unit, Item, Customer, Supplier, ExpenseCode, Expense, ExpenseType, CurrentAccount, Safe, Bank, Invoice, Voucher, StoreReceiptVoucher as StoreReceiptVoucherType, StoreIssueVoucher as StoreIssueVoucherType, StoreTransferVoucher, Notification } from './types';
-import { ToastProvider, useToast } from './components/common/ToastProvider';
-import { ModalProvider } from './components/common/ModalProvider';
-import Toast from './components/common/Toast';
-import { getLabelByPath } from './routes/routeConfig';
-import ProtectedRoute from './components/common/ProtectedRoute';
-import { getPermissionSet } from './utils/permissions';
+import type {
+  Branch,
+  CompanyInfo,
+  Store,
+  User,
+  ItemGroup,
+  Unit,
+  Item,
+  Customer,
+  Supplier,
+  ExpenseCode,
+  Expense,
+  ExpenseType,
+  CurrentAccount,
+  Safe,
+  Bank,
+  Invoice,
+  Voucher,
+  StoreReceiptVoucher as StoreReceiptVoucherType,
+  StoreIssueVoucher as StoreIssueVoucherType,
+  StoreTransferVoucher,
+  Notification,
+} from "./types";
+import { ToastProvider, useToast } from "./components/common/ToastProvider";
+import { ModalProvider } from "./components/common/ModalProvider";
+import Toast from "./components/common/Toast";
+import { getLabelByPath } from "./routes/routeConfig";
+import ProtectedRoute from "./components/common/ProtectedRoute";
+import { getPermissionSet } from "./utils/permissions";
 
 // Simplified role-based permissions
 const rolePermissions: Record<string, string[]> = {
@@ -524,10 +577,7 @@ const AppContent = () => {
               path="/items/add"
               element={
                 <ProtectedRoute requiredPermission="add_item-read">
-                  <AddItem
-                    title={currentPageTitle}
-                    editingId={null}
-                  />
+                  <AddItem title={currentPageTitle} editingId={null} />
                 </ProtectedRoute>
               }
             />
@@ -535,10 +585,7 @@ const AppContent = () => {
               path="/items/add/:id"
               element={
                 <ProtectedRoute requiredPermission="add_item-read">
-                  <AddItem
-                    title={currentPageTitle}
-                    editingId={null}
-                  />
+                  <AddItem title={currentPageTitle} editingId={null} />
                 </ProtectedRoute>
               }
             />
@@ -884,8 +931,10 @@ const AppContent = () => {
                     customers={customers}
                     onSave={(customer) =>
                       setCustomers((prev) =>
-                        'id' in customer && customer.id
-                          ? prev.map((c) => (c.id === customer.id ? customer : c))
+                        "id" in customer && customer.id
+                          ? prev.map((c) =>
+                              c.id === customer.id ? customer : c,
+                            )
                           : [...prev, { ...customer, id: Date.now() }],
                       )
                     }
@@ -905,7 +954,9 @@ const AppContent = () => {
                     title={currentPageTitle}
                     customers={customers}
                     onNavigate={() => {}}
-                    onDelete={(id) => setCustomers((prev) => prev.filter((c) => c.id !== id))}
+                    onDelete={(id) =>
+                      setCustomers((prev) => prev.filter((c) => c.id !== id))
+                    }
                     companyInfo={companyInfo}
                   />
                 </ProtectedRoute>
@@ -923,8 +974,10 @@ const AppContent = () => {
                     suppliers={suppliers}
                     onSave={(supplier) =>
                       setSuppliers((prev) =>
-                        'id' in supplier && supplier.id
-                          ? prev.map((s) => (s.id === supplier.id ? supplier : s))
+                        "id" in supplier && supplier.id
+                          ? prev.map((s) =>
+                              s.id === supplier.id ? supplier : s,
+                            )
                           : [...prev, { ...supplier, id: Date.now() }],
                       )
                     }
@@ -944,7 +997,9 @@ const AppContent = () => {
                     title={currentPageTitle}
                     suppliers={suppliers}
                     onNavigate={() => {}}
-                    onDelete={(id) => setSuppliers((prev) => prev.filter((s) => s.id !== id))}
+                    onDelete={(id) =>
+                      setSuppliers((prev) => prev.filter((s) => s.id !== id))
+                    }
                     companyInfo={companyInfo}
                   />
                 </ProtectedRoute>
@@ -968,7 +1023,9 @@ const AppContent = () => {
                       )
                     }
                     onDelete={(id) =>
-                      setReceiptVouchers((prev) => prev.filter((v) => v.id !== id))
+                      setReceiptVouchers((prev) =>
+                        prev.filter((v) => v.id !== id),
+                      )
                     }
                     customers={customers}
                     suppliers={suppliers}
@@ -998,7 +1055,9 @@ const AppContent = () => {
                       )
                     }
                     onDelete={(id) =>
-                      setPaymentVouchers((prev) => prev.filter((v) => v.id !== id))
+                      setPaymentVouchers((prev) =>
+                        prev.filter((v) => v.id !== id),
+                      )
                     }
                     customers={customers}
                     suppliers={suppliers}
@@ -1021,7 +1080,9 @@ const AppContent = () => {
                   <ExpensesList
                     title={currentPageTitle}
                     expenses={expenses}
-                    onDelete={(id) => setExpenses((prev) => prev.filter((e) => e.id !== id))}
+                    onDelete={(id) =>
+                      setExpenses((prev) => prev.filter((e) => e.id !== id))
+                    }
                   />
                 </ProtectedRoute>
               }
@@ -1033,7 +1094,9 @@ const AppContent = () => {
                   <ExpensesList
                     title={currentPageTitle}
                     expenses={expenses}
-                    onDelete={(id) => setExpenses((prev) => prev.filter((e) => e.id !== id))}
+                    onDelete={(id) =>
+                      setExpenses((prev) => prev.filter((e) => e.id !== id))
+                    }
                   />
                 </ProtectedRoute>
               }
@@ -1134,13 +1197,15 @@ const AppContent = () => {
                     accounts={currentAccounts}
                     onSave={(acc) =>
                       setCurrentAccounts((prev) =>
-                        'id' in acc && acc.id
+                        "id" in acc && acc.id
                           ? prev.map((a) => (a.id === acc.id ? acc : a))
                           : [...prev, { ...acc, id: Date.now() }],
                       )
                     }
                     onDelete={(id) => {
-                      setCurrentAccounts((prev) => prev.filter((a) => a.id !== id));
+                      setCurrentAccounts((prev) =>
+                        prev.filter((a) => a.id !== id),
+                      );
                     }}
                     onNavigate={() => {}}
                   />
@@ -1157,13 +1222,15 @@ const AppContent = () => {
                     accounts={currentAccounts}
                     onSave={(acc) =>
                       setCurrentAccounts((prev) =>
-                        'id' in acc && acc.id
+                        "id" in acc && acc.id
                           ? prev.map((a) => (a.id === acc.id ? acc : a))
                           : [...prev, { ...acc, id: Date.now() }],
                       )
                     }
                     onDelete={(id) => {
-                      setCurrentAccounts((prev) => prev.filter((a) => a.id !== id));
+                      setCurrentAccounts((prev) =>
+                        prev.filter((a) => a.id !== id),
+                      );
                     }}
                     onNavigate={() => {}}
                   />
@@ -1179,7 +1246,11 @@ const AppContent = () => {
                     accounts={currentAccounts}
                     onAddNew={() => {}}
                     onEdit={(id) => {}}
-                    onDelete={(id) => setCurrentAccounts((prev) => prev.filter((a) => a.id !== id))}
+                    onDelete={(id) =>
+                      setCurrentAccounts((prev) =>
+                        prev.filter((a) => a.id !== id),
+                      )
+                    }
                   />
                 </ProtectedRoute>
               }
@@ -1193,7 +1264,11 @@ const AppContent = () => {
                     accounts={currentAccounts}
                     onAddNew={() => {}}
                     onEdit={(id) => {}}
-                    onDelete={(id) => setCurrentAccounts((prev) => prev.filter((a) => a.id !== id))}
+                    onDelete={(id) =>
+                      setCurrentAccounts((prev) =>
+                        prev.filter((a) => a.id !== id),
+                      )
+                    }
                   />
                 </ProtectedRoute>
               }
@@ -1213,7 +1288,9 @@ const AppContent = () => {
                           : [...prev, { ...safe, id: Date.now() }],
                       )
                     }
-                    onDelete={(id) => setSafes((prev) => prev.filter((s) => s.id !== id))}
+                    onDelete={(id) =>
+                      setSafes((prev) => prev.filter((s) => s.id !== id))
+                    }
                   />
                 </ProtectedRoute>
               }
@@ -1222,18 +1299,7 @@ const AppContent = () => {
               path="/financials/banks"
               element={
                 <ProtectedRoute requiredPermission="banks-read">
-                  <Banks
-                    title={currentPageTitle}
-                    banks={banks}
-                    onSave={(bank) =>
-                      setBanks((prev) =>
-                        bank.id
-                          ? prev.map((b) => (b.id === bank.id ? bank : b))
-                          : [...prev, { ...bank, id: Date.now() }],
-                      )
-                    }
-                    onDelete={(id) => setBanks((prev) => prev.filter((b) => b.id !== id))}
-                  />
+                  <Banks title={currentPageTitle} />
                 </ProtectedRoute>
               }
             />

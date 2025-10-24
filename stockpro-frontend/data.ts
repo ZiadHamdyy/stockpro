@@ -289,7 +289,7 @@ export const initialSafes: Safe[] = [
 
 export const initialBanks: Bank[] = [
   {
-    id: 1,
+    id: "1",
     code: "BK-001",
     name: "بنك الراجحي",
     accountNumber: "123456789012",
@@ -297,7 +297,7 @@ export const initialBanks: Bank[] = [
     openingBalance: 500000,
   },
   {
-    id: 2,
+    id: "2",
     code: "BK-002",
     name: "البنك الأهلي السعودي",
     accountNumber: "987654321098",
