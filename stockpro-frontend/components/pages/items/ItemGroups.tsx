@@ -1,21 +1,51 @@
-import React, { useState } from 'react';
-import type { ItemGroup } from '../../../types';
+import React, { useState, useEffect } from 'react';
 import { PrintIcon, SearchIcon } from '../../icons';
 import ItemGroupModal from './ItemGroupModal';
 import { useModal } from '../../common/ModalProvider';
+import { useAppDispatch, useAppSelector } from '../../store/hooks';
+import { 
+  useGetItemGroupsQuery, 
+  useCreateItemGroupMutation, 
+  useUpdateItemGroupMutation, 
+  useDeleteItemGroupMutation,
+  type ItemGroup 
+} from '../../store/slices/items/itemsApi';
+import { setItemGroups, removeItemGroup } from '../../store/slices/items/items';
 
 interface ItemGroupsProps {
     title: string;
-    groups: ItemGroup[];
-    onSave: (group: ItemGroup) => void;
-    onDelete: (id: number) => void;
 }
 
-const ItemGroups: React.FC<ItemGroupsProps> = ({ title, groups, onSave, onDelete }) => {
+const ItemGroups: React.FC<ItemGroupsProps> = ({ title }) => {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [groupToEdit, setGroupToEdit] = useState<ItemGroup | null>(null);
     const [searchTerm, setSearchTerm] = useState('');
     const { showModal } = useModal();
+    const dispatch = useAppDispatch();
+
+    // Get data from Redux state
+    const groups = useAppSelector(state => state.items.itemGroups);
+    const isLoading = useAppSelector(state => state.items.isLoading);
+
+    // API hooks
+    const { data: apiGroups = [], isLoading: apiLoading, error } = useGetItemGroupsQuery(undefined);
+    const [createItemGroup] = useCreateItemGroupMutation();
+    const [updateItemGroup] = useUpdateItemGroupMutation();
+    const [deleteItemGroup] = useDeleteItemGroupMutation();
+
+    // Update Redux state when API data changes
+    useEffect(() => {
+        const response = apiGroups as any;
+        if (response && response.data && Array.isArray(response.data) && response.data.length > 0) {
+            dispatch(setItemGroups(response.data));
+        }
+    }, [apiGroups, dispatch]);
+
+    // Debug logging
+    console.log('ItemGroups - Redux Data:', groups);
+    console.log('ItemGroups - API Data:', apiGroups);
+    console.log('ItemGroups - Loading:', apiLoading);
+    console.log('ItemGroups - Error:', error);
 
     const handleOpenModal = (group: ItemGroup | null = null) => {
         setGroupToEdit(group);
@@ -41,15 +71,22 @@ const ItemGroups: React.FC<ItemGroupsProps> = ({ title, groups, onSave, onDelete
         showModal({
             title: 'تأكيد الحذف',
             message: `هل أنت متأكد من حذف المجموعة "${group.name}"؟`,
-            onConfirm: () => onDelete(group.id),
+            onConfirm: async () => {
+                try {
+                    await deleteItemGroup(group.id).unwrap();
+                    dispatch(removeItemGroup(group.id));
+                } catch (error: any) {
+                    console.error('Delete error:', error);
+                }
+            },
             type: 'delete',
             showPassword: true,
         });
     };
 
-    const filteredGroups = groups.filter(group =>
+    const filteredGroups = Array.isArray(groups) ? groups.filter(group =>
         group.name.toLowerCase().includes(searchTerm.toLowerCase())
-    );
+    ) : [];
 
     const inputStyle = "w-64 pr-10 pl-4 py-3 bg-brand-blue-bg border-2 border-brand-blue rounded-md text-black placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-brand-blue";
 
@@ -85,16 +122,42 @@ const ItemGroups: React.FC<ItemGroupsProps> = ({ title, groups, onSave, onDelete
                             </tr>
                         </thead>
                         <tbody className="bg-white divide-y divide-gray-200">
-                            {filteredGroups.map((group) => (
-                                <tr key={group.id} className="hover:bg-brand-blue-bg">
-                                    <td className="px-6 py-4 whitespace-nowrap">{group.id}</td>
-                                    <td className="px-6 py-4 whitespace-nowrap font-medium text-brand-dark">{group.name}</td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium no-print">
-                                        <button onClick={() => handleEditClick(group)} className="text-brand-blue hover:text-blue-800 font-semibold ml-4">تعديل</button>
-                                        <button onClick={() => handleDeleteClick(group)} className="text-red-600 hover:text-red-900 font-semibold">حذف</button>
+                            {apiLoading ? (
+                                <tr>
+                                    <td colSpan={3} className="px-6 py-8 text-center">
+                                        <div className="flex items-center justify-center">
+                                            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand-blue"></div>
+                                            <span className="mr-3 text-gray-600">جاري تحميل البيانات...</span>
+                                        </div>
                                     </td>
                                 </tr>
-                            ))}
+                            ) : error ? (
+                                <tr>
+                                    <td colSpan={3} className="px-6 py-8 text-center">
+                                        <div className="text-red-600">
+                                            <p className="font-semibold">خطأ في تحميل البيانات</p>
+                                            <p className="text-sm mt-1">يرجى المحاولة مرة أخرى</p>
+                                        </div>
+                                    </td>
+                                </tr>
+                            ) : filteredGroups.length === 0 ? (
+                                <tr>
+                                    <td colSpan={3} className="px-6 py-8 text-center text-gray-500">
+                                        {searchTerm ? 'لا توجد مجموعات تطابق البحث' : 'لا توجد مجموعات متاحة'}
+                                    </td>
+                                </tr>
+                            ) : (
+                                filteredGroups.map((group) => (
+                                    <tr key={group.id} className="hover:bg-brand-blue-bg">
+                                        <td className="px-6 py-4 whitespace-nowrap">{group.id}</td>
+                                        <td className="px-6 py-4 whitespace-nowrap font-medium text-brand-dark">{group.name}</td>
+                                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium no-print">
+                                            <button onClick={() => handleEditClick(group)} className="text-brand-blue hover:text-blue-800 font-semibold ml-4">تعديل</button>
+                                            <button onClick={() => handleDeleteClick(group)} className="text-red-600 hover:text-red-900 font-semibold">حذف</button>
+                                        </td>
+                                    </tr>
+                                ))
+                            )}
                         </tbody>
                     </table>
                 </div>
@@ -102,8 +165,7 @@ const ItemGroups: React.FC<ItemGroupsProps> = ({ title, groups, onSave, onDelete
             <ItemGroupModal 
                 isOpen={isModalOpen} 
                 onClose={handleCloseModal} 
-                onSave={onSave}
-                groupToEdit={groupToEdit}
+                groupToEdit={groupToEdit} 
             />
         </>
     );

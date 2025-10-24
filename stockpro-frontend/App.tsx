@@ -81,14 +81,17 @@ const rolePermissions: Record<string, string[]> = {
     'محاسب': [
         'dashboard',
         'sales', 'purchases', 'customers', 'suppliers', 'financials',
-        'reports', 'final_accounts'
+        'reports', 'final_accounts',
+        'items', 'add_item', 'items_list', 'item_groups', 'units'
     ],
     'بائع': [
         'dashboard', 'sales_invoice', 'sales_return', 'daily_sales',
         'add_customer', 'customers_list'
     ],
     'مدخل بيانات': [
-        'dashboard', 'items', 'warehouse_operations'
+        'dashboard', 'items', 'warehouse_operations',
+        'add_item', 'items_list', 'item_groups', 'units',
+        'store_receipt_voucher', 'store_issue_voucher', 'store_transfer'
     ]
 };
 
@@ -327,22 +330,22 @@ const AppContent = () => {
                         {/* Items */}
                         <Route path="/items/add" element={
                             <ProtectedRoute requiredPermission="add_item-read">
-                                <AddItem title={currentPageTitle} editingId={null} items={items} onSave={(item) => setItems(prev => 'id' in item && item.id ? prev.map(i => i.id === item.id ? item : i) : [...prev, { ...item, id: Date.now(), code: (Math.max(...prev.map(i => parseInt(i.code, 10) || 0)) + 1).toString() } as Item])} onDelete={(id) => { setItems(prev => prev.filter(i => i.id !== id)); }} itemGroups={itemGroups} units={units} onNavigate={() => {}} />
+                                <AddItem title={currentPageTitle} editingId={null} onNavigate={() => {}} />
                             </ProtectedRoute>
                         } />
                         <Route path="/items/list" element={
                             <ProtectedRoute requiredPermission="items_list-read">
-                                <ItemsList title={currentPageTitle} items={itemsWithLiveStock} onAddNew={() => {}} onEdit={(id) => {}} onDelete={(id) => setItems(prev => prev.filter(i => i.id !== id))} />
+                                <ItemsList title={currentPageTitle} onNavigate={() => {}} />
                             </ProtectedRoute>
                         } />
                         <Route path="/items/groups" element={
                             <ProtectedRoute requiredPermission="item_groups-read">
-                                <ItemGroups title={currentPageTitle} groups={itemGroups} onSave={(group) => setItemGroups(prev => group.id ? prev.map(g => g.id === group.id ? group : g) : [...prev, { ...group, id: Date.now() }])} onDelete={(id) => setItemGroups(prev => prev.filter(g => g.id !== id))} />
+                                <ItemGroups title={currentPageTitle} />
                             </ProtectedRoute>
                         } />
                         <Route path="/items/units" element={
                             <ProtectedRoute requiredPermission="units-read">
-                                <Units title={currentPageTitle} units={units} onSave={(unit) => setUnits(prev => unit.id ? prev.map(u => u.id === unit.id ? unit : u) : [...prev, { ...unit, id: Date.now() }])} onDelete={(id) => setUnits(prev => prev.filter(u => u.id !== id))} />
+                                <Units title={currentPageTitle} />
                             </ProtectedRoute>
                         } />
                         

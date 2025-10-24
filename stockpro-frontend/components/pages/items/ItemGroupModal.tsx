@@ -1,15 +1,19 @@
 import React, { useState, useEffect } from 'react';
-import type { ItemGroup } from '../../../types';
+import { useAppDispatch } from '../../store/hooks';
+import { useCreateItemGroupMutation, useUpdateItemGroupMutation, type ItemGroup } from '../../store/slices/items/itemsApi';
+import { addItemGroup, updateItemGroup as updateItemGroupAction } from '../../store/slices/items/items';
 
 interface ItemGroupModalProps {
     isOpen: boolean;
     onClose: () => void;
-    onSave: (group: ItemGroup) => void;
     groupToEdit: ItemGroup | null;
 }
 
-const ItemGroupModal: React.FC<ItemGroupModalProps> = ({ isOpen, onClose, onSave, groupToEdit }) => {
+const ItemGroupModal: React.FC<ItemGroupModalProps> = ({ isOpen, onClose, groupToEdit }) => {
     const [name, setName] = useState('');
+    const dispatch = useAppDispatch();
+    const [createItemGroup, { isLoading: createLoading }] = useCreateItemGroupMutation();
+    const [updateItemGroup, { isLoading: updateLoading }] = useUpdateItemGroupMutation();
 
     useEffect(() => {
         if (groupToEdit) {
@@ -19,14 +23,20 @@ const ItemGroupModal: React.FC<ItemGroupModalProps> = ({ isOpen, onClose, onSave
         }
     }, [groupToEdit, isOpen]);
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        const groupToSave: ItemGroup = {
-            name,
-            id: groupToEdit?.id || 0,
-        };
-        onSave(groupToSave);
-        onClose();
+        try {
+            if (groupToEdit) {
+                const result = await updateItemGroup({ id: groupToEdit.id, data: { name } }).unwrap();
+                dispatch(updateItemGroupAction((result as any).data as ItemGroup));
+            } else {
+                const result = await createItemGroup({ name }).unwrap();
+                dispatch(addItemGroup((result as any).data as ItemGroup));
+            }
+            onClose();
+        } catch (error: any) {
+            console.error('Save error:', error);
+        }
     };
 
     if (!isOpen) return null;
@@ -46,7 +56,9 @@ const ItemGroupModal: React.FC<ItemGroupModalProps> = ({ isOpen, onClose, onSave
                     </div>
                     <div className="p-4 border-t border-gray-200 flex justify-end gap-2">
                         <button type="button" onClick={onClose} className="px-6 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300 font-semibold">إلغاء</button>
-                        <button type="submit" className="px-6 py-2 bg-brand-blue text-white rounded-md hover:bg-blue-800 font-semibold">حفظ</button>
+                        <button type="submit" disabled={createLoading || updateLoading} className="px-6 py-2 bg-brand-blue text-white rounded-md hover:bg-blue-800 font-semibold disabled:opacity-50">
+                            {createLoading || updateLoading ? 'جاري الحفظ...' : 'حفظ'}
+                        </button>
                     </div>
                 </form>
             </div>
