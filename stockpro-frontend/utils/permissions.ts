@@ -1,9 +1,14 @@
 import { Permission } from '../types';
+import { Resources, Actions, buildPermission } from '../enums/permissions.enum';
+
+// Re-export enums and helper for convenience
+export { Resources, Actions, buildPermission };
 
 /**
  * Check if user has a specific permission
  * @param userPermissions - Array of user permissions from backend
  * @param requiredPermission - Permission in format "resource-action" (e.g., "dashboard-read")
+ *                             Can also use buildPermission(Resources.DASHBOARD, Actions.READ)
  * @returns boolean indicating if user has the permission
  */
 export const hasPermission = (

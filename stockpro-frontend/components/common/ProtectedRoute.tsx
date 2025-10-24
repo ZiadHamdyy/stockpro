@@ -5,10 +5,11 @@ import { selectCurrentUser } from '../store/slices/auth/auth';
 import { hasPermission } from '../../utils/permissions';
 import type { Permission } from '../../types';
 import AccessDenied from '../pages/AccessDenied';
+// Note: You can also use enums: import { Resources, Actions, buildPermission } from '../../enums/permissions.enum';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
-  requiredPermission: string;
+  requiredPermission: string; // Can also use buildPermission(Resources.DASHBOARD, Actions.READ)
 }
 
 /**

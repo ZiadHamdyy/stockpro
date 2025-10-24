@@ -2,6 +2,8 @@ import React from 'react';
 import { HomeIcon } from '../../icons';
 import { useCompanyData } from '../../hook/useCompanyData';
 import { Link } from 'react-router-dom';
+import PermissionWrapper from '../../common/PermissionWrapper';
+import { Resources, Actions, buildPermission } from '../../../enums/permissions.enum';
 
 interface CompanyDataProps {
   title: string;
@@ -153,9 +155,26 @@ const CompanyData: React.FC<CompanyDataProps> = ({ title }) => {
         </div>
 
         <div className="pt-5 border-t border-gray-200 mt-6 flex justify-end">
-          <button type="submit" disabled={isLoading} className="px-8 py-2 bg-brand-blue text-white rounded-md hover:bg-blue-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-blue transition duration-150 ease-in-out disabled:opacity-50 disabled:cursor-not-allowed">
-            {isLoading ? 'جاري الحفظ...' : 'حفظ البيانات'}
-          </button>
+          <PermissionWrapper 
+            requiredPermission={buildPermission(Resources.COMPANY_DATA, Actions.UPDATE)}
+            fallback={
+              <button 
+                type="button" 
+                disabled 
+                className="px-8 py-2 bg-gray-400 text-white rounded-md cursor-not-allowed opacity-50"
+              >
+                حفظ البيانات
+              </button>
+            }
+          >
+            <button 
+              type="submit" 
+              disabled={isLoading} 
+              className="px-8 py-2 bg-brand-blue text-white rounded-md hover:bg-blue-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-blue transition duration-150 ease-in-out disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {isLoading ? 'جاري الحفظ...' : 'حفظ البيانات'}
+            </button>
+          </PermissionWrapper>
         </div>
       </form>
     </div>

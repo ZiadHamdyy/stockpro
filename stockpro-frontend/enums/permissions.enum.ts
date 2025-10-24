@@ -1,0 +1,143 @@
+/**
+ * Resources enum contains all resource keys used for permissions
+ * These map to the MENU_ITEMS keys in constants.ts
+ */
+export enum Resources {
+  // Dashboard
+  DASHBOARD = 'dashboard',
+  
+  // Settings
+  SETTINGS = 'settings',
+  COMPANY_DATA = 'company_data',
+  BRANCHES_DATA = 'branches_data',
+  STORES_DATA = 'stores_data',
+  USERS_DATA = 'users_data',
+  PERMISSIONS = 'permissions',
+  DATABASE = 'database',
+  DATABASE_BACKUP = 'database_backup',
+  
+  // Items
+  ITEMS = 'items',
+  ADD_ITEM = 'add_item',
+  ITEMS_LIST = 'items_list',
+  ITEM_GROUPS = 'item_groups',
+  UNITS = 'units',
+  
+  // Warehouse Operations
+  WAREHOUSE_OPERATIONS = 'warehouse_operations',
+  STORE_RECEIPT_VOUCHER = 'store_receipt_voucher',
+  STORE_ISSUE_VOUCHER = 'store_issue_voucher',
+  STORE_TRANSFER = 'store_transfer',
+  
+  // Sales
+  SALES = 'sales',
+  SALES_INVOICE = 'sales_invoice',
+  SALES_RETURN = 'sales_return',
+  DAILY_SALES = 'daily_sales',
+  DAILY_SALES_RETURNS = 'daily_sales_returns',
+  
+  // Purchases
+  PURCHASES = 'purchases',
+  PURCHASE_INVOICE = 'purchase_invoice',
+  PURCHASE_RETURN = 'purchase_return',
+  DAILY_PURCHASES = 'daily_purchases',
+  DAILY_PURCHASE_RETURNS = 'daily_purchase_returns',
+  
+  // Customers
+  CUSTOMERS = 'customers',
+  ADD_CUSTOMER = 'add_customer',
+  CUSTOMERS_LIST = 'customers_list',
+  
+  // Suppliers
+  SUPPLIERS = 'suppliers',
+  ADD_SUPPLIER = 'add_supplier',
+  SUPPLIERS_LIST = 'suppliers_list',
+  
+  // General Accounts
+  GENERAL_ACCOUNTS = 'general_accounts',
+  EXPENSES_MANAGEMENT = 'expenses_management',
+  EXPENSES_LIST = 'expenses_list',
+  EXPENSE_CODES = 'expense_codes',
+  EXPENSE_TYPES = 'expense_types',
+  CURRENT_ACCOUNTS = 'current_accounts',
+  ADD_CURRENT_ACCOUNT = 'add_current_account',
+  CURRENT_ACCOUNTS_LIST = 'current_accounts_list',
+  SAFES = 'safes',
+  BANKS = 'banks',
+  
+  // Financials
+  FINANCIALS = 'financials',
+  RECEIPT_VOUCHER = 'receipt_voucher',
+  PAYMENT_VOUCHER = 'payment_voucher',
+  
+  // Reports
+  REPORTS = 'reports',
+  ITEM_REPORTS = 'item_reports',
+  ITEM_MOVEMENT_REPORT = 'item_movement_report',
+  ITEM_BALANCE_REPORT = 'item_balance_report',
+  INVENTORY_VALUATION_REPORT = 'inventory_valuation_report',
+  CUSTOMER_REPORTS = 'customer_reports',
+  CUSTOMER_STATEMENT_REPORT = 'customer_statement_report',
+  CUSTOMER_BALANCE_REPORT = 'customer_balance_report',
+  SUPPLIER_REPORTS = 'supplier_reports',
+  SUPPLIER_STATEMENT_REPORT = 'supplier_statement_report',
+  SUPPLIER_BALANCE_REPORT = 'supplier_balance_report',
+  FINANCIAL_REPORTS = 'financial_reports',
+  DAILY_COLLECTIONS_REPORT = 'daily_collections_report',
+  DAILY_PAYMENTS_REPORT = 'daily_payments_report',
+  EXPENSE_STATEMENT_REPORT = 'expense_statement_report',
+  TOTAL_EXPENSES_REPORT = 'total_expenses_report',
+  CURRENT_ACCOUNT_STATEMENT_REPORT = 'current_account_statement_report',
+  TOTAL_CURRENT_ACCOUNTS_REPORT = 'total_current_accounts_report',
+  SAFE_STATEMENT_REPORT = 'safe_statement_report',
+  BANK_STATEMENT_REPORT = 'bank_statement_report',
+  TAX_DECLARATION_REPORT = 'tax_declaration_report',
+  
+  // Final Accounts
+  FINAL_ACCOUNTS = 'final_accounts',
+  INCOME_STATEMENT = 'income_statement',
+  BALANCE_SHEET = 'balance_sheet',
+}
+
+/**
+ * Actions enum contains all permission actions
+ */
+export enum Actions {
+  READ = 'read',
+  CREATE = 'create',
+  UPDATE = 'update',
+  DELETE = 'delete',
+  SEARCH = 'search',
+  PRINT = 'print',
+}
+
+/**
+ * Builds a permission string in the format "resource-action"
+ * @param resource - The resource from Resources enum
+ * @param action - The action from Actions enum
+ * @returns Permission string (e.g., "dashboard-read")
+ * 
+ * @example
+ * ```typescript
+ * buildPermission(Resources.DASHBOARD, Actions.READ)
+ * // Returns: "dashboard-read"
+ * ```
+ */
+export const buildPermission = (resource: Resources, action: Actions): string => {
+  return `${resource}-${action}`;
+};
+
+/**
+ * Type guard to check if a string is a valid Resource
+ */
+export const isResource = (value: string): value is Resources => {
+  return Object.values(Resources).includes(value as Resources);
+};
+
+/**
+ * Type guard to check if a string is a valid Action
+ */
+export const isAction = (value: string): value is Actions => {
+  return Object.values(Actions).includes(value as Actions);
+};
+

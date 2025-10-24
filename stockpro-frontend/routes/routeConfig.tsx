@@ -51,17 +51,23 @@ import BankStatementReport from '../components/pages/reports/financials/BankStat
 import TaxDeclarationReport from '../components/pages/reports/financials/TaxDeclarationReport';
 import IncomeStatement from '../components/pages/final_accounts/IncomeStatement';
 import BalanceSheet from '../components/pages/final_accounts/BalanceSheet';
+// Note: You can also use enums: import { Resources, Actions, buildPermission } from '../enums/permissions.enum';
 
 /**
  * Route configuration mapping paths to components and required permissions
  * Each route requires a permission in "resource-action" format (e.g., "dashboard-read")
+ * 
+ * Example with enums:
+ * ```typescript
+ * requiredPermission: buildPermission(Resources.DASHBOARD, Actions.READ)
+ * ```
  */
 export const routeConfig = [
   // Dashboard
   {
     path: '/dashboard',
     component: Dashboard,
-    requiredPermission: 'dashboard-read',
+    requiredPermission: 'dashboard-read', // or: buildPermission(Resources.DASHBOARD, Actions.READ)
     label: 'الرئيسية',
   },
   

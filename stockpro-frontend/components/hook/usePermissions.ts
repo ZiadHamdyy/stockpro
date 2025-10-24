@@ -16,6 +16,7 @@ import { MENU_ITEMS } from "../../constants";
 import { useSelector } from "react-redux";
 import { selectCurrentUser } from "../store/slices/auth/auth";
 import { getPermissionSet } from "../../utils/permissions";
+import { Resources, Actions, buildPermission } from "../../enums/permissions.enum";
 
 const permissionTreeData: PermissionNode[] = MENU_ITEMS.map((item) => ({
   key: item.key,
@@ -46,6 +47,20 @@ const allItemKeys = getAllKeys(permissionTreeData);
 /**
  * Hook to get current user's permissions
  * Returns permissions as a Set of strings in "resource-action" format
+ * 
+ * @example With string permissions:
+ * ```tsx
+ * const { hasPermission } = useUserPermissions();
+ * const canRead = hasPermission('dashboard-read');
+ * ```
+ * 
+ * @example With enum permissions:
+ * ```tsx
+ * import { Resources, Actions, buildPermission } from '../../enums/permissions.enum';
+ * 
+ * const { hasPermission } = useUserPermissions();
+ * const canRead = hasPermission(buildPermission(Resources.DASHBOARD, Actions.READ));
+ * ```
  */
 export const useUserPermissions = () => {
   const currentUser = useSelector(selectCurrentUser);
@@ -64,6 +79,9 @@ export const useUserPermissions = () => {
     },
   };
 };
+
+// Re-export enums and helper functions for convenience
+export { Resources, Actions, buildPermission };
 
 export const usePermissions = () => {
   const [selectedRole, setSelectedRole] = useState<string>("");
