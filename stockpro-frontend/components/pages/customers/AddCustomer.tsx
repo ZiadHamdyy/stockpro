@@ -1,18 +1,20 @@
 import React, { useState, useEffect } from "react";
-import type { Customer } from "../../../types";
-import { useModal } from "../../common/ModalProvider";
 import { useToast } from "../../common/ToastProvider";
+import { useCustomers } from "../../hook/useCustomers";
+import PermissionWrapper from "../../common/PermissionWrapper";
+import {
+  Resources,
+  Actions,
+  buildPermission,
+} from "../../../enums/permissions.enum";
 
 interface AddCustomerProps {
   title: string;
-  editingId: number | null;
-  customers: Customer[];
-  onSave: (customer: Customer | Omit<Customer, "id">) => void;
-  onDelete: (id: number) => void;
-  onNavigate: (key: string, label: string, id?: number | null) => void;
+  editingId: string | null;
+  onNavigate: (key: string, label: string, id?: string | null) => void;
 }
 
-const emptyCustomer: Omit<Customer, "id"> = {
+const emptyCustomer = {
   code: "",
   name: "",
   commercialReg: "",
@@ -25,17 +27,13 @@ const emptyCustomer: Omit<Customer, "id"> = {
 const AddCustomer: React.FC<AddCustomerProps> = ({
   title,
   editingId,
-  customers,
-  onSave,
-  onDelete,
   onNavigate,
 }) => {
-  const [customerData, setCustomerData] = useState<
-    Customer | Omit<Customer, "id">
-  >(emptyCustomer);
+  const { customers, isLoading, handleSave, handleDeleteClick } =
+    useCustomers();
+  const [customerData, setCustomerData] = useState<any>(emptyCustomer);
   const [isReadOnly, setIsReadOnly] = useState(true);
   const [currentIndex, setCurrentIndex] = useState(-1);
-  const { showModal } = useModal();
   const { showToast } = useToast();
 
   useEffect(() => {
@@ -47,16 +45,7 @@ const AddCustomer: React.FC<AddCustomerProps> = ({
         setIsReadOnly(true);
       }
     } else {
-      const nextCodeNumber =
-        customers.length > 0
-          ? Math.max(
-              ...customers.map(
-                (c) => parseInt(c.code.replace("C", ""), 10) || 0,
-              ),
-            ) + 1
-          : 1;
-      const newCode = `C${String(nextCodeNumber).padStart(3, "0")}`;
-      setCustomerData({ ...emptyCustomer, code: newCode });
+      setCustomerData(emptyCustomer);
       setIsReadOnly(false);
       setCurrentIndex(-1);
     }
@@ -64,17 +53,17 @@ const AddCustomer: React.FC<AddCustomerProps> = ({
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    setCustomerData((prev) => ({
+    setCustomerData((prev: any) => ({
       ...prev,
       [name]: name === "openingBalance" ? parseFloat(value) : value,
     }));
   };
 
-  const handleSave = () => {
-    onSave(customerData);
-    showToast(`تم حفظ العميل "${customerData.name}" بنجاح!`);
+  const onSave = async () => {
+    await handleSave(customerData, editingId || undefined);
     if (!("id" in customerData)) {
-      // After saving, we expect the parent to add the new customer and update the list
+      // After saving new customer, navigate back to list
+      onNavigate("customers_list", "قائمة العملاء");
     } else {
       setIsReadOnly(true);
     }
@@ -82,25 +71,12 @@ const AddCustomer: React.FC<AddCustomerProps> = ({
 
   const handleDelete = () => {
     if ("id" in customerData) {
-      showModal({
-        title: "تأكيد الحذف",
-        message: `هل أنت متأكد من حذف العميل "${customerData.name}"؟`,
-        onConfirm: () => {
-          onDelete(customerData.id as number);
-          showToast("تم الحذف بنجاح.");
-        },
-        type: "delete",
-      });
+      handleDeleteClick(customerData);
     }
   };
 
   const handleEdit = () => {
-    showModal({
-      title: "تأكيد التعديل",
-      message: "هل أنت متأكد من رغبتك في تعديل بيانات هذا العميل؟",
-      onConfirm: () => setIsReadOnly(false),
-      type: "edit",
-    });
+    setIsReadOnly(false);
   };
 
   const navigate = (direction: "first" | "prev" | "next" | "last") => {
@@ -131,13 +107,21 @@ const AddCustomer: React.FC<AddCustomerProps> = ({
   const inputStyle =
     "mt-1 block w-full bg-brand-blue-bg border-2 border-brand-blue rounded-md shadow-sm text-black placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-brand-blue focus:border-brand-blue py-3 px-4 disabled:bg-gray-200 disabled:text-gray-500";
 
+  if (isLoading) {
+    return (
+      <div className="flex justify-center items-center h-64">
+        <p className="text-gray-500">جاري التحميل...</p>
+      </div>
+    );
+  }
+
   return (
     <div className="bg-white p-6 rounded-lg shadow">
       <h1 className="text-2xl font-bold mb-4 text-brand-dark">{title}</h1>
       <form
         onSubmit={(e) => {
           e.preventDefault();
-          handleSave();
+          onSave();
         }}
       >
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -273,29 +257,70 @@ const AddCustomer: React.FC<AddCustomerProps> = ({
               جديد
             </button>
             {isReadOnly ? (
+              <PermissionWrapper
+                requiredPermission={buildPermission(
+                  Resources.CUSTOMERS,
+                  Actions.UPDATE,
+                )}
+              >
+                <button
+                  type="button"
+                  onClick={handleEdit}
+                  className="px-4 py-2 bg-yellow-500 text-white rounded-md hover:bg-yellow-600 font-semibold"
+                >
+                  تعديل
+                </button>
+              </PermissionWrapper>
+            ) : (
+              <>
+                <PermissionWrapper
+                  requiredPermission={buildPermission(
+                    Resources.CUSTOMERS,
+                    "id" in customerData ? Actions.UPDATE : Actions.CREATE,
+                  )}
+                >
+                  <button
+                    type="submit"
+                    className="px-4 py-2 bg-brand-green text-white rounded-md hover:bg-green-700 font-semibold"
+                  >
+                    حفظ
+                  </button>
+                </PermissionWrapper>
+                {"id" in customerData && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      // Reload the customer data to reset any changes
+                      const index = customers.findIndex(
+                        (c) => c.id === customerData.id,
+                      );
+                      if (index !== -1) {
+                        setCustomerData(customers[index]);
+                      }
+                      setIsReadOnly(true);
+                    }}
+                    className="px-4 py-2 bg-gray-500 text-white rounded-md hover:bg-gray-600 font-semibold"
+                  >
+                    إلغاء
+                  </button>
+                )}
+              </>
+            )}
+            <PermissionWrapper
+              requiredPermission={buildPermission(
+                Resources.CUSTOMERS,
+                Actions.DELETE,
+              )}
+            >
               <button
                 type="button"
-                onClick={handleEdit}
-                className="px-4 py-2 bg-yellow-500 text-white rounded-md hover:bg-yellow-600 font-semibold"
+                onClick={handleDelete}
+                disabled={!("id" in customerData)}
+                className="px-4 py-2 bg-red-500 text-white rounded-md hover:bg-red-600 font-semibold disabled:bg-gray-400"
               >
-                تعديل
+                حذف
               </button>
-            ) : (
-              <button
-                type="submit"
-                className="px-4 py-2 bg-brand-green text-white rounded-md hover:bg-green-700 font-semibold"
-              >
-                حفظ
-              </button>
-            )}
-            <button
-              type="button"
-              onClick={handleDelete}
-              disabled={!("id" in customerData)}
-              className="px-4 py-2 bg-red-500 text-white rounded-md hover:bg-red-600 font-semibold disabled:bg-gray-400"
-            >
-              حذف
-            </button>
+            </PermissionWrapper>
             <button
               type="button"
               onClick={() => onNavigate("customers_list", "قائمة العملاء")}

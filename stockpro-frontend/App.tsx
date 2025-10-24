@@ -166,8 +166,37 @@ const rolePermissions: Record<string, string[]> = {
   ],
 };
 
+// Wrapper component to handle URL-based editing for AddCustomer
+const AddCustomerWrapper = ({
+  title,
+  companyInfo,
+}: {
+  title: string;
+  companyInfo: CompanyInfo;
+}) => {
+  const { id } = useParams<{ id?: string }>();
+  const navigate = useNavigate();
+
+  return (
+    <AddCustomer
+      title={title}
+      editingId={id || null}
+      onNavigate={(key, label, editingId) => {
+        if (key === "add_customer") {
+          navigate(
+            editingId ? `/customers/add/${editingId}` : "/customers/add",
+          );
+        } else if (key === "customers_list") {
+          navigate("/customers/list");
+        }
+      }}
+    />
+  );
+};
+
 const AppContent = () => {
   const location = useLocation();
+  const navigate = useNavigate();
   const currentPageTitle = getLabelByPath(location.pathname);
 
   // Redux state
@@ -922,26 +951,12 @@ const AppContent = () => {
 
             {/* Customers */}
             <Route
-              path="/customers/add"
+              path="/customers/add/:id?"
               element={
                 <ProtectedRoute requiredPermission="add_customer-read">
-                  <AddCustomer
+                  <AddCustomerWrapper
                     title={currentPageTitle}
-                    editingId={null}
-                    customers={customers}
-                    onSave={(customer) =>
-                      setCustomers((prev) =>
-                        "id" in customer && customer.id
-                          ? prev.map((c) =>
-                              c.id === customer.id ? customer : c,
-                            )
-                          : [...prev, { ...customer, id: Date.now() }],
-                      )
-                    }
-                    onDelete={(id) => {
-                      setCustomers((prev) => prev.filter((c) => c.id !== id));
-                    }}
-                    onNavigate={() => {}}
+                    companyInfo={companyInfo}
                   />
                 </ProtectedRoute>
               }
@@ -952,11 +967,15 @@ const AppContent = () => {
                 <ProtectedRoute requiredPermission="customers_list-read">
                   <CustomersList
                     title={currentPageTitle}
-                    customers={customers}
-                    onNavigate={() => {}}
-                    onDelete={(id) =>
-                      setCustomers((prev) => prev.filter((c) => c.id !== id))
-                    }
+                    onNavigate={(key, label, id) => {
+                      if (key === "add_customer") {
+                        navigate(
+                          id ? `/customers/add/${id}` : "/customers/add",
+                        );
+                      } else if (key === "customers_list") {
+                        navigate("/customers/list");
+                      }
+                    }}
                     companyInfo={companyInfo}
                   />
                 </ProtectedRoute>

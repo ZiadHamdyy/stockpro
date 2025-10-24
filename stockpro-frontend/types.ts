@@ -134,7 +134,7 @@ export interface StoreTransferVoucher {
 }
 
 export interface Customer {
-  id: number;
+  id: string;
   code: string;
   name: string;
   commercialReg: string;

@@ -20,6 +20,7 @@ import { ItemGroupModule } from './modules/item-group/item-group.module';
 import { UnitModule } from './modules/unit/unit.module';
 import { CompanyModule } from './modules/company/company.module';
 import { BankModule } from './modules/bank/bank.module';
+import { CustomerModule } from './modules/customer/customer.module';
 
 @Module({
   imports: [
@@ -39,6 +40,7 @@ import { BankModule } from './modules/bank/bank.module';
     UnitModule,
     CompanyModule,
     BankModule,
+    CustomerModule,
   ],
   controllers: [AppController],
   providers: [
