@@ -214,6 +214,23 @@ model Bank {
   @@index([code])
 }
 
+model Safe {
+  id             String  @id @default(uuid())
+  code           String  @unique
+  name           String
+  branchId       String
+  openingBalance Float   @default(0)
+
+  // Relationships
+  branch Branch @relation(fields: [branchId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([code])
+  @@index([branchId])
+}
+
 model Customer {
   id             String  @id @default(uuid())
   code           String  @unique
@@ -258,6 +275,7 @@ model Branch {
 
   // Relationships
   stores Store[]
+  safes  Safe[]
 }
 
 model Store {

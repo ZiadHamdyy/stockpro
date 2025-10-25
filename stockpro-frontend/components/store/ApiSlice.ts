@@ -79,7 +79,8 @@ export const apiSlice = createApi({
     "Unit",
     "StoreReceiptVoucher",
     "StoreIssueVoucher",
-    "StoreTransferVoucher"
+    "StoreTransferVoucher",
+    "Safe"
   ],
   endpoints: () => ({}),
 });
