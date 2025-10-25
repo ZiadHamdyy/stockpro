@@ -1072,9 +1072,9 @@ const AppContent = () => {
                     title={currentPageTitle}
                     editingId={null}
                     onNavigate={(key, label, id) => {
-                      if (key === 'current_accounts_list') {
-                        navigate('/financials/current-accounts/list');
-                      } else if (key === 'add_current_account' && id) {
+                      if (key === "current_accounts_list") {
+                        navigate("/financials/current-accounts/list");
+                      } else if (key === "add_current_account" && id) {
                         navigate(`/financials/current-accounts/add/${id}`);
                       }
                     }}
@@ -1089,9 +1089,9 @@ const AppContent = () => {
                   <AddCurrentAccountWrapper
                     title={currentPageTitle}
                     onNavigate={(key, label, newId) => {
-                      if (key === 'current_accounts_list') {
-                        navigate('/financials/current-accounts/list');
-                      } else if (key === 'add_current_account' && newId) {
+                      if (key === "current_accounts_list") {
+                        navigate("/financials/current-accounts/list");
+                      } else if (key === "add_current_account" && newId) {
                         navigate(`/financials/current-accounts/add/${newId}`);
                       }
                     }}
@@ -1107,9 +1107,9 @@ const AppContent = () => {
                     title={currentPageTitle}
                     editingId={null}
                     onNavigate={(key, label, id) => {
-                      if (key === 'current_accounts_list') {
-                        navigate('/financials/current-accounts/list');
-                      } else if (key === 'add_current_account' && id) {
+                      if (key === "current_accounts_list") {
+                        navigate("/financials/current-accounts/list");
+                      } else if (key === "add_current_account" && id) {
                         navigate(`/financials/current-accounts/add/${id}`);
                       }
                     }}
@@ -1121,9 +1121,7 @@ const AppContent = () => {
               path="/financials/current-accounts/list"
               element={
                 <ProtectedRoute requiredPermission="current_accounts_list-read">
-                  <CurrentAccountsList
-                    title={currentPageTitle}
-                  />
+                  <CurrentAccountsList title={currentPageTitle} />
                 </ProtectedRoute>
               }
             />
@@ -1131,9 +1129,7 @@ const AppContent = () => {
               path="/financials/current-accounts-list"
               element={
                 <ProtectedRoute requiredPermission="current_accounts_list-read">
-                  <CurrentAccountsList
-                    title={currentPageTitle}
-                  />
+                  <CurrentAccountsList title={currentPageTitle} />
                 </ProtectedRoute>
               }
             />

@@ -63,17 +63,13 @@ const ExpensesList: React.FC<ExpensesListProps> = ({ title }) => {
       التاريخ: expense.date,
       "اسم البند": expense.expenseCode?.name || "-",
       "نوع المصروف": expense.expenseCode?.expenseType?.name || "-",
-      المبلغ: expense.amount,
     }));
     exportToExcel(dataToExport, "قائمة-المصروفات");
   };
 
   const handlePdfExport = () => {
-    const head = [
-      ["المبلغ", "نوع المصروف", "اسم البند", "التاريخ", "الكود", "م"],
-    ];
+    const head = [["نوع المصروف", "اسم البند", "التاريخ", "الكود", "م"]];
     const body = expenses.map((e, index) => [
-      e.amount.toFixed(2),
       e.expenseCode?.expenseType?.name || "-",
       e.expenseCode?.name || "-",
       e.date,
@@ -188,9 +184,6 @@ const ExpensesList: React.FC<ExpensesListProps> = ({ title }) => {
                 نوع المصروف
               </th>
               <th className="px-6 py-3 text-right text-sm font-semibold text-white uppercase">
-                المبلغ
-              </th>
-              <th className="px-6 py-3 text-right text-sm font-semibold text-white uppercase">
                 اجراءات
               </th>
             </tr>
@@ -198,7 +191,7 @@ const ExpensesList: React.FC<ExpensesListProps> = ({ title }) => {
           <tbody className="bg-white divide-y divide-gray-200">
             {expenses.length === 0 ? (
               <tr>
-                <td colSpan={6} className="px-6 py-8 text-center text-gray-500">
+                <td colSpan={5} className="px-6 py-8 text-center text-gray-500">
                   لا توجد بيانات
                 </td>
               </tr>
@@ -214,9 +207,6 @@ const ExpensesList: React.FC<ExpensesListProps> = ({ title }) => {
                   </td>
                   <td className="px-6 py-4">
                     {expense.expenseCode?.expenseType?.name || "-"}
-                  </td>
-                  <td className="px-6 py-4 font-semibold">
-                    {expense.amount.toFixed(2)}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium no-print">
                     <PermissionWrapper

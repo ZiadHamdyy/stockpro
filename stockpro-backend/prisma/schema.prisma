@@ -490,7 +490,6 @@ model Expense {
   id          String   @id @default(uuid())
   code        String   @unique
   date        DateTime
-  amount      Float
   description String?
 
   // Foreign keys

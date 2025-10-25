@@ -22,7 +22,10 @@ const currentAccountsSlice = createSlice({
     setCurrentAccounts: (state, action: PayloadAction<CurrentAccount[]>) => {
       state.currentAccounts = action.payload;
     },
-    setSelectedAccount: (state, action: PayloadAction<CurrentAccount | null>) => {
+    setSelectedAccount: (
+      state,
+      action: PayloadAction<CurrentAccount | null>,
+    ) => {
       state.selectedAccount = action.payload;
     },
     addCurrentAccount: (state, action: PayloadAction<CurrentAccount>) => {
@@ -30,7 +33,7 @@ const currentAccountsSlice = createSlice({
     },
     updateCurrentAccount: (state, action: PayloadAction<CurrentAccount>) => {
       const index = state.currentAccounts.findIndex(
-        (account) => account.id === action.payload.id
+        (account) => account.id === action.payload.id,
       );
       if (index !== -1) {
         state.currentAccounts[index] = action.payload;
@@ -38,7 +41,7 @@ const currentAccountsSlice = createSlice({
     },
     removeCurrentAccount: (state, action: PayloadAction<string>) => {
       state.currentAccounts = state.currentAccounts.filter(
-        (account) => account.id !== action.payload
+        (account) => account.id !== action.payload,
       );
     },
     setLoading: (state, action: PayloadAction<boolean>) => {

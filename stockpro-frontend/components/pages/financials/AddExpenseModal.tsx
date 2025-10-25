@@ -10,7 +10,6 @@ interface AddExpenseModalProps {
   onSave: (data: {
     date: string;
     expenseCodeId: string;
-    amount: number;
     description?: string;
   }) => void;
   expenseToEdit: Expense | null;
@@ -27,7 +26,6 @@ const AddExpenseModal: React.FC<AddExpenseModalProps> = ({
   const [expenseData, setExpenseData] = useState({
     date: new Date().toISOString().split("T")[0],
     expenseCodeId: "",
-    amount: 0,
     description: "",
   });
 
@@ -36,14 +34,12 @@ const AddExpenseModal: React.FC<AddExpenseModalProps> = ({
       setExpenseData({
         date: expenseToEdit.date.split("T")[0],
         expenseCodeId: expenseToEdit.expenseCodeId,
-        amount: expenseToEdit.amount,
         description: expenseToEdit.description || "",
       });
     } else {
       setExpenseData({
         date: new Date().toISOString().split("T")[0],
         expenseCodeId: "",
-        amount: 0,
         description: "",
       });
     }
@@ -57,14 +53,14 @@ const AddExpenseModal: React.FC<AddExpenseModalProps> = ({
     const { name, value } = e.target;
     setExpenseData((prev) => ({
       ...prev,
-      [name]: name === "amount" ? parseFloat(value) || 0 : value,
+      [name]: value,
     }));
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!expenseData.expenseCodeId || expenseData.amount <= 0) {
-      alert("الرجاء اختيار بند المصروف وإدخال مبلغ صحيح");
+    if (!expenseData.expenseCodeId) {
+      alert("الرجاء اختيار بند المصروف");
       return;
     }
     onSave(expenseData);
@@ -149,25 +145,6 @@ const AddExpenseModal: React.FC<AddExpenseModalProps> = ({
                   </option>
                 ))}
               </select>
-            </div>
-            <div>
-              <label
-                htmlFor="amount"
-                className="block text-sm font-medium text-gray-700"
-              >
-                المبلغ
-              </label>
-              <input
-                type="number"
-                id="amount"
-                name="amount"
-                value={expenseData.amount}
-                onChange={handleChange}
-                className={inputStyle}
-                min="0"
-                step="0.01"
-                required
-              />
             </div>
             <div>
               <label

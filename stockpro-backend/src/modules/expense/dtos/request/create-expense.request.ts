@@ -1,10 +1,4 @@
-import {
-  IsDateString,
-  IsNumber,
-  IsUUID,
-  IsOptional,
-  IsString,
-} from 'class-validator';
+import { IsDateString, IsUUID, IsOptional, IsString } from 'class-validator';
 
 export class CreateExpenseRequest {
   @IsDateString()
@@ -12,9 +6,6 @@ export class CreateExpenseRequest {
 
   @IsUUID()
   expenseCodeId: string;
-
-  @IsNumber()
-  amount: number;
 
   @IsOptional()
   @IsString()

@@ -2,7 +2,6 @@ export class ExpenseResponse {
   id: string;
   code: string;
   date: Date;
-  amount: number;
   description?: string | null;
   expenseCodeId: string;
   expenseCode?: {

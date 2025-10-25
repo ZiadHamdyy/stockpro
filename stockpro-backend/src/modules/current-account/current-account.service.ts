@@ -8,7 +8,9 @@ import { CurrentAccountResponse } from './dtos/response/current-account.response
 export class CurrentAccountService {
   constructor(private readonly prisma: DatabaseService) {}
 
-  async create(createCurrentAccountDto: CreateCurrentAccountRequest): Promise<CurrentAccountResponse> {
+  async create(
+    createCurrentAccountDto: CreateCurrentAccountRequest,
+  ): Promise<CurrentAccountResponse> {
     // Generate the next code
     const lastAccount = await this.prisma.currentAccount.findFirst({
       orderBy: { code: 'desc' },
@@ -16,7 +18,8 @@ export class CurrentAccountService {
 
     let nextCodeNumber = 1;
     if (lastAccount) {
-      const lastCodeNumber = parseInt(lastAccount.code.replace('CA-', ''), 10) || 0;
+      const lastCodeNumber =
+        parseInt(lastAccount.code.replace('CA-', ''), 10) || 0;
       nextCodeNumber = lastCodeNumber + 1;
     }
 
@@ -37,7 +40,7 @@ export class CurrentAccountService {
       orderBy: { code: 'asc' },
     });
 
-    return currentAccounts.map(account => this.mapToResponse(account));
+    return currentAccounts.map((account) => this.mapToResponse(account));
   }
 
   async findOne(id: string): Promise<CurrentAccountResponse> {
@@ -64,7 +67,10 @@ export class CurrentAccountService {
     return this.mapToResponse(currentAccount);
   }
 
-  async update(id: string, updateCurrentAccountDto: UpdateCurrentAccountRequest): Promise<CurrentAccountResponse> {
+  async update(
+    id: string,
+    updateCurrentAccountDto: UpdateCurrentAccountRequest,
+  ): Promise<CurrentAccountResponse> {
     const existingAccount = await this.prisma.currentAccount.findUnique({
       where: { id },
     });
