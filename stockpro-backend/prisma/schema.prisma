@@ -19,7 +19,7 @@ model User {
   name          String?
   image         String?
   password      String?
-  emailVerified Boolean @default(false)
+  emailVerified Boolean @default(true)
   active        Boolean @default(true)
 
   // Role relationship
