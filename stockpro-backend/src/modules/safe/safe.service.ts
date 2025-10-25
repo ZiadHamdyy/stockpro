@@ -92,7 +92,7 @@ export class SafeService {
       });
 
       return this.mapToResponse(safe);
-    } catch (error) {
+    } catch {
       throw new NotFoundException('Safe not found');
     }
   }
@@ -102,7 +102,7 @@ export class SafeService {
       await this.prisma.safe.delete({
         where: { id },
       });
-    } catch (error) {
+    } catch {
       throw new NotFoundException('Safe not found');
     }
   }
