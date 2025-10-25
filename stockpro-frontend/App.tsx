@@ -1135,21 +1135,7 @@ const AppContent = () => {
               path="/financials/safes"
               element={
                 <ProtectedRoute requiredPermission="safes-read">
-                  <Safes
-                    title={currentPageTitle}
-                    // safes={safes}
-                    // branches={branches}
-                    // onSave={(safe) =>
-                    //   setSafes((prev) =>
-                    //     safe.id
-                    //       ? prev.map((s) => (s.id === safe.id ? safe : s))
-                    //       : [...prev, { ...safe, id: Date.now() }],
-                    //   )
-                    // }
-                    // onDelete={(id) =>
-                    //   setSafes((prev) => prev.filter((s) => s.id !== id))
-                    // }
-                  />
+                  <Safes title={currentPageTitle} />
                 </ProtectedRoute>
               }
             />
