@@ -30,6 +30,8 @@ import { CustomerModule } from './modules/customer/customer.module';
 import { SupplierModule } from './modules/supplier/supplier.module';
 import { CurrentAccountModule } from './modules/current-account/current-account.module';
 import { ExpenseModule } from './modules/expense/expense.module';
+import { SalesInvoiceModule } from './modules/sales-invoice/sales-invoice.module';
+import { SalesReturnModule } from './modules/sales-return/sales-return.module';
 
 @Module({
   imports: [
@@ -59,6 +61,8 @@ import { ExpenseModule } from './modules/expense/expense.module';
     SupplierModule,
     CurrentAccountModule,
     ExpenseModule,
+    SalesInvoiceModule,
+    SalesReturnModule,
   ],
   controllers: [AppController],
   providers: [

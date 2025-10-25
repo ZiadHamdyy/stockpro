@@ -1,21 +1,36 @@
 import React, { useState, useMemo } from "react";
-import type { CompanyInfo, Invoice } from "../../../types";
+import type { CompanyInfo } from "../../../types";
 import { ExcelIcon, PdfIcon, PrintIcon, SearchIcon } from "../../icons";
 import { exportToExcel, exportToPdf } from "../../../utils/formatting";
 import InvoiceHeader from "../../common/InvoiceHeader";
+import { useGetSalesReturnsQuery } from "../../store/slices/salesReturn/salesReturnApiSlice";
+import { useGetCompanyQuery } from "../../store/slices/companyApiSlice";
 
 interface DailySalesReturnsProps {
   title: string;
-  companyInfo: CompanyInfo;
-  salesReturns: Invoice[];
 }
 
 
 const DailySalesReturns: React.FC<DailySalesReturnsProps> = ({
   title,
-  companyInfo,
-  salesReturns,
 }) => {
+  // Redux hooks
+  const { data: salesReturns = [] } = useGetSalesReturnsQuery();
+  const { data: company } = useGetCompanyQuery();
+
+  const companyInfo: CompanyInfo = company || {
+    name: "",
+    activity: "",
+    address: "",
+    phone: "",
+    taxNumber: "",
+    commercialReg: "",
+    currency: "SAR",
+    logo: null,
+    capital: 0,
+    vatRate: 15,
+    isVatEnabled: true,
+  };
   const [startDate, setStartDate] = useState(
     new Date().toISOString().substring(0, 7) + "-01",
   );
@@ -29,9 +44,9 @@ const DailySalesReturns: React.FC<DailySalesReturnsProps> = ({
       (sale) =>
         sale.date >= startDate &&
         sale.date <= endDate &&
-        (sale.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          (sale.customerOrSupplier &&
-            sale.customerOrSupplier.name
+        (sale.code.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          (sale.customer &&
+            sale.customer.name
               .toLowerCase()
               .includes(searchTerm.toLowerCase()))),
     );
@@ -39,10 +54,10 @@ const DailySalesReturns: React.FC<DailySalesReturnsProps> = ({
 
   const totals = filteredReturns.reduce(
     (acc, sale) => {
-      acc.subtotal += sale.totals.subtotal;
-      acc.tax += sale.totals.tax;
-      acc.discount += sale.totals.discount;
-      acc.net += sale.totals.net;
+      acc.subtotal += sale.subtotal;
+      acc.tax += sale.tax;
+      acc.discount += sale.discount;
+      acc.net += sale.net;
       return acc;
     },
     { subtotal: 0, tax: 0, discount: 0, net: 0 },
@@ -51,12 +66,12 @@ const DailySalesReturns: React.FC<DailySalesReturnsProps> = ({
   const handleExcelExport = () => {
     const dataToExport = filteredReturns.map((s) => ({
       التاريخ: s.date,
-      "رقم المرتجع": s.id,
-      العميل: s.customerOrSupplier?.name || "عميل نقدي",
-      المبلغ: s.totals.subtotal.toFixed(2),
-      الضريبة: s.totals.tax.toFixed(2),
-      الخصم: s.totals.discount.toFixed(2),
-      "صافي المبلغ": s.totals.net.toFixed(2),
+      "رقم المرتجع": s.code,
+      العميل: s.customer?.name || "عميل نقدي",
+      المبلغ: s.subtotal.toFixed(2),
+      الضريبة: s.tax.toFixed(2),
+      الخصم: s.discount.toFixed(2),
+      "صافي المبلغ": s.net.toFixed(2),
     }));
     dataToExport.push({
       التاريخ: "الإجمالي",
@@ -84,12 +99,12 @@ const DailySalesReturns: React.FC<DailySalesReturnsProps> = ({
       ],
     ];
     const body = filteredReturns.map((s, i) => [
-      s.totals.net.toFixed(2),
-      s.totals.discount.toFixed(2),
-      s.totals.tax.toFixed(2),
-      s.totals.subtotal.toFixed(2),
-      s.customerOrSupplier?.name || "عميل نقدي",
-      s.id,
+      s.net.toFixed(2),
+      s.discount.toFixed(2),
+      s.tax.toFixed(2),
+      s.subtotal.toFixed(2),
+      s.customer?.name || "عميل نقدي",
+      s.code,
       s.date,
       (i + 1).toString(),
     ]);
@@ -208,22 +223,22 @@ const DailySalesReturns: React.FC<DailySalesReturnsProps> = ({
                 <td className="px-6 py-4 whitespace-nowrap">{index + 1}</td>
                 <td className="px-6 py-4 whitespace-nowrap">{sale.date}</td>
                 <td className="px-6 py-4 whitespace-nowrap font-medium text-brand-dark">
-                  {sale.id}
+                  {sale.code}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
-                  {sale.customerOrSupplier?.name || "عميل نقدي"}
+                  {sale.customer?.name || "عميل نقدي"}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
-                  {sale.totals.subtotal.toFixed(2)}
+                  {sale.subtotal.toFixed(2)}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
-                  {sale.totals.tax.toFixed(2)}
+                  {sale.tax.toFixed(2)}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
-                  {sale.totals.discount.toFixed(2)}
+                  {sale.discount.toFixed(2)}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap font-bold">
-                  {sale.totals.net.toFixed(2)}
+                  {sale.net.toFixed(2)}
                 </td>
               </tr>
             ))}

@@ -679,36 +679,9 @@ const AppContent = () => {
                 <ProtectedRoute requiredPermission="sales_invoice-read">
                   <SalesInvoice
                     title={currentPageTitle}
-                    vatRate={vatRate}
-                    isVatEnabled={isVatEnabled}
-                    companyInfo={companyInfo}
-                    items={itemsWithLiveStock.map((i) => ({
-                      id: i.code,
-                      name: i.name,
-                      unit: i.unit,
-                      price: i.salePrice,
-                      stock: i.stock,
-                      barcode: i.barcode,
-                    }))}
-                    customers={customers}
-                    invoices={salesInvoices}
-                    onSave={(inv) =>
-                      setSalesInvoices((prev) =>
-                        prev.find((i) => i.id === inv.id)
-                          ? prev.map((i) => (i.id === inv.id ? inv : i))
-                          : [...prev, inv],
-                      )
-                    }
-                    onDelete={(id) =>
-                      setSalesInvoices((prev) =>
-                        prev.filter((i) => i.id !== id),
-                      )
-                    }
                     currentUser={currentUser}
                     viewingId={null}
                     onClearViewingId={() => {}}
-                    safes={safes}
-                    banks={banks}
                   />
                 </ProtectedRoute>
               }
@@ -719,34 +692,9 @@ const AppContent = () => {
                 <ProtectedRoute requiredPermission="sales_return-read">
                   <SalesReturn
                     title={currentPageTitle}
-                    vatRate={vatRate}
-                    isVatEnabled={isVatEnabled}
-                    companyInfo={companyInfo}
-                    items={itemsWithLiveStock.map((i) => ({
-                      id: i.code,
-                      name: i.name,
-                      unit: i.unit,
-                      price: i.salePrice,
-                      stock: i.stock,
-                      barcode: i.barcode,
-                    }))}
-                    customers={customers}
-                    invoices={salesReturns}
-                    onSave={(inv) =>
-                      setSalesReturns((prev) =>
-                        prev.find((i) => i.id === inv.id)
-                          ? prev.map((i) => (i.id === inv.id ? inv : i))
-                          : [...prev, inv],
-                      )
-                    }
-                    onDelete={(id) =>
-                      setSalesReturns((prev) => prev.filter((i) => i.id !== id))
-                    }
                     currentUser={currentUser}
                     viewingId={null}
                     onClearViewingId={() => {}}
-                    safes={safes}
-                    banks={banks}
                   />
                 </ProtectedRoute>
               }
@@ -757,8 +705,6 @@ const AppContent = () => {
                 <ProtectedRoute requiredPermission="daily_sales-read">
                   <DailySales
                     title={currentPageTitle}
-                    companyInfo={companyInfo}
-                    salesInvoices={salesInvoices}
                   />
                 </ProtectedRoute>
               }
@@ -769,8 +715,6 @@ const AppContent = () => {
                 <ProtectedRoute requiredPermission="daily_sales_returns-read">
                   <DailySalesReturns
                     title={currentPageTitle}
-                    companyInfo={companyInfo}
-                    salesReturns={salesReturns}
                   />
                 </ProtectedRoute>
               }
