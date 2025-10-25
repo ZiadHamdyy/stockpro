@@ -2,6 +2,8 @@ import React, { useState, useEffect } from "react";
 import { PrintIcon, SearchIcon } from "../../icons";
 import UnitModal from "./UnitModal";
 import { useModal } from "../../common/ModalProvider";
+import PermissionWrapper from "../../common/PermissionWrapper";
+import { Resources, Actions, buildPermission } from "../../../enums/permissions.enum";
 import { useAppDispatch, useAppSelector } from "../../store/hooks";
 import {
   useGetUnitsQuery,
@@ -112,18 +114,42 @@ const Units: React.FC<UnitsProps> = ({ title }) => {
             />
           </div>
           <div>
-            <button
-              onClick={() => handleOpenModal()}
-              className="px-6 py-3 bg-brand-blue text-white rounded-md hover:bg-blue-800 ml-2 font-semibold"
+            <PermissionWrapper
+              requiredPermission={buildPermission(Resources.UNITS, Actions.CREATE)}
+              fallback={
+                <button
+                  disabled
+                  className="px-6 py-3 bg-gray-400 text-white rounded-md cursor-not-allowed opacity-50 ml-2 font-semibold"
+                >
+                  اضافة وحدة جديدة
+                </button>
+              }
             >
-              اضافة وحدة جديدة
-            </button>
-            <button
-              onClick={() => window.print()}
-              className="p-3 border-2 border-gray-200 rounded-md hover:bg-gray-100"
+              <button
+                onClick={() => handleOpenModal()}
+                className="px-6 py-3 bg-brand-blue text-white rounded-md hover:bg-blue-800 ml-2 font-semibold"
+              >
+                اضافة وحدة جديدة
+              </button>
+            </PermissionWrapper>
+            <PermissionWrapper
+              requiredPermission={buildPermission(Resources.UNITS, Actions.PRINT)}
+              fallback={
+                <button
+                  disabled
+                  className="p-3 border-2 border-gray-200 rounded-md cursor-not-allowed opacity-50"
+                >
+                  <PrintIcon className="w-6 h-6" />
+                </button>
+              }
             >
-              <PrintIcon className="w-6 h-6" />
-            </button>
+              <button
+                onClick={() => window.print()}
+                className="p-3 border-2 border-gray-200 rounded-md hover:bg-gray-100"
+              >
+                <PrintIcon className="w-6 h-6" />
+              </button>
+            </PermissionWrapper>
           </div>
         </div>
         <div className="overflow-x-auto">
@@ -181,18 +207,42 @@ const Units: React.FC<UnitsProps> = ({ title }) => {
                       {unit.name}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium no-print">
-                      <button
-                        onClick={() => handleEditClick(unit)}
-                        className="text-brand-blue hover:text-blue-800 font-semibold ml-4"
+                      <PermissionWrapper
+                        requiredPermission={buildPermission(Resources.UNITS, Actions.UPDATE)}
+                        fallback={
+                          <button
+                            disabled
+                            className="text-gray-400 cursor-not-allowed font-semibold ml-4"
+                          >
+                            تعديل
+                          </button>
+                        }
                       >
-                        تعديل
-                      </button>
-                      <button
-                        onClick={() => handleDeleteClick(unit)}
-                        className="text-red-600 hover:text-red-900 font-semibold"
+                        <button
+                          onClick={() => handleEditClick(unit)}
+                          className="text-brand-blue hover:text-blue-800 font-semibold ml-4"
+                        >
+                          تعديل
+                        </button>
+                      </PermissionWrapper>
+                      <PermissionWrapper
+                        requiredPermission={buildPermission(Resources.UNITS, Actions.DELETE)}
+                        fallback={
+                          <button
+                            disabled
+                            className="text-gray-400 cursor-not-allowed font-semibold"
+                          >
+                            حذف
+                          </button>
+                        }
                       >
-                        حذف
-                      </button>
+                        <button
+                          onClick={() => handleDeleteClick(unit)}
+                          className="text-red-600 hover:text-red-900 font-semibold"
+                        >
+                          حذف
+                        </button>
+                      </PermissionWrapper>
                     </td>
                   </tr>
                 ))

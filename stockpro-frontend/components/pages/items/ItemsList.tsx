@@ -8,6 +8,8 @@ import {
   TrashIcon,
 } from "../../icons";
 import { useModal } from "../../common/ModalProvider";
+import PermissionWrapper from "../../common/PermissionWrapper";
+import { Resources, Actions, buildPermission } from "../../../enums/permissions.enum";
 import { exportToExcel, exportToPdf } from "../../../utils/formatting";
 import { useAppDispatch, useAppSelector } from "../../store/hooks";
 import {
@@ -119,12 +121,24 @@ const ItemsList: React.FC<ItemsListProps> = ({ title, onNavigate }) => {
     <div className="bg-white p-6 rounded-lg shadow">
       <div className="flex justify-between items-center mb-4 border-b pb-4 no-print">
         <h1 className="text-2xl font-bold text-brand-dark">{title}</h1>
-        <button
-          onClick={() => navigate("/items/add")}
-          className="px-6 py-2 bg-brand-green text-white rounded-md hover:bg-green-700 font-semibold transition-colors"
+        <PermissionWrapper
+          requiredPermission={buildPermission(Resources.ADD_ITEM, Actions.CREATE)}
+          fallback={
+            <button
+              disabled
+              className="px-6 py-2 bg-gray-400 text-white rounded-md cursor-not-allowed opacity-50 font-semibold transition-colors"
+            >
+              إضافة صنف جديد
+            </button>
+          }
         >
-          إضافة صنف جديد
-        </button>
+          <button
+            onClick={() => navigate("/items/add")}
+            className="px-6 py-2 bg-brand-green text-white rounded-md hover:bg-green-700 font-semibold transition-colors"
+          >
+            إضافة صنف جديد
+          </button>
+        </PermissionWrapper>
       </div>
       <div className="flex justify-between items-center mb-4 no-print">
         <div className="relative">
@@ -138,27 +152,66 @@ const ItemsList: React.FC<ItemsListProps> = ({ title, onNavigate }) => {
           />
         </div>
         <div className="flex items-center gap-2">
-          <button
-            onClick={handleExcelExport}
-            title="تصدير Excel"
-            className="p-3 border-2 border-gray-200 rounded-md hover:bg-gray-100"
+          <PermissionWrapper
+            requiredPermission={buildPermission(Resources.ITEMS_LIST, Actions.PRINT)}
+            fallback={
+              <button
+                disabled
+                title="تصدير Excel"
+                className="p-3 border-2 border-gray-200 rounded-md cursor-not-allowed opacity-50"
+              >
+                <ExcelIcon className="w-6 h-6" />
+              </button>
+            }
           >
-            <ExcelIcon className="w-6 h-6" />
-          </button>
-          <button
-            onClick={handlePdfExport}
-            title="تصدير PDF"
-            className="p-3 border-2 border-gray-200 rounded-md hover:bg-gray-100"
+            <button
+              onClick={handleExcelExport}
+              title="تصدير Excel"
+              className="p-3 border-2 border-gray-200 rounded-md hover:bg-gray-100"
+            >
+              <ExcelIcon className="w-6 h-6" />
+            </button>
+          </PermissionWrapper>
+          <PermissionWrapper
+            requiredPermission={buildPermission(Resources.ITEMS_LIST, Actions.PRINT)}
+            fallback={
+              <button
+                disabled
+                title="تصدير PDF"
+                className="p-3 border-2 border-gray-200 rounded-md cursor-not-allowed opacity-50"
+              >
+                <PdfIcon className="w-6 h-6" />
+              </button>
+            }
           >
-            <PdfIcon className="w-6 h-6" />
-          </button>
-          <button
-            title="طباعة"
-            onClick={() => window.print()}
-            className="p-3 border-2 border-gray-200 rounded-md hover:bg-gray-100"
+            <button
+              onClick={handlePdfExport}
+              title="تصدير PDF"
+              className="p-3 border-2 border-gray-200 rounded-md hover:bg-gray-100"
+            >
+              <PdfIcon className="w-6 h-6" />
+            </button>
+          </PermissionWrapper>
+          <PermissionWrapper
+            requiredPermission={buildPermission(Resources.ITEMS_LIST, Actions.PRINT)}
+            fallback={
+              <button
+                disabled
+                title="طباعة"
+                className="p-3 border-2 border-gray-200 rounded-md cursor-not-allowed opacity-50"
+              >
+                <PrintIcon className="w-6 h-6" />
+              </button>
+            }
           >
-            <PrintIcon className="w-6 h-6" />
-          </button>
+            <button
+              title="طباعة"
+              onClick={() => window.print()}
+              className="p-3 border-2 border-gray-200 rounded-md hover:bg-gray-100"
+            >
+              <PrintIcon className="w-6 h-6" />
+            </button>
+          </PermissionWrapper>
         </div>
       </div>
       <div className="overflow-x-auto">
@@ -233,24 +286,48 @@ const ItemsList: React.FC<ItemsListProps> = ({ title, onNavigate }) => {
                   <td className="px-6 py-4">{item.salePrice.toFixed(2)}</td>
                   <td className="px-6 py-4 font-bold">{item.stock}</td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium no-print">
-                    <button
-                      onClick={() =>
-                        onNavigate(
-                          "add_item",
-                          `تعديل صنف #${item.code}`,
-                          item.id,
-                        )
+                    <PermissionWrapper
+                      requiredPermission={buildPermission(Resources.ADD_ITEM, Actions.UPDATE)}
+                      fallback={
+                        <button
+                          disabled
+                          className="text-gray-400 cursor-not-allowed font-semibold ml-4"
+                        >
+                          تعديل
+                        </button>
                       }
-                      className="text-brand-blue hover:text-blue-800 font-semibold ml-4"
                     >
-                      تعديل
-                    </button>
-                    <button
-                      onClick={() => handleDeleteClick(item.id, item.name)}
-                      className="text-red-600 hover:text-red-900 font-semibold"
+                      <button
+                        onClick={() =>
+                          onNavigate(
+                            "add_item",
+                            `تعديل صنف #${item.code}`,
+                            item.id,
+                          )
+                        }
+                        className="text-brand-blue hover:text-blue-800 font-semibold ml-4"
+                      >
+                        تعديل
+                      </button>
+                    </PermissionWrapper>
+                    <PermissionWrapper
+                      requiredPermission={buildPermission(Resources.ADD_ITEM, Actions.DELETE)}
+                      fallback={
+                        <button
+                          disabled
+                          className="text-gray-400 cursor-not-allowed font-semibold"
+                        >
+                          حذف
+                        </button>
+                      }
                     >
-                      حذف
-                    </button>
+                      <button
+                        onClick={() => handleDeleteClick(item.id, item.name)}
+                        className="text-red-600 hover:text-red-900 font-semibold"
+                      >
+                        حذف
+                      </button>
+                    </PermissionWrapper>
                   </td>
                 </tr>
               ))

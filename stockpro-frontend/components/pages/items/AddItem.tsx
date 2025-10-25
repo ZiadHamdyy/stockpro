@@ -3,6 +3,8 @@ import { useNavigate, useParams } from "react-router-dom";
 import { useModal } from "../../common/ModalProvider";
 import { useToast } from "../../common/ToastProvider";
 import { useTitle } from "../../context/TitleContext";
+import PermissionWrapper from "../../common/PermissionWrapper";
+import { Resources, Actions, buildPermission } from "../../../enums/permissions.enum";
 import {
   useGetItemsQuery,
   useCreateItemMutation,
@@ -451,43 +453,111 @@ const AddItem: React.FC<AddItemProps> = ({ title, editingId, onNavigate }) => {
         </div>
         <div className="mt-8 pt-6 border-t-2 border-gray-200 flex flex-col items-start space-y-4">
           <div className="flex justify-start gap-2 flex-wrap">
-            <button
-              type="button"
-              onClick={() => navigate("/items/add")}
-              className="px-4 py-2 bg-brand-blue text-white rounded-md hover:bg-blue-800 font-semibold"
+            <PermissionWrapper
+              requiredPermission={buildPermission(Resources.ADD_ITEM, Actions.CREATE)}
+              fallback={
+                <button
+                  type="button"
+                  disabled
+                  className="px-4 py-2 bg-gray-400 text-white rounded-md cursor-not-allowed opacity-50"
+                >
+                  جديد
+                </button>
+              }
             >
-              جديد
-            </button>
-            <button
-              type="submit"
-              disabled={isReadOnly}
-              className="px-4 py-2 bg-brand-green text-white rounded-md hover:bg-green-700 font-semibold disabled:bg-gray-400"
+              <button
+                type="button"
+                onClick={() => navigate("/items/add")}
+                className="px-4 py-2 bg-brand-blue text-white rounded-md hover:bg-blue-800 font-semibold"
+              >
+                جديد
+              </button>
+            </PermissionWrapper>
+            <PermissionWrapper
+              requiredPermission={[
+                buildPermission(Resources.ADD_ITEM, Actions.CREATE),
+                buildPermission(Resources.ADD_ITEM, Actions.UPDATE)
+              ]}
+              fallback={
+                <button
+                  type="submit"
+                  disabled
+                  className="px-4 py-2 bg-gray-400 text-white rounded-md cursor-not-allowed opacity-50"
+                >
+                  حفظ
+                </button>
+              }
             >
-              حفظ
-            </button>
-            <button
-              type="button"
-              onClick={handleEdit}
-              disabled={!("id" in itemData) || !isReadOnly}
-              className="px-4 py-2 bg-yellow-500 text-white rounded-md hover:bg-yellow-600 font-semibold disabled:bg-gray-400"
+              <button
+                type="submit"
+                disabled={isReadOnly}
+                className="px-4 py-2 bg-brand-green text-white rounded-md hover:bg-green-700 font-semibold disabled:bg-gray-400"
+              >
+                حفظ
+              </button>
+            </PermissionWrapper>
+            <PermissionWrapper
+              requiredPermission={buildPermission(Resources.ADD_ITEM, Actions.UPDATE)}
+              fallback={
+                <button
+                  type="button"
+                  disabled
+                  className="px-4 py-2 bg-gray-400 text-white rounded-md cursor-not-allowed opacity-50"
+                >
+                  تعديل
+                </button>
+              }
             >
-              تعديل
-            </button>
-            <button
-              type="button"
-              onClick={() => navigate("/items/list")}
-              className="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 font-semibold"
+              <button
+                type="button"
+                onClick={handleEdit}
+                disabled={!("id" in itemData) || !isReadOnly}
+                className="px-4 py-2 bg-yellow-500 text-white rounded-md hover:bg-yellow-600 font-semibold disabled:bg-gray-400"
+              >
+                تعديل
+              </button>
+            </PermissionWrapper>
+            <PermissionWrapper
+              requiredPermission={buildPermission(Resources.ITEMS_LIST, Actions.READ)}
+              fallback={
+                <button
+                  type="button"
+                  disabled
+                  className="px-4 py-2 bg-gray-400 text-white rounded-md cursor-not-allowed opacity-50"
+                >
+                  بحث
+                </button>
+              }
             >
-              بحث
-            </button>
-            <button
-              type="button"
-              onClick={handleDelete}
-              disabled={!("id" in itemData)}
-              className="px-4 py-2 bg-red-500 text-white rounded-md hover:bg-red-600 font-semibold disabled:bg-gray-400"
+              <button
+                type="button"
+                onClick={() => navigate("/items/list")}
+                className="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 font-semibold"
+              >
+                بحث
+              </button>
+            </PermissionWrapper>
+            <PermissionWrapper
+              requiredPermission={buildPermission(Resources.ADD_ITEM, Actions.DELETE)}
+              fallback={
+                <button
+                  type="button"
+                  disabled
+                  className="px-4 py-2 bg-gray-400 text-white rounded-md cursor-not-allowed opacity-50"
+                >
+                  حذف
+                </button>
+              }
             >
-              حذف
-            </button>
+              <button
+                type="button"
+                onClick={handleDelete}
+                disabled={!("id" in itemData)}
+                className="px-4 py-2 bg-red-500 text-white rounded-md hover:bg-red-600 font-semibold disabled:bg-gray-400"
+              >
+                حذف
+              </button>
+            </PermissionWrapper>
           </div>
 
           <div className="flex items-center justify-start gap-2">

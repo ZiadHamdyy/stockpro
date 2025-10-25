@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from "react";
+import PermissionWrapper from "../../common/PermissionWrapper";
+import { Resources, Actions, buildPermission } from "../../../enums/permissions.enum";
 import { useAppDispatch } from "../../store/hooks";
 import {
   useCreateItemGroupMutation,
@@ -99,13 +101,29 @@ const ItemGroupModal: React.FC<ItemGroupModalProps> = ({
             >
               إلغاء
             </button>
-            <button
-              type="submit"
-              disabled={createLoading || updateLoading}
-              className="px-6 py-2 bg-brand-blue text-white rounded-md hover:bg-blue-800 font-semibold disabled:opacity-50"
+            <PermissionWrapper
+              requiredPermission={[
+                buildPermission(Resources.ITEM_GROUPS, Actions.CREATE),
+                buildPermission(Resources.ITEM_GROUPS, Actions.UPDATE)
+              ]}
+              fallback={
+                <button
+                  type="submit"
+                  disabled
+                  className="px-6 py-2 bg-gray-400 text-white rounded-md cursor-not-allowed opacity-50 font-semibold"
+                >
+                  {createLoading || updateLoading ? "جاري الحفظ..." : "حفظ"}
+                </button>
+              }
             >
-              {createLoading || updateLoading ? "جاري الحفظ..." : "حفظ"}
-            </button>
+              <button
+                type="submit"
+                disabled={createLoading || updateLoading}
+                className="px-6 py-2 bg-brand-blue text-white rounded-md hover:bg-blue-800 font-semibold disabled:opacity-50"
+              >
+                {createLoading || updateLoading ? "جاري الحفظ..." : "حفظ"}
+              </button>
+            </PermissionWrapper>
           </div>
         </form>
       </div>

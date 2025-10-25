@@ -2,6 +2,8 @@ import React, { useState, useEffect, useRef, useCallback } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import DataTableModal from "../../common/DataTableModal";
 import { ListIcon, PrintIcon, SearchIcon, TrashIcon } from "../../icons";
+import PermissionWrapper from "../../common/PermissionWrapper";
+import { Resources, Actions, buildPermission } from "../../../enums/permissions.enum";
 import type {
   CompanyInfo,
   StoreVoucherItem,
@@ -548,13 +550,25 @@ const StoreIssueVoucher: React.FC<StoreIssueVoucherProps> = ({
             </tbody>
           </table>
         </div>
-        <button
-          onClick={handleAddItem}
-          className="mb-4 px-4 py-2 bg-gray-200 text-brand-dark rounded-md hover:bg-gray-300 font-semibold disabled:bg-gray-300 disabled:cursor-not-allowed"
-          disabled={isReadOnly}
+        <PermissionWrapper
+          requiredPermission={buildPermission(Resources.STORE_ISSUE_VOUCHER, Actions.CREATE)}
+          fallback={
+            <button
+              disabled
+              className="mb-4 px-4 py-2 bg-gray-400 text-white rounded-md cursor-not-allowed opacity-50 font-semibold"
+            >
+              اضافة سطر
+            </button>
+          }
         >
-          اضافة سطر
-        </button>
+          <button
+            onClick={handleAddItem}
+            className="mb-4 px-4 py-2 bg-gray-200 text-brand-dark rounded-md hover:bg-gray-300 font-semibold disabled:bg-gray-300 disabled:cursor-not-allowed"
+            disabled={isReadOnly}
+          >
+            اضافة سطر
+          </button>
+        </PermissionWrapper>
 
         <div className="bg-gray-50 -mx-6 -mb-6 mt-4 p-6 rounded-b-lg">
           <div className="flex justify-around items-center mt-8 text-center text-sm font-semibold">
@@ -570,45 +584,120 @@ const StoreIssueVoucher: React.FC<StoreIssueVoucherProps> = ({
 
           <div className="mt-8 pt-6 border-t-2 border-gray-200 flex flex-col items-center space-y-4">
             <div className="flex justify-center gap-2 flex-wrap">
-              <button
-                onClick={handleNew}
-                className="px-4 py-2 bg-brand-blue text-white rounded-md hover:bg-blue-800 font-semibold"
+              <PermissionWrapper
+                requiredPermission={buildPermission(Resources.STORE_ISSUE_VOUCHER, Actions.CREATE)}
+                fallback={
+                  <button
+                    disabled
+                    className="px-4 py-2 bg-gray-400 text-white rounded-md cursor-not-allowed opacity-50 font-semibold"
+                  >
+                    جديد
+                  </button>
+                }
               >
-                جديد
-              </button>
-              <button
-                onClick={handleSave}
-                disabled={isReadOnly || items.length === 0 || isCreating || isUpdating}
-                className="px-4 py-2 bg-brand-green text-white rounded-md hover:bg-green-700 font-semibold disabled:bg-gray-400"
+                <button
+                  onClick={handleNew}
+                  className="px-4 py-2 bg-brand-blue text-white rounded-md hover:bg-blue-800 font-semibold"
+                >
+                  جديد
+                </button>
+              </PermissionWrapper>
+              <PermissionWrapper
+                requiredPermission={[
+                  buildPermission(Resources.STORE_ISSUE_VOUCHER, Actions.CREATE),
+                  buildPermission(Resources.STORE_ISSUE_VOUCHER, Actions.UPDATE)
+                ]}
+                fallback={
+                  <button
+                    disabled
+                    className="px-4 py-2 bg-gray-400 text-white rounded-md cursor-not-allowed opacity-50 font-semibold"
+                  >
+                    {isCreating || isUpdating ? "جاري الحفظ..." : "حفظ"}
+                  </button>
+                }
               >
-                {isCreating || isUpdating ? "جاري الحفظ..." : "حفظ"}
-              </button>
-              <button
-                onClick={handleEdit}
-                disabled={currentIndex < 0 || !isReadOnly}
-                className="px-4 py-2 bg-yellow-500 text-white rounded-md hover:bg-yellow-600 font-semibold disabled:bg-gray-400"
+                <button
+                  onClick={handleSave}
+                  disabled={isReadOnly || items.length === 0 || isCreating || isUpdating}
+                  className="px-4 py-2 bg-brand-green text-white rounded-md hover:bg-green-700 font-semibold disabled:bg-gray-400"
+                >
+                  {isCreating || isUpdating ? "جاري الحفظ..." : "حفظ"}
+                </button>
+              </PermissionWrapper>
+              <PermissionWrapper
+                requiredPermission={buildPermission(Resources.STORE_ISSUE_VOUCHER, Actions.UPDATE)}
+                fallback={
+                  <button
+                    disabled
+                    className="px-4 py-2 bg-gray-400 text-white rounded-md cursor-not-allowed opacity-50 font-semibold"
+                  >
+                    تعديل
+                  </button>
+                }
               >
-                تعديل
-              </button>
-              <button
-                onClick={handleDelete}
-                disabled={currentIndex < 0 || isDeleting}
-                className="px-4 py-2 bg-red-500 text-white rounded-md hover:bg-red-600 font-semibold disabled:bg-gray-400"
+                <button
+                  onClick={handleEdit}
+                  disabled={currentIndex < 0 || !isReadOnly}
+                  className="px-4 py-2 bg-yellow-500 text-white rounded-md hover:bg-yellow-600 font-semibold disabled:bg-gray-400"
+                >
+                  تعديل
+                </button>
+              </PermissionWrapper>
+              <PermissionWrapper
+                requiredPermission={buildPermission(Resources.STORE_ISSUE_VOUCHER, Actions.DELETE)}
+                fallback={
+                  <button
+                    disabled
+                    className="px-4 py-2 bg-gray-400 text-white rounded-md cursor-not-allowed opacity-50 font-semibold"
+                  >
+                    {isDeleting ? "جاري الحذف..." : "حذف"}
+                  </button>
+                }
               >
-                {isDeleting ? "جاري الحذف..." : "حذف"}
-              </button>
-              <button
-                onClick={() => setIsSearchModalOpen(true)}
-                className="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 font-semibold"
+                <button
+                  onClick={handleDelete}
+                  disabled={currentIndex < 0 || isDeleting}
+                  className="px-4 py-2 bg-red-500 text-white rounded-md hover:bg-red-600 font-semibold disabled:bg-gray-400"
+                >
+                  {isDeleting ? "جاري الحذف..." : "حذف"}
+                </button>
+              </PermissionWrapper>
+              <PermissionWrapper
+                requiredPermission={buildPermission(Resources.STORE_ISSUE_VOUCHER, Actions.SEARCH)}
+                fallback={
+                  <button
+                    disabled
+                    className="px-4 py-2 bg-gray-400 text-white rounded-md cursor-not-allowed opacity-50 font-semibold"
+                  >
+                    بحث
+                  </button>
+                }
               >
-                بحث
-              </button>
-              <button
-                onClick={() => window.print()}
-                className="px-4 py-2 bg-gray-200 text-brand-dark rounded-md hover:bg-gray-300 font-semibold flex items-center"
+                <button
+                  onClick={() => setIsSearchModalOpen(true)}
+                  className="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 font-semibold"
+                >
+                  بحث
+                </button>
+              </PermissionWrapper>
+              <PermissionWrapper
+                requiredPermission={buildPermission(Resources.STORE_ISSUE_VOUCHER, Actions.PRINT)}
+                fallback={
+                  <button
+                    disabled
+                    className="px-4 py-2 bg-gray-400 text-white rounded-md cursor-not-allowed opacity-50 font-semibold flex items-center"
+                  >
+                    <PrintIcon className="mr-2 w-5 h-5" /> طباعة
+                  </button>
+                }
               >
-                <PrintIcon className="mr-2 w-5 h-5" /> طباعة
-              </button>
+                <button
+                  onClick={() => window.print()}
+                  className="px-4 py-2 bg-gray-200 text-brand-dark rounded-md hover:bg-gray-300 font-semibold flex items-center"
+                >
+                  <PrintIcon className="mr-2 w-5 h-5" /> طباعة
+                </button>
+              </PermissionWrapper>
             </div>
 
             <div className="flex items-center justify-center gap-2">
