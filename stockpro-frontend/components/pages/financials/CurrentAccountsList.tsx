@@ -1,39 +1,62 @@
-import React from "react";
-import type { CurrentAccount } from "../../../types";
+import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { ExcelIcon, PdfIcon, PrintIcon, SearchIcon } from "../../icons";
 import { useModal } from "../../common/ModalProvider.tsx";
 import { exportToExcel, exportToPdf } from "../../../utils/formatting";
+import { useGetCurrentAccountsQuery, useDeleteCurrentAccountMutation } from "../../store/slices/currentAccounts";
+import PermissionWrapper from "../../common/PermissionWrapper";
+import { Resources, Actions, buildPermission } from "../../../enums/permissions.enum";
+import { useToast } from "../../common/ToastProvider";
+import { useAppSelector } from "../../store/hooks";
 
 interface CurrentAccountsListProps {
   title: string;
-  accounts: CurrentAccount[];
-  onAddNew: () => void;
-  onEdit: (id: number) => void;
-  onDelete: (id: number) => void;
+  onNavigate?: (key: string, label: string, id?: string | null) => void;
 }
 
 const CurrentAccountsList: React.FC<CurrentAccountsListProps> = ({
   title,
-  accounts,
-  onAddNew,
-  onEdit,
-  onDelete,
+  onNavigate,
 }) => {
+  const navigate = useNavigate();
+  const [searchTerm, setSearchTerm] = useState("");
+  const { token } = useAppSelector((state) => state.auth);
+  const { data: accounts = [], isLoading, error } = useGetCurrentAccountsQuery(undefined, {
+    skip: !token, // Only run query if user is authenticated
+  });
+  const [deleteCurrentAccount, { isLoading: isDeleting }] = useDeleteCurrentAccountMutation();
+  const { showModal } = useModal();
+  const { showToast } = useToast();
+
+
   const inputStyle =
     "w-64 pr-10 pl-4 py-3 bg-brand-blue-bg border-2 border-brand-blue rounded-md text-black placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-brand-blue";
-  const { showModal } = useModal();
 
-  const handleDeleteClick = (id: number, name: string) => {
+  // Filter accounts based on search term
+  const filteredAccounts = Array.isArray(accounts) ? accounts.filter(account =>
+    account.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    account.code.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    account.type.toLowerCase().includes(searchTerm.toLowerCase())
+  ) : [];
+
+  const handleDeleteClick = (id: string, name: string) => {
     showModal({
       title: "تأكيد الحذف",
       message: `هل أنت متأكد من رغبتك في حذف الحساب "${name}"؟`,
-      onConfirm: () => onDelete(id),
+      onConfirm: async () => {
+        try {
+          await deleteCurrentAccount(id).unwrap();
+          showToast("تم حذف الحساب بنجاح");
+        } catch (error) {
+          showToast("حدث خطأ أثناء حذف الحساب");
+        }
+      },
       type: "delete",
     });
   };
 
   const handleExcelExport = () => {
-    const dataToExport = accounts.map(({ code, name, type }) => ({
+    const dataToExport = filteredAccounts.map(({ code, name, type }) => ({
       الكود: code,
       "اسم الحساب": name,
       النوع: type,
@@ -43,21 +66,63 @@ const CurrentAccountsList: React.FC<CurrentAccountsListProps> = ({
 
   const handlePdfExport = () => {
     const head = [["النوع", "اسم الحساب", "الكود"]];
-    const body = accounts.map((acc) => [acc.type, acc.name, acc.code]);
+    const body = filteredAccounts.map((acc) => [acc.type, acc.name, acc.code]);
 
     exportToPdf("قائمة الحسابات الجارية", head, body, "قائمة-الحسابات-الجارية");
   };
+
+  if (!token) {
+    return (
+      <div className="bg-white p-6 rounded-lg shadow">
+        <div className="flex justify-center items-center h-64">
+          <div className="text-lg">يرجى تسجيل الدخول أولاً</div>
+        </div>
+      </div>
+    );
+  }
+
+  if (isLoading) {
+    return (
+      <div className="bg-white p-6 rounded-lg shadow">
+        <div className="flex justify-center items-center h-64">
+          <div className="text-lg">جاري التحميل...</div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="bg-white p-6 rounded-lg shadow">
+        <div className="flex justify-center items-center h-64">
+          <div className="text-lg text-red-600">حدث خطأ أثناء تحميل البيانات</div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="bg-white p-6 rounded-lg shadow">
       <div className="flex justify-between items-center mb-4 border-b pb-4 no-print">
         <h1 className="text-2xl font-bold text-brand-dark">{title}</h1>
-        <button
-          onClick={onAddNew}
-          className="px-6 py-2 bg-brand-green text-white rounded-md hover:bg-green-700 font-semibold transition-colors"
+        <PermissionWrapper
+          requiredPermission={buildPermission(Resources.CURRENT_ACCOUNTS, Actions.CREATE)}
+          fallback={
+            <button
+              disabled
+              className="px-6 py-2 bg-gray-400 text-white rounded-md cursor-not-allowed opacity-50 font-semibold transition-colors"
+            >
+              إضافة حساب جديد
+            </button>
+          }
         >
-          إضافة حساب جديد
-        </button>
+          <button
+            onClick={() => navigate("/financials/current-accounts/add")}
+            className="px-6 py-2 bg-brand-green text-white rounded-md hover:bg-green-700 font-semibold transition-colors"
+          >
+            إضافة حساب جديد
+          </button>
+        </PermissionWrapper>
       </div>
       <div className="flex justify-between items-center mb-4 no-print">
         <div className="relative">
@@ -66,6 +131,8 @@ const CurrentAccountsList: React.FC<CurrentAccountsListProps> = ({
             type="text"
             placeholder="بحث عن حساب..."
             className={inputStyle}
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
           />
         </div>
         <div className="flex items-center gap-2">
@@ -111,7 +178,7 @@ const CurrentAccountsList: React.FC<CurrentAccountsListProps> = ({
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
-            {accounts.map((account) => (
+            {filteredAccounts.map((account) => (
               <tr key={account.id} className="hover:bg-brand-blue-bg">
                 <td className="px-6 py-4">{account.code}</td>
                 <td className="px-6 py-4 font-medium text-brand-dark">
@@ -119,18 +186,46 @@ const CurrentAccountsList: React.FC<CurrentAccountsListProps> = ({
                 </td>
                 <td className="px-6 py-4">{account.type}</td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm font-medium no-print">
-                  <button
-                    onClick={() => onEdit(account.id)}
-                    className="text-brand-blue hover:text-blue-800 font-semibold ml-4"
+                  <PermissionWrapper
+                    requiredPermission={buildPermission(Resources.CURRENT_ACCOUNTS, Actions.UPDATE)}
+                    fallback={
+                      <button
+                        disabled
+                        className="text-gray-400 cursor-not-allowed font-semibold ml-4"
+                      >
+                        تعديل
+                      </button>
+                    }
                   >
-                    تعديل
-                  </button>
-                  <button
-                    onClick={() => handleDeleteClick(account.id, account.name)}
-                    className="text-red-600 hover:text-red-900 font-semibold"
+                    <button
+                      onClick={() => 
+                        onNavigate 
+                          ? onNavigate("add_current_account", `تعديل حساب #${account.code}`, account.id)
+                          : navigate(`/financials/current-accounts/add/${account.id}`)
+                      }
+                      className="text-brand-blue hover:text-blue-800 font-semibold ml-4"
+                    >
+                      تعديل
+                    </button>
+                  </PermissionWrapper>
+                  <PermissionWrapper
+                    requiredPermission={buildPermission(Resources.CURRENT_ACCOUNTS, Actions.DELETE)}
+                    fallback={
+                      <button
+                        disabled
+                        className="text-gray-400 cursor-not-allowed font-semibold"
+                      >
+                        حذف
+                      </button>
+                    }
                   >
-                    حذف
-                  </button>
+                    <button
+                      onClick={() => handleDeleteClick(account.id, account.name)}
+                      className="text-red-600 hover:text-red-900 font-semibold"
+                    >
+                      حذف
+                    </button>
+                  </PermissionWrapper>
                 </td>
               </tr>
             ))}

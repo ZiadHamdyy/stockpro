@@ -27,6 +27,7 @@ import { StoreTransferVoucherModule } from './modules/store-transfer-voucher/sto
 import { BankModule } from './modules/bank/bank.module';
 import { CustomerModule } from './modules/customer/customer.module';
 import { SupplierModule } from './modules/supplier/supplier.module';
+import { CurrentAccountModule } from './modules/current-account/current-account.module';
 
 @Module({
   imports: [
@@ -53,6 +54,7 @@ import { SupplierModule } from './modules/supplier/supplier.module';
     BankModule,
     CustomerModule,
     SupplierModule,
+    CurrentAccountModule,
   ],
   controllers: [AppController],
   providers: [

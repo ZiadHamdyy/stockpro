@@ -6,6 +6,7 @@ import itemsReducer from "./slices/items/items";
 import storeReceiptVoucherReducer from "./slices/storeReceiptVoucher/storeReceiptVoucher";
 import storeIssueVoucherReducer from "./slices/storeIssueVoucher/storeIssueVoucher";
 import storeTransferVoucherReducer from "./slices/storeTransferVoucher/storeTransferVoucher";
+import currentAccountsReducer from "./slices/currentAccounts/currentAccountsSlice";
 import { apiSlice } from "./ApiSlice";
 import storage from "redux-persist/lib/storage";
 import {
@@ -36,6 +37,7 @@ export const store = configureStore({
     storeReceiptVoucher: storeReceiptVoucherReducer,
     storeIssueVoucher: storeIssueVoucherReducer,
     storeTransferVoucher: storeTransferVoucherReducer,
+    currentAccounts: currentAccountsReducer,
     [apiSlice.reducerPath]: apiSlice.reducer,
   },
   middleware: (getDefaultMiddleware) =>

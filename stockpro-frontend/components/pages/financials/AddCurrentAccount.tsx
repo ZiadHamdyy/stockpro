@@ -1,18 +1,26 @@
 import React, { useState, useEffect } from "react";
-import type { CurrentAccount } from "../../../types";
+import { useNavigate, useParams } from "react-router-dom";
 import { useModal } from "../../common/ModalProvider";
 import { useToast } from "../../common/ToastProvider";
+import { useTitle } from "../../context/TitleContext";
+import { 
+  useGetCurrentAccountsQuery, 
+  useCreateCurrentAccountMutation, 
+  useUpdateCurrentAccountMutation, 
+  useDeleteCurrentAccountMutation,
+  CurrentAccount 
+} from "../../store/slices/currentAccounts";
+import PermissionWrapper from "../../common/PermissionWrapper";
+import { Resources, Actions, buildPermission } from "../../../enums/permissions.enum";
+import { useAppSelector } from "../../store/hooks";
 
 interface AddCurrentAccountProps {
   title: string;
-  editingId: number | null;
-  accounts: CurrentAccount[];
-  onSave: (account: CurrentAccount | Omit<CurrentAccount, "id">) => void;
-  onDelete: (id: number) => void;
-  onNavigate: (key: string, label: string, id?: number | null) => void;
+  editingId?: string | null;
+  onNavigate?: (key: string, label: string, id?: string | null) => void;
 }
 
-const emptyAccount: Omit<CurrentAccount, "id"> = {
+const emptyAccount: Omit<CurrentAccount, "id" | "createdAt" | "updatedAt"> = {
   code: "",
   name: "",
   type: "",
@@ -22,32 +30,62 @@ const emptyAccount: Omit<CurrentAccount, "id"> = {
 const AddCurrentAccount: React.FC<AddCurrentAccountProps> = ({
   title,
   editingId,
-  accounts,
-  onSave,
-  onDelete,
   onNavigate,
 }) => {
+  const navigate = useNavigate();
+  const params = useParams();
+  const { setTitle } = useTitle();
+  
+  // Get the account ID from URL parameters or props
+  const accountId = params.id || editingId;
+  
   const [accountData, setAccountData] = useState<
-    CurrentAccount | Omit<CurrentAccount, "id">
+    CurrentAccount | Omit<CurrentAccount, "id" | "createdAt" | "updatedAt">
   >(emptyAccount);
   const [isReadOnly, setIsReadOnly] = useState(true);
-  const [currentIndex, setCurrentIndex] = useState(-1);
+  const [accountPosition, setAccountPosition] = useState<number | null>(null);
+  
+  const { data: accounts = [], isLoading } = useGetCurrentAccountsQuery();
+  const [createCurrentAccount, { isLoading: isCreating }] = useCreateCurrentAccountMutation();
+  const [updateCurrentAccount, { isLoading: isUpdating }] = useUpdateCurrentAccountMutation();
+  const [deleteCurrentAccount, { isLoading: isDeleting }] = useDeleteCurrentAccountMutation();
+  
   const { showModal } = useModal();
   const { showToast } = useToast();
 
+  // Calculate account position when accounts data is available
   useEffect(() => {
-    if (editingId !== null) {
-      const index = accounts.findIndex((c) => c.id === editingId);
-      if (index !== -1) {
-        setAccountData(accounts[index]);
-        setCurrentIndex(index);
+    if (Array.isArray(accounts) && accounts.length > 0 && accountId) {
+      const index = accounts.findIndex(account => account.id === accountId);
+      const position = index !== -1 ? index + 1 : null;
+      setAccountPosition(position);
+      
+      // Update title context for the header
+      if (position) {
+        setTitle(`تعديل حساب #${position}`);
+      } else {
+        setTitle(`تعديل حساب`);
+      }
+    } else {
+      setAccountPosition(null);
+      setTitle(`تعديل حساب`);
+    }
+  }, [accounts, accountId, setTitle]);
+
+  useEffect(() => {
+    if (accountId !== null && accountId !== undefined) {
+      const foundAccount = Array.isArray(accounts)
+        ? accounts.find((account) => account.id === accountId)
+        : null;
+      if (foundAccount) {
+        setAccountData(foundAccount);
         setIsReadOnly(true);
       }
     } else {
       const nextCodeNumber =
-        accounts.length > 0
+        (accounts || []).length > 0
           ? Math.max(
-              ...accounts.map(
+              ...(accounts || []).map(
                 (c) => parseInt(c.code.replace("CA-", ""), 10) || 0,
               ),
             ) + 1
@@ -55,9 +93,8 @@ const AddCurrentAccount: React.FC<AddCurrentAccountProps> = ({
       const newCode = `CA-${String(nextCodeNumber).padStart(3, "0")}`;
       setAccountData({ ...emptyAccount, code: newCode });
       setIsReadOnly(false);
-      setCurrentIndex(-1);
     }
-  }, [editingId, accounts]);
+  }, [accountId, accounts]);
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>,
@@ -69,13 +106,31 @@ const AddCurrentAccount: React.FC<AddCurrentAccountProps> = ({
     }));
   };
 
-  const handleSave = () => {
-    onSave(accountData);
-    showToast(`تم حفظ الحساب "${accountData.name}" بنجاح!`);
-    if (!("id" in accountData)) {
-      // new
-    } else {
-      setIsReadOnly(true);
+  const handleSave = async () => {
+    try {
+      if (!("id" in accountData)) {
+        // Create new account
+        await createCurrentAccount({
+          name: accountData.name,
+          type: accountData.type,
+          openingBalance: accountData.openingBalance,
+        }).unwrap();
+        showToast(`تم إنشاء الحساب "${accountData.name}" بنجاح!`);
+      } else {
+        // Update existing account
+        await updateCurrentAccount({
+          id: accountData.id,
+          data: {
+            name: accountData.name,
+            type: accountData.type,
+            openingBalance: accountData.openingBalance,
+          },
+        }).unwrap();
+        showToast(`تم تحديث الحساب "${accountData.name}" بنجاح!`);
+        setIsReadOnly(true);
+      }
+    } catch (error) {
+      showToast("حدث خطأ أثناء حفظ الحساب");
     }
   };
 
@@ -84,9 +139,14 @@ const AddCurrentAccount: React.FC<AddCurrentAccountProps> = ({
       showModal({
         title: "تأكيد الحذف",
         message: `هل أنت متأكد من حذف الحساب "${accountData.name}"؟`,
-        onConfirm: () => {
-          onDelete(accountData.id as number);
-          showToast("تم الحذف بنجاح.");
+        onConfirm: async () => {
+          try {
+            await deleteCurrentAccount(accountData.id).unwrap();
+            showToast("تم الحذف بنجاح.");
+            onNavigate("add_current_account", "إضافة حساب جاري");
+          } catch (error) {
+            showToast("حدث خطأ أثناء حذف الحساب");
+          }
         },
         type: "delete",
       });
@@ -102,28 +162,41 @@ const AddCurrentAccount: React.FC<AddCurrentAccountProps> = ({
     });
   };
 
-  const navigate = (direction: "first" | "prev" | "next" | "last") => {
-    let newIndex = -1;
-    if (accounts.length === 0) return;
+  const navigateToAccount = (direction: "first" | "prev" | "next" | "last") => {
+    if (!Array.isArray(accounts) || accounts.length === 0) return;
+
+    const isNewAccount = !("id" in accountData);
+    let newIndex = 0;
 
     switch (direction) {
       case "first":
         newIndex = 0;
         break;
       case "prev":
-        newIndex = Math.max(0, currentIndex - 1);
+        if (isNewAccount) {
+          newIndex = accounts.length - 1;
+        } else {
+          const currentIndex = accounts.findIndex(acc => acc.id === accountData.id);
+          newIndex = Math.max(0, currentIndex - 1);
+        }
         break;
       case "next":
-        newIndex = Math.min(accounts.length - 1, currentIndex + 1);
+        if (isNewAccount) {
+          newIndex = 0;
+        } else {
+          const currentIndex = accounts.findIndex(acc => acc.id === accountData.id);
+          newIndex = Math.min(accounts.length - 1, currentIndex + 1);
+        }
         break;
       case "last":
         newIndex = accounts.length - 1;
         break;
     }
 
-    if (newIndex !== -1) {
+    if (newIndex !== -1 && accounts[newIndex]) {
       const newId = accounts[newIndex].id;
-      onNavigate("add_current_account", `تعديل حساب #${newId}`, newId);
+      // Use React Router navigation with path parameter
+      navigate(`/financials/current-accounts/add/${newId}`);
     }
   };
 
@@ -132,7 +205,9 @@ const AddCurrentAccount: React.FC<AddCurrentAccountProps> = ({
 
   return (
     <div className="bg-white p-6 rounded-lg shadow">
-      <h1 className="text-2xl font-bold mb-4 text-brand-dark">{title}</h1>
+      <h1 className="text-2xl font-bold mb-4 text-brand-dark">
+        {accountPosition ? `تعديل حساب #${accountPosition}` : title}
+      </h1>
       <form
         onSubmit={(e) => {
           e.preventDefault();
@@ -216,44 +291,93 @@ const AddCurrentAccount: React.FC<AddCurrentAccountProps> = ({
         </div>
         <div className="mt-8 pt-6 border-t-2 border-gray-200 flex flex-col items-start space-y-4">
           <div className="flex justify-start gap-2">
-            <button
-              type="button"
-              onClick={() =>
-                onNavigate("add_current_account", "إضافة حساب جاري")
+            <PermissionWrapper
+              requiredPermission={buildPermission(Resources.CURRENT_ACCOUNTS, Actions.CREATE)}
+              fallback={
+                <button
+                  disabled
+                  className="px-4 py-2 bg-gray-400 text-white rounded-md cursor-not-allowed opacity-50 font-semibold"
+                >
+                  جديد
+                </button>
               }
-              className="px-4 py-2 bg-brand-blue text-white rounded-md hover:bg-blue-800 font-semibold"
             >
-              جديد
-            </button>
-            {isReadOnly ? (
               <button
                 type="button"
-                onClick={handleEdit}
-                className="px-4 py-2 bg-yellow-500 text-white rounded-md hover:bg-yellow-600 font-semibold"
+                onClick={() => navigate("/financials/current-accounts/add")}
+                className="px-4 py-2 bg-brand-blue text-white rounded-md hover:bg-blue-800 font-semibold"
               >
-                تعديل
+                جديد
               </button>
+            </PermissionWrapper>
+            {isReadOnly ? (
+              <PermissionWrapper
+                requiredPermission={buildPermission(Resources.CURRENT_ACCOUNTS, Actions.UPDATE)}
+                fallback={
+                  <button
+                    disabled
+                    className="px-4 py-2 bg-gray-400 text-white rounded-md cursor-not-allowed opacity-50 font-semibold"
+                  >
+                    تعديل
+                  </button>
+                }
+              >
+                <button
+                  type="button"
+                  onClick={handleEdit}
+                  className="px-4 py-2 bg-yellow-500 text-white rounded-md hover:bg-yellow-600 font-semibold"
+                >
+                  تعديل
+                </button>
+              </PermissionWrapper>
             ) : (
-              <button
-                type="submit"
-                className="px-4 py-2 bg-brand-green text-white rounded-md hover:bg-green-700 font-semibold"
+              <PermissionWrapper
+                requiredPermission={[
+                  buildPermission(Resources.CURRENT_ACCOUNTS, Actions.CREATE),
+                  buildPermission(Resources.CURRENT_ACCOUNTS, Actions.UPDATE)
+                ]}
+                fallback={
+                  <button
+                    type="submit"
+                    disabled
+                    className="px-4 py-2 bg-gray-400 text-white rounded-md cursor-not-allowed opacity-50 font-semibold"
+                  >
+                    {isCreating || isUpdating ? "جاري الحفظ..." : "حفظ"}
+                  </button>
+                }
               >
-                حفظ
-              </button>
+                <button
+                  type="submit"
+                  disabled={isCreating || isUpdating}
+                  className="px-4 py-2 bg-brand-green text-white rounded-md hover:bg-green-700 font-semibold disabled:opacity-50"
+                >
+                  {isCreating || isUpdating ? "جاري الحفظ..." : "حفظ"}
+                </button>
+              </PermissionWrapper>
             )}
-            <button
-              type="button"
-              onClick={handleDelete}
-              disabled={!("id" in accountData)}
-              className="px-4 py-2 bg-red-500 text-white rounded-md hover:bg-red-600 font-semibold disabled:bg-gray-400"
-            >
-              حذف
-            </button>
-            <button
-              type="button"
-              onClick={() =>
-                onNavigate("current_accounts_list", "قائمة الحسابات الجارية")
+            <PermissionWrapper
+              requiredPermission={buildPermission(Resources.CURRENT_ACCOUNTS, Actions.DELETE)}
+              fallback={
+                <button
+                  disabled
+                  className="px-4 py-2 bg-gray-400 text-white rounded-md cursor-not-allowed opacity-50 font-semibold"
+                >
+                  حذف
+                </button>
               }
+            >
+              <button
+                type="button"
+                onClick={handleDelete}
+                disabled={!("id" in accountData) || isDeleting}
+                className="px-4 py-2 bg-red-500 text-white rounded-md hover:bg-red-600 font-semibold disabled:bg-gray-400"
+              >
+                {isDeleting ? "جاري الحذف..." : "حذف"}
+              </button>
+            </PermissionWrapper>
+            <button
+              type="button"
+              onClick={() => navigate("/financials/current-accounts/list")}
               className="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 font-semibold"
             >
               القائمة
@@ -263,39 +387,39 @@ const AddCurrentAccount: React.FC<AddCurrentAccountProps> = ({
           <div className="flex items-center justify-start gap-1">
             <button
               type="button"
-              onClick={() => navigate("first")}
-              disabled={currentIndex <= 0}
+              onClick={() => navigateToAccount("first")}
+              disabled={accountPosition === 1 || (accounts || []).length === 0}
               className="p-2 bg-gray-200 rounded-md hover:bg-gray-300 disabled:opacity-50"
             >
               الأول
             </button>
             <button
               type="button"
-              onClick={() => navigate("prev")}
-              disabled={currentIndex <= 0}
+              onClick={() => navigateToAccount("prev")}
+              disabled={accountPosition === 1 || (accounts || []).length === 0}
               className="p-2 bg-gray-200 rounded-md hover:bg-gray-300 disabled:opacity-50"
             >
               السابق
             </button>
             <div className="px-4 py-2 bg-brand-blue-bg border-2 border-brand-blue rounded-md">
               <span className="font-bold">
-                {currentIndex > -1
-                  ? `${currentIndex + 1} / ${accounts.length}`
+                {accountPosition
+                  ? `${accountPosition} / ${(accounts || []).length}`
                   : `سجل جديد`}
               </span>
             </div>
             <button
               type="button"
-              onClick={() => navigate("next")}
-              disabled={currentIndex >= accounts.length - 1}
+              onClick={() => navigateToAccount("next")}
+              disabled={accountPosition === (accounts || []).length || (accounts || []).length === 0}
               className="p-2 bg-gray-200 rounded-md hover:bg-gray-300 disabled:opacity-50"
             >
               التالي
             </button>
             <button
               type="button"
-              onClick={() => navigate("last")}
-              disabled={currentIndex >= accounts.length - 1}
+              onClick={() => navigateToAccount("last")}
+              disabled={accountPosition === (accounts || []).length || (accounts || []).length === 0}
               className="p-2 bg-gray-200 rounded-md hover:bg-gray-300 disabled:opacity-50"
             >
               الأخير

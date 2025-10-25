@@ -215,6 +215,25 @@ const AddSupplierWrapper = ({
   );
 };
 
+// Wrapper component to handle URL-based editing for AddCurrentAccount
+const AddCurrentAccountWrapper = ({
+  title,
+  onNavigate,
+}: {
+  title: string;
+  onNavigate: (key: string, label: string, id?: string | null) => void;
+}) => {
+  const { id } = useParams<{ id?: string }>();
+
+  return (
+    <AddCurrentAccount
+      title={title}
+      editingId={id || null}
+      onNavigate={onNavigate}
+    />
+  );
+};
+
 const AppContent = () => {
   const location = useLocation();
   const navigate = useNavigate();
@@ -1116,20 +1135,30 @@ const AppContent = () => {
                   <AddCurrentAccount
                     title={currentPageTitle}
                     editingId={null}
-                    accounts={currentAccounts}
-                    onSave={(acc) =>
-                      setCurrentAccounts((prev) =>
-                        "id" in acc && acc.id
-                          ? prev.map((a) => (a.id === acc.id ? acc : a))
-                          : [...prev, { ...acc, id: Date.now() }],
-                      )
-                    }
-                    onDelete={(id) => {
-                      setCurrentAccounts((prev) =>
-                        prev.filter((a) => a.id !== id),
-                      );
+                    onNavigate={(key, label, id) => {
+                      if (key === 'current_accounts_list') {
+                        navigate('/financials/current-accounts/list');
+                      } else if (key === 'add_current_account' && id) {
+                        navigate(`/financials/current-accounts/add/${id}`);
+                      }
                     }}
-                    onNavigate={() => {}}
+                  />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/financials/current-accounts/add/:id"
+              element={
+                <ProtectedRoute requiredPermission="add_current_account-read">
+                  <AddCurrentAccountWrapper
+                    title={currentPageTitle}
+                    onNavigate={(key, label, newId) => {
+                      if (key === 'current_accounts_list') {
+                        navigate('/financials/current-accounts/list');
+                      } else if (key === 'add_current_account' && newId) {
+                        navigate(`/financials/current-accounts/add/${newId}`);
+                      }
+                    }}
                   />
                 </ProtectedRoute>
               }
@@ -1141,20 +1170,13 @@ const AppContent = () => {
                   <AddCurrentAccount
                     title={currentPageTitle}
                     editingId={null}
-                    accounts={currentAccounts}
-                    onSave={(acc) =>
-                      setCurrentAccounts((prev) =>
-                        "id" in acc && acc.id
-                          ? prev.map((a) => (a.id === acc.id ? acc : a))
-                          : [...prev, { ...acc, id: Date.now() }],
-                      )
-                    }
-                    onDelete={(id) => {
-                      setCurrentAccounts((prev) =>
-                        prev.filter((a) => a.id !== id),
-                      );
+                    onNavigate={(key, label, id) => {
+                      if (key === 'current_accounts_list') {
+                        navigate('/financials/current-accounts/list');
+                      } else if (key === 'add_current_account' && id) {
+                        navigate(`/financials/current-accounts/add/${id}`);
+                      }
                     }}
-                    onNavigate={() => {}}
                   />
                 </ProtectedRoute>
               }
@@ -1165,14 +1187,6 @@ const AppContent = () => {
                 <ProtectedRoute requiredPermission="current_accounts_list-read">
                   <CurrentAccountsList
                     title={currentPageTitle}
-                    accounts={currentAccounts}
-                    onAddNew={() => {}}
-                    onEdit={(id) => {}}
-                    onDelete={(id) =>
-                      setCurrentAccounts((prev) =>
-                        prev.filter((a) => a.id !== id),
-                      )
-                    }
                   />
                 </ProtectedRoute>
               }
@@ -1183,14 +1197,6 @@ const AppContent = () => {
                 <ProtectedRoute requiredPermission="current_accounts_list-read">
                   <CurrentAccountsList
                     title={currentPageTitle}
-                    accounts={currentAccounts}
-                    onAddNew={() => {}}
-                    onEdit={(id) => {}}
-                    onDelete={(id) =>
-                      setCurrentAccounts((prev) =>
-                        prev.filter((a) => a.id !== id),
-                      )
-                    }
                   />
                 </ProtectedRoute>
               }
