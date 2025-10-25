@@ -352,7 +352,6 @@ export class ExpenseService {
       id: expense.id,
       code: expense.code,
       date: expense.date,
-      amount: expense.amount,
       description: expense.description,
       expenseCodeId: expense.expenseCodeId,
       expenseCode: expense.expenseCode

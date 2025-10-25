@@ -54,7 +54,6 @@ export interface Expense {
   id: string;
   code: string;
   date: string;
-  amount: number;
   description?: string | null;
   expenseCodeId: string;
   expenseCode?: {
@@ -73,14 +72,12 @@ export interface Expense {
 export interface CreateExpenseRequest {
   date: string;
   expenseCodeId: string;
-  amount: number;
   description?: string;
 }
 
 export interface UpdateExpenseRequest {
   date?: string;
   expenseCodeId?: string;
-  amount?: number;
   description?: string;
 }
 

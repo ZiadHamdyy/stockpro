@@ -3,9 +3,16 @@ import { useNavigate } from "react-router-dom";
 import { ExcelIcon, PdfIcon, PrintIcon, SearchIcon } from "../../icons";
 import { useModal } from "../../common/ModalProvider.tsx";
 import { exportToExcel, exportToPdf } from "../../../utils/formatting";
-import { useGetCurrentAccountsQuery, useDeleteCurrentAccountMutation } from "../../store/slices/currentAccounts";
+import {
+  useGetCurrentAccountsQuery,
+  useDeleteCurrentAccountMutation,
+} from "../../store/slices/currentAccounts";
 import PermissionWrapper from "../../common/PermissionWrapper";
-import { Resources, Actions, buildPermission } from "../../../enums/permissions.enum";
+import {
+  Resources,
+  Actions,
+  buildPermission,
+} from "../../../enums/permissions.enum";
 import { useToast } from "../../common/ToastProvider";
 import { useAppSelector } from "../../store/hooks";
 
@@ -21,23 +28,30 @@ const CurrentAccountsList: React.FC<CurrentAccountsListProps> = ({
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState("");
   const { token } = useAppSelector((state) => state.auth);
-  const { data: accounts = [], isLoading, error } = useGetCurrentAccountsQuery(undefined, {
+  const {
+    data: accounts = [],
+    isLoading,
+    error,
+  } = useGetCurrentAccountsQuery(undefined, {
     skip: !token, // Only run query if user is authenticated
   });
-  const [deleteCurrentAccount, { isLoading: isDeleting }] = useDeleteCurrentAccountMutation();
+  const [deleteCurrentAccount, { isLoading: isDeleting }] =
+    useDeleteCurrentAccountMutation();
   const { showModal } = useModal();
   const { showToast } = useToast();
-
 
   const inputStyle =
     "w-64 pr-10 pl-4 py-3 bg-brand-blue-bg border-2 border-brand-blue rounded-md text-black placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-brand-blue";
 
   // Filter accounts based on search term
-  const filteredAccounts = Array.isArray(accounts) ? accounts.filter(account =>
-    account.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    account.code.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    account.type.toLowerCase().includes(searchTerm.toLowerCase())
-  ) : [];
+  const filteredAccounts = Array.isArray(accounts)
+    ? accounts.filter(
+        (account) =>
+          account.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          account.code.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          account.type.toLowerCase().includes(searchTerm.toLowerCase()),
+      )
+    : [];
 
   const handleDeleteClick = (id: string, name: string) => {
     showModal({
@@ -95,7 +109,9 @@ const CurrentAccountsList: React.FC<CurrentAccountsListProps> = ({
     return (
       <div className="bg-white p-6 rounded-lg shadow">
         <div className="flex justify-center items-center h-64">
-          <div className="text-lg text-red-600">حدث خطأ أثناء تحميل البيانات</div>
+          <div className="text-lg text-red-600">
+            حدث خطأ أثناء تحميل البيانات
+          </div>
         </div>
       </div>
     );
@@ -106,7 +122,10 @@ const CurrentAccountsList: React.FC<CurrentAccountsListProps> = ({
       <div className="flex justify-between items-center mb-4 border-b pb-4 no-print">
         <h1 className="text-2xl font-bold text-brand-dark">{title}</h1>
         <PermissionWrapper
-          requiredPermission={buildPermission(Resources.CURRENT_ACCOUNTS, Actions.CREATE)}
+          requiredPermission={buildPermission(
+            Resources.CURRENT_ACCOUNTS,
+            Actions.CREATE,
+          )}
           fallback={
             <button
               disabled
@@ -187,7 +206,10 @@ const CurrentAccountsList: React.FC<CurrentAccountsListProps> = ({
                 <td className="px-6 py-4">{account.type}</td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm font-medium no-print">
                   <PermissionWrapper
-                    requiredPermission={buildPermission(Resources.CURRENT_ACCOUNTS, Actions.UPDATE)}
+                    requiredPermission={buildPermission(
+                      Resources.CURRENT_ACCOUNTS,
+                      Actions.UPDATE,
+                    )}
                     fallback={
                       <button
                         disabled
@@ -198,10 +220,16 @@ const CurrentAccountsList: React.FC<CurrentAccountsListProps> = ({
                     }
                   >
                     <button
-                      onClick={() => 
-                        onNavigate 
-                          ? onNavigate("add_current_account", `تعديل حساب #${account.code}`, account.id)
-                          : navigate(`/financials/current-accounts/add/${account.id}`)
+                      onClick={() =>
+                        onNavigate
+                          ? onNavigate(
+                              "add_current_account",
+                              `تعديل حساب #${account.code}`,
+                              account.id,
+                            )
+                          : navigate(
+                              `/financials/current-accounts/add/${account.id}`,
+                            )
                       }
                       className="text-brand-blue hover:text-blue-800 font-semibold ml-4"
                     >
@@ -209,7 +237,10 @@ const CurrentAccountsList: React.FC<CurrentAccountsListProps> = ({
                     </button>
                   </PermissionWrapper>
                   <PermissionWrapper
-                    requiredPermission={buildPermission(Resources.CURRENT_ACCOUNTS, Actions.DELETE)}
+                    requiredPermission={buildPermission(
+                      Resources.CURRENT_ACCOUNTS,
+                      Actions.DELETE,
+                    )}
                     fallback={
                       <button
                         disabled
@@ -220,7 +251,9 @@ const CurrentAccountsList: React.FC<CurrentAccountsListProps> = ({
                     }
                   >
                     <button
-                      onClick={() => handleDeleteClick(account.id, account.name)}
+                      onClick={() =>
+                        handleDeleteClick(account.id, account.name)
+                      }
                       className="text-red-600 hover:text-red-900 font-semibold"
                     >
                       حذف

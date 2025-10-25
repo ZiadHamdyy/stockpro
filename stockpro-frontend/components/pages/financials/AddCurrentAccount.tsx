@@ -3,15 +3,19 @@ import { useNavigate, useParams } from "react-router-dom";
 import { useModal } from "../../common/ModalProvider";
 import { useToast } from "../../common/ToastProvider";
 import { useTitle } from "../../context/TitleContext";
-import { 
-  useGetCurrentAccountsQuery, 
-  useCreateCurrentAccountMutation, 
-  useUpdateCurrentAccountMutation, 
+import {
+  useGetCurrentAccountsQuery,
+  useCreateCurrentAccountMutation,
+  useUpdateCurrentAccountMutation,
   useDeleteCurrentAccountMutation,
-  CurrentAccount 
+  CurrentAccount,
 } from "../../store/slices/currentAccounts";
 import PermissionWrapper from "../../common/PermissionWrapper";
-import { Resources, Actions, buildPermission } from "../../../enums/permissions.enum";
+import {
+  Resources,
+  Actions,
+  buildPermission,
+} from "../../../enums/permissions.enum";
 import { useAppSelector } from "../../store/hooks";
 
 interface AddCurrentAccountProps {
@@ -35,31 +39,34 @@ const AddCurrentAccount: React.FC<AddCurrentAccountProps> = ({
   const navigate = useNavigate();
   const params = useParams();
   const { setTitle } = useTitle();
-  
+
   // Get the account ID from URL parameters or props
   const accountId = params.id || editingId;
-  
+
   const [accountData, setAccountData] = useState<
     CurrentAccount | Omit<CurrentAccount, "id" | "createdAt" | "updatedAt">
   >(emptyAccount);
   const [isReadOnly, setIsReadOnly] = useState(true);
   const [accountPosition, setAccountPosition] = useState<number | null>(null);
-  
+
   const { data: accounts = [], isLoading } = useGetCurrentAccountsQuery();
-  const [createCurrentAccount, { isLoading: isCreating }] = useCreateCurrentAccountMutation();
-  const [updateCurrentAccount, { isLoading: isUpdating }] = useUpdateCurrentAccountMutation();
-  const [deleteCurrentAccount, { isLoading: isDeleting }] = useDeleteCurrentAccountMutation();
-  
+  const [createCurrentAccount, { isLoading: isCreating }] =
+    useCreateCurrentAccountMutation();
+  const [updateCurrentAccount, { isLoading: isUpdating }] =
+    useUpdateCurrentAccountMutation();
+  const [deleteCurrentAccount, { isLoading: isDeleting }] =
+    useDeleteCurrentAccountMutation();
+
   const { showModal } = useModal();
   const { showToast } = useToast();
 
   // Calculate account position when accounts data is available
   useEffect(() => {
     if (Array.isArray(accounts) && accounts.length > 0 && accountId) {
-      const index = accounts.findIndex(account => account.id === accountId);
+      const index = accounts.findIndex((account) => account.id === accountId);
       const position = index !== -1 ? index + 1 : null;
       setAccountPosition(position);
-      
+
       // Update title context for the header
       if (position) {
         setTitle(`تعديل حساب #${position}`);
@@ -176,7 +183,9 @@ const AddCurrentAccount: React.FC<AddCurrentAccountProps> = ({
         if (isNewAccount) {
           newIndex = accounts.length - 1;
         } else {
-          const currentIndex = accounts.findIndex(acc => acc.id === accountData.id);
+          const currentIndex = accounts.findIndex(
+            (acc) => acc.id === accountData.id,
+          );
           newIndex = Math.max(0, currentIndex - 1);
         }
         break;
@@ -184,7 +193,9 @@ const AddCurrentAccount: React.FC<AddCurrentAccountProps> = ({
         if (isNewAccount) {
           newIndex = 0;
         } else {
-          const currentIndex = accounts.findIndex(acc => acc.id === accountData.id);
+          const currentIndex = accounts.findIndex(
+            (acc) => acc.id === accountData.id,
+          );
           newIndex = Math.min(accounts.length - 1, currentIndex + 1);
         }
         break;
@@ -292,7 +303,10 @@ const AddCurrentAccount: React.FC<AddCurrentAccountProps> = ({
         <div className="mt-8 pt-6 border-t-2 border-gray-200 flex flex-col items-start space-y-4">
           <div className="flex justify-start gap-2">
             <PermissionWrapper
-              requiredPermission={buildPermission(Resources.CURRENT_ACCOUNTS, Actions.CREATE)}
+              requiredPermission={buildPermission(
+                Resources.CURRENT_ACCOUNTS,
+                Actions.CREATE,
+              )}
               fallback={
                 <button
                   disabled
@@ -312,7 +326,10 @@ const AddCurrentAccount: React.FC<AddCurrentAccountProps> = ({
             </PermissionWrapper>
             {isReadOnly ? (
               <PermissionWrapper
-                requiredPermission={buildPermission(Resources.CURRENT_ACCOUNTS, Actions.UPDATE)}
+                requiredPermission={buildPermission(
+                  Resources.CURRENT_ACCOUNTS,
+                  Actions.UPDATE,
+                )}
                 fallback={
                   <button
                     disabled
@@ -334,7 +351,7 @@ const AddCurrentAccount: React.FC<AddCurrentAccountProps> = ({
               <PermissionWrapper
                 requiredPermission={[
                   buildPermission(Resources.CURRENT_ACCOUNTS, Actions.CREATE),
-                  buildPermission(Resources.CURRENT_ACCOUNTS, Actions.UPDATE)
+                  buildPermission(Resources.CURRENT_ACCOUNTS, Actions.UPDATE),
                 ]}
                 fallback={
                   <button
@@ -356,7 +373,10 @@ const AddCurrentAccount: React.FC<AddCurrentAccountProps> = ({
               </PermissionWrapper>
             )}
             <PermissionWrapper
-              requiredPermission={buildPermission(Resources.CURRENT_ACCOUNTS, Actions.DELETE)}
+              requiredPermission={buildPermission(
+                Resources.CURRENT_ACCOUNTS,
+                Actions.DELETE,
+              )}
               fallback={
                 <button
                   disabled
@@ -411,7 +431,10 @@ const AddCurrentAccount: React.FC<AddCurrentAccountProps> = ({
             <button
               type="button"
               onClick={() => navigateToAccount("next")}
-              disabled={accountPosition === (accounts || []).length || (accounts || []).length === 0}
+              disabled={
+                accountPosition === (accounts || []).length ||
+                (accounts || []).length === 0
+              }
               className="p-2 bg-gray-200 rounded-md hover:bg-gray-300 disabled:opacity-50"
             >
               التالي
@@ -419,7 +442,10 @@ const AddCurrentAccount: React.FC<AddCurrentAccountProps> = ({
             <button
               type="button"
               onClick={() => navigateToAccount("last")}
-              disabled={accountPosition === (accounts || []).length || (accounts || []).length === 0}
+              disabled={
+                accountPosition === (accounts || []).length ||
+                (accounts || []).length === 0
+              }
               className="p-2 bg-gray-200 rounded-md hover:bg-gray-300 disabled:opacity-50"
             >
               الأخير

@@ -37,9 +37,14 @@ export const currentAccountsApi = apiSlice.injectEndpoints({
     getCurrentAccountByCode: builder.query<CurrentAccount, string>({
       query: (code) => `current-accounts/code/${code}`,
       transformResponse: (response: any) => response.data || null,
-      providesTags: (result, error, code) => [{ type: "CurrentAccount", id: code }],
+      providesTags: (result, error, code) => [
+        { type: "CurrentAccount", id: code },
+      ],
     }),
-    createCurrentAccount: builder.mutation<CurrentAccount, CreateCurrentAccountRequest>({
+    createCurrentAccount: builder.mutation<
+      CurrentAccount,
+      CreateCurrentAccountRequest
+    >({
       query: (newAccount) => ({
         url: "current-accounts",
         method: "POST",
@@ -48,7 +53,10 @@ export const currentAccountsApi = apiSlice.injectEndpoints({
       transformResponse: (response: any) => response.data || response,
       invalidatesTags: ["CurrentAccount"],
     }),
-    updateCurrentAccount: builder.mutation<CurrentAccount, { id: string; data: UpdateCurrentAccountRequest }>({
+    updateCurrentAccount: builder.mutation<
+      CurrentAccount,
+      { id: string; data: UpdateCurrentAccountRequest }
+    >({
       query: ({ id, data }) => ({
         url: `current-accounts/${id}`,
         method: "PATCH",

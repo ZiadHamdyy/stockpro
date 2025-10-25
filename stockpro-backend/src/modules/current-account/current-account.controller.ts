@@ -39,7 +39,9 @@ export class CurrentAccountController {
 
   @Get('code/:code')
   @Auth({ permissions: ['current_accounts:read'] })
-  async findByCode(@Param('code') code: string): Promise<CurrentAccountResponse> {
+  async findByCode(
+    @Param('code') code: string,
+  ): Promise<CurrentAccountResponse> {
     return this.currentAccountService.findByCode(code);
   }
 

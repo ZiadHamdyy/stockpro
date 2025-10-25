@@ -43,8 +43,7 @@ export const useExpenses = () => {
         (expense.description &&
           expense.description.toLowerCase().includes(query)) ||
         (expense.expenseCode &&
-          expense.expenseCode.name.toLowerCase().includes(query)) ||
-        expense.amount.toString().includes(query),
+          expense.expenseCode.name.toLowerCase().includes(query)),
     );
   }, [expenses, searchQuery]);
 
@@ -72,14 +71,12 @@ export const useExpenses = () => {
     async (data: {
       date: string;
       expenseCodeId: string;
-      amount: number;
       description?: string;
     }) => {
       try {
         const createData: CreateExpenseRequest = {
           date: data.date,
           expenseCodeId: data.expenseCodeId,
-          amount: data.amount,
           description: data.description,
         };
         await createExpense(createData).unwrap();
@@ -98,7 +95,6 @@ export const useExpenses = () => {
       data: {
         date?: string;
         expenseCodeId?: string;
-        amount?: number;
         description?: string;
       },
     ) => {
@@ -136,7 +132,6 @@ export const useExpenses = () => {
   const handleSave = async (data: {
     date: string;
     expenseCodeId: string;
-    amount: number;
     description?: string;
   }) => {
     if (expenseToEdit) {
