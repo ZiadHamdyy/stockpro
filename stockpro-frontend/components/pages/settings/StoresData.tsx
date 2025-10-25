@@ -7,24 +7,31 @@ import { useModal } from "../../common/ModalProvider.tsx";
 import { RootState } from "../../store/store";
 import { useGetBranchesQuery } from "../../store/slices/branch/branchApi";
 import { useGetStoresQuery } from "../../store/slices/store/storeApi";
-import { useCreateStoreMutation, useUpdateStoreMutation, useDeleteStoreMutation } from "../../store/slices/store/storeApi";
+import {
+  useCreateStoreMutation,
+  useUpdateStoreMutation,
+  useDeleteStoreMutation,
+} from "../../store/slices/store/storeApi";
 import { useGetUsersQuery } from "../../store/slices/user/userApi";
 
 interface StoresDataProps {
   title: string;
 }
 
-const StoresData: React.FC<StoresDataProps> = ({
-  title,
-}) => {
+const StoresData: React.FC<StoresDataProps> = ({ title }) => {
   const dispatch = useDispatch();
-  const { data: stores = [], isLoading: storesLoading, error: storesError } = useGetStoresQuery();
-  const { data: branches = [], isLoading: branchesLoading } = useGetBranchesQuery();
+  const {
+    data: stores = [],
+    isLoading: storesLoading,
+    error: storesError,
+  } = useGetStoresQuery();
+  const { data: branches = [], isLoading: branchesLoading } =
+    useGetBranchesQuery();
   const { data: users = [], isLoading: usersLoading } = useGetUsersQuery();
   const [createStore] = useCreateStoreMutation();
   const [updateStore] = useUpdateStoreMutation();
   const [deleteStore] = useDeleteStoreMutation();
-  
+
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [storeToEdit, setStoreToEdit] = useState<any | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
@@ -70,26 +77,26 @@ const StoresData: React.FC<StoresDataProps> = ({
           id: store.id,
           data: {
             name: store.name,
-            address: store.address || '',
-            phone: store.phone || '',
-            description: store.description || '',
-            branchId: branches.find(b => b.name === store.branch)?.id || '',
-            userId: users.find(u => u.name === store.manager)?.id || '',
-          }
+            address: store.address || "",
+            phone: store.phone || "",
+            description: store.description || "",
+            branchId: branches.find((b) => b.name === store.branch)?.id || "",
+            userId: users.find((u) => u.name === store.manager)?.id || "",
+          },
         }).unwrap();
       } else {
         // Create new store
         await createStore({
           name: store.name,
-          address: store.address || '',
-          phone: store.phone || '',
-          description: store.description || '',
-          branchId: branches.find(b => b.name === store.branch)?.id || '',
-          userId: users.find(u => u.name === store.manager)?.id || '',
+          address: store.address || "",
+          phone: store.phone || "",
+          description: store.description || "",
+          branchId: branches.find((b) => b.name === store.branch)?.id || "",
+          userId: users.find((u) => u.name === store.manager)?.id || "",
         }).unwrap();
       }
     } catch (error) {
-      console.error('Error saving store:', error);
+      console.error("Error saving store:", error);
     }
   };
 
@@ -170,7 +177,7 @@ const StoresData: React.FC<StoresDataProps> = ({
                     {store.branch.name}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    {store.user?.name || ''}
+                    {store.user?.name || ""}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium no-print">
                     <button

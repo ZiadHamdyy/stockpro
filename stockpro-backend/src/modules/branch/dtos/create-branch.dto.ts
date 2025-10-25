@@ -16,4 +16,3 @@ export class CreateBranchDto {
   @IsString()
   description?: string;
 }
-

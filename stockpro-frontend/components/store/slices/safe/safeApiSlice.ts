@@ -55,7 +55,7 @@ export const safeApiSlice = apiSlice.injectEndpoints({
           { type: "Safe", id },
           { type: "Safe", id: "LIST" },
         ],
-      }
+      },
     ),
     deleteSafe: builder.mutation<void, string>({
       query: (id) => ({

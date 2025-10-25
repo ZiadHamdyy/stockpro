@@ -69,7 +69,10 @@ export const branchApi = apiSlice.injectEndpoints({
       transformResponse: (response: { data: Branch }) => response.data,
       invalidatesTags: ["Branch"],
     }),
-    updateBranch: builder.mutation<Branch, { id: string; data: UpdateBranchDto }>({
+    updateBranch: builder.mutation<
+      Branch,
+      { id: string; data: UpdateBranchDto }
+    >({
       query: ({ id, data }) => ({
         url: `branches/${id}`,
         method: "PATCH",
@@ -101,4 +104,3 @@ export const {
   useUpdateBranchMutation,
   useDeleteBranchMutation,
 } = branchApi;
-

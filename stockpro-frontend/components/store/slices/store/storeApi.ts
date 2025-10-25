@@ -69,10 +69,7 @@ export const storeApi = apiSlice.injectEndpoints({
         url: `stores/${id}`,
         method: "DELETE",
       }),
-      invalidatesTags: (result, error, id) => [
-        { type: "Store", id },
-        "Store",
-      ],
+      invalidatesTags: (result, error, id) => [{ type: "Store", id }, "Store"],
     }),
   }),
 });
@@ -84,4 +81,3 @@ export const {
   useUpdateStoreMutation,
   useDeleteStoreMutation,
 } = storeApi;
-

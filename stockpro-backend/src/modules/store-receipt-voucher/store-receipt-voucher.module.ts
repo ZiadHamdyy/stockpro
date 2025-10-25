@@ -8,4 +8,3 @@ import { StoreReceiptVoucherService } from './store-receipt-voucher.service';
   exports: [StoreReceiptVoucherService],
 })
 export class StoreReceiptVoucherModule {}
-

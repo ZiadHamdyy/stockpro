@@ -446,20 +446,20 @@ export const routeConfig = [
 export const getRouteByPath = (path: string) => {
   // First try exact match
   let route = routeConfig.find((route) => route.path === path);
-  
+
   // If no exact match, try pattern matching for dynamic routes
   if (!route) {
     route = routeConfig.find((route) => {
-      if (route.path.includes(':')) {
+      if (route.path.includes(":")) {
         // Convert route pattern to regex
-        const pattern = route.path.replace(/:\w+/g, '[^/]+');
+        const pattern = route.path.replace(/:\w+/g, "[^/]+");
         const regex = new RegExp(`^${pattern}$`);
         return regex.test(path);
       }
       return false;
     });
   }
-  
+
   return route;
 };
 
@@ -468,25 +468,25 @@ export const getRouteByPath = (path: string) => {
  */
 export const getLabelByPath = (path: string): string => {
   // Handle dynamic routes with parameters
-  if (path.startsWith('/items/edit/') || path.startsWith('/items/add/')) {
-    const itemId = path.split('/').pop();
-    
+  if (path.startsWith("/items/edit/") || path.startsWith("/items/add/")) {
+    const itemId = path.split("/").pop();
+
     // For now, show generic title - the component will override this with position
     return `تعديل صنف`;
   }
-  
-  if (path.startsWith('/customers/edit/')) {
-    const customerId = path.split('/').pop();
+
+  if (path.startsWith("/customers/edit/")) {
+    const customerId = path.split("/").pop();
     return `تعديل عميل #${customerId}`;
   }
-  
-  if (path.startsWith('/suppliers/edit/')) {
-    const supplierId = path.split('/').pop();
+
+  if (path.startsWith("/suppliers/edit/")) {
+    const supplierId = path.split("/").pop();
     return `تعديل مورد #${supplierId}`;
   }
-  
-  if (path.startsWith('/financials/current-accounts/edit/')) {
-    const accountId = path.split('/').pop();
+
+  if (path.startsWith("/financials/current-accounts/edit/")) {
+    const accountId = path.split("/").pop();
     return `تعديل حساب جاري #${accountId}`;
   }
 

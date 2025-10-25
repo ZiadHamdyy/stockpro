@@ -1,6 +1,10 @@
 import React, { useState, useEffect } from "react";
 import PermissionWrapper from "../../common/PermissionWrapper";
-import { Resources, Actions, buildPermission } from "../../../enums/permissions.enum";
+import {
+  Resources,
+  Actions,
+  buildPermission,
+} from "../../../enums/permissions.enum";
 import { useAppDispatch } from "../../store/hooks";
 import {
   useCreateUnitMutation,
@@ -102,7 +106,7 @@ const UnitModal: React.FC<UnitModalProps> = ({
             <PermissionWrapper
               requiredPermission={[
                 buildPermission(Resources.UNITS, Actions.CREATE),
-                buildPermission(Resources.UNITS, Actions.UPDATE)
+                buildPermission(Resources.UNITS, Actions.UPDATE),
               ]}
               fallback={
                 <button

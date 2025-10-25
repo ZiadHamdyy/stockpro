@@ -22,7 +22,7 @@ export class StoreReceiptVoucherService {
         voucherNumber,
         totalAmount,
         items: {
-          create: items.map(item => ({
+          create: items.map((item) => ({
             quantity: item.quantity,
             unitPrice: item.unitPrice,
             totalPrice: item.totalPrice,
@@ -103,14 +103,17 @@ export class StoreReceiptVoucherService {
     return voucher;
   }
 
-  async update(id: string, updateStoreReceiptVoucherDto: UpdateStoreReceiptVoucherDto) {
+  async update(
+    id: string,
+    updateStoreReceiptVoucherDto: UpdateStoreReceiptVoucherDto,
+  ) {
     const { items, ...voucherData } = updateStoreReceiptVoucherDto;
 
     // Check if voucher exists
     await this.findOne(id);
 
     // Calculate total amount if items are provided
-    const totalAmount = items 
+    const totalAmount = items
       ? items.reduce((sum, item) => sum + item.totalPrice, 0)
       : undefined;
 
@@ -122,7 +125,7 @@ export class StoreReceiptVoucherService {
         ...(items && {
           items: {
             deleteMany: {},
-            create: items.map(item => ({
+            create: items.map((item) => ({
               quantity: item.quantity,
               unitPrice: item.unitPrice,
               totalPrice: item.totalPrice,
@@ -165,4 +168,3 @@ export class StoreReceiptVoucherService {
     return `SRV-${String(count + 1).padStart(6, '0')}`;
   }
 }
-

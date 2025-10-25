@@ -29,7 +29,6 @@ const Safes: React.FC<SafesProps> = ({ title }) => {
     handleSave,
   } = useSafes();
 
-
   const inputStyle =
     "w-64 pr-10 pl-4 py-3 bg-brand-blue-bg border-2 border-brand-blue rounded-md text-black placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-brand-blue";
 
@@ -145,7 +144,9 @@ const Safes: React.FC<SafesProps> = ({ title }) => {
                     <td className="px-6 py-4 whitespace-nowrap font-medium text-brand-dark">
                       {safe.name}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">{safe.branchName}</td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      {safe.branchName}
+                    </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium no-print">
                       <PermissionWrapper
                         requiredPermission={buildPermission(

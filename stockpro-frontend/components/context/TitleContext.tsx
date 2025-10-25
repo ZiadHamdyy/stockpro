@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, ReactNode } from 'react';
+import React, { createContext, useContext, useState, ReactNode } from "react";
 
 interface TitleContextType {
   title: string;
@@ -7,8 +7,10 @@ interface TitleContextType {
 
 const TitleContext = createContext<TitleContextType | undefined>(undefined);
 
-export const TitleProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const [title, setTitle] = useState<string>('');
+export const TitleProvider: React.FC<{ children: ReactNode }> = ({
+  children,
+}) => {
+  const [title, setTitle] = useState<string>("");
 
   return (
     <TitleContext.Provider value={{ title, setTitle }}>
@@ -20,7 +22,7 @@ export const TitleProvider: React.FC<{ children: ReactNode }> = ({ children }) =
 export const useTitle = () => {
   const context = useContext(TitleContext);
   if (context === undefined) {
-    throw new Error('useTitle must be used within a TitleProvider');
+    throw new Error("useTitle must be used within a TitleProvider");
   }
   return context;
 };

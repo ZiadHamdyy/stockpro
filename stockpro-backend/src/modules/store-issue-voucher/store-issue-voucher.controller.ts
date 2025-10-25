@@ -16,7 +16,9 @@ import { JwtAuthenticationGuard } from '../../common/guards/strategy.guards/jwt.
 @Controller('store-issue-vouchers')
 @UseGuards(JwtAuthenticationGuard)
 export class StoreIssueVoucherController {
-  constructor(private readonly storeIssueVoucherService: StoreIssueVoucherService) {}
+  constructor(
+    private readonly storeIssueVoucherService: StoreIssueVoucherService,
+  ) {}
 
   @Post()
   create(@Body() createStoreIssueVoucherDto: CreateStoreIssueVoucherDto) {

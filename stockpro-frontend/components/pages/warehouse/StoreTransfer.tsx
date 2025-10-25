@@ -3,7 +3,11 @@ import { useSelector, useDispatch } from "react-redux";
 import DataTableModal from "../../common/DataTableModal";
 import { ListIcon, PrintIcon, SearchIcon, TrashIcon } from "../../icons";
 import PermissionWrapper from "../../common/PermissionWrapper";
-import { Resources, Actions, buildPermission } from "../../../enums/permissions.enum";
+import {
+  Resources,
+  Actions,
+  buildPermission,
+} from "../../../enums/permissions.enum";
 import type {
   CompanyInfo,
   StoreVoucherItem,
@@ -24,7 +28,13 @@ import {
   useDeleteStoreTransferVoucherMutation,
 } from "../../store/slices/storeTransferVoucher/storeTransferVoucherApi";
 
-type SelectableItem = { id: string; name: string; unit: string; stock: number; code: string };
+type SelectableItem = {
+  id: string;
+  name: string;
+  unit: string;
+  stock: number;
+  code: string;
+};
 
 interface StoreTransferProps {
   title: string;
@@ -63,30 +73,34 @@ const DocumentHeader: React.FC<{ companyInfo: CompanyInfo }> = ({
   </div>
 );
 
-const StoreTransfer: React.FC<StoreTransferProps> = ({
-  title,
-}) => {
+const StoreTransfer: React.FC<StoreTransferProps> = ({ title }) => {
   // Redux API hooks
   const { data: companyInfo } = useGetCompanyQuery();
   const { data: branches = [] } = useGetBranchesQuery();
   const { data: stores = [] } = useGetStoresQuery();
   const { data: itemsData = [] } = useGetItemsQuery({});
-  const { data: vouchers = [], isLoading: isLoadingVouchers } = useGetStoreTransferVouchersQuery();
-  const [createVoucher, { isLoading: isCreating }] = useCreateStoreTransferVoucherMutation();
-  const [updateVoucher, { isLoading: isUpdating }] = useUpdateStoreTransferVoucherMutation();
-  const [deleteVoucher, { isLoading: isDeleting }] = useDeleteStoreTransferVoucherMutation();
-  
+  const { data: vouchers = [], isLoading: isLoadingVouchers } =
+    useGetStoreTransferVouchersQuery();
+  const [createVoucher, { isLoading: isCreating }] =
+    useCreateStoreTransferVoucherMutation();
+  const [updateVoucher, { isLoading: isUpdating }] =
+    useUpdateStoreTransferVoucherMutation();
+  const [deleteVoucher, { isLoading: isDeleting }] =
+    useDeleteStoreTransferVoucherMutation();
+
   // Get current user from auth state
   const currentUser = useSelector((state: RootState) => state.auth.user);
-  
+
   // Transform items to match the expected format
-  const allItems: SelectableItem[] = Array.isArray(itemsData) ? itemsData.map((item: any) => ({
-    id: item.id,
-    name: item.name,
-    unit: item.unit?.name || '',
-    stock: item.stock || 0,
-    code: item.code || ''
-  })) : [];
+  const allItems: SelectableItem[] = Array.isArray(itemsData)
+    ? itemsData.map((item: any) => ({
+        id: item.id,
+        name: item.name,
+        unit: item.unit?.name || "",
+        stock: item.stock || 0,
+        code: item.code || "",
+      }))
+    : [];
   const [items, setItems] = useState<StoreVoucherItem[]>([]);
   const [voucherDetails, setVoucherDetails] = useState({
     id: "",
@@ -145,17 +159,19 @@ const StoreTransfer: React.FC<StoreTransferProps> = ({
       const v = vouchers[currentIndex];
       setVoucherDetails({
         id: v.voucherNumber || v.id,
-        date: v.date ? new Date(v.date).toISOString().substring(0, 10) : new Date().toISOString().substring(0, 10),
-        fromStore: v.fromStore?.name || '',
-        toStore: v.toStore?.name || '',
+        date: v.date
+          ? new Date(v.date).toISOString().substring(0, 10)
+          : new Date().toISOString().substring(0, 10),
+        fromStore: v.fromStore?.name || "",
+        toStore: v.toStore?.name || "",
       });
       // Transform API items to component format
       const transformedItems: StoreVoucherItem[] = v.items.map((item: any) => ({
-        id: item.itemId || item.id || '',
-        name: item.item?.name || '',
-        unit: item.item?.unit?.name || '',
+        id: item.itemId || item.id || "",
+        name: item.item?.name || "",
+        unit: item.item?.unit?.name || "",
         qty: item.quantity || 1,
-        code: item.item?.code || ''
+        code: item.item?.code || "",
       }));
       setItems(transformedItems);
       setIsReadOnly(true);
@@ -203,7 +219,12 @@ const StoreTransfer: React.FC<StoreTransferProps> = ({
   const handleSelectItem = (index: number, selectedItem: SelectableItem) => {
     const newItems = [...items];
     const currentItem = newItems[index];
-    const item = { ...currentItem, ...selectedItem, qty: currentItem.qty || 1, code: selectedItem.code || '' };
+    const item = {
+      ...currentItem,
+      ...selectedItem,
+      qty: currentItem.qty || 1,
+      code: selectedItem.code || "",
+    };
     newItems[index] = item;
     setItems(newItems);
     setActiveItemSearch(null);
@@ -268,38 +289,38 @@ const StoreTransfer: React.FC<StoreTransferProps> = ({
       showToast("لا يمكن التحويل من وإلى نفس المخزن.");
       return;
     }
-    
+
     // Find store IDs
-    const fromStore = stores.find(s => s.name === voucherDetails.fromStore);
-    const toStore = stores.find(s => s.name === voucherDetails.toStore);
-    
+    const fromStore = stores.find((s) => s.name === voucherDetails.fromStore);
+    const toStore = stores.find((s) => s.name === voucherDetails.toStore);
+
     if (!fromStore || !toStore) {
       showToast("يرجى اختيار مخزن صحيح.");
       return;
     }
-    
+
     try {
       if (!currentUser?.id) {
         showToast("يرجى تسجيل الدخول أولاً.");
         return;
       }
-      
+
       // Transform items to API format with proper pricing
-      const apiItems = items.map(item => {
+      const apiItems = items.map((item) => {
         // Find the item data to get pricing
-        const itemData = allItems.find(i => i.id === item.id);
+        const itemData = allItems.find((i) => i.id === item.id);
         const unitPrice = itemData ? 0 : 0; // You might want to get this from item data
         const quantity = item.qty || 1;
         const totalPrice = unitPrice * quantity;
-        
+
         return {
           itemId: item.id,
           quantity: quantity,
           unitPrice: unitPrice,
-          totalPrice: totalPrice
+          totalPrice: totalPrice,
         };
       });
-      
+
       const voucherData = {
         fromStoreId: fromStore.id,
         toStoreId: toStore.id,
@@ -307,17 +328,26 @@ const StoreTransfer: React.FC<StoreTransferProps> = ({
         items: apiItems,
       };
 
-      if (voucherDetails.id && vouchers.find(v => v.id === voucherDetails.id)) {
+      if (
+        voucherDetails.id &&
+        vouchers.find((v) => v.id === voucherDetails.id)
+      ) {
         // Update existing voucher
-        await updateVoucher({ id: voucherDetails.id, data: voucherData }).unwrap();
+        await updateVoucher({
+          id: voucherDetails.id,
+          data: voucherData,
+        }).unwrap();
         showToast("تم تحديث السند بنجاح!");
       } else {
         // Create new voucher
         const newVoucher = await createVoucher(voucherData).unwrap();
-        setVoucherDetails(prev => ({ ...prev, id: newVoucher.voucherNumber }));
+        setVoucherDetails((prev) => ({
+          ...prev,
+          id: newVoucher.voucherNumber,
+        }));
         showToast("تم حفظ السند بنجاح!");
       }
-      
+
       handleNew();
     } catch (error) {
       console.error("Error saving voucher:", error);
@@ -363,7 +393,10 @@ const StoreTransfer: React.FC<StoreTransferProps> = ({
     }
   };
 
-  const handleSelectVoucherFromSearch = (row: { id: string; voucherNumber?: string }) => {
+  const handleSelectVoucherFromSearch = (row: {
+    id: string;
+    voucherNumber?: string;
+  }) => {
     const index = vouchers.findIndex((v) => v.id === row.id);
     if (index > -1) setCurrentIndex(index);
     setIsSearchModalOpen(false);
@@ -580,7 +613,10 @@ const StoreTransfer: React.FC<StoreTransferProps> = ({
           </table>
         </div>
         <PermissionWrapper
-          requiredPermission={buildPermission(Resources.STORE_TRANSFER, Actions.CREATE)}
+          requiredPermission={buildPermission(
+            Resources.STORE_TRANSFER,
+            Actions.CREATE,
+          )}
           fallback={
             <button
               disabled
@@ -614,7 +650,10 @@ const StoreTransfer: React.FC<StoreTransferProps> = ({
           <div className="mt-8 pt-6 border-t-2 border-gray-200 flex flex-col items-center space-y-4">
             <div className="flex justify-center gap-2 flex-wrap">
               <PermissionWrapper
-                requiredPermission={buildPermission(Resources.STORE_TRANSFER, Actions.CREATE)}
+                requiredPermission={buildPermission(
+                  Resources.STORE_TRANSFER,
+                  Actions.CREATE,
+                )}
                 fallback={
                   <button
                     disabled
@@ -634,7 +673,7 @@ const StoreTransfer: React.FC<StoreTransferProps> = ({
               <PermissionWrapper
                 requiredPermission={[
                   buildPermission(Resources.STORE_TRANSFER, Actions.CREATE),
-                  buildPermission(Resources.STORE_TRANSFER, Actions.UPDATE)
+                  buildPermission(Resources.STORE_TRANSFER, Actions.UPDATE),
                 ]}
                 fallback={
                   <button
@@ -647,14 +686,19 @@ const StoreTransfer: React.FC<StoreTransferProps> = ({
               >
                 <button
                   onClick={handleSave}
-                  disabled={isReadOnly || items.length === 0 || isCreating || isUpdating}
+                  disabled={
+                    isReadOnly || items.length === 0 || isCreating || isUpdating
+                  }
                   className="px-4 py-2 bg-amber-500 text-white rounded-md hover:bg-amber-600 font-semibold disabled:bg-gray-400"
                 >
                   {isCreating || isUpdating ? "جاري الحفظ..." : "حفظ"}
                 </button>
               </PermissionWrapper>
               <PermissionWrapper
-                requiredPermission={buildPermission(Resources.STORE_TRANSFER, Actions.UPDATE)}
+                requiredPermission={buildPermission(
+                  Resources.STORE_TRANSFER,
+                  Actions.UPDATE,
+                )}
                 fallback={
                   <button
                     disabled
@@ -673,7 +717,10 @@ const StoreTransfer: React.FC<StoreTransferProps> = ({
                 </button>
               </PermissionWrapper>
               <PermissionWrapper
-                requiredPermission={buildPermission(Resources.STORE_TRANSFER, Actions.DELETE)}
+                requiredPermission={buildPermission(
+                  Resources.STORE_TRANSFER,
+                  Actions.DELETE,
+                )}
                 fallback={
                   <button
                     disabled
@@ -692,7 +739,10 @@ const StoreTransfer: React.FC<StoreTransferProps> = ({
                 </button>
               </PermissionWrapper>
               <PermissionWrapper
-                requiredPermission={buildPermission(Resources.STORE_TRANSFER, Actions.SEARCH)}
+                requiredPermission={buildPermission(
+                  Resources.STORE_TRANSFER,
+                  Actions.SEARCH,
+                )}
                 fallback={
                   <button
                     disabled
@@ -710,7 +760,10 @@ const StoreTransfer: React.FC<StoreTransferProps> = ({
                 </button>
               </PermissionWrapper>
               <PermissionWrapper
-                requiredPermission={buildPermission(Resources.STORE_TRANSFER, Actions.PRINT)}
+                requiredPermission={buildPermission(
+                  Resources.STORE_TRANSFER,
+                  Actions.PRINT,
+                )}
                 fallback={
                   <button
                     disabled

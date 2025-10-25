@@ -1,4 +1,11 @@
-import { IsString, IsNumber, IsOptional, IsArray, ValidateNested, IsUUID } from 'class-validator';
+import {
+  IsString,
+  IsNumber,
+  IsOptional,
+  IsArray,
+  ValidateNested,
+  IsUUID,
+} from 'class-validator';
 import { Type } from 'class-transformer';
 
 export class CreateStoreIssueVoucherItemDto {
@@ -31,4 +38,3 @@ export class CreateStoreIssueVoucherDto {
   @Type(() => CreateStoreIssueVoucherItemDto)
   items: CreateStoreIssueVoucherItemDto[];
 }
-

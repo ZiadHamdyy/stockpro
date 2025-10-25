@@ -1,68 +1,76 @@
-import { useState, useCallback, useMemo, useEffect } from 'react';
-import { BrowserRouter, Routes, Route, Navigate, useNavigate, useParams, useLocation } from 'react-router-dom';
-import { Provider } from 'react-redux';
-import { PersistGate } from 'redux-persist/integration/react';
-import { store, persistor } from './components/store/store';
-import { useAppDispatch } from './components/store/hooks';
-import { useAuth } from './components/hook/Auth';
-import { useSendLogOutMutation } from './components/store/slices/auth/authApi';
-import Sidebar from './components/layout/Sidebar';
-import Header from './components/layout/Header';
-import { TitleProvider } from './components/context/TitleContext';
-import Dashboard from './components/pages/Dashboard';
-import Placeholder from './components/pages/Placeholder';
-import Login from './components/pages/Login';
-import CompanyData from './components/pages/settings/CompanyData';
-import BranchesData from './components/pages/settings/BranchesData';
-import StoresData from './components/pages/settings/StoresData';
-import UsersData from './components/pages/settings/UsersData';
-import Permissions from './components/pages/settings/Permissions';
-import AddItem from './components/pages/items/AddItem';
-import ItemsList from './components/pages/items/ItemsList';
-import ItemGroups from './components/pages/items/ItemGroups';
-import Units from './components/pages/items/Units';
-import StoreReceiptVoucher from './components/pages/warehouse/StoreReceiptVoucher';
-import StoreIssueVoucher from './components/pages/warehouse/StoreIssueVoucher';
-import StoreTransfer from './components/pages/warehouse/StoreTransfer';
-import SalesInvoice from './components/pages/sales/SalesInvoice';
-import SalesReturn from './components/pages/sales/SalesReturn';
-import DailySales from './components/pages/sales/DailySales';
-import DailySalesReturns from './components/pages/sales/DailySalesReturns';
-import PurchaseInvoice from './components/pages/purchases/PurchaseInvoice';
-import PurchaseReturn from './components/pages/purchases/PurchaseReturn';
-import DailyPurchases from './components/pages/purchases/DailyPurchases';
-import DailyPurchaseReturns from './components/pages/purchases/DailyPurchaseReturns';
-import AddCustomer from './components/pages/customers/AddCustomer';
-import CustomersList from './components/pages/customers/CustomersList';
-import AddSupplier from './components/pages/suppliers/AddSupplier';
-import SuppliersList from './components/pages/suppliers/SuppliersList';
-import ReceiptVoucher from './components/pages/financials/ReceiptVoucher';
-import PaymentVoucher from './components/pages/financials/PaymentVoucher';
-import ExpensesList from './components/pages/financials/ExpensesList';
-import ExpenseCodes from './components/pages/financials/ExpenseCodes';
-import ExpenseTypes from './components/pages/financials/ExpenseTypes';
-import AddCurrentAccount from './components/pages/financials/AddCurrentAccount';
-import CurrentAccountsList from './components/pages/financials/CurrentAccountsList';
-import Safes from './components/pages/financials/Safes';
-import Banks from './components/pages/financials/Banks';
-import ItemMovementReport from './components/pages/reports/items/ItemMovementReport';
-import ItemBalanceReport from './components/pages/reports/items/ItemBalanceReport';
-import InventoryValuationReport from './components/pages/reports/items/InventoryValuationReport';
-import CustomerStatementReport from './components/pages/reports/customers/CustomerStatementReport';
-import CustomerBalanceReport from './components/pages/reports/customers/CustomerBalanceReport';
-import SupplierStatementReport from './components/pages/reports/suppliers/SupplierStatementReport';
-import SupplierBalanceReport from './components/pages/reports/suppliers/SupplierBalanceReport';
-import DailyCollectionsReport from './components/pages/reports/financials/DailyCollectionsReport';
-import DailyPaymentsReport from './components/pages/reports/financials/DailyPaymentsReport';
-import ExpenseStatementReport from './components/pages/reports/financials/ExpenseStatementReport';
-import TotalExpensesReport from './components/pages/reports/financials/TotalExpensesReport';
-import CurrentAccountStatementReport from './components/pages/reports/financials/CurrentAccountStatementReport';
-import TotalCurrentAccountsReport from './components/pages/reports/financials/TotalCurrentAccountsReport';
-import SafeStatementReport from './components/pages/reports/financials/SafeStatementReport';
-import BankStatementReport from './components/pages/reports/financials/BankStatementReport';
-import TaxDeclarationReport from './components/pages/reports/financials/TaxDeclarationReport';
-import IncomeStatement from './components/pages/final_accounts/IncomeStatement';
-import BalanceSheet from './components/pages/final_accounts/BalanceSheet';
+import { useState, useCallback, useMemo, useEffect } from "react";
+import {
+  BrowserRouter,
+  Routes,
+  Route,
+  Navigate,
+  useNavigate,
+  useParams,
+  useLocation,
+} from "react-router-dom";
+import { Provider } from "react-redux";
+import { PersistGate } from "redux-persist/integration/react";
+import { store, persistor } from "./components/store/store";
+import { useAppDispatch } from "./components/store/hooks";
+import { useAuth } from "./components/hook/Auth";
+import { useSendLogOutMutation } from "./components/store/slices/auth/authApi";
+import Sidebar from "./components/layout/Sidebar";
+import Header from "./components/layout/Header";
+import { TitleProvider } from "./components/context/TitleContext";
+import Dashboard from "./components/pages/Dashboard";
+import Placeholder from "./components/pages/Placeholder";
+import Login from "./components/pages/Login";
+import CompanyData from "./components/pages/settings/CompanyData";
+import BranchesData from "./components/pages/settings/BranchesData";
+import StoresData from "./components/pages/settings/StoresData";
+import UsersData from "./components/pages/settings/UsersData";
+import Permissions from "./components/pages/settings/Permissions";
+import AddItem from "./components/pages/items/AddItem";
+import ItemsList from "./components/pages/items/ItemsList";
+import ItemGroups from "./components/pages/items/ItemGroups";
+import Units from "./components/pages/items/Units";
+import StoreReceiptVoucher from "./components/pages/warehouse/StoreReceiptVoucher";
+import StoreIssueVoucher from "./components/pages/warehouse/StoreIssueVoucher";
+import StoreTransfer from "./components/pages/warehouse/StoreTransfer";
+import SalesInvoice from "./components/pages/sales/SalesInvoice";
+import SalesReturn from "./components/pages/sales/SalesReturn";
+import DailySales from "./components/pages/sales/DailySales";
+import DailySalesReturns from "./components/pages/sales/DailySalesReturns";
+import PurchaseInvoice from "./components/pages/purchases/PurchaseInvoice";
+import PurchaseReturn from "./components/pages/purchases/PurchaseReturn";
+import DailyPurchases from "./components/pages/purchases/DailyPurchases";
+import DailyPurchaseReturns from "./components/pages/purchases/DailyPurchaseReturns";
+import AddCustomer from "./components/pages/customers/AddCustomer";
+import CustomersList from "./components/pages/customers/CustomersList";
+import AddSupplier from "./components/pages/suppliers/AddSupplier";
+import SuppliersList from "./components/pages/suppliers/SuppliersList";
+import ReceiptVoucher from "./components/pages/financials/ReceiptVoucher";
+import PaymentVoucher from "./components/pages/financials/PaymentVoucher";
+import ExpensesList from "./components/pages/financials/ExpensesList";
+import ExpenseCodes from "./components/pages/financials/ExpenseCodes";
+import ExpenseTypes from "./components/pages/financials/ExpenseTypes";
+import AddCurrentAccount from "./components/pages/financials/AddCurrentAccount";
+import CurrentAccountsList from "./components/pages/financials/CurrentAccountsList";
+import Safes from "./components/pages/financials/Safes";
+import Banks from "./components/pages/financials/Banks";
+import ItemMovementReport from "./components/pages/reports/items/ItemMovementReport";
+import ItemBalanceReport from "./components/pages/reports/items/ItemBalanceReport";
+import InventoryValuationReport from "./components/pages/reports/items/InventoryValuationReport";
+import CustomerStatementReport from "./components/pages/reports/customers/CustomerStatementReport";
+import CustomerBalanceReport from "./components/pages/reports/customers/CustomerBalanceReport";
+import SupplierStatementReport from "./components/pages/reports/suppliers/SupplierStatementReport";
+import SupplierBalanceReport from "./components/pages/reports/suppliers/SupplierBalanceReport";
+import DailyCollectionsReport from "./components/pages/reports/financials/DailyCollectionsReport";
+import DailyPaymentsReport from "./components/pages/reports/financials/DailyPaymentsReport";
+import ExpenseStatementReport from "./components/pages/reports/financials/ExpenseStatementReport";
+import TotalExpensesReport from "./components/pages/reports/financials/TotalExpensesReport";
+import CurrentAccountStatementReport from "./components/pages/reports/financials/CurrentAccountStatementReport";
+import TotalCurrentAccountsReport from "./components/pages/reports/financials/TotalCurrentAccountsReport";
+import SafeStatementReport from "./components/pages/reports/financials/SafeStatementReport";
+import BankStatementReport from "./components/pages/reports/financials/BankStatementReport";
+import TaxDeclarationReport from "./components/pages/reports/financials/TaxDeclarationReport";
+import IncomeStatement from "./components/pages/final_accounts/IncomeStatement";
+import BalanceSheet from "./components/pages/final_accounts/BalanceSheet";
 
 import {
   initialBranches,
@@ -548,9 +556,7 @@ const AppContent = () => {
               path="/settings/branches-data"
               element={
                 <ProtectedRoute requiredPermission="branches_data-read">
-                  <BranchesData
-                    title={currentPageTitle}
-                  />
+                  <BranchesData title={currentPageTitle} />
                 </ProtectedRoute>
               }
             />
@@ -558,9 +564,7 @@ const AppContent = () => {
               path="/settings/stores-data"
               element={
                 <ProtectedRoute requiredPermission="stores_data-read">
-                  <StoresData
-                    title={currentPageTitle}
-                  />
+                  <StoresData title={currentPageTitle} />
                 </ProtectedRoute>
               }
             />
@@ -568,9 +572,7 @@ const AppContent = () => {
               path="/settings/users-data"
               element={
                 <ProtectedRoute requiredPermission="users_data-read">
-                  <UsersData
-                    title={currentPageTitle}
-                  />
+                  <UsersData title={currentPageTitle} />
                 </ProtectedRoute>
               }
             />

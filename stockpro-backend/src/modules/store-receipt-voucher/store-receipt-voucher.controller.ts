@@ -16,7 +16,9 @@ import { JwtAuthenticationGuard } from '../../common/guards/strategy.guards/jwt.
 @Controller('store-receipt-vouchers')
 @UseGuards(JwtAuthenticationGuard)
 export class StoreReceiptVoucherController {
-  constructor(private readonly storeReceiptVoucherService: StoreReceiptVoucherService) {}
+  constructor(
+    private readonly storeReceiptVoucherService: StoreReceiptVoucherService,
+  ) {}
 
   @Post()
   create(@Body() createStoreReceiptVoucherDto: CreateStoreReceiptVoucherDto) {
@@ -38,7 +40,10 @@ export class StoreReceiptVoucherController {
     @Param('id') id: string,
     @Body() updateStoreReceiptVoucherDto: UpdateStoreReceiptVoucherDto,
   ) {
-    return this.storeReceiptVoucherService.update(id, updateStoreReceiptVoucherDto);
+    return this.storeReceiptVoucherService.update(
+      id,
+      updateStoreReceiptVoucherDto,
+    );
   }
 
   @Delete(':id')

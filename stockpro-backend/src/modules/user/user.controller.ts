@@ -64,7 +64,10 @@ export class UserController {
   @Patch(':id')
   @HttpCode(HttpStatus.OK)
   @Serialize(UserResponse)
-  async updateUser(@Param('id') userId: string, @Body() data: CreateUserRequest) {
+  async updateUser(
+    @Param('id') userId: string,
+    @Body() data: CreateUserRequest,
+  ) {
     return await this.userService.updateUser(userId, data);
   }
 

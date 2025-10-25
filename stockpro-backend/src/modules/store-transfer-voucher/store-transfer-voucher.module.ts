@@ -8,4 +8,3 @@ import { StoreTransferVoucherService } from './store-transfer-voucher.service';
   exports: [StoreTransferVoucherService],
 })
 export class StoreTransferVoucherModule {}
-
