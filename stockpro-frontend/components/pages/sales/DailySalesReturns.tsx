@@ -2,6 +2,7 @@ import React, { useState, useMemo } from "react";
 import type { CompanyInfo, Invoice } from "../../../types";
 import { ExcelIcon, PdfIcon, PrintIcon, SearchIcon } from "../../icons";
 import { exportToExcel, exportToPdf } from "../../../utils/formatting";
+import InvoiceHeader from "../../common/InvoiceHeader";
 
 interface DailySalesReturnsProps {
   title: string;
@@ -9,38 +10,6 @@ interface DailySalesReturnsProps {
   salesReturns: Invoice[];
 }
 
-const InvoiceHeader: React.FC<{ companyInfo: CompanyInfo }> = ({
-  companyInfo,
-}) => (
-  <div className="flex justify-between items-start p-4 bg-white">
-    <div className="flex items-center gap-4">
-      {companyInfo.logo && (
-        <img
-          src={companyInfo.logo}
-          alt="Company Logo"
-          className="h-20 w-auto object-contain"
-        />
-      )}
-      <div>
-        <h2 className="text-2xl font-bold text-brand-dark">
-          {companyInfo.name}
-        </h2>
-        <p className="text-sm text-gray-600">{companyInfo.address}</p>
-        <p className="text-sm text-gray-600">هاتف: {companyInfo.phone}</p>
-      </div>
-    </div>
-    <div className="text-left text-sm">
-      <p>
-        <span className="font-semibold">الرقم الضريبي:</span>{" "}
-        {companyInfo.taxNumber}
-      </p>
-      <p>
-        <span className="font-semibold">السجل التجاري:</span>{" "}
-        {companyInfo.commercialReg}
-      </p>
-    </div>
-  </div>
-);
 
 const DailySalesReturns: React.FC<DailySalesReturnsProps> = ({
   title,
@@ -146,7 +115,7 @@ const DailySalesReturns: React.FC<DailySalesReturnsProps> = ({
   return (
     <div className="bg-white p-6 rounded-lg shadow">
       <div className="border-2 border-brand-blue rounded-lg mb-4">
-        <InvoiceHeader companyInfo={companyInfo} />
+        <InvoiceHeader />
       </div>
 
       <h1 className="text-2xl font-bold mb-4 text-brand-dark">{title}</h1>

@@ -956,7 +956,6 @@ const AppContent = () => {
                 <ProtectedRoute requiredPermission="receipt_voucher-read">
                   <ReceiptVoucher
                     title={currentPageTitle}
-                    companyInfo={companyInfo}
                     vouchers={receiptVouchers}
                     onSave={(v) =>
                       setReceiptVouchers((prev) =>
@@ -988,7 +987,6 @@ const AppContent = () => {
                 <ProtectedRoute requiredPermission="payment_voucher-read">
                   <PaymentVoucher
                     title={currentPageTitle}
-                    companyInfo={companyInfo}
                     vouchers={paymentVouchers}
                     onSave={(v) =>
                       setPaymentVouchers((prev) =>

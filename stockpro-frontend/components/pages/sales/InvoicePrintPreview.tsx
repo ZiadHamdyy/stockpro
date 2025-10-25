@@ -1,14 +1,14 @@
 import React from "react";
-import type { CompanyInfo, InvoiceItem } from "../../../types";
+import type { InvoiceItem } from "../../../types";
 import { tafqeet } from "../../../utils/tafqeet";
 import { generateZatcaBase64 } from "../../../utils/qrCodeGenerator";
 import { PrintIcon, XIcon } from "../../icons";
+import { useGetCompanyQuery } from "../../store/slices/companyApiSlice";
 
 interface InvoicePrintPreviewProps {
   isOpen: boolean;
   onClose: () => void;
   invoiceData: {
-    companyInfo: CompanyInfo;
     vatRate: number;
     isVatEnabled: boolean;
     items: InvoiceItem[];
@@ -29,10 +29,11 @@ const InvoicePrintPreview: React.FC<InvoicePrintPreviewProps> = ({
   onClose,
   invoiceData,
 }) => {
+  const { data: companyInfo, isLoading, error } = useGetCompanyQuery();
+  
   if (!isOpen) return null;
 
   const {
-    companyInfo,
     vatRate,
     isVatEnabled,
     items,
@@ -41,6 +42,32 @@ const InvoicePrintPreview: React.FC<InvoicePrintPreviewProps> = ({
     customer,
     details,
   } = invoiceData;
+
+  if (isLoading) {
+    return (
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div className="bg-white p-6 rounded-lg">
+          <p className="text-center">جاري تحميل بيانات الشركة...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error || !companyInfo) {
+    return (
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div className="bg-white p-6 rounded-lg">
+          <p className="text-center text-red-500">خطأ في تحميل بيانات الشركة</p>
+          <button
+            onClick={onClose}
+            className="mt-4 px-4 py-2 bg-gray-500 text-white rounded"
+          >
+            إغلاق
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   const handlePrint = () => {
     const printContents =

@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from "react";
 import { PrintIcon, SearchIcon } from "../../icons";
 import { tafqeet } from "../../../utils/tafqeet";
+import InvoiceHeader from "../../common/InvoiceHeader";
+import { useGetCompanyQuery } from "../../store/slices/companyApiSlice";
 import type {
-  CompanyInfo,
   Voucher,
   Customer,
   Supplier,
@@ -18,7 +19,6 @@ import { useToast } from "../../common/ToastProvider";
 
 interface ReceiptVoucherProps {
   title: string;
-  companyInfo: CompanyInfo;
   vouchers: Voucher[];
   onSave: (voucher: Voucher) => void;
   onDelete: (id: string) => void;
@@ -32,42 +32,9 @@ interface ReceiptVoucherProps {
   onClearViewingId: () => void;
 }
 
-const InvoiceHeader: React.FC<{ companyInfo: CompanyInfo }> = ({
-  companyInfo,
-}) => (
-  <div className="flex justify-between items-start p-4 bg-white">
-    <div className="flex items-center gap-4">
-      {companyInfo.logo && (
-        <img
-          src={companyInfo.logo}
-          alt="Company Logo"
-          className="h-20 w-auto object-contain"
-        />
-      )}
-      <div>
-        <h2 className="text-2xl font-bold text-brand-dark">
-          {companyInfo.name}
-        </h2>
-        <p className="text-sm text-gray-600">{companyInfo.address}</p>
-        <p className="text-sm text-gray-600">هاتف: {companyInfo.phone}</p>
-      </div>
-    </div>
-    <div className="text-left text-sm">
-      <p>
-        <span className="font-semibold">الرقم الضريبي:</span>{" "}
-        {companyInfo.taxNumber}
-      </p>
-      <p>
-        <span className="font-semibold">السجل التجاري:</span>{" "}
-        {companyInfo.commercialReg}
-      </p>
-    </div>
-  </div>
-);
 
 const ReceiptVoucher: React.FC<ReceiptVoucherProps> = ({
   title,
-  companyInfo,
   vouchers,
   onSave,
   onDelete,
@@ -80,6 +47,7 @@ const ReceiptVoucher: React.FC<ReceiptVoucherProps> = ({
   viewingId,
   onClearViewingId,
 }) => {
+  const { data: companyInfo } = useGetCompanyQuery();
   const initialEntity: VoucherEntity = { type: "customer", id: null, name: "" };
   const [voucherData, setVoucherData] = useState({
     number: "",
@@ -104,7 +72,7 @@ const ReceiptVoucher: React.FC<ReceiptVoucherProps> = ({
       entity: initialEntity,
       amount: 0,
       paymentMethod: "safe",
-      safeOrBankId: safes.length > 0 ? safes[0].id : null,
+      safeOrBankId: safes.length > 0 ? Number(safes[0].id) : null,
       description: "",
     });
     setIsReadOnly(false);
@@ -150,9 +118,9 @@ const ReceiptVoucher: React.FC<ReceiptVoucherProps> = ({
       if (field === "id") {
         let foundName = "";
         if (newEntity.type === "customer")
-          foundName = customers.find((c) => c.id === Number(value))?.name || "";
+          foundName = customers.find((c) => c.id === value)?.name || "";
         if (newEntity.type === "supplier")
-          foundName = suppliers.find((s) => s.id === Number(value))?.name || "";
+          foundName = suppliers.find((s) => s.id === value)?.name || "";
         if (newEntity.type === "current_account")
           foundName =
             currentAccounts.find((a) => a.id === Number(value))?.name || "";
@@ -282,7 +250,7 @@ const ReceiptVoucher: React.FC<ReceiptVoucherProps> = ({
     <>
       <div className="bg-white p-6 rounded-lg shadow">
         <div className="border-2 border-brand-blue rounded-lg mb-4">
-          <InvoiceHeader companyInfo={companyInfo} />
+          <InvoiceHeader />
         </div>
 
         <h1 className="text-2xl font-bold mb-4 text-brand-dark">{title}</h1>
@@ -436,7 +404,7 @@ const ReceiptVoucher: React.FC<ReceiptVoucherProps> = ({
 
         <div className="mt-6">
           <div className="bg-brand-blue-bg p-3 rounded-md text-center text-brand-dark font-semibold">
-            {tafqeet(voucherData.amount, companyInfo.currency)}
+            {companyInfo ? tafqeet(voucherData.amount, companyInfo.currency) : "جاري التحميل..."}
           </div>
         </div>
 
@@ -523,20 +491,21 @@ const ReceiptVoucher: React.FC<ReceiptVoucherProps> = ({
           </div>
         </div>
       </div>
-      <ReceiptVoucherPrintPreview
-        isOpen={isPreviewOpen}
-        onClose={() => setIsPreviewOpen(false)}
-        voucherData={{
-          companyInfo,
-          number: voucherData.number,
-          date: voucherData.date,
-          amount: voucherData.amount,
-          receivedFrom: voucherData.entity.name,
-          description: voucherData.description,
-          userName: voucher?.userName || currentUser?.fullName || "غير محدد",
-          branchName: voucher?.branchName || currentUser?.branch || "غير محدد",
-        }}
-      />
+      {companyInfo && (
+        <ReceiptVoucherPrintPreview
+          isOpen={isPreviewOpen}
+          onClose={() => setIsPreviewOpen(false)}
+          voucherData={{
+            number: voucherData.number,
+            date: voucherData.date,
+            amount: voucherData.amount,
+            receivedFrom: voucherData.entity.name,
+            description: voucherData.description,
+            userName: voucher?.userName || currentUser?.fullName || "غير محدد",
+            branchName: voucher?.branchName || currentUser?.branch || "غير محدد",
+          }}
+        />
+      )}
     </>
   );
 };
