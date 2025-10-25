@@ -1001,13 +1001,7 @@ const AppContent = () => {
               path="/financials/expenses/list"
               element={
                 <ProtectedRoute requiredPermission="expenses_list-read">
-                  <ExpensesList
-                    title={currentPageTitle}
-                    expenses={expenses}
-                    onDelete={(id) =>
-                      setExpenses((prev) => prev.filter((e) => e.id !== id))
-                    }
-                  />
+                  <ExpensesList title={currentPageTitle} />
                 </ProtectedRoute>
               }
             />
@@ -1015,13 +1009,7 @@ const AppContent = () => {
               path="/financials/expenses-list"
               element={
                 <ProtectedRoute requiredPermission="expenses_list-read">
-                  <ExpensesList
-                    title={currentPageTitle}
-                    expenses={expenses}
-                    onDelete={(id) =>
-                      setExpenses((prev) => prev.filter((e) => e.id !== id))
-                    }
-                  />
+                  <ExpensesList title={currentPageTitle} />
                 </ProtectedRoute>
               }
             />
@@ -1029,21 +1017,7 @@ const AppContent = () => {
               path="/financials/expenses/codes"
               element={
                 <ProtectedRoute requiredPermission="expense_codes-read">
-                  <ExpenseCodes
-                    title={currentPageTitle}
-                    codes={expenseCodes}
-                    expenseTypes={expenseTypes}
-                    onSave={(code) =>
-                      setExpenseCodes((prev) =>
-                        code.id
-                          ? prev.map((c) => (c.id === code.id ? code : c))
-                          : [...prev, { ...code, id: Date.now() }],
-                      )
-                    }
-                    onDelete={(id) =>
-                      setExpenseCodes((prev) => prev.filter((c) => c.id !== id))
-                    }
-                  />
+                  <ExpenseCodes title={currentPageTitle} />
                 </ProtectedRoute>
               }
             />
@@ -1051,21 +1025,7 @@ const AppContent = () => {
               path="/financials/expense-codes"
               element={
                 <ProtectedRoute requiredPermission="expense_codes-read">
-                  <ExpenseCodes
-                    title={currentPageTitle}
-                    codes={expenseCodes}
-                    expenseTypes={expenseTypes}
-                    onSave={(code) =>
-                      setExpenseCodes((prev) =>
-                        code.id
-                          ? prev.map((c) => (c.id === code.id ? code : c))
-                          : [...prev, { ...code, id: Date.now() }],
-                      )
-                    }
-                    onDelete={(id) =>
-                      setExpenseCodes((prev) => prev.filter((c) => c.id !== id))
-                    }
-                  />
+                  <ExpenseCodes title={currentPageTitle} />
                 </ProtectedRoute>
               }
             />
@@ -1073,20 +1033,7 @@ const AppContent = () => {
               path="/financials/expenses/types"
               element={
                 <ProtectedRoute requiredPermission="expense_types-read">
-                  <ExpenseTypes
-                    title={currentPageTitle}
-                    types={expenseTypes}
-                    onSave={(type) =>
-                      setExpenseTypes((prev) =>
-                        type.id
-                          ? prev.map((t) => (t.id === type.id ? type : t))
-                          : [...prev, { ...type, id: Date.now() }],
-                      )
-                    }
-                    onDelete={(id) =>
-                      setExpenseTypes((prev) => prev.filter((t) => t.id !== id))
-                    }
-                  />
+                  <ExpenseTypes title={currentPageTitle} />
                 </ProtectedRoute>
               }
             />
@@ -1094,20 +1041,7 @@ const AppContent = () => {
               path="/financials/expense-types"
               element={
                 <ProtectedRoute requiredPermission="expense_types-read">
-                  <ExpenseTypes
-                    title={currentPageTitle}
-                    types={expenseTypes}
-                    onSave={(type) =>
-                      setExpenseTypes((prev) =>
-                        type.id
-                          ? prev.map((t) => (t.id === type.id ? type : t))
-                          : [...prev, { ...type, id: Date.now() }],
-                      )
-                    }
-                    onDelete={(id) =>
-                      setExpenseTypes((prev) => prev.filter((t) => t.id !== id))
-                    }
-                  />
+                  <ExpenseTypes title={currentPageTitle} />
                 </ProtectedRoute>
               }
             />
@@ -1203,18 +1137,18 @@ const AppContent = () => {
                 <ProtectedRoute requiredPermission="safes-read">
                   <Safes
                     title={currentPageTitle}
-                    safes={safes}
-                    branches={branches}
-                    onSave={(safe) =>
-                      setSafes((prev) =>
-                        safe.id
-                          ? prev.map((s) => (s.id === safe.id ? safe : s))
-                          : [...prev, { ...safe, id: Date.now() }],
-                      )
-                    }
-                    onDelete={(id) =>
-                      setSafes((prev) => prev.filter((s) => s.id !== id))
-                    }
+                    // safes={safes}
+                    // branches={branches}
+                    // onSave={(safe) =>
+                    //   setSafes((prev) =>
+                    //     safe.id
+                    //       ? prev.map((s) => (s.id === safe.id ? safe : s))
+                    //       : [...prev, { ...safe, id: Date.now() }],
+                    //   )
+                    // }
+                    // onDelete={(id) =>
+                    //   setSafes((prev) => prev.filter((s) => s.id !== id))
+                    // }
                   />
                 </ProtectedRoute>
               }

@@ -1,48 +1,53 @@
 import React, { useState, useEffect } from "react";
 import type {
+  Expense,
   ExpenseCode,
-  ExpenseType,
 } from "../../store/slices/expense/expenseApiSlice";
 
-interface ExpenseCodeModalProps {
+interface AddExpenseModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSave: (data: {
-    name: string;
-    expenseTypeId: string;
+    date: string;
+    expenseCodeId: string;
+    amount: number;
     description?: string;
   }) => void;
-  codeToEdit: ExpenseCode | null;
-  expenseTypes: ExpenseType[];
-  codes: ExpenseCode[];
+  expenseToEdit: Expense | null;
+  expenseCodes: ExpenseCode[];
 }
 
-const ExpenseCodeModal: React.FC<ExpenseCodeModalProps> = ({
+const AddExpenseModal: React.FC<AddExpenseModalProps> = ({
   isOpen,
   onClose,
   onSave,
-  codeToEdit,
-  expenseTypes,
-  codes,
+  expenseToEdit,
+  expenseCodes,
 }) => {
-  const [codeData, setCodeData] = useState({
-    name: "",
-    expenseTypeId: "",
+  const [expenseData, setExpenseData] = useState({
+    date: new Date().toISOString().split("T")[0],
+    expenseCodeId: "",
+    amount: 0,
     description: "",
   });
 
   useEffect(() => {
-    if (codeToEdit) {
-      setCodeData({
-        name: codeToEdit.name,
-        expenseTypeId: codeToEdit.expenseTypeId,
-        description: codeToEdit.description || "",
+    if (expenseToEdit) {
+      setExpenseData({
+        date: expenseToEdit.date.split("T")[0],
+        expenseCodeId: expenseToEdit.expenseCodeId,
+        amount: expenseToEdit.amount,
+        description: expenseToEdit.description || "",
       });
     } else {
-      const defaultTypeId = expenseTypes.length > 0 ? expenseTypes[0].id : "";
-      setCodeData({ name: "", expenseTypeId: defaultTypeId, description: "" });
+      setExpenseData({
+        date: new Date().toISOString().split("T")[0],
+        expenseCodeId: "",
+        amount: 0,
+        description: "",
+      });
     }
-  }, [codeToEdit, isOpen, expenseTypes, codes]);
+  }, [expenseToEdit, isOpen]);
 
   const handleChange = (
     e: React.ChangeEvent<
@@ -50,17 +55,19 @@ const ExpenseCodeModal: React.FC<ExpenseCodeModalProps> = ({
     >,
   ) => {
     const { name, value } = e.target;
-    setCodeData((prev) => ({ ...prev, [name]: value }));
+    setExpenseData((prev) => ({
+      ...prev,
+      [name]: name === "amount" ? parseFloat(value) || 0 : value,
+    }));
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onSave({
-      name: codeData.name,
-      expenseTypeId: codeData.expenseTypeId,
-      description: codeData.description || undefined,
-    });
-    onClose();
+    if (!expenseData.expenseCodeId || expenseData.amount <= 0) {
+      alert("الرجاء اختيار بند المصروف وإدخال مبلغ صحيح");
+      return;
+    }
+    onSave(expenseData);
   };
 
   if (!isOpen) return null;
@@ -74,29 +81,28 @@ const ExpenseCodeModal: React.FC<ExpenseCodeModalProps> = ({
       onClick={onClose}
     >
       <div
-        className="bg-white rounded-lg shadow-xl w-full max-w-md"
+        className="bg-white rounded-lg shadow-xl w-full max-w-2xl"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="p-4 border-b border-gray-200">
           <h2 className="text-xl font-bold text-brand-dark">
-            {codeToEdit ? "تعديل بند مصروف" : "اضافة بند مصروف جديد"}
+            {expenseToEdit ? "تعديل مصروف" : "اضافة مصروف جديد"}
           </h2>
         </div>
         <form onSubmit={handleSubmit}>
           <div className="p-6 space-y-4">
-            {codeToEdit && (
+            {expenseToEdit && (
               <div>
                 <label
                   htmlFor="code"
                   className="block text-sm font-medium text-gray-700"
                 >
-                  كود البند
+                  رقم المصروف
                 </label>
                 <input
                   type="text"
                   id="code"
-                  name="code"
-                  value={codeToEdit.code}
+                  value={expenseToEdit.code}
                   className={inputStyle + " bg-gray-200"}
                   readOnly
                 />
@@ -104,16 +110,16 @@ const ExpenseCodeModal: React.FC<ExpenseCodeModalProps> = ({
             )}
             <div>
               <label
-                htmlFor="name"
+                htmlFor="date"
                 className="block text-sm font-medium text-gray-700"
               >
-                اسم البند
+                التاريخ
               </label>
               <input
-                type="text"
-                id="name"
-                name="name"
-                value={codeData.name}
+                type="date"
+                id="date"
+                name="date"
+                value={expenseData.date}
                 onChange={handleChange}
                 className={inputStyle}
                 required
@@ -121,28 +127,47 @@ const ExpenseCodeModal: React.FC<ExpenseCodeModalProps> = ({
             </div>
             <div>
               <label
-                htmlFor="expenseTypeId"
+                htmlFor="expenseCodeId"
                 className="block text-sm font-medium text-gray-700"
               >
-                نوع المصروف
+                بند المصروف
               </label>
               <select
-                id="expenseTypeId"
-                name="expenseTypeId"
-                value={codeData.expenseTypeId}
+                id="expenseCodeId"
+                name="expenseCodeId"
+                value={expenseData.expenseCodeId}
                 onChange={handleChange}
                 className={inputStyle}
                 required
               >
                 <option value="" disabled>
-                  اختر نوع...
+                  اختر بند المصروف...
                 </option>
-                {expenseTypes.map((type) => (
-                  <option key={type.id} value={type.id}>
-                    {type.name}
+                {expenseCodes.map((code) => (
+                  <option key={code.id} value={code.id}>
+                    {code.code} - {code.name}
                   </option>
                 ))}
               </select>
+            </div>
+            <div>
+              <label
+                htmlFor="amount"
+                className="block text-sm font-medium text-gray-700"
+              >
+                المبلغ
+              </label>
+              <input
+                type="number"
+                id="amount"
+                name="amount"
+                value={expenseData.amount}
+                onChange={handleChange}
+                className={inputStyle}
+                min="0"
+                step="0.01"
+                required
+              />
             </div>
             <div>
               <label
@@ -154,7 +179,7 @@ const ExpenseCodeModal: React.FC<ExpenseCodeModalProps> = ({
               <textarea
                 id="description"
                 name="description"
-                value={codeData.description}
+                value={expenseData.description}
                 onChange={handleChange}
                 className={inputStyle}
                 rows={3}
@@ -182,4 +207,4 @@ const ExpenseCodeModal: React.FC<ExpenseCodeModalProps> = ({
   );
 };
 
-export default ExpenseCodeModal;
+export default AddExpenseModal;

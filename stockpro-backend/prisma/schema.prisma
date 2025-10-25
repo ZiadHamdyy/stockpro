@@ -440,3 +440,56 @@ model StoreTransferVoucherItem {
   @@index([voucherId])
   @@index([itemId])
 }
+
+model ExpenseType {
+  id          String  @id @default(uuid())
+  name        String  @unique
+  description String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relationships
+  expenseCodes ExpenseCode[]
+}
+
+model ExpenseCode {
+  id            String  @id @default(uuid())
+  code          String  @unique
+  name          String
+  description   String?
+
+  // Foreign keys
+  expenseTypeId String
+
+  // Relationships
+  expenseType ExpenseType @relation(fields: [expenseTypeId], references: [id])
+  expenses    Expense[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([code])
+  @@index([expenseTypeId])
+}
+
+model Expense {
+  id          String   @id @default(uuid())
+  code        String   @unique
+  date        DateTime
+  amount      Float
+  description String?
+
+  // Foreign keys
+  expenseCodeId String
+
+  // Relationships
+  expenseCode ExpenseCode @relation(fields: [expenseCodeId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([code])
+  @@index([date])
+  @@index([expenseCodeId])
+}

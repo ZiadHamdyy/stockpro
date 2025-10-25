@@ -28,6 +28,7 @@ import { BankModule } from './modules/bank/bank.module';
 import { SafeModule } from './modules/safe/safe.module';
 import { CustomerModule } from './modules/customer/customer.module';
 import { SupplierModule } from './modules/supplier/supplier.module';
+import { ExpenseModule } from './modules/expense/expense.module';
 
 @Module({
   imports: [
@@ -55,6 +56,7 @@ import { SupplierModule } from './modules/supplier/supplier.module';
     SafeModule,
     CustomerModule,
     SupplierModule,
+    ExpenseModule,
   ],
   controllers: [AppController],
   providers: [
