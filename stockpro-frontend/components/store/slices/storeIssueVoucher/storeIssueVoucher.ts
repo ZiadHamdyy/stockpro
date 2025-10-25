@@ -17,20 +17,26 @@ const storeIssueVoucherSlice = createSlice({
   name: "storeIssueVoucher",
   initialState,
   reducers: {
-    setStoreIssueVouchers: (state, action: PayloadAction<StoreIssueVoucher[]>) => {
+    setStoreIssueVouchers: (
+      state,
+      action: PayloadAction<StoreIssueVoucher[]>,
+    ) => {
       state.vouchers = action.payload;
     },
     addStoreIssueVoucher: (state, action: PayloadAction<StoreIssueVoucher>) => {
       state.vouchers.push(action.payload);
     },
-    updateStoreIssueVoucher: (state, action: PayloadAction<StoreIssueVoucher>) => {
-      const index = state.vouchers.findIndex(v => v.id === action.payload.id);
+    updateStoreIssueVoucher: (
+      state,
+      action: PayloadAction<StoreIssueVoucher>,
+    ) => {
+      const index = state.vouchers.findIndex((v) => v.id === action.payload.id);
       if (index !== -1) {
         state.vouchers[index] = action.payload;
       }
     },
     removeStoreIssueVoucher: (state, action: PayloadAction<string>) => {
-      state.vouchers = state.vouchers.filter(v => v.id !== action.payload);
+      state.vouchers = state.vouchers.filter((v) => v.id !== action.payload);
     },
     setLoading: (state, action: PayloadAction<boolean>) => {
       state.isLoading = action.payload;
@@ -51,4 +57,3 @@ export const {
 } = storeIssueVoucherSlice.actions;
 
 export default storeIssueVoucherSlice.reducer;
-

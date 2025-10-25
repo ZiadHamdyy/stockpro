@@ -4,18 +4,25 @@ import { ExcelIcon, PdfIcon, PrintIcon, SearchIcon } from "../../icons";
 import UserModal from "./UserModal";
 import { useModal } from "../../common/ModalProvider";
 import { exportToExcel, exportToPdf } from "../../../utils/formatting";
-import { useGetUsersQuery, useDeleteUserMutation, type User } from "../../store/slices/user/userApi";
+import {
+  useGetUsersQuery,
+  useDeleteUserMutation,
+  type User,
+} from "../../store/slices/user/userApi";
 import { useGetBranchesQuery } from "../../store/slices/branch/branchApi";
 
 interface UsersDataProps {
   title: string;
 }
 
-const UsersData: React.FC<UsersDataProps> = ({
-  title,
-}) => {
-  const { data: users = [], isLoading: isLoadingUsers, error: usersError } = useGetUsersQuery();
-  const { data: branches = [], isLoading: isLoadingBranches } = useGetBranchesQuery();
+const UsersData: React.FC<UsersDataProps> = ({ title }) => {
+  const {
+    data: users = [],
+    isLoading: isLoadingUsers,
+    error: usersError,
+  } = useGetUsersQuery();
+  const { data: branches = [], isLoading: isLoadingBranches } =
+    useGetBranchesQuery();
   const [deleteUser, { isLoading: isDeleting }] = useDeleteUserMutation();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [userToEdit, setUserToEdit] = useState<User | null>(null);
@@ -68,23 +75,22 @@ const UsersData: React.FC<UsersDataProps> = ({
   );
 
   const handleExcelExport = () => {
-    const dataToExport = filteredUsers.map(
-      ({ id, name, email, role }) => ({
-        "كود المستخدم": id,
-        "الاسم الكامل": name || "",
-        "البريد الإلكتروني": email || "",
-        "مجموعة الصلاحيات": role?.name === "manager" 
-          ? "مدير" 
-          : role?.name === "accountant" 
-          ? "محاسب" 
-          : role?.name === "salesperson" 
-          ? "بائع" 
-          : role?.name === "data_entry" 
-          ? "مدخل البيانات" 
-          : role?.name || "مستخدم",
-        "الحالة": "نشط",
-      }),
-    );
+    const dataToExport = filteredUsers.map(({ id, name, email, role }) => ({
+      "كود المستخدم": id,
+      "الاسم الكامل": name || "",
+      "البريد الإلكتروني": email || "",
+      "مجموعة الصلاحيات":
+        role?.name === "manager"
+          ? "مدير"
+          : role?.name === "accountant"
+            ? "محاسب"
+            : role?.name === "salesperson"
+              ? "بائع"
+              : role?.name === "data_entry"
+                ? "مدخل البيانات"
+                : role?.name || "مستخدم",
+      الحالة: "نشط",
+    }));
     exportToExcel(dataToExport, "قائمة-المستخدمين");
   };
 
@@ -100,15 +106,15 @@ const UsersData: React.FC<UsersDataProps> = ({
     ];
     const body = filteredUsers.map((user) => [
       user.active ? "نشط" : "غير نشط",
-      user.role?.name === "manager" 
-        ? "مدير" 
-        : user.role?.name === "accountant" 
-        ? "محاسب" 
-        : user.role?.name === "salesperson" 
-        ? "بائع" 
-        : user.role?.name === "data_entry" 
-        ? "مدخل البيانات" 
-        : user.role?.name || "مستخدم",
+      user.role?.name === "manager"
+        ? "مدير"
+        : user.role?.name === "accountant"
+          ? "محاسب"
+          : user.role?.name === "salesperson"
+            ? "بائع"
+            : user.role?.name === "data_entry"
+              ? "مدخل البيانات"
+              : user.role?.name || "مستخدم",
       user.email || "",
       user.name || "",
       user.id.toString(),
@@ -171,16 +177,18 @@ const UsersData: React.FC<UsersDataProps> = ({
           </div>
         ) : usersError ? (
           <div className="flex justify-center items-center py-8">
-            <div className="text-lg text-red-600">خطأ في تحميل البيانات: {JSON.stringify(usersError)}</div>
+            <div className="text-lg text-red-600">
+              خطأ في تحميل البيانات: {JSON.stringify(usersError)}
+            </div>
           </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-brand-blue">
-              <tr>
-                <th className="px-6 py-3 text-right text-sm font-semibold text-white uppercase tracking-wider">
-                  كود المستخدم
-                </th>
+              <thead className="bg-brand-blue">
+                <tr>
+                  <th className="px-6 py-3 text-right text-sm font-semibold text-white uppercase tracking-wider">
+                    كود المستخدم
+                  </th>
                   <th className="px-6 py-3 text-right text-sm font-semibold text-white uppercase tracking-wider">
                     الاسم الكامل
                   </th>
@@ -196,12 +204,12 @@ const UsersData: React.FC<UsersDataProps> = ({
                   <th className="px-6 py-3 text-right text-sm font-semibold text-white uppercase tracking-wider">
                     تاريخ الإنشاء
                   </th>
-                <th className="px-6 py-3 text-right text-sm font-semibold text-white uppercase tracking-wider no-print">
-                  اجراءات
-                </th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
+                  <th className="px-6 py-3 text-right text-sm font-semibold text-white uppercase tracking-wider no-print">
+                    اجراءات
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
                 {filteredUsers.map((user) => (
                   <tr key={user.id} className="hover:bg-brand-blue-bg">
                     <td className="px-6 py-4 whitespace-nowrap">{user.id}</td>
@@ -214,20 +222,20 @@ const UsersData: React.FC<UsersDataProps> = ({
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span
                         className={`px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                          user.role?.name === "manager" 
-                            ? "bg-blue-100 text-blue-700" 
+                          user.role?.name === "manager"
+                            ? "bg-blue-100 text-blue-700"
                             : "bg-green-100 text-green-800"
                         }`}
                       >
-                        {user.role?.name === "manager" 
-                          ? "مدير" 
-                          : user.role?.name === "accountant" 
-                          ? "محاسب" 
-                          : user.role?.name === "salesperson" 
-                          ? "بائع" 
-                          : user.role?.name === "data_entry" 
-                          ? "مدخل البيانات" 
-                          : user.role?.name || "مستخدم"}
+                        {user.role?.name === "manager"
+                          ? "مدير"
+                          : user.role?.name === "accountant"
+                            ? "محاسب"
+                            : user.role?.name === "salesperson"
+                              ? "بائع"
+                              : user.role?.name === "data_entry"
+                                ? "مدخل البيانات"
+                                : user.role?.name || "مستخدم"}
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
@@ -238,7 +246,7 @@ const UsersData: React.FC<UsersDataProps> = ({
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      {new Date(user.createdAt).toLocaleDateString('ar-SA')}
+                      {new Date(user.createdAt).toLocaleDateString("ar-SA")}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium no-print">
                       <button
@@ -257,9 +265,9 @@ const UsersData: React.FC<UsersDataProps> = ({
                     </td>
                   </tr>
                 ))}
-            </tbody>
-          </table>
-        </div>
+              </tbody>
+            </table>
+          </div>
         )}
       </div>
       <UserModal

@@ -189,11 +189,14 @@ export interface CurrentAccount {
 }
 
 export interface Safe {
-  id: number;
+  id: string;
   code: string;
   name: string;
-  branch: string;
+  branchId: string;
+  branchName: string;
   openingBalance: number;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface Bank {

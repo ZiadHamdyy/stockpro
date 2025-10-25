@@ -1,10 +1,17 @@
 import React, { useState, useEffect } from "react";
-import type { ExpenseCode, ExpenseType } from "../../../types";
+import type {
+  ExpenseCode,
+  ExpenseType,
+} from "../../store/slices/expense/expenseApiSlice";
 
 interface ExpenseCodeModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSave: (code: ExpenseCode) => void;
+  onSave: (data: {
+    name: string;
+    expenseTypeId: string;
+    description?: string;
+  }) => void;
   codeToEdit: ExpenseCode | null;
   expenseTypes: ExpenseType[];
   codes: ExpenseCode[];
@@ -18,32 +25,29 @@ const ExpenseCodeModal: React.FC<ExpenseCodeModalProps> = ({
   expenseTypes,
   codes,
 }) => {
-  const [codeData, setCodeData] = useState<Omit<ExpenseCode, "id">>({
-    code: "",
+  const [codeData, setCodeData] = useState({
     name: "",
-    type: "",
+    expenseTypeId: "",
+    description: "",
   });
 
   useEffect(() => {
     if (codeToEdit) {
-      setCodeData(codeToEdit);
+      setCodeData({
+        name: codeToEdit.name,
+        expenseTypeId: codeToEdit.expenseTypeId,
+        description: codeToEdit.description || "",
+      });
     } else {
-      const existingNumbers = codes
-        .map((c) =>
-          c.code.startsWith("EC-") ? parseInt(c.code.substring(3), 10) : NaN,
-        )
-        .filter((n) => !isNaN(n));
-      const maxNumber =
-        existingNumbers.length > 0 ? Math.max(...existingNumbers) : 0;
-      const newCode = `EC-${String(maxNumber + 1).padStart(3, "0")}`;
-
-      const defaultType = expenseTypes.length > 0 ? expenseTypes[0].name : "";
-      setCodeData({ code: newCode, name: "", type: defaultType });
+      const defaultTypeId = expenseTypes.length > 0 ? expenseTypes[0].id : "";
+      setCodeData({ name: "", expenseTypeId: defaultTypeId, description: "" });
     }
   }, [codeToEdit, isOpen, expenseTypes, codes]);
 
   const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>,
+    e: React.ChangeEvent<
+      HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
+    >,
   ) => {
     const { name, value } = e.target;
     setCodeData((prev) => ({ ...prev, [name]: value }));
@@ -51,11 +55,11 @@ const ExpenseCodeModal: React.FC<ExpenseCodeModalProps> = ({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    const codeToSave: ExpenseCode = {
-      ...codeData,
-      id: codeToEdit?.id || 0,
-    };
-    onSave(codeToSave);
+    onSave({
+      name: codeData.name,
+      expenseTypeId: codeData.expenseTypeId,
+      description: codeData.description || undefined,
+    });
     onClose();
   };
 
@@ -80,23 +84,24 @@ const ExpenseCodeModal: React.FC<ExpenseCodeModalProps> = ({
         </div>
         <form onSubmit={handleSubmit}>
           <div className="p-6 space-y-4">
-            <div>
-              <label
-                htmlFor="code"
-                className="block text-sm font-medium text-gray-700"
-              >
-                كود البند
-              </label>
-              <input
-                type="text"
-                id="code"
-                name="code"
-                value={codeData.code}
-                className={inputStyle + " bg-gray-200"}
-                required
-                readOnly
-              />
-            </div>
+            {codeToEdit && (
+              <div>
+                <label
+                  htmlFor="code"
+                  className="block text-sm font-medium text-gray-700"
+                >
+                  كود البند
+                </label>
+                <input
+                  type="text"
+                  id="code"
+                  name="code"
+                  value={codeToEdit.code}
+                  className={inputStyle + " bg-gray-200"}
+                  readOnly
+                />
+              </div>
+            )}
             <div>
               <label
                 htmlFor="name"
@@ -116,15 +121,15 @@ const ExpenseCodeModal: React.FC<ExpenseCodeModalProps> = ({
             </div>
             <div>
               <label
-                htmlFor="type"
+                htmlFor="expenseTypeId"
                 className="block text-sm font-medium text-gray-700"
               >
                 نوع المصروف
               </label>
               <select
-                id="type"
-                name="type"
-                value={codeData.type}
+                id="expenseTypeId"
+                name="expenseTypeId"
+                value={codeData.expenseTypeId}
                 onChange={handleChange}
                 className={inputStyle}
                 required
@@ -133,11 +138,27 @@ const ExpenseCodeModal: React.FC<ExpenseCodeModalProps> = ({
                   اختر نوع...
                 </option>
                 {expenseTypes.map((type) => (
-                  <option key={type.id} value={type.name}>
+                  <option key={type.id} value={type.id}>
                     {type.name}
                   </option>
                 ))}
               </select>
+            </div>
+            <div>
+              <label
+                htmlFor="description"
+                className="block text-sm font-medium text-gray-700"
+              >
+                الوصف
+              </label>
+              <textarea
+                id="description"
+                name="description"
+                value={codeData.description}
+                onChange={handleChange}
+                className={inputStyle}
+                rows={3}
+              />
             </div>
           </div>
           <div className="p-4 border-t border-gray-200 flex justify-end gap-2">

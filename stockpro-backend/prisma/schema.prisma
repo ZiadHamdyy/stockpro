@@ -214,6 +214,23 @@ model Bank {
   @@index([code])
 }
 
+model Safe {
+  id             String  @id @default(uuid())
+  code           String  @unique
+  name           String
+  branchId       String
+  openingBalance Float   @default(0)
+
+  // Relationships
+  branch Branch @relation(fields: [branchId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([code])
+  @@index([branchId])
+}
+
 model Customer {
   id             String  @id @default(uuid())
   code           String  @unique
@@ -258,6 +275,7 @@ model Branch {
 
   // Relationships
   stores Store[]
+  safes  Safe[]
 }
 
 model Store {
@@ -434,4 +452,57 @@ model CurrentAccount {
   updatedAt DateTime @updatedAt
 
   @@index([code])
+}
+
+model ExpenseType {
+  id          String  @id @default(uuid())
+  name        String  @unique
+  description String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relationships
+  expenseCodes ExpenseCode[]
+}
+
+model ExpenseCode {
+  id            String  @id @default(uuid())
+  code          String  @unique
+  name          String
+  description   String?
+
+  // Foreign keys
+  expenseTypeId String
+
+  // Relationships
+  expenseType ExpenseType @relation(fields: [expenseTypeId], references: [id])
+  expenses    Expense[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([code])
+  @@index([expenseTypeId])
+}
+
+model Expense {
+  id          String   @id @default(uuid())
+  code        String   @unique
+  date        DateTime
+  amount      Float
+  description String?
+
+  // Foreign keys
+  expenseCodeId String
+
+  // Relationships
+  expenseCode ExpenseCode @relation(fields: [expenseCodeId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([code])
+  @@index([date])
+  @@index([expenseCodeId])
 }

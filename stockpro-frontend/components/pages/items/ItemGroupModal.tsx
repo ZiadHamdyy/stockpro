@@ -1,6 +1,10 @@
 import React, { useState, useEffect } from "react";
 import PermissionWrapper from "../../common/PermissionWrapper";
-import { Resources, Actions, buildPermission } from "../../../enums/permissions.enum";
+import {
+  Resources,
+  Actions,
+  buildPermission,
+} from "../../../enums/permissions.enum";
 import { useAppDispatch } from "../../store/hooks";
 import {
   useCreateItemGroupMutation,
@@ -104,7 +108,7 @@ const ItemGroupModal: React.FC<ItemGroupModalProps> = ({
             <PermissionWrapper
               requiredPermission={[
                 buildPermission(Resources.ITEM_GROUPS, Actions.CREATE),
-                buildPermission(Resources.ITEM_GROUPS, Actions.UPDATE)
+                buildPermission(Resources.ITEM_GROUPS, Actions.UPDATE),
               ]}
               fallback={
                 <button

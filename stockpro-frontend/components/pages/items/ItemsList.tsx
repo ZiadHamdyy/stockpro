@@ -9,7 +9,11 @@ import {
 } from "../../icons";
 import { useModal } from "../../common/ModalProvider";
 import PermissionWrapper from "../../common/PermissionWrapper";
-import { Resources, Actions, buildPermission } from "../../../enums/permissions.enum";
+import {
+  Resources,
+  Actions,
+  buildPermission,
+} from "../../../enums/permissions.enum";
 import { exportToExcel, exportToPdf } from "../../../utils/formatting";
 import { useAppDispatch, useAppSelector } from "../../store/hooks";
 import {
@@ -50,7 +54,6 @@ const ItemsList: React.FC<ItemsListProps> = ({ title, onNavigate }) => {
       dispatch(setItems(apiItems));
     }
   }, [apiItems, dispatch]);
-
 
   const handleDeleteClick = (id: string, name: string) => {
     showModal({
@@ -122,7 +125,10 @@ const ItemsList: React.FC<ItemsListProps> = ({ title, onNavigate }) => {
       <div className="flex justify-between items-center mb-4 border-b pb-4 no-print">
         <h1 className="text-2xl font-bold text-brand-dark">{title}</h1>
         <PermissionWrapper
-          requiredPermission={buildPermission(Resources.ADD_ITEM, Actions.CREATE)}
+          requiredPermission={buildPermission(
+            Resources.ADD_ITEM,
+            Actions.CREATE,
+          )}
           fallback={
             <button
               disabled
@@ -153,7 +159,10 @@ const ItemsList: React.FC<ItemsListProps> = ({ title, onNavigate }) => {
         </div>
         <div className="flex items-center gap-2">
           <PermissionWrapper
-            requiredPermission={buildPermission(Resources.ITEMS_LIST, Actions.PRINT)}
+            requiredPermission={buildPermission(
+              Resources.ITEMS_LIST,
+              Actions.PRINT,
+            )}
             fallback={
               <button
                 disabled
@@ -173,7 +182,10 @@ const ItemsList: React.FC<ItemsListProps> = ({ title, onNavigate }) => {
             </button>
           </PermissionWrapper>
           <PermissionWrapper
-            requiredPermission={buildPermission(Resources.ITEMS_LIST, Actions.PRINT)}
+            requiredPermission={buildPermission(
+              Resources.ITEMS_LIST,
+              Actions.PRINT,
+            )}
             fallback={
               <button
                 disabled
@@ -193,7 +205,10 @@ const ItemsList: React.FC<ItemsListProps> = ({ title, onNavigate }) => {
             </button>
           </PermissionWrapper>
           <PermissionWrapper
-            requiredPermission={buildPermission(Resources.ITEMS_LIST, Actions.PRINT)}
+            requiredPermission={buildPermission(
+              Resources.ITEMS_LIST,
+              Actions.PRINT,
+            )}
             fallback={
               <button
                 disabled
@@ -287,7 +302,10 @@ const ItemsList: React.FC<ItemsListProps> = ({ title, onNavigate }) => {
                   <td className="px-6 py-4 font-bold">{item.stock}</td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium no-print">
                     <PermissionWrapper
-                      requiredPermission={buildPermission(Resources.ADD_ITEM, Actions.UPDATE)}
+                      requiredPermission={buildPermission(
+                        Resources.ADD_ITEM,
+                        Actions.UPDATE,
+                      )}
                       fallback={
                         <button
                           disabled
@@ -311,7 +329,10 @@ const ItemsList: React.FC<ItemsListProps> = ({ title, onNavigate }) => {
                       </button>
                     </PermissionWrapper>
                     <PermissionWrapper
-                      requiredPermission={buildPermission(Resources.ADD_ITEM, Actions.DELETE)}
+                      requiredPermission={buildPermission(
+                        Resources.ADD_ITEM,
+                        Actions.DELETE,
+                      )}
                       fallback={
                         <button
                           disabled

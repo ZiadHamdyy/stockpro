@@ -8,4 +8,3 @@ import { BranchService } from './branch.service';
   exports: [BranchService],
 })
 export class BranchModule {}
-

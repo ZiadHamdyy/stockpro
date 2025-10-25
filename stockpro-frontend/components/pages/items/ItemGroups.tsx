@@ -3,7 +3,11 @@ import { PrintIcon, SearchIcon } from "../../icons";
 import ItemGroupModal from "./ItemGroupModal";
 import { useModal } from "../../common/ModalProvider";
 import PermissionWrapper from "../../common/PermissionWrapper";
-import { Resources, Actions, buildPermission } from "../../../enums/permissions.enum";
+import {
+  Resources,
+  Actions,
+  buildPermission,
+} from "../../../enums/permissions.enum";
 import { useAppDispatch, useAppSelector } from "../../store/hooks";
 import {
   useGetItemGroupsQuery,
@@ -115,7 +119,10 @@ const ItemGroups: React.FC<ItemGroupsProps> = ({ title }) => {
           </div>
           <div>
             <PermissionWrapper
-              requiredPermission={buildPermission(Resources.ITEM_GROUPS, Actions.CREATE)}
+              requiredPermission={buildPermission(
+                Resources.ITEM_GROUPS,
+                Actions.CREATE,
+              )}
               fallback={
                 <button
                   disabled
@@ -133,7 +140,10 @@ const ItemGroups: React.FC<ItemGroupsProps> = ({ title }) => {
               </button>
             </PermissionWrapper>
             <PermissionWrapper
-              requiredPermission={buildPermission(Resources.ITEM_GROUPS, Actions.PRINT)}
+              requiredPermission={buildPermission(
+                Resources.ITEM_GROUPS,
+                Actions.PRINT,
+              )}
               fallback={
                 <button
                   disabled
@@ -208,7 +218,10 @@ const ItemGroups: React.FC<ItemGroupsProps> = ({ title }) => {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium no-print">
                       <PermissionWrapper
-                        requiredPermission={buildPermission(Resources.ITEM_GROUPS, Actions.UPDATE)}
+                        requiredPermission={buildPermission(
+                          Resources.ITEM_GROUPS,
+                          Actions.UPDATE,
+                        )}
                         fallback={
                           <button
                             disabled
@@ -226,7 +239,10 @@ const ItemGroups: React.FC<ItemGroupsProps> = ({ title }) => {
                         </button>
                       </PermissionWrapper>
                       <PermissionWrapper
-                        requiredPermission={buildPermission(Resources.ITEM_GROUPS, Actions.DELETE)}
+                        requiredPermission={buildPermission(
+                          Resources.ITEM_GROUPS,
+                          Actions.DELETE,
+                        )}
                         fallback={
                           <button
                             disabled

@@ -3,7 +3,11 @@ import { PrintIcon, SearchIcon } from "../../icons";
 import UnitModal from "./UnitModal";
 import { useModal } from "../../common/ModalProvider";
 import PermissionWrapper from "../../common/PermissionWrapper";
-import { Resources, Actions, buildPermission } from "../../../enums/permissions.enum";
+import {
+  Resources,
+  Actions,
+  buildPermission,
+} from "../../../enums/permissions.enum";
 import { useAppDispatch, useAppSelector } from "../../store/hooks";
 import {
   useGetUnitsQuery,
@@ -115,7 +119,10 @@ const Units: React.FC<UnitsProps> = ({ title }) => {
           </div>
           <div>
             <PermissionWrapper
-              requiredPermission={buildPermission(Resources.UNITS, Actions.CREATE)}
+              requiredPermission={buildPermission(
+                Resources.UNITS,
+                Actions.CREATE,
+              )}
               fallback={
                 <button
                   disabled
@@ -133,7 +140,10 @@ const Units: React.FC<UnitsProps> = ({ title }) => {
               </button>
             </PermissionWrapper>
             <PermissionWrapper
-              requiredPermission={buildPermission(Resources.UNITS, Actions.PRINT)}
+              requiredPermission={buildPermission(
+                Resources.UNITS,
+                Actions.PRINT,
+              )}
               fallback={
                 <button
                   disabled
@@ -208,7 +218,10 @@ const Units: React.FC<UnitsProps> = ({ title }) => {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium no-print">
                       <PermissionWrapper
-                        requiredPermission={buildPermission(Resources.UNITS, Actions.UPDATE)}
+                        requiredPermission={buildPermission(
+                          Resources.UNITS,
+                          Actions.UPDATE,
+                        )}
                         fallback={
                           <button
                             disabled
@@ -226,7 +239,10 @@ const Units: React.FC<UnitsProps> = ({ title }) => {
                         </button>
                       </PermissionWrapper>
                       <PermissionWrapper
-                        requiredPermission={buildPermission(Resources.UNITS, Actions.DELETE)}
+                        requiredPermission={buildPermission(
+                          Resources.UNITS,
+                          Actions.DELETE,
+                        )}
                         fallback={
                           <button
                             disabled

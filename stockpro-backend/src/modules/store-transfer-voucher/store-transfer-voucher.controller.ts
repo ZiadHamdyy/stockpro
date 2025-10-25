@@ -17,12 +17,16 @@ import { Auth } from '../../common/decorators/auth.decorator';
 @Controller('store-transfer-vouchers')
 @UseGuards(JwtAuthenticationGuard)
 export class StoreTransferVoucherController {
-  constructor(private readonly storeTransferVoucherService: StoreTransferVoucherService) {}
+  constructor(
+    private readonly storeTransferVoucherService: StoreTransferVoucherService,
+  ) {}
 
   @Post()
   @Auth({ permissions: ['store_transfer:create'] })
   create(@Body() createStoreTransferVoucherDto: CreateStoreTransferVoucherDto) {
-    return this.storeTransferVoucherService.create(createStoreTransferVoucherDto);
+    return this.storeTransferVoucherService.create(
+      createStoreTransferVoucherDto,
+    );
   }
 
   @Get()
@@ -43,7 +47,10 @@ export class StoreTransferVoucherController {
     @Param('id') id: string,
     @Body() updateStoreTransferVoucherDto: UpdateStoreTransferVoucherDto,
   ) {
-    return this.storeTransferVoucherService.update(id, updateStoreTransferVoucherDto);
+    return this.storeTransferVoucherService.update(
+      id,
+      updateStoreTransferVoucherDto,
+    );
   }
 
   @Delete(':id')

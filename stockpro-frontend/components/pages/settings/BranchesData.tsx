@@ -6,21 +6,23 @@ import BranchModal from "./BranchModal";
 import { useModal } from "../../common/ModalProvider";
 import { RootState } from "../../store/store";
 import { useGetBranchesQuery } from "../../store/slices/branch/branchApi";
-import { useCreateBranchMutation, useUpdateBranchMutation, useDeleteBranchMutation } from "../../store/slices/branch/branchApi";
+import {
+  useCreateBranchMutation,
+  useUpdateBranchMutation,
+  useDeleteBranchMutation,
+} from "../../store/slices/branch/branchApi";
 
 interface BranchesDataProps {
   title: string;
 }
 
-const BranchesData: React.FC<BranchesDataProps> = ({
-  title,
-}) => {
+const BranchesData: React.FC<BranchesDataProps> = ({ title }) => {
   const dispatch = useDispatch();
   const { data: branches = [], isLoading, error } = useGetBranchesQuery();
   const [createBranch] = useCreateBranchMutation();
   const [updateBranch] = useUpdateBranchMutation();
   const [deleteBranch] = useDeleteBranchMutation();
-  
+
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [branchToEdit, setBranchToEdit] = useState<any | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
@@ -68,8 +70,8 @@ const BranchesData: React.FC<BranchesDataProps> = ({
             name: branch.name,
             address: branch.address,
             phone: branch.phone,
-            description: branch.description || '',
-          }
+            description: branch.description || "",
+          },
         }).unwrap();
       } else {
         // Create new branch
@@ -77,18 +79,19 @@ const BranchesData: React.FC<BranchesDataProps> = ({
           name: branch.name,
           address: branch.address,
           phone: branch.phone,
-          description: branch.description || '',
+          description: branch.description || "",
         }).unwrap();
       }
     } catch (error) {
-      console.error('Error saving branch:', error);
+      console.error("Error saving branch:", error);
     }
   };
 
   const filteredBranches = branches.filter(
     (branch) =>
       branch.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (branch.address && branch.address.toLowerCase().includes(searchTerm.toLowerCase())),
+      (branch.address &&
+        branch.address.toLowerCase().includes(searchTerm.toLowerCase())),
   );
 
   if (isLoading) {

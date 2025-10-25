@@ -22,7 +22,7 @@ export class StoreIssueVoucherService {
         voucherNumber,
         totalAmount,
         items: {
-          create: items.map(item => ({
+          create: items.map((item) => ({
             quantity: item.quantity,
             unitPrice: item.unitPrice,
             totalPrice: item.totalPrice,
@@ -103,14 +103,17 @@ export class StoreIssueVoucherService {
     return voucher;
   }
 
-  async update(id: string, updateStoreIssueVoucherDto: UpdateStoreIssueVoucherDto) {
+  async update(
+    id: string,
+    updateStoreIssueVoucherDto: UpdateStoreIssueVoucherDto,
+  ) {
     const { items, ...voucherData } = updateStoreIssueVoucherDto;
 
     // Check if voucher exists
     await this.findOne(id);
 
     // Calculate total amount if items are provided
-    const totalAmount = items 
+    const totalAmount = items
       ? items.reduce((sum, item) => sum + item.totalPrice, 0)
       : undefined;
 
@@ -122,7 +125,7 @@ export class StoreIssueVoucherService {
         ...(items && {
           items: {
             deleteMany: {},
-            create: items.map(item => ({
+            create: items.map((item) => ({
               quantity: item.quantity,
               unitPrice: item.unitPrice,
               totalPrice: item.totalPrice,
@@ -165,4 +168,3 @@ export class StoreIssueVoucherService {
     return `SIV-${String(count + 1).padStart(6, '0')}`;
   }
 }
-

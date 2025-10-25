@@ -1,13 +1,12 @@
 import React, { useState, useEffect } from "react";
-import type { Safe, Branch } from "../../../types";
+import type { Safe } from "../../../types";
+import { useGetBranchesQuery } from "../../store/slices/branch/branchApi";
 
 interface SafeModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSave: (safe: Safe) => void;
+  onSave: (safe: Partial<Safe>) => Promise<void>;
   safeToEdit: Safe | null;
-  branches: Branch[];
-  safes: Safe[];
 }
 
 const SafeModal: React.FC<SafeModalProps> = ({
@@ -15,13 +14,11 @@ const SafeModal: React.FC<SafeModalProps> = ({
   onClose,
   onSave,
   safeToEdit,
-  branches,
-  safes,
 }) => {
-  const [safeData, setSafeData] = useState<Omit<Safe, "id">>({
-    code: "",
+  const { data: branches = [] } = useGetBranchesQuery();
+  const [safeData, setSafeData] = useState<Partial<Safe>>({
     name: "",
-    branch: "",
+    branchId: "",
     openingBalance: 0,
   });
 
@@ -29,16 +26,13 @@ const SafeModal: React.FC<SafeModalProps> = ({
     if (safeToEdit) {
       setSafeData(safeToEdit);
     } else {
-      const nextCodeNumber =
-        safes.length > 0
-          ? Math.max(
-              ...safes.map((s) => parseInt(s.code.replace("SF-", ""), 10) || 0),
-            ) + 1
-          : 1;
-      const newCode = `SF-${String(nextCodeNumber).padStart(3, "0")}`;
-      setSafeData({ code: newCode, name: "", branch: "", openingBalance: 0 });
+      setSafeData({
+        name: "",
+        branchId: "",
+        openingBalance: 0,
+      });
     }
-  }, [safeToEdit, isOpen, safes]);
+  }, [safeToEdit, isOpen]);
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>,
@@ -50,14 +44,9 @@ const SafeModal: React.FC<SafeModalProps> = ({
     }));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const safeToSave: Safe = {
-      ...safeData,
-      id: safeToEdit?.id || 0,
-    };
-    onSave(safeToSave);
-    onClose();
+    await onSave(safeData);
   };
 
   if (!isOpen) return null;
@@ -80,24 +69,25 @@ const SafeModal: React.FC<SafeModalProps> = ({
           </h2>
         </div>
         <form onSubmit={handleSubmit}>
-          <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label
-                htmlFor="code"
-                className="block text-sm font-medium text-gray-700"
-              >
-                كود الخزنة
-              </label>
-              <input
-                type="text"
-                id="code"
-                name="code"
-                value={safeData.code}
-                className={inputStyle + " bg-gray-200"}
-                required
-                readOnly
-              />
-            </div>
+          <div className="p-6 space-y-4">
+            {safeToEdit && (
+              <div>
+                <label
+                  htmlFor="code"
+                  className="block text-sm font-medium text-gray-700"
+                >
+                  كود الخزنة
+                </label>
+                <input
+                  type="text"
+                  id="code"
+                  name="code"
+                  value={safeToEdit.code}
+                  className={inputStyle + " bg-gray-200"}
+                  readOnly
+                />
+              </div>
+            )}
             <div>
               <label
                 htmlFor="name"
@@ -115,30 +105,30 @@ const SafeModal: React.FC<SafeModalProps> = ({
                 required
               />
             </div>
-            <div className="md:col-span-2">
+            <div>
               <label
-                htmlFor="branch"
+                htmlFor="branchId"
                 className="block text-sm font-medium text-gray-700"
               >
                 الفرع
               </label>
               <select
-                id="branch"
-                name="branch"
-                value={safeData.branch}
+                id="branchId"
+                name="branchId"
+                value={safeData.branchId}
                 onChange={handleChange}
                 className={inputStyle}
                 required
               >
                 <option value="">اختر فرع...</option>
                 {branches.map((branch) => (
-                  <option key={branch.id} value={branch.name}>
+                  <option key={branch.id} value={branch.id}>
                     {branch.name}
                   </option>
                 ))}
               </select>
             </div>
-            <div className="md:col-span-2">
+            <div>
               <label
                 htmlFor="openingBalance"
                 className="block text-sm font-medium text-gray-700"

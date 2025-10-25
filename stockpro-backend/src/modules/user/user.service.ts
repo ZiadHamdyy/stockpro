@@ -273,7 +273,9 @@ export class UserService {
 
     // Only update password if provided
     if (data.password) {
-      updateData.password = await this.helperService.hashPassword(data.password);
+      updateData.password = await this.helperService.hashPassword(
+        data.password,
+      );
     }
 
     const user = await this.prisma.user.update({

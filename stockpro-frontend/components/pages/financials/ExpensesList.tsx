@@ -1,44 +1,70 @@
 import React from "react";
-import type { Expense } from "../../../types";
 import { ExcelIcon, PdfIcon, PrintIcon, SearchIcon } from "../../icons";
-import { useModal } from "../../common/ModalProvider.tsx";
 import { exportToExcel, exportToPdf } from "../../../utils/formatting";
+import { useExpenses } from "../../hook/useExpenses";
+import PermissionWrapper from "../../common/PermissionWrapper";
+import {
+  Resources,
+  Actions,
+  buildPermission,
+} from "../../../enums/permissions.enum";
+import AddExpenseModal from "./AddExpenseModal";
 
 interface ExpensesListProps {
   title: string;
-  expenses: Expense[];
-  onDelete: (id: number) => void;
 }
 
-const ExpensesList: React.FC<ExpensesListProps> = ({
-  title,
-  expenses,
-  onDelete,
-}) => {
+const ExpensesList: React.FC<ExpensesListProps> = ({ title }) => {
+  const {
+    expenses,
+    expenseCodes,
+    isLoading,
+    error,
+    searchQuery,
+    setSearchQuery,
+    isModalOpen,
+    expenseToEdit,
+    handleOpenModal,
+    handleCloseModal,
+    handleEditClick,
+    handleDeleteClick,
+    handleSave,
+  } = useExpenses();
+
   const inputStyle =
     "w-64 pr-10 pl-4 py-3 bg-brand-blue-bg border-2 border-brand-blue rounded-md text-black placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-brand-blue";
-  const { showModal } = useModal();
 
-  const handleDeleteClick = (id: number, code: string) => {
-    showModal({
-      title: "تأكيد الحذف",
-      message: `هل أنت متأكد من رغبتك في حذف المصروف رقم "${code}"؟`,
-      onConfirm: () => onDelete(id),
-      type: "delete",
-    });
-  };
+  if (isLoading) {
+    return (
+      <div className="bg-white p-6 rounded-lg shadow">
+        <h1 className="text-2xl font-bold mb-4 text-brand-dark">{title}</h1>
+        <div className="flex justify-center items-center py-12">
+          <div className="text-gray-500">جاري التحميل...</div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="bg-white p-6 rounded-lg shadow">
+        <h1 className="text-2xl font-bold mb-4 text-brand-dark">{title}</h1>
+        <div className="flex justify-center items-center py-12">
+          <div className="text-red-500">حدث خطأ أثناء تحميل البيانات</div>
+        </div>
+      </div>
+    );
+  }
 
   const handleExcelExport = () => {
-    const dataToExport = expenses.map(
-      ({ code, expenseCodeName, expenseCodeType, amount, date }, index) => ({
-        م: index + 1,
-        الكود: code,
-        التاريخ: date,
-        "اسم البند": expenseCodeName,
-        "نوع المصروف": expenseCodeType,
-        المبلغ: amount,
-      }),
-    );
+    const dataToExport = expenses.map((expense, index) => ({
+      م: index + 1,
+      الكود: expense.code,
+      التاريخ: expense.date,
+      "اسم البند": expense.expenseCode?.name || "-",
+      "نوع المصروف": expense.expenseCode?.expenseType?.name || "-",
+      المبلغ: expense.amount,
+    }));
     exportToExcel(dataToExport, "قائمة-المصروفات");
   };
 
@@ -48,8 +74,8 @@ const ExpensesList: React.FC<ExpensesListProps> = ({
     ];
     const body = expenses.map((e, index) => [
       e.amount.toFixed(2),
-      e.expenseCodeType,
-      e.expenseCodeName,
+      e.expenseCode?.expenseType?.name || "-",
+      e.expenseCode?.name || "-",
       e.date,
       e.code,
       (index + 1).toString(),
@@ -70,30 +96,79 @@ const ExpensesList: React.FC<ExpensesListProps> = ({
             type="text"
             placeholder="بحث عن مصروف..."
             className={inputStyle}
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            autoComplete="off"
+            name="expense-search"
           />
         </div>
         <div className="flex items-center gap-2">
-          <button
-            onClick={handleExcelExport}
-            title="تصدير Excel"
-            className="p-3 border-2 border-gray-200 rounded-md hover:bg-gray-100"
+          <PermissionWrapper
+            requiredPermission={buildPermission(
+              Resources.EXPENSES_LIST,
+              Actions.CREATE,
+            )}
+            fallback={
+              <button
+                type="button"
+                disabled
+                className="px-6 py-3 bg-gray-400 text-white rounded-md ml-2 font-semibold cursor-not-allowed opacity-50"
+              >
+                اضافة مصروف جديد
+              </button>
+            }
           >
-            <ExcelIcon className="w-6 h-6" />
-          </button>
-          <button
-            onClick={handlePdfExport}
-            title="تصدير PDF"
-            className="p-3 border-2 border-gray-200 rounded-md hover:bg-gray-100"
+            <button
+              onClick={() => handleOpenModal()}
+              className="px-6 py-3 bg-brand-blue text-white rounded-md hover:bg-blue-800 ml-2 font-semibold"
+            >
+              اضافة مصروف جديد
+            </button>
+          </PermissionWrapper>
+          <PermissionWrapper
+            requiredPermission={buildPermission(
+              Resources.EXPENSES_LIST,
+              Actions.PRINT,
+            )}
+            fallback={null}
           >
-            <PdfIcon className="w-6 h-6" />
-          </button>
-          <button
-            title="طباعة"
-            onClick={() => window.print()}
-            className="p-3 border-2 border-gray-200 rounded-md hover:bg-gray-100"
+            <button
+              onClick={handleExcelExport}
+              title="تصدير Excel"
+              className="p-3 border-2 border-gray-200 rounded-md hover:bg-gray-100"
+            >
+              <ExcelIcon className="w-6 h-6" />
+            </button>
+          </PermissionWrapper>
+          <PermissionWrapper
+            requiredPermission={buildPermission(
+              Resources.EXPENSES_LIST,
+              Actions.PRINT,
+            )}
+            fallback={null}
           >
-            <PrintIcon className="w-6 h-6" />
-          </button>
+            <button
+              onClick={handlePdfExport}
+              title="تصدير PDF"
+              className="p-3 border-2 border-gray-200 rounded-md hover:bg-gray-100"
+            >
+              <PdfIcon className="w-6 h-6" />
+            </button>
+          </PermissionWrapper>
+          <PermissionWrapper
+            requiredPermission={buildPermission(
+              Resources.EXPENSES_LIST,
+              Actions.PRINT,
+            )}
+          >
+            <button
+              title="طباعة"
+              onClick={() => window.print()}
+              className="p-3 border-2 border-gray-200 rounded-md hover:bg-gray-100"
+            >
+              <PrintIcon className="w-6 h-6" />
+            </button>
+          </PermissionWrapper>
         </div>
       </div>
       <div className="overflow-x-auto">
@@ -115,36 +190,93 @@ const ExpensesList: React.FC<ExpensesListProps> = ({
               <th className="px-6 py-3 text-right text-sm font-semibold text-white uppercase">
                 المبلغ
               </th>
-              <th className="px-6 py-3 text-right text-sm font-semibold text-white uppercase no-print">
+              <th className="px-6 py-3 text-right text-sm font-semibold text-white uppercase">
                 اجراءات
               </th>
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
-            {expenses.map((expense, index) => (
-              <tr key={expense.id} className="hover:bg-brand-blue-bg">
-                <td className="px-6 py-4">{index + 1}</td>
-                <td className="px-6 py-4 font-medium text-brand-dark">
-                  {expense.code}
-                </td>
-                <td className="px-6 py-4">{expense.expenseCodeName}</td>
-                <td className="px-6 py-4">{expense.expenseCodeType}</td>
-                <td className="px-6 py-4 font-semibold">
-                  {expense.amount.toFixed(2)}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium no-print">
-                  <button
-                    onClick={() => handleDeleteClick(expense.id, expense.code)}
-                    className="text-red-600 hover:text-red-900 font-semibold"
-                  >
-                    حذف
-                  </button>
+            {expenses.length === 0 ? (
+              <tr>
+                <td colSpan={6} className="px-6 py-8 text-center text-gray-500">
+                  لا توجد بيانات
                 </td>
               </tr>
-            ))}
+            ) : (
+              expenses.map((expense, index) => (
+                <tr key={expense.id} className="hover:bg-brand-blue-bg">
+                  <td className="px-6 py-4">{index + 1}</td>
+                  <td className="px-6 py-4 font-medium text-brand-dark">
+                    {expense.code}
+                  </td>
+                  <td className="px-6 py-4">
+                    {expense.expenseCode?.name || "-"}
+                  </td>
+                  <td className="px-6 py-4">
+                    {expense.expenseCode?.expenseType?.name || "-"}
+                  </td>
+                  <td className="px-6 py-4 font-semibold">
+                    {expense.amount.toFixed(2)}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium no-print">
+                    <PermissionWrapper
+                      requiredPermission={buildPermission(
+                        Resources.EXPENSES_LIST,
+                        Actions.UPDATE,
+                      )}
+                      fallback={
+                        <button
+                          type="button"
+                          disabled
+                          className="text-gray-400 font-semibold ml-4 cursor-not-allowed opacity-50"
+                        >
+                          تعديل
+                        </button>
+                      }
+                    >
+                      <button
+                        onClick={() => handleEditClick(expense)}
+                        className="text-brand-blue hover:text-blue-800 font-semibold ml-4"
+                      >
+                        تعديل
+                      </button>
+                    </PermissionWrapper>
+                    <PermissionWrapper
+                      requiredPermission={buildPermission(
+                        Resources.EXPENSES_LIST,
+                        Actions.DELETE,
+                      )}
+                      fallback={
+                        <button
+                          type="button"
+                          disabled
+                          className="text-gray-400 font-semibold cursor-not-allowed opacity-50"
+                        >
+                          حذف
+                        </button>
+                      }
+                    >
+                      <button
+                        onClick={() => handleDeleteClick(expense)}
+                        className="text-red-600 hover:text-red-900 font-semibold"
+                      >
+                        حذف
+                      </button>
+                    </PermissionWrapper>
+                  </td>
+                </tr>
+              ))
+            )}
           </tbody>
         </table>
       </div>
+      <AddExpenseModal
+        isOpen={isModalOpen}
+        onClose={handleCloseModal}
+        onSave={handleSave}
+        expenseToEdit={expenseToEdit}
+        expenseCodes={expenseCodes}
+      />
     </div>
   );
 };

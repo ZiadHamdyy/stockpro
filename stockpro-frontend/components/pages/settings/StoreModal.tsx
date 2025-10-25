@@ -17,7 +17,8 @@ const StoreModal: React.FC<StoreModalProps> = ({
   storeToEdit,
 }) => {
   const { data: users = [], isLoading: isLoadingUsers } = useGetUsersQuery();
-  const { data: branches = [], isLoading: isLoadingBranches } = useGetBranchesQuery();
+  const { data: branches = [], isLoading: isLoadingBranches } =
+    useGetBranchesQuery();
   const [storeData, setStoreData] = useState<Omit<Store, "id">>({
     name: "",
     branch: "",

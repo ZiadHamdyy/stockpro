@@ -8,4 +8,3 @@ import { StoreService } from './store.service';
   exports: [StoreService],
 })
 export class StoreModule {}
-

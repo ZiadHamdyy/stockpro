@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from "react";
-import type { ExpenseType } from "../../../types";
+import type { ExpenseType } from "../../store/slices/expense/expenseApiSlice";
 
 interface ExpenseTypeModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSave: (type: ExpenseType) => void;
+  onSave: (data: { name: string; description?: string }) => void;
   typeToEdit: ExpenseType | null;
 }
 
@@ -15,22 +15,21 @@ const ExpenseTypeModal: React.FC<ExpenseTypeModalProps> = ({
   typeToEdit,
 }) => {
   const [name, setName] = useState("");
+  const [description, setDescription] = useState("");
 
   useEffect(() => {
     if (typeToEdit) {
       setName(typeToEdit.name);
+      setDescription(typeToEdit.description || "");
     } else {
       setName("");
+      setDescription("");
     }
   }, [typeToEdit, isOpen]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    const typeToSave: ExpenseType = {
-      name,
-      id: typeToEdit?.id || 0,
-    };
-    onSave(typeToSave);
+    onSave({ name, description: description || undefined });
     onClose();
   };
 
@@ -54,21 +53,38 @@ const ExpenseTypeModal: React.FC<ExpenseTypeModalProps> = ({
           </h2>
         </div>
         <form onSubmit={handleSubmit}>
-          <div className="p-6">
-            <label
-              htmlFor="name"
-              className="block text-sm font-medium text-gray-700"
-            >
-              اسم النوع
-            </label>
-            <input
-              type="text"
-              id="name"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              className={inputStyle}
-              required
-            />
+          <div className="p-6 space-y-4">
+            <div>
+              <label
+                htmlFor="name"
+                className="block text-sm font-medium text-gray-700"
+              >
+                اسم النوع
+              </label>
+              <input
+                type="text"
+                id="name"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                className={inputStyle}
+                required
+              />
+            </div>
+            <div>
+              <label
+                htmlFor="description"
+                className="block text-sm font-medium text-gray-700"
+              >
+                الوصف
+              </label>
+              <textarea
+                id="description"
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                className={inputStyle}
+                rows={3}
+              />
+            </div>
           </div>
           <div className="p-4 border-t border-gray-200 flex justify-end gap-2">
             <button

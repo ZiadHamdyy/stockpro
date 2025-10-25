@@ -17,7 +17,9 @@ import { Auth } from '../../common/decorators/auth.decorator';
 @Controller('store-receipt-vouchers')
 @UseGuards(JwtAuthenticationGuard)
 export class StoreReceiptVoucherController {
-  constructor(private readonly storeReceiptVoucherService: StoreReceiptVoucherService) {}
+  constructor(
+    private readonly storeReceiptVoucherService: StoreReceiptVoucherService,
+  ) {}
 
   @Post()
   @Auth({ permissions: ['store_receipt_voucher:create'] })
@@ -43,7 +45,10 @@ export class StoreReceiptVoucherController {
     @Param('id') id: string,
     @Body() updateStoreReceiptVoucherDto: UpdateStoreReceiptVoucherDto,
   ) {
-    return this.storeReceiptVoucherService.update(id, updateStoreReceiptVoucherDto);
+    return this.storeReceiptVoucherService.update(
+      id,
+      updateStoreReceiptVoucherDto,
+    );
   }
 
   @Delete(':id')

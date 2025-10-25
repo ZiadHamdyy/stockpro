@@ -11,7 +11,7 @@ export class ItemService {
   async create(data: CreateItemRequest): Promise<ItemResponse> {
     // Generate next code automatically
     const nextCode = await this.generateNextCode();
-    
+
     const item = await this.prisma.item.create({
       data: {
         ...data,
@@ -104,7 +104,7 @@ export class ItemService {
         where: { code: paddedCode },
         select: { id: true },
       });
-      
+
       if (!existingItem) {
         return paddedCode;
       }

@@ -17,7 +17,9 @@ import { Auth } from '../../common/decorators/auth.decorator';
 @Controller('store-issue-vouchers')
 @UseGuards(JwtAuthenticationGuard)
 export class StoreIssueVoucherController {
-  constructor(private readonly storeIssueVoucherService: StoreIssueVoucherService) {}
+  constructor(
+    private readonly storeIssueVoucherService: StoreIssueVoucherService,
+  ) {}
 
   @Post()
   @Auth({ permissions: ['store_issue_voucher:create'] })

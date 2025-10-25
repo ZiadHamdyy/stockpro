@@ -48,39 +48,50 @@ export interface CreateStoreIssueVoucherDto {
   storeId: string;
   userId: string;
   notes?: string;
-  items: Omit<StoreIssueVoucherItem, 'id'>[];
+  items: Omit<StoreIssueVoucherItem, "id">[];
 }
 
-export interface UpdateStoreIssueVoucherDto extends Partial<CreateStoreIssueVoucherDto> {}
+export interface UpdateStoreIssueVoucherDto
+  extends Partial<CreateStoreIssueVoucherDto> {}
 
 export const storeIssueVoucherApi = apiSlice.injectEndpoints({
   endpoints: (builder) => ({
     getStoreIssueVouchers: builder.query<StoreIssueVoucher[], void>({
       query: () => "store-issue-vouchers",
-      transformResponse: (response: { data: StoreIssueVoucher[] }) => response.data,
+      transformResponse: (response: { data: StoreIssueVoucher[] }) =>
+        response.data,
       providesTags: ["StoreIssueVoucher"],
     }),
     getStoreIssueVoucher: builder.query<StoreIssueVoucher, string>({
       query: (id) => `store-issue-vouchers/${id}`,
-      transformResponse: (response: { data: StoreIssueVoucher }) => response.data,
+      transformResponse: (response: { data: StoreIssueVoucher }) =>
+        response.data,
       providesTags: (result, error, id) => [{ type: "StoreIssueVoucher", id }],
     }),
-    createStoreIssueVoucher: builder.mutation<StoreIssueVoucher, CreateStoreIssueVoucherDto>({
+    createStoreIssueVoucher: builder.mutation<
+      StoreIssueVoucher,
+      CreateStoreIssueVoucherDto
+    >({
       query: (data) => ({
         url: "store-issue-vouchers",
         method: "POST",
         body: data,
       }),
-      transformResponse: (response: { data: StoreIssueVoucher }) => response.data,
+      transformResponse: (response: { data: StoreIssueVoucher }) =>
+        response.data,
       invalidatesTags: ["StoreIssueVoucher"],
     }),
-    updateStoreIssueVoucher: builder.mutation<StoreIssueVoucher, { id: string; data: UpdateStoreIssueVoucherDto }>({
+    updateStoreIssueVoucher: builder.mutation<
+      StoreIssueVoucher,
+      { id: string; data: UpdateStoreIssueVoucherDto }
+    >({
       query: ({ id, data }) => ({
         url: `store-issue-vouchers/${id}`,
         method: "PATCH",
         body: data,
       }),
-      transformResponse: (response: { data: StoreIssueVoucher }) => response.data,
+      transformResponse: (response: { data: StoreIssueVoucher }) =>
+        response.data,
       invalidatesTags: (result, error, { id }) => [
         { type: "StoreIssueVoucher", id },
         "StoreIssueVoucher",
@@ -106,4 +117,3 @@ export const {
   useUpdateStoreIssueVoucherMutation,
   useDeleteStoreIssueVoucherMutation,
 } = storeIssueVoucherApi;
-

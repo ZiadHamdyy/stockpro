@@ -48,39 +48,52 @@ export interface CreateStoreReceiptVoucherDto {
   storeId: string;
   userId: string;
   notes?: string;
-  items: Omit<StoreReceiptVoucherItem, 'id'>[];
+  items: Omit<StoreReceiptVoucherItem, "id">[];
 }
 
-export interface UpdateStoreReceiptVoucherDto extends Partial<CreateStoreReceiptVoucherDto> {}
+export interface UpdateStoreReceiptVoucherDto
+  extends Partial<CreateStoreReceiptVoucherDto> {}
 
 export const storeReceiptVoucherApi = apiSlice.injectEndpoints({
   endpoints: (builder) => ({
     getStoreReceiptVouchers: builder.query<StoreReceiptVoucher[], void>({
       query: () => "store-receipt-vouchers",
-      transformResponse: (response: { data: StoreReceiptVoucher[] }) => response.data,
+      transformResponse: (response: { data: StoreReceiptVoucher[] }) =>
+        response.data,
       providesTags: ["StoreReceiptVoucher"],
     }),
     getStoreReceiptVoucher: builder.query<StoreReceiptVoucher, string>({
       query: (id) => `store-receipt-vouchers/${id}`,
-      transformResponse: (response: { data: StoreReceiptVoucher }) => response.data,
-      providesTags: (result, error, id) => [{ type: "StoreReceiptVoucher", id }],
+      transformResponse: (response: { data: StoreReceiptVoucher }) =>
+        response.data,
+      providesTags: (result, error, id) => [
+        { type: "StoreReceiptVoucher", id },
+      ],
     }),
-    createStoreReceiptVoucher: builder.mutation<StoreReceiptVoucher, CreateStoreReceiptVoucherDto>({
+    createStoreReceiptVoucher: builder.mutation<
+      StoreReceiptVoucher,
+      CreateStoreReceiptVoucherDto
+    >({
       query: (data) => ({
         url: "store-receipt-vouchers",
         method: "POST",
         body: data,
       }),
-      transformResponse: (response: { data: StoreReceiptVoucher }) => response.data,
+      transformResponse: (response: { data: StoreReceiptVoucher }) =>
+        response.data,
       invalidatesTags: ["StoreReceiptVoucher"],
     }),
-    updateStoreReceiptVoucher: builder.mutation<StoreReceiptVoucher, { id: string; data: UpdateStoreReceiptVoucherDto }>({
+    updateStoreReceiptVoucher: builder.mutation<
+      StoreReceiptVoucher,
+      { id: string; data: UpdateStoreReceiptVoucherDto }
+    >({
       query: ({ id, data }) => ({
         url: `store-receipt-vouchers/${id}`,
         method: "PATCH",
         body: data,
       }),
-      transformResponse: (response: { data: StoreReceiptVoucher }) => response.data,
+      transformResponse: (response: { data: StoreReceiptVoucher }) =>
+        response.data,
       invalidatesTags: (result, error, { id }) => [
         { type: "StoreReceiptVoucher", id },
         "StoreReceiptVoucher",
@@ -106,4 +119,3 @@ export const {
   useUpdateStoreReceiptVoucherMutation,
   useDeleteStoreReceiptVoucherMutation,
 } = storeReceiptVoucherApi;
-

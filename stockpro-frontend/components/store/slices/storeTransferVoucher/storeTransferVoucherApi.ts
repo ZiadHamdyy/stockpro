@@ -58,39 +58,52 @@ export interface CreateStoreTransferVoucherDto {
   toStoreId: string;
   userId: string;
   notes?: string;
-  items: Omit<StoreTransferVoucherItem, 'id'>[];
+  items: Omit<StoreTransferVoucherItem, "id">[];
 }
 
-export interface UpdateStoreTransferVoucherDto extends Partial<CreateStoreTransferVoucherDto> {}
+export interface UpdateStoreTransferVoucherDto
+  extends Partial<CreateStoreTransferVoucherDto> {}
 
 export const storeTransferVoucherApi = apiSlice.injectEndpoints({
   endpoints: (builder) => ({
     getStoreTransferVouchers: builder.query<StoreTransferVoucher[], void>({
       query: () => "store-transfer-vouchers",
-      transformResponse: (response: { data: StoreTransferVoucher[] }) => response.data,
+      transformResponse: (response: { data: StoreTransferVoucher[] }) =>
+        response.data,
       providesTags: ["StoreTransferVoucher"],
     }),
     getStoreTransferVoucher: builder.query<StoreTransferVoucher, string>({
       query: (id) => `store-transfer-vouchers/${id}`,
-      transformResponse: (response: { data: StoreTransferVoucher }) => response.data,
-      providesTags: (result, error, id) => [{ type: "StoreTransferVoucher", id }],
+      transformResponse: (response: { data: StoreTransferVoucher }) =>
+        response.data,
+      providesTags: (result, error, id) => [
+        { type: "StoreTransferVoucher", id },
+      ],
     }),
-    createStoreTransferVoucher: builder.mutation<StoreTransferVoucher, CreateStoreTransferVoucherDto>({
+    createStoreTransferVoucher: builder.mutation<
+      StoreTransferVoucher,
+      CreateStoreTransferVoucherDto
+    >({
       query: (data) => ({
         url: "store-transfer-vouchers",
         method: "POST",
         body: data,
       }),
-      transformResponse: (response: { data: StoreTransferVoucher }) => response.data,
+      transformResponse: (response: { data: StoreTransferVoucher }) =>
+        response.data,
       invalidatesTags: ["StoreTransferVoucher"],
     }),
-    updateStoreTransferVoucher: builder.mutation<StoreTransferVoucher, { id: string; data: UpdateStoreTransferVoucherDto }>({
+    updateStoreTransferVoucher: builder.mutation<
+      StoreTransferVoucher,
+      { id: string; data: UpdateStoreTransferVoucherDto }
+    >({
       query: ({ id, data }) => ({
         url: `store-transfer-vouchers/${id}`,
         method: "PATCH",
         body: data,
       }),
-      transformResponse: (response: { data: StoreTransferVoucher }) => response.data,
+      transformResponse: (response: { data: StoreTransferVoucher }) =>
+        response.data,
       invalidatesTags: (result, error, { id }) => [
         { type: "StoreTransferVoucher", id },
         "StoreTransferVoucher",
@@ -116,4 +129,3 @@ export const {
   useUpdateStoreTransferVoucherMutation,
   useDeleteStoreTransferVoucherMutation,
 } = storeTransferVoucherApi;
-

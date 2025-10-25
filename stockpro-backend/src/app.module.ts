@@ -25,9 +25,11 @@ import { StoreReceiptVoucherModule } from './modules/store-receipt-voucher/store
 import { StoreIssueVoucherModule } from './modules/store-issue-voucher/store-issue-voucher.module';
 import { StoreTransferVoucherModule } from './modules/store-transfer-voucher/store-transfer-voucher.module';
 import { BankModule } from './modules/bank/bank.module';
+import { SafeModule } from './modules/safe/safe.module';
 import { CustomerModule } from './modules/customer/customer.module';
 import { SupplierModule } from './modules/supplier/supplier.module';
 import { CurrentAccountModule } from './modules/current-account/current-account.module';
+import { ExpenseModule } from './modules/expense/expense.module';
 
 @Module({
   imports: [
@@ -52,9 +54,11 @@ import { CurrentAccountModule } from './modules/current-account/current-account.
     StoreIssueVoucherModule,
     StoreTransferVoucherModule,
     BankModule,
+    SafeModule,
     CustomerModule,
     SupplierModule,
     CurrentAccountModule,
+    ExpenseModule,
   ],
   controllers: [AppController],
   providers: [

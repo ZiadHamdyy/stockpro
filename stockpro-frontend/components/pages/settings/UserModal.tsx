@@ -1,7 +1,11 @@
 import React, { useState, useEffect } from "react";
 import type { User, Branch } from "../../../types";
 import { EyeIcon, EyeOffIcon, UserIcon } from "../../icons";
-import { useCreateUserMutation, useUpdateUserMutation, type User as ReduxUser } from "../../store/slices/user/userApi";
+import {
+  useCreateUserMutation,
+  useUpdateUserMutation,
+  type User as ReduxUser,
+} from "../../store/slices/user/userApi";
 import { useGetBranchesQuery } from "../../store/slices/branch/branchApi";
 
 interface UserModalProps {
@@ -17,7 +21,8 @@ const UserModal: React.FC<UserModalProps> = ({
 }) => {
   const [createUser, { isLoading: isCreating }] = useCreateUserMutation();
   const [updateUser, { isLoading: isUpdating }] = useUpdateUserMutation();
-  const { data: branches = [], isLoading: isLoadingBranches } = useGetBranchesQuery();
+  const { data: branches = [], isLoading: isLoadingBranches } =
+    useGetBranchesQuery();
   const [userData, setUserData] = useState({
     name: "",
     email: "",
@@ -28,7 +33,7 @@ const UserModal: React.FC<UserModalProps> = ({
 
   useEffect(() => {
     if (userToEdit) {
-      setUserData({ 
+      setUserData({
         name: userToEdit.name,
         email: userToEdit.email,
         password: "",

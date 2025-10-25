@@ -4,7 +4,11 @@ import { useModal } from "../../common/ModalProvider";
 import { useToast } from "../../common/ToastProvider";
 import { useTitle } from "../../context/TitleContext";
 import PermissionWrapper from "../../common/PermissionWrapper";
-import { Resources, Actions, buildPermission } from "../../../enums/permissions.enum";
+import {
+  Resources,
+  Actions,
+  buildPermission,
+} from "../../../enums/permissions.enum";
 import {
   useGetItemsQuery,
   useCreateItemMutation,
@@ -27,10 +31,10 @@ const AddItem: React.FC<AddItemProps> = ({ title, editingId, onNavigate }) => {
   const navigate = useNavigate();
   const params = useParams();
   const { setTitle } = useTitle();
-  
+
   // Get the item ID from URL parameters or props
   const itemId = params.id || editingId;
-  
+
   const [itemData, setItemData] = useState<
     Partial<Item> & { groupId?: string; unitId?: string }
   >({
@@ -68,14 +72,13 @@ const AddItem: React.FC<AddItemProps> = ({ title, editingId, onNavigate }) => {
   const [updateItem, { isLoading: updateLoading }] = useUpdateItemMutation();
   const [deleteItem] = useDeleteItemMutation();
 
-
   // Calculate item position when items data is available
   useEffect(() => {
     if (Array.isArray(items) && items.length > 0 && itemId) {
-      const index = items.findIndex(item => item.id === itemId);
+      const index = items.findIndex((item) => item.id === itemId);
       const position = index !== -1 ? index + 1 : null;
       setItemPosition(position);
-      
+
       // Update title context for the header
       if (position) {
         setTitle(`تعديل صنف #${position}`);
@@ -128,11 +131,7 @@ const AddItem: React.FC<AddItemProps> = ({ title, editingId, onNavigate }) => {
   };
 
   const handleSave = async () => {
-    if (
-      !itemData.name ||
-      !itemData.groupId ||
-      !itemData.unitId
-    ) {
+    if (!itemData.name || !itemData.groupId || !itemData.unitId) {
       showToast("الرجاء تعبئة جميع الحقول المطلوبة.");
       return;
     }
@@ -454,7 +453,10 @@ const AddItem: React.FC<AddItemProps> = ({ title, editingId, onNavigate }) => {
         <div className="mt-8 pt-6 border-t-2 border-gray-200 flex flex-col items-start space-y-4">
           <div className="flex justify-start gap-2 flex-wrap">
             <PermissionWrapper
-              requiredPermission={buildPermission(Resources.ADD_ITEM, Actions.CREATE)}
+              requiredPermission={buildPermission(
+                Resources.ADD_ITEM,
+                Actions.CREATE,
+              )}
               fallback={
                 <button
                   type="button"
@@ -476,7 +478,7 @@ const AddItem: React.FC<AddItemProps> = ({ title, editingId, onNavigate }) => {
             <PermissionWrapper
               requiredPermission={[
                 buildPermission(Resources.ADD_ITEM, Actions.CREATE),
-                buildPermission(Resources.ADD_ITEM, Actions.UPDATE)
+                buildPermission(Resources.ADD_ITEM, Actions.UPDATE),
               ]}
               fallback={
                 <button
@@ -497,7 +499,10 @@ const AddItem: React.FC<AddItemProps> = ({ title, editingId, onNavigate }) => {
               </button>
             </PermissionWrapper>
             <PermissionWrapper
-              requiredPermission={buildPermission(Resources.ADD_ITEM, Actions.UPDATE)}
+              requiredPermission={buildPermission(
+                Resources.ADD_ITEM,
+                Actions.UPDATE,
+              )}
               fallback={
                 <button
                   type="button"
@@ -518,7 +523,10 @@ const AddItem: React.FC<AddItemProps> = ({ title, editingId, onNavigate }) => {
               </button>
             </PermissionWrapper>
             <PermissionWrapper
-              requiredPermission={buildPermission(Resources.ITEMS_LIST, Actions.READ)}
+              requiredPermission={buildPermission(
+                Resources.ITEMS_LIST,
+                Actions.READ,
+              )}
               fallback={
                 <button
                   type="button"
@@ -538,7 +546,10 @@ const AddItem: React.FC<AddItemProps> = ({ title, editingId, onNavigate }) => {
               </button>
             </PermissionWrapper>
             <PermissionWrapper
-              requiredPermission={buildPermission(Resources.ADD_ITEM, Actions.DELETE)}
+              requiredPermission={buildPermission(
+                Resources.ADD_ITEM,
+                Actions.DELETE,
+              )}
               fallback={
                 <button
                   type="button"
@@ -579,7 +590,11 @@ const AddItem: React.FC<AddItemProps> = ({ title, editingId, onNavigate }) => {
             </button>
             <div className="px-4 py-2 bg-brand-blue-bg border-2 border-brand-blue rounded-md">
               <span className="font-bold">
-                {itemPosition ? `تعديل صنف #${itemPosition}` : (itemData.id ? `تعديل صنف` : `سجل جديد`)}
+                {itemPosition
+                  ? `تعديل صنف #${itemPosition}`
+                  : itemData.id
+                    ? `تعديل صنف`
+                    : `سجل جديد`}
               </span>
             </div>
             <button

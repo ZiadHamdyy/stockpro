@@ -3,7 +3,11 @@ import { useSelector, useDispatch } from "react-redux";
 import DataTableModal from "../../common/DataTableModal";
 import { ListIcon, PrintIcon, SearchIcon, TrashIcon } from "../../icons";
 import PermissionWrapper from "../../common/PermissionWrapper";
-import { Resources, Actions, buildPermission } from "../../../enums/permissions.enum";
+import {
+  Resources,
+  Actions,
+  buildPermission,
+} from "../../../enums/permissions.enum";
 import type {
   CompanyInfo,
   StoreVoucherItem,
@@ -23,7 +27,13 @@ import {
   useDeleteStoreReceiptVoucherMutation,
 } from "../../store/slices/storeReceiptVoucher/storeReceiptVoucherApi";
 
-type SelectableItem = { id: string; name: string; unit: string; stock: number; code: string };
+type SelectableItem = {
+  id: string;
+  name: string;
+  unit: string;
+  stock: number;
+  code: string;
+};
 
 interface StoreReceiptVoucherProps {
   title: string;
@@ -62,29 +72,33 @@ const DocumentHeader: React.FC<{ companyInfo: CompanyInfo }> = ({
   </div>
 );
 
-const StoreReceiptVoucher: React.FC<StoreReceiptVoucherProps> = ({
-  title,
-}) => {
+const StoreReceiptVoucher: React.FC<StoreReceiptVoucherProps> = ({ title }) => {
   // Redux API hooks
   const { data: companyInfo } = useGetCompanyQuery();
   const { data: branches = [] } = useGetBranchesQuery();
   const { data: itemsData = [] } = useGetItemsQuery({});
-  const { data: vouchers = [], isLoading: isLoadingVouchers } = useGetStoreReceiptVouchersQuery();
-  const [createVoucher, { isLoading: isCreating }] = useCreateStoreReceiptVoucherMutation();
-  const [updateVoucher, { isLoading: isUpdating }] = useUpdateStoreReceiptVoucherMutation();
-  const [deleteVoucher, { isLoading: isDeleting }] = useDeleteStoreReceiptVoucherMutation();
-  
+  const { data: vouchers = [], isLoading: isLoadingVouchers } =
+    useGetStoreReceiptVouchersQuery();
+  const [createVoucher, { isLoading: isCreating }] =
+    useCreateStoreReceiptVoucherMutation();
+  const [updateVoucher, { isLoading: isUpdating }] =
+    useUpdateStoreReceiptVoucherMutation();
+  const [deleteVoucher, { isLoading: isDeleting }] =
+    useDeleteStoreReceiptVoucherMutation();
+
   // Get current user from auth state
   const currentUser = useSelector((state: RootState) => state.auth.user);
-  
+
   // Transform items to match the expected format
-  const allItems: SelectableItem[] = Array.isArray(itemsData) ? itemsData.map((item: any) => ({
-    id: item.id,
-    name: item.name,
-    unit: item.unit?.name || '',
-    stock: item.stock || 0,
-    code: item.code || ''
-  })) : [];
+  const allItems: SelectableItem[] = Array.isArray(itemsData)
+    ? itemsData.map((item: any) => ({
+        id: item.id,
+        name: item.name,
+        unit: item.unit?.name || "",
+        stock: item.stock || 0,
+        code: item.code || "",
+      }))
+    : [];
   const [items, setItems] = useState<StoreVoucherItem[]>([]);
   const [voucherDetails, setVoucherDetails] = useState({
     id: "",
@@ -139,18 +153,20 @@ const StoreReceiptVoucher: React.FC<StoreReceiptVoucherProps> = ({
   useEffect(() => {
     if (currentIndex >= 0 && vouchers[currentIndex]) {
       const v = vouchers[currentIndex];
-      setVoucherDetails({ 
-        id: v.voucherNumber || v.id, 
-        date: v.date ? new Date(v.date).toISOString().substring(0, 10) : new Date().toISOString().substring(0, 10), 
-        branch: v.store?.branch?.name || '' 
+      setVoucherDetails({
+        id: v.voucherNumber || v.id,
+        date: v.date
+          ? new Date(v.date).toISOString().substring(0, 10)
+          : new Date().toISOString().substring(0, 10),
+        branch: v.store?.branch?.name || "",
       });
       // Transform API items to component format
       const transformedItems: StoreVoucherItem[] = v.items.map((item: any) => ({
-        id: item.itemId || item.id || '',
-        name: item.item?.name || '',
-        unit: item.item?.unit?.name || '',
+        id: item.itemId || item.id || "",
+        name: item.item?.name || "",
+        unit: item.item?.unit?.name || "",
         qty: item.quantity || 1,
-        code: item.item?.code || ''
+        code: item.item?.code || "",
       }));
       setItems(transformedItems);
       setIsReadOnly(true);
@@ -198,7 +214,12 @@ const StoreReceiptVoucher: React.FC<StoreReceiptVoucherProps> = ({
   const handleSelectItem = (index: number, selectedItem: SelectableItem) => {
     const newItems = [...items];
     const currentItem = newItems[index];
-    const item = { ...currentItem, ...selectedItem, qty: currentItem.qty || 1, code: selectedItem.code || '' };
+    const item = {
+      ...currentItem,
+      ...selectedItem,
+      qty: currentItem.qty || 1,
+      code: selectedItem.code || "",
+    };
     newItems[index] = item;
     setItems(newItems);
     setActiveItemSearch(null);
@@ -259,58 +280,67 @@ const StoreReceiptVoucher: React.FC<StoreReceiptVoucherProps> = ({
       showToast("لا يمكن حفظ إذن فارغ أو يحتوي على أسطر غير مكتملة.");
       return;
     }
-    
+
     // Find branch and store
-    const branch = branches.find(b => b.name === voucherDetails.branch);
+    const branch = branches.find((b) => b.name === voucherDetails.branch);
     if (!branch) {
       showToast("يرجى اختيار فرع صحيح.");
       return;
     }
-    
+
     if (!branch.stores || branch.stores.length === 0) {
       showToast("لا يوجد مخزن متاح في هذا الفرع.");
       return;
     }
-    
+
     try {
       if (!currentUser?.id) {
         showToast("يرجى تسجيل الدخول أولاً.");
         return;
       }
-      
+
       // Transform items to API format with proper pricing
-      const apiItems = items.map(item => {
+      const apiItems = items.map((item) => {
         // Find the item data to get pricing
-        const itemData = allItems.find(i => i.id === item.id);
+        const itemData = allItems.find((i) => i.id === item.id);
         const unitPrice = itemData ? 0 : 0; // You might want to get this from item data
         const quantity = item.qty || 1;
         const totalPrice = unitPrice * quantity;
-        
+
         return {
           itemId: item.id,
           quantity: quantity,
           unitPrice: unitPrice,
-          totalPrice: totalPrice
+          totalPrice: totalPrice,
         };
       });
-      
+
       const voucherData = {
         storeId: branch.stores[0].id,
         userId: currentUser.id,
         items: apiItems,
       };
 
-      if (voucherDetails.id && vouchers.find(v => v.id === voucherDetails.id)) {
+      if (
+        voucherDetails.id &&
+        vouchers.find((v) => v.id === voucherDetails.id)
+      ) {
         // Update existing voucher
-        await updateVoucher({ id: voucherDetails.id, data: voucherData }).unwrap();
+        await updateVoucher({
+          id: voucherDetails.id,
+          data: voucherData,
+        }).unwrap();
         showToast("تم تحديث الإذن بنجاح!");
       } else {
         // Create new voucher
         const newVoucher = await createVoucher(voucherData).unwrap();
-        setVoucherDetails(prev => ({ ...prev, id: newVoucher.voucherNumber }));
+        setVoucherDetails((prev) => ({
+          ...prev,
+          id: newVoucher.voucherNumber,
+        }));
         showToast("تم حفظ الإذن بنجاح!");
       }
-      
+
       handleNew();
     } catch (error) {
       console.error("Error saving voucher:", error);
@@ -356,7 +386,10 @@ const StoreReceiptVoucher: React.FC<StoreReceiptVoucherProps> = ({
     }
   };
 
-  const handleSelectVoucherFromSearch = (row: { id: string; voucherNumber?: string }) => {
+  const handleSelectVoucherFromSearch = (row: {
+    id: string;
+    voucherNumber?: string;
+  }) => {
     const index = vouchers.findIndex((v) => v.id === row.id);
     if (index > -1) setCurrentIndex(index);
     setIsSearchModalOpen(false);
@@ -551,7 +584,10 @@ const StoreReceiptVoucher: React.FC<StoreReceiptVoucherProps> = ({
           </table>
         </div>
         <PermissionWrapper
-          requiredPermission={buildPermission(Resources.STORE_RECEIPT_VOUCHER, Actions.CREATE)}
+          requiredPermission={buildPermission(
+            Resources.STORE_RECEIPT_VOUCHER,
+            Actions.CREATE,
+          )}
           fallback={
             <button
               disabled
@@ -585,7 +621,10 @@ const StoreReceiptVoucher: React.FC<StoreReceiptVoucherProps> = ({
           <div className="mt-8 pt-6 border-t-2 border-gray-200 flex flex-col items-center space-y-4">
             <div className="flex justify-center gap-2 flex-wrap">
               <PermissionWrapper
-                requiredPermission={buildPermission(Resources.STORE_RECEIPT_VOUCHER, Actions.CREATE)}
+                requiredPermission={buildPermission(
+                  Resources.STORE_RECEIPT_VOUCHER,
+                  Actions.CREATE,
+                )}
                 fallback={
                   <button
                     disabled
@@ -604,8 +643,14 @@ const StoreReceiptVoucher: React.FC<StoreReceiptVoucherProps> = ({
               </PermissionWrapper>
               <PermissionWrapper
                 requiredPermission={[
-                  buildPermission(Resources.STORE_RECEIPT_VOUCHER, Actions.CREATE),
-                  buildPermission(Resources.STORE_RECEIPT_VOUCHER, Actions.UPDATE)
+                  buildPermission(
+                    Resources.STORE_RECEIPT_VOUCHER,
+                    Actions.CREATE,
+                  ),
+                  buildPermission(
+                    Resources.STORE_RECEIPT_VOUCHER,
+                    Actions.UPDATE,
+                  ),
                 ]}
                 fallback={
                   <button
@@ -618,14 +663,19 @@ const StoreReceiptVoucher: React.FC<StoreReceiptVoucherProps> = ({
               >
                 <button
                   onClick={handleSave}
-                  disabled={isReadOnly || items.length === 0 || isCreating || isUpdating}
+                  disabled={
+                    isReadOnly || items.length === 0 || isCreating || isUpdating
+                  }
                   className="px-4 py-2 bg-brand-green text-white rounded-md hover:bg-green-700 font-semibold disabled:bg-gray-400"
                 >
                   {isCreating || isUpdating ? "جاري الحفظ..." : "حفظ"}
                 </button>
               </PermissionWrapper>
               <PermissionWrapper
-                requiredPermission={buildPermission(Resources.STORE_RECEIPT_VOUCHER, Actions.UPDATE)}
+                requiredPermission={buildPermission(
+                  Resources.STORE_RECEIPT_VOUCHER,
+                  Actions.UPDATE,
+                )}
                 fallback={
                   <button
                     disabled
@@ -644,7 +694,10 @@ const StoreReceiptVoucher: React.FC<StoreReceiptVoucherProps> = ({
                 </button>
               </PermissionWrapper>
               <PermissionWrapper
-                requiredPermission={buildPermission(Resources.STORE_RECEIPT_VOUCHER, Actions.DELETE)}
+                requiredPermission={buildPermission(
+                  Resources.STORE_RECEIPT_VOUCHER,
+                  Actions.DELETE,
+                )}
                 fallback={
                   <button
                     disabled
@@ -663,7 +716,10 @@ const StoreReceiptVoucher: React.FC<StoreReceiptVoucherProps> = ({
                 </button>
               </PermissionWrapper>
               <PermissionWrapper
-                requiredPermission={buildPermission(Resources.STORE_RECEIPT_VOUCHER, Actions.SEARCH)}
+                requiredPermission={buildPermission(
+                  Resources.STORE_RECEIPT_VOUCHER,
+                  Actions.SEARCH,
+                )}
                 fallback={
                   <button
                     disabled
@@ -681,7 +737,10 @@ const StoreReceiptVoucher: React.FC<StoreReceiptVoucherProps> = ({
                 </button>
               </PermissionWrapper>
               <PermissionWrapper
-                requiredPermission={buildPermission(Resources.STORE_RECEIPT_VOUCHER, Actions.PRINT)}
+                requiredPermission={buildPermission(
+                  Resources.STORE_RECEIPT_VOUCHER,
+                  Actions.PRINT,
+                )}
                 fallback={
                   <button
                     disabled

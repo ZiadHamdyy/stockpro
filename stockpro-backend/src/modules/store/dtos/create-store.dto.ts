@@ -22,4 +22,3 @@ export class CreateStoreDto {
   @IsUUID()
   userId: string;
 }
-
