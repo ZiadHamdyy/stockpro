@@ -32,6 +32,8 @@ import { CurrentAccountModule } from './modules/current-account/current-account.
 import { ExpenseModule } from './modules/expense/expense.module';
 import { SalesInvoiceModule } from './modules/sales-invoice/sales-invoice.module';
 import { SalesReturnModule } from './modules/sales-return/sales-return.module';
+import { PurchaseInvoiceModule } from './modules/purchase-invoice/purchase-invoice.module';
+import { PurchaseReturnModule } from './modules/purchase-return/purchase-return.module';
 
 @Module({
   imports: [
@@ -63,6 +65,8 @@ import { SalesReturnModule } from './modules/sales-return/sales-return.module';
     ExpenseModule,
     SalesInvoiceModule,
     SalesReturnModule,
+    PurchaseInvoiceModule,
+    PurchaseReturnModule,
   ],
   controllers: [AppController],
   providers: [

@@ -727,37 +727,9 @@ const AppContent = () => {
                 <ProtectedRoute requiredPermission="purchase_invoice-read">
                   <PurchaseInvoice
                     title={currentPageTitle}
-                    vatRate={vatRate}
-                    isVatEnabled={isVatEnabled}
-                    companyInfo={companyInfo}
-                    items={itemsWithLiveStock.map((i) => ({
-                      id: i.code,
-                      name: i.name,
-                      unit: i.unit,
-                      price: i.purchasePrice,
-                      stock: i.stock,
-                      barcode: i.barcode,
-                    }))}
-                    suppliers={suppliers}
-                    invoices={purchaseInvoices}
-                    onSave={(inv) =>
-                      setPurchaseInvoices((prev) =>
-                        prev.find((i) => i.id === inv.id)
-                          ? prev.map((i) => (i.id === inv.id ? inv : i))
-                          : [...prev, inv],
-                      )
-                    }
-                    onDelete={(id) =>
-                      setPurchaseInvoices((prev) =>
-                        prev.filter((i) => i.id !== id),
-                      )
-                    }
                     currentUser={currentUser}
                     viewingId={null}
                     onClearViewingId={() => {}}
-                    setItems={setItems}
-                    safes={safes}
-                    banks={banks}
                   />
                 </ProtectedRoute>
               }
@@ -768,36 +740,9 @@ const AppContent = () => {
                 <ProtectedRoute requiredPermission="purchase_return-read">
                   <PurchaseReturn
                     title={currentPageTitle}
-                    vatRate={vatRate}
-                    isVatEnabled={isVatEnabled}
-                    companyInfo={companyInfo}
-                    items={itemsWithLiveStock.map((i) => ({
-                      id: i.code,
-                      name: i.name,
-                      unit: i.unit,
-                      price: i.purchasePrice,
-                      stock: i.stock,
-                      barcode: i.barcode,
-                    }))}
-                    suppliers={suppliers}
-                    invoices={purchaseReturns}
-                    onSave={(inv) =>
-                      setPurchaseReturns((prev) =>
-                        prev.find((i) => i.id === inv.id)
-                          ? prev.map((i) => (i.id === inv.id ? inv : i))
-                          : [...prev, inv],
-                      )
-                    }
-                    onDelete={(id) =>
-                      setPurchaseReturns((prev) =>
-                        prev.filter((i) => i.id !== id),
-                      )
-                    }
                     currentUser={currentUser}
                     viewingId={null}
                     onClearViewingId={() => {}}
-                    safes={safes}
-                    banks={banks}
                   />
                 </ProtectedRoute>
               }
@@ -808,8 +753,6 @@ const AppContent = () => {
                 <ProtectedRoute requiredPermission="daily_purchases-read">
                   <DailyPurchases
                     title={currentPageTitle}
-                    companyInfo={companyInfo}
-                    purchaseInvoices={purchaseInvoices}
                   />
                 </ProtectedRoute>
               }
@@ -820,8 +763,6 @@ const AppContent = () => {
                 <ProtectedRoute requiredPermission="daily_purchase_returns-read">
                   <DailyPurchaseReturns
                     title={currentPageTitle}
-                    companyInfo={companyInfo}
-                    purchaseReturns={purchaseReturns}
                   />
                 </ProtectedRoute>
               }

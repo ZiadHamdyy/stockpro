@@ -32,23 +32,27 @@ const DailySales: React.FC<DailySalesProps> = ({
     isVatEnabled: true,
   };
   const [startDate, setStartDate] = useState(
-    new Date().toISOString().substring(0, 7) + "-01",
-  ); // Start of current month
+    new Date().toISOString().substring(0, 10),
+  ); // Current day
   const [endDate, setEndDate] = useState(
     new Date().toISOString().substring(0, 10),
-  ); // Today
+  ); // Current day
   const [searchTerm, setSearchTerm] = useState("");
 
   const filteredSales = useMemo(() => {
     return salesInvoices.filter(
-      (sale) =>
-        sale.date >= startDate &&
-        sale.date <= endDate &&
-        (sale.code.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          (sale.customer &&
-            sale.customer.name
-              .toLowerCase()
-              .includes(searchTerm.toLowerCase()))),
+      (sale) => {
+        const saleDate = sale.date.substring(0, 10); // Extract just the date part
+        return (
+          saleDate >= startDate &&
+          saleDate <= endDate &&
+          (sale.code.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            (sale.customer &&
+              sale.customer.name
+                .toLowerCase()
+                .includes(searchTerm.toLowerCase())))
+        );
+      }
     );
   }, [salesInvoices, startDate, endDate, searchTerm]);
 

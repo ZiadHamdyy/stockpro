@@ -32,7 +32,7 @@ const DailySalesReturns: React.FC<DailySalesReturnsProps> = ({
     isVatEnabled: true,
   };
   const [startDate, setStartDate] = useState(
-    new Date().toISOString().substring(0, 7) + "-01",
+    new Date().toISOString().substring(0, 10),
   );
   const [endDate, setEndDate] = useState(
     new Date().toISOString().substring(0, 10),
@@ -41,14 +41,18 @@ const DailySalesReturns: React.FC<DailySalesReturnsProps> = ({
 
   const filteredReturns = useMemo(() => {
     return salesReturns.filter(
-      (sale) =>
-        sale.date >= startDate &&
-        sale.date <= endDate &&
-        (sale.code.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          (sale.customer &&
-            sale.customer.name
-              .toLowerCase()
-              .includes(searchTerm.toLowerCase()))),
+      (sale) => {
+        const saleDate = sale.date.substring(0, 10); // Extract just the date part
+        return (
+          saleDate >= startDate &&
+          saleDate <= endDate &&
+          (sale.code.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            (sale.customer &&
+              sale.customer.name
+                .toLowerCase()
+                .includes(searchTerm.toLowerCase())))
+        );
+      }
     );
   }, [salesReturns, startDate, endDate, searchTerm]);
 

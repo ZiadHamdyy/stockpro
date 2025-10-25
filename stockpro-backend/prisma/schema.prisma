@@ -41,6 +41,10 @@ model User {
   // Sales operations
   salesInvoices SalesInvoice[]
   salesReturns SalesReturn[]
+  
+  // Purchase operations
+  purchaseInvoices PurchaseInvoice[]
+  purchaseReturns PurchaseReturn[]
 }
 
 model Session {
@@ -265,6 +269,10 @@ model Supplier {
   phone          String
   openingBalance Float   @default(0)
 
+  // Relationships
+  purchaseInvoices PurchaseInvoice[]
+  purchaseReturns PurchaseReturn[]
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -286,6 +294,8 @@ model Branch {
   safes  Safe[]
   salesInvoices SalesInvoice[]
   salesReturns SalesReturn[]
+  purchaseInvoices PurchaseInvoice[]
+  purchaseReturns PurchaseReturn[]
 }
 
 model Store {
@@ -579,5 +589,71 @@ model SalesReturn {
   @@index([code])
   @@index([date])
   @@index([customerId])
+  @@index([userId])
+}
+
+model PurchaseInvoice {
+  id          String   @id @default(uuid())
+  code        String   @unique
+  date        DateTime @default(now())
+  supplierId  String?
+  items       Json     // Array of invoice items
+  subtotal    Float    @default(0)
+  discount    Float    @default(0)
+  tax         Float    @default(0)
+  net         Float    @default(0)
+  paymentMethod String // "cash" or "credit"
+  paymentTargetType String? // "safe" or "bank"
+  paymentTargetId String?
+  notes       String?
+
+  // Foreign keys
+  userId String
+  branchId String?
+
+  // Relationships
+  supplier Supplier? @relation(fields: [supplierId], references: [id])
+  user     User      @relation(fields: [userId], references: [id])
+  branch   Branch?   @relation(fields: [branchId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([code])
+  @@index([date])
+  @@index([supplierId])
+  @@index([userId])
+}
+
+model PurchaseReturn {
+  id          String   @id @default(uuid())
+  code        String   @unique
+  date        DateTime @default(now())
+  supplierId  String?
+  items       Json     // Array of return items
+  subtotal    Float    @default(0)
+  discount    Float    @default(0)
+  tax         Float    @default(0)
+  net         Float    @default(0)
+  paymentMethod String // "cash" or "credit"
+  paymentTargetType String? // "safe" or "bank"
+  paymentTargetId String?
+  notes       String?
+
+  // Foreign keys
+  userId String
+  branchId String?
+
+  // Relationships
+  supplier Supplier? @relation(fields: [supplierId], references: [id])
+  user     User      @relation(fields: [userId], references: [id])
+  branch   Branch?   @relation(fields: [branchId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([code])
+  @@index([date])
+  @@index([supplierId])
   @@index([userId])
 }

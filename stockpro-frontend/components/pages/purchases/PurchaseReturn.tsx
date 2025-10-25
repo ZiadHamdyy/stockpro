@@ -23,6 +23,17 @@ import type {
 import PurchaseInvoicePrintPreview from "./PurchaseInvoicePrintPreview";
 import { useModal } from "../../common/ModalProvider";
 import { useToast } from "../../common/ToastProvider";
+import {
+  useGetPurchaseReturnsQuery,
+  useCreatePurchaseReturnMutation,
+  useUpdatePurchaseReturnMutation,
+  useDeletePurchaseReturnMutation,
+} from "../../store/slices/purchaseReturn/purchaseReturnApiSlice";
+import { useGetSuppliersQuery } from "../../store/slices/supplier/supplierApiSlice";
+import { useGetItemsQuery } from "../../store/slices/items/itemsApi";
+import { useGetBanksQuery } from "../../store/slices/bank/bankApiSlice";
+import { useGetSafesQuery } from "../../store/slices/safe/safeApiSlice";
+import { useGetCompanyQuery } from "../../store/slices/companyApiSlice";
 
 type SelectableItem = {
   id: string;
@@ -34,40 +45,66 @@ type SelectableItem = {
 
 interface PurchaseReturnProps {
   title: string;
-  vatRate: number;
-  isVatEnabled: boolean;
-  companyInfo: CompanyInfo;
-  items: SelectableItem[];
-  suppliers: Supplier[];
-  invoices: Invoice[];
-  onSave: (invoice: Invoice) => void;
-  onDelete: (id: string) => void;
-  // FIX: Add currentUser to props
   currentUser: User | null;
   viewingId: string | number | null;
   onClearViewingId: () => void;
-  safes: Safe[];
-  banks: Bank[];
 }
 
 
 // FIX: Add currentUser to props destructuring
 const PurchaseReturn: React.FC<PurchaseReturnProps> = ({
   title,
-  vatRate,
-  isVatEnabled,
-  companyInfo,
-  items: allItems,
-  suppliers: allSuppliers,
-  invoices,
-  onSave,
-  onDelete,
   currentUser,
   viewingId,
   onClearViewingId,
-  safes,
-  banks,
 }) => {
+  // Redux hooks
+  const { data: returns = [] } = useGetPurchaseReturnsQuery();
+  const [createPurchaseReturn] = useCreatePurchaseReturnMutation();
+  const [updatePurchaseReturn] = useUpdatePurchaseReturnMutation();
+  const [deletePurchaseReturn] = useDeletePurchaseReturnMutation();
+  const { data: suppliers = [] } = useGetSuppliersQuery();
+  const { data: items = [] } = useGetItemsQuery(undefined);
+  const { data: banks = [] } = useGetBanksQuery();
+  const { data: safes = [] } = useGetSafesQuery();
+  const { data: company } = useGetCompanyQuery();
+
+  // Transform data
+  const allItems: SelectableItem[] = (items as any[]).map(item => ({
+    id: item.code,
+    name: item.name,
+    unit: item.unit.name,
+    price: item.purchasePrice,
+    stock: item.stock,
+    barcode: item.barcode,
+  }));
+
+  const allSuppliers: Supplier[] = suppliers.map(supplier => ({
+    id: supplier.id,
+    code: supplier.code,
+    name: supplier.name,
+    commercialReg: supplier.commercialReg,
+    taxNumber: supplier.taxNumber,
+    nationalAddress: supplier.nationalAddress,
+    phone: supplier.phone,
+    openingBalance: supplier.openingBalance,
+  }));
+
+  const companyInfo: CompanyInfo = company || {
+    name: "",
+    address: "",
+    phone: "",
+    email: "",
+    commercialReg: "",
+    taxNumber: "",
+    vatRate: 15,
+    isVatEnabled: false,
+    logoPath: "",
+  };
+
+  const vatRate = company?.vatRate || 15;
+  const isVatEnabled = company?.isVatEnabled || false;
+  const invoices = returns; // Use returns data as invoices for compatibility
   const createEmptyItem = (): InvoiceItem => ({
     id: "",
     name: "",
@@ -78,7 +115,7 @@ const PurchaseReturn: React.FC<PurchaseReturnProps> = ({
     total: 0,
   });
 
-  const [items, setItems] = useState<InvoiceItem[]>(
+  const [returnItems, setReturnItems] = useState<InvoiceItem[]>(
     Array(6).fill(null).map(createEmptyItem),
   );
   const [totals, setTotals] = useState({
@@ -96,7 +133,7 @@ const PurchaseReturn: React.FC<PurchaseReturnProps> = ({
   const [paymentTargetType, setPaymentTargetType] = useState<"safe" | "bank">(
     "safe",
   );
-  const [paymentTargetId, setPaymentTargetId] = useState<number | null>(null);
+  const [paymentTargetId, setPaymentTargetId] = useState<string | null>(null);
   const { showModal } = useModal();
   const { showToast } = useToast();
 
@@ -149,23 +186,23 @@ const PurchaseReturn: React.FC<PurchaseReturnProps> = ({
 
   const handleNew = () => {
     setCurrentIndex(-1);
-    setItems(Array(6).fill(null).map(createEmptyItem));
+    setReturnItems(Array(6).fill(null).map(createEmptyItem));
     setTotals({ subtotal: 0, discount: 0, tax: 0, net: 0 });
     setPaymentMethod("cash");
     setInvoiceDetails({
-      invoiceNumber: `PRTN-${Math.floor(10000 + Math.random() * 90000)}`,
+      invoiceNumber: "", // Backend will generate the code
       invoiceDate: new Date().toISOString().substring(0, 10),
     });
     setSelectedSupplier(null);
     setSupplierQuery("");
     setPaymentTargetType("safe");
-    setPaymentTargetId(safes.length > 0 ? safes[0].id : null);
+    setPaymentTargetId(safes.length > 0 ? safes[0].id.toString() : null);
     setIsReadOnly(false);
   };
 
   useEffect(() => {
     if (viewingId) {
-      const index = invoices.findIndex((inv) => inv.id === viewingId);
+      const index = (invoices || []).findIndex((inv) => inv.id === viewingId);
       if (index !== -1) {
         setCurrentIndex(index);
       } else {
@@ -176,13 +213,18 @@ const PurchaseReturn: React.FC<PurchaseReturnProps> = ({
   }, [viewingId, invoices, onClearViewingId, showToast]);
 
   useEffect(() => {
-    if (currentIndex >= 0 && invoices[currentIndex]) {
-      const inv = invoices[currentIndex];
-      setInvoiceDetails({ invoiceNumber: inv.id, invoiceDate: inv.date });
-      setSelectedSupplier(inv.customerOrSupplier);
-      setSupplierQuery(inv.customerOrSupplier?.name || "");
-      setItems(inv.items);
-      setTotals(inv.totals);
+    if (currentIndex >= 0 && (invoices || [])[currentIndex]) {
+      const inv = (invoices || [])[currentIndex];
+      setInvoiceDetails({ invoiceNumber: inv.code, invoiceDate: inv.date });
+      setSelectedSupplier(inv.supplier ? { id: inv.supplier.id, name: inv.supplier.name } : null);
+      setSupplierQuery(inv.supplier?.name || "");
+      setReturnItems(inv.items as InvoiceItem[]);
+      setTotals({ 
+        subtotal: inv.subtotal, 
+        discount: inv.discount, 
+        tax: inv.tax, 
+        net: inv.net 
+      });
       setPaymentMethod(inv.paymentMethod);
       setPaymentTargetType(inv.paymentTargetType || "safe");
       setPaymentTargetId(inv.paymentTargetId || null);
@@ -216,23 +258,23 @@ const PurchaseReturn: React.FC<PurchaseReturnProps> = ({
   };
 
   useEffect(() => {
-    items.forEach((_, index) => {
+    returnItems.forEach((_, index) => {
       autosizeInput(qtyInputRefs.current[index]);
       autosizeInput(priceInputRefs.current[index]);
     });
-  }, [items]);
+  }, [returnItems]);
 
   useEffect(() => {
-    const subtotal = items.reduce(
+    const subtotal = returnItems.reduce(
       (acc, item) => acc + item.qty * item.price,
       0,
     );
     const taxTotal = isVatEnabled
-      ? items.reduce((acc, item) => acc + item.taxAmount, 0)
+      ? returnItems.reduce((acc, item) => acc + item.taxAmount, 0)
       : 0;
     const net = subtotal + taxTotal - totals.discount;
     setTotals((prev) => ({ ...prev, subtotal, tax: taxTotal, net }));
-  }, [items, totals.discount, isVatEnabled]);
+  }, [returnItems, totals.discount, isVatEnabled]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -256,7 +298,7 @@ const PurchaseReturn: React.FC<PurchaseReturnProps> = ({
   }, [activeItemSearch]);
 
   const handleAddItem = () => {
-    setItems([...items, createEmptyItem()]);
+    setReturnItems([...returnItems, createEmptyItem()]);
   };
 
   const handleItemChange = (
@@ -277,7 +319,7 @@ const PurchaseReturn: React.FC<PurchaseReturnProps> = ({
       item.taxAmount = isVatEnabled ? total * (vatRate / 100) : 0;
     }
     newItems[index] = item;
-    setItems(newItems);
+    setReturnItems(newItems);
   };
 
   const handleSelectItem = (index: number, selectedItem: SelectableItem) => {
@@ -288,7 +330,7 @@ const PurchaseReturn: React.FC<PurchaseReturnProps> = ({
     item.total = total;
     item.taxAmount = isVatEnabled ? total * (vatRate / 100) : 0;
     newItems[index] = item;
-    setItems(newItems);
+    setReturnItems(newItems);
     setActiveItemSearch(null);
     setHighlightedIndex(-1);
     setTimeout(() => {
@@ -298,11 +340,11 @@ const PurchaseReturn: React.FC<PurchaseReturnProps> = ({
   };
 
   const handleRemoveItem = (index: number) => {
-    const newItems = items.filter((_, i) => i !== index);
+    const newItems = returnItems.filter((_, i) => i !== index);
     while (newItems.length < 6) {
       newItems.push(createEmptyItem());
     }
-    setItems(newItems);
+    setReturnItems(newItems);
   };
 
   const handleSelectSupplier = (supplier: Supplier) => {
@@ -352,8 +394,8 @@ const PurchaseReturn: React.FC<PurchaseReturnProps> = ({
     }
   };
 
-  const handleSave = () => {
-    const finalItems = items.filter((i) => i.id && i.name && i.qty > 0);
+  const handleSave = async () => {
+    const finalItems = returnItems.filter((i) => i.id && i.name && i.qty > 0);
     if (finalItems.length === 0) {
       showToast("الرجاء إضافة صنف واحد على الأقل للمرتجع.");
       return;
@@ -363,30 +405,46 @@ const PurchaseReturn: React.FC<PurchaseReturnProps> = ({
       showToast("الرجاء اختيار المورد للمرتجعات الآجلة.");
       return;
     }
-    const invoiceData: Invoice = {
-      id: invoiceDetails.invoiceNumber,
-      date: invoiceDetails.invoiceDate,
-      customerOrSupplier: selectedSupplier,
-      items: finalItems,
-      totals,
-      paymentMethod,
-      userName: currentUser?.fullName || "غير محدد",
-      branchName: currentUser?.branch || "غير محدد",
-    };
 
-    if (paymentMethod === "cash") {
-      invoiceData.paymentTargetType = paymentTargetType;
-      invoiceData.paymentTargetId = paymentTargetId;
-    }
+    try {
+      const returnData = {
+        supplierId: selectedSupplier?.id,
+        date: invoiceDetails.invoiceDate,
+        items: finalItems.map(item => ({
+          id: item.id,
+          name: item.name,
+          unit: item.unit,
+          qty: item.qty,
+          price: item.price,
+          taxAmount: item.taxAmount || 0,
+          total: item.total || 0,
+        })),
+        discount: totals.discount,
+        paymentMethod,
+        paymentTargetType: paymentMethod === "cash" ? paymentTargetType : undefined,
+        paymentTargetId: paymentMethod === "cash" ? paymentTargetId : undefined,
+        notes: "",
+      };
 
-    onSave(invoiceData);
-    showToast("تم حفظ المرتجع بنجاح!");
-    setIsReadOnly(true);
-    const savedIndex = invoices.findIndex((inv) => inv.id === invoiceData.id);
-    if (savedIndex !== -1) {
-      setCurrentIndex(savedIndex);
-    } else {
-      setCurrentIndex(invoices.length);
+      if (currentIndex >= 0 && (invoices || [])[currentIndex]) {
+        // Update existing return
+        await updatePurchaseReturn({
+          id: (invoices || [])[currentIndex].id,
+          data: returnData,
+        }).unwrap();
+        showToast("تم تحديث المرتجع بنجاح!");
+      } else {
+        // Create new return
+        await createPurchaseReturn(returnData).unwrap();
+        showToast("تم حفظ المرتجع بنجاح!");
+      }
+      
+      setIsReadOnly(true);
+      // Refresh the returns list
+      // The Redux cache will automatically update
+    } catch (error) {
+      showToast("حدث خطأ أثناء حفظ المرتجع");
+      console.error("Error saving return:", error);
     }
   };
 
@@ -409,13 +467,17 @@ const PurchaseReturn: React.FC<PurchaseReturnProps> = ({
     showModal({
       title: "تأكيد الحذف",
       message: "هل أنت متأكد من حذف هذا المرتجع؟",
-      onConfirm: () => {
-        onDelete(invoices[currentIndex].id);
-        showToast("تم الحذف بنجاح.");
-        if (invoices.length <= 1) {
-          handleNew();
-        } else {
-          setCurrentIndex((prev) => Math.max(0, prev - 1));
+      onConfirm: async () => {
+        try {
+          await deletePurchaseReturn((invoices || [])[currentIndex].id).unwrap();
+          showToast("تم الحذف بنجاح.");
+          if ((invoices || []).length <= 1) {
+            handleNew();
+          } else {
+            setCurrentIndex((prev) => Math.max(0, prev - 1));
+          }
+        } catch (error) {
+          showToast("حدث خطأ أثناء الحذف");
         }
       },
       type: "delete",
@@ -424,13 +486,13 @@ const PurchaseReturn: React.FC<PurchaseReturnProps> = ({
   };
 
   const navigate = (index: number) => {
-    if (invoices.length > 0) {
-      setCurrentIndex(Math.max(0, Math.min(invoices.length - 1, index)));
+    if ((invoices || []).length > 0) {
+      setCurrentIndex(Math.max(0, Math.min((invoices || []).length - 1, index)));
     }
   };
 
   const handleSelectInvoiceFromSearch = (row: { id: string }) => {
-    const index = invoices.findIndex((inv) => inv.id === row.id);
+    const index = (invoices || []).findIndex((inv) => inv.id === row.id);
     if (index > -1) {
       setCurrentIndex(index);
     }
@@ -484,7 +546,8 @@ const PurchaseReturn: React.FC<PurchaseReturnProps> = ({
                     invoiceNumber: e.target.value,
                   })
                 }
-                readOnly={currentIndex > -1 || isReadOnly}
+                readOnly={true}
+                disabled={true}
               />
               <input
                 type="date"
@@ -553,7 +616,7 @@ const PurchaseReturn: React.FC<PurchaseReturnProps> = ({
                   </label>
                   <select
                     value={paymentTargetId || ""}
-                    onChange={(e) => setPaymentTargetId(Number(e.target.value))}
+                    onChange={(e) => setPaymentTargetId(e.target.value || null)}
                     className={inputStyle}
                     disabled={isReadOnly}
                   >
@@ -612,7 +675,7 @@ const PurchaseReturn: React.FC<PurchaseReturnProps> = ({
               </tr>
             </thead>
             <tbody ref={itemSearchRef} className="divide-y divide-gray-300">
-              {items.map((item, index) => (
+              {returnItems.map((item, index) => (
                 <tr
                   key={index}
                   className="hover:bg-brand-green-bg transition-colors duration-150"
@@ -728,11 +791,11 @@ const PurchaseReturn: React.FC<PurchaseReturnProps> = ({
                   </td>
                   {isVatEnabled && (
                     <td className="p-2 align-middle text-center border-x border-gray-300">
-                      {item.taxAmount.toFixed(2)}
+                      {(item.taxAmount || 0).toFixed(2)}
                     </td>
                   )}
                   <td className="p-2 align-middle text-center border-x border-gray-300">
-                    {item.total.toFixed(2)}
+                    {(item.total || 0).toFixed(2)}
                   </td>
                   <td className="p-2 align-middle text-center border-x border-gray-300">
                     <button
@@ -770,7 +833,7 @@ const PurchaseReturn: React.FC<PurchaseReturnProps> = ({
                     الاجمالي قبل الضريبة
                   </span>
                   <span className="font-bold text-lg text-brand-dark">
-                    {totals.subtotal.toFixed(2)}
+                    {(totals.subtotal || 0).toFixed(2)}
                   </span>
                 </div>
                 <div className="flex justify-between items-center p-3 border-t-2 border-dashed border-gray-200">
@@ -794,13 +857,13 @@ const PurchaseReturn: React.FC<PurchaseReturnProps> = ({
                       إجمالي الضريبة ({vatRate}%)
                     </span>
                     <span className="font-bold text-lg text-brand-dark">
-                      {totals.tax.toFixed(2)}
+                      {(totals.tax || 0).toFixed(2)}
                     </span>
                   </div>
                 )}
                 <div className="flex justify-between font-bold text-xl text-brand-dark bg-brand-green-bg p-4 border-t-4 border-brand-green rounded-b-md">
                   <span>الصافي</span>
-                  <span>{totals.net.toFixed(2)}</span>
+                  <span>{(totals.net || 0).toFixed(2)}</span>
                 </div>
               </div>
             </div>
@@ -857,9 +920,9 @@ const PurchaseReturn: React.FC<PurchaseReturnProps> = ({
 
             <div className="flex items-center justify-center gap-2">
               <button
-                onClick={() => navigate(invoices.length - 1)}
+                onClick={() => navigate((invoices || []).length - 1)}
                 disabled={
-                  currentIndex >= invoices.length - 1 || invoices.length === 0
+                  currentIndex >= (invoices || []).length - 1 || (invoices || []).length === 0
                 }
                 className="p-2 bg-gray-200 rounded-md hover:bg-gray-300 disabled:opacity-50"
               >
@@ -868,7 +931,7 @@ const PurchaseReturn: React.FC<PurchaseReturnProps> = ({
               <button
                 onClick={() => navigate(currentIndex + 1)}
                 disabled={
-                  currentIndex >= invoices.length - 1 || invoices.length === 0
+                  currentIndex >= (invoices || []).length - 1 || (invoices || []).length === 0
                 }
                 className="p-2 bg-gray-200 rounded-md hover:bg-gray-300 disabled:opacity-50"
               >
@@ -877,7 +940,7 @@ const PurchaseReturn: React.FC<PurchaseReturnProps> = ({
               <div className="px-4 py-2 bg-brand-green-bg border-2 border-brand-green rounded-md">
                 <span className="font-bold">
                   {currentIndex > -1
-                    ? `${currentIndex + 1} / ${invoices.length}`
+                    ? `${currentIndex + 1} / ${(invoices || []).length}`
                     : `جديد`}
                 </span>
               </div>
@@ -923,11 +986,11 @@ const PurchaseReturn: React.FC<PurchaseReturnProps> = ({
           { Header: "المورد", accessor: "supplier" },
           { Header: "الصافي", accessor: "total" },
         ]}
-        data={invoices.map((inv) => ({
-          id: inv.id,
+        data={(invoices || []).map((inv) => ({
+          id: inv.code,
           date: inv.date,
-          supplier: inv.customerOrSupplier?.name || "-",
-          total: inv.totals.net.toFixed(2),
+          supplier: inv.supplier?.name || "-",
+          total: (inv.net || 0).toFixed(2),
         }))}
         onSelectRow={handleSelectInvoiceFromSearch}
       />
@@ -937,7 +1000,7 @@ const PurchaseReturn: React.FC<PurchaseReturnProps> = ({
         invoiceData={{
           vatRate,
           isVatEnabled,
-          items,
+          items: returnItems,
           totals,
           paymentMethod,
           supplier: selectedSupplier,

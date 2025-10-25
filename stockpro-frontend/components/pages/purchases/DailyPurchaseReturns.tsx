@@ -3,21 +3,36 @@ import type { CompanyInfo, Invoice } from "../../../types";
 import { ExcelIcon, PdfIcon, PrintIcon, SearchIcon } from "../../icons";
 import { exportToExcel, exportToPdf } from "../../../utils/formatting";
 import InvoiceHeader from "../../common/InvoiceHeader";
+import { useGetPurchaseReturnsQuery } from "../../store/slices/purchaseReturn/purchaseReturnApiSlice";
+import { useGetCompanyQuery } from "../../store/slices/companyApiSlice";
 
 interface DailyPurchaseReturnsProps {
   title: string;
-  companyInfo: CompanyInfo;
-  purchaseReturns: Invoice[];
 }
 
 
 const DailyPurchaseReturns: React.FC<DailyPurchaseReturnsProps> = ({
   title,
-  companyInfo,
-  purchaseReturns,
 }) => {
+  // Redux hooks
+  const { data: purchaseReturns = [] } = useGetPurchaseReturnsQuery();
+  const { data: company } = useGetCompanyQuery();
+
+  const companyInfo: CompanyInfo = company || {
+    name: "",
+    activity: "",
+    address: "",
+    phone: "",
+    taxNumber: "",
+    commercialReg: "",
+    currency: "SAR",
+    logo: null,
+    capital: 0,
+    vatRate: 15,
+    isVatEnabled: false,
+  };
   const [startDate, setStartDate] = useState(
-    new Date().toISOString().substring(0, 7) + "-01",
+    new Date().toISOString().substring(0, 10),
   );
   const [endDate, setEndDate] = useState(
     new Date().toISOString().substring(0, 10),
@@ -26,23 +41,27 @@ const DailyPurchaseReturns: React.FC<DailyPurchaseReturnsProps> = ({
 
   const filteredReturns = useMemo(() => {
     return purchaseReturns.filter(
-      (purchase) =>
-        purchase.date >= startDate &&
-        purchase.date <= endDate &&
-        (purchase.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          (purchase.customerOrSupplier &&
-            purchase.customerOrSupplier.name
-              .toLowerCase()
-              .includes(searchTerm.toLowerCase()))),
+      (purchase) => {
+        const purchaseDate = purchase.date.substring(0, 10); // Extract just the date part
+        return (
+          purchaseDate >= startDate &&
+          purchaseDate <= endDate &&
+          (purchase.code.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            (purchase.supplier &&
+              purchase.supplier.name
+                .toLowerCase()
+                .includes(searchTerm.toLowerCase())))
+        );
+      }
     );
   }, [purchaseReturns, startDate, endDate, searchTerm]);
 
   const totals = filteredReturns.reduce(
     (acc, purchase) => {
-      acc.subtotal += purchase.totals.subtotal;
-      acc.tax += purchase.totals.tax;
-      acc.discount += purchase.totals.discount;
-      acc.net += purchase.totals.net;
+      acc.subtotal += purchase.subtotal;
+      acc.tax += purchase.tax;
+      acc.discount += purchase.discount;
+      acc.net += purchase.net;
       return acc;
     },
     { subtotal: 0, tax: 0, discount: 0, net: 0 },
@@ -51,12 +70,12 @@ const DailyPurchaseReturns: React.FC<DailyPurchaseReturnsProps> = ({
   const handleExcelExport = () => {
     const dataToExport = filteredReturns.map((p) => ({
       التاريخ: p.date,
-      "رقم المرتجع": p.id,
-      المورد: p.customerOrSupplier?.name || "-",
-      المبلغ: p.totals.subtotal.toFixed(2),
-      الضريبة: p.totals.tax.toFixed(2),
-      الخصم: p.totals.discount.toFixed(2),
-      "صافي المبلغ": p.totals.net.toFixed(2),
+      "رقم المرتجع": p.code,
+      المورد: p.supplier?.name || "-",
+      المبلغ: p.subtotal.toFixed(2),
+      الضريبة: p.tax.toFixed(2),
+      الخصم: p.discount.toFixed(2),
+      "صافي المبلغ": p.net.toFixed(2),
     }));
     dataToExport.push({
       التاريخ: "الإجمالي",
@@ -84,12 +103,12 @@ const DailyPurchaseReturns: React.FC<DailyPurchaseReturnsProps> = ({
       ],
     ];
     const body = filteredReturns.map((p, i) => [
-      p.totals.net.toFixed(2),
-      p.totals.discount.toFixed(2),
-      p.totals.tax.toFixed(2),
-      p.totals.subtotal.toFixed(2),
-      p.customerOrSupplier?.name || "-",
-      p.id,
+      p.net.toFixed(2),
+      p.discount.toFixed(2),
+      p.tax.toFixed(2),
+      p.subtotal.toFixed(2),
+      p.supplier?.name || "-",
+      p.code,
       p.date,
       (i + 1).toString(),
     ]);
@@ -208,22 +227,22 @@ const DailyPurchaseReturns: React.FC<DailyPurchaseReturnsProps> = ({
                 <td className="px-6 py-4 whitespace-nowrap">{index + 1}</td>
                 <td className="px-6 py-4 whitespace-nowrap">{purchase.date}</td>
                 <td className="px-6 py-4 whitespace-nowrap font-medium text-brand-dark">
-                  {purchase.id}
+                  {purchase.code}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
-                  {purchase.customerOrSupplier?.name || "-"}
+                  {purchase.supplier?.name || "-"}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
-                  {purchase.totals.subtotal.toFixed(2)}
+                  {purchase.subtotal.toFixed(2)}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
-                  {purchase.totals.tax.toFixed(2)}
+                  {purchase.tax.toFixed(2)}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
-                  {purchase.totals.discount.toFixed(2)}
+                  {purchase.discount.toFixed(2)}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap font-bold">
-                  {purchase.totals.net.toFixed(2)}
+                  {purchase.net.toFixed(2)}
                 </td>
               </tr>
             ))}

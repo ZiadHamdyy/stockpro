@@ -24,6 +24,17 @@ import PurchaseInvoicePrintPreview from "./PurchaseInvoicePrintPreview";
 import { useModal } from "../../common/ModalProvider";
 import { useToast } from "../../common/ToastProvider";
 import BarcodeScannerModal from "../../common/BarcodeScannerModal";
+import {
+  useGetPurchaseInvoicesQuery,
+  useCreatePurchaseInvoiceMutation,
+  useUpdatePurchaseInvoiceMutation,
+  useDeletePurchaseInvoiceMutation,
+} from "../../store/slices/purchaseInvoice/purchaseInvoiceApiSlice";
+import { useGetSuppliersQuery } from "../../store/slices/supplier/supplierApiSlice";
+import { useGetItemsQuery } from "../../store/slices/items/itemsApi";
+import { useGetBanksQuery } from "../../store/slices/bank/bankApiSlice";
+import { useGetSafesQuery } from "../../store/slices/safe/safeApiSlice";
+import { useGetCompanyQuery } from "../../store/slices/companyApiSlice";
 
 type SelectableItem = {
   id: string;
@@ -36,40 +47,66 @@ type SelectableItem = {
 
 interface PurchaseInvoiceProps {
   title: string;
-  vatRate: number;
-  isVatEnabled: boolean;
-  companyInfo: CompanyInfo;
-  items: SelectableItem[];
-  suppliers: Supplier[];
-  invoices: Invoice[];
-  onSave: (invoice: Invoice) => void;
-  onDelete: (id: string) => void;
   currentUser: User | null;
   viewingId: string | number | null;
   onClearViewingId: () => void;
-  setItems: React.Dispatch<React.SetStateAction<Item[]>>;
-  safes: Safe[];
-  banks: Bank[];
 }
 
 
 const PurchaseInvoice: React.FC<PurchaseInvoiceProps> = ({
   title,
-  vatRate,
-  isVatEnabled,
-  companyInfo,
-  items: allItems,
-  suppliers: allSuppliers,
-  invoices,
-  onSave,
-  onDelete,
   currentUser,
   viewingId,
   onClearViewingId,
-  setItems: setGlobalItems,
-  safes,
-  banks,
 }) => {
+  // Redux hooks
+  const { data: invoices = [] } = useGetPurchaseInvoicesQuery();
+  const [createPurchaseInvoice] = useCreatePurchaseInvoiceMutation();
+  const [updatePurchaseInvoice] = useUpdatePurchaseInvoiceMutation();
+  const [deletePurchaseInvoice] = useDeletePurchaseInvoiceMutation();
+  const { data: suppliers = [] } = useGetSuppliersQuery();
+  const { data: items = [] } = useGetItemsQuery(undefined);
+  const { data: banks = [] } = useGetBanksQuery();
+  const { data: safes = [] } = useGetSafesQuery();
+  const { data: company } = useGetCompanyQuery();
+
+  // Transform data
+  const allItems: SelectableItem[] = (items as any[]).map(item => ({
+    id: item.code,
+    name: item.name,
+    unit: item.unit.name,
+    price: item.purchasePrice,
+    stock: item.stock,
+    barcode: item.barcode,
+  }));
+
+  const allSuppliers: Supplier[] = suppliers.map(supplier => ({
+    id: supplier.id,
+    code: supplier.code,
+    name: supplier.name,
+    commercialReg: supplier.commercialReg,
+    taxNumber: supplier.taxNumber,
+    nationalAddress: supplier.nationalAddress,
+    phone: supplier.phone,
+    openingBalance: supplier.openingBalance,
+  }));
+
+  const companyInfo: CompanyInfo = company || {
+    name: "",
+    activity: "",
+    address: "",
+    phone: "",
+    taxNumber: "",
+    commercialReg: "",
+    currency: "SAR",
+    logo: null,
+    capital: 0,
+    vatRate: 15,
+    isVatEnabled: false,
+  };
+
+  const vatRate = company?.vatRate || 15;
+  const isVatEnabled = company?.isVatEnabled || false;
   const createEmptyItem = (): InvoiceItem => ({
     id: "",
     name: "",
@@ -80,7 +117,7 @@ const PurchaseInvoice: React.FC<PurchaseInvoiceProps> = ({
     total: 0,
   });
 
-  const [items, setItems] = useState<InvoiceItem[]>(
+  const [purchaseItems, setPurchaseItems] = useState<InvoiceItem[]>(
     Array(6).fill(null).map(createEmptyItem),
   );
   const [totals, setTotals] = useState({
@@ -98,7 +135,7 @@ const PurchaseInvoice: React.FC<PurchaseInvoiceProps> = ({
   const [paymentTargetType, setPaymentTargetType] = useState<"safe" | "bank">(
     "safe",
   );
-  const [paymentTargetId, setPaymentTargetId] = useState<number | null>(null);
+  const [paymentTargetId, setPaymentTargetId] = useState<string | null>(null);
   const { showModal } = useModal();
   const { showToast } = useToast();
 
@@ -152,23 +189,23 @@ const PurchaseInvoice: React.FC<PurchaseInvoiceProps> = ({
 
   const handleNew = () => {
     setCurrentIndex(-1);
-    setItems(Array(6).fill(null).map(createEmptyItem));
+    setPurchaseItems(Array(6).fill(null).map(createEmptyItem));
     setTotals({ subtotal: 0, discount: 0, tax: 0, net: 0 });
     setPaymentMethod("cash");
     setInvoiceDetails({
-      invoiceNumber: `PUR-${Math.floor(10000 + Math.random() * 90000)}`,
+      invoiceNumber: "", // Backend will generate the code
       invoiceDate: new Date().toISOString().substring(0, 10),
     });
     setSelectedSupplier(null);
     setSupplierQuery("");
     setPaymentTargetType("safe");
-    setPaymentTargetId(safes.length > 0 ? safes[0].id : null);
+    setPaymentTargetId(safes.length > 0 ? safes[0].id.toString() : null);
     setIsReadOnly(false);
   };
 
   useEffect(() => {
     if (viewingId) {
-      const index = invoices.findIndex((inv) => inv.id === viewingId);
+      const index = (invoices || []).findIndex((inv) => inv.id === viewingId);
       if (index !== -1) {
         setCurrentIndex(index);
       } else {
@@ -179,13 +216,18 @@ const PurchaseInvoice: React.FC<PurchaseInvoiceProps> = ({
   }, [viewingId, invoices, onClearViewingId, showToast]);
 
   useEffect(() => {
-    if (currentIndex >= 0 && invoices[currentIndex]) {
-      const inv = invoices[currentIndex];
-      setInvoiceDetails({ invoiceNumber: inv.id, invoiceDate: inv.date });
-      setSelectedSupplier(inv.customerOrSupplier);
-      setSupplierQuery(inv.customerOrSupplier?.name || "");
-      setItems(inv.items);
-      setTotals(inv.totals);
+    if (currentIndex >= 0 && (invoices || [])[currentIndex]) {
+      const inv = (invoices || [])[currentIndex];
+      setInvoiceDetails({ invoiceNumber: inv.code, invoiceDate: inv.date });
+      setSelectedSupplier(inv.supplier ? { id: inv.supplier.id, name: inv.supplier.name } : null);
+      setSupplierQuery(inv.supplier?.name || "");
+      setPurchaseItems(inv.items as InvoiceItem[]);
+      setTotals({ 
+        subtotal: inv.subtotal, 
+        discount: inv.discount, 
+        tax: inv.tax, 
+        net: inv.net 
+      });
       setPaymentMethod(inv.paymentMethod);
       setPaymentTargetType(inv.paymentTargetType || "safe");
       setPaymentTargetId(inv.paymentTargetId || null);
@@ -219,23 +261,23 @@ const PurchaseInvoice: React.FC<PurchaseInvoiceProps> = ({
   };
 
   useEffect(() => {
-    items.forEach((_, index) => {
+    purchaseItems.forEach((_, index) => {
       autosizeInput(qtyInputRefs.current[index]);
       autosizeInput(priceInputRefs.current[index]);
     });
-  }, [items]);
+  }, [purchaseItems]);
 
   useEffect(() => {
-    const subtotal = items.reduce(
+    const subtotal = purchaseItems.reduce(
       (acc, item) => acc + item.qty * item.price,
       0,
     );
     const taxTotal = isVatEnabled
-      ? items.reduce((acc, item) => acc + item.taxAmount, 0)
+      ? purchaseItems.reduce((acc, item) => acc + item.taxAmount, 0)
       : 0;
     const net = subtotal + taxTotal - totals.discount;
     setTotals((prev) => ({ ...prev, subtotal, tax: taxTotal, net }));
-  }, [items, totals.discount, isVatEnabled]);
+  }, [purchaseItems, totals.discount, isVatEnabled]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -259,7 +301,7 @@ const PurchaseInvoice: React.FC<PurchaseInvoiceProps> = ({
   }, [activeItemSearch]);
 
   const handleAddItem = () => {
-    setItems([...items, createEmptyItem()]);
+    setPurchaseItems([...purchaseItems, createEmptyItem()]);
   };
 
   const handleItemChange = (
@@ -267,7 +309,7 @@ const PurchaseInvoice: React.FC<PurchaseInvoiceProps> = ({
     field: keyof InvoiceItem,
     value: any,
   ) => {
-    const newItems = [...items];
+    const newItems = [...purchaseItems];
     let item = { ...newItems[index], [field]: value };
 
     if (field === "name") setActiveItemSearch({ index, query: value });
@@ -280,18 +322,18 @@ const PurchaseInvoice: React.FC<PurchaseInvoiceProps> = ({
       item.taxAmount = isVatEnabled ? total * (vatRate / 100) : 0;
     }
     newItems[index] = item;
-    setItems(newItems);
+    setPurchaseItems(newItems);
   };
 
   const handleSelectItem = (index: number, selectedItem: SelectableItem) => {
-    const newItems = [...items];
+    const newItems = [...purchaseItems];
     const currentItem = newItems[index];
     const item = { ...currentItem, ...selectedItem, qty: currentItem.qty || 1 };
     const total = item.qty * (item.price || 0);
     item.total = total;
     item.taxAmount = isVatEnabled ? total * (vatRate / 100) : 0;
     newItems[index] = item;
-    setItems(newItems);
+    setPurchaseItems(newItems);
     setActiveItemSearch(null);
     setHighlightedIndex(-1);
     setTimeout(() => {
@@ -301,11 +343,11 @@ const PurchaseInvoice: React.FC<PurchaseInvoiceProps> = ({
   };
 
   const handleRemoveItem = (index: number) => {
-    const newItems = items.filter((_, i) => i !== index);
+    const newItems = purchaseItems.filter((_, i) => i !== index);
     while (newItems.length < 6) {
       newItems.push(createEmptyItem());
     }
-    setItems(newItems);
+    setPurchaseItems(newItems);
   };
 
   const handleSelectSupplier = (supplier: Supplier) => {
@@ -358,10 +400,10 @@ const PurchaseInvoice: React.FC<PurchaseInvoiceProps> = ({
   const handleScanSuccess = (barcode: string) => {
     const foundItem = allItems.find((item) => item.barcode === barcode);
     if (foundItem) {
-      const emptyRowIndex = items.findIndex((i) => !i.id && !i.name);
-      const indexToFill = emptyRowIndex !== -1 ? emptyRowIndex : items.length;
+      const emptyRowIndex = purchaseItems.findIndex((i) => !i.id && !i.name);
+      const indexToFill = emptyRowIndex !== -1 ? emptyRowIndex : purchaseItems.length;
 
-      const newItems = [...items];
+      const newItems = [...purchaseItems];
       if (emptyRowIndex === -1) {
         newItems.push(createEmptyItem());
       }
@@ -377,7 +419,7 @@ const PurchaseInvoice: React.FC<PurchaseInvoiceProps> = ({
       item.taxAmount = isVatEnabled ? total * (vatRate / 100) : 0;
       newItems[indexToFill] = item;
 
-      setItems(newItems);
+      setPurchaseItems(newItems);
 
       showToast(`تم إضافة الصنف: ${foundItem.name}`);
     } else {
@@ -385,8 +427,8 @@ const PurchaseInvoice: React.FC<PurchaseInvoiceProps> = ({
     }
   };
 
-  const handleSave = () => {
-    const finalItems = items.filter((i) => i.id && i.name && i.qty > 0);
+  const handleSave = async () => {
+    const finalItems = purchaseItems.filter((i) => i.id && i.name && i.qty > 0);
 
     if (finalItems.length === 0) {
       showToast("الرجاء إضافة صنف واحد على الأقل للفاتورة.");
@@ -398,46 +440,45 @@ const PurchaseInvoice: React.FC<PurchaseInvoiceProps> = ({
       return;
     }
 
-    const invoiceData: Invoice = {
-      id: invoiceDetails.invoiceNumber,
-      date: invoiceDetails.invoiceDate,
-      customerOrSupplier: selectedSupplier,
-      items: finalItems,
-      totals,
-      paymentMethod,
-      userName: currentUser?.fullName || "غير محدد",
-      branchName: currentUser?.branch || "غير محدد",
-    };
+    try {
+      const invoiceData = {
+        supplierId: selectedSupplier?.id,
+        date: invoiceDetails.invoiceDate,
+        items: finalItems.map(item => ({
+          id: item.id,
+          name: item.name,
+          unit: item.unit,
+          qty: item.qty,
+          price: item.price,
+          taxAmount: item.taxAmount || 0,
+          total: item.total || 0,
+        })),
+        discount: totals.discount,
+        paymentMethod,
+        paymentTargetType: paymentMethod === "cash" ? paymentTargetType : undefined,
+        paymentTargetId: paymentMethod === "cash" ? paymentTargetId : undefined,
+        notes: "",
+      };
 
-    if (paymentMethod === "cash") {
-      invoiceData.paymentTargetType = paymentTargetType;
-      invoiceData.paymentTargetId = paymentTargetId;
-    }
-
-    onSave(invoiceData);
-
-    // Update global items state
-    setGlobalItems((prevItems) => {
-      const newItems = [...prevItems];
-      invoiceData.items.forEach((invItem) => {
-        const itemIndex = newItems.findIndex((i) => i.code === invItem.id);
-        if (itemIndex !== -1) {
-          newItems[itemIndex] = {
-            ...newItems[itemIndex],
-            purchasePrice: invItem.price,
-          };
-        }
-      });
-      return newItems;
-    });
-
-    showToast("تم حفظ الفاتورة بنجاح! وتم تحديث سعر الشراء ورصيد الأصناف.");
-    setIsReadOnly(true);
-    const savedIndex = invoices.findIndex((inv) => inv.id === invoiceData.id);
-    if (savedIndex !== -1) {
-      setCurrentIndex(savedIndex);
-    } else {
-      setCurrentIndex(invoices.length);
+      if (currentIndex >= 0 && (invoices || [])[currentIndex]) {
+        // Update existing invoice
+        await updatePurchaseInvoice({
+          id: (invoices || [])[currentIndex].id,
+          data: invoiceData,
+        }).unwrap();
+        showToast("تم تحديث الفاتورة بنجاح!");
+      } else {
+        // Create new invoice
+        await createPurchaseInvoice(invoiceData).unwrap();
+        showToast("تم حفظ الفاتورة بنجاح!");
+      }
+      
+      setIsReadOnly(true);
+      // Refresh the invoices list
+      // The Redux cache will automatically update
+    } catch (error) {
+      showToast("حدث خطأ أثناء حفظ الفاتورة");
+      console.error("Error saving invoice:", error);
     }
   };
 
@@ -460,27 +501,18 @@ const PurchaseInvoice: React.FC<PurchaseInvoiceProps> = ({
     }
     showModal({
       title: "تأكيد الحذف",
-      message:
-        "هل أنت متأكد من حذف هذه الفاتورة؟ سيتم عكس تأثيرها على المخزون.",
-      onConfirm: () => {
-        const invoiceToDelete = invoices[currentIndex];
-        onDelete(invoiceToDelete.id);
-        // Revert stock changes
-        setGlobalItems((prevItems) => {
-          const newItems = [...prevItems];
-          invoiceToDelete.items.forEach((invItem) => {
-            const itemIndex = newItems.findIndex((i) => i.code === invItem.id);
-            if (itemIndex !== -1) {
-              newItems[itemIndex].stock -= invItem.qty;
-            }
-          });
-          return newItems;
-        });
-        showToast("تم الحذف بنجاح.");
-        if (invoices.length <= 1) {
-          handleNew();
-        } else {
-          setCurrentIndex((prev) => Math.max(0, prev - 1));
+      message: "هل أنت متأكد من حذف هذه الفاتورة؟",
+      onConfirm: async () => {
+        try {
+          await deletePurchaseInvoice((invoices || [])[currentIndex].id).unwrap();
+          showToast("تم الحذف بنجاح.");
+          if ((invoices || []).length <= 1) {
+            handleNew();
+          } else {
+            setCurrentIndex((prev) => Math.max(0, prev - 1));
+          }
+        } catch (error) {
+          showToast("حدث خطأ أثناء الحذف");
         }
       },
       type: "delete",
@@ -489,13 +521,13 @@ const PurchaseInvoice: React.FC<PurchaseInvoiceProps> = ({
   };
 
   const navigate = (index: number) => {
-    if (invoices.length > 0) {
-      setCurrentIndex(Math.max(0, Math.min(invoices.length - 1, index)));
+    if ((invoices || []).length > 0) {
+      setCurrentIndex(Math.max(0, Math.min((invoices || []).length - 1, index)));
     }
   };
 
   const handleSelectInvoiceFromSearch = (row: { id: string }) => {
-    const index = invoices.findIndex((inv) => inv.id === row.id);
+    const index = (invoices || []).findIndex((inv) => inv.id === row.id);
     if (index > -1) {
       setCurrentIndex(index);
     }
@@ -549,7 +581,8 @@ const PurchaseInvoice: React.FC<PurchaseInvoiceProps> = ({
                     invoiceNumber: e.target.value,
                   })
                 }
-                readOnly={currentIndex > -1 || isReadOnly}
+                readOnly={true}
+                disabled={true}
               />
               <input
                 type="date"
@@ -618,7 +651,7 @@ const PurchaseInvoice: React.FC<PurchaseInvoiceProps> = ({
                   </label>
                   <select
                     value={paymentTargetId || ""}
-                    onChange={(e) => setPaymentTargetId(Number(e.target.value))}
+                    onChange={(e) => setPaymentTargetId(e.target.value || null)}
                     className={inputStyle}
                     disabled={isReadOnly}
                   >
@@ -677,7 +710,7 @@ const PurchaseInvoice: React.FC<PurchaseInvoiceProps> = ({
               </tr>
             </thead>
             <tbody ref={itemSearchRef} className="divide-y divide-gray-300">
-              {items.map((item, index) => (
+              {purchaseItems.map((item, index) => (
                 <tr
                   key={index}
                   className="hover:bg-brand-green-bg transition-colors duration-150"
@@ -793,11 +826,11 @@ const PurchaseInvoice: React.FC<PurchaseInvoiceProps> = ({
                   </td>
                   {isVatEnabled && (
                     <td className="p-2 align-middle text-center border-x border-gray-300">
-                      {item.taxAmount.toFixed(2)}
+                      {(item.taxAmount || 0).toFixed(2)}
                     </td>
                   )}
                   <td className="p-2 align-middle text-center border-x border-gray-300">
-                    {item.total.toFixed(2)}
+                    {(item.total || 0).toFixed(2)}
                   </td>
                   <td className="p-2 align-middle text-center border-x border-gray-300">
                     <button
@@ -846,7 +879,7 @@ const PurchaseInvoice: React.FC<PurchaseInvoiceProps> = ({
                     الاجمالي قبل الضريبة
                   </span>
                   <span className="font-bold text-lg text-brand-dark">
-                    {totals.subtotal.toFixed(2)}
+                    {(totals.subtotal || 0).toFixed(2)}
                   </span>
                 </div>
                 <div className="flex justify-between items-center p-3 border-t-2 border-dashed border-gray-200">
@@ -870,13 +903,13 @@ const PurchaseInvoice: React.FC<PurchaseInvoiceProps> = ({
                       إجمالي الضريبة ({vatRate}%)
                     </span>
                     <span className="font-bold text-lg text-brand-dark">
-                      {totals.tax.toFixed(2)}
+                      {(totals.tax || 0).toFixed(2)}
                     </span>
                   </div>
                 )}
                 <div className="flex justify-between font-bold text-xl text-brand-dark bg-brand-green-bg p-4 border-t-4 border-brand-green rounded-b-md">
                   <span>الصافي</span>
-                  <span>{totals.net.toFixed(2)}</span>
+                  <span>{(totals.net || 0).toFixed(2)}</span>
                 </div>
               </div>
             </div>
@@ -933,9 +966,9 @@ const PurchaseInvoice: React.FC<PurchaseInvoiceProps> = ({
 
             <div className="flex items-center justify-center gap-2">
               <button
-                onClick={() => navigate(invoices.length - 1)}
+                onClick={() => navigate((invoices || []).length - 1)}
                 disabled={
-                  currentIndex >= invoices.length - 1 || invoices.length === 0
+                  currentIndex >= (invoices || []).length - 1 || (invoices || []).length === 0
                 }
                 className="p-2 bg-gray-200 rounded-md hover:bg-gray-300 disabled:opacity-50"
               >
@@ -944,7 +977,7 @@ const PurchaseInvoice: React.FC<PurchaseInvoiceProps> = ({
               <button
                 onClick={() => navigate(currentIndex + 1)}
                 disabled={
-                  currentIndex >= invoices.length - 1 || invoices.length === 0
+                  currentIndex >= (invoices || []).length - 1 || (invoices || []).length === 0
                 }
                 className="p-2 bg-gray-200 rounded-md hover:bg-gray-300 disabled:opacity-50"
               >
@@ -953,7 +986,7 @@ const PurchaseInvoice: React.FC<PurchaseInvoiceProps> = ({
               <div className="px-4 py-2 bg-brand-green-bg border-2 border-brand-green rounded-md">
                 <span className="font-bold">
                   {currentIndex > -1
-                    ? `${currentIndex + 1} / ${invoices.length}`
+                    ? `${currentIndex + 1} / ${(invoices || []).length}`
                     : `جديد`}
                 </span>
               </div>
@@ -999,11 +1032,11 @@ const PurchaseInvoice: React.FC<PurchaseInvoiceProps> = ({
           { Header: "المورد", accessor: "supplier" },
           { Header: "الصافي", accessor: "total" },
         ]}
-        data={invoices.map((inv) => ({
-          id: inv.id,
+        data={(invoices || []).map((inv) => ({
+          id: inv.code,
           date: inv.date,
-          supplier: inv.customerOrSupplier?.name || "-",
-          total: inv.totals.net.toFixed(2),
+          supplier: inv.supplier?.name || "-",
+          total: (inv.net || 0).toFixed(2),
         }))}
         onSelectRow={handleSelectInvoiceFromSearch}
       />
@@ -1013,7 +1046,7 @@ const PurchaseInvoice: React.FC<PurchaseInvoiceProps> = ({
         invoiceData={{
           vatRate,
           isVatEnabled,
-          items,
+          items: purchaseItems,
           totals,
           paymentMethod,
           supplier: selectedSupplier,
