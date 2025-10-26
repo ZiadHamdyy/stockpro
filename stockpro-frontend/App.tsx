@@ -185,7 +185,7 @@ const AddCustomerWrapper = ({
       onNavigate={(key, label, editingId) => {
         if (key === "add_customer") {
           navigate(
-            editingId ? `/customers/add/${editingId}` : "/customers/add",
+            editingId ? `/customers/add/${editingId}` : "/customers/add"
           );
         } else if (key === "customers_list") {
           navigate("/customers/list");
@@ -213,7 +213,7 @@ const AddSupplierWrapper = ({
       onNavigate={(key, label, editingId) => {
         if (key === "add_supplier") {
           navigate(
-            editingId ? `/suppliers/add/${editingId}` : "/suppliers/add",
+            editingId ? `/suppliers/add/${editingId}` : "/suppliers/add"
           );
         } else if (key === "suppliers_list") {
           navigate("/suppliers/list");
@@ -298,7 +298,7 @@ const AppContent = () => {
     useState<ExpenseType[]>(initialExpenseTypes);
   const [expenses, setExpenses] = useState<Expense[]>(initialExpenses);
   const [currentAccounts, setCurrentAccounts] = useState<CurrentAccount[]>(
-    initialCurrentAccounts,
+    initialCurrentAccounts
   );
   const [safes, setSafes] = useState<Safe[]>(initialSafes);
   const [banks, setBanks] = useState<Bank[]>(initialBanks);
@@ -307,16 +307,16 @@ const AppContent = () => {
   const [salesReturns, setSalesReturns] =
     useState<Invoice[]>(initialSalesReturns);
   const [purchaseInvoices, setPurchaseInvoices] = useState<Invoice[]>(
-    initialPurchaseInvoices,
+    initialPurchaseInvoices
   );
   const [purchaseReturns, setPurchaseReturns] = useState<Invoice[]>(
-    initialPurchaseReturns,
+    initialPurchaseReturns
   );
   const [receiptVouchers, setReceiptVouchers] = useState<Voucher[]>(
-    initialReceiptVouchers,
+    initialReceiptVouchers
   );
   const [paymentVouchers, setPaymentVouchers] = useState<Voucher[]>(
-    initialPaymentVouchers,
+    initialPaymentVouchers
   );
   const [storeReceiptVouchers, setStoreReceiptVouchers] = useState<
     StoreReceiptVoucherType[]
@@ -374,7 +374,7 @@ const AppContent = () => {
 
   const itemsWithLiveStock = useMemo(
     () => items.map((i) => ({ ...i, stock: itemBalances.get(i.code) ?? 0 })),
-    [items, itemBalances],
+    [items, itemBalances]
   );
 
   useEffect(() => {
@@ -424,7 +424,7 @@ const AppContent = () => {
   const handleLogin = async (
     email: string,
     password: string,
-    userData?: any,
+    userData?: any
   ) => {
     // RTK Query handles the login automatically in the Login component
     // This function is called after successful login to set up local state
@@ -518,7 +518,7 @@ const AppContent = () => {
     const nextCodeNumber =
       expenses.length > 0
         ? Math.max(
-            ...expenses.map((e) => parseInt(e.code.split("-")[1]) || 0),
+            ...expenses.map((e) => parseInt(e.code.split("-")[1]) || 0)
           ) + 1
         : 1;
     const newCode = `MSR-${String(nextCodeNumber).padStart(3, "0")}`;
@@ -781,7 +781,7 @@ const AppContent = () => {
                     onNavigate={(key, label, id) => {
                       if (key === "add_customer") {
                         navigate(
-                          id ? `/customers/add/${id}` : "/customers/add",
+                          id ? `/customers/add/${id}` : "/customers/add"
                         );
                       } else if (key === "customers_list") {
                         navigate("/customers/list");
@@ -814,7 +814,7 @@ const AppContent = () => {
                     onNavigate={(key, label, id) => {
                       if (key === "add_supplier") {
                         navigate(
-                          id ? `/suppliers/add/${id}` : "/suppliers/add",
+                          id ? `/suppliers/add/${id}` : "/suppliers/add"
                         );
                       } else if (key === "suppliers_list") {
                         navigate("/suppliers/list");
@@ -831,30 +831,7 @@ const AppContent = () => {
               path="/financials/receipt-voucher"
               element={
                 <ProtectedRoute requiredPermission="receipt_voucher-read">
-                  <ReceiptVoucher
-                    title={currentPageTitle}
-                    vouchers={receiptVouchers}
-                    onSave={(v) =>
-                      setReceiptVouchers((prev) =>
-                        prev.find((i) => i.id === v.id)
-                          ? prev.map((i) => (i.id === v.id ? v : i))
-                          : [...prev, v],
-                      )
-                    }
-                    onDelete={(id) =>
-                      setReceiptVouchers((prev) =>
-                        prev.filter((v) => v.id !== id),
-                      )
-                    }
-                    customers={customers}
-                    suppliers={suppliers}
-                    currentAccounts={currentAccounts}
-                    currentUser={currentUser}
-                    safes={safes}
-                    banks={banks}
-                    viewingId={null}
-                    onClearViewingId={() => {}}
-                  />
+                  <ReceiptVoucher title={currentPageTitle} />
                 </ProtectedRoute>
               }
             />
