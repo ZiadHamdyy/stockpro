@@ -1,0 +1,236 @@
+import { useState, useCallback, useEffect } from "react";
+import {
+  useGetReceiptVouchersQuery,
+  useCreateReceiptVoucherMutation,
+  useUpdateReceiptVoucherMutation,
+  useDeleteReceiptVoucherMutation,
+  type ReceiptVoucher,
+  type CreateReceiptVoucherRequest,
+} from "../store/slices/receiptVoucherApiSlice";
+import { useGetCustomersQuery } from "../store/slices/customer/customerApiSlice";
+import { useGetSuppliersQuery } from "../store/slices/supplier/supplierApiSlice";
+import { useGetCurrentAccountsQuery } from "../store/slices/currentAccounts/currentAccountsApi";
+import { useGetSafesQuery } from "../store/slices/safe/safeApiSlice";
+import { useGetBanksQuery } from "../store/slices/bank/bankApiSlice";
+import { useToast } from "../common/ToastProvider";
+import { useModal } from "../common/ModalProvider";
+import { VoucherEntity } from "../../types";
+
+export const useReceiptVouchers = () => {
+  const [currentIndex, setCurrentIndex] = useState(-1);
+  const [isReadOnly, setIsReadOnly] = useState(true);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [voucherData, setVoucherData] = useState({
+    number: "",
+    date: new Date().toISOString().substring(0, 10),
+    entity: { type: "customer", id: null, name: "" } as VoucherEntity,
+    amount: 0,
+    paymentMethod: "safe" as "safe" | "bank",
+    safeOrBankId: null as string | null,
+    description: "",
+  });
+
+  const { showToast } = useToast();
+  const { showModal } = useModal();
+
+  // Fetch receipt vouchers
+  const {
+    data: vouchers = [],
+    isLoading: isLoadingVouchers,
+    error,
+    refetch,
+  } = useGetReceiptVouchersQuery(searchQuery || undefined);
+
+  // Fetch related data
+  const { data: customers = [] } = useGetCustomersQuery();
+  const { data: suppliers = [] } = useGetSuppliersQuery();
+  const { data: currentAccounts = [] } = useGetCurrentAccountsQuery();
+  const { data: safes = [] } = useGetSafesQuery();
+  const { data: banks = [] } = useGetBanksQuery();
+
+  // Mutations
+  const [createReceiptVoucher, { isLoading: isCreating }] =
+    useCreateReceiptVoucherMutation();
+  const [updateReceiptVoucher, { isLoading: isUpdating }] =
+    useUpdateReceiptVoucherMutation();
+  const [deleteReceiptVoucher, { isLoading: isDeleting }] =
+    useDeleteReceiptVoucherMutation();
+
+  const isLoading = isLoadingVouchers || isCreating || isUpdating || isDeleting;
+
+  // Sync voucher data when currentIndex changes
+  useEffect(() => {
+    if (currentIndex >= 0 && vouchers[currentIndex]) {
+      const v = vouchers[currentIndex];
+      setVoucherData({
+        number: v.code,
+        date: v.date,
+        entity: {
+          type: v.entityType as any,
+          id: v.customerId || v.supplierId || v.currentAccountId || null,
+          name: v.entityName,
+        },
+        amount: v.amount,
+        paymentMethod: v.paymentMethod as "safe" | "bank",
+        safeOrBankId:
+          v.paymentMethod === "safe" ? v.safeId || null : v.bankId || null,
+        description: v.description || "",
+      });
+      setIsReadOnly(true);
+    }
+  }, [currentIndex, vouchers]);
+
+  const handleNew = useCallback(() => {
+    setCurrentIndex(-1);
+    setVoucherData({
+      number: "",
+      date: new Date().toISOString().substring(0, 10),
+      entity: { type: "customer", id: null, name: "" },
+      amount: 0,
+      paymentMethod: "safe",
+      safeOrBankId: safes.length > 0 ? safes[0].id : null,
+      description: "",
+    });
+    setIsReadOnly(false);
+  }, [safes]);
+
+  const handleSave = useCallback(async () => {
+    if (!voucherData.entity.name || voucherData.amount <= 0) {
+      showToast("الرجاء تعبئة جميع الحقول المطلوبة.");
+      return;
+    }
+
+    const entityId = voucherData.entity.id
+      ? String(voucherData.entity.id)
+      : undefined;
+
+    // Build entity foreign key based on entity type
+    const entityFields: Partial<CreateReceiptVoucherRequest> = {};
+    if (voucherData.entity.type === "customer") {
+      entityFields.customerId = entityId;
+    } else if (voucherData.entity.type === "supplier") {
+      entityFields.supplierId = entityId;
+    } else if (voucherData.entity.type === "current_account") {
+      entityFields.currentAccountId = entityId;
+    }
+
+    // Build payment target foreign key based on payment method
+    const paymentFields: Partial<CreateReceiptVoucherRequest> = {};
+    if (voucherData.paymentMethod === "safe" && voucherData.safeOrBankId) {
+      paymentFields.safeId = voucherData.safeOrBankId;
+      paymentFields.bankId = undefined;
+    } else if (
+      voucherData.paymentMethod === "bank" &&
+      voucherData.safeOrBankId
+    ) {
+      paymentFields.bankId = voucherData.safeOrBankId;
+      paymentFields.safeId = undefined;
+    }
+
+    const payload: CreateReceiptVoucherRequest = {
+      date: voucherData.date,
+      entityType: voucherData.entity.type,
+      amount: voucherData.amount,
+      description: voucherData.description || undefined,
+      paymentMethod: voucherData.paymentMethod,
+      ...paymentFields,
+      ...entityFields,
+    };
+
+    try {
+      if (currentIndex >= 0 && vouchers[currentIndex]) {
+        await updateReceiptVoucher({
+          id: vouchers[currentIndex].id,
+          data: payload,
+        }).unwrap();
+        showToast("تم تعديل السند بنجاح!");
+      } else {
+        await createReceiptVoucher(payload).unwrap();
+        showToast("تم حفظ السند بنجاح!");
+      }
+      handleNew();
+    } catch (error) {
+      showToast("حدث خطأ أثناء حفظ السند");
+      console.error("Error saving receipt voucher:", error);
+    }
+  }, [
+    voucherData,
+    currentIndex,
+    vouchers,
+    createReceiptVoucher,
+    updateReceiptVoucher,
+    showToast,
+    handleNew,
+  ]);
+
+  const handleEdit = useCallback(() => {
+    if (currentIndex < 0) return;
+    showModal({
+      title: "تأكيد التعديل",
+      message: "هل أنت متأكد من رغبتك في تعديل بيانات هذا السند؟",
+      onConfirm: () => setIsReadOnly(false),
+      type: "edit",
+      showPassword: true,
+    });
+  }, [currentIndex, showModal]);
+
+  const handleDelete = useCallback(() => {
+    if (currentIndex < 0) return;
+    showModal({
+      title: "تأكيد الحذف",
+      message: "هل أنت متأكد من حذف هذا السند؟",
+      onConfirm: async () => {
+        try {
+          await deleteReceiptVoucher(vouchers[currentIndex].id).unwrap();
+          showToast("تم الحذف بنجاح.");
+          if (vouchers.length <= 1) handleNew();
+          else setCurrentIndex((prev) => Math.max(0, prev - 1));
+        } catch (error) {
+          showToast("حدث خطأ أثناء حذف السند");
+          console.error("Error deleting receipt voucher:", error);
+        }
+      },
+      type: "delete",
+      showPassword: true,
+    });
+  }, [
+    currentIndex,
+    vouchers,
+    deleteReceiptVoucher,
+    showToast,
+    handleNew,
+    showModal,
+  ]);
+
+  const navigate = useCallback(
+    (index: number) => {
+      if (vouchers.length > 0) {
+        setCurrentIndex(Math.max(0, Math.min(vouchers.length - 1, index)));
+      }
+    },
+    [vouchers.length],
+  );
+
+  return {
+    vouchers,
+    customers,
+    suppliers,
+    currentAccounts,
+    safes,
+    banks,
+    isLoading,
+    error,
+    currentIndex,
+    voucherData,
+    setVoucherData,
+    isReadOnly,
+    setIsReadOnly,
+    handleNew,
+    handleSave,
+    handleEdit,
+    handleDelete,
+    navigate,
+    setCurrentIndex,
+    refetch,
+  };
+};

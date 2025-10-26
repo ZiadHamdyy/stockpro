@@ -52,6 +52,9 @@ model User {
   
   // Payment vouchers
   paymentVouchers PaymentVoucher[]
+  
+  // Receipt vouchers
+  receiptVouchers ReceiptVoucher[]
 }
 
 model Session {
@@ -225,6 +228,7 @@ model Bank {
 
   // Relationships
   paymentVouchers PaymentVoucher[]
+  receiptVouchers ReceiptVoucher[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -242,6 +246,7 @@ model Safe {
   // Relationships
   branch           Branch           @relation(fields: [branchId], references: [id])
   paymentVouchers   PaymentVoucher[]
+  receiptVouchers  ReceiptVoucher[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -264,6 +269,7 @@ model Customer {
   salesInvoices SalesInvoice[]
   salesReturns SalesReturn[]
   paymentVouchers PaymentVoucher[]
+  receiptVouchers ReceiptVoucher[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -285,6 +291,7 @@ model Supplier {
   purchaseInvoices PurchaseInvoice[]
   purchaseReturns PurchaseReturn[]
   paymentVouchers PaymentVoucher[]
+  receiptVouchers ReceiptVoucher[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -311,6 +318,7 @@ model Branch {
   purchaseInvoices PurchaseInvoice[]
   purchaseReturns PurchaseReturn[]
   paymentVouchers PaymentVoucher[]
+  receiptVouchers ReceiptVoucher[]
 }
 
 model Store {
@@ -485,6 +493,7 @@ model CurrentAccount {
   
   // Relationships
   paymentVouchers PaymentVoucher[]
+  receiptVouchers ReceiptVoucher[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -710,6 +719,45 @@ model PaymentVoucher {
   supplier Supplier? @relation(fields: [supplierId], references: [id])
   currentAccount CurrentAccount? @relation(fields: [currentAccountId], references: [id])
   expenseCode ExpenseCode? @relation(fields: [expenseCodeId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([code])
+  @@index([date])
+  @@index([entityType])
+  @@index([userId])
+}
+
+model ReceiptVoucher {
+  id          String   @id @default(uuid())
+  code        String   @unique
+  date        DateTime @default(now())
+  entityType  String   // "customer", "supplier", "current_account"
+  entityName  String
+  amount      Float
+  description String?
+  paymentMethod String // "safe" or "bank"
+  safeId     String?
+  bankId     String?
+
+  // Entity foreign keys (polymorphic relation)
+  customerId     String?
+  supplierId     String?
+  currentAccountId String?
+
+  // Foreign keys
+  userId   String
+  branchId String?
+
+  // Relationships
+  user   User    @relation(fields: [userId], references: [id])
+  branch Branch? @relation(fields: [branchId], references: [id])
+  safe   Safe?   @relation(fields: [safeId], references: [id])
+  bank   Bank?   @relation(fields: [bankId], references: [id])
+  customer Customer? @relation(fields: [customerId], references: [id])
+  supplier Supplier? @relation(fields: [supplierId], references: [id])
+  currentAccount CurrentAccount? @relation(fields: [currentAccountId], references: [id])
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

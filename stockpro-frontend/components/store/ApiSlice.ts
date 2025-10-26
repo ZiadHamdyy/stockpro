@@ -93,6 +93,7 @@ export const apiSlice = createApi({
     "PurchaseInvoice",
     "PurchaseReturn",
     "PaymentVoucher",
+    "ReceiptVoucher",
   ],
   endpoints: () => ({}),
 });
