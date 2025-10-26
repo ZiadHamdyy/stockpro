@@ -45,6 +45,9 @@ model User {
   // Purchase operations
   purchaseInvoices PurchaseInvoice[]
   purchaseReturns PurchaseReturn[]
+  
+  // Payment vouchers
+  paymentVouchers PaymentVoucher[]
 }
 
 model Session {
@@ -216,6 +219,9 @@ model Bank {
   iban           String
   openingBalance Float   @default(0)
 
+  // Relationships
+  paymentVouchers PaymentVoucher[]
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -230,7 +236,8 @@ model Safe {
   openingBalance Float   @default(0)
 
   // Relationships
-  branch Branch @relation(fields: [branchId], references: [id])
+  branch           Branch           @relation(fields: [branchId], references: [id])
+  paymentVouchers   PaymentVoucher[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -252,6 +259,7 @@ model Customer {
   // Relationships
   salesInvoices SalesInvoice[]
   salesReturns SalesReturn[]
+  paymentVouchers PaymentVoucher[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -272,6 +280,7 @@ model Supplier {
   // Relationships
   purchaseInvoices PurchaseInvoice[]
   purchaseReturns PurchaseReturn[]
+  paymentVouchers PaymentVoucher[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -296,6 +305,7 @@ model Branch {
   salesReturns SalesReturn[]
   purchaseInvoices PurchaseInvoice[]
   purchaseReturns PurchaseReturn[]
+  paymentVouchers PaymentVoucher[]
 }
 
 model Store {
@@ -468,6 +478,9 @@ model CurrentAccount {
   type           String
   openingBalance Float    @default(0)
   
+  // Relationships
+  paymentVouchers PaymentVoucher[]
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -501,6 +514,9 @@ model ExpenseCode {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  // Relationships
+  paymentVouchers PaymentVoucher[]
 
   @@index([code])
   @@index([expenseTypeId])
@@ -655,5 +671,46 @@ model PurchaseReturn {
   @@index([code])
   @@index([date])
   @@index([supplierId])
+  @@index([userId])
+}
+
+model PaymentVoucher {
+  id          String   @id @default(uuid())
+  code        String   @unique
+  date        DateTime @default(now())
+  entityType  String   // "customer", "supplier", "current_account", "expense"
+  entityName  String
+  amount      Float
+  description String?
+  paymentMethod String // "safe" or "bank"
+  safeId     String?
+  bankId     String?
+
+  // Entity foreign keys (polymorphic relation)
+  customerId     String?
+  supplierId     String?
+  currentAccountId String?
+  expenseCodeId  String?
+
+  // Foreign keys
+  userId   String
+  branchId String?
+
+  // Relationships
+  user   User    @relation(fields: [userId], references: [id])
+  branch Branch? @relation(fields: [branchId], references: [id])
+  safe   Safe?   @relation(fields: [safeId], references: [id])
+  bank   Bank?   @relation(fields: [bankId], references: [id])
+  customer Customer? @relation(fields: [customerId], references: [id])
+  supplier Supplier? @relation(fields: [supplierId], references: [id])
+  currentAccount CurrentAccount? @relation(fields: [currentAccountId], references: [id])
+  expenseCode ExpenseCode? @relation(fields: [expenseCodeId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([code])
+  @@index([date])
+  @@index([entityType])
   @@index([userId])
 }

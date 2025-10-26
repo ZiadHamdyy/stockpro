@@ -870,32 +870,7 @@ const AppContent = () => {
               path="/financials/payment-voucher"
               element={
                 <ProtectedRoute requiredPermission="payment_voucher-read">
-                  <PaymentVoucher
-                    title={currentPageTitle}
-                    vouchers={paymentVouchers}
-                    onSave={(v) =>
-                      setPaymentVouchers((prev) =>
-                        prev.find((i) => i.id === v.id)
-                          ? prev.map((i) => (i.id === v.id ? v : i))
-                          : [...prev, v],
-                      )
-                    }
-                    onDelete={(id) =>
-                      setPaymentVouchers((prev) =>
-                        prev.filter((v) => v.id !== id),
-                      )
-                    }
-                    customers={customers}
-                    suppliers={suppliers}
-                    currentAccounts={currentAccounts}
-                    currentUser={currentUser}
-                    expenseCodes={expenseCodes}
-                    onAddExpense={handleAddExpense}
-                    safes={safes}
-                    banks={banks}
-                    viewingId={null}
-                    onClearViewingId={() => {}}
-                  />
+                  <PaymentVoucher title={currentPageTitle} />
                 </ProtectedRoute>
               }
             />

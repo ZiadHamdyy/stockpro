@@ -34,6 +34,7 @@ import { SalesInvoiceModule } from './modules/sales-invoice/sales-invoice.module
 import { SalesReturnModule } from './modules/sales-return/sales-return.module';
 import { PurchaseInvoiceModule } from './modules/purchase-invoice/purchase-invoice.module';
 import { PurchaseReturnModule } from './modules/purchase-return/purchase-return.module';
+import { PaymentVoucherModule } from './modules/payment-voucher/payment-voucher.module';
 
 @Module({
   imports: [
@@ -67,6 +68,7 @@ import { PurchaseReturnModule } from './modules/purchase-return/purchase-return.
     SalesReturnModule,
     PurchaseInvoiceModule,
     PurchaseReturnModule,
+    PaymentVoucherModule,
   ],
   controllers: [AppController],
   providers: [

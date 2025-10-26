@@ -1,121 +1,49 @@
 import React, { useState, useEffect } from "react";
-import { PrintIcon, SearchIcon } from "../../icons";
+import { PrintIcon } from "../../icons";
 import { tafqeet } from "../../../utils/tafqeet";
 import InvoiceHeader from "../../common/InvoiceHeader";
 import { useGetCompanyQuery } from "../../store/slices/companyApiSlice";
-// FIX: Import the 'Expense' type to resolve 'Cannot find name' errors.
-import type {
-  Voucher,
-  Customer,
-  Supplier,
-  CurrentAccount,
-  VoucherEntity,
-  User,
-  ExpenseCode,
-  Expense,
-  Safe,
-  Bank,
-} from "../../../types";
+import { usePaymentVouchers } from "../../hook/usePaymentVouchers";
+import PermissionWrapper from "../../common/PermissionWrapper";
+import { buildPermission, Resources, Actions } from "../../../enums/permissions.enum";
 import PaymentVoucherPrintPreview from "./PaymentVoucherPrintPreview";
-import { useModal } from "../../common/ModalProvider";
-import { useToast } from "../../common/ToastProvider";
+import { useAuth } from "../../hook/Auth";
 
 interface PaymentVoucherProps {
   title: string;
-  vouchers: Voucher[];
-  onSave: (voucher: Voucher) => void;
-  onDelete: (id: string) => void;
-  customers: Customer[];
-  suppliers: Supplier[];
-  currentAccounts: CurrentAccount[];
-  currentUser: User | null;
-  expenseCodes: ExpenseCode[];
-  onAddExpense: (expense: Omit<Expense, "id" | "code">) => void;
-  safes: Safe[];
-  banks: Bank[];
-  viewingId: string | number | null;
-  onClearViewingId: () => void;
 }
 
-
-const PaymentVoucher: React.FC<PaymentVoucherProps> = ({
-  title,
-  vouchers,
-  onSave,
-  onDelete,
-  customers,
-  suppliers,
-  currentAccounts,
-  currentUser,
-  expenseCodes,
-  onAddExpense,
-  safes,
-  banks,
-  viewingId,
-  onClearViewingId,
-}) => {
+const PaymentVoucher: React.FC<PaymentVoucherProps> = ({ title }) => {
   const { data: companyInfo } = useGetCompanyQuery();
-  const initialEntity: VoucherEntity = { type: "supplier", id: null, name: "" };
-  const [voucherData, setVoucherData] = useState({
-    number: "",
-    date: new Date().toISOString().substring(0, 10),
-    entity: initialEntity,
-    amount: 0,
-    paymentMethod: "safe" as "safe" | "bank",
-    safeOrBankId: null as number | null,
-    description: "",
-  });
-  const [isReadOnly, setIsReadOnly] = useState(true);
-  const { showModal } = useModal();
-  const { showToast } = useToast();
+  const { User } = useAuth();
+  const {
+    vouchers,
+    customers,
+    suppliers,
+    currentAccounts,
+    expenseCodes,
+    safes,
+    banks,
+    isLoading,
+    voucherData,
+    setVoucherData,
+    isReadOnly,
+    handleNew,
+    handleSave,
+    handleEdit,
+    handleDelete,
+    navigate,
+    currentIndex,
+  } = usePaymentVouchers();
+
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
-  const [currentIndex, setCurrentIndex] = useState(-1);
-
-  const handleNew = () => {
-    setCurrentIndex(-1);
-    setVoucherData({
-      number: `PAY-${Math.floor(1000 + Math.random() * 9000)}`,
-      date: new Date().toISOString().substring(0, 10),
-      entity: initialEntity,
-      amount: 0,
-      paymentMethod: "safe",
-      safeOrBankId: safes.length > 0 ? Number(safes[0].id) : null,
-      description: "",
-    });
-    setIsReadOnly(false);
-  };
 
   useEffect(() => {
-    if (viewingId) {
-      const index = vouchers.findIndex((inv) => inv.id === viewingId);
-      if (index !== -1) {
-        setCurrentIndex(index);
-      } else {
-        showToast(`السند رقم ${viewingId} غير موجود.`);
-      }
-      onClearViewingId();
-    }
-  }, [viewingId, vouchers, onClearViewingId, showToast]);
+    // Initialize with a new voucher on mount
+    handleNew();
+  }, []);
 
-  useEffect(() => {
-    if (currentIndex >= 0 && vouchers[currentIndex]) {
-      const v = vouchers[currentIndex];
-      setVoucherData({
-        number: v.id,
-        date: v.date,
-        entity: v.entity,
-        amount: v.amount,
-        paymentMethod: v.paymentMethod,
-        safeOrBankId: v.safeOrBankId,
-        description: v.description,
-      });
-      setIsReadOnly(true);
-    } else {
-      handleNew();
-    }
-  }, [currentIndex, vouchers, safes]);
-
-  const handleEntityChange = (field: keyof VoucherEntity, value: any) => {
+  const handleEntityChange = (field: "type" | "id", value: any) => {
     setVoucherData((prev) => {
       const newEntity = { ...prev.entity, [field]: value };
       if (field === "type") {
@@ -129,89 +57,13 @@ const PaymentVoucher: React.FC<PaymentVoucherProps> = ({
         if (newEntity.type === "supplier")
           foundName = suppliers.find((s) => s.id === value)?.name || "";
         if (newEntity.type === "current_account")
-          foundName =
-            currentAccounts.find((a) => a.id === Number(value))?.name || "";
+          foundName = currentAccounts.find((a) => a.id === value)?.name || "";
         if (newEntity.type === "expense")
-          foundName =
-            expenseCodes.find((c) => c.id === Number(value))?.name || "";
+          foundName = expenseCodes.find((c) => c.id === value)?.name || "";
         newEntity.name = foundName;
       }
       return { ...prev, entity: newEntity };
     });
-  };
-
-  const handleSave = () => {
-    if (!voucherData.entity.name || voucherData.amount <= 0) {
-      showToast("الرجاء تعبئة جميع الحقول المطلوبة.");
-      return;
-    }
-
-    if (voucherData.entity.type === "expense") {
-      const selectedCode = expenseCodes.find(
-        (c) => c.id === voucherData.entity.id,
-      );
-      if (selectedCode) {
-        const newExpense: Omit<Expense, "id" | "code"> = {
-          date: voucherData.date,
-          expenseCodeId: selectedCode.id,
-          expenseCode: selectedCode.code,
-          expenseCodeName: selectedCode.name,
-          expenseCodeType: selectedCode.type,
-          amount: voucherData.amount,
-          description: voucherData.description,
-        };
-        onAddExpense(newExpense);
-      }
-    }
-
-    const voucherToSave: Voucher = {
-      id: voucherData.number,
-      type: "payment",
-      date: voucherData.date,
-      entity: voucherData.entity,
-      amount: voucherData.amount,
-      description: voucherData.description,
-      paymentMethod: voucherData.paymentMethod,
-      safeOrBankId: voucherData.safeOrBankId,
-      userName: currentUser?.fullName || "غير محدد",
-      branchName: currentUser?.branch || "غير محدد",
-    };
-    onSave(voucherToSave);
-    showToast("تم حفظ السند بنجاح!");
-    handleNew();
-  };
-
-  const handleEdit = () => {
-    if (currentIndex < 0) return;
-    showModal({
-      title: "تأكيد التعديل",
-      message: "هل أنت متأكد من رغبتك في تعديل بيانات هذا السند؟",
-      onConfirm: () => setIsReadOnly(false),
-      type: "edit",
-      showPassword: true,
-    });
-  };
-
-  const handleDelete = () => {
-    if (currentIndex < 0) return;
-    showModal({
-      title: "تأكيد الحذف",
-      message: "هل أنت متأكد من حذف هذا السند؟",
-      onConfirm: () => {
-        onDelete(vouchers[currentIndex].id);
-        showToast("تم الحذف بنجاح.");
-        if (vouchers.length <= 1) handleNew();
-        else setCurrentIndex((prev) => Math.max(0, prev - 1));
-      },
-      type: "delete",
-      showPassword: true,
-    });
-  };
-
-  const navigate = (index: number) => {
-    if (vouchers.length > 0) {
-      setCurrentIndex(Math.max(0, Math.min(vouchers.length - 1, index)));
-    }
   };
 
   const renderEntitySelector = () => {
@@ -291,6 +143,10 @@ const PaymentVoucher: React.FC<PaymentVoucherProps> = ({
     "mt-1 block w-full bg-brand-green-bg border-2 border-brand-green rounded-md shadow-sm text-black placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-brand-green focus:border-brand-green py-3 px-4 disabled:bg-gray-200 disabled:cursor-not-allowed";
 
   const voucher = currentIndex > -1 ? vouchers[currentIndex] : null;
+
+  if (isLoading) {
+    return <div className="text-center p-6">جاري التحميل...</div>;
+  }
 
   return (
     <>
@@ -399,6 +255,7 @@ const PaymentVoucher: React.FC<PaymentVoucherProps> = ({
                     setVoucherData((prev) => ({
                       ...prev,
                       paymentMethod: "safe",
+                      safeOrBankId: safes.length > 0 ? safes[0].id : null,
                     }))
                   }
                   className={`w-1/2 py-2 rounded ${voucherData.paymentMethod === "safe" ? "bg-brand-green text-white shadow" : "text-gray-600"} transition-all duration-200`}
@@ -411,6 +268,7 @@ const PaymentVoucher: React.FC<PaymentVoucherProps> = ({
                     setVoucherData((prev) => ({
                       ...prev,
                       paymentMethod: "bank",
+                      safeOrBankId: banks.length > 0 ? banks[0].id : null,
                     }))
                   }
                   className={`w-1/2 py-2 rounded ${voucherData.paymentMethod === "bank" ? "bg-brand-green text-white shadow" : "text-gray-600"} transition-all duration-200`}
@@ -429,12 +287,15 @@ const PaymentVoucher: React.FC<PaymentVoucherProps> = ({
                 onChange={(e) =>
                   setVoucherData((prev) => ({
                     ...prev,
-                    safeOrBankId: parseInt(e.target.value),
+                    safeOrBankId: e.target.value || null,
                   }))
                 }
                 className={inputStyle}
                 disabled={isReadOnly}
               >
+                <option value="">
+                  {voucherData.paymentMethod === "safe" ? "اختر خزينة..." : "اختر بنك..."}
+                </option>
                 {voucherData.paymentMethod === "safe"
                   ? safes.map((s) => (
                       <option key={s.id} value={s.id}>
@@ -465,36 +326,87 @@ const PaymentVoucher: React.FC<PaymentVoucherProps> = ({
             >
               جديد
             </button>
-            <button
-              onClick={handleSave}
-              disabled={isReadOnly}
-              className="px-4 py-2 bg-brand-green text-white rounded-md hover:bg-green-700 font-semibold disabled:bg-gray-400"
+            <PermissionWrapper
+              requiredPermission={[
+                buildPermission(Resources.PAYMENT_VOUCHER, Actions.CREATE),
+                buildPermission(Resources.PAYMENT_VOUCHER, Actions.UPDATE),
+              ]}
+              fallback={
+                <button
+                  disabled={true}
+                  className="px-4 py-2 bg-gray-400 text-white rounded-md font-semibold"
+                >
+                  حفظ
+                </button>
+              }
             >
-              حفظ
-            </button>
-            <button
-              onClick={handleEdit}
-              disabled={currentIndex < 0 || !isReadOnly}
-              className="px-4 py-2 bg-yellow-500 text-white rounded-md hover:bg-yellow-600 font-semibold disabled:bg-gray-400"
+              <button
+                onClick={handleSave}
+                disabled={isReadOnly}
+                className="px-4 py-2 bg-brand-green text-white rounded-md hover:bg-green-700 font-semibold disabled:bg-gray-400"
+              >
+                حفظ
+              </button>
+            </PermissionWrapper>
+            <PermissionWrapper
+              requiredPermission={buildPermission(Resources.PAYMENT_VOUCHER, Actions.UPDATE)}
+              fallback={
+                <button
+                  disabled={true}
+                  className="px-4 py-2 bg-gray-400 text-white rounded-md font-semibold"
+                >
+                  تعديل
+                </button>
+              }
             >
-              تعديل
-            </button>
-            <button
-              onClick={handleDelete}
-              disabled={currentIndex < 0}
-              className="px-4 py-2 bg-red-500 text-white rounded-md hover:bg-red-600 font-semibold disabled:bg-gray-400"
+              <button
+                onClick={handleEdit}
+                disabled={currentIndex < 0 || !isReadOnly}
+                className="px-4 py-2 bg-yellow-500 text-white rounded-md hover:bg-yellow-600 font-semibold disabled:bg-gray-400"
+              >
+                تعديل
+              </button>
+            </PermissionWrapper>
+            <PermissionWrapper
+              requiredPermission={buildPermission(Resources.PAYMENT_VOUCHER, Actions.DELETE)}
+              fallback={
+                <button
+                  disabled={true}
+                  className="px-4 py-2 bg-gray-400 text-white rounded-md font-semibold"
+                >
+                  حذف
+                </button>
+              }
             >
-              حذف
-            </button>
+              <button
+                onClick={handleDelete}
+                disabled={currentIndex < 0}
+                className="px-4 py-2 bg-red-500 text-white rounded-md hover:bg-red-600 font-semibold disabled:bg-gray-400"
+              >
+                حذف
+              </button>
+            </PermissionWrapper>
             <button className="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 font-semibold">
               بحث
             </button>
-            <button
-              onClick={() => setIsPreviewOpen(true)}
-              className="px-4 py-2 bg-gray-200 text-brand-dark rounded-md hover:bg-gray-300 font-semibold flex items-center"
+            <PermissionWrapper
+              requiredPermission={buildPermission(Resources.PAYMENT_VOUCHER, Actions.PRINT)}
+              fallback={
+                <button
+                  disabled={true}
+                  className="px-4 py-2 bg-gray-400 text-brand-dark rounded-md font-semibold flex items-center"
+                >
+                  <PrintIcon className="mr-2 w-5 h-5" /> معاينة وطباعة
+                </button>
+              }
             >
-              <PrintIcon className="mr-2 w-5 h-5" /> معاينة وطباعة
-            </button>
+              <button
+                onClick={() => setIsPreviewOpen(true)}
+                className="px-4 py-2 bg-gray-200 text-brand-dark rounded-md hover:bg-gray-300 font-semibold flex items-center"
+              >
+                <PrintIcon className="mr-2 w-5 h-5" /> معاينة وطباعة
+              </button>
+            </PermissionWrapper>
           </div>
 
           <div className="flex items-center justify-center gap-2">
@@ -550,8 +462,8 @@ const PaymentVoucher: React.FC<PaymentVoucherProps> = ({
             amount: voucherData.amount,
             paidTo: voucherData.entity.name,
             description: voucherData.description,
-            userName: voucher?.userName || currentUser?.fullName || "غير محدد",
-            branchName: voucher?.branchName || currentUser?.branch || "غير محدد",
+            userName: User?.fullName || "غير محدد",
+            branchName: User?.branch || "غير محدد",
           }}
         />
       )}
