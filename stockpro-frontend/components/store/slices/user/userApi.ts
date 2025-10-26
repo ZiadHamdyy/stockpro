@@ -17,6 +17,11 @@ export interface User {
   image?: string;
   active: boolean;
   emailVerified: boolean;
+  branchId: string;
+  branch?: {
+    id: string;
+    name: string;
+  };
   role?: {
     id: string;
     name: string;
@@ -30,6 +35,7 @@ export interface CreateUserRequest {
   email: string;
   password: string;
   image?: string;
+  branchId: string;
 }
 
 export interface UpdateUserRequest extends Partial<CreateUserRequest> {}

@@ -46,7 +46,7 @@ export class ContextAuthService implements IContextAuthService {
 
   async getUserWithRoleAndPermissions(
     userId: string,
-  ): Promise<User & { role?: any }> {
+  ): Promise<User & { role?: any; branch?: any }> {
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
       include: {
@@ -59,6 +59,7 @@ export class ContextAuthService implements IContextAuthService {
             },
           },
         },
+        branch: true,
       },
     });
 

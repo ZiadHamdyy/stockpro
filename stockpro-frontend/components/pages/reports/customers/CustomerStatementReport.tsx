@@ -9,19 +9,19 @@ import type {
 import { ExcelIcon, PdfIcon, PrintIcon, SearchIcon } from "../../../icons";
 import ReportHeader from "../ReportHeader";
 import { formatNumber } from "../../../../utils/formatting";
+import { useGetCustomersQuery } from "../../../store/slices/customer/customerApiSlice";
+import { useGetSalesInvoicesQuery } from "../../../store/slices/salesInvoice/salesInvoiceApiSlice";
+import { useGetSalesReturnsQuery } from "../../../store/slices/salesReturn/salesReturnApiSlice";
 
 interface CustomerStatementReportProps {
   title: string;
   companyInfo: CompanyInfo;
-  customers: Customer[];
   onNavigate: (
     pageKey: string,
     pageLabel: string,
     recordId: string | number,
   ) => void;
   currentUser: User | null;
-  salesInvoices: Invoice[];
-  salesReturns: Invoice[];
   receiptVouchers: Voucher[];
   paymentVouchers: Voucher[];
 }
@@ -29,14 +29,47 @@ interface CustomerStatementReportProps {
 const CustomerStatementReport: React.FC<CustomerStatementReportProps> = ({
   title,
   companyInfo,
-  customers,
   onNavigate,
   currentUser,
-  salesInvoices,
-  salesReturns,
   receiptVouchers,
   paymentVouchers,
 }) => {
+  // API hooks
+  const { data: apiCustomers = [], isLoading: customersLoading } = useGetCustomersQuery(undefined);
+  const { data: apiSalesInvoices = [], isLoading: salesInvoicesLoading } = useGetSalesInvoicesQuery(undefined);
+  const { data: apiSalesReturns = [], isLoading: salesReturnsLoading } = useGetSalesReturnsQuery(undefined);
+
+  // Transform API data to match expected format
+  const customers = useMemo(() => {
+    return (apiCustomers as any[]).map(customer => ({
+      ...customer,
+      // Add any necessary transformations here
+    }));
+  }, [apiCustomers]);
+
+  const salesInvoices = useMemo(() => {
+    return (apiSalesInvoices as any[]).map(invoice => ({
+      ...invoice,
+      // Transform nested customer data
+      customerOrSupplier: invoice.customerOrSupplier ? {
+        id: invoice.customerOrSupplier.id.toString(),
+        name: invoice.customerOrSupplier.name
+      } : null,
+    }));
+  }, [apiSalesInvoices]);
+
+  const salesReturns = useMemo(() => {
+    return (apiSalesReturns as any[]).map(returnInvoice => ({
+      ...returnInvoice,
+      // Transform nested customer data
+      customerOrSupplier: returnInvoice.customerOrSupplier ? {
+        id: returnInvoice.customerOrSupplier.id.toString(),
+        name: returnInvoice.customerOrSupplier.name
+      } : null,
+    }));
+  }, [apiSalesReturns]);
+
+  const isLoading = customersLoading || salesInvoicesLoading || salesReturnsLoading;
   const currentYear = new Date().getFullYear();
   const [startDate, setStartDate] = useState(`${currentYear}-01-01`);
   const [endDate, setEndDate] = useState(
@@ -256,6 +289,19 @@ const CustomerStatementReport: React.FC<CustomerStatementReportProps> = ({
       printWindow?.close();
     }, 500);
   };
+
+  if (isLoading) {
+    return (
+      <div className="bg-white p-6 rounded-lg shadow">
+        <div className="flex justify-center items-center h-64">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand-blue mx-auto mb-4"></div>
+            <p className="text-gray-600">جاري تحميل البيانات...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="bg-white p-6 rounded-lg shadow">

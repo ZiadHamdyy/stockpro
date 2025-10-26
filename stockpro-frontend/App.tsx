@@ -1016,18 +1016,8 @@ const AppContent = () => {
                   <ItemMovementReport
                     title={currentPageTitle}
                     companyInfo={companyInfo}
-                    items={items}
-                    salesInvoices={salesInvoices}
-                    purchaseInvoices={purchaseInvoices}
-                    salesReturns={salesReturns}
-                    purchaseReturns={purchaseReturns}
-                    storeReceiptVouchers={storeReceiptVouchers}
-                    storeIssueVouchers={storeIssueVouchers}
-                    storeTransferVouchers={storeTransferVouchers}
                     onNavigate={() => {}}
                     currentUser={currentUser}
-                    branches={branches}
-                    stores={stores}
                   />
                 </ProtectedRoute>
               }
@@ -1039,17 +1029,7 @@ const AppContent = () => {
                   <ItemBalanceReport
                     title={currentPageTitle}
                     companyInfo={companyInfo}
-                    items={items}
-                    branches={branches}
                     currentUser={currentUser}
-                    salesInvoices={salesInvoices}
-                    salesReturns={salesReturns}
-                    purchaseInvoices={purchaseInvoices}
-                    purchaseReturns={purchaseReturns}
-                    storeReceiptVouchers={storeReceiptVouchers}
-                    storeIssueVouchers={storeIssueVouchers}
-                    storeTransferVouchers={storeTransferVouchers}
-                    stores={stores}
                   />
                 </ProtectedRoute>
               }
@@ -1061,17 +1041,7 @@ const AppContent = () => {
                   <InventoryValuationReport
                     title={currentPageTitle}
                     companyInfo={companyInfo}
-                    items={items}
-                    branches={branches}
                     currentUser={currentUser}
-                    salesInvoices={salesInvoices}
-                    salesReturns={salesReturns}
-                    purchaseInvoices={purchaseInvoices}
-                    purchaseReturns={purchaseReturns}
-                    storeReceiptVouchers={storeReceiptVouchers}
-                    storeIssueVouchers={storeIssueVouchers}
-                    storeTransferVouchers={storeTransferVouchers}
-                    stores={stores}
                   />
                 </ProtectedRoute>
               }
@@ -1083,17 +1053,7 @@ const AppContent = () => {
                   <InventoryValuationReport
                     title={currentPageTitle}
                     companyInfo={companyInfo}
-                    items={items}
-                    branches={branches}
                     currentUser={currentUser}
-                    salesInvoices={salesInvoices}
-                    salesReturns={salesReturns}
-                    purchaseInvoices={purchaseInvoices}
-                    purchaseReturns={purchaseReturns}
-                    storeReceiptVouchers={storeReceiptVouchers}
-                    storeIssueVouchers={storeIssueVouchers}
-                    storeTransferVouchers={storeTransferVouchers}
-                    stores={stores}
                   />
                 </ProtectedRoute>
               }
@@ -1105,11 +1065,8 @@ const AppContent = () => {
                   <CustomerStatementReport
                     title={currentPageTitle}
                     companyInfo={companyInfo}
-                    customers={customers}
                     onNavigate={() => {}}
                     currentUser={currentUser}
-                    salesInvoices={salesInvoices}
-                    salesReturns={salesReturns}
                     receiptVouchers={receiptVouchers}
                     paymentVouchers={paymentVouchers}
                   />
@@ -1123,12 +1080,8 @@ const AppContent = () => {
                   <CustomerBalanceReport
                     title={currentPageTitle}
                     companyInfo={companyInfo}
-                    customers={customers}
-                    salesInvoices={salesInvoices}
-                    salesReturns={salesReturns}
                     receiptVouchers={receiptVouchers}
                     paymentVouchers={paymentVouchers}
-                    branches={branches}
                     currentUser={currentUser}
                   />
                 </ProtectedRoute>
@@ -1141,11 +1094,8 @@ const AppContent = () => {
                   <SupplierStatementReport
                     title={currentPageTitle}
                     companyInfo={companyInfo}
-                    suppliers={suppliers}
                     onNavigate={() => {}}
                     currentUser={currentUser}
-                    purchaseInvoices={purchaseInvoices}
-                    purchaseReturns={purchaseReturns}
                     receiptVouchers={receiptVouchers}
                     paymentVouchers={paymentVouchers}
                   />
@@ -1159,12 +1109,8 @@ const AppContent = () => {
                   <SupplierBalanceReport
                     title={currentPageTitle}
                     companyInfo={companyInfo}
-                    suppliers={suppliers}
-                    purchaseInvoices={purchaseInvoices}
-                    purchaseReturns={purchaseReturns}
-                    paymentVouchers={paymentVouchers}
                     receiptVouchers={receiptVouchers}
-                    branches={branches}
+                    paymentVouchers={paymentVouchers}
                     currentUser={currentUser}
                   />
                 </ProtectedRoute>
@@ -1203,7 +1149,6 @@ const AppContent = () => {
                   <ExpenseStatementReport
                     title={currentPageTitle}
                     companyInfo={companyInfo}
-                    expenseCodes={expenseCodes}
                     paymentVouchers={paymentVouchers}
                     currentUser={currentUser}
                   />
@@ -1230,7 +1175,6 @@ const AppContent = () => {
                   <CurrentAccountStatementReport
                     title={currentPageTitle}
                     companyInfo={companyInfo}
-                    currentAccounts={currentAccounts}
                     receiptVouchers={receiptVouchers}
                     paymentVouchers={paymentVouchers}
                     currentUser={currentUser}
@@ -1246,6 +1190,8 @@ const AppContent = () => {
                     title={currentPageTitle}
                     companyInfo={companyInfo}
                     currentUser={currentUser}
+                    receiptVouchers={receiptVouchers}
+                    paymentVouchers={paymentVouchers}
                   />
                 </ProtectedRoute>
               }
@@ -1257,7 +1203,6 @@ const AppContent = () => {
                   <SafeStatementReport
                     title={currentPageTitle}
                     companyInfo={companyInfo}
-                    safes={safes}
                     receiptVouchers={receiptVouchers}
                     paymentVouchers={paymentVouchers}
                     currentUser={currentUser}
@@ -1272,7 +1217,6 @@ const AppContent = () => {
                   <BankStatementReport
                     title={currentPageTitle}
                     companyInfo={companyInfo}
-                    banks={banks}
                     receiptVouchers={receiptVouchers}
                     paymentVouchers={paymentVouchers}
                     currentUser={currentUser}
@@ -1287,11 +1231,6 @@ const AppContent = () => {
                   <TaxDeclarationReport
                     title={currentPageTitle}
                     companyInfo={companyInfo}
-                    salesInvoices={salesInvoices}
-                    salesReturns={salesReturns}
-                    purchaseInvoices={purchaseInvoices}
-                    purchaseReturns={purchaseReturns}
-                    branches={branches}
                     currentUser={currentUser}
                   />
                 </ProtectedRoute>

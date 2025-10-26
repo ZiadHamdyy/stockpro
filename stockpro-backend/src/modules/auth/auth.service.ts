@@ -31,6 +31,19 @@ export class AuthService {
     const { email, password, name, image } = request;
     await this.userService.errorIfUserExists(email);
 
+    // Get the first available branch (or create a default one if none exists)
+    let branch = await this.prisma.branch.findFirst();
+    if (!branch) {
+      branch = await this.prisma.branch.create({
+        data: {
+          name: 'Default Branch',
+          address: 'Default Address',
+          phone: 'Default Phone',
+          description: 'Default branch for new users',
+        },
+      });
+    }
+
     const user = await this.prisma.user.create({
       data: {
         email,
@@ -39,6 +52,7 @@ export class AuthService {
         image,
         active: true,
         emailVerified: false, // Set to false - requires email verification
+        branchId: branch.id,
       },
     });
 
@@ -194,6 +208,7 @@ export class AuthService {
             },
           },
         },
+        branch: true,
       },
     });
 

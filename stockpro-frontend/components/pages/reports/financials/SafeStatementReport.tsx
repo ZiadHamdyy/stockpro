@@ -1,13 +1,13 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import type { CompanyInfo, Safe, User, Voucher } from "../../../../types";
 import { ExcelIcon, PdfIcon, PrintIcon, SearchIcon } from "../../../icons";
 import ReportHeader from "../ReportHeader";
 import { formatNumber } from "../../../../utils/formatting";
+import { useGetSafesQuery } from "../../../store/slices/safe/safeApiSlice";
 
 interface SafeStatementReportProps {
   title: string;
   companyInfo: CompanyInfo;
-  safes: Safe[];
   receiptVouchers: Voucher[];
   paymentVouchers: Voucher[];
   currentUser: User | null;
@@ -16,17 +16,33 @@ interface SafeStatementReportProps {
 const SafeStatementReport: React.FC<SafeStatementReportProps> = ({
   title,
   companyInfo,
-  safes,
   receiptVouchers,
   paymentVouchers,
   currentUser,
 }) => {
+  // API hooks
+  const { data: apiSafes = [], isLoading: safesLoading } = useGetSafesQuery(undefined);
+
+  // Transform API data to match expected format
+  const safes = useMemo(() => {
+    return (apiSafes as any[]).map(safe => ({
+      ...safe,
+      // Add any necessary transformations here
+    }));
+  }, [apiSafes]);
+
+  const isLoading = safesLoading;
   const currentYear = new Date().getFullYear();
   const [startDate, setStartDate] = useState(`${currentYear}-01-01`);
   const [endDate, setEndDate] = useState(`${currentYear}-12-31`);
-  const [selectedSafeId, setSelectedSafeId] = useState<string | null>(
-    safes.length > 0 ? safes[0].id.toString() : null,
-  );
+  const [selectedSafeId, setSelectedSafeId] = useState<string | null>(null);
+
+  // Set initial selected safe when data loads
+  useEffect(() => {
+    if (safes.length > 0 && !selectedSafeId) {
+      setSelectedSafeId(safes[0].id.toString());
+    }
+  }, [safes, selectedSafeId]);
 
   const selectedSafe = useMemo(
     () => safes.find((s) => s.id.toString() === selectedSafeId),
@@ -146,6 +162,19 @@ const SafeStatementReport: React.FC<SafeStatementReportProps> = ({
       printWindow?.close();
     }, 500);
   };
+
+  if (isLoading) {
+    return (
+      <div className="bg-white p-6 rounded-lg shadow">
+        <div className="flex justify-center items-center h-64">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand-blue mx-auto mb-4"></div>
+            <p className="text-gray-600">جاري تحميل البيانات...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="bg-white p-6 rounded-lg shadow">

@@ -138,7 +138,7 @@ const AddSupplier: React.FC<AddSupplierProps> = ({
               id="code"
               value={supplierData.code}
               className={inputStyle}
-              readOnly
+              disabled
               required
             />
           </div>

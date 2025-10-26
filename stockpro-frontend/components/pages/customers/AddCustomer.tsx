@@ -138,7 +138,7 @@ const AddCustomer: React.FC<AddCustomerProps> = ({
               id="code"
               value={customerData.code}
               className={inputStyle}
-              readOnly
+              disabled
               required
             />
           </div>

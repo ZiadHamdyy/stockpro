@@ -37,6 +37,13 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       user.id,
     );
 
+    console.log('🔍 JWT Strategy - User with branch:', {
+      userId: userWithRole.id,
+      userName: userWithRole.name,
+      branchId: userWithRole.branchId,
+      branchName: (userWithRole as any).branch?.name,
+    });
+
     return { ...userWithRole, session };
   }
 }

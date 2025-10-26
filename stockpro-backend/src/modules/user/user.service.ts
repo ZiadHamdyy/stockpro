@@ -40,6 +40,7 @@ export class UserService {
       where,
       include: {
         role: true,
+        branch: true,
       },
       orderBy: { [sortBy]: sortOrder },
       skip,
@@ -78,9 +79,11 @@ export class UserService {
         emailVerified: true,
         active: true,
         roleId: defaultRole?.id,
+        branchId: data.branchId,
       },
       include: {
         role: true,
+        branch: true,
       },
     });
 
@@ -229,6 +232,7 @@ export class UserService {
       where: { id: userId },
       include: {
         role: true,
+        branch: true,
       },
     });
 
@@ -269,6 +273,7 @@ export class UserService {
       image: data.image,
       email: data.email,
       name: data.name,
+      branchId: data.branchId,
     };
 
     // Only update password if provided
@@ -283,6 +288,7 @@ export class UserService {
       data: updateData,
       include: {
         role: true,
+        branch: true,
       },
     });
 

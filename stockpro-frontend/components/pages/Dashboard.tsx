@@ -1,8 +1,19 @@
 import React, { useEffect, useRef } from "react";
 import { UsersIcon, BoxIcon, ReceiptIcon, ShoppingCartIcon } from "../icons";
-import { useGetSessionsQuery } from "../store/slices/session/sessionApi";
+import { useGetDashboardStatsQuery, useGetMonthlyStatsQuery, useGetSalesByItemGroupQuery } from "../store/slices/dashboard/dashboardApiSlice";
+import { formatNumber } from "../../utils/formatting";
 
 declare var Chart: any;
+
+// Helper function to format large numbers with K/M suffixes
+const formatLargeNumber = (num: number): string => {
+  if (num >= 1000000) {
+    return (num / 1000000).toFixed(1) + 'M';
+  } else if (num >= 1000) {
+    return (num / 1000).toFixed(1) + 'K';
+  }
+  return num.toString();
+};
 
 interface StatCardProps {
   title: string;
@@ -35,22 +46,25 @@ const Dashboard: React.FC<{ title: string }> = ({ title }) => {
   const doughnutChartRef = useRef<HTMLCanvasElement>(null);
   const chartInstances = useRef<{ bar?: any; doughnut?: any }>({});
 
-  // Test sessions endpoint
-  const { data: sessions, error, isLoading } = useGetSessionsQuery(undefined);
+  // Fetch dashboard statistics
+  const { data: dashboardStats, isLoading: statsLoading } = useGetDashboardStatsQuery();
+  
+  // Fetch monthly statistics
+  const { data: monthlyStats } = useGetMonthlyStatsQuery();
+  
+  // Fetch sales by item group
+  const { data: salesByItemGroup } = useGetSalesByItemGroupQuery();
 
   useEffect(() => {
     // Bar Chart for Monthly Performance
-    if (barChartRef.current) {
+    if (barChartRef.current && monthlyStats) {
       const barCtx = barChartRef.current.getContext("2d");
       if (barCtx) {
         if (chartInstances.current.bar) chartInstances.current.bar.destroy();
 
-        const salesData = [
-          120, 150, 180, 220, 190, 250, 280, 300, 260, 310, 340, 320,
-        ];
-        const purchasesData = [
-          80, 90, 110, 130, 120, 140, 160, 170, 150, 180, 200, 190,
-        ];
+        // Convert data to thousands for better readability
+        const salesData = monthlyStats.months.map(m => m.netSales / 1000);
+        const purchasesData = monthlyStats.months.map(m => m.netPurchases / 1000);
 
         chartInstances.current.bar = new Chart(barCtx, {
           type: "bar",
@@ -113,21 +127,32 @@ const Dashboard: React.FC<{ title: string }> = ({ title }) => {
     }
 
     // Doughnut Chart for Sales by Category
-    if (doughnutChartRef.current) {
+    if (doughnutChartRef.current && salesByItemGroup) {
       const doughnutCtx = doughnutChartRef.current.getContext("2d");
       if (doughnutCtx) {
         if (chartInstances.current.doughnut)
           chartInstances.current.doughnut.destroy();
 
+        // Generate dynamic colors for item groups
+        const colors = [
+          "#1E40AF", "#16a34a", "#f59e0b", "#6b7280", 
+          "#ef4444", "#8b5cf6", "#ec4899", "#06b6d4",
+          "#84cc16", "#f97316", "#14b8a6", "#a855f7"
+        ];
+
+        const labels = salesByItemGroup.itemGroups.map(g => g.groupName);
+        const data = salesByItemGroup.itemGroups.map(g => g.totalSales);
+        const backgroundColors = salesByItemGroup.itemGroups.map((_, i) => colors[i % colors.length]);
+
         chartInstances.current.doughnut = new Chart(doughnutCtx, {
           type: "doughnut",
           data: {
-            labels: ["إلكترونيات", "أثاث", "مستلزمات مكتبية", "اكسسوارات"],
+            labels: labels,
             datasets: [
               {
                 label: "المبيعات حسب الفئة",
-                data: [450, 250, 180, 120],
-                backgroundColor: ["#1E40AF", "#16a34a", "#f59e0b", "#6b7280"],
+                data: data,
+                backgroundColor: backgroundColors,
                 hoverOffset: 4,
               },
             ],
@@ -143,6 +168,14 @@ const Dashboard: React.FC<{ title: string }> = ({ title }) => {
               tooltip: {
                 titleFont: { family: "Cairo" },
                 bodyFont: { family: "Cairo" },
+                callbacks: {
+                  label: function(context: any) {
+                    const label = context.label || '';
+                    const value = context.parsed || 0;
+                    const percentage = salesByItemGroup.itemGroups[context.dataIndex].percentage;
+                    return `${label}: ${formatNumber(value)} SAR (${percentage}%)`;
+                  }
+                }
               },
             },
           },
@@ -155,7 +188,7 @@ const Dashboard: React.FC<{ title: string }> = ({ title }) => {
       if (chartInstances.current.doughnut)
         chartInstances.current.doughnut.destroy();
     };
-  }, []);
+  }, [monthlyStats, salesByItemGroup]);
 
   return (
     <div>
@@ -163,25 +196,49 @@ const Dashboard: React.FC<{ title: string }> = ({ title }) => {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <StatCard
           title="اجمالي المبيعات"
-          value="1.2M SAR"
+          value={
+            statsLoading
+              ? "جاري التحميل..."
+              : dashboardStats
+              ? `SAR ${formatLargeNumber(dashboardStats.netSales)}`
+              : "SAR 0"
+          }
           icon={<ShoppingCartIcon className="w-12 h-12" />}
           gradient="from-blue-500 to-brand-blue"
         />
         <StatCard
           title="اجمالي المشتريات"
-          value="876K SAR"
+          value={
+            statsLoading
+              ? "جاري التحميل..."
+              : dashboardStats
+              ? `SAR ${formatLargeNumber(dashboardStats.totalPurchases)}`
+              : "SAR 0"
+          }
           icon={<ReceiptIcon className="w-12 h-12" />}
           gradient="from-lime-500 to-green-600"
         />
         <StatCard
           title="عدد الأصناف"
-          value="5,400"
+          value={
+            statsLoading
+              ? "جاري التحميل..."
+              : dashboardStats
+              ? dashboardStats.totalItems.toString()
+              : "0"
+          }
           icon={<BoxIcon className="w-12 h-12" />}
           gradient="from-yellow-400 to-amber-500"
         />
         <StatCard
           title="عدد العملاء"
-          value="1,250"
+          value={
+            statsLoading
+              ? "جاري التحميل..."
+              : dashboardStats
+              ? dashboardStats.totalCustomers.toString()
+              : "0"
+          }
           icon={<UsersIcon className="w-12 h-12" />}
           gradient="from-gray-600 to-brand-dark"
         />
@@ -203,37 +260,6 @@ const Dashboard: React.FC<{ title: string }> = ({ title }) => {
             <canvas ref={doughnutChartRef}></canvas>
           </div>
         </div>
-      </div>
-
-      {/* Sessions Testing Section */}
-      <div className="mt-8 bg-white p-6 rounded-lg shadow">
-        <h2 className="text-xl font-bold mb-4 text-brand-dark">
-          اختبار Sessions API
-        </h2>
-        {isLoading && (
-          <div className="text-center py-4">
-            <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-brand-blue"></div>
-            <p className="mt-2 text-gray-600">جاري تحميل البيانات...</p>
-          </div>
-        )}
-        {error && (
-          <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-md">
-            <p className="font-semibold">خطأ في تحميل البيانات:</p>
-            <p className="text-sm mt-1">{JSON.stringify(error, null, 2)}</p>
-          </div>
-        )}
-        {sessions && (
-          <div>
-            <p className="text-green-600 font-semibold mb-4">
-              تم تحميل البيانات بنجاح! ({(sessions as any[]).length} جلسة)
-            </p>
-            <div className="bg-gray-50 p-4 rounded-md">
-              <pre className="text-sm overflow-auto max-h-64">
-                {JSON.stringify(sessions, null, 2)}
-              </pre>
-            </div>
-          </div>
-        )}
       </div>
     </div>
   );

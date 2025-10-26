@@ -7,6 +7,7 @@ import {
   IsOptional,
   MaxLength,
   ValidateIf,
+  IsUUID,
 } from 'class-validator';
 import { ERROR_MESSAGES } from '../../../../common/constants/error-messages.constant';
 
@@ -34,4 +35,10 @@ export class CreateUserRequest {
   @IsString({ message: ERROR_MESSAGES.IMAGE_SHOULD_BE_STRING })
   @MaxLength(500, { message: ERROR_MESSAGES.IMAGE_MAX_LENGTH_500 })
   image: string;
+
+  @IsDefined({ message: 'Branch ID is required' })
+  @IsNotEmpty({ message: 'Branch ID is required' })
+  @IsString({ message: 'Branch ID should be a string' })
+  @IsUUID(4, { message: 'Branch ID should be a valid UUID' })
+  branchId: string;
 }

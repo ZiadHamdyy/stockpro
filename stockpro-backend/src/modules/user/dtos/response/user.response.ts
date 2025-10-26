@@ -66,6 +66,29 @@ export class UpdateUserResponse {
   updatedAt: Date;
 }
 
+export class BranchResponse {
+  @Expose()
+  id: string;
+
+  @Expose()
+  name: string;
+
+  @Expose()
+  address?: string;
+
+  @Expose()
+  phone?: string;
+
+  @Expose()
+  description?: string;
+
+  @Expose()
+  createdAt: Date;
+
+  @Expose()
+  updatedAt: Date;
+}
+
 export class UserResponse {
   @Expose()
   id: string;
@@ -88,6 +111,10 @@ export class UserResponse {
   @Expose()
   @Type(() => RoleResponse)
   role?: RoleResponse;
+
+  @Expose()
+  @Type(() => BranchResponse)
+  branch: BranchResponse;
 
   @Expose()
   createdAt: Date;
