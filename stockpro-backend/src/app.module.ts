@@ -37,6 +37,7 @@ import { PurchaseInvoiceModule } from './modules/purchase-invoice/purchase-invoi
 import { PurchaseReturnModule } from './modules/purchase-return/purchase-return.module';
 import { PaymentVoucherModule } from './modules/payment-voucher/payment-voucher.module';
 import { ReceiptVoucherModule } from './modules/receipt-voucher/receipt-voucher.module';
+import { IncomeStatementModule } from './modules/income-statement/income-statement.module';
 import { BackupModule } from './modules/backup/backup.module';
 
 @Module({
@@ -73,6 +74,7 @@ import { BackupModule } from './modules/backup/backup.module';
     PurchaseReturnModule,
     PaymentVoucherModule,
     ReceiptVoucherModule,
+    IncomeStatementModule,
     BackupModule,
   ],
   controllers: [AppController],

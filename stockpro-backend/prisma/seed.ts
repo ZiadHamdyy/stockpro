@@ -493,7 +493,6 @@ async function main() {
     console.log('✅ Company already exists');
   }
 
-
   console.log('🎉 Seed process completed successfully!');
 }
 

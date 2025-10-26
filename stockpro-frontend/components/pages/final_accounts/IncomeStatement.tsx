@@ -1,190 +1,24 @@
-import React, { useState, useMemo, useCallback } from "react";
-import type {
-  CompanyInfo,
-  Invoice,
-  Item,
-  Voucher,
-  ExpenseCode,
-  StoreReceiptVoucher,
-  StoreIssueVoucher,
-} from "../../../types";
+import React, { useState } from "react";
 import { ExcelIcon, PdfIcon, PrintIcon } from "../../icons";
 import ReportHeader from "../reports/ReportHeader";
 import { formatNumber } from "../../../utils/formatting";
+import { useIncomeStatement } from "../../hook/useIncomeStatement";
+import PermissionWrapper from "../../common/PermissionWrapper";
 
-interface IncomeStatementProps {
-  title: string;
-  companyInfo: CompanyInfo;
-  salesInvoices: Invoice[];
-  salesReturns: Invoice[];
-  purchaseInvoices: Invoice[];
-  purchaseReturns: Invoice[];
-  items: Item[];
-  paymentVouchers: Voucher[];
-  expenseCodes: ExpenseCode[];
-  storeReceiptVouchers: StoreReceiptVoucher[];
-  storeIssueVouchers: StoreIssueVoucher[];
-}
-
-const IncomeStatement: React.FC<IncomeStatementProps> = (props) => {
-  const {
-    title,
-    companyInfo,
-    salesInvoices,
-    salesReturns,
-    purchaseInvoices,
-    purchaseReturns,
-    items,
-    paymentVouchers,
-    expenseCodes,
-    storeReceiptVouchers,
-    storeIssueVouchers,
-  } = props;
+const IncomeStatement: React.FC = () => {
+  const title = "قائمة الدخل";
   const currentYear = new Date().getFullYear();
   const [startDate, setStartDate] = useState(`${currentYear}-01-01`);
   const [endDate, setEndDate] = useState(
     new Date().toISOString().substring(0, 10),
   );
 
-  const getPreviousDay = (dateStr: string) => {
-    const date = new Date(dateStr);
-    date.setDate(date.getDate() - 1);
-    return date.toISOString().split("T")[0];
-  };
-
-  const calculateInventoryValue = useCallback(
-    (targetDate: string): number => {
-      if (!targetDate) return 0;
-      let totalValue = 0;
-
-      items.forEach((item) => {
-        let balance = item.stock; // This is the opening stock at the beginning of the system's life.
-
-        const allTransactions: any[] = [
-          ...purchaseInvoices,
-          ...salesReturns,
-          ...storeReceiptVouchers,
-          ...salesInvoices,
-          ...purchaseReturns,
-          ...storeIssueVouchers,
-        ];
-
-        const relevantTransactions = allTransactions.filter(
-          (tx) =>
-            tx.date < item.stock_date_placeholder && tx.date <= targetDate,
-        );
-
-        let stockChange = 0;
-        relevantTransactions.forEach((tx) => {
-          const factor =
-            tx.type === "purchase_invoice" ||
-            tx.type === "sales_return" ||
-            tx.type === "store_receipt"
-              ? 1
-              : -1;
-          (tx.items || []).forEach((txItem: any) => {
-            if (txItem.id === item.code) {
-              stockChange += txItem.qty * factor;
-            }
-          });
-        });
-
-        const finalBalance = balance + stockChange;
-        totalValue += finalBalance * item.purchasePrice;
-      });
-
-      return totalValue > 0 ? totalValue : 0;
-    },
-    [
-      items,
-      purchaseInvoices,
-      salesReturns,
-      storeReceiptVouchers,
-      salesInvoices,
-      purchaseReturns,
-      storeIssueVouchers,
-    ],
-  );
-
-  const financialData = useMemo(() => {
-    const filterByPeriod = (i: { date: string }) =>
-      i.date >= startDate && i.date <= endDate;
-
-    const totalSales = salesInvoices
-      .filter(filterByPeriod)
-      .reduce((sum, inv) => sum + inv.totals.subtotal, 0);
-    const totalSalesReturns = salesReturns
-      .filter(filterByPeriod)
-      .reduce((sum, inv) => sum + inv.totals.subtotal, 0);
-    const netSales = totalSales - totalSalesReturns;
-
-    const beginningInventory = calculateInventoryValue(
-      getPreviousDay(startDate),
-    );
-    const endingInventory = calculateInventoryValue(endDate);
-
-    const totalPurchases = purchaseInvoices
-      .filter(filterByPeriod)
-      .reduce((sum, inv) => sum + inv.totals.subtotal, 0);
-    const totalPurchaseReturns = purchaseReturns
-      .filter(filterByPeriod)
-      .reduce((sum, inv) => sum + inv.totals.subtotal, 0);
-    const netPurchases = totalPurchases - totalPurchaseReturns;
-
-    const cogs = beginningInventory + netPurchases - endingInventory;
-
-    const grossProfit = netSales - cogs;
-
-    const expenseVouchersInPeriod = paymentVouchers.filter(
-      (v) => v.entity.type === "expense" && filterByPeriod(v),
-    );
-
-    const expensesByType = expenseVouchersInPeriod.reduce(
-      (acc, voucher) => {
-        const code = expenseCodes.find((c) => c.id == voucher.entity.id);
-        const type = code?.type || "غير مصنف";
-        acc[type] = (acc[type] || 0) + voucher.amount;
-        return acc;
-      },
-      {} as Record<string, number>,
-    );
-
-    const operatingExpenses = expensesByType["مصاريف تشغيلية"] || 0;
-    const marketingExpenses = expensesByType["مصاريف تسويقية"] || 0;
-    const adminAndGeneralExpenses =
-      (expensesByType["مصاريف إدارية"] || 0) +
-      (expensesByType["مصاريف عمومية"] || 0);
-    const totalExpenses =
-      operatingExpenses + marketingExpenses + adminAndGeneralExpenses;
-
-    const netProfit = grossProfit - totalExpenses;
-
-    return {
-      totalSales,
-      totalSalesReturns,
-      netSales,
-      beginningInventory,
-      netPurchases,
-      endingInventory,
-      cogs,
-      grossProfit,
-      operatingExpenses,
-      marketingExpenses,
-      adminAndGeneralExpenses,
-      totalExpenses,
-      netProfit,
-    };
-  }, [
-    startDate,
-    endDate,
-    salesInvoices,
-    salesReturns,
-    purchaseInvoices,
-    purchaseReturns,
-    paymentVouchers,
-    expenseCodes,
-    calculateInventoryValue,
-  ]);
+  const {
+    data: financialData,
+    companyInfo,
+    isLoading,
+    error,
+  } = useIncomeStatement(startDate, endDate);
 
   const handlePrint = () => {
     const reportContent = document.getElementById("printable-area-income");
@@ -198,7 +32,7 @@ const IncomeStatement: React.FC<IncomeStatementProps> = (props) => {
       '<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet">',
     );
     printWindow?.document.write(
-      `<style>body { font-family: "Cairo", sans-serif; direction: rtl; } @media print { body { -webkit-print-color-adjust: exact !important; color-adjust: exact !important; } .no-print { display: none !important; } table { width: 100%; border-collapse: collapse; } .bg-brand-blue { background-color: #1E40AF !important; } .text-white { color: white !important; } .bg-gray-100 { background-color: #F9FAFB !important; } .bg-blue-100 { background-color: #DBEAFE !important; } .bg-green-100 { background-color: #D1FAE5 !important; } .bg-brand-green { background-color: #16A34A !important; } .bg-red-600 { background-color: #DC2626 !important; } }</style>`,
+      `<style>body { font-family: "Cairo", sans-serif; direction: rtl; } @media print { body { -webkit-print-color-adjust: exact !important; color-adjust: exact !important; } .no-print { display: none !important; } table { width: 100%; border-collapse: collapse; } .bg-brand-blue { background-color: #1E40AF !important; } .text-white { color: white !important; } .bg-gray-100 { background-color: #F9FAFB !important; } .bg-blue-100 { background-color: #DBEAFE !important; } .bg-green-100 { background-color: #D1FAE5 !important; } .bg-brand-green { background-color: #16A34A !important; } .text-green-800 { color: #166534 !important; } .bg-red-600 { background-color: #DC2626 !important; } }</style>`,
     );
     printWindow?.document.write(
       "</head><body>" + reportContent.innerHTML + "</body></html>",
@@ -223,6 +57,33 @@ const IncomeStatement: React.FC<IncomeStatementProps> = (props) => {
     </td>
   );
 
+  // Show loading state
+  if (isLoading) {
+    return (
+      <div className="bg-white p-6 rounded-lg shadow">
+        <div className="flex justify-center items-center h-64">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand-blue mx-auto mb-4"></div>
+            <p className="text-gray-600">جاري تحميل البيانات...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Show error state
+  if (error || !financialData || !companyInfo) {
+    return (
+      <div className="bg-white p-6 rounded-lg shadow">
+        <div className="flex justify-center items-center h-64">
+          <div className="text-center text-red-600">
+            <p>حدث خطأ أثناء تحميل البيانات</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="bg-white p-6 rounded-lg shadow">
       <div id="printable-area-income">
@@ -246,25 +107,31 @@ const IncomeStatement: React.FC<IncomeStatementProps> = (props) => {
             />
           </div>
           <div className="flex items-center gap-2">
-            <button
-              title="تصدير Excel"
-              className="p-3 border-2 border-gray-200 rounded-md hover:bg-gray-100"
-            >
-              <ExcelIcon className="w-6 h-6" />
-            </button>
-            <button
-              title="تصدير PDF"
-              className="p-3 border-2 border-gray-200 rounded-md hover:bg-gray-100"
-            >
-              <PdfIcon className="w-6 h-6" />
-            </button>
-            <button
-              onClick={handlePrint}
-              title="طباعة"
-              className="p-3 border-2 border-gray-200 rounded-md hover:bg-gray-100"
-            >
-              <PrintIcon className="w-6 h-6" />
-            </button>
+            <PermissionWrapper requiredPermission="income_statement:read">
+              <button
+                title="تصدير Excel"
+                className="p-3 border-2 border-gray-200 rounded-md hover:bg-gray-100"
+              >
+                <ExcelIcon className="w-6 h-6" />
+              </button>
+            </PermissionWrapper>
+            <PermissionWrapper requiredPermission="income_statement:read">
+              <button
+                title="تصدير PDF"
+                className="p-3 border-2 border-gray-200 rounded-md hover:bg-gray-100"
+              >
+                <PdfIcon className="w-6 h-6" />
+              </button>
+            </PermissionWrapper>
+            <PermissionWrapper requiredPermission="income_statement:read">
+              <button
+                onClick={handlePrint}
+                title="طباعة"
+                className="p-3 border-2 border-gray-200 rounded-md hover:bg-gray-100"
+              >
+                <PrintIcon className="w-6 h-6" />
+              </button>
+            </PermissionWrapper>
           </div>
         </div>
 
