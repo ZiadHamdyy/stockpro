@@ -1179,19 +1179,7 @@ const AppContent = () => {
               path="/final-accounts/income-statement"
               element={
                 <ProtectedRoute requiredPermission="income_statement-read">
-                  <IncomeStatement
-                    title={currentPageTitle}
-                    companyInfo={companyInfo}
-                    salesInvoices={salesInvoices}
-                    salesReturns={salesReturns}
-                    purchaseInvoices={purchaseInvoices}
-                    purchaseReturns={purchaseReturns}
-                    items={items}
-                    paymentVouchers={paymentVouchers}
-                    expenseCodes={expenseCodes}
-                    storeReceiptVouchers={storeReceiptVouchers}
-                    storeIssueVouchers={storeIssueVouchers}
-                  />
+                  <IncomeStatement />
                 </ProtectedRoute>
               }
             />
