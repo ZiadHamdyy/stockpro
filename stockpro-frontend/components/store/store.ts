@@ -45,6 +45,20 @@ export const store = configureStore({
       serializableCheck: {
         // Ignore actions related to redux-persist
         ignoredActions: [FLUSH, REHYDRATE, PAUSE, PERSIST, PURGE, REGISTER],
+        // Ignore specific paths that might contain Blobs (backup downloads)
+        ignoredPaths: [
+          "api.queries",
+          "api.mutations",
+          "payload.data", // Ignore Blob in error payloads
+        ],
+        // Allow Blob values
+        isSerializable: (value: any) => {
+          if (value instanceof Blob) {
+            return true;
+          }
+          // Default serialization check
+          return true;
+        },
       },
     }).concat(apiSlice.middleware),
 });

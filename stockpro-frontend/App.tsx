@@ -14,6 +14,7 @@ import { store, persistor } from "./components/store/store";
 import { useAppDispatch } from "./components/store/hooks";
 import { useAuth } from "./components/hook/Auth";
 import { useSendLogOutMutation } from "./components/store/slices/auth/authApi";
+import { useLazyDownloadBackupQuery } from "./components/store/slices/backupApiSlice";
 import Sidebar from "./components/layout/Sidebar";
 import Header from "./components/layout/Header";
 import { TitleProvider } from "./components/context/TitleContext";
@@ -185,7 +186,7 @@ const AddCustomerWrapper = ({
       onNavigate={(key, label, editingId) => {
         if (key === "add_customer") {
           navigate(
-            editingId ? `/customers/add/${editingId}` : "/customers/add"
+            editingId ? `/customers/add/${editingId}` : "/customers/add",
           );
         } else if (key === "customers_list") {
           navigate("/customers/list");
@@ -213,7 +214,7 @@ const AddSupplierWrapper = ({
       onNavigate={(key, label, editingId) => {
         if (key === "add_supplier") {
           navigate(
-            editingId ? `/suppliers/add/${editingId}` : "/suppliers/add"
+            editingId ? `/suppliers/add/${editingId}` : "/suppliers/add",
           );
         } else if (key === "suppliers_list") {
           navigate("/suppliers/list");
@@ -298,7 +299,7 @@ const AppContent = () => {
     useState<ExpenseType[]>(initialExpenseTypes);
   const [expenses, setExpenses] = useState<Expense[]>(initialExpenses);
   const [currentAccounts, setCurrentAccounts] = useState<CurrentAccount[]>(
-    initialCurrentAccounts
+    initialCurrentAccounts,
   );
   const [safes, setSafes] = useState<Safe[]>(initialSafes);
   const [banks, setBanks] = useState<Bank[]>(initialBanks);
@@ -307,16 +308,16 @@ const AppContent = () => {
   const [salesReturns, setSalesReturns] =
     useState<Invoice[]>(initialSalesReturns);
   const [purchaseInvoices, setPurchaseInvoices] = useState<Invoice[]>(
-    initialPurchaseInvoices
+    initialPurchaseInvoices,
   );
   const [purchaseReturns, setPurchaseReturns] = useState<Invoice[]>(
-    initialPurchaseReturns
+    initialPurchaseReturns,
   );
   const [receiptVouchers, setReceiptVouchers] = useState<Voucher[]>(
-    initialReceiptVouchers
+    initialReceiptVouchers,
   );
   const [paymentVouchers, setPaymentVouchers] = useState<Voucher[]>(
-    initialPaymentVouchers
+    initialPaymentVouchers,
   );
   const [storeReceiptVouchers, setStoreReceiptVouchers] = useState<
     StoreReceiptVoucherType[]
@@ -374,7 +375,7 @@ const AppContent = () => {
 
   const itemsWithLiveStock = useMemo(
     () => items.map((i) => ({ ...i, stock: itemBalances.get(i.code) ?? 0 })),
-    [items, itemBalances]
+    [items, itemBalances],
   );
 
   useEffect(() => {
@@ -424,7 +425,7 @@ const AppContent = () => {
   const handleLogin = async (
     email: string,
     password: string,
-    userData?: any
+    userData?: any,
   ) => {
     // RTK Query handles the login automatically in the Login component
     // This function is called after successful login to set up local state
@@ -446,79 +447,46 @@ const AppContent = () => {
     }
   };
 
-  const handleBackup = useCallback(() => {
-    const backupData = {
-      companyInfo,
-      vatRate,
-      isVatEnabled,
-      branches,
-      stores,
-      itemGroups,
-      units,
-      items,
-      customers,
-      suppliers,
-      expenseCodes,
-      expenseTypes,
-      expenses,
-      currentAccounts,
-      safes,
-      banks,
-      salesInvoices,
-      salesReturns,
-      purchaseInvoices,
-      purchaseReturns,
-      receiptVouchers,
-      paymentVouchers,
-      storeReceiptVouchers,
-      storeIssueVouchers,
-      storeTransferVouchers,
-    };
-    const jsonString = JSON.stringify(backupData, null, 2);
-    const blob = new Blob([jsonString], { type: "application/json" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `stockpro_backup_${new Date().toISOString().split("T")[0]}.json`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-    showToast("تم إنشاء نسخة احتياطية بنجاح.");
-  }, [
-    companyInfo,
-    vatRate,
-    isVatEnabled,
-    branches,
-    stores,
-    itemGroups,
-    units,
-    items,
-    customers,
-    suppliers,
-    expenseCodes,
-    expenseTypes,
-    expenses,
-    currentAccounts,
-    safes,
-    banks,
-    salesInvoices,
-    salesReturns,
-    purchaseInvoices,
-    purchaseReturns,
-    receiptVouchers,
-    paymentVouchers,
-    storeReceiptVouchers,
-    storeIssueVouchers,
-    storeTransferVouchers,
-    showToast,
-  ]);
+  const [downloadBackup] = useLazyDownloadBackupQuery();
+
+  const handleBackup = useCallback(async () => {
+    try {
+      const { data: blob } = await downloadBackup();
+
+      if (!blob) {
+        showToast("فشل إنشاء النسخة الاحتياطية. يرجى المحاولة مرة أخرى.");
+        return;
+      }
+
+      // Create download link
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+
+      // Generate filename with timestamp
+      const timestamp = new Date()
+        .toISOString()
+        .replace(/[:.]/g, "-")
+        .slice(0, 19);
+      a.download = `stockpro_backup_${timestamp}.sql`;
+
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+
+      showToast("تم إنشاء نسخة احتياطية بنجاح.");
+    } catch (error) {
+      console.error("Backup error:", error);
+      showToast("فشل إنشاء النسخة الاحتياطية. يرجى المحاولة مرة أخرى.");
+    }
+  }, [downloadBackup, showToast]);
 
   const handleAddExpense = (expense: Omit<Expense, "id" | "code">) => {
     const nextCodeNumber =
       expenses.length > 0
         ? Math.max(
-            ...expenses.map((e) => parseInt(e.code.split("-")[1]) || 0)
+            ...expenses.map((e) => parseInt(e.code.split("-")[1]) || 0),
           ) + 1
         : 1;
     const newCode = `MSR-${String(nextCodeNumber).padStart(3, "0")}`;
@@ -781,7 +749,7 @@ const AppContent = () => {
                     onNavigate={(key, label, id) => {
                       if (key === "add_customer") {
                         navigate(
-                          id ? `/customers/add/${id}` : "/customers/add"
+                          id ? `/customers/add/${id}` : "/customers/add",
                         );
                       } else if (key === "customers_list") {
                         navigate("/customers/list");
@@ -814,7 +782,7 @@ const AppContent = () => {
                     onNavigate={(key, label, id) => {
                       if (key === "add_supplier") {
                         navigate(
-                          id ? `/suppliers/add/${id}` : "/suppliers/add"
+                          id ? `/suppliers/add/${id}` : "/suppliers/add",
                         );
                       } else if (key === "suppliers_list") {
                         navigate("/suppliers/list");
