@@ -38,6 +38,7 @@ export interface User {
   username?: string;
   password?: string;
   branch?: string;
+  branchId?: string;
   permissionGroup?: string;
 }
 

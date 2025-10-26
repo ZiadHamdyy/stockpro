@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
-import type { User, Branch } from "../../../types";
+import type { Branch } from "../../../types";
+// Updated to use ReduxUser type with branchId
 import { EyeIcon, EyeOffIcon, UserIcon } from "../../icons";
 import {
   useCreateUserMutation,
@@ -7,6 +8,7 @@ import {
   type User as ReduxUser,
 } from "../../store/slices/user/userApi";
 import { useGetBranchesQuery } from "../../store/slices/branch/branchApi";
+import { useToast } from "../../common/ToastProvider";
 
 interface UserModalProps {
   isOpen: boolean;
@@ -23,13 +25,21 @@ const UserModal: React.FC<UserModalProps> = ({
   const [updateUser, { isLoading: isUpdating }] = useUpdateUserMutation();
   const { data: branches = [], isLoading: isLoadingBranches } =
     useGetBranchesQuery();
+  const { showToast } = useToast();
   const [userData, setUserData] = useState({
     name: "",
     email: "",
     password: "",
     image: "",
+    branchId: "",
   });
   const [isPasswordVisible, setIsPasswordVisible] = useState(false);
+  const [validationErrors, setValidationErrors] = useState<{
+    name?: string;
+    email?: string;
+    password?: string;
+    branchId?: string;
+  }>({});
 
   useEffect(() => {
     if (userToEdit) {
@@ -38,6 +48,7 @@ const UserModal: React.FC<UserModalProps> = ({
         email: userToEdit.email,
         password: "",
         image: userToEdit.image || "",
+        branchId: userToEdit.branchId || "",
       });
     } else {
       setUserData({
@@ -45,8 +56,12 @@ const UserModal: React.FC<UserModalProps> = ({
         email: "",
         password: "",
         image: "",
+        branchId: "",
       });
     }
+    
+    // Clear validation errors when modal opens
+    setValidationErrors({});
   }, [userToEdit, isOpen]);
 
   const handleChange = (
@@ -54,6 +69,41 @@ const UserModal: React.FC<UserModalProps> = ({
   ) => {
     const { name, value } = e.target;
     setUserData((prev) => ({ ...prev, [name]: value }));
+    
+    // Clear validation error when user starts typing
+    if (validationErrors[name as keyof typeof validationErrors]) {
+      setValidationErrors((prev) => ({
+        ...prev,
+        [name]: undefined,
+      }));
+    }
+  };
+
+  const validateForm = () => {
+    const errors: typeof validationErrors = {};
+    
+    if (!userData.name.trim()) {
+      errors.name = "الاسم مطلوب";
+    }
+    
+    if (!userData.email.trim()) {
+      errors.email = "البريد الإلكتروني مطلوب";
+    } else if (!/\S+@\S+\.\S+/.test(userData.email)) {
+      errors.email = "البريد الإلكتروني غير صحيح";
+    }
+    
+    if (!userToEdit && !userData.password.trim()) {
+      errors.password = "الرقم السري مطلوب";
+    } else if (userData.password && userData.password.length < 8) {
+      errors.password = "الرقم السري يجب أن يكون 8 أحرف على الأقل";
+    }
+    
+    if (!userData.branchId) {
+      errors.branchId = "يجب اختيار فرع";
+    }
+    
+    setValidationErrors(errors);
+    return Object.keys(errors).length === 0;
   };
 
   const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -70,12 +120,19 @@ const UserModal: React.FC<UserModalProps> = ({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
+    // Validate form before submission
+    if (!validateForm()) {
+      showToast("يرجى تصحيح الأخطاء في النموذج");
+      return;
+    }
+
     try {
       const userDataToSave = {
         name: userData.name,
         email: userData.email,
         password: userData.password,
         image: userData.image,
+        branchId: userData.branchId,
       };
 
       if (userToEdit) {
@@ -84,15 +141,41 @@ const UserModal: React.FC<UserModalProps> = ({
           id: userToEdit.id,
           data: userDataToSave,
         }).unwrap();
+        showToast("تم تعديل المستخدم بنجاح");
       } else {
         // Create new user
         await createUser(userDataToSave).unwrap();
+        showToast("تم إضافة المستخدم بنجاح");
       }
 
       onClose();
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error saving user:", error);
-      // You might want to show a toast notification here
+      
+      // Show custom notification messages instead of backend errors
+      let errorMessage = "حدث خطأ أثناء حفظ المستخدم";
+      
+      if (error?.status === 409) {
+        errorMessage = "البريد الإلكتروني مستخدم بالفعل";
+      } else if (error?.status === 400) {
+        errorMessage = "البيانات المدخلة غير صحيحة";
+      } else if (error?.status === 401) {
+        errorMessage = "غير مصرح لك بهذا الإجراء";
+      } else if (error?.status === 403) {
+        errorMessage = "غير مصرح لك بهذا الإجراء";
+      } else if (error?.status === 404) {
+        errorMessage = "المستخدم غير موجود";
+      } else if (error?.status === 422) {
+        errorMessage = "البيانات المدخلة غير صحيحة";
+      } else if (error?.status >= 500) {
+        errorMessage = "خطأ في الخادم، يرجى المحاولة لاحقاً";
+      } else if (error?.message?.includes('Network')) {
+        errorMessage = "خطأ في الاتصال بالخادم";
+      } else if (error?.message?.includes('timeout')) {
+        errorMessage = "انتهت مهلة الاتصال، يرجى المحاولة مرة أخرى";
+      }
+      
+      showToast(errorMessage);
     }
   };
 
@@ -158,9 +241,12 @@ const UserModal: React.FC<UserModalProps> = ({
                   name="name"
                   value={userData.name}
                   onChange={handleChange}
-                  className={inputStyle}
+                  className={`${inputStyle} ${validationErrors.name ? 'border-red-500' : ''}`}
                   required
                 />
+                {validationErrors.name && (
+                  <p className="mt-1 text-sm text-red-600">{validationErrors.name}</p>
+                )}
               </div>
               <div>
                 <label
@@ -175,9 +261,12 @@ const UserModal: React.FC<UserModalProps> = ({
                   name="email"
                   value={userData.email}
                   onChange={handleChange}
-                  className={inputStyle}
+                  className={`${inputStyle} ${validationErrors.email ? 'border-red-500' : ''}`}
                   required
                 />
+                {validationErrors.email && (
+                  <p className="mt-1 text-sm text-red-600">{validationErrors.email}</p>
+                )}
               </div>
               <div className="relative">
                 <label
@@ -192,7 +281,7 @@ const UserModal: React.FC<UserModalProps> = ({
                   name="password"
                   value={userData.password || ""}
                   onChange={handleChange}
-                  className={inputStyle + " pl-10"}
+                  className={`${inputStyle} pl-10 ${validationErrors.password ? 'border-red-500' : ''}`}
                   placeholder={userToEdit ? "اتركه فارغاً لعدم التغيير" : ""}
                   required={!userToEdit}
                 />
@@ -203,6 +292,35 @@ const UserModal: React.FC<UserModalProps> = ({
                 >
                   {isPasswordVisible ? <EyeOffIcon /> : <EyeIcon />}
                 </button>
+                {validationErrors.password && (
+                  <p className="mt-1 text-sm text-red-600">{validationErrors.password}</p>
+                )}
+              </div>
+              <div>
+                <label
+                  htmlFor="branchId"
+                  className="block text-sm font-medium text-gray-700"
+                >
+                  الفرع التابع له
+                </label>
+                <select
+                  id="branchId"
+                  name="branchId"
+                  value={userData.branchId}
+                  onChange={handleChange}
+                  className={`${inputStyle} ${validationErrors.branchId ? 'border-red-500' : ''}`}
+                  required
+                >
+                  <option value="">اختر فرع...</option>
+                  {branches.map((branch) => (
+                    <option key={branch.id} value={branch.id}>
+                      {branch.name}
+                    </option>
+                  ))}
+                </select>
+                {validationErrors.branchId && (
+                  <p className="mt-1 text-sm text-red-600">{validationErrors.branchId}</p>
+                )}
               </div>
             </div>
           </div>
@@ -216,10 +334,17 @@ const UserModal: React.FC<UserModalProps> = ({
             </button>
             <button
               type="submit"
-              disabled={isCreating || isUpdating}
-              className="px-6 py-2 bg-brand-blue text-white rounded-md hover:bg-blue-800 font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
+              disabled={isCreating || isUpdating || isLoadingBranches}
+              className="px-6 py-2 bg-brand-blue text-white rounded-md hover:bg-blue-800 font-semibold disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
             >
-              {isCreating || isUpdating ? "جاري الحفظ..." : "حفظ"}
+              {isCreating || isUpdating ? (
+                <>
+                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                  جاري الحفظ...
+                </>
+              ) : (
+                "حفظ"
+              )}
             </button>
           </div>
         </form>

@@ -26,6 +26,10 @@ model User {
   roleId String?
   role   Role?   @relation(fields: [roleId], references: [id])
 
+  // Branch relationship
+  branchId String
+  branch   Branch @relation(fields: [branchId], references: [id])
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -290,6 +294,7 @@ model Branch {
   updatedAt DateTime @updatedAt
 
   // Relationships
+  users User[]
   stores Store[]
   safes  Safe[]
   salesInvoices SalesInvoice[]
