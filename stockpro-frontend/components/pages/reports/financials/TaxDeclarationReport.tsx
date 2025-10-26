@@ -3,28 +3,83 @@ import type { CompanyInfo, Branch, User, Invoice } from "../../../../types";
 import { ExcelIcon, PdfIcon, PrintIcon, SearchIcon } from "../../../icons";
 import ReportHeader from "../ReportHeader";
 import { formatNumber } from "../../../../utils/formatting";
+import { useGetSalesInvoicesQuery } from "../../../store/slices/salesInvoice/salesInvoiceApiSlice";
+import { useGetSalesReturnsQuery } from "../../../store/slices/salesReturn/salesReturnApiSlice";
+import { useGetPurchaseInvoicesQuery } from "../../../store/slices/purchaseInvoice/purchaseInvoiceApiSlice";
+import { useGetPurchaseReturnsQuery } from "../../../store/slices/purchaseReturn/purchaseReturnApiSlice";
+import { useGetBranchesQuery } from "../../../store/slices/branch/branchApi";
 
 interface TaxDeclarationReportProps {
   title: string;
   companyInfo: CompanyInfo;
-  salesInvoices: Invoice[];
-  salesReturns: Invoice[];
-  purchaseInvoices: Invoice[];
-  purchaseReturns: Invoice[];
-  branches: Branch[];
   currentUser: User | null;
 }
 
 const TaxDeclarationReport: React.FC<TaxDeclarationReportProps> = ({
   title,
   companyInfo,
-  salesInvoices,
-  salesReturns,
-  purchaseInvoices,
-  purchaseReturns,
-  branches,
   currentUser,
 }) => {
+  // API hooks
+  const { data: apiSalesInvoices = [], isLoading: salesInvoicesLoading } = useGetSalesInvoicesQuery(undefined);
+  const { data: apiSalesReturns = [], isLoading: salesReturnsLoading } = useGetSalesReturnsQuery(undefined);
+  const { data: apiPurchaseInvoices = [], isLoading: purchaseInvoicesLoading } = useGetPurchaseInvoicesQuery(undefined);
+  const { data: apiPurchaseReturns = [], isLoading: purchaseReturnsLoading } = useGetPurchaseReturnsQuery(undefined);
+  const { data: apiBranches = [], isLoading: branchesLoading } = useGetBranchesQuery(undefined);
+
+  // Transform API data to match expected format
+  const salesInvoices = useMemo(() => {
+    return (apiSalesInvoices as any[]).map(invoice => ({
+      ...invoice,
+      // Transform nested customer data
+      customerOrSupplier: invoice.customerOrSupplier ? {
+        id: invoice.customerOrSupplier.id.toString(),
+        name: invoice.customerOrSupplier.name
+      } : null,
+    }));
+  }, [apiSalesInvoices]);
+
+  const salesReturns = useMemo(() => {
+    return (apiSalesReturns as any[]).map(returnInvoice => ({
+      ...returnInvoice,
+      // Transform nested customer data
+      customerOrSupplier: returnInvoice.customerOrSupplier ? {
+        id: returnInvoice.customerOrSupplier.id.toString(),
+        name: returnInvoice.customerOrSupplier.name
+      } : null,
+    }));
+  }, [apiSalesReturns]);
+
+  const purchaseInvoices = useMemo(() => {
+    return (apiPurchaseInvoices as any[]).map(invoice => ({
+      ...invoice,
+      // Transform nested supplier data
+      customerOrSupplier: invoice.customerOrSupplier ? {
+        id: invoice.customerOrSupplier.id.toString(),
+        name: invoice.customerOrSupplier.name
+      } : null,
+    }));
+  }, [apiPurchaseInvoices]);
+
+  const purchaseReturns = useMemo(() => {
+    return (apiPurchaseReturns as any[]).map(returnInvoice => ({
+      ...returnInvoice,
+      // Transform nested supplier data
+      customerOrSupplier: returnInvoice.customerOrSupplier ? {
+        id: returnInvoice.customerOrSupplier.id.toString(),
+        name: returnInvoice.customerOrSupplier.name
+      } : null,
+    }));
+  }, [apiPurchaseReturns]);
+
+  const branches = useMemo(() => {
+    return (apiBranches as any[]).map(branch => ({
+      ...branch,
+      // Add any necessary transformations here
+    }));
+  }, [apiBranches]);
+
+  const isLoading = salesInvoicesLoading || salesReturnsLoading || purchaseInvoicesLoading || purchaseReturnsLoading || branchesLoading;
   const currentYear = new Date().getFullYear();
   const [startDate, setStartDate] = useState(`${currentYear}-01-01`);
   const [endDate, setEndDate] = useState(
@@ -65,38 +120,38 @@ const TaxDeclarationReport: React.FC<TaxDeclarationReportProps> = ({
       .filter(filterByBranch);
 
     const salesSubtotal = filteredSales.reduce(
-      (sum, inv) => sum + inv.totals.subtotal,
+      (sum, inv) => sum + (inv.subtotal || 0),
       0,
     );
     const salesTax = filteredSales.reduce(
-      (sum, inv) => sum + inv.totals.tax,
+      (sum, inv) => sum + (inv.tax || 0),
       0,
     );
 
     const returnsSubtotal = filteredReturns.reduce(
-      (sum, inv) => sum + inv.totals.subtotal,
+      (sum, inv) => sum + (inv.subtotal || 0),
       0,
     );
     const returnsTax = filteredReturns.reduce(
-      (sum, inv) => sum + inv.totals.tax,
+      (sum, inv) => sum + (inv.tax || 0),
       0,
     );
 
     const purchasesSubtotal = filteredPurchases.reduce(
-      (sum, inv) => sum + inv.totals.subtotal,
+      (sum, inv) => sum + (inv.subtotal || 0),
       0,
     );
     const purchasesTax = filteredPurchases.reduce(
-      (sum, inv) => sum + inv.totals.tax,
+      (sum, inv) => sum + (inv.tax || 0),
       0,
     );
 
     const purchaseReturnsSubtotal = filteredPurchaseReturns.reduce(
-      (sum, inv) => sum + inv.totals.subtotal,
+      (sum, inv) => sum + (inv.subtotal || 0),
       0,
     );
     const purchaseReturnsTax = filteredPurchaseReturns.reduce(
-      (sum, inv) => sum + inv.totals.tax,
+      (sum, inv) => sum + (inv.tax || 0),
       0,
     );
 
@@ -173,6 +228,19 @@ const TaxDeclarationReport: React.FC<TaxDeclarationReportProps> = ({
 
   const inputStyle =
     "p-2 border-2 border-brand-blue rounded-md focus:outline-none focus:ring-2 focus:ring-brand-blue bg-brand-blue-bg";
+
+  if (isLoading) {
+    return (
+      <div className="bg-white p-6 rounded-lg shadow">
+        <div className="flex justify-center items-center h-64">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand-blue mx-auto mb-4"></div>
+            <p className="text-gray-600">جاري تحميل البيانات...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="bg-white p-6 rounded-lg shadow">

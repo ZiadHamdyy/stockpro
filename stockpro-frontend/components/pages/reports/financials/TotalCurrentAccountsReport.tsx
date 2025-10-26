@@ -1,53 +1,82 @@
-import React, { useState } from "react";
-import type { CompanyInfo, User } from "../../../../types";
+import React, { useState, useMemo, useCallback, useEffect } from "react";
+import type { CompanyInfo, User, Voucher } from "../../../../types";
 import { ExcelIcon, PdfIcon, PrintIcon, SearchIcon } from "../../../icons";
 import ReportHeader from "../ReportHeader";
 import { formatNumber } from "../../../../utils/formatting";
+import { useGetCurrentAccountsQuery } from "../../../store/slices/currentAccounts/currentAccountsApi";
 
 interface TotalCurrentAccountsReportProps {
   title: string;
   companyInfo: CompanyInfo;
   currentUser: User | null;
+  receiptVouchers: Voucher[];
+  paymentVouchers: Voucher[];
 }
-
-const accountsSummary = [
-  {
-    id: 1,
-    code: "20101",
-    name: "جاري الشريك أ",
-    opening: 0.0,
-    debit: 10000.0,
-    credit: 50000.0,
-    balance: 40000.0,
-  },
-  {
-    id: 2,
-    code: "20102",
-    name: "جاري الشريك ب",
-    opening: 15000.0,
-    debit: 5000.0,
-    credit: 55000.0,
-    balance: 65000.0,
-  },
-  {
-    id: 3,
-    code: "10501",
-    name: "سلفة موظف",
-    opening: 0.0,
-    debit: 2000.0,
-    credit: 0.0,
-    balance: -2000.0,
-  },
-];
 
 const TotalCurrentAccountsReport: React.FC<TotalCurrentAccountsReportProps> = ({
   title,
   companyInfo,
   currentUser,
+  receiptVouchers,
+  paymentVouchers,
 }) => {
+  // API hooks
+  const { data: apiCurrentAccounts = [], isLoading: currentAccountsLoading } = useGetCurrentAccountsQuery(undefined);
+
+  // Transform API data to match expected format
+  const currentAccounts = useMemo(() => {
+    return (apiCurrentAccounts as any[]).map(account => ({
+      ...account,
+      // Add any necessary transformations here
+    }));
+  }, [apiCurrentAccounts]);
+
+  const isLoading = currentAccountsLoading;
   const currentYear = new Date().getFullYear();
   const [startDate, setStartDate] = useState(`${currentYear}-01-01`);
   const [endDate, setEndDate] = useState(`${currentYear}-12-31`);
+
+  // Calculate account balances from vouchers
+  const accountsSummary = useMemo(() => {
+    return currentAccounts.map((account) => {
+      const accountId = account.id;
+      
+      // Calculate receipts (credits) for this account
+      const receipts = receiptVouchers
+        .filter(
+          (v) =>
+            v.entity.type === "current_account" &&
+            v.entity.id === accountId &&
+            v.date >= startDate &&
+            v.date <= endDate,
+        )
+        .reduce((sum, v) => sum + v.amount, 0);
+
+      // Calculate payments (debits) for this account
+      const payments = paymentVouchers
+        .filter(
+          (v) =>
+            v.entity.type === "current_account" &&
+            v.entity.id === accountId &&
+            v.date >= startDate &&
+            v.date <= endDate,
+        )
+        .reduce((sum, v) => sum + v.amount, 0);
+
+      const opening = account.openingBalance || 0;
+      const balance = opening + payments - receipts;
+
+      return {
+        id: account.id,
+        code: account.code,
+        name: account.name,
+        opening: opening,
+        debit: payments,
+        credit: receipts,
+        balance: balance,
+      };
+    });
+  }, [currentAccounts, receiptVouchers, paymentVouchers, startDate, endDate]);
 
   const totals = accountsSummary.reduce(
     (acc, item) => {
@@ -99,6 +128,19 @@ const TotalCurrentAccountsReport: React.FC<TotalCurrentAccountsReportProps> = ({
 
   const inputStyle =
     "p-2 border-2 border-brand-blue rounded-md focus:outline-none focus:ring-2 focus:ring-brand-blue bg-brand-blue-bg";
+
+  if (isLoading) {
+    return (
+      <div className="bg-white p-6 rounded-lg shadow">
+        <div className="flex justify-center items-center h-64">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand-blue mx-auto mb-4"></div>
+            <p className="text-gray-600">جاري تحميل البيانات...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="bg-white p-6 rounded-lg shadow">

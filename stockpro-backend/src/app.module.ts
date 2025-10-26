@@ -5,6 +5,7 @@ import { PinoLogger } from 'nestjs-pino';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { DatabaseModule } from './configs/database/database.module';
+import { DatabaseService } from './configs/database/database.service';
 import { LoggerModule } from './common/application/logger/logger.module';
 import { ResponseInterceptor } from './common/interceptors/response.interceptor';
 import { HttpExceptionFilter } from './common/application/exceptions/exception-filter';
@@ -71,6 +72,7 @@ import { PurchaseReturnModule } from './modules/purchase-return/purchase-return.
   controllers: [AppController],
   providers: [
     AppService,
+    DatabaseService,
     {
       provide: APP_PIPE,
       useValue: new ValidationPipe({

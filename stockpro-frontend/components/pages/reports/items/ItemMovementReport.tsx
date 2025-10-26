@@ -1,56 +1,175 @@
 import React, { useState, useMemo, useCallback, useEffect } from "react";
 import type {
   CompanyInfo,
-  Item,
   User,
-  Invoice,
-  StoreReceiptVoucher,
-  StoreIssueVoucher,
-  StoreTransferVoucher,
-  Branch,
-  Store,
 } from "../../../../types";
 import { ExcelIcon, PdfIcon, PrintIcon, SearchIcon } from "../../../icons";
 import ReportHeader from "../ReportHeader";
 import { formatNumber } from "../../../../utils/formatting";
+import { useGetItemsQuery } from "../../../store/slices/items/itemsApi";
+import { useGetBranchesQuery } from "../../../store/slices/branch/branchApi";
+import { useGetStoresQuery } from "../../../store/slices/store/storeApi";
+import { useGetSalesInvoicesQuery } from "../../../store/slices/salesInvoice/salesInvoiceApiSlice";
+import { useGetSalesReturnsQuery } from "../../../store/slices/salesReturn/salesReturnApiSlice";
+import { useGetPurchaseInvoicesQuery } from "../../../store/slices/purchaseInvoice/purchaseInvoiceApiSlice";
+import { useGetPurchaseReturnsQuery } from "../../../store/slices/purchaseReturn/purchaseReturnApiSlice";
+import { useGetStoreReceiptVouchersQuery } from "../../../store/slices/storeReceiptVoucher/storeReceiptVoucherApi";
+import { useGetStoreIssueVouchersQuery } from "../../../store/slices/storeIssueVoucher/storeIssueVoucherApi";
+import { useGetStoreTransferVouchersQuery } from "../../../store/slices/storeTransferVoucher/storeTransferVoucherApi";
 
 interface ItemMovementReportProps {
   title: string;
   companyInfo: CompanyInfo;
-  items: Item[];
-  salesInvoices: Invoice[];
-  purchaseInvoices: Invoice[];
-  salesReturns: Invoice[];
-  purchaseReturns: Invoice[];
-  storeReceiptVouchers: StoreReceiptVoucher[];
-  storeIssueVouchers: StoreIssueVoucher[];
-  storeTransferVouchers: StoreTransferVoucher[];
   onNavigate: (
     pageKey: string,
     pageLabel: string,
     recordId: string | number,
   ) => void;
   currentUser: User | null;
-  branches: Branch[];
-  stores: Store[];
 }
 
 const ItemMovementReport: React.FC<ItemMovementReportProps> = ({
   title,
   companyInfo,
-  items,
-  salesInvoices,
-  purchaseInvoices,
-  salesReturns,
-  purchaseReturns,
-  storeReceiptVouchers,
-  storeIssueVouchers,
-  storeTransferVouchers,
   onNavigate,
   currentUser,
-  branches,
-  stores,
 }) => {
+  // API hooks
+  const { data: apiItems = [], isLoading: itemsLoading } = useGetItemsQuery(undefined);
+  const { data: branches = [], isLoading: branchesLoading } = useGetBranchesQuery(undefined);
+  const { data: stores = [], isLoading: storesLoading } = useGetStoresQuery(undefined);
+  const { data: salesInvoices = [], isLoading: salesInvoicesLoading } = useGetSalesInvoicesQuery(undefined);
+  const { data: salesReturns = [], isLoading: salesReturnsLoading } = useGetSalesReturnsQuery(undefined);
+  const { data: purchaseInvoices = [], isLoading: purchaseInvoicesLoading } = useGetPurchaseInvoicesQuery(undefined);
+  const { data: purchaseReturns = [], isLoading: purchaseReturnsLoading } = useGetPurchaseReturnsQuery(undefined);
+  const { data: storeReceiptVouchers = [], isLoading: storeReceiptVouchersLoading } = useGetStoreReceiptVouchersQuery(undefined);
+  const { data: storeIssueVouchers = [], isLoading: storeIssueVouchersLoading } = useGetStoreIssueVouchersQuery(undefined);
+  const { data: storeTransferVouchers = [], isLoading: storeTransferVouchersLoading } = useGetStoreTransferVouchersQuery(undefined);
+
+  // Transform API data to match expected format
+  const items = useMemo(() => {
+    return (apiItems as any[]).map(item => ({
+      ...item,
+      unit: item.unit?.name || '',
+      group: item.group?.name || '',
+    }));
+  }, [apiItems]);
+
+  const transformedSalesInvoices = useMemo(() => {
+    return (salesInvoices as any[]).map(invoice => ({
+      ...invoice,
+      branchName: invoice.branch?.name || '',
+      items: invoice.items.map(item => ({
+        ...item,
+        id: item.id,
+        name: item.name,
+        unit: item.unit,
+        qty: item.qty,
+        price: item.price,
+        taxAmount: item.taxAmount,
+        total: item.total,
+      })),
+    }));
+  }, [salesInvoices]);
+
+  const transformedSalesReturns = useMemo(() => {
+    return (salesReturns as any[]).map(invoice => ({
+      ...invoice,
+      branchName: invoice.branch?.name || '',
+      items: invoice.items.map(item => ({
+        ...item,
+        id: item.id,
+        name: item.name,
+        unit: item.unit,
+        qty: item.qty,
+        price: item.price,
+        taxAmount: item.taxAmount,
+        total: item.total,
+      })),
+    }));
+  }, [salesReturns]);
+
+  const transformedPurchaseInvoices = useMemo(() => {
+    return (purchaseInvoices as any[]).map(invoice => ({
+      ...invoice,
+      branchName: invoice.branch?.name || '',
+      items: invoice.items.map(item => ({
+        ...item,
+        id: item.id,
+        name: item.name,
+        unit: item.unit,
+        qty: item.qty,
+        price: item.price,
+        taxAmount: item.taxAmount,
+        total: item.total,
+      })),
+    }));
+  }, [purchaseInvoices]);
+
+  const transformedPurchaseReturns = useMemo(() => {
+    return (purchaseReturns as any[]).map(invoice => ({
+      ...invoice,
+      branchName: invoice.branch?.name || '',
+      items: invoice.items.map(item => ({
+        ...item,
+        id: item.id,
+        name: item.name,
+        unit: item.unit,
+        qty: item.qty,
+        price: item.price,
+        taxAmount: item.taxAmount,
+        total: item.total,
+      })),
+    }));
+  }, [purchaseReturns]);
+
+  const transformedStoreReceiptVouchers = useMemo(() => {
+    return (storeReceiptVouchers as any[]).map(voucher => ({
+      ...voucher,
+      branch: voucher.store?.branch?.name || '',
+      items: voucher.items.map(item => ({
+        ...item,
+        id: item.item?.code || item.itemId,
+        name: item.item?.name || '',
+        unit: item.item?.unit?.name || '',
+        qty: item.quantity,
+      })),
+    }));
+  }, [storeReceiptVouchers]);
+
+  const transformedStoreIssueVouchers = useMemo(() => {
+    return (storeIssueVouchers as any[]).map(voucher => ({
+      ...voucher,
+      branch: voucher.store?.branch?.name || '',
+      items: voucher.items.map(item => ({
+        ...item,
+        id: item.item?.code || item.itemId,
+        name: item.item?.name || '',
+        unit: item.item?.unit?.name || '',
+        qty: item.quantity,
+      })),
+    }));
+  }, [storeIssueVouchers]);
+
+  const transformedStoreTransferVouchers = useMemo(() => {
+    return (storeTransferVouchers as any[]).map(voucher => ({
+      ...voucher,
+      fromStore: voucher.fromStore?.name || '',
+      toStore: voucher.toStore?.name || '',
+      items: voucher.items.map(item => ({
+        ...item,
+        id: item.item?.code || item.itemId,
+        name: item.item?.name || '',
+        unit: item.item?.unit?.name || '',
+        qty: item.quantity,
+      })),
+    }));
+  }, [storeTransferVouchers]);
+
+  const isLoading = itemsLoading || branchesLoading || storesLoading || 
+    salesInvoicesLoading || salesReturnsLoading || purchaseInvoicesLoading || 
+    purchaseReturnsLoading || storeReceiptVouchersLoading || 
+    storeIssueVouchersLoading || storeTransferVouchersLoading;
   const currentYear = new Date().getFullYear();
   const [startDate, setStartDate] = useState(`${currentYear}-01-01`);
   const [endDate, setEndDate] = useState(
@@ -78,7 +197,7 @@ const ItemMovementReport: React.FC<ItemMovementReportProps> = ({
   const selectedItemName = selectedItem?.name || "غير محدد";
 
   const handleViewReport = useCallback(() => {
-    if (!selectedItem) {
+    if (!selectedItem || isLoading) {
       setReportData([]);
       setOpeningBalance(0);
       return;
@@ -114,14 +233,14 @@ const ItemMovementReport: React.FC<ItemMovementReportProps> = ({
       });
     };
 
-    adjustBalance(purchaseInvoices, 1, true);
-    adjustBalance(salesReturns, 1, true);
-    adjustBalance(storeReceiptVouchers, 1, false);
-    adjustBalance(salesInvoices, -1, true);
-    adjustBalance(purchaseReturns, -1, true);
-    adjustBalance(storeIssueVouchers, -1, false);
+    adjustBalance(transformedPurchaseInvoices, 1, true);
+    adjustBalance(transformedSalesReturns, 1, true);
+    adjustBalance(transformedStoreReceiptVouchers, 1, false);
+    adjustBalance(transformedSalesInvoices, -1, true);
+    adjustBalance(transformedPurchaseReturns, -1, true);
+    adjustBalance(transformedStoreIssueVouchers, -1, false);
 
-    storeTransferVouchers.forEach((v) => {
+    transformedStoreTransferVouchers.forEach((v) => {
       if (v.date < startDate) {
         const fromStore = stores.find((s) => s.name === v.fromStore);
         const toStore = stores.find((s) => s.name === v.toStore);
@@ -130,8 +249,8 @@ const ItemMovementReport: React.FC<ItemMovementReportProps> = ({
             if (selectedBranch === "all") {
               // Transfers are neutral for total stock
             } else {
-              if (fromStore?.branch === selectedBranch) opening -= i.qty;
-              if (toStore?.branch === selectedBranch) opening += i.qty;
+              if (fromStore?.branch?.name === selectedBranch) opening -= i.qty;
+              if (toStore?.branch?.name === selectedBranch) opening += i.qty;
             }
           }
         });
@@ -179,7 +298,7 @@ const ItemMovementReport: React.FC<ItemMovementReportProps> = ({
       }
     };
 
-    purchaseInvoices.forEach((inv) =>
+    transformedPurchaseInvoices.forEach((inv) =>
       processTx(
         inv,
         "فاتورة مشتريات",
@@ -188,7 +307,7 @@ const ItemMovementReport: React.FC<ItemMovementReportProps> = ({
         true,
       ),
     );
-    salesReturns.forEach((inv) =>
+    transformedSalesReturns.forEach((inv) =>
       processTx(
         inv,
         "مرتجع مبيعات",
@@ -197,7 +316,7 @@ const ItemMovementReport: React.FC<ItemMovementReportProps> = ({
         true,
       ),
     );
-    storeReceiptVouchers.forEach((v) =>
+    transformedStoreReceiptVouchers.forEach((v) =>
       processTx(
         v,
         "إذن إضافة مخزن",
@@ -207,7 +326,7 @@ const ItemMovementReport: React.FC<ItemMovementReportProps> = ({
       ),
     );
 
-    salesInvoices.forEach((inv) =>
+    transformedSalesInvoices.forEach((inv) =>
       processTx(
         inv,
         "فاتورة مبيعات",
@@ -216,7 +335,7 @@ const ItemMovementReport: React.FC<ItemMovementReportProps> = ({
         true,
       ),
     );
-    purchaseReturns.forEach((inv) =>
+    transformedPurchaseReturns.forEach((inv) =>
       processTx(
         inv,
         "مرتجع مشتريات",
@@ -225,7 +344,7 @@ const ItemMovementReport: React.FC<ItemMovementReportProps> = ({
         true,
       ),
     );
-    storeIssueVouchers.forEach((v) =>
+    transformedStoreIssueVouchers.forEach((v) =>
       processTx(
         v,
         "إذن صرف مخزن",
@@ -235,7 +354,7 @@ const ItemMovementReport: React.FC<ItemMovementReportProps> = ({
       ),
     );
 
-    storeTransferVouchers.forEach((v) => {
+    transformedStoreTransferVouchers.forEach((v) => {
       if (v.date >= startDate && v.date <= endDate) {
         const fromStore = stores.find((s) => s.name === v.fromStore);
         const toStore = stores.find((s) => s.name === v.toStore);
@@ -243,7 +362,7 @@ const ItemMovementReport: React.FC<ItemMovementReportProps> = ({
           if (item.id === itemCode) {
             if (
               selectedBranch === "all" ||
-              fromStore?.branch === selectedBranch
+              fromStore?.branch?.name === selectedBranch
             ) {
               transactions.push({
                 date: v.date,
@@ -256,7 +375,7 @@ const ItemMovementReport: React.FC<ItemMovementReportProps> = ({
             }
             if (
               selectedBranch === "all" ||
-              toStore?.branch === selectedBranch
+              toStore?.branch?.name === selectedBranch
             ) {
               transactions.push({
                 date: v.date,
@@ -287,14 +406,15 @@ const ItemMovementReport: React.FC<ItemMovementReportProps> = ({
     startDate,
     endDate,
     selectedBranch,
-    salesInvoices,
-    purchaseInvoices,
-    salesReturns,
-    purchaseReturns,
-    storeReceiptVouchers,
-    storeIssueVouchers,
-    storeTransferVouchers,
+    transformedSalesInvoices,
+    transformedPurchaseInvoices,
+    transformedSalesReturns,
+    transformedPurchaseReturns,
+    transformedStoreReceiptVouchers,
+    transformedStoreIssueVouchers,
+    transformedStoreTransferVouchers,
     stores,
+    isLoading,
   ]);
 
   useEffect(() => {
@@ -348,6 +468,19 @@ const ItemMovementReport: React.FC<ItemMovementReportProps> = ({
       printWindow?.close();
     }, 500);
   };
+
+  if (isLoading) {
+    return (
+      <div className="bg-white p-6 rounded-lg shadow">
+        <div className="flex justify-center items-center h-64">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand-blue mx-auto mb-4"></div>
+            <p className="text-gray-600">جاري تحميل البيانات...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="bg-white p-6 rounded-lg shadow">

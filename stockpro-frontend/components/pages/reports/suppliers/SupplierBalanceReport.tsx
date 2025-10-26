@@ -10,30 +10,70 @@ import type {
 import { ExcelIcon, PdfIcon, PrintIcon, SearchIcon } from "../../../icons";
 import ReportHeader from "../ReportHeader";
 import { formatNumber } from "../../../../utils/formatting";
+import { useGetSuppliersQuery } from "../../../store/slices/supplier/supplierApiSlice";
+import { useGetPurchaseInvoicesQuery } from "../../../store/slices/purchaseInvoice/purchaseInvoiceApiSlice";
+import { useGetPurchaseReturnsQuery } from "../../../store/slices/purchaseReturn/purchaseReturnApiSlice";
+import { useGetBranchesQuery } from "../../../store/slices/branch/branchApi";
 
 interface SupplierBalanceReportProps {
   title: string;
   companyInfo: CompanyInfo;
-  suppliers: Supplier[];
-  purchaseInvoices: Invoice[];
-  purchaseReturns: Invoice[];
-  paymentVouchers: Voucher[];
   receiptVouchers: Voucher[];
-  branches: Branch[];
+  paymentVouchers: Voucher[];
   currentUser: User | null;
 }
 
 const SupplierBalanceReport: React.FC<SupplierBalanceReportProps> = ({
   title,
   companyInfo,
-  suppliers,
-  purchaseInvoices,
-  purchaseReturns,
-  paymentVouchers,
   receiptVouchers,
-  branches,
+  paymentVouchers,
   currentUser,
 }) => {
+  // API hooks
+  const { data: apiSuppliers = [], isLoading: suppliersLoading } = useGetSuppliersQuery(undefined);
+  const { data: apiPurchaseInvoices = [], isLoading: purchaseInvoicesLoading } = useGetPurchaseInvoicesQuery(undefined);
+  const { data: apiPurchaseReturns = [], isLoading: purchaseReturnsLoading } = useGetPurchaseReturnsQuery(undefined);
+  const { data: apiBranches = [], isLoading: branchesLoading } = useGetBranchesQuery(undefined);
+
+  // Transform API data to match expected format
+  const suppliers = useMemo(() => {
+    return (apiSuppliers as any[]).map(supplier => ({
+      ...supplier,
+      // Add any necessary transformations here
+    }));
+  }, [apiSuppliers]);
+
+  const purchaseInvoices = useMemo(() => {
+    return (apiPurchaseInvoices as any[]).map(invoice => ({
+      ...invoice,
+      // Transform nested supplier data
+      customerOrSupplier: invoice.customerOrSupplier ? {
+        id: invoice.customerOrSupplier.id.toString(),
+        name: invoice.customerOrSupplier.name
+      } : null,
+    }));
+  }, [apiPurchaseInvoices]);
+
+  const purchaseReturns = useMemo(() => {
+    return (apiPurchaseReturns as any[]).map(returnInvoice => ({
+      ...returnInvoice,
+      // Transform nested supplier data
+      customerOrSupplier: returnInvoice.customerOrSupplier ? {
+        id: returnInvoice.customerOrSupplier.id.toString(),
+        name: returnInvoice.customerOrSupplier.name
+      } : null,
+    }));
+  }, [apiPurchaseReturns]);
+
+  const branches = useMemo(() => {
+    return (apiBranches as any[]).map(branch => ({
+      ...branch,
+      // Add any necessary transformations here
+    }));
+  }, [apiBranches]);
+
+  const isLoading = suppliersLoading || purchaseInvoicesLoading || purchaseReturnsLoading || branchesLoading;
   const [endDate, setEndDate] = useState(
     new Date().toISOString().substring(0, 10),
   );
@@ -155,6 +195,19 @@ const SupplierBalanceReport: React.FC<SupplierBalanceReportProps> = ({
       printWindow?.close();
     }, 500);
   };
+
+  if (isLoading) {
+    return (
+      <div className="bg-white p-6 rounded-lg shadow">
+        <div className="flex justify-center items-center h-64">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand-blue mx-auto mb-4"></div>
+            <p className="text-gray-600">جاري تحميل البيانات...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="bg-white p-6 rounded-lg shadow">

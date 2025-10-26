@@ -10,30 +10,70 @@ import type {
 import { ExcelIcon, PdfIcon, PrintIcon, SearchIcon } from "../../../icons";
 import ReportHeader from "../ReportHeader";
 import { formatNumber } from "../../../../utils/formatting";
+import { useGetCustomersQuery } from "../../../store/slices/customer/customerApiSlice";
+import { useGetSalesInvoicesQuery } from "../../../store/slices/salesInvoice/salesInvoiceApiSlice";
+import { useGetSalesReturnsQuery } from "../../../store/slices/salesReturn/salesReturnApiSlice";
+import { useGetBranchesQuery } from "../../../store/slices/branch/branchApi";
 
 interface CustomerBalanceReportProps {
   title: string;
   companyInfo: CompanyInfo;
-  customers: Customer[];
-  salesInvoices: Invoice[];
-  salesReturns: Invoice[];
   receiptVouchers: Voucher[];
   paymentVouchers: Voucher[];
-  branches: Branch[];
   currentUser: User | null;
 }
 
 const CustomerBalanceReport: React.FC<CustomerBalanceReportProps> = ({
   title,
   companyInfo,
-  customers,
-  salesInvoices,
-  salesReturns,
   receiptVouchers,
   paymentVouchers,
-  branches,
   currentUser,
 }) => {
+  // API hooks
+  const { data: apiCustomers = [], isLoading: customersLoading } = useGetCustomersQuery(undefined);
+  const { data: apiSalesInvoices = [], isLoading: salesInvoicesLoading } = useGetSalesInvoicesQuery(undefined);
+  const { data: apiSalesReturns = [], isLoading: salesReturnsLoading } = useGetSalesReturnsQuery(undefined);
+  const { data: apiBranches = [], isLoading: branchesLoading } = useGetBranchesQuery(undefined);
+
+  // Transform API data to match expected format
+  const customers = useMemo(() => {
+    return (apiCustomers as any[]).map(customer => ({
+      ...customer,
+      // Add any necessary transformations here
+    }));
+  }, [apiCustomers]);
+
+  const salesInvoices = useMemo(() => {
+    return (apiSalesInvoices as any[]).map(invoice => ({
+      ...invoice,
+      // Transform nested customer data
+      customerOrSupplier: invoice.customerOrSupplier ? {
+        id: invoice.customerOrSupplier.id.toString(),
+        name: invoice.customerOrSupplier.name
+      } : null,
+    }));
+  }, [apiSalesInvoices]);
+
+  const salesReturns = useMemo(() => {
+    return (apiSalesReturns as any[]).map(returnInvoice => ({
+      ...returnInvoice,
+      // Transform nested customer data
+      customerOrSupplier: returnInvoice.customerOrSupplier ? {
+        id: returnInvoice.customerOrSupplier.id.toString(),
+        name: returnInvoice.customerOrSupplier.name
+      } : null,
+    }));
+  }, [apiSalesReturns]);
+
+  const branches = useMemo(() => {
+    return (apiBranches as any[]).map(branch => ({
+      ...branch,
+      // Add any necessary transformations here
+    }));
+  }, [apiBranches]);
+
+  const isLoading = customersLoading || salesInvoicesLoading || salesReturnsLoading || branchesLoading;
   const [endDate, setEndDate] = useState(
     new Date().toISOString().substring(0, 10),
   );
@@ -155,6 +195,19 @@ const CustomerBalanceReport: React.FC<CustomerBalanceReportProps> = ({
       printWindow?.close();
     }, 500);
   };
+
+  if (isLoading) {
+    return (
+      <div className="bg-white p-6 rounded-lg shadow">
+        <div className="flex justify-center items-center h-64">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand-blue mx-auto mb-4"></div>
+            <p className="text-gray-600">جاري تحميل البيانات...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="bg-white p-6 rounded-lg shadow">
