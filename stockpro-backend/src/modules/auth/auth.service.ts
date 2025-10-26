@@ -208,6 +208,7 @@ export class AuthService {
             },
           },
         },
+        branch: true,
       },
     });
 

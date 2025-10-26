@@ -4,6 +4,8 @@ import { tafqeet } from "../../../utils/tafqeet";
 import { generateZatcaBase64 } from "../../../utils/qrCodeGenerator";
 import { PrintIcon, XIcon } from "../../icons";
 import { useGetCompanyQuery } from "../../store/slices/companyApiSlice";
+import { useSelector } from "react-redux";
+import type { RootState } from "../../store/store";
 
 interface InvoicePrintPreviewProps {
   isOpen: boolean;
@@ -30,6 +32,7 @@ const InvoicePrintPreview: React.FC<InvoicePrintPreviewProps> = ({
   invoiceData,
 }) => {
   const { data: companyInfo, isLoading, error } = useGetCompanyQuery();
+  const currentUser = useSelector((state: RootState) => state.auth.user);
   
   if (!isOpen) return null;
 
@@ -190,11 +193,11 @@ const InvoicePrintPreview: React.FC<InvoicePrintPreviewProps> = ({
                 </p>
                 <p>
                   <span className="font-semibold">الفرع:</span>{" "}
-                  {details.branchName}
+                  {currentUser?.branch?.name || details.branchName}
                 </p>
                 <p>
                   <span className="font-semibold">الموظف:</span>{" "}
-                  {details.userName}
+                  {currentUser?.name || details.userName}
                 </p>
               </div>
             </section>

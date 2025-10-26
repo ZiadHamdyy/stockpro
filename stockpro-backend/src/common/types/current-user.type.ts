@@ -1,4 +1,4 @@
-import { Session, User, Role, Permission } from '@prisma/client';
+import { Session, User, Role, Permission, Branch } from '@prisma/client';
 
 export type currentUserType = User & {
   session?: Session;
@@ -7,4 +7,5 @@ export type currentUserType = User & {
       permission: Permission;
     }[];
   };
+  branch?: Branch;
 };
