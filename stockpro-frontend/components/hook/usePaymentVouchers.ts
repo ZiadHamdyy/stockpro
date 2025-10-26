@@ -69,12 +69,18 @@ export const usePaymentVouchers = () => {
         date: v.date,
         entity: {
           type: v.entityType as any,
-          id: v.customerId || v.supplierId || v.currentAccountId || v.expenseCodeId || null,
+          id:
+            v.customerId ||
+            v.supplierId ||
+            v.currentAccountId ||
+            v.expenseCodeId ||
+            null,
           name: v.entityName,
         },
         amount: v.amount,
         paymentMethod: v.paymentMethod as "safe" | "bank",
-        safeOrBankId: v.paymentMethod === "safe" ? v.safeId || null : v.bankId || null,
+        safeOrBankId:
+          v.paymentMethod === "safe" ? v.safeId || null : v.bankId || null,
         description: v.description || "",
       });
       setIsReadOnly(true);
@@ -101,8 +107,10 @@ export const usePaymentVouchers = () => {
       return;
     }
 
-    const entityId = voucherData.entity.id ? String(voucherData.entity.id) : undefined;
-    
+    const entityId = voucherData.entity.id
+      ? String(voucherData.entity.id)
+      : undefined;
+
     // Build entity foreign key based on entity type
     const entityFields: Partial<CreatePaymentVoucherRequest> = {};
     if (voucherData.entity.type === "customer") {
@@ -114,17 +122,20 @@ export const usePaymentVouchers = () => {
     } else if (voucherData.entity.type === "expense") {
       entityFields.expenseCodeId = entityId;
     }
-    
+
     // Build payment target foreign key based on payment method
     const paymentFields: Partial<CreatePaymentVoucherRequest> = {};
     if (voucherData.paymentMethod === "safe" && voucherData.safeOrBankId) {
       paymentFields.safeId = voucherData.safeOrBankId;
       paymentFields.bankId = undefined;
-    } else if (voucherData.paymentMethod === "bank" && voucherData.safeOrBankId) {
+    } else if (
+      voucherData.paymentMethod === "bank" &&
+      voucherData.safeOrBankId
+    ) {
       paymentFields.bankId = voucherData.safeOrBankId;
       paymentFields.safeId = undefined;
     }
-    
+
     const payload: CreatePaymentVoucherRequest = {
       date: voucherData.date,
       entityType: voucherData.entity.type,
@@ -137,7 +148,10 @@ export const usePaymentVouchers = () => {
 
     try {
       if (currentIndex >= 0 && vouchers[currentIndex]) {
-        await updatePaymentVoucher({ id: vouchers[currentIndex].id, data: payload }).unwrap();
+        await updatePaymentVoucher({
+          id: vouchers[currentIndex].id,
+          data: payload,
+        }).unwrap();
         showToast("تم تعديل السند بنجاح!");
       } else {
         await createPaymentVoucher(payload).unwrap();
@@ -148,7 +162,15 @@ export const usePaymentVouchers = () => {
       showToast("حدث خطأ أثناء حفظ السند");
       console.error("Error saving payment voucher:", error);
     }
-  }, [voucherData, currentIndex, vouchers, createPaymentVoucher, updatePaymentVoucher, showToast, handleNew]);
+  }, [
+    voucherData,
+    currentIndex,
+    vouchers,
+    createPaymentVoucher,
+    updatePaymentVoucher,
+    showToast,
+    handleNew,
+  ]);
 
   const handleEdit = useCallback(() => {
     if (currentIndex < 0) return;
@@ -180,13 +202,23 @@ export const usePaymentVouchers = () => {
       type: "delete",
       showPassword: true,
     });
-  }, [currentIndex, vouchers, deletePaymentVoucher, showToast, handleNew, showModal]);
+  }, [
+    currentIndex,
+    vouchers,
+    deletePaymentVoucher,
+    showToast,
+    handleNew,
+    showModal,
+  ]);
 
-  const navigate = useCallback((index: number) => {
-    if (vouchers.length > 0) {
-      setCurrentIndex(Math.max(0, Math.min(vouchers.length - 1, index)));
-    }
-  }, [vouchers.length]);
+  const navigate = useCallback(
+    (index: number) => {
+      if (vouchers.length > 0) {
+        setCurrentIndex(Math.max(0, Math.min(vouchers.length - 1, index)));
+      }
+    },
+    [vouchers.length],
+  );
 
   return {
     vouchers,
@@ -212,4 +244,3 @@ export const usePaymentVouchers = () => {
     refetch,
   };
 };
-

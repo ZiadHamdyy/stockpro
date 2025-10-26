@@ -30,4 +30,3 @@ export class SalesReturnResponse {
   createdAt: Date;
   updatedAt: Date;
 }
-

@@ -8,25 +8,31 @@ import { SalesInvoiceResponse } from './dtos/response/sales-invoice.response';
 export class SalesInvoiceService {
   constructor(private readonly prisma: DatabaseService) {}
 
-  async create(data: CreateSalesInvoiceRequest, userId: string): Promise<SalesInvoiceResponse> {
+  async create(
+    data: CreateSalesInvoiceRequest,
+    userId: string,
+  ): Promise<SalesInvoiceResponse> {
     const code = await this.generateNextCode();
-    
+
     // Calculate totals
-    const subtotal = data.items.reduce((sum, item) => sum + (item.qty * item.price), 0);
+    const subtotal = data.items.reduce(
+      (sum, item) => sum + item.qty * item.price,
+      0,
+    );
     const discount = data.discount || 0;
-    
+
     // Get company VAT settings
     const company = await this.prisma.company.findFirst();
     const vatRate = company?.vatRate || 0;
     const isVatEnabled = company?.isVatEnabled || false;
-    
+
     const tax = isVatEnabled ? subtotal * (vatRate / 100) : 0;
     const net = subtotal + tax - discount;
 
     // Update items with calculated values
-    const itemsWithTotals = data.items.map(item => ({
+    const itemsWithTotals = data.items.map((item) => ({
       ...item,
-      taxAmount: isVatEnabled ? (item.qty * item.price) * (vatRate / 100) : 0,
+      taxAmount: isVatEnabled ? item.qty * item.price * (vatRate / 100) : 0,
       total: item.qty * item.price,
     }));
 
@@ -80,7 +86,11 @@ export class SalesInvoiceService {
       ? {
           OR: [
             { code: { contains: search, mode: 'insensitive' as const } },
-            { customer: { name: { contains: search, mode: 'insensitive' as const } } },
+            {
+              customer: {
+                name: { contains: search, mode: 'insensitive' as const },
+              },
+            },
           ],
         }
       : {};
@@ -160,26 +170,35 @@ export class SalesInvoiceService {
 
       if (existingInvoice) {
         // Restore stock for old items
-        await this.updateStockForItems(existingInvoice.items as any[], 'increase');
+        await this.updateStockForItems(
+          existingInvoice.items as any[],
+          'increase',
+        );
       }
 
       // Calculate new totals
       const items = data.items || (existingInvoice?.items as any[]) || [];
-      const subtotal = items.reduce((sum, item) => sum + (item.qty * item.price), 0);
-      const discount = data.discount !== undefined ? data.discount : (existingInvoice?.discount || 0);
-      
+      const subtotal = items.reduce(
+        (sum, item) => sum + item.qty * item.price,
+        0,
+      );
+      const discount =
+        data.discount !== undefined
+          ? data.discount
+          : existingInvoice?.discount || 0;
+
       // Get company VAT settings
       const company = await this.prisma.company.findFirst();
       const vatRate = company?.vatRate || 0;
       const isVatEnabled = company?.isVatEnabled || false;
-      
+
       const tax = isVatEnabled ? subtotal * (vatRate / 100) : 0;
       const net = subtotal + tax - discount;
 
       // Update items with calculated values
-      const itemsWithTotals = items.map(item => ({
+      const itemsWithTotals = items.map((item) => ({
         ...item,
-        taxAmount: isVatEnabled ? (item.qty * item.price) * (vatRate / 100) : 0,
+        taxAmount: isVatEnabled ? item.qty * item.price * (vatRate / 100) : 0,
         total: item.qty * item.price,
       }));
 
@@ -264,16 +283,20 @@ export class SalesInvoiceService {
     return `INV-${String(nextNumber).padStart(5, '0')}`;
   }
 
-  private async updateStockForItems(items: any[], operation: 'increase' | 'decrease'): Promise<void> {
+  private async updateStockForItems(
+    items: any[],
+    operation: 'increase' | 'decrease',
+  ): Promise<void> {
     for (const item of items) {
       const itemRecord = await this.prisma.item.findUnique({
         where: { id: item.id },
       });
 
       if (itemRecord) {
-        const newStock = operation === 'increase' 
-          ? itemRecord.stock + item.qty 
-          : itemRecord.stock - item.qty;
+        const newStock =
+          operation === 'increase'
+            ? itemRecord.stock + item.qty
+            : itemRecord.stock - item.qty;
 
         await this.prisma.item.update({
           where: { id: item.id },
@@ -308,4 +331,3 @@ export class SalesInvoiceService {
     };
   }
 }
-

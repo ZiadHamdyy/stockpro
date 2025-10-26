@@ -10,10 +10,7 @@ interface DailySalesProps {
   title: string;
 }
 
-
-const DailySales: React.FC<DailySalesProps> = ({
-  title,
-}) => {
+const DailySales: React.FC<DailySalesProps> = ({ title }) => {
   // Redux hooks
   const { data: salesInvoices = [] } = useGetSalesInvoicesQuery();
   const { data: company } = useGetCompanyQuery();
@@ -40,20 +37,18 @@ const DailySales: React.FC<DailySalesProps> = ({
   const [searchTerm, setSearchTerm] = useState("");
 
   const filteredSales = useMemo(() => {
-    return salesInvoices.filter(
-      (sale) => {
-        const saleDate = sale.date.substring(0, 10); // Extract just the date part
-        return (
-          saleDate >= startDate &&
-          saleDate <= endDate &&
-          (sale.code.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            (sale.customer &&
-              sale.customer.name
-                .toLowerCase()
-                .includes(searchTerm.toLowerCase())))
-        );
-      }
-    );
+    return salesInvoices.filter((sale) => {
+      const saleDate = sale.date.substring(0, 10); // Extract just the date part
+      return (
+        saleDate >= startDate &&
+        saleDate <= endDate &&
+        (sale.code.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          (sale.customer &&
+            sale.customer.name
+              .toLowerCase()
+              .includes(searchTerm.toLowerCase())))
+      );
+    });
   }, [salesInvoices, startDate, endDate, searchTerm]);
 
   const totals = filteredSales.reduce(

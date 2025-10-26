@@ -35,41 +35,49 @@ const SupplierStatementReport: React.FC<SupplierStatementReportProps> = ({
   paymentVouchers,
 }) => {
   // API hooks
-  const { data: apiSuppliers = [], isLoading: suppliersLoading } = useGetSuppliersQuery(undefined);
-  const { data: apiPurchaseInvoices = [], isLoading: purchaseInvoicesLoading } = useGetPurchaseInvoicesQuery(undefined);
-  const { data: apiPurchaseReturns = [], isLoading: purchaseReturnsLoading } = useGetPurchaseReturnsQuery(undefined);
+  const { data: apiSuppliers = [], isLoading: suppliersLoading } =
+    useGetSuppliersQuery(undefined);
+  const { data: apiPurchaseInvoices = [], isLoading: purchaseInvoicesLoading } =
+    useGetPurchaseInvoicesQuery(undefined);
+  const { data: apiPurchaseReturns = [], isLoading: purchaseReturnsLoading } =
+    useGetPurchaseReturnsQuery(undefined);
 
   // Transform API data to match expected format
   const suppliers = useMemo(() => {
-    return (apiSuppliers as any[]).map(supplier => ({
+    return (apiSuppliers as any[]).map((supplier) => ({
       ...supplier,
       // Add any necessary transformations here
     }));
   }, [apiSuppliers]);
 
   const purchaseInvoices = useMemo(() => {
-    return (apiPurchaseInvoices as any[]).map(invoice => ({
+    return (apiPurchaseInvoices as any[]).map((invoice) => ({
       ...invoice,
       // Transform nested supplier data
-      customerOrSupplier: invoice.customerOrSupplier ? {
-        id: invoice.customerOrSupplier.id.toString(),
-        name: invoice.customerOrSupplier.name
-      } : null,
+      customerOrSupplier: invoice.customerOrSupplier
+        ? {
+            id: invoice.customerOrSupplier.id.toString(),
+            name: invoice.customerOrSupplier.name,
+          }
+        : null,
     }));
   }, [apiPurchaseInvoices]);
 
   const purchaseReturns = useMemo(() => {
-    return (apiPurchaseReturns as any[]).map(returnInvoice => ({
+    return (apiPurchaseReturns as any[]).map((returnInvoice) => ({
       ...returnInvoice,
       // Transform nested supplier data
-      customerOrSupplier: returnInvoice.customerOrSupplier ? {
-        id: returnInvoice.customerOrSupplier.id.toString(),
-        name: returnInvoice.customerOrSupplier.name
-      } : null,
+      customerOrSupplier: returnInvoice.customerOrSupplier
+        ? {
+            id: returnInvoice.customerOrSupplier.id.toString(),
+            name: returnInvoice.customerOrSupplier.name,
+          }
+        : null,
     }));
   }, [apiPurchaseReturns]);
 
-  const isLoading = suppliersLoading || purchaseInvoicesLoading || purchaseReturnsLoading;
+  const isLoading =
+    suppliersLoading || purchaseInvoicesLoading || purchaseReturnsLoading;
   const currentYear = new Date().getFullYear();
   const [startDate, setStartDate] = useState(`${currentYear}-01-01`);
   const [endDate, setEndDate] = useState(

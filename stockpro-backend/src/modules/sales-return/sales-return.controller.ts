@@ -36,7 +36,9 @@ export class SalesReturnController {
 
   @Get()
   @Auth({ permissions: ['sales_return:read'] })
-  async findAll(@Query('search') search?: string): Promise<SalesReturnResponse[]> {
+  async findAll(
+    @Query('search') search?: string,
+  ): Promise<SalesReturnResponse[]> {
     return this.salesReturnService.findAll(search);
   }
 
@@ -63,4 +65,3 @@ export class SalesReturnController {
     return this.salesReturnService.remove(id);
   }
 }
-

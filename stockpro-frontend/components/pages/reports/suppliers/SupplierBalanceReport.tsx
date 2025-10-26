@@ -31,49 +31,61 @@ const SupplierBalanceReport: React.FC<SupplierBalanceReportProps> = ({
   currentUser,
 }) => {
   // API hooks
-  const { data: apiSuppliers = [], isLoading: suppliersLoading } = useGetSuppliersQuery(undefined);
-  const { data: apiPurchaseInvoices = [], isLoading: purchaseInvoicesLoading } = useGetPurchaseInvoicesQuery(undefined);
-  const { data: apiPurchaseReturns = [], isLoading: purchaseReturnsLoading } = useGetPurchaseReturnsQuery(undefined);
-  const { data: apiBranches = [], isLoading: branchesLoading } = useGetBranchesQuery(undefined);
+  const { data: apiSuppliers = [], isLoading: suppliersLoading } =
+    useGetSuppliersQuery(undefined);
+  const { data: apiPurchaseInvoices = [], isLoading: purchaseInvoicesLoading } =
+    useGetPurchaseInvoicesQuery(undefined);
+  const { data: apiPurchaseReturns = [], isLoading: purchaseReturnsLoading } =
+    useGetPurchaseReturnsQuery(undefined);
+  const { data: apiBranches = [], isLoading: branchesLoading } =
+    useGetBranchesQuery(undefined);
 
   // Transform API data to match expected format
   const suppliers = useMemo(() => {
-    return (apiSuppliers as any[]).map(supplier => ({
+    return (apiSuppliers as any[]).map((supplier) => ({
       ...supplier,
       // Add any necessary transformations here
     }));
   }, [apiSuppliers]);
 
   const purchaseInvoices = useMemo(() => {
-    return (apiPurchaseInvoices as any[]).map(invoice => ({
+    return (apiPurchaseInvoices as any[]).map((invoice) => ({
       ...invoice,
       // Transform nested supplier data
-      customerOrSupplier: invoice.customerOrSupplier ? {
-        id: invoice.customerOrSupplier.id.toString(),
-        name: invoice.customerOrSupplier.name
-      } : null,
+      customerOrSupplier: invoice.customerOrSupplier
+        ? {
+            id: invoice.customerOrSupplier.id.toString(),
+            name: invoice.customerOrSupplier.name,
+          }
+        : null,
     }));
   }, [apiPurchaseInvoices]);
 
   const purchaseReturns = useMemo(() => {
-    return (apiPurchaseReturns as any[]).map(returnInvoice => ({
+    return (apiPurchaseReturns as any[]).map((returnInvoice) => ({
       ...returnInvoice,
       // Transform nested supplier data
-      customerOrSupplier: returnInvoice.customerOrSupplier ? {
-        id: returnInvoice.customerOrSupplier.id.toString(),
-        name: returnInvoice.customerOrSupplier.name
-      } : null,
+      customerOrSupplier: returnInvoice.customerOrSupplier
+        ? {
+            id: returnInvoice.customerOrSupplier.id.toString(),
+            name: returnInvoice.customerOrSupplier.name,
+          }
+        : null,
     }));
   }, [apiPurchaseReturns]);
 
   const branches = useMemo(() => {
-    return (apiBranches as any[]).map(branch => ({
+    return (apiBranches as any[]).map((branch) => ({
       ...branch,
       // Add any necessary transformations here
     }));
   }, [apiBranches]);
 
-  const isLoading = suppliersLoading || purchaseInvoicesLoading || purchaseReturnsLoading || branchesLoading;
+  const isLoading =
+    suppliersLoading ||
+    purchaseInvoicesLoading ||
+    purchaseReturnsLoading ||
+    branchesLoading;
   const [endDate, setEndDate] = useState(
     new Date().toISOString().substring(0, 10),
   );

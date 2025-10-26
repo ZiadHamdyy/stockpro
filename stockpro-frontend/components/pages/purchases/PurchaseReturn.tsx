@@ -50,7 +50,6 @@ interface PurchaseReturnProps {
   onClearViewingId: () => void;
 }
 
-
 // FIX: Add currentUser to props destructuring
 const PurchaseReturn: React.FC<PurchaseReturnProps> = ({
   title,
@@ -70,7 +69,7 @@ const PurchaseReturn: React.FC<PurchaseReturnProps> = ({
   const { data: company } = useGetCompanyQuery();
 
   // Transform data
-  const allItems: SelectableItem[] = (items as any[]).map(item => ({
+  const allItems: SelectableItem[] = (items as any[]).map((item) => ({
     id: item.code,
     name: item.name,
     unit: item.unit.name,
@@ -79,7 +78,7 @@ const PurchaseReturn: React.FC<PurchaseReturnProps> = ({
     barcode: item.barcode,
   }));
 
-  const allSuppliers: Supplier[] = suppliers.map(supplier => ({
+  const allSuppliers: Supplier[] = suppliers.map((supplier) => ({
     id: supplier.id,
     code: supplier.code,
     name: supplier.name,
@@ -216,14 +215,16 @@ const PurchaseReturn: React.FC<PurchaseReturnProps> = ({
     if (currentIndex >= 0 && (invoices || [])[currentIndex]) {
       const inv = (invoices || [])[currentIndex];
       setInvoiceDetails({ invoiceNumber: inv.code, invoiceDate: inv.date });
-      setSelectedSupplier(inv.supplier ? { id: inv.supplier.id, name: inv.supplier.name } : null);
+      setSelectedSupplier(
+        inv.supplier ? { id: inv.supplier.id, name: inv.supplier.name } : null,
+      );
       setSupplierQuery(inv.supplier?.name || "");
       setReturnItems(inv.items as InvoiceItem[]);
-      setTotals({ 
-        subtotal: inv.subtotal, 
-        discount: inv.discount, 
-        tax: inv.tax, 
-        net: inv.net 
+      setTotals({
+        subtotal: inv.subtotal,
+        discount: inv.discount,
+        tax: inv.tax,
+        net: inv.net,
       });
       setPaymentMethod(inv.paymentMethod);
       setPaymentTargetType(inv.paymentTargetType || "safe");
@@ -410,7 +411,7 @@ const PurchaseReturn: React.FC<PurchaseReturnProps> = ({
       const returnData = {
         supplierId: selectedSupplier?.id,
         date: invoiceDetails.invoiceDate,
-        items: finalItems.map(item => ({
+        items: finalItems.map((item) => ({
           id: item.id,
           name: item.name,
           unit: item.unit,
@@ -421,7 +422,8 @@ const PurchaseReturn: React.FC<PurchaseReturnProps> = ({
         })),
         discount: totals.discount,
         paymentMethod,
-        paymentTargetType: paymentMethod === "cash" ? paymentTargetType : undefined,
+        paymentTargetType:
+          paymentMethod === "cash" ? paymentTargetType : undefined,
         paymentTargetId: paymentMethod === "cash" ? paymentTargetId : undefined,
         notes: "",
       };
@@ -438,7 +440,7 @@ const PurchaseReturn: React.FC<PurchaseReturnProps> = ({
         await createPurchaseReturn(returnData).unwrap();
         showToast("تم حفظ المرتجع بنجاح!");
       }
-      
+
       setIsReadOnly(true);
       // Refresh the returns list
       // The Redux cache will automatically update
@@ -469,7 +471,9 @@ const PurchaseReturn: React.FC<PurchaseReturnProps> = ({
       message: "هل أنت متأكد من حذف هذا المرتجع؟",
       onConfirm: async () => {
         try {
-          await deletePurchaseReturn((invoices || [])[currentIndex].id).unwrap();
+          await deletePurchaseReturn(
+            (invoices || [])[currentIndex].id,
+          ).unwrap();
           showToast("تم الحذف بنجاح.");
           if ((invoices || []).length <= 1) {
             handleNew();
@@ -487,7 +491,9 @@ const PurchaseReturn: React.FC<PurchaseReturnProps> = ({
 
   const navigate = (index: number) => {
     if ((invoices || []).length > 0) {
-      setCurrentIndex(Math.max(0, Math.min((invoices || []).length - 1, index)));
+      setCurrentIndex(
+        Math.max(0, Math.min((invoices || []).length - 1, index)),
+      );
     }
   };
 
@@ -922,7 +928,8 @@ const PurchaseReturn: React.FC<PurchaseReturnProps> = ({
               <button
                 onClick={() => navigate((invoices || []).length - 1)}
                 disabled={
-                  currentIndex >= (invoices || []).length - 1 || (invoices || []).length === 0
+                  currentIndex >= (invoices || []).length - 1 ||
+                  (invoices || []).length === 0
                 }
                 className="p-2 bg-gray-200 rounded-md hover:bg-gray-300 disabled:opacity-50"
               >
@@ -931,7 +938,8 @@ const PurchaseReturn: React.FC<PurchaseReturnProps> = ({
               <button
                 onClick={() => navigate(currentIndex + 1)}
                 disabled={
-                  currentIndex >= (invoices || []).length - 1 || (invoices || []).length === 0
+                  currentIndex >= (invoices || []).length - 1 ||
+                  (invoices || []).length === 0
                 }
                 className="p-2 bg-gray-200 rounded-md hover:bg-gray-300 disabled:opacity-50"
               >

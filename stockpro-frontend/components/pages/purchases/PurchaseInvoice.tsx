@@ -52,7 +52,6 @@ interface PurchaseInvoiceProps {
   onClearViewingId: () => void;
 }
 
-
 const PurchaseInvoice: React.FC<PurchaseInvoiceProps> = ({
   title,
   currentUser,
@@ -71,7 +70,7 @@ const PurchaseInvoice: React.FC<PurchaseInvoiceProps> = ({
   const { data: company } = useGetCompanyQuery();
 
   // Transform data
-  const allItems: SelectableItem[] = (items as any[]).map(item => ({
+  const allItems: SelectableItem[] = (items as any[]).map((item) => ({
     id: item.code,
     name: item.name,
     unit: item.unit.name,
@@ -80,7 +79,7 @@ const PurchaseInvoice: React.FC<PurchaseInvoiceProps> = ({
     barcode: item.barcode,
   }));
 
-  const allSuppliers: Supplier[] = suppliers.map(supplier => ({
+  const allSuppliers: Supplier[] = suppliers.map((supplier) => ({
     id: supplier.id,
     code: supplier.code,
     name: supplier.name,
@@ -219,14 +218,16 @@ const PurchaseInvoice: React.FC<PurchaseInvoiceProps> = ({
     if (currentIndex >= 0 && (invoices || [])[currentIndex]) {
       const inv = (invoices || [])[currentIndex];
       setInvoiceDetails({ invoiceNumber: inv.code, invoiceDate: inv.date });
-      setSelectedSupplier(inv.supplier ? { id: inv.supplier.id, name: inv.supplier.name } : null);
+      setSelectedSupplier(
+        inv.supplier ? { id: inv.supplier.id, name: inv.supplier.name } : null,
+      );
       setSupplierQuery(inv.supplier?.name || "");
       setPurchaseItems(inv.items as InvoiceItem[]);
-      setTotals({ 
-        subtotal: inv.subtotal, 
-        discount: inv.discount, 
-        tax: inv.tax, 
-        net: inv.net 
+      setTotals({
+        subtotal: inv.subtotal,
+        discount: inv.discount,
+        tax: inv.tax,
+        net: inv.net,
       });
       setPaymentMethod(inv.paymentMethod);
       setPaymentTargetType(inv.paymentTargetType || "safe");
@@ -401,7 +402,8 @@ const PurchaseInvoice: React.FC<PurchaseInvoiceProps> = ({
     const foundItem = allItems.find((item) => item.barcode === barcode);
     if (foundItem) {
       const emptyRowIndex = purchaseItems.findIndex((i) => !i.id && !i.name);
-      const indexToFill = emptyRowIndex !== -1 ? emptyRowIndex : purchaseItems.length;
+      const indexToFill =
+        emptyRowIndex !== -1 ? emptyRowIndex : purchaseItems.length;
 
       const newItems = [...purchaseItems];
       if (emptyRowIndex === -1) {
@@ -444,7 +446,7 @@ const PurchaseInvoice: React.FC<PurchaseInvoiceProps> = ({
       const invoiceData = {
         supplierId: selectedSupplier?.id,
         date: invoiceDetails.invoiceDate,
-        items: finalItems.map(item => ({
+        items: finalItems.map((item) => ({
           id: item.id,
           name: item.name,
           unit: item.unit,
@@ -455,7 +457,8 @@ const PurchaseInvoice: React.FC<PurchaseInvoiceProps> = ({
         })),
         discount: totals.discount,
         paymentMethod,
-        paymentTargetType: paymentMethod === "cash" ? paymentTargetType : undefined,
+        paymentTargetType:
+          paymentMethod === "cash" ? paymentTargetType : undefined,
         paymentTargetId: paymentMethod === "cash" ? paymentTargetId : undefined,
         notes: "",
       };
@@ -472,7 +475,7 @@ const PurchaseInvoice: React.FC<PurchaseInvoiceProps> = ({
         await createPurchaseInvoice(invoiceData).unwrap();
         showToast("تم حفظ الفاتورة بنجاح!");
       }
-      
+
       setIsReadOnly(true);
       // Refresh the invoices list
       // The Redux cache will automatically update
@@ -504,7 +507,9 @@ const PurchaseInvoice: React.FC<PurchaseInvoiceProps> = ({
       message: "هل أنت متأكد من حذف هذه الفاتورة؟",
       onConfirm: async () => {
         try {
-          await deletePurchaseInvoice((invoices || [])[currentIndex].id).unwrap();
+          await deletePurchaseInvoice(
+            (invoices || [])[currentIndex].id,
+          ).unwrap();
           showToast("تم الحذف بنجاح.");
           if ((invoices || []).length <= 1) {
             handleNew();
@@ -522,7 +527,9 @@ const PurchaseInvoice: React.FC<PurchaseInvoiceProps> = ({
 
   const navigate = (index: number) => {
     if ((invoices || []).length > 0) {
-      setCurrentIndex(Math.max(0, Math.min((invoices || []).length - 1, index)));
+      setCurrentIndex(
+        Math.max(0, Math.min((invoices || []).length - 1, index)),
+      );
     }
   };
 
@@ -968,7 +975,8 @@ const PurchaseInvoice: React.FC<PurchaseInvoiceProps> = ({
               <button
                 onClick={() => navigate((invoices || []).length - 1)}
                 disabled={
-                  currentIndex >= (invoices || []).length - 1 || (invoices || []).length === 0
+                  currentIndex >= (invoices || []).length - 1 ||
+                  (invoices || []).length === 0
                 }
                 className="p-2 bg-gray-200 rounded-md hover:bg-gray-300 disabled:opacity-50"
               >
@@ -977,7 +985,8 @@ const PurchaseInvoice: React.FC<PurchaseInvoiceProps> = ({
               <button
                 onClick={() => navigate(currentIndex + 1)}
                 disabled={
-                  currentIndex >= (invoices || []).length - 1 || (invoices || []).length === 0
+                  currentIndex >= (invoices || []).length - 1 ||
+                  (invoices || []).length === 0
                 }
                 className="p-2 bg-gray-200 rounded-md hover:bg-gray-300 disabled:opacity-50"
               >

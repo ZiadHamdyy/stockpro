@@ -1,4 +1,11 @@
-import { IsString, IsNumber, IsOptional, IsArray, ValidateNested, IsEnum } from 'class-validator';
+import {
+  IsString,
+  IsNumber,
+  IsOptional,
+  IsArray,
+  ValidateNested,
+  IsEnum,
+} from 'class-validator';
 import { Type } from 'class-transformer';
 
 export class ReturnItemDto {
@@ -59,4 +66,3 @@ export class CreateSalesReturnRequest {
   @IsOptional()
   notes?: string;
 }
-

@@ -28,7 +28,7 @@ const PurchaseInvoicePrintPreview: React.FC<
   PurchaseInvoicePrintPreviewProps
 > = ({ isOpen, onClose, invoiceData }) => {
   const { data: companyInfo, isLoading, error } = useGetCompanyQuery();
-  
+
   if (!isOpen) return null;
 
   const {

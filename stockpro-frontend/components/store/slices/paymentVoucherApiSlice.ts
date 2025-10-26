@@ -60,11 +60,15 @@ export const paymentVoucherApiSlice = apiSlice.injectEndpoints({
         url: "payment-vouchers",
         params: search ? { search } : undefined,
       }),
-      transformResponse: (response: { data: PaymentVoucher[] }) => response.data,
+      transformResponse: (response: { data: PaymentVoucher[] }) =>
+        response.data,
       providesTags: (result) =>
         result
           ? [
-              ...result.map(({ id }) => ({ type: "PaymentVoucher" as const, id })),
+              ...result.map(({ id }) => ({
+                type: "PaymentVoucher" as const,
+                id,
+              })),
               { type: "PaymentVoucher", id: "LIST" },
             ]
           : [{ type: "PaymentVoucher", id: "LIST" }],
@@ -121,4 +125,3 @@ export const {
   useUpdatePaymentVoucherMutation,
   useDeletePaymentVoucherMutation,
 } = paymentVoucherApiSlice;
-

@@ -15,9 +15,16 @@ export class PaymentVoucherService {
     userId: string,
   ): Promise<PaymentVoucherResponse> {
     const code = await this.generateNextCode();
-    
+
     // Fetch entity name based on type
-    const entityName = await this.fetchEntityName(data.entityType, data.customerId || data.supplierId || data.currentAccountId || data.expenseCodeId || '');
+    const entityName = await this.fetchEntityName(
+      data.entityType,
+      data.customerId ||
+        data.supplierId ||
+        data.currentAccountId ||
+        data.expenseCodeId ||
+        '',
+    );
 
     const paymentVoucher = await this.prisma.paymentVoucher.create({
       data: {
@@ -46,7 +53,9 @@ export class PaymentVoucherService {
     return this.mapToResponse(paymentVoucher);
   }
 
-  async findAllPaymentVouchers(search?: string): Promise<PaymentVoucherResponse[]> {
+  async findAllPaymentVouchers(
+    search?: string,
+  ): Promise<PaymentVoucherResponse[]> {
     const where = search
       ? {
           OR: [
@@ -91,14 +100,17 @@ export class PaymentVoucherService {
   ): Promise<PaymentVoucherResponse> {
     try {
       const updateData: any = { ...data };
-      
+
       if (data.date) {
         updateData.date = new Date(data.date);
       }
 
       // If entity type or ID changed, fetch new entity name
       if (data.entityType && data.entityId) {
-        updateData.entityName = await this.fetchEntityName(data.entityType, data.entityId);
+        updateData.entityName = await this.fetchEntityName(
+          data.entityType,
+          data.entityId,
+        );
       }
 
       const paymentVoucher = await this.prisma.paymentVoucher.update({
@@ -146,32 +158,35 @@ export class PaymentVoucherService {
     return `PAY-${String(nextNumber).padStart(3, '0')}`;
   }
 
-  private async fetchEntityName(entityType: string, entityId: string): Promise<string> {
+  private async fetchEntityName(
+    entityType: string,
+    entityId: string,
+  ): Promise<string> {
     switch (entityType) {
       case 'customer':
         const customer = await this.prisma.customer.findUnique({
           where: { id: entityId },
         });
         return customer?.name || '';
-      
+
       case 'supplier':
         const supplier = await this.prisma.supplier.findUnique({
           where: { id: entityId },
         });
         return supplier?.name || '';
-      
+
       case 'current_account':
         const currentAccount = await this.prisma.currentAccount.findUnique({
           where: { id: entityId },
         });
         return currentAccount?.name || '';
-      
+
       case 'expense':
         const expenseCode = await this.prisma.expenseCode.findUnique({
           where: { id: entityId },
         });
         return expenseCode?.name || '';
-      
+
       default:
         return '';
     }
@@ -200,4 +215,3 @@ export class PaymentVoucherService {
     };
   }
 }
-

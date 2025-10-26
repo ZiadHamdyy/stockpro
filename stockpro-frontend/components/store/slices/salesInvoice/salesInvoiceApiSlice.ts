@@ -25,8 +25,8 @@ export interface SalesInvoice {
   discount: number;
   tax: number;
   net: number;
-  paymentMethod: 'cash' | 'credit';
-  paymentTargetType?: 'safe' | 'bank';
+  paymentMethod: "cash" | "credit";
+  paymentTargetType?: "safe" | "bank";
   paymentTargetId?: string;
   notes?: string;
   userId: string;
@@ -48,8 +48,8 @@ export interface CreateSalesInvoiceRequest {
   date?: string;
   items: InvoiceItem[];
   discount?: number;
-  paymentMethod: 'cash' | 'credit';
-  paymentTargetType?: 'safe' | 'bank';
+  paymentMethod: "cash" | "credit";
+  paymentTargetType?: "safe" | "bank";
   paymentTargetId?: string;
   notes?: string;
 }
@@ -59,8 +59,8 @@ export interface UpdateSalesInvoiceRequest {
   date?: string;
   items?: InvoiceItem[];
   discount?: number;
-  paymentMethod?: 'cash' | 'credit';
-  paymentTargetType?: 'safe' | 'bank';
+  paymentMethod?: "cash" | "credit";
+  paymentTargetType?: "safe" | "bank";
   paymentTargetId?: string;
   notes?: string;
 }
@@ -76,7 +76,10 @@ export const salesInvoiceApiSlice = apiSlice.injectEndpoints({
       providesTags: (result) =>
         result
           ? [
-              ...result.map(({ id }) => ({ type: "SalesInvoice" as const, id })),
+              ...result.map(({ id }) => ({
+                type: "SalesInvoice" as const,
+                id,
+              })),
               { type: "SalesInvoice", id: "LIST" },
             ]
           : [{ type: "SalesInvoice", id: "LIST" }],
@@ -86,7 +89,10 @@ export const salesInvoiceApiSlice = apiSlice.injectEndpoints({
       transformResponse: (response: { data: SalesInvoice }) => response.data,
       providesTags: (result, error, id) => [{ type: "SalesInvoice", id }],
     }),
-    createSalesInvoice: builder.mutation<SalesInvoice, CreateSalesInvoiceRequest>({
+    createSalesInvoice: builder.mutation<
+      SalesInvoice,
+      CreateSalesInvoiceRequest
+    >({
       query: (data) => ({
         url: "sales-invoices",
         method: "POST",
@@ -130,4 +136,3 @@ export const {
   useUpdateSalesInvoiceMutation,
   useDeleteSalesInvoiceMutation,
 } = salesInvoiceApiSlice;
-

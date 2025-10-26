@@ -1,4 +1,11 @@
-import { IsDateString, IsString, IsEnum, IsNumber, IsOptional, Min } from 'class-validator';
+import {
+  IsDateString,
+  IsString,
+  IsEnum,
+  IsNumber,
+  IsOptional,
+  Min,
+} from 'class-validator';
 
 export class CreatePaymentVoucherRequest {
   @IsDateString()
@@ -46,4 +53,3 @@ export class CreatePaymentVoucherRequest {
   @IsString()
   branchId?: string;
 }
-

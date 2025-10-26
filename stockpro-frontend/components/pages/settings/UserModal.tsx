@@ -59,7 +59,7 @@ const UserModal: React.FC<UserModalProps> = ({
         branchId: "",
       });
     }
-    
+
     // Clear validation errors when modal opens
     setValidationErrors({});
   }, [userToEdit, isOpen]);
@@ -69,7 +69,7 @@ const UserModal: React.FC<UserModalProps> = ({
   ) => {
     const { name, value } = e.target;
     setUserData((prev) => ({ ...prev, [name]: value }));
-    
+
     // Clear validation error when user starts typing
     if (validationErrors[name as keyof typeof validationErrors]) {
       setValidationErrors((prev) => ({
@@ -81,27 +81,27 @@ const UserModal: React.FC<UserModalProps> = ({
 
   const validateForm = () => {
     const errors: typeof validationErrors = {};
-    
+
     if (!userData.name.trim()) {
       errors.name = "الاسم مطلوب";
     }
-    
+
     if (!userData.email.trim()) {
       errors.email = "البريد الإلكتروني مطلوب";
     } else if (!/\S+@\S+\.\S+/.test(userData.email)) {
       errors.email = "البريد الإلكتروني غير صحيح";
     }
-    
+
     if (!userToEdit && !userData.password.trim()) {
       errors.password = "الرقم السري مطلوب";
     } else if (userData.password && userData.password.length < 8) {
       errors.password = "الرقم السري يجب أن يكون 8 أحرف على الأقل";
     }
-    
+
     if (!userData.branchId) {
       errors.branchId = "يجب اختيار فرع";
     }
-    
+
     setValidationErrors(errors);
     return Object.keys(errors).length === 0;
   };
@@ -151,10 +151,10 @@ const UserModal: React.FC<UserModalProps> = ({
       onClose();
     } catch (error: any) {
       console.error("Error saving user:", error);
-      
+
       // Show custom notification messages instead of backend errors
       let errorMessage = "حدث خطأ أثناء حفظ المستخدم";
-      
+
       if (error?.status === 409) {
         errorMessage = "البريد الإلكتروني مستخدم بالفعل";
       } else if (error?.status === 400) {
@@ -169,12 +169,12 @@ const UserModal: React.FC<UserModalProps> = ({
         errorMessage = "البيانات المدخلة غير صحيحة";
       } else if (error?.status >= 500) {
         errorMessage = "خطأ في الخادم، يرجى المحاولة لاحقاً";
-      } else if (error?.message?.includes('Network')) {
+      } else if (error?.message?.includes("Network")) {
         errorMessage = "خطأ في الاتصال بالخادم";
-      } else if (error?.message?.includes('timeout')) {
+      } else if (error?.message?.includes("timeout")) {
         errorMessage = "انتهت مهلة الاتصال، يرجى المحاولة مرة أخرى";
       }
-      
+
       showToast(errorMessage);
     }
   };
@@ -241,11 +241,13 @@ const UserModal: React.FC<UserModalProps> = ({
                   name="name"
                   value={userData.name}
                   onChange={handleChange}
-                  className={`${inputStyle} ${validationErrors.name ? 'border-red-500' : ''}`}
+                  className={`${inputStyle} ${validationErrors.name ? "border-red-500" : ""}`}
                   required
                 />
                 {validationErrors.name && (
-                  <p className="mt-1 text-sm text-red-600">{validationErrors.name}</p>
+                  <p className="mt-1 text-sm text-red-600">
+                    {validationErrors.name}
+                  </p>
                 )}
               </div>
               <div>
@@ -261,11 +263,13 @@ const UserModal: React.FC<UserModalProps> = ({
                   name="email"
                   value={userData.email}
                   onChange={handleChange}
-                  className={`${inputStyle} ${validationErrors.email ? 'border-red-500' : ''}`}
+                  className={`${inputStyle} ${validationErrors.email ? "border-red-500" : ""}`}
                   required
                 />
                 {validationErrors.email && (
-                  <p className="mt-1 text-sm text-red-600">{validationErrors.email}</p>
+                  <p className="mt-1 text-sm text-red-600">
+                    {validationErrors.email}
+                  </p>
                 )}
               </div>
               <div className="relative">
@@ -281,7 +285,7 @@ const UserModal: React.FC<UserModalProps> = ({
                   name="password"
                   value={userData.password || ""}
                   onChange={handleChange}
-                  className={`${inputStyle} pl-10 ${validationErrors.password ? 'border-red-500' : ''}`}
+                  className={`${inputStyle} pl-10 ${validationErrors.password ? "border-red-500" : ""}`}
                   placeholder={userToEdit ? "اتركه فارغاً لعدم التغيير" : ""}
                   required={!userToEdit}
                 />
@@ -293,7 +297,9 @@ const UserModal: React.FC<UserModalProps> = ({
                   {isPasswordVisible ? <EyeOffIcon /> : <EyeIcon />}
                 </button>
                 {validationErrors.password && (
-                  <p className="mt-1 text-sm text-red-600">{validationErrors.password}</p>
+                  <p className="mt-1 text-sm text-red-600">
+                    {validationErrors.password}
+                  </p>
                 )}
               </div>
               <div>
@@ -308,7 +314,7 @@ const UserModal: React.FC<UserModalProps> = ({
                   name="branchId"
                   value={userData.branchId}
                   onChange={handleChange}
-                  className={`${inputStyle} ${validationErrors.branchId ? 'border-red-500' : ''}`}
+                  className={`${inputStyle} ${validationErrors.branchId ? "border-red-500" : ""}`}
                   required
                 >
                   <option value="">اختر فرع...</option>
@@ -319,7 +325,9 @@ const UserModal: React.FC<UserModalProps> = ({
                   ))}
                 </select>
                 {validationErrors.branchId && (
-                  <p className="mt-1 text-sm text-red-600">{validationErrors.branchId}</p>
+                  <p className="mt-1 text-sm text-red-600">
+                    {validationErrors.branchId}
+                  </p>
                 )}
               </div>
             </div>

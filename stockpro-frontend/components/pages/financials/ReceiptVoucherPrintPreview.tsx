@@ -24,7 +24,7 @@ const ReceiptVoucherPrintPreview: React.FC<ReceiptVoucherPrintPreviewProps> = ({
   voucherData,
 }) => {
   const { data: companyInfo, isLoading, error } = useGetCompanyQuery();
-  
+
   if (!isOpen) return null;
 
   const {

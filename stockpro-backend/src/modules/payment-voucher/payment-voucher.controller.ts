@@ -28,7 +28,10 @@ export class PaymentVoucherController {
     @Body() createDto: CreatePaymentVoucherRequest,
     @Request() req: any,
   ): Promise<PaymentVoucherResponse> {
-    return this.paymentVoucherService.createPaymentVoucher(createDto, req.user.id);
+    return this.paymentVoucherService.createPaymentVoucher(
+      createDto,
+      req.user.id,
+    );
   }
 
   @Get()
@@ -63,4 +66,3 @@ export class PaymentVoucherController {
     return this.paymentVoucherService.removePaymentVoucher(id);
   }
 }
-

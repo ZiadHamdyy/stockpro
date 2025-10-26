@@ -21,11 +21,12 @@ const SafeStatementReport: React.FC<SafeStatementReportProps> = ({
   currentUser,
 }) => {
   // API hooks
-  const { data: apiSafes = [], isLoading: safesLoading } = useGetSafesQuery(undefined);
+  const { data: apiSafes = [], isLoading: safesLoading } =
+    useGetSafesQuery(undefined);
 
   // Transform API data to match expected format
   const safes = useMemo(() => {
-    return (apiSafes as any[]).map(safe => ({
+    return (apiSafes as any[]).map((safe) => ({
       ...safe,
       // Add any necessary transformations here
     }));

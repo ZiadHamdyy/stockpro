@@ -10,10 +10,7 @@ interface DailyPurchasesProps {
   title: string;
 }
 
-
-const DailyPurchases: React.FC<DailyPurchasesProps> = ({
-  title,
-}) => {
+const DailyPurchases: React.FC<DailyPurchasesProps> = ({ title }) => {
   // Redux hooks
   const { data: purchaseInvoices = [] } = useGetPurchaseInvoicesQuery();
   const { data: company } = useGetCompanyQuery();
@@ -40,20 +37,18 @@ const DailyPurchases: React.FC<DailyPurchasesProps> = ({
   const [searchTerm, setSearchTerm] = useState("");
 
   const filteredPurchases = useMemo(() => {
-    return purchaseInvoices.filter(
-      (purchase) => {
-        const purchaseDate = purchase.date.substring(0, 10); // Extract just the date part
-        return (
-          purchaseDate >= startDate &&
-          purchaseDate <= endDate &&
-          (purchase.code.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            (purchase.supplier &&
-              purchase.supplier.name
-                .toLowerCase()
-                .includes(searchTerm.toLowerCase())))
-        );
-      }
-    );
+    return purchaseInvoices.filter((purchase) => {
+      const purchaseDate = purchase.date.substring(0, 10); // Extract just the date part
+      return (
+        purchaseDate >= startDate &&
+        purchaseDate <= endDate &&
+        (purchase.code.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          (purchase.supplier &&
+            purchase.supplier.name
+              .toLowerCase()
+              .includes(searchTerm.toLowerCase())))
+      );
+    });
   }, [purchaseInvoices, startDate, endDate, searchTerm]);
 
   const totals = filteredPurchases.reduce(

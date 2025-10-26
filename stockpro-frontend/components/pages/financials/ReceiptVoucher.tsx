@@ -32,7 +32,6 @@ interface ReceiptVoucherProps {
   onClearViewingId: () => void;
 }
 
-
 const ReceiptVoucher: React.FC<ReceiptVoucherProps> = ({
   title,
   vouchers,
@@ -404,7 +403,9 @@ const ReceiptVoucher: React.FC<ReceiptVoucherProps> = ({
 
         <div className="mt-6">
           <div className="bg-brand-blue-bg p-3 rounded-md text-center text-brand-dark font-semibold">
-            {companyInfo ? tafqeet(voucherData.amount, companyInfo.currency) : "جاري التحميل..."}
+            {companyInfo
+              ? tafqeet(voucherData.amount, companyInfo.currency)
+              : "جاري التحميل..."}
           </div>
         </div>
 
@@ -502,7 +503,8 @@ const ReceiptVoucher: React.FC<ReceiptVoucherProps> = ({
             receivedFrom: voucherData.entity.name,
             description: voucherData.description,
             userName: voucher?.userName || currentUser?.fullName || "غير محدد",
-            branchName: voucher?.branchName || currentUser?.branch || "غير محدد",
+            branchName:
+              voucher?.branchName || currentUser?.branch || "غير محدد",
           }}
         />
       )}

@@ -24,18 +24,11 @@ const PaymentVoucherPrintPreview: React.FC<PaymentVoucherPrintPreviewProps> = ({
   voucherData,
 }) => {
   const { data: companyInfo, isLoading, error } = useGetCompanyQuery();
-  
+
   if (!isOpen) return null;
 
-  const {
-    number,
-    date,
-    amount,
-    paidTo,
-    description,
-    userName,
-    branchName,
-  } = voucherData;
+  const { number, date, amount, paidTo, description, userName, branchName } =
+    voucherData;
 
   if (isLoading) {
     return (

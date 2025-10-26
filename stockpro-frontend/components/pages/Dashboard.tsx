@@ -1,6 +1,10 @@
 import React, { useEffect, useRef } from "react";
 import { UsersIcon, BoxIcon, ReceiptIcon, ShoppingCartIcon } from "../icons";
-import { useGetDashboardStatsQuery, useGetMonthlyStatsQuery, useGetSalesByItemGroupQuery } from "../store/slices/dashboard/dashboardApiSlice";
+import {
+  useGetDashboardStatsQuery,
+  useGetMonthlyStatsQuery,
+  useGetSalesByItemGroupQuery,
+} from "../store/slices/dashboard/dashboardApiSlice";
 import { formatNumber } from "../../utils/formatting";
 
 declare var Chart: any;
@@ -8,9 +12,9 @@ declare var Chart: any;
 // Helper function to format large numbers with K/M suffixes
 const formatLargeNumber = (num: number): string => {
   if (num >= 1000000) {
-    return (num / 1000000).toFixed(1) + 'M';
+    return (num / 1000000).toFixed(1) + "M";
   } else if (num >= 1000) {
-    return (num / 1000).toFixed(1) + 'K';
+    return (num / 1000).toFixed(1) + "K";
   }
   return num.toString();
 };
@@ -47,11 +51,12 @@ const Dashboard: React.FC<{ title: string }> = ({ title }) => {
   const chartInstances = useRef<{ bar?: any; doughnut?: any }>({});
 
   // Fetch dashboard statistics
-  const { data: dashboardStats, isLoading: statsLoading } = useGetDashboardStatsQuery();
-  
+  const { data: dashboardStats, isLoading: statsLoading } =
+    useGetDashboardStatsQuery();
+
   // Fetch monthly statistics
   const { data: monthlyStats } = useGetMonthlyStatsQuery();
-  
+
   // Fetch sales by item group
   const { data: salesByItemGroup } = useGetSalesByItemGroupQuery();
 
@@ -63,8 +68,10 @@ const Dashboard: React.FC<{ title: string }> = ({ title }) => {
         if (chartInstances.current.bar) chartInstances.current.bar.destroy();
 
         // Convert data to thousands for better readability
-        const salesData = monthlyStats.months.map(m => m.netSales / 1000);
-        const purchasesData = monthlyStats.months.map(m => m.netPurchases / 1000);
+        const salesData = monthlyStats.months.map((m) => m.netSales / 1000);
+        const purchasesData = monthlyStats.months.map(
+          (m) => m.netPurchases / 1000,
+        );
 
         chartInstances.current.bar = new Chart(barCtx, {
           type: "bar",
@@ -135,14 +142,25 @@ const Dashboard: React.FC<{ title: string }> = ({ title }) => {
 
         // Generate dynamic colors for item groups
         const colors = [
-          "#1E40AF", "#16a34a", "#f59e0b", "#6b7280", 
-          "#ef4444", "#8b5cf6", "#ec4899", "#06b6d4",
-          "#84cc16", "#f97316", "#14b8a6", "#a855f7"
+          "#1E40AF",
+          "#16a34a",
+          "#f59e0b",
+          "#6b7280",
+          "#ef4444",
+          "#8b5cf6",
+          "#ec4899",
+          "#06b6d4",
+          "#84cc16",
+          "#f97316",
+          "#14b8a6",
+          "#a855f7",
         ];
 
-        const labels = salesByItemGroup.itemGroups.map(g => g.groupName);
-        const data = salesByItemGroup.itemGroups.map(g => g.totalSales);
-        const backgroundColors = salesByItemGroup.itemGroups.map((_, i) => colors[i % colors.length]);
+        const labels = salesByItemGroup.itemGroups.map((g) => g.groupName);
+        const data = salesByItemGroup.itemGroups.map((g) => g.totalSales);
+        const backgroundColors = salesByItemGroup.itemGroups.map(
+          (_, i) => colors[i % colors.length],
+        );
 
         chartInstances.current.doughnut = new Chart(doughnutCtx, {
           type: "doughnut",
@@ -169,13 +187,14 @@ const Dashboard: React.FC<{ title: string }> = ({ title }) => {
                 titleFont: { family: "Cairo" },
                 bodyFont: { family: "Cairo" },
                 callbacks: {
-                  label: function(context: any) {
-                    const label = context.label || '';
+                  label: function (context: any) {
+                    const label = context.label || "";
                     const value = context.parsed || 0;
-                    const percentage = salesByItemGroup.itemGroups[context.dataIndex].percentage;
+                    const percentage =
+                      salesByItemGroup.itemGroups[context.dataIndex].percentage;
                     return `${label}: ${formatNumber(value)} SAR (${percentage}%)`;
-                  }
-                }
+                  },
+                },
               },
             },
           },
@@ -200,8 +219,8 @@ const Dashboard: React.FC<{ title: string }> = ({ title }) => {
             statsLoading
               ? "جاري التحميل..."
               : dashboardStats
-              ? `SAR ${formatLargeNumber(dashboardStats.netSales)}`
-              : "SAR 0"
+                ? `SAR ${formatLargeNumber(dashboardStats.netSales)}`
+                : "SAR 0"
           }
           icon={<ShoppingCartIcon className="w-12 h-12" />}
           gradient="from-blue-500 to-brand-blue"
@@ -212,8 +231,8 @@ const Dashboard: React.FC<{ title: string }> = ({ title }) => {
             statsLoading
               ? "جاري التحميل..."
               : dashboardStats
-              ? `SAR ${formatLargeNumber(dashboardStats.totalPurchases)}`
-              : "SAR 0"
+                ? `SAR ${formatLargeNumber(dashboardStats.totalPurchases)}`
+                : "SAR 0"
           }
           icon={<ReceiptIcon className="w-12 h-12" />}
           gradient="from-lime-500 to-green-600"
@@ -224,8 +243,8 @@ const Dashboard: React.FC<{ title: string }> = ({ title }) => {
             statsLoading
               ? "جاري التحميل..."
               : dashboardStats
-              ? dashboardStats.totalItems.toString()
-              : "0"
+                ? dashboardStats.totalItems.toString()
+                : "0"
           }
           icon={<BoxIcon className="w-12 h-12" />}
           gradient="from-yellow-400 to-amber-500"
@@ -236,8 +255,8 @@ const Dashboard: React.FC<{ title: string }> = ({ title }) => {
             statsLoading
               ? "جاري التحميل..."
               : dashboardStats
-              ? dashboardStats.totalCustomers.toString()
-              : "0"
+                ? dashboardStats.totalCustomers.toString()
+                : "0"
           }
           icon={<UsersIcon className="w-12 h-12" />}
           gradient="from-gray-600 to-brand-dark"

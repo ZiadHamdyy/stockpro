@@ -24,11 +24,12 @@ const ExpenseStatementReport: React.FC<ExpenseStatementReportProps> = ({
   currentUser,
 }) => {
   // API hooks
-  const { data: apiExpenseCodes = [], isLoading: expenseCodesLoading } = useGetExpenseCodesQuery(undefined);
+  const { data: apiExpenseCodes = [], isLoading: expenseCodesLoading } =
+    useGetExpenseCodesQuery(undefined);
 
   // Transform API data to match expected format
   const expenseCodes = useMemo(() => {
-    return (apiExpenseCodes as any[]).map(code => ({
+    return (apiExpenseCodes as any[]).map((code) => ({
       ...code,
       // Add any necessary transformations here
     }));

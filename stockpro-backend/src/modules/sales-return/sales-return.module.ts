@@ -9,4 +9,3 @@ import { DatabaseService } from '../../configs/database/database.service';
   exports: [SalesReturnService],
 })
 export class SalesReturnModule {}
-

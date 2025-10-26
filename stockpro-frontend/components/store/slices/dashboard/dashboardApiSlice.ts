@@ -38,14 +38,14 @@ export const dashboardApiSlice = apiSlice.injectEndpoints({
     }),
     getSalesByItemGroup: builder.query<SalesByItemGroup, void>({
       query: () => "dashboard/sales-by-item-group",
-      transformResponse: (response: { data: SalesByItemGroup }) => response.data,
+      transformResponse: (response: { data: SalesByItemGroup }) =>
+        response.data,
     }),
   }),
 });
 
-export const { 
-  useGetDashboardStatsQuery, 
+export const {
+  useGetDashboardStatsQuery,
   useGetMonthlyStatsQuery,
-  useGetSalesByItemGroupQuery 
+  useGetSalesByItemGroupQuery,
 } = dashboardApiSlice;
-

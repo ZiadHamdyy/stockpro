@@ -204,7 +204,10 @@ export class AppService {
       const percentage = totalSales > 0 ? (sales / totalSales) * 100 : 0;
       return {
         groupId,
-        groupName: groupId === 'uncategorized' ? 'غير مصنف' : groupNameMap.get(groupId) || 'غير معروف',
+        groupName:
+          groupId === 'uncategorized'
+            ? 'غير مصنف'
+            : groupNameMap.get(groupId) || 'غير معروف',
         totalSales: sales,
         percentage: parseFloat(percentage.toFixed(2)),
       };

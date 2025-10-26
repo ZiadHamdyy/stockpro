@@ -1,8 +1,5 @@
 import React, { useState, useMemo, useCallback, useEffect } from "react";
-import type {
-  CompanyInfo,
-  User,
-} from "../../../../types";
+import type { CompanyInfo, User } from "../../../../types";
 import { ExcelIcon, PdfIcon, PrintIcon, SearchIcon } from "../../../icons";
 import ReportHeader from "../ReportHeader";
 import { formatNumber } from "../../../../utils/formatting";
@@ -35,31 +32,47 @@ const ItemMovementReport: React.FC<ItemMovementReportProps> = ({
   currentUser,
 }) => {
   // API hooks
-  const { data: apiItems = [], isLoading: itemsLoading } = useGetItemsQuery(undefined);
-  const { data: branches = [], isLoading: branchesLoading } = useGetBranchesQuery(undefined);
-  const { data: stores = [], isLoading: storesLoading } = useGetStoresQuery(undefined);
-  const { data: salesInvoices = [], isLoading: salesInvoicesLoading } = useGetSalesInvoicesQuery(undefined);
-  const { data: salesReturns = [], isLoading: salesReturnsLoading } = useGetSalesReturnsQuery(undefined);
-  const { data: purchaseInvoices = [], isLoading: purchaseInvoicesLoading } = useGetPurchaseInvoicesQuery(undefined);
-  const { data: purchaseReturns = [], isLoading: purchaseReturnsLoading } = useGetPurchaseReturnsQuery(undefined);
-  const { data: storeReceiptVouchers = [], isLoading: storeReceiptVouchersLoading } = useGetStoreReceiptVouchersQuery(undefined);
-  const { data: storeIssueVouchers = [], isLoading: storeIssueVouchersLoading } = useGetStoreIssueVouchersQuery(undefined);
-  const { data: storeTransferVouchers = [], isLoading: storeTransferVouchersLoading } = useGetStoreTransferVouchersQuery(undefined);
+  const { data: apiItems = [], isLoading: itemsLoading } =
+    useGetItemsQuery(undefined);
+  const { data: branches = [], isLoading: branchesLoading } =
+    useGetBranchesQuery(undefined);
+  const { data: stores = [], isLoading: storesLoading } =
+    useGetStoresQuery(undefined);
+  const { data: salesInvoices = [], isLoading: salesInvoicesLoading } =
+    useGetSalesInvoicesQuery(undefined);
+  const { data: salesReturns = [], isLoading: salesReturnsLoading } =
+    useGetSalesReturnsQuery(undefined);
+  const { data: purchaseInvoices = [], isLoading: purchaseInvoicesLoading } =
+    useGetPurchaseInvoicesQuery(undefined);
+  const { data: purchaseReturns = [], isLoading: purchaseReturnsLoading } =
+    useGetPurchaseReturnsQuery(undefined);
+  const {
+    data: storeReceiptVouchers = [],
+    isLoading: storeReceiptVouchersLoading,
+  } = useGetStoreReceiptVouchersQuery(undefined);
+  const {
+    data: storeIssueVouchers = [],
+    isLoading: storeIssueVouchersLoading,
+  } = useGetStoreIssueVouchersQuery(undefined);
+  const {
+    data: storeTransferVouchers = [],
+    isLoading: storeTransferVouchersLoading,
+  } = useGetStoreTransferVouchersQuery(undefined);
 
   // Transform API data to match expected format
   const items = useMemo(() => {
-    return (apiItems as any[]).map(item => ({
+    return (apiItems as any[]).map((item) => ({
       ...item,
-      unit: item.unit?.name || '',
-      group: item.group?.name || '',
+      unit: item.unit?.name || "",
+      group: item.group?.name || "",
     }));
   }, [apiItems]);
 
   const transformedSalesInvoices = useMemo(() => {
-    return (salesInvoices as any[]).map(invoice => ({
+    return (salesInvoices as any[]).map((invoice) => ({
       ...invoice,
-      branchName: invoice.branch?.name || '',
-      items: invoice.items.map(item => ({
+      branchName: invoice.branch?.name || "",
+      items: invoice.items.map((item) => ({
         ...item,
         id: item.id,
         name: item.name,
@@ -73,10 +86,10 @@ const ItemMovementReport: React.FC<ItemMovementReportProps> = ({
   }, [salesInvoices]);
 
   const transformedSalesReturns = useMemo(() => {
-    return (salesReturns as any[]).map(invoice => ({
+    return (salesReturns as any[]).map((invoice) => ({
       ...invoice,
-      branchName: invoice.branch?.name || '',
-      items: invoice.items.map(item => ({
+      branchName: invoice.branch?.name || "",
+      items: invoice.items.map((item) => ({
         ...item,
         id: item.id,
         name: item.name,
@@ -90,10 +103,10 @@ const ItemMovementReport: React.FC<ItemMovementReportProps> = ({
   }, [salesReturns]);
 
   const transformedPurchaseInvoices = useMemo(() => {
-    return (purchaseInvoices as any[]).map(invoice => ({
+    return (purchaseInvoices as any[]).map((invoice) => ({
       ...invoice,
-      branchName: invoice.branch?.name || '',
-      items: invoice.items.map(item => ({
+      branchName: invoice.branch?.name || "",
+      items: invoice.items.map((item) => ({
         ...item,
         id: item.id,
         name: item.name,
@@ -107,10 +120,10 @@ const ItemMovementReport: React.FC<ItemMovementReportProps> = ({
   }, [purchaseInvoices]);
 
   const transformedPurchaseReturns = useMemo(() => {
-    return (purchaseReturns as any[]).map(invoice => ({
+    return (purchaseReturns as any[]).map((invoice) => ({
       ...invoice,
-      branchName: invoice.branch?.name || '',
-      items: invoice.items.map(item => ({
+      branchName: invoice.branch?.name || "",
+      items: invoice.items.map((item) => ({
         ...item,
         id: item.id,
         name: item.name,
@@ -124,52 +137,59 @@ const ItemMovementReport: React.FC<ItemMovementReportProps> = ({
   }, [purchaseReturns]);
 
   const transformedStoreReceiptVouchers = useMemo(() => {
-    return (storeReceiptVouchers as any[]).map(voucher => ({
+    return (storeReceiptVouchers as any[]).map((voucher) => ({
       ...voucher,
-      branch: voucher.store?.branch?.name || '',
-      items: voucher.items.map(item => ({
+      branch: voucher.store?.branch?.name || "",
+      items: voucher.items.map((item) => ({
         ...item,
         id: item.item?.code || item.itemId,
-        name: item.item?.name || '',
-        unit: item.item?.unit?.name || '',
+        name: item.item?.name || "",
+        unit: item.item?.unit?.name || "",
         qty: item.quantity,
       })),
     }));
   }, [storeReceiptVouchers]);
 
   const transformedStoreIssueVouchers = useMemo(() => {
-    return (storeIssueVouchers as any[]).map(voucher => ({
+    return (storeIssueVouchers as any[]).map((voucher) => ({
       ...voucher,
-      branch: voucher.store?.branch?.name || '',
-      items: voucher.items.map(item => ({
+      branch: voucher.store?.branch?.name || "",
+      items: voucher.items.map((item) => ({
         ...item,
         id: item.item?.code || item.itemId,
-        name: item.item?.name || '',
-        unit: item.item?.unit?.name || '',
+        name: item.item?.name || "",
+        unit: item.item?.unit?.name || "",
         qty: item.quantity,
       })),
     }));
   }, [storeIssueVouchers]);
 
   const transformedStoreTransferVouchers = useMemo(() => {
-    return (storeTransferVouchers as any[]).map(voucher => ({
+    return (storeTransferVouchers as any[]).map((voucher) => ({
       ...voucher,
-      fromStore: voucher.fromStore?.name || '',
-      toStore: voucher.toStore?.name || '',
-      items: voucher.items.map(item => ({
+      fromStore: voucher.fromStore?.name || "",
+      toStore: voucher.toStore?.name || "",
+      items: voucher.items.map((item) => ({
         ...item,
         id: item.item?.code || item.itemId,
-        name: item.item?.name || '',
-        unit: item.item?.unit?.name || '',
+        name: item.item?.name || "",
+        unit: item.item?.unit?.name || "",
         qty: item.quantity,
       })),
     }));
   }, [storeTransferVouchers]);
 
-  const isLoading = itemsLoading || branchesLoading || storesLoading || 
-    salesInvoicesLoading || salesReturnsLoading || purchaseInvoicesLoading || 
-    purchaseReturnsLoading || storeReceiptVouchersLoading || 
-    storeIssueVouchersLoading || storeTransferVouchersLoading;
+  const isLoading =
+    itemsLoading ||
+    branchesLoading ||
+    storesLoading ||
+    salesInvoicesLoading ||
+    salesReturnsLoading ||
+    purchaseInvoicesLoading ||
+    purchaseReturnsLoading ||
+    storeReceiptVouchersLoading ||
+    storeIssueVouchersLoading ||
+    storeTransferVouchersLoading;
   const currentYear = new Date().getFullYear();
   const [startDate, setStartDate] = useState(`${currentYear}-01-01`);
   const [endDate, setEndDate] = useState(

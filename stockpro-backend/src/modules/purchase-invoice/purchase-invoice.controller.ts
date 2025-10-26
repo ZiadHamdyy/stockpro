@@ -18,7 +18,9 @@ import { currentUser } from '../../common/decorators/currentUser.decorator';
 @Controller('purchase-invoices')
 @UseGuards(JwtAuthenticationGuard)
 export class PurchaseInvoiceController {
-  constructor(private readonly purchaseInvoiceService: PurchaseInvoiceService) {}
+  constructor(
+    private readonly purchaseInvoiceService: PurchaseInvoiceService,
+  ) {}
 
   @Post()
   create(

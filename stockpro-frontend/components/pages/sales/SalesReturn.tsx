@@ -20,7 +20,12 @@ import type {
 import InvoicePrintPreview from "./InvoicePrintPreview";
 import { useModal } from "../../common/ModalProvider";
 import { useToast } from "../../common/ToastProvider";
-import { useGetSalesReturnsQuery, useCreateSalesReturnMutation, useUpdateSalesReturnMutation, useDeleteSalesReturnMutation } from "../../store/slices/salesReturn/salesReturnApiSlice";
+import {
+  useGetSalesReturnsQuery,
+  useCreateSalesReturnMutation,
+  useUpdateSalesReturnMutation,
+  useDeleteSalesReturnMutation,
+} from "../../store/slices/salesReturn/salesReturnApiSlice";
 import { useGetCustomersQuery } from "../../store/slices/customer/customerApiSlice";
 import { useGetItemsQuery } from "../../store/slices/items/itemsApi";
 import { useGetBanksQuery } from "../../store/slices/bank/bankApiSlice";
@@ -42,7 +47,6 @@ interface SalesReturnProps {
   onClearViewingId: () => void;
 }
 
-
 const SalesReturn: React.FC<SalesReturnProps> = ({
   title,
   currentUser,
@@ -50,11 +54,15 @@ const SalesReturn: React.FC<SalesReturnProps> = ({
   onClearViewingId,
 }) => {
   // Redux hooks
-  const { data: returns = [], isLoading: returnsLoading } = useGetSalesReturnsQuery();
-  const [createSalesReturn, { isLoading: isCreating }] = useCreateSalesReturnMutation();
-  const [updateSalesReturn, { isLoading: isUpdating }] = useUpdateSalesReturnMutation();
-  const [deleteSalesReturn, { isLoading: isDeleting }] = useDeleteSalesReturnMutation();
-  
+  const { data: returns = [], isLoading: returnsLoading } =
+    useGetSalesReturnsQuery();
+  const [createSalesReturn, { isLoading: isCreating }] =
+    useCreateSalesReturnMutation();
+  const [updateSalesReturn, { isLoading: isUpdating }] =
+    useUpdateSalesReturnMutation();
+  const [deleteSalesReturn, { isLoading: isDeleting }] =
+    useDeleteSalesReturnMutation();
+
   const { data: customers = [] } = useGetCustomersQuery();
   const { data: items = [] } = useGetItemsQuery(undefined);
   const { data: banks = [] } = useGetBanksQuery();
@@ -62,7 +70,7 @@ const SalesReturn: React.FC<SalesReturnProps> = ({
   const { data: company } = useGetCompanyQuery();
 
   // Transform data for component
-  const allItems: SelectableItem[] = (items as any[]).map(item => ({
+  const allItems: SelectableItem[] = (items as any[]).map((item) => ({
     id: item.code,
     name: item.name,
     unit: item.unit.name,
@@ -71,7 +79,7 @@ const SalesReturn: React.FC<SalesReturnProps> = ({
     barcode: item.barcode,
   }));
 
-  const allCustomers: Customer[] = customers.map(customer => ({
+  const allCustomers: Customer[] = customers.map((customer) => ({
     id: customer.id,
     code: customer.code,
     name: customer.name,
@@ -209,14 +217,16 @@ const SalesReturn: React.FC<SalesReturnProps> = ({
     if (currentIndex >= 0 && returns[currentIndex]) {
       const ret = returns[currentIndex];
       setInvoiceDetails({ invoiceNumber: ret.code, invoiceDate: ret.date });
-      setSelectedCustomer(ret.customer ? { id: ret.customer.id, name: ret.customer.name } : null);
+      setSelectedCustomer(
+        ret.customer ? { id: ret.customer.id, name: ret.customer.name } : null,
+      );
       setCustomerQuery(ret.customer?.name || "");
       setReturnItems(ret.items as InvoiceItem[]);
-      setTotals({ 
-        subtotal: ret.subtotal, 
-        discount: ret.discount, 
-        tax: ret.tax, 
-        net: ret.net 
+      setTotals({
+        subtotal: ret.subtotal,
+        discount: ret.discount,
+        tax: ret.tax,
+        net: ret.net,
       });
       setPaymentMethod(ret.paymentMethod);
       setPaymentTargetType(ret.paymentTargetType || "safe");
@@ -403,7 +413,7 @@ const SalesReturn: React.FC<SalesReturnProps> = ({
       const returnData = {
         customerId: selectedCustomer?.id,
         date: invoiceDetails.invoiceDate,
-        items: finalItems.map(item => ({
+        items: finalItems.map((item) => ({
           id: item.id,
           name: item.name,
           unit: item.unit,
@@ -414,8 +424,10 @@ const SalesReturn: React.FC<SalesReturnProps> = ({
         })),
         discount: totals.discount,
         paymentMethod,
-        paymentTargetType: paymentMethod === "cash" ? paymentTargetType : undefined,
-        paymentTargetId: paymentMethod === "cash" ? paymentTargetId?.toString() : undefined,
+        paymentTargetType:
+          paymentMethod === "cash" ? paymentTargetType : undefined,
+        paymentTargetId:
+          paymentMethod === "cash" ? paymentTargetId?.toString() : undefined,
         notes: "",
       };
 
@@ -431,7 +443,7 @@ const SalesReturn: React.FC<SalesReturnProps> = ({
         await createSalesReturn(returnData).unwrap();
         showToast("تم حفظ المرتجع بنجاح!");
       }
-      
+
       setIsReadOnly(true);
       // Refresh the returns list
       // The Redux cache will automatically update

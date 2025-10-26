@@ -36,7 +36,9 @@ export class SalesInvoiceController {
 
   @Get()
   @Auth({ permissions: ['sales_invoice:read'] })
-  async findAll(@Query('search') search?: string): Promise<SalesInvoiceResponse[]> {
+  async findAll(
+    @Query('search') search?: string,
+  ): Promise<SalesInvoiceResponse[]> {
     return this.salesInvoiceService.findAll(search);
   }
 
@@ -63,4 +65,3 @@ export class SalesInvoiceController {
     return this.salesInvoiceService.remove(id);
   }
 }
-

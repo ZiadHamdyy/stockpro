@@ -703,9 +703,7 @@ const AppContent = () => {
               path="/sales/daily"
               element={
                 <ProtectedRoute requiredPermission="daily_sales-read">
-                  <DailySales
-                    title={currentPageTitle}
-                  />
+                  <DailySales title={currentPageTitle} />
                 </ProtectedRoute>
               }
             />
@@ -713,9 +711,7 @@ const AppContent = () => {
               path="/sales/daily-returns"
               element={
                 <ProtectedRoute requiredPermission="daily_sales_returns-read">
-                  <DailySalesReturns
-                    title={currentPageTitle}
-                  />
+                  <DailySalesReturns title={currentPageTitle} />
                 </ProtectedRoute>
               }
             />
@@ -751,9 +747,7 @@ const AppContent = () => {
               path="/purchases/daily"
               element={
                 <ProtectedRoute requiredPermission="daily_purchases-read">
-                  <DailyPurchases
-                    title={currentPageTitle}
-                  />
+                  <DailyPurchases title={currentPageTitle} />
                 </ProtectedRoute>
               }
             />
@@ -761,9 +755,7 @@ const AppContent = () => {
               path="/purchases/daily-returns"
               element={
                 <ProtectedRoute requiredPermission="daily_purchase_returns-read">
-                  <DailyPurchaseReturns
-                    title={currentPageTitle}
-                  />
+                  <DailyPurchaseReturns title={currentPageTitle} />
                 </ProtectedRoute>
               }
             />

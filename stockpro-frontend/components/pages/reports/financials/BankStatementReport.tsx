@@ -21,11 +21,12 @@ const BankStatementReport: React.FC<BankStatementReportProps> = ({
   currentUser,
 }) => {
   // API hooks
-  const { data: apiBanks = [], isLoading: banksLoading } = useGetBanksQuery(undefined);
+  const { data: apiBanks = [], isLoading: banksLoading } =
+    useGetBanksQuery(undefined);
 
   // Transform API data to match expected format
   const banks = useMemo(() => {
-    return (apiBanks as any[]).map(bank => ({
+    return (apiBanks as any[]).map((bank) => ({
       ...bank,
       // Add any necessary transformations here
     }));

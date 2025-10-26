@@ -21,11 +21,12 @@ const TotalCurrentAccountsReport: React.FC<TotalCurrentAccountsReportProps> = ({
   paymentVouchers,
 }) => {
   // API hooks
-  const { data: apiCurrentAccounts = [], isLoading: currentAccountsLoading } = useGetCurrentAccountsQuery(undefined);
+  const { data: apiCurrentAccounts = [], isLoading: currentAccountsLoading } =
+    useGetCurrentAccountsQuery(undefined);
 
   // Transform API data to match expected format
   const currentAccounts = useMemo(() => {
-    return (apiCurrentAccounts as any[]).map(account => ({
+    return (apiCurrentAccounts as any[]).map((account) => ({
       ...account,
       // Add any necessary transformations here
     }));
@@ -40,7 +41,7 @@ const TotalCurrentAccountsReport: React.FC<TotalCurrentAccountsReportProps> = ({
   const accountsSummary = useMemo(() => {
     return currentAccounts.map((account) => {
       const accountId = account.id;
-      
+
       // Calculate receipts (credits) for this account
       const receipts = receiptVouchers
         .filter(

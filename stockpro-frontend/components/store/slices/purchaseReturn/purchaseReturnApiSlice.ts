@@ -1,4 +1,4 @@
-import { apiSlice } from '../../ApiSlice';
+import { apiSlice } from "../../ApiSlice";
 
 export interface PurchaseReturnItem {
   id: string;
@@ -78,42 +78,49 @@ export interface UpdatePurchaseReturnRequest {
 export const purchaseReturnApiSlice = apiSlice.injectEndpoints({
   endpoints: (builder) => ({
     getPurchaseReturns: builder.query<PurchaseReturn[], void>({
-      query: () => '/purchase-returns',
-      transformResponse: (response: { data: PurchaseReturn[] }) => response.data,
-      providesTags: ['PurchaseReturn'],
+      query: () => "/purchase-returns",
+      transformResponse: (response: { data: PurchaseReturn[] }) =>
+        response.data,
+      providesTags: ["PurchaseReturn"],
     }),
     getPurchaseReturnById: builder.query<PurchaseReturn, string>({
       query: (id) => `/purchase-returns/${id}`,
       transformResponse: (response: { data: PurchaseReturn }) => response.data,
-      providesTags: (result, error, id) => [{ type: 'PurchaseReturn', id }],
+      providesTags: (result, error, id) => [{ type: "PurchaseReturn", id }],
     }),
-    createPurchaseReturn: builder.mutation<PurchaseReturn, CreatePurchaseReturnRequest>({
+    createPurchaseReturn: builder.mutation<
+      PurchaseReturn,
+      CreatePurchaseReturnRequest
+    >({
       query: (data) => ({
-        url: '/purchase-returns',
-        method: 'POST',
+        url: "/purchase-returns",
+        method: "POST",
         body: data,
       }),
       transformResponse: (response: { data: PurchaseReturn }) => response.data,
-      invalidatesTags: ['PurchaseReturn'],
+      invalidatesTags: ["PurchaseReturn"],
     }),
-    updatePurchaseReturn: builder.mutation<PurchaseReturn, { id: string; data: UpdatePurchaseReturnRequest }>({
+    updatePurchaseReturn: builder.mutation<
+      PurchaseReturn,
+      { id: string; data: UpdatePurchaseReturnRequest }
+    >({
       query: ({ id, data }) => ({
         url: `/purchase-returns/${id}`,
-        method: 'PATCH',
+        method: "PATCH",
         body: data,
       }),
       transformResponse: (response: { data: PurchaseReturn }) => response.data,
       invalidatesTags: (result, error, { id }) => [
-        { type: 'PurchaseReturn', id },
-        'PurchaseReturn',
+        { type: "PurchaseReturn", id },
+        "PurchaseReturn",
       ],
     }),
     deletePurchaseReturn: builder.mutation<void, string>({
       query: (id) => ({
         url: `/purchase-returns/${id}`,
-        method: 'DELETE',
+        method: "DELETE",
       }),
-      invalidatesTags: ['PurchaseReturn'],
+      invalidatesTags: ["PurchaseReturn"],
     }),
   }),
 });

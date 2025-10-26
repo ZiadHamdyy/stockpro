@@ -10,10 +10,7 @@ interface DailySalesReturnsProps {
   title: string;
 }
 
-
-const DailySalesReturns: React.FC<DailySalesReturnsProps> = ({
-  title,
-}) => {
+const DailySalesReturns: React.FC<DailySalesReturnsProps> = ({ title }) => {
   // Redux hooks
   const { data: salesReturns = [] } = useGetSalesReturnsQuery();
   const { data: company } = useGetCompanyQuery();
@@ -40,20 +37,18 @@ const DailySalesReturns: React.FC<DailySalesReturnsProps> = ({
   const [searchTerm, setSearchTerm] = useState("");
 
   const filteredReturns = useMemo(() => {
-    return salesReturns.filter(
-      (sale) => {
-        const saleDate = sale.date.substring(0, 10); // Extract just the date part
-        return (
-          saleDate >= startDate &&
-          saleDate <= endDate &&
-          (sale.code.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            (sale.customer &&
-              sale.customer.name
-                .toLowerCase()
-                .includes(searchTerm.toLowerCase())))
-        );
-      }
-    );
+    return salesReturns.filter((sale) => {
+      const saleDate = sale.date.substring(0, 10); // Extract just the date part
+      return (
+        saleDate >= startDate &&
+        saleDate <= endDate &&
+        (sale.code.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          (sale.customer &&
+            sale.customer.name
+              .toLowerCase()
+              .includes(searchTerm.toLowerCase())))
+      );
+    });
   }, [salesReturns, startDate, endDate, searchTerm]);
 
   const totals = filteredReturns.reduce(

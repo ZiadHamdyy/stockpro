@@ -5,7 +5,11 @@ import InvoiceHeader from "../../common/InvoiceHeader";
 import { useGetCompanyQuery } from "../../store/slices/companyApiSlice";
 import { usePaymentVouchers } from "../../hook/usePaymentVouchers";
 import PermissionWrapper from "../../common/PermissionWrapper";
-import { buildPermission, Resources, Actions } from "../../../enums/permissions.enum";
+import {
+  buildPermission,
+  Resources,
+  Actions,
+} from "../../../enums/permissions.enum";
 import PaymentVoucherPrintPreview from "./PaymentVoucherPrintPreview";
 import { useAuth } from "../../hook/Auth";
 
@@ -294,7 +298,9 @@ const PaymentVoucher: React.FC<PaymentVoucherProps> = ({ title }) => {
                 disabled={isReadOnly}
               >
                 <option value="">
-                  {voucherData.paymentMethod === "safe" ? "اختر خزينة..." : "اختر بنك..."}
+                  {voucherData.paymentMethod === "safe"
+                    ? "اختر خزينة..."
+                    : "اختر بنك..."}
                 </option>
                 {voucherData.paymentMethod === "safe"
                   ? safes.map((s) => (
@@ -314,7 +320,9 @@ const PaymentVoucher: React.FC<PaymentVoucherProps> = ({ title }) => {
 
         <div className="mt-6">
           <div className="bg-brand-green-bg p-3 rounded-md text-center text-brand-dark font-semibold">
-            {companyInfo ? tafqeet(voucherData.amount, companyInfo.currency) : "جاري التحميل..."}
+            {companyInfo
+              ? tafqeet(voucherData.amount, companyInfo.currency)
+              : "جاري التحميل..."}
           </div>
         </div>
 
@@ -349,7 +357,10 @@ const PaymentVoucher: React.FC<PaymentVoucherProps> = ({ title }) => {
               </button>
             </PermissionWrapper>
             <PermissionWrapper
-              requiredPermission={buildPermission(Resources.PAYMENT_VOUCHER, Actions.UPDATE)}
+              requiredPermission={buildPermission(
+                Resources.PAYMENT_VOUCHER,
+                Actions.UPDATE,
+              )}
               fallback={
                 <button
                   disabled={true}
@@ -368,7 +379,10 @@ const PaymentVoucher: React.FC<PaymentVoucherProps> = ({ title }) => {
               </button>
             </PermissionWrapper>
             <PermissionWrapper
-              requiredPermission={buildPermission(Resources.PAYMENT_VOUCHER, Actions.DELETE)}
+              requiredPermission={buildPermission(
+                Resources.PAYMENT_VOUCHER,
+                Actions.DELETE,
+              )}
               fallback={
                 <button
                   disabled={true}
@@ -390,7 +404,10 @@ const PaymentVoucher: React.FC<PaymentVoucherProps> = ({ title }) => {
               بحث
             </button>
             <PermissionWrapper
-              requiredPermission={buildPermission(Resources.PAYMENT_VOUCHER, Actions.PRINT)}
+              requiredPermission={buildPermission(
+                Resources.PAYMENT_VOUCHER,
+                Actions.PRINT,
+              )}
               fallback={
                 <button
                   disabled={true}

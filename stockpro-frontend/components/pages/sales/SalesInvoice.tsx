@@ -22,7 +22,12 @@ import InvoicePrintPreview from "./InvoicePrintPreview";
 import { useModal } from "../../common/ModalProvider";
 import { useToast } from "../../common/ToastProvider";
 import BarcodeScannerModal from "../../common/BarcodeScannerModal";
-import { useGetSalesInvoicesQuery, useCreateSalesInvoiceMutation, useUpdateSalesInvoiceMutation, useDeleteSalesInvoiceMutation } from "../../store/slices/salesInvoice/salesInvoiceApiSlice";
+import {
+  useGetSalesInvoicesQuery,
+  useCreateSalesInvoiceMutation,
+  useUpdateSalesInvoiceMutation,
+  useDeleteSalesInvoiceMutation,
+} from "../../store/slices/salesInvoice/salesInvoiceApiSlice";
 import { useGetCustomersQuery } from "../../store/slices/customer/customerApiSlice";
 import { useGetItemsQuery } from "../../store/slices/items/itemsApi";
 import { useGetBanksQuery } from "../../store/slices/bank/bankApiSlice";
@@ -45,7 +50,6 @@ interface SalesInvoiceProps {
   onClearViewingId: () => void;
 }
 
-
 const SalesInvoice: React.FC<SalesInvoiceProps> = ({
   title,
   currentUser,
@@ -53,11 +57,15 @@ const SalesInvoice: React.FC<SalesInvoiceProps> = ({
   onClearViewingId,
 }) => {
   // Redux hooks
-  const { data: invoices = [], isLoading: invoicesLoading } = useGetSalesInvoicesQuery();
-  const [createSalesInvoice, { isLoading: isCreating }] = useCreateSalesInvoiceMutation();
-  const [updateSalesInvoice, { isLoading: isUpdating }] = useUpdateSalesInvoiceMutation();
-  const [deleteSalesInvoice, { isLoading: isDeleting }] = useDeleteSalesInvoiceMutation();
-  
+  const { data: invoices = [], isLoading: invoicesLoading } =
+    useGetSalesInvoicesQuery();
+  const [createSalesInvoice, { isLoading: isCreating }] =
+    useCreateSalesInvoiceMutation();
+  const [updateSalesInvoice, { isLoading: isUpdating }] =
+    useUpdateSalesInvoiceMutation();
+  const [deleteSalesInvoice, { isLoading: isDeleting }] =
+    useDeleteSalesInvoiceMutation();
+
   const { data: customers = [] } = useGetCustomersQuery();
   const { data: items = [] } = useGetItemsQuery(undefined);
   const { data: banks = [] } = useGetBanksQuery();
@@ -65,7 +73,7 @@ const SalesInvoice: React.FC<SalesInvoiceProps> = ({
   const { data: company } = useGetCompanyQuery();
 
   // Transform data for component
-  const allItems: SelectableItem[] = (items as any[]).map(item => ({
+  const allItems: SelectableItem[] = (items as any[]).map((item) => ({
     id: item.code,
     name: item.name,
     unit: item.unit.name,
@@ -74,7 +82,7 @@ const SalesInvoice: React.FC<SalesInvoiceProps> = ({
     barcode: item.barcode,
   }));
 
-  const allCustomers: Customer[] = customers.map(customer => ({
+  const allCustomers: Customer[] = customers.map((customer) => ({
     id: customer.id,
     code: customer.code,
     name: customer.name,
@@ -216,14 +224,16 @@ const SalesInvoice: React.FC<SalesInvoiceProps> = ({
     if (currentIndex >= 0 && invoices[currentIndex]) {
       const inv = invoices[currentIndex];
       setInvoiceDetails({ invoiceNumber: inv.code, invoiceDate: inv.date });
-      setSelectedCustomer(inv.customer ? { id: inv.customer.id, name: inv.customer.name } : null);
+      setSelectedCustomer(
+        inv.customer ? { id: inv.customer.id, name: inv.customer.name } : null,
+      );
       setCustomerQuery(inv.customer?.name || "");
       setInvoiceItems(inv.items as InvoiceItem[]);
-      setTotals({ 
-        subtotal: inv.subtotal, 
-        discount: inv.discount, 
-        tax: inv.tax, 
-        net: inv.net 
+      setTotals({
+        subtotal: inv.subtotal,
+        discount: inv.discount,
+        tax: inv.tax,
+        net: inv.net,
       });
       setPaymentMethod(inv.paymentMethod);
       setPaymentTargetType(inv.paymentTargetType || "safe");
@@ -433,7 +443,8 @@ const SalesInvoice: React.FC<SalesInvoiceProps> = ({
     const foundItem = allItems.find((item) => item.barcode === barcode);
     if (foundItem) {
       const emptyRowIndex = invoiceItems.findIndex((i) => !i.id && !i.name);
-      const indexToFill = emptyRowIndex !== -1 ? emptyRowIndex : invoiceItems.length;
+      const indexToFill =
+        emptyRowIndex !== -1 ? emptyRowIndex : invoiceItems.length;
 
       const newItems = [...invoiceItems];
       if (emptyRowIndex === -1) {
@@ -475,7 +486,7 @@ const SalesInvoice: React.FC<SalesInvoiceProps> = ({
       const invoiceData = {
         customerId: selectedCustomer?.id,
         date: invoiceDetails.invoiceDate,
-        items: finalItems.map(item => ({
+        items: finalItems.map((item) => ({
           id: item.id,
           name: item.name,
           unit: item.unit,
@@ -486,8 +497,10 @@ const SalesInvoice: React.FC<SalesInvoiceProps> = ({
         })),
         discount: totals.discount,
         paymentMethod,
-        paymentTargetType: paymentMethod === "cash" ? paymentTargetType : undefined,
-        paymentTargetId: paymentMethod === "cash" ? paymentTargetId?.toString() : undefined,
+        paymentTargetType:
+          paymentMethod === "cash" ? paymentTargetType : undefined,
+        paymentTargetId:
+          paymentMethod === "cash" ? paymentTargetId?.toString() : undefined,
         notes: "",
       };
 
@@ -503,7 +516,7 @@ const SalesInvoice: React.FC<SalesInvoiceProps> = ({
         await createSalesInvoice(invoiceData).unwrap();
         showToast("تم حفظ الفاتورة بنجاح!");
       }
-      
+
       setIsReadOnly(true);
       // Refresh the invoices list
       // The Redux cache will automatically update
@@ -552,8 +565,10 @@ const SalesInvoice: React.FC<SalesInvoiceProps> = ({
   };
 
   const navigate = (index: number) => {
-        if ((invoices as any[]).length > 0) {
-      setCurrentIndex(Math.max(0, Math.min((invoices as any[]).length - 1, index)));
+    if ((invoices as any[]).length > 0) {
+      setCurrentIndex(
+        Math.max(0, Math.min((invoices as any[]).length - 1, index)),
+      );
     }
   };
 
@@ -1004,7 +1019,8 @@ const SalesInvoice: React.FC<SalesInvoiceProps> = ({
               <button
                 onClick={() => navigate((invoices as any[]).length - 1)}
                 disabled={
-                  currentIndex >= (invoices as any[]).length - 1 || (invoices as any[]).length === 0
+                  currentIndex >= (invoices as any[]).length - 1 ||
+                  (invoices as any[]).length === 0
                 }
                 className="p-2 bg-gray-200 rounded-md hover:bg-gray-300 disabled:opacity-50"
               >
@@ -1013,7 +1029,8 @@ const SalesInvoice: React.FC<SalesInvoiceProps> = ({
               <button
                 onClick={() => navigate(currentIndex + 1)}
                 disabled={
-                  currentIndex >= (invoices as any[]).length - 1 || (invoices as any[]).length === 0
+                  currentIndex >= (invoices as any[]).length - 1 ||
+                  (invoices as any[]).length === 0
                 }
                 className="p-2 bg-gray-200 rounded-md hover:bg-gray-300 disabled:opacity-50"
               >

@@ -20,19 +20,14 @@ interface CurrentAccountStatementReportProps {
 
 const CurrentAccountStatementReport: React.FC<
   CurrentAccountStatementReportProps
-> = ({
-  title,
-  companyInfo,
-  receiptVouchers,
-  paymentVouchers,
-  currentUser,
-}) => {
+> = ({ title, companyInfo, receiptVouchers, paymentVouchers, currentUser }) => {
   // API hooks
-  const { data: apiCurrentAccounts = [], isLoading: currentAccountsLoading } = useGetCurrentAccountsQuery(undefined);
+  const { data: apiCurrentAccounts = [], isLoading: currentAccountsLoading } =
+    useGetCurrentAccountsQuery(undefined);
 
   // Transform API data to match expected format
   const currentAccounts = useMemo(() => {
-    return (apiCurrentAccounts as any[]).map(account => ({
+    return (apiCurrentAccounts as any[]).map((account) => ({
       ...account,
       // Add any necessary transformations here
     }));
@@ -42,7 +37,9 @@ const CurrentAccountStatementReport: React.FC<
   const currentYear = new Date().getFullYear();
   const [startDate, setStartDate] = useState(`${currentYear}-01-01`);
   const [endDate, setEndDate] = useState(`${currentYear}-12-31`);
-  const [selectedAccountId, setSelectedAccountId] = useState<string | null>(null);
+  const [selectedAccountId, setSelectedAccountId] = useState<string | null>(
+    null,
+  );
 
   // Set initial selected account when data loads
   useEffect(() => {

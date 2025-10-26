@@ -8,12 +8,19 @@ import { PurchaseInvoiceResponse } from './dtos/response/purchase-invoice.respon
 export class PurchaseInvoiceService {
   constructor(private readonly prisma: DatabaseService) {}
 
-  async create(data: CreatePurchaseInvoiceRequest, userId: string, branchId?: string): Promise<PurchaseInvoiceResponse> {
+  async create(
+    data: CreatePurchaseInvoiceRequest,
+    userId: string,
+    branchId?: string,
+  ): Promise<PurchaseInvoiceResponse> {
     // Generate next code
     const code = await this.generateNextCode();
 
     // Calculate totals
-    const subtotal = data.items.reduce((sum, item) => sum + (item.qty * item.price), 0);
+    const subtotal = data.items.reduce(
+      (sum, item) => sum + item.qty * item.price,
+      0,
+    );
     const discount = data.discount || 0;
     const tax = subtotal * 0.15; // 15% VAT
     const net = subtotal - discount + tax;
@@ -118,7 +125,10 @@ export class PurchaseInvoiceService {
     return invoice as PurchaseInvoiceResponse;
   }
 
-  async update(id: string, data: UpdatePurchaseInvoiceRequest): Promise<PurchaseInvoiceResponse> {
+  async update(
+    id: string,
+    data: UpdatePurchaseInvoiceRequest,
+  ): Promise<PurchaseInvoiceResponse> {
     const existingInvoice = await this.prisma.purchaseInvoice.findUnique({
       where: { id },
     });
@@ -132,8 +142,14 @@ export class PurchaseInvoiceService {
 
     // Calculate new totals
     const items = data.items || (existingInvoice.items as any[]) || [];
-    const subtotal = items.reduce((sum, item) => sum + (item.qty * item.price), 0);
-    const discount = data.discount !== undefined ? data.discount : (existingInvoice.discount || 0);
+    const subtotal = items.reduce(
+      (sum, item) => sum + item.qty * item.price,
+      0,
+    );
+    const discount =
+      data.discount !== undefined
+        ? data.discount
+        : existingInvoice.discount || 0;
     const tax = subtotal * 0.15; // 15% VAT
     const net = subtotal - discount + tax;
 

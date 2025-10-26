@@ -33,7 +33,7 @@ const InvoicePrintPreview: React.FC<InvoicePrintPreviewProps> = ({
 }) => {
   const { data: companyInfo, isLoading, error } = useGetCompanyQuery();
   const currentUser = useSelector((state: RootState) => state.auth.user);
-  
+
   if (!isOpen) return null;
 
   const {

@@ -1,4 +1,4 @@
-import { apiSlice } from '../../ApiSlice';
+import { apiSlice } from "../../ApiSlice";
 
 export interface PurchaseInvoiceItem {
   id: string;
@@ -78,42 +78,49 @@ export interface UpdatePurchaseInvoiceRequest {
 export const purchaseInvoiceApiSlice = apiSlice.injectEndpoints({
   endpoints: (builder) => ({
     getPurchaseInvoices: builder.query<PurchaseInvoice[], void>({
-      query: () => '/purchase-invoices',
-      transformResponse: (response: { data: PurchaseInvoice[] }) => response.data,
-      providesTags: ['PurchaseInvoice'],
+      query: () => "/purchase-invoices",
+      transformResponse: (response: { data: PurchaseInvoice[] }) =>
+        response.data,
+      providesTags: ["PurchaseInvoice"],
     }),
     getPurchaseInvoiceById: builder.query<PurchaseInvoice, string>({
       query: (id) => `/purchase-invoices/${id}`,
       transformResponse: (response: { data: PurchaseInvoice }) => response.data,
-      providesTags: (result, error, id) => [{ type: 'PurchaseInvoice', id }],
+      providesTags: (result, error, id) => [{ type: "PurchaseInvoice", id }],
     }),
-    createPurchaseInvoice: builder.mutation<PurchaseInvoice, CreatePurchaseInvoiceRequest>({
+    createPurchaseInvoice: builder.mutation<
+      PurchaseInvoice,
+      CreatePurchaseInvoiceRequest
+    >({
       query: (data) => ({
-        url: '/purchase-invoices',
-        method: 'POST',
+        url: "/purchase-invoices",
+        method: "POST",
         body: data,
       }),
       transformResponse: (response: { data: PurchaseInvoice }) => response.data,
-      invalidatesTags: ['PurchaseInvoice'],
+      invalidatesTags: ["PurchaseInvoice"],
     }),
-    updatePurchaseInvoice: builder.mutation<PurchaseInvoice, { id: string; data: UpdatePurchaseInvoiceRequest }>({
+    updatePurchaseInvoice: builder.mutation<
+      PurchaseInvoice,
+      { id: string; data: UpdatePurchaseInvoiceRequest }
+    >({
       query: ({ id, data }) => ({
         url: `/purchase-invoices/${id}`,
-        method: 'PATCH',
+        method: "PATCH",
         body: data,
       }),
       transformResponse: (response: { data: PurchaseInvoice }) => response.data,
       invalidatesTags: (result, error, { id }) => [
-        { type: 'PurchaseInvoice', id },
-        'PurchaseInvoice',
+        { type: "PurchaseInvoice", id },
+        "PurchaseInvoice",
       ],
     }),
     deletePurchaseInvoice: builder.mutation<void, string>({
       query: (id) => ({
         url: `/purchase-invoices/${id}`,
-        method: 'DELETE',
+        method: "DELETE",
       }),
-      invalidatesTags: ['PurchaseInvoice'],
+      invalidatesTags: ["PurchaseInvoice"],
     }),
   }),
 });

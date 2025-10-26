@@ -10,7 +10,6 @@ interface DailyPurchaseReturnsProps {
   title: string;
 }
 
-
 const DailyPurchaseReturns: React.FC<DailyPurchaseReturnsProps> = ({
   title,
 }) => {
@@ -40,20 +39,18 @@ const DailyPurchaseReturns: React.FC<DailyPurchaseReturnsProps> = ({
   const [searchTerm, setSearchTerm] = useState("");
 
   const filteredReturns = useMemo(() => {
-    return purchaseReturns.filter(
-      (purchase) => {
-        const purchaseDate = purchase.date.substring(0, 10); // Extract just the date part
-        return (
-          purchaseDate >= startDate &&
-          purchaseDate <= endDate &&
-          (purchase.code.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            (purchase.supplier &&
-              purchase.supplier.name
-                .toLowerCase()
-                .includes(searchTerm.toLowerCase())))
-        );
-      }
-    );
+    return purchaseReturns.filter((purchase) => {
+      const purchaseDate = purchase.date.substring(0, 10); // Extract just the date part
+      return (
+        purchaseDate >= startDate &&
+        purchaseDate <= endDate &&
+        (purchase.code.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          (purchase.supplier &&
+            purchase.supplier.name
+              .toLowerCase()
+              .includes(searchTerm.toLowerCase())))
+      );
+    });
   }, [purchaseReturns, startDate, endDate, searchTerm]);
 
   const totals = filteredReturns.reduce(

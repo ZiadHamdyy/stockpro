@@ -25,8 +25,8 @@ export interface SalesReturn {
   discount: number;
   tax: number;
   net: number;
-  paymentMethod: 'cash' | 'credit';
-  paymentTargetType?: 'safe' | 'bank';
+  paymentMethod: "cash" | "credit";
+  paymentTargetType?: "safe" | "bank";
   paymentTargetId?: string;
   notes?: string;
   userId: string;
@@ -48,8 +48,8 @@ export interface CreateSalesReturnRequest {
   date?: string;
   items: ReturnItem[];
   discount?: number;
-  paymentMethod: 'cash' | 'credit';
-  paymentTargetType?: 'safe' | 'bank';
+  paymentMethod: "cash" | "credit";
+  paymentTargetType?: "safe" | "bank";
   paymentTargetId?: string;
   notes?: string;
 }
@@ -59,8 +59,8 @@ export interface UpdateSalesReturnRequest {
   date?: string;
   items?: ReturnItem[];
   discount?: number;
-  paymentMethod?: 'cash' | 'credit';
-  paymentTargetType?: 'safe' | 'bank';
+  paymentMethod?: "cash" | "credit";
+  paymentTargetType?: "safe" | "bank";
   paymentTargetId?: string;
   notes?: string;
 }
@@ -130,4 +130,3 @@ export const {
   useUpdateSalesReturnMutation,
   useDeleteSalesReturnMutation,
 } = salesReturnApiSlice;
-

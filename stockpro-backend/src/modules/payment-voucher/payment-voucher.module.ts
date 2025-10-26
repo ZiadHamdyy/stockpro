@@ -10,4 +10,3 @@ import { DatabaseModule } from '../../configs/database/database.module';
   exports: [PaymentVoucherService],
 })
 export class PaymentVoucherModule {}
-
