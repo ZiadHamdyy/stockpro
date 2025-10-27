@@ -1,31 +1,35 @@
 import React, { useState, useMemo, useCallback, useEffect } from "react";
 import type {
   CompanyInfo,
-  ExpenseCode,
   User,
-  Voucher,
 } from "../../../../types";
 import { ExcelIcon, PdfIcon, PrintIcon, SearchIcon } from "../../../icons";
 import ReportHeader from "../ReportHeader";
 import { formatNumber } from "../../../../utils/formatting";
 import { useGetExpenseCodesQuery } from "../../../store/slices/expense/expenseApiSlice";
+import { useGetExpensePaymentVouchersQuery } from "../../../store/slices/paymentVoucherApiSlice";
+import { useAuth } from "../../../hook/Auth";
 
 interface ExpenseStatementReportProps {
   title: string;
   companyInfo: CompanyInfo;
-  paymentVouchers: Voucher[];
   currentUser: User | null;
 }
 
 const ExpenseStatementReport: React.FC<ExpenseStatementReportProps> = ({
   title,
   companyInfo,
-  paymentVouchers,
   currentUser,
 }) => {
+  const { isAuthed } = useAuth();
+  
+  // Only fetch if user is authenticated
+  const skip = !isAuthed;
   // API hooks
   const { data: apiExpenseCodes = [], isLoading: expenseCodesLoading } =
-    useGetExpenseCodesQuery(undefined);
+    useGetExpenseCodesQuery(undefined, { skip });
+  const { data: apiPaymentVouchers = [], isLoading: vouchersLoading } =
+    useGetExpensePaymentVouchersQuery(undefined, { skip });
 
   // Transform API data to match expected format
   const expenseCodes = useMemo(() => {
@@ -35,7 +39,24 @@ const ExpenseStatementReport: React.FC<ExpenseStatementReportProps> = ({
     }));
   }, [apiExpenseCodes]);
 
-  const isLoading = expenseCodesLoading;
+  // Transform payment vouchers from API
+  const paymentVouchers = useMemo(() => {
+    return (apiPaymentVouchers as any[]).map((voucher) => ({
+      id: voucher.code,
+      date: typeof voucher.date === "string" 
+        ? voucher.date 
+        : voucher.date?.toISOString().split("T")[0] || "",
+      entity: {
+        type: voucher.entityType,
+        id: voucher.expenseCodeId || "",
+      },
+      expenseCodeId: voucher.expenseCodeId,
+      amount: voucher.amount,
+      description: voucher.description || "",
+    }));
+  }, [apiPaymentVouchers]);
+
+  const isLoading = expenseCodesLoading || vouchersLoading;
   const currentYear = new Date().getFullYear();
   const [startDate, setStartDate] = useState(`${currentYear}-01-01`);
   const [endDate, setEndDate] = useState(`${currentYear}-12-31`);
@@ -62,13 +83,12 @@ const ExpenseStatementReport: React.FC<ExpenseStatementReportProps> = ({
       setReportData([]);
       return;
     }
-    const codeId = parseInt(selectedExpenseCodeId);
+    const codeId = selectedExpenseCodeId;
 
     const transactions = paymentVouchers
       .filter(
         (v) =>
-          v.entity.type === "expense" &&
-          Number(v.entity.id) === codeId &&
+          v.expenseCodeId === codeId &&
           v.date >= startDate &&
           v.date <= endDate,
       )
@@ -163,10 +183,10 @@ const ExpenseStatementReport: React.FC<ExpenseStatementReportProps> = ({
             {endDate}
           </p>
           <p>
-            <strong>فرع الطباعة:</strong> {currentUser?.branch}
+            <strong>فرع الطباعة:</strong> {typeof currentUser?.branch === 'string' ? currentUser.branch : (currentUser?.branch as any)?.name}
           </p>
           <p>
-            <strong>المستخدم:</strong> {currentUser?.fullName}
+            <strong>المستخدم:</strong> {currentUser?.fullName || currentUser?.name}
           </p>
         </div>
 

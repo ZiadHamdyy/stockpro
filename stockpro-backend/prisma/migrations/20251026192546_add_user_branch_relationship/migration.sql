@@ -8,12 +8,6 @@
 -- First, add the column as nullable
 ALTER TABLE "User" ADD COLUMN "branchId" TEXT;
 
--- Get the first branch ID to assign to existing users
--- We'll create a default branch if none exists
-INSERT INTO "Branch" ("id", "name", "address", "phone", "description", "createdAt", "updatedAt")
-SELECT 'default-branch-id', 'Default Branch', 'Default Address', 'Default Phone', 'Default branch for existing users', NOW(), NOW()
-WHERE NOT EXISTS (SELECT 1 FROM "Branch" LIMIT 1);
-
 -- Update existing users to have the first available branch
 UPDATE "User" 
 SET "branchId" = (SELECT "id" FROM "Branch" LIMIT 1)

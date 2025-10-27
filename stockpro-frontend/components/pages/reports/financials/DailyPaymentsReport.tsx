@@ -1,29 +1,69 @@
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import type { CompanyInfo, User, Voucher } from "../../../../types";
 import { ExcelIcon, PdfIcon, PrintIcon, SearchIcon } from "../../../icons";
 import ReportHeader from "../ReportHeader";
 import { formatNumber } from "../../../../utils/formatting";
+import { useGetPaymentVouchersQuery } from "../../../store/slices/paymentVoucherApiSlice";
+import { useAuth } from "../../../hook/Auth";
 
 interface DailyPaymentsReportProps {
   title: string;
   companyInfo: CompanyInfo;
-  paymentVouchers: Voucher[];
   currentUser: User | null;
 }
 
 const DailyPaymentsReport: React.FC<DailyPaymentsReportProps> = ({
   title,
   companyInfo,
-  paymentVouchers,
   currentUser,
 }) => {
+  const { isAuthed } = useAuth();
+  
+  // Only fetch if user is authenticated
+  const skip = !isAuthed;
+  const {
+    data: apiPaymentVouchers = [],
+    isLoading,
+    error,
+  } = useGetPaymentVouchersQuery(undefined, { skip });
+
+  // Transform API data to match expected format
+  const paymentVouchers = useMemo(() => {
+    return (apiPaymentVouchers as any[]).map((voucher) => ({
+      id: voucher.code,
+      date: typeof voucher.date === "string" 
+        ? voucher.date 
+        : voucher.date?.toISOString().split("T")[0] || "",
+      entity: {
+        type: voucher.entityType,
+        id:
+          voucher.customerId ||
+          voucher.supplierId ||
+          voucher.currentAccountId ||
+          "",
+        name: voucher.entityName,
+      },
+      amount: voucher.amount,
+      description: voucher.description || "",
+      paymentMethod: voucher.paymentMethod,
+      safeOrBankId: voucher.safeId || voucher.bankId,
+    }));
+  }, [apiPaymentVouchers]);
+
   const currentYear = new Date().getFullYear();
   const [startDate, setStartDate] = useState(`${currentYear}-01-01`);
   const [endDate, setEndDate] = useState(
     new Date().toISOString().substring(0, 10),
   );
 
-  const totals = paymentVouchers.reduce(
+  // Filter vouchers by date range
+  const filteredVouchers = useMemo(() => {
+    return paymentVouchers.filter(
+      (voucher) => voucher.date >= startDate && voucher.date <= endDate,
+    );
+  }, [paymentVouchers, startDate, endDate]);
+
+  const totals = filteredVouchers.reduce(
     (acc, voucher) => {
       acc.amount += voucher.amount;
       return acc;
@@ -71,16 +111,44 @@ const DailyPaymentsReport: React.FC<DailyPaymentsReportProps> = ({
   const inputStyle =
     "p-2 border-2 border-brand-blue rounded-md focus:outline-none focus:ring-2 focus:ring-brand-blue bg-brand-blue-bg";
 
+  if (isLoading) {
+    return (
+      <div className="bg-white p-6 rounded-lg shadow">
+        <div className="flex justify-center items-center h-64">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand-blue mx-auto mb-4"></div>
+            <p className="text-gray-600">جاري تحميل البيانات...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="bg-white p-6 rounded-lg shadow">
+        <div className="flex justify-center items-center h-64">
+          <div className="text-center">
+            <p className="text-red-600">حدث خطأ في تحميل البيانات</p>
+            <p className="text-gray-500 text-sm mt-2">
+              يرجى التأكد من اتصالك بالإنترنت والتحقق من صلاحياتك
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="bg-white p-6 rounded-lg shadow">
       <div id="printable-area">
         <ReportHeader title={title} companyInfo={companyInfo} />
         <div className="px-6 py-2 text-sm print:block hidden border-t-2 mt-2">
           <p>
-            <strong>فرع الطباعة:</strong> {currentUser?.branch}
+            <strong>فرع الطباعة:</strong> {typeof currentUser?.branch === 'string' ? currentUser.branch : (currentUser?.branch as any)?.name}
           </p>
           <p>
-            <strong>المستخدم:</strong> {currentUser?.fullName}
+            <strong>المستخدم:</strong> {currentUser?.fullName || currentUser?.name}
           </p>
         </div>
 
@@ -156,7 +224,7 @@ const DailyPaymentsReport: React.FC<DailyPaymentsReportProps> = ({
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {paymentVouchers.map((voucher, index) => (
+              {filteredVouchers.map((voucher, index) => (
                 <tr key={voucher.id} className="hover:bg-brand-blue-bg">
                   <td className="px-6 py-4">{index + 1}</td>
                   <td className="px-6 py-4">{voucher.date}</td>

@@ -1,4 +1,5 @@
 import { PrismaClient } from '@prisma/client';
+import * as bcryptjs from 'bcryptjs';
 
 const prisma = new PrismaClient();
 
@@ -472,9 +473,9 @@ async function main() {
 
   // Create default company
   console.log('🏢 Creating default company...');
-  const existingCompany = await prisma.company.findFirst();
+  let existingCompany = await prisma.company.findFirst();
   if (!existingCompany) {
-    await prisma.company.create({
+    existingCompany = await prisma.company.create({
       data: {
         name: 'اسم الشركة',
         activity: 'النشاط التجاري',
@@ -491,6 +492,67 @@ async function main() {
     console.log('✅ Created default company');
   } else {
     console.log('✅ Company already exists');
+  }
+
+  // Get or fetch the company for branch creation
+  const company = await prisma.company.findFirst();
+
+  // Create default branch if none exists
+  console.log('🏪 Creating default branch...');
+  let existingBranch = await prisma.branch.findFirst();
+  if (!existingBranch) {
+    existingBranch = await prisma.branch.create({
+      data: {
+        name: 'الفرع الرئيسي',
+        address: company?.address || 'العنوان',
+        phone: company?.phone || '+966000000000',
+        description: 'الفرع الرئيسي للشركة',
+      },
+    });
+    console.log('✅ Created default branch');
+  } else {
+    console.log('✅ Branch already exists');
+  }
+
+  // Create or update default admin user
+  console.log('👤 Creating/updating default admin user...');
+  const existingAdmin = await prisma.user.findFirst({
+    where: { email: 'admin@stockpro.com' },
+  });
+  
+  if (!existingAdmin && existingBranch && managerRole) {
+    // Hash the password using bcryptjs with 12 rounds (matching TOKEN_CONSTANTS)
+    const hashedPassword = await bcryptjs.hash('Password#1', 12);
+    
+    await prisma.user.create({
+      data: {
+        email: 'admin@stockpro.com',
+        name: 'مدير النظام',
+        password: hashedPassword,
+        emailVerified: true,
+        active: true,
+        roleId: managerRole.id,
+        branchId: existingBranch.id,
+      },
+    });
+    console.log('✅ Created default admin user');
+    console.log('   📧 Email: admin@stockpro.com');
+    console.log('   🔑 Password: Password#1');
+  } else if (existingAdmin && managerRole) {
+    // Ensure admin user has correct branch and role
+    await prisma.user.update({
+      where: { email: 'admin@stockpro.com' },
+      data: {
+        branchId: existingBranch.id,
+        roleId: managerRole.id,
+        active: true,
+      },
+    });
+    console.log('✅ Updated default admin user');
+    console.log('   📧 Email: admin@stockpro.com');
+    console.log('   🔑 Password: Password#1');
+  } else {
+    console.log('✅ Admin user already exists');
   }
 
   console.log('🎉 Seed process completed successfully!');

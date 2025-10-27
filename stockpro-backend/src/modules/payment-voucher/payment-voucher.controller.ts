@@ -42,6 +42,12 @@ export class PaymentVoucherController {
     return this.paymentVoucherService.findAllPaymentVouchers(search);
   }
 
+  @Get('expenses')
+  @Auth({ permissions: ['payment_voucher:read'] })
+  async getExpensePaymentVouchers(): Promise<PaymentVoucherResponse[]> {
+    return this.paymentVoucherService.findExpenseVouchers();
+  }
+
   @Get(':id')
   @Auth({ permissions: ['payment_voucher:read'] })
   async findOnePaymentVoucher(

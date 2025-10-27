@@ -149,10 +149,10 @@ const TotalCurrentAccountsReport: React.FC<TotalCurrentAccountsReportProps> = ({
         <ReportHeader title={title} companyInfo={companyInfo} />
         <div className="px-6 py-2 text-sm print:block hidden border-t-2 mt-2">
           <p>
-            <strong>فرع الطباعة:</strong> {currentUser?.branch}
+            <strong>فرع الطباعة:</strong> {typeof currentUser?.branch === 'string' ? currentUser.branch : (currentUser?.branch as any)?.name}
           </p>
           <p>
-            <strong>المستخدم:</strong> {currentUser?.fullName}
+            <strong>المستخدم:</strong> {currentUser?.fullName || currentUser?.name}
           </p>
         </div>
 

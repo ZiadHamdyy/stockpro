@@ -78,6 +78,24 @@ export class PaymentVoucherService {
     return vouchers.map((voucher) => this.mapToResponse(voucher));
   }
 
+  async findExpenseVouchers(): Promise<PaymentVoucherResponse[]> {
+    const vouchers = await this.prisma.paymentVoucher.findMany({
+      where: {
+        expenseCodeId: { not: null },
+      },
+      include: {
+        expenseCode: true,
+        safe: true,
+        bank: true,
+        user: true,
+        branch: true,
+      },
+      orderBy: { date: 'desc' },
+    });
+
+    return vouchers.map((voucher) => this.mapToResponse(voucher));
+  }
+
   async findOnePaymentVoucher(id: string): Promise<PaymentVoucherResponse> {
     const paymentVoucher = await this.prisma.paymentVoucher.findUnique({
       where: { id },
@@ -210,6 +228,9 @@ export class PaymentVoucherService {
       expenseCodeId: voucher.expenseCodeId,
       userId: voucher.userId,
       branchId: voucher.branchId,
+      expenseCode: voucher.expenseCode,
+      safe: voucher.safe,
+      bank: voucher.bank,
       createdAt: voucher.createdAt,
       updatedAt: voucher.updatedAt,
     };

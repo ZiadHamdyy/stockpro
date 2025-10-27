@@ -73,6 +73,12 @@ export const paymentVoucherApiSlice = apiSlice.injectEndpoints({
             ]
           : [{ type: "PaymentVoucher", id: "LIST" }],
     }),
+    getExpensePaymentVouchers: builder.query<PaymentVoucher[], void>({
+      query: () => "payment-vouchers/expenses",
+      transformResponse: (response: { data: PaymentVoucher[] }) =>
+        response.data,
+      providesTags: [{ type: "PaymentVoucher", id: "EXPENSE_LIST" }],
+    }),
     getPaymentVoucherById: builder.query<PaymentVoucher, string>({
       query: (id) => `payment-vouchers/${id}`,
       transformResponse: (response: { data: PaymentVoucher }) => response.data,
@@ -120,6 +126,7 @@ export const paymentVoucherApiSlice = apiSlice.injectEndpoints({
 
 export const {
   useGetPaymentVouchersQuery,
+  useGetExpensePaymentVouchersQuery,
   useGetPaymentVoucherByIdQuery,
   useCreatePaymentVoucherMutation,
   useUpdatePaymentVoucherMutation,

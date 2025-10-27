@@ -211,10 +211,10 @@ const CurrentAccountStatementReport: React.FC<
             {endDate}
           </p>
           <p>
-            <strong>فرع الطباعة:</strong> {currentUser?.branch}
+            <strong>فرع الطباعة:</strong> {typeof currentUser?.branch === 'string' ? currentUser.branch : (currentUser?.branch as any)?.name}
           </p>
           <p>
-            <strong>المستخدم:</strong> {currentUser?.fullName}
+            <strong>المستخدم:</strong> {currentUser?.fullName || currentUser?.name}
           </p>
         </div>
 

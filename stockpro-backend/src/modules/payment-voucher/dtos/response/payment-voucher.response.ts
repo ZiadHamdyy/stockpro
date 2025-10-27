@@ -1,4 +1,31 @@
-import { Expose } from 'class-transformer';
+import { Expose, Type } from 'class-transformer';
+
+class ExpenseCode {
+  @Expose()
+  id: string;
+
+  @Expose()
+  code: string;
+
+  @Expose()
+  name: string;
+}
+
+class Safe {
+  @Expose()
+  id: string;
+
+  @Expose()
+  name: string;
+}
+
+class Bank {
+  @Expose()
+  id: string;
+
+  @Expose()
+  name: string;
+}
 
 export class PaymentVoucherResponse {
   @Expose()
@@ -48,6 +75,18 @@ export class PaymentVoucherResponse {
 
   @Expose()
   branchId?: string | null;
+
+  @Expose()
+  @Type(() => ExpenseCode)
+  expenseCode?: ExpenseCode;
+
+  @Expose()
+  @Type(() => Safe)
+  safe?: Safe;
+
+  @Expose()
+  @Type(() => Bank)
+  bank?: Bank;
 
   @Expose()
   createdAt: Date;

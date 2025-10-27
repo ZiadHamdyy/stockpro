@@ -1060,7 +1060,6 @@ const AppContent = () => {
                   <DailyCollectionsReport
                     title={currentPageTitle}
                     companyInfo={companyInfo}
-                    receiptVouchers={receiptVouchers}
                     currentUser={currentUser}
                   />
                 </ProtectedRoute>
@@ -1073,7 +1072,6 @@ const AppContent = () => {
                   <DailyPaymentsReport
                     title={currentPageTitle}
                     companyInfo={companyInfo}
-                    paymentVouchers={paymentVouchers}
                     currentUser={currentUser}
                   />
                 </ProtectedRoute>
@@ -1086,7 +1084,6 @@ const AppContent = () => {
                   <ExpenseStatementReport
                     title={currentPageTitle}
                     companyInfo={companyInfo}
-                    paymentVouchers={paymentVouchers}
                     currentUser={currentUser}
                   />
                 </ProtectedRoute>
@@ -1099,7 +1096,6 @@ const AppContent = () => {
                   <TotalExpensesReport
                     title={currentPageTitle}
                     companyInfo={companyInfo}
-                    paymentVouchers={paymentVouchers}
                     currentUser={currentUser}
                   />
                 </ProtectedRoute>

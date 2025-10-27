@@ -1,13 +1,14 @@
 import React, { useMemo, useState, useCallback, useEffect } from "react";
-import type { CompanyInfo, User, Voucher } from "../../../../types";
+import type { CompanyInfo, User } from "../../../../types";
 import { ExcelIcon, PdfIcon, PrintIcon, SearchIcon } from "../../../icons";
 import ReportHeader from "../ReportHeader";
 import { formatNumber } from "../../../../utils/formatting";
+import { useGetExpensePaymentVouchersQuery } from "../../../store/slices/paymentVoucherApiSlice";
+import { useAuth } from "../../../hook/Auth";
 
 interface TotalExpensesReportProps {
   title: string;
   companyInfo: CompanyInfo;
-  paymentVouchers: Voucher[];
   currentUser: User | null;
 }
 
@@ -29,23 +30,44 @@ const months = [
 const TotalExpensesReport: React.FC<TotalExpensesReportProps> = ({
   title,
   companyInfo,
-  paymentVouchers,
   currentUser,
 }) => {
+  const { isAuthed } = useAuth();
+  
+  // Only fetch if user is authenticated
+  const skip = !isAuthed;
+  const { data: apiExpenseVouchers = [], isLoading } =
+    useGetExpensePaymentVouchersQuery(undefined, { skip });
+
+  // Transform API data to match expected format
+  const expenseVouchers = useMemo(() => {
+    return (apiExpenseVouchers as any[]).map((voucher) => ({
+      id: voucher.code,
+      date: typeof voucher.date === "string" 
+        ? voucher.date 
+        : voucher.date?.toISOString().split("T")[0] || "",
+      entity: {
+        type: voucher.entityType,
+        name: voucher.entityName,
+      },
+      expenseCode: voucher.expenseCode?.name || voucher.entityName,
+      amount: voucher.amount,
+    }));
+  }, [apiExpenseVouchers]);
+
   const [year, setYear] = useState(new Date().getFullYear());
   const [reportData, setReportData] = useState<any[]>([]);
 
   const handleViewReport = useCallback(() => {
     const summary: Record<string, { name: string; monthly: number[] }> = {};
 
-    const expenseVouchers = paymentVouchers.filter(
-      (v) =>
-        v.entity.type === "expense" && new Date(v.date).getFullYear() === year,
+    const filteredExpenseVouchers = expenseVouchers.filter(
+      (v) => new Date(v.date).getFullYear() === year,
     );
 
-    expenseVouchers.forEach((voucher) => {
+    filteredExpenseVouchers.forEach((voucher) => {
       const monthIndex = new Date(voucher.date).getMonth();
-      const key = voucher.entity.name;
+      const key = voucher.expenseCode;
 
       if (!summary[key]) {
         summary[key] = {
@@ -57,7 +79,7 @@ const TotalExpensesReport: React.FC<TotalExpensesReportProps> = ({
     });
 
     setReportData(Object.values(summary));
-  }, [paymentVouchers, year]);
+  }, [expenseVouchers, year]);
 
   useEffect(() => {
     handleViewReport();
@@ -67,6 +89,19 @@ const TotalExpensesReport: React.FC<TotalExpensesReportProps> = ({
     reportData.reduce((sum, item) => sum + (item.monthly[monthIndex] || 0), 0),
   );
   const grandTotal = monthlyTotals.reduce((sum, total) => sum + total, 0);
+
+  if (isLoading) {
+    return (
+      <div className="bg-white p-6 rounded-lg shadow">
+        <div className="flex justify-center items-center h-64">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand-blue mx-auto mb-4"></div>
+            <p className="text-gray-600">جاري تحميل البيانات...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   const handlePrint = () => {
     const reportContent = document.getElementById("printable-area");
@@ -112,10 +147,10 @@ const TotalExpensesReport: React.FC<TotalExpensesReportProps> = ({
         <ReportHeader title={title} companyInfo={companyInfo} />
         <div className="px-6 py-2 text-sm print:block hidden border-t-2 mt-2">
           <p>
-            <strong>فرع الطباعة:</strong> {currentUser?.branch}
+            <strong>فرع الطباعة:</strong> {typeof currentUser?.branch === 'string' ? currentUser.branch : (currentUser?.branch as any)?.name}
           </p>
           <p>
-            <strong>المستخدم:</strong> {currentUser?.fullName}
+            <strong>المستخدم:</strong> {currentUser?.fullName || currentUser?.name}
           </p>
         </div>
 
