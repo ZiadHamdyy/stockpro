@@ -1187,27 +1187,7 @@ const AppContent = () => {
               path="/final-accounts/balance-sheet"
               element={
                 <ProtectedRoute requiredPermission="balance_sheet-read">
-                  <BalanceSheet
-                    title={currentPageTitle}
-                    companyInfo={companyInfo}
-                    safes={safes}
-                    banks={banks}
-                    customers={customers}
-                    suppliers={suppliers}
-                    items={items}
-                    salesInvoices={salesInvoices}
-                    salesReturns={salesReturns}
-                    purchaseInvoices={purchaseInvoices}
-                    purchaseReturns={purchaseReturns}
-                    receiptVouchers={receiptVouchers}
-                    paymentVouchers={paymentVouchers}
-                    expenses={expenses}
-                    expenseTypes={expenseTypes}
-                    currentUser={currentUser}
-                    storeReceiptVouchers={storeReceiptVouchers}
-                    storeIssueVouchers={storeIssueVouchers}
-                    currentAccounts={currentAccounts}
-                  />
+                  <BalanceSheet />
                 </ProtectedRoute>
               }
             />
