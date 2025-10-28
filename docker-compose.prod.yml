@@ -1,0 +1,55 @@
+services:
+  postgres:
+    image: postgres:15
+    container_name: stockpro-postgres-prod
+    restart: always
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-stockpro}
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+    volumes:
+      - pgdata_prod:/var/lib/postgresql/data
+    networks:
+      - stockpro-prod-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: ./stockpro-backend
+      dockerfile: Dockerfile
+    container_name: stockpro-backend-prod
+    restart: always
+    ports:
+      - '3000:3000'
+    env_file:
+      - .env.prod
+    environment:
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-stockpro}
+      - NODE_ENV=production
+    volumes:
+      - ./stockpro-backend/uploads:/app/uploads
+      - ./stockpro-backend/logs:/app/logs
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - stockpro-prod-network
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3000/api/v1/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+volumes:
+  pgdata_prod:
+    driver: local
+
+networks:
+  stockpro-prod-network:
+    driver: bridge
+
