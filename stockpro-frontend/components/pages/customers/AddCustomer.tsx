@@ -60,6 +60,13 @@ const AddCustomer: React.FC<AddCustomerProps> = ({
     }
   }, [editingId, customers, setTitle]);
 
+  // Cleanup: Reset title when component unmounts
+  useEffect(() => {
+    return () => {
+      setTitle("");
+    };
+  }, [setTitle]);
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setCustomerData((prev: any) => ({

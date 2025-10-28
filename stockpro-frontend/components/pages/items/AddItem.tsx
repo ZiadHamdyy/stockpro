@@ -94,6 +94,13 @@ const AddItem: React.FC<AddItemProps> = ({ title, editingId, onNavigate }) => {
     }
   }, [items, itemId, setTitle]);
 
+  // Cleanup: Reset title when component unmounts
+  useEffect(() => {
+    return () => {
+      setTitle("");
+    };
+  }, [setTitle]);
+
   useEffect(() => {
     if (itemId !== null && itemId !== undefined) {
       const foundItem = Array.isArray(items)

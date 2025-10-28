@@ -60,6 +60,13 @@ const AddSupplier: React.FC<AddSupplierProps> = ({
     }
   }, [editingId, suppliers, setTitle]);
 
+  // Cleanup: Reset title when component unmounts
+  useEffect(() => {
+    return () => {
+      setTitle("");
+    };
+  }, [setTitle]);
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setSupplierData((prev: any) => ({
