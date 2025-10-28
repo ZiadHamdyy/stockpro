@@ -10,7 +10,7 @@ export class CompanyResponse {
   capital: number;
   vatRate: number;
   isVatEnabled: boolean;
-  logoPath: string | null;
+  logo: string | null;
   createdAt: Date;
   updatedAt: Date;
 }

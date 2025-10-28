@@ -3,10 +3,22 @@ import { DatabaseService } from '../../configs/database/database.service';
 import { CreatePurchaseInvoiceRequest } from './dtos/request/create-purchase-invoice.request';
 import { UpdatePurchaseInvoiceRequest } from './dtos/request/update-purchase-invoice.request';
 import { PurchaseInvoiceResponse } from './dtos/response/purchase-invoice.response';
+import { bufferToDataUri } from '../../common/utils/image-converter';
 
 @Injectable()
 export class PurchaseInvoiceService {
   constructor(private readonly prisma: DatabaseService) {}
+
+  /**
+   * Converts user data from database format to response format
+   * Converts Buffer image to base64 data URI
+   */
+  private convertUserForResponse(user: any) {
+    return {
+      ...user,
+      image: user.image ? bufferToDataUri(user.image) : null,
+    };
+  }
 
   async create(
     data: CreatePurchaseInvoiceRequest,
@@ -70,7 +82,10 @@ export class PurchaseInvoiceService {
       });
     }
 
-    return invoice as PurchaseInvoiceResponse;
+    return {
+      ...invoice,
+      user: this.convertUserForResponse(invoice.user),
+    } as PurchaseInvoiceResponse;
   }
 
   async findAll(search?: string): Promise<PurchaseInvoiceResponse[]> {
@@ -98,7 +113,10 @@ export class PurchaseInvoiceService {
       orderBy: { createdAt: 'desc' },
     });
 
-    return invoices as PurchaseInvoiceResponse[];
+    return invoices.map(invoice => ({
+      ...invoice,
+      user: this.convertUserForResponse(invoice.user),
+    })) as PurchaseInvoiceResponse[];
   }
 
   async findOne(id: string): Promise<PurchaseInvoiceResponse> {
@@ -122,7 +140,10 @@ export class PurchaseInvoiceService {
       throw new NotFoundException('Purchase invoice not found');
     }
 
-    return invoice as PurchaseInvoiceResponse;
+    return {
+      ...invoice,
+      user: this.convertUserForResponse(invoice.user),
+    } as PurchaseInvoiceResponse;
   }
 
   async update(
@@ -204,7 +225,10 @@ export class PurchaseInvoiceService {
       });
     }
 
-    return invoice as PurchaseInvoiceResponse;
+    return {
+      ...invoice,
+      user: this.convertUserForResponse(invoice.user),
+    } as PurchaseInvoiceResponse;
   }
 
   async remove(id: string): Promise<void> {

@@ -7,6 +7,7 @@ import { Request } from 'express';
 import { get } from 'env-var';
 import * as jwt from 'jsonwebtoken';
 import { DatabaseService } from '../../../configs/database/database.service';
+import { bufferToDataUri } from '../../utils/image-converter';
 
 @Injectable()
 export class ContextAuthService implements IContextAuthService {
@@ -67,7 +68,26 @@ export class ContextAuthService implements IContextAuthService {
       throw new GenericHttpException('User not found', 404);
     }
 
-    return user;
+    // Convert image Buffer to data URI for proper frontend display
+    console.log('🔍 ContextAuth - User image before conversion:', {
+      type: typeof user.image,
+      isBuffer: Buffer.isBuffer(user.image),
+      hasImage: !!user.image,
+      length: user.image?.length || 'no length'
+    });
+    
+    const convertedImage = user.image ? bufferToDataUri(user.image) : null;
+    
+    console.log('🔍 ContextAuth - User image after conversion:', {
+      type: typeof convertedImage,
+      length: convertedImage?.length || 'no length',
+      preview: convertedImage?.substring(0, 50) || 'null'
+    });
+    
+    return {
+      ...user,
+      image: convertedImage,
+    } as any;
   }
 
   async getUserFromReqHeaders(req: Request): Promise<User | null> {

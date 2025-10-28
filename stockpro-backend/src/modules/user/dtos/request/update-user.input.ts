@@ -17,7 +17,6 @@ export class UpdateUserInfo {
   @IsOptional()
   @ValidateIf((o) => o.image !== '' && o.image !== undefined)
   @IsString({ message: ERROR_MESSAGES.IMAGE_SHOULD_BE_STRING })
-  @MaxLength(500, { message: ERROR_MESSAGES.IMAGE_MAX_LENGTH_500 })
   image: string;
 }
 
@@ -31,6 +30,5 @@ export class CurrentUserUpdateInput {
   @IsOptional()
   @ValidateIf((o) => o.image !== '' && o.image !== undefined)
   @IsString({ message: ERROR_MESSAGES.IMAGE_SHOULD_BE_STRING })
-  @MaxLength(500, { message: ERROR_MESSAGES.IMAGE_MAX_LENGTH_500 })
   image: string;
 }

@@ -13,7 +13,7 @@ interface CompanyResponse {
   capital: number;
   vatRate: number;
   isVatEnabled: boolean;
-  logoPath: string | null;
+  logo: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -29,7 +29,7 @@ interface UpsertCompanyRequest {
   capital: number;
   vatRate: number;
   isVatEnabled: boolean;
-  logoPath?: string;
+  logo?: string;
 }
 
 export const companyApiSlice = apiSlice.injectEndpoints({
@@ -50,7 +50,7 @@ export const companyApiSlice = apiSlice.injectEndpoints({
           capital: company.capital,
           vatRate: company.vatRate,
           isVatEnabled: company.isVatEnabled,
-          logo: company.logoPath,
+          logo: company.logo,
         };
       },
     }),
@@ -74,7 +74,7 @@ export const companyApiSlice = apiSlice.injectEndpoints({
           capital: company.capital,
           vatRate: company.vatRate,
           isVatEnabled: company.isVatEnabled,
-          logo: company.logoPath,
+          logo: company.logo,
         };
       },
     }),

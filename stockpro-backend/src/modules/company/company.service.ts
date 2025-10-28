@@ -2,6 +2,7 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { DatabaseService } from '../../configs/database/database.service';
 import { UpsertCompanyRequest } from './dtos/request/upsert-company.request';
 import { CompanyResponse } from './dtos/response/company.response';
+import { base64ToBuffer, bufferToDataUri } from '../../common/utils/image-converter';
 
 @Injectable()
 export class CompanyService {
@@ -26,18 +27,24 @@ export class CompanyService {
       orderBy: { createdAt: 'asc' },
     });
 
+    // Prepare data with logo conversion
+    const companyData = {
+      ...data,
+      logo: data.logo ? base64ToBuffer(data.logo) : null,
+    };
+
     let company;
 
     if (existingCompany) {
       // Update existing company
       company = await this.prisma.company.update({
         where: { id: existingCompany.id },
-        data,
+        data: companyData,
       });
     } else {
       // Create new company
       company = await this.prisma.company.create({
-        data,
+        data: companyData,
       });
     }
 
@@ -57,7 +64,7 @@ export class CompanyService {
       capital: company.capital,
       vatRate: company.vatRate,
       isVatEnabled: company.isVatEnabled,
-      logoPath: company.logoPath,
+      logo: company.logo ? bufferToDataUri(company.logo) : null,
       createdAt: company.createdAt,
       updatedAt: company.updatedAt,
     };

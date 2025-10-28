@@ -33,6 +33,7 @@ export interface User {
   id: number;
   name: string;
   email: string;
+  image?: string | null;
   avatar?: string | null;
   fullName?: string;
   username?: string;

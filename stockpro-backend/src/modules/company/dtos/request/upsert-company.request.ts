@@ -33,5 +33,5 @@ export class UpsertCompanyRequest {
 
   @IsOptional()
   @IsString()
-  logoPath?: string;
+  logo?: string;
 }

@@ -38,6 +38,5 @@ export class SignupRequest {
   @IsOptional()
   @ValidateIf((o) => o.image !== '' && o.image !== undefined)
   @IsString({ message: ERROR_MESSAGES.IMAGE_SHOULD_BE_STRING })
-  @MaxLength(255, { message: ERROR_MESSAGES.IMAGE_MAX_LENGTH_255 })
   image: string;
 }

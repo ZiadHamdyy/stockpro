@@ -15,6 +15,7 @@ import { VerifyForgotPasswordRequest } from './dtos/request/verify-forgot-passwo
 import { ResetPasswordRequest } from './dtos/request/reset-password.request';
 import { UpdatePasswordRequest } from './dtos/request/update-password.request';
 import type { Response } from 'express';
+import { base64ToBuffer, bufferToDataUri } from '../../common/utils/image-converter';
 
 @Injectable()
 export class AuthService {
@@ -26,6 +27,17 @@ export class AuthService {
     private readonly sessionService: SessionService,
     private readonly emailService: EmailService,
   ) {}
+
+  /**
+   * Converts user data from database format to response format
+   * Converts Buffer image to base64 data URI
+   */
+  private convertUserForResponse(user: any) {
+    return {
+      ...user,
+      image: user.image ? bufferToDataUri(user.image) : null,
+    };
+  }
 
   async signup(request: SignupRequest) {
     const { email, password, name, image } = request;
@@ -49,7 +61,7 @@ export class AuthService {
         email,
         password: await this.helperService.hashPassword(password),
         name: name || email.split('@')[0],
-        image,
+        image: base64ToBuffer(image),
         active: true,
         emailVerified: false, // Set to false - requires email verification
         branchId: branch.id,
@@ -215,7 +227,7 @@ export class AuthService {
     // Format permissions array for response
     const formattedUser = userWithRole
       ? {
-          ...userWithRole,
+          ...this.convertUserForResponse(userWithRole),
           role: userWithRole.role
             ? {
                 ...userWithRole.role,
@@ -226,7 +238,7 @@ export class AuthService {
               }
             : null,
         }
-      : user;
+      : this.convertUserForResponse(user);
 
     // Return both tokens internally - controller will use refreshToken for cookie
     // Serializer will only expose accessToken and user in response body
@@ -885,7 +897,7 @@ export class AuthService {
 
     // If no session creation, return user without tokens (same as login structure)
     return {
-      user: updatedUser,
+      user: this.convertUserForResponse(updatedUser),
     };
   }
 }

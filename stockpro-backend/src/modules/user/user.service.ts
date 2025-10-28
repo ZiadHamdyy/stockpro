@@ -6,6 +6,7 @@ import { CreateUserRequest } from './dtos/request/create-user.request';
 import { UserListFilterInput } from './dtos/request/user-filter.input';
 import { HelperService } from '../../common/utils/helper/helper.service';
 import { ERROR_MESSAGES } from '../../common/constants/error-messages.constant';
+import { base64ToBuffer, bufferToDataUri } from '../../common/utils/image-converter';
 
 @Injectable()
 export class UserService {
@@ -13,6 +14,17 @@ export class UserService {
     private readonly prisma: DatabaseService,
     private readonly helperService: HelperService,
   ) {}
+
+  /**
+   * Converts user data from database format to response format
+   * Converts Buffer image to base64 data URI
+   */
+  private convertUserForResponse(user: any) {
+    return {
+      ...user,
+      image: user.image ? bufferToDataUri(user.image) : null,
+    };
+  }
 
   async getAllUsers(filters?: UserListFilterInput) {
     const {
@@ -48,7 +60,7 @@ export class UserService {
     });
 
     return {
-      data: users,
+      data: users.map(user => this.convertUserForResponse(user)),
       meta: {
         page,
         limit,
@@ -72,7 +84,7 @@ export class UserService {
     // Create user directly with hashed password
     const user = await this.prisma.user.create({
       data: {
-        image: data.image,
+        image: data.image ? base64ToBuffer(data.image) : null,
         email: data.email,
         password: await this.helperService.hashPassword(data.password),
         name: data.name,
@@ -87,7 +99,7 @@ export class UserService {
       },
     });
 
-    return user;
+    return this.convertUserForResponse(user);
   }
 
   async getVerifiedUserIdByEmail(email: string) {
@@ -243,7 +255,7 @@ export class UserService {
       );
     }
 
-    return user;
+    return this.convertUserForResponse(user);
   }
 
   async updateUser(userId: string, data: CreateUserRequest) {
@@ -270,7 +282,7 @@ export class UserService {
     });
 
     const updateData: any = {
-      image: data.image,
+      image: data.image ? base64ToBuffer(data.image) : null,
       email: data.email,
       name: data.name,
       branchId: data.branchId,
@@ -292,7 +304,7 @@ export class UserService {
       },
     });
 
-    return user;
+    return this.convertUserForResponse(user);
   }
 
   async getUserPermissions(userId: string) {

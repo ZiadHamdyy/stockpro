@@ -28,7 +28,7 @@ export const useBalanceSheet = (endDate: string) => {
       taxNumber: company.taxNumber || "",
       commercialReg: company.commercialReg || "",
       currency: company.currency || "SAR",
-      logo: company.logoPath || null,
+      logo: company.logo || null,
       capital: company.capital || 0,
       vatRate: company.vatRate || 0,
       isVatEnabled: company.isVatEnabled || false,

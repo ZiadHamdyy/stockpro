@@ -65,13 +65,6 @@ export const useCompanyData = () => {
     e.preventDefault();
 
     try {
-      // Only send logoPath if it's a file path, not a base64 string
-      // Base64 logos are too large and should be uploaded separately if needed
-      const logoPath =
-        formData.logo && !formData.logo.startsWith("data:")
-          ? formData.logo
-          : undefined;
-
       await upsertCompany({
         name: formData.name,
         activity: formData.activity,
@@ -83,7 +76,7 @@ export const useCompanyData = () => {
         capital: formData.capital,
         vatRate: vatRate,
         isVatEnabled: isVatEnabled,
-        logoPath: logoPath,
+        logo: formData.logo,
       }).unwrap();
 
       showToast("تم حفظ البيانات بنجاح!");

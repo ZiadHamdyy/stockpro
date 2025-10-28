@@ -3,10 +3,22 @@ import { DatabaseService } from '../../configs/database/database.service';
 import { CreatePurchaseReturnRequest } from './dtos/request/create-purchase-return.request';
 import { UpdatePurchaseReturnRequest } from './dtos/request/update-purchase-return.request';
 import { PurchaseReturnResponse } from './dtos/response/purchase-return.response';
+import { bufferToDataUri } from '../../common/utils/image-converter';
 
 @Injectable()
 export class PurchaseReturnService {
   constructor(private readonly prisma: DatabaseService) {}
+
+  /**
+   * Converts user data from database format to response format
+   * Converts Buffer image to base64 data URI
+   */
+  private convertUserForResponse(user: any) {
+    return {
+      ...user,
+      image: user.image ? bufferToDataUri(user.image) : null,
+    };
+  }
 
   async create(
     data: CreatePurchaseReturnRequest,
@@ -69,7 +81,10 @@ export class PurchaseReturnService {
       });
     }
 
-    return returnRecord as PurchaseReturnResponse;
+    return {
+      ...returnRecord,
+      user: this.convertUserForResponse(returnRecord.user),
+    } as PurchaseReturnResponse;
   }
 
   async findAll(search?: string): Promise<PurchaseReturnResponse[]> {
@@ -97,7 +112,10 @@ export class PurchaseReturnService {
       orderBy: { createdAt: 'desc' },
     });
 
-    return returns as PurchaseReturnResponse[];
+    return returns.map(returnInvoice => ({
+      ...returnInvoice,
+      user: this.convertUserForResponse(returnInvoice.user),
+    })) as PurchaseReturnResponse[];
   }
 
   async findOne(id: string): Promise<PurchaseReturnResponse> {
@@ -121,7 +139,10 @@ export class PurchaseReturnService {
       throw new NotFoundException('Purchase return not found');
     }
 
-    return returnRecord as PurchaseReturnResponse;
+    return {
+      ...returnRecord,
+      user: this.convertUserForResponse(returnRecord.user),
+    } as PurchaseReturnResponse;
   }
 
   async update(
@@ -202,7 +223,10 @@ export class PurchaseReturnService {
       });
     }
 
-    return returnRecord as PurchaseReturnResponse;
+    return {
+      ...returnRecord,
+      user: this.convertUserForResponse(returnRecord.user),
+    } as PurchaseReturnResponse;
   }
 
   async remove(id: string): Promise<void> {
