@@ -23,9 +23,8 @@ export const TOKEN_CONSTANTS = {
     // No MAX_AGE - persistent cookie (no expiration)
     PATH: '/',
     HTTP_ONLY: true,
-    SECURE: process.env.NODE_ENV === 'production',
-    SAME_SITE:
-      process.env.NODE_ENV === 'production' ? 'strict' : ('lax' as const),
+    SECURE: false,
+    SAME_SITE: 'lax' as const,
   },
 
   // Session Configuration

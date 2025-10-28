@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useToast } from "../../common/ToastProvider";
 import { useSuppliers } from "../../hook/useSuppliers";
+import { useTitle } from "../../context/TitleContext";
 import PermissionWrapper from "../../common/PermissionWrapper";
 import {
   Resources,
@@ -34,6 +35,8 @@ const AddSupplier: React.FC<AddSupplierProps> = ({
   const [supplierData, setSupplierData] = useState<any>(emptySupplier);
   const [isReadOnly, setIsReadOnly] = useState(true);
   const [currentIndex, setCurrentIndex] = useState(-1);
+  const [supplierPosition, setSupplierPosition] = useState<number | null>(null);
+  const { setTitle } = useTitle();
   const { showToast } = useToast();
 
   useEffect(() => {
@@ -42,14 +45,20 @@ const AddSupplier: React.FC<AddSupplierProps> = ({
       if (index !== -1) {
         setSupplierData(suppliers[index]);
         setCurrentIndex(index);
+        setSupplierPosition(index + 1);
         setIsReadOnly(true);
+        
+        // Update title context for the header
+        setTitle(`تعديل مورد #${index + 1}`);
       }
     } else {
       setSupplierData(emptySupplier);
       setIsReadOnly(false);
       setCurrentIndex(-1);
+      setSupplierPosition(null);
+      setTitle(`إضافة مورد`);
     }
-  }, [editingId, suppliers]);
+  }, [editingId, suppliers, setTitle]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -117,7 +126,9 @@ const AddSupplier: React.FC<AddSupplierProps> = ({
 
   return (
     <div className="bg-white p-6 rounded-lg shadow">
-      <h1 className="text-2xl font-bold mb-4 text-brand-dark">{title}</h1>
+      <h1 className="text-2xl font-bold mb-4 text-brand-dark">
+        {supplierPosition ? `تعديل مورد #${supplierPosition}` : title}
+      </h1>
       <form
         onSubmit={(e) => {
           e.preventDefault();

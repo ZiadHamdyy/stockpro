@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useToast } from "../../common/ToastProvider";
 import { useCustomers } from "../../hook/useCustomers";
+import { useTitle } from "../../context/TitleContext";
 import PermissionWrapper from "../../common/PermissionWrapper";
 import {
   Resources,
@@ -34,6 +35,8 @@ const AddCustomer: React.FC<AddCustomerProps> = ({
   const [customerData, setCustomerData] = useState<any>(emptyCustomer);
   const [isReadOnly, setIsReadOnly] = useState(true);
   const [currentIndex, setCurrentIndex] = useState(-1);
+  const [customerPosition, setCustomerPosition] = useState<number | null>(null);
+  const { setTitle } = useTitle();
   const { showToast } = useToast();
 
   useEffect(() => {
@@ -42,14 +45,20 @@ const AddCustomer: React.FC<AddCustomerProps> = ({
       if (index !== -1) {
         setCustomerData(customers[index]);
         setCurrentIndex(index);
+        setCustomerPosition(index + 1);
         setIsReadOnly(true);
+        
+        // Update title context for the header
+        setTitle(`تعديل عميل #${index + 1}`);
       }
     } else {
       setCustomerData(emptyCustomer);
       setIsReadOnly(false);
       setCurrentIndex(-1);
+      setCustomerPosition(null);
+      setTitle(`إضافة عميل`);
     }
-  }, [editingId, customers]);
+  }, [editingId, customers, setTitle]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -117,7 +126,9 @@ const AddCustomer: React.FC<AddCustomerProps> = ({
 
   return (
     <div className="bg-white p-6 rounded-lg shadow">
-      <h1 className="text-2xl font-bold mb-4 text-brand-dark">{title}</h1>
+      <h1 className="text-2xl font-bold mb-4 text-brand-dark">
+        {customerPosition ? `تعديل عميل #${customerPosition}` : title}
+      </h1>
       <form
         onSubmit={(e) => {
           e.preventDefault();
