@@ -40,6 +40,7 @@ import { ReceiptVoucherModule } from './modules/receipt-voucher/receipt-voucher.
 import { IncomeStatementModule } from './modules/income-statement/income-statement.module';
 import { BalanceSheetModule } from './modules/balance-sheet/balance-sheet.module';
 import { BackupModule } from './modules/backup/backup.module';
+import { ReportPdfModule } from './modules/report-pdf/report-pdf.module';
 
 @Module({
   imports: [
@@ -78,6 +79,7 @@ import { BackupModule } from './modules/backup/backup.module';
     IncomeStatementModule,
     BalanceSheetModule,
     BackupModule,
+    ReportPdfModule,
   ],
   controllers: [AppController],
   providers: [

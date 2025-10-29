@@ -40,4 +40,10 @@ export class CreateUserRequest {
   @IsString({ message: 'Branch ID should be a string' })
   @IsUUID(4, { message: 'Branch ID should be a valid UUID' })
   branchId: string;
+
+  @IsOptional()
+  @ValidateIf((o) => o.roleId !== '' && o.roleId !== undefined)
+  @IsString({ message: 'Role ID should be a string' })
+  @IsUUID(4, { message: 'Role ID should be a valid UUID' })
+  roleId?: string;
 }

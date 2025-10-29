@@ -89,6 +89,7 @@ export const itemsApiSlice = apiSlice.injectEndpoints({
         method: "POST",
         body: data,
       }),
+      invalidatesTags: ["ItemGroup"],
     }),
     updateItemGroup: builder.mutation({
       query: ({ id, data }) => ({
@@ -96,12 +97,14 @@ export const itemsApiSlice = apiSlice.injectEndpoints({
         method: "PATCH",
         body: data,
       }),
+      invalidatesTags: ["ItemGroup"],
     }),
     deleteItemGroup: builder.mutation({
       query: (id) => ({
         url: `item-groups/${id}`,
         method: "DELETE",
       }),
+      invalidatesTags: ["ItemGroup"],
     }),
 
     // Units
@@ -116,6 +119,7 @@ export const itemsApiSlice = apiSlice.injectEndpoints({
         method: "POST",
         body: data,
       }),
+      invalidatesTags: ["Unit"],
     }),
     updateUnit: builder.mutation({
       query: ({ id, data }) => ({
@@ -123,12 +127,14 @@ export const itemsApiSlice = apiSlice.injectEndpoints({
         method: "PATCH",
         body: data,
       }),
+      invalidatesTags: ["Unit"],
     }),
     deleteUnit: builder.mutation({
       query: (id) => ({
         url: `units/${id}`,
         method: "DELETE",
       }),
+      invalidatesTags: ["Unit"],
     }),
 
     // Items

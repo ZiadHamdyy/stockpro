@@ -8,6 +8,7 @@ import {
   type User as ReduxUser,
 } from "../../store/slices/user/userApi";
 import { useGetBranchesQuery } from "../../store/slices/branch/branchApi";
+import { useGetRolesQuery } from "../../store/slices/role/roleApi";
 import { useToast } from "../../common/ToastProvider";
 
 interface UserModalProps {
@@ -26,12 +27,14 @@ const UserModal: React.FC<UserModalProps> = ({
   const { data: branches = [], isLoading: isLoadingBranches } =
     useGetBranchesQuery();
   const { showToast } = useToast();
+  const { data: roles = [], isLoading: isLoadingRoles } = useGetRolesQuery();
   const [userData, setUserData] = useState({
     name: "",
     email: "",
     password: "",
     image: "",
     branchId: "",
+    roleId: "",
   });
   const [isPasswordVisible, setIsPasswordVisible] = useState(false);
   const [validationErrors, setValidationErrors] = useState<{
@@ -39,7 +42,20 @@ const UserModal: React.FC<UserModalProps> = ({
     email?: string;
     password?: string;
     branchId?: string;
+    roleId?: string;
   }>({});
+
+  const roleNameArMap: Record<string, string> = {
+    manager: "مدير",
+    data_entry: "مدخل البيانات",
+    salesperson: "بائع",
+    accountant: "محاسب",
+  };
+
+  const getRoleLabelAr = (name: string) => {
+    const key = name?.toLowerCase?.() ?? name;
+    return roleNameArMap[key] ?? name;
+  };
 
   useEffect(() => {
     if (userToEdit) {
@@ -49,6 +65,7 @@ const UserModal: React.FC<UserModalProps> = ({
         password: "",
         image: userToEdit.image || "",
         branchId: userToEdit.branchId || "",
+        roleId: userToEdit.role?.id || "",
       });
     } else {
       setUserData({
@@ -57,6 +74,7 @@ const UserModal: React.FC<UserModalProps> = ({
         password: "",
         image: "",
         branchId: "",
+        roleId: "",
       });
     }
 
@@ -102,6 +120,10 @@ const UserModal: React.FC<UserModalProps> = ({
       errors.branchId = "يجب اختيار فرع";
     }
 
+    if (!userData.roleId) {
+      errors.roleId = "يجب اختيار صلاحية";
+    }
+
     setValidationErrors(errors);
     return Object.keys(errors).length === 0;
   };
@@ -127,15 +149,17 @@ const UserModal: React.FC<UserModalProps> = ({
     }
 
     try {
-      const userDataToSave = {
-        name: userData.name,
-        email: userData.email,
-        password: userData.password,
-        image: userData.image,
-        branchId: userData.branchId,
-      };
-
       if (userToEdit) {
+        const userDataToSave: any = {
+          name: userData.name,
+          email: userData.email,
+          image: userData.image,
+          branchId: userData.branchId,
+          roleId: userData.roleId,
+        };
+        if (userData.password && userData.password.trim().length > 0) {
+          userDataToSave.password = userData.password;
+        }
         // Update existing user
         await updateUser({
           id: userToEdit.id,
@@ -144,6 +168,14 @@ const UserModal: React.FC<UserModalProps> = ({
         showToast("تم تعديل المستخدم بنجاح");
       } else {
         // Create new user
+        const userDataToSave = {
+          name: userData.name,
+          email: userData.email,
+          password: userData.password,
+          image: userData.image,
+          branchId: userData.branchId,
+          roleId: userData.roleId,
+        };
         await createUser(userDataToSave).unwrap();
         showToast("تم إضافة المستخدم بنجاح");
       }
@@ -190,7 +222,7 @@ const UserModal: React.FC<UserModalProps> = ({
       onClick={onClose}
     >
       <div
-        className="bg-white rounded-lg shadow-xl w-full max-w-2xl"
+        className="bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="p-4 border-b border-gray-200">
@@ -324,9 +356,32 @@ const UserModal: React.FC<UserModalProps> = ({
                     </option>
                   ))}
                 </select>
-                {validationErrors.branchId && (
+              </div>
+                <div className="mt-4">
+                <label
+                  htmlFor="roleId"
+                  className="block text-sm font-medium text-gray-700"
+                >
+                  الصلاحيات
+                </label>
+                <select
+                  id="roleId"
+                  name="roleId"
+                  value={userData.roleId}
+                  onChange={handleChange}
+                  className={`${inputStyle} ${validationErrors.roleId ? "border-red-500" : ""}`}
+                  required
+                >
+                  <option value="">اختر الصلاحيات...</option>
+                  {roles.map((role) => (
+                    <option key={role.id} value={role.id}>
+                      {getRoleLabelAr(role.name)}
+                    </option>
+                  ))}
+                </select>
+                {validationErrors.roleId && (
                   <p className="mt-1 text-sm text-red-600">
-                    {validationErrors.branchId}
+                    {validationErrors.roleId}
                   </p>
                 )}
               </div>
@@ -342,7 +397,7 @@ const UserModal: React.FC<UserModalProps> = ({
             </button>
             <button
               type="submit"
-              disabled={isCreating || isUpdating || isLoadingBranches}
+              disabled={isCreating || isUpdating || isLoadingBranches || isLoadingRoles}
               className="px-6 py-2 bg-brand-blue text-white rounded-md hover:bg-blue-800 font-semibold disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
             >
               {isCreating || isUpdating ? (

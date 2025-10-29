@@ -36,6 +36,7 @@ export interface CreateUserRequest {
   password: string;
   image?: string;
   branchId: string;
+  roleId?: string;
 }
 
 export interface UpdateUserRequest extends Partial<CreateUserRequest> {}

@@ -1,5 +1,4 @@
 import React, { useState, useMemo } from "react";
-import type { CompanyInfo } from "../../../types";
 import {
   DollarSignIcon,
   MoreVerticalIcon,
@@ -10,6 +9,7 @@ import {
 import { useModal } from "../../common/ModalProvider";
 import { formatNumber } from "../../../utils/formatting";
 import DataTableModal from "../../common/DataTableModal";
+import { useGetCompanyQuery } from "../../store/slices/companyApiSlice";
 import { useCustomers } from "../../hook/useCustomers";
 import PermissionWrapper from "../../common/PermissionWrapper";
 import {
@@ -21,7 +21,6 @@ import {
 interface CustomersListProps {
   title: string;
   onNavigate: (key: string, label: string, id?: string | null) => void;
-  companyInfo: CompanyInfo;
 }
 
 const StatCard: React.FC<{
@@ -44,8 +43,8 @@ const StatCard: React.FC<{
 const CustomersList: React.FC<CustomersListProps> = ({
   title,
   onNavigate,
-  companyInfo,
 }) => {
+  const { data: companyInfo } = useGetCompanyQuery();
   const { customers, isLoading, handleDeleteClick } = useCustomers();
   const [searchTerm, setSearchTerm] = useState("");
   const [sortBy, setSortBy] = useState<"name" | "balance_high" | "balance_low">(
@@ -95,7 +94,7 @@ const CustomersList: React.FC<CustomersListProps> = ({
   }, [customers, searchTerm, sortBy]);
 
   const inputStyle =
-    "w-full md:w-72 pr-10 pl-4 py-3 bg-brand-blue-bg border-2 border-brand-blue rounded-md text-black placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-brand-blue";
+    "w-full md:w-72 pr-10 pl-4 py-3 bg-brand-blue-bag border-2 border-brand-blue rounded-md text-black placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-brand-blue";
 
   if (isLoading) {
     return (

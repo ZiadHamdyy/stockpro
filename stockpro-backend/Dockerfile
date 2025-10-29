@@ -6,7 +6,17 @@ WORKDIR /app
 
 # Install pnpm and PostgreSQL client tools
 RUN npm install -g pnpm && \
-    apk add --no-cache postgresql-client
+    apk add --no-cache postgresql-client \
+    udev \
+    ca-certificates \
+    nss \
+    freetype \
+    harfbuzz \
+    ttf-freefont \
+    chromium
+
+# Use system Chromium with Puppeteer
+ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium-browser
 
 # Copy package files
 COPY package.json pnpm-lock.yaml ./

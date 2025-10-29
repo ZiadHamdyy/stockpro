@@ -18,6 +18,7 @@ import { CheckEmailResponse } from './dtos/response/check-email.response';
 import { UserListFilterInput } from './dtos/request/user-filter.input';
 import { CheckEmailRequest } from './dtos/request/check-email.request';
 import { CreateUserRequest } from './dtos/request/create-user.request';
+import { UpdateUserRequest } from './dtos/request/update-user.request';
 import { JwtAuthenticationGuard } from '../../common/guards/strategy.guards/jwt.guard';
 import { currentUser } from '../../common/decorators/currentUser.decorator';
 import type { currentUserType } from '../../common/types/current-user.type';
@@ -66,7 +67,7 @@ export class UserController {
   @Serialize(UserResponse)
   async updateUser(
     @Param('id') userId: string,
-    @Body() data: CreateUserRequest,
+    @Body() data: UpdateUserRequest,
   ) {
     return await this.userService.updateUser(userId, data);
   }

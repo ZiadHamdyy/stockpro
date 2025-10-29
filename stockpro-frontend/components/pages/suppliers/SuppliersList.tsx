@@ -1,5 +1,4 @@
 import React, { useState, useMemo } from "react";
-import type { CompanyInfo } from "../../../types";
 import {
   DollarSignIcon,
   MoreVerticalIcon,
@@ -9,6 +8,7 @@ import {
 } from "../../icons";
 import { formatNumber } from "../../../utils/formatting";
 import DataTableModal from "../../common/DataTableModal";
+import { useGetCompanyQuery } from "../../store/slices/companyApiSlice";
 import { useSuppliers } from "../../hook/useSuppliers";
 import PermissionWrapper from "../../common/PermissionWrapper";
 import {
@@ -20,7 +20,6 @@ import {
 interface SuppliersListProps {
   title: string;
   onNavigate: (key: string, label: string, id?: string | null) => void;
-  companyInfo: CompanyInfo;
 }
 
 const StatCard: React.FC<{
@@ -43,8 +42,8 @@ const StatCard: React.FC<{
 const SuppliersList: React.FC<SuppliersListProps> = ({
   title,
   onNavigate,
-  companyInfo,
 }) => {
+  const { data: companyInfo } = useGetCompanyQuery();
   const { suppliers, isLoading, handleDeleteClick } = useSuppliers();
   const [searchTerm, setSearchTerm] = useState("");
   const [sortBy, setSortBy] = useState<"name" | "balance_high" | "balance_low">(

@@ -3,6 +3,7 @@ import { DatabaseService } from '../../configs/database/database.service';
 import { GenericHttpException } from '../../common/application/exceptions/generic-http-exception';
 import { HttpStatus } from '@nestjs/common';
 import { CreateUserRequest } from './dtos/request/create-user.request';
+import { UpdateUserRequest } from './dtos/request/update-user.request';
 import { UserListFilterInput } from './dtos/request/user-filter.input';
 import { HelperService } from '../../common/utils/helper/helper.service';
 import { ERROR_MESSAGES } from '../../common/constants/error-messages.constant';
@@ -90,7 +91,7 @@ export class UserService {
         name: data.name,
         emailVerified: true,
         active: true,
-        roleId: defaultRole?.id,
+        roleId: data.roleId ?? defaultRole?.id,
         branchId: data.branchId,
       },
       include: {
@@ -258,7 +259,7 @@ export class UserService {
     return this.convertUserForResponse(user);
   }
 
-  async updateUser(userId: string, data: CreateUserRequest) {
+  async updateUser(userId: string, data: UpdateUserRequest) {
     // Check if user exists
     const existingUser = await this.prisma.user.findUnique({
       where: { id: userId },
@@ -272,27 +273,34 @@ export class UserService {
     }
 
     // Check if email is being changed and if new email already exists
-    if (data.email !== existingUser.email) {
+    if (data.email && data.email !== existingUser.email) {
       await this.errorIfUserExists(data.email);
     }
 
-    // Get default role (manager)
-    const defaultRole = await this.prisma.role.findFirst({
-      where: { name: 'manager' },
-    });
+    const updateData: any = {};
 
-    const updateData: any = {
-      image: data.image ? base64ToBuffer(data.image) : null,
-      email: data.email,
-      name: data.name,
-      branchId: data.branchId,
-    };
+    if (data.image !== undefined) {
+      updateData.image = data.image ? base64ToBuffer(data.image) : null;
+    }
+    if (data.email !== undefined) {
+      updateData.email = data.email;
+    }
+    if (data.name !== undefined) {
+      updateData.name = data.name;
+    }
+    if (data.branchId !== undefined) {
+      updateData.branchId = data.branchId;
+    }
 
     // Only update password if provided
     if (data.password) {
       updateData.password = await this.helperService.hashPassword(
         data.password,
       );
+    }
+
+    if (data.roleId) {
+      updateData.roleId = data.roleId;
     }
 
     const user = await this.prisma.user.update({
