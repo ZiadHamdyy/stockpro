@@ -15,6 +15,7 @@ datasource db {
 
 model User {
   id            String  @id @default(uuid())
+  code          Int     @unique
   email         String  @unique
   name          String?
   image         Bytes?
@@ -301,6 +302,7 @@ model Supplier {
 
 model Branch {
   id          String  @id @default(uuid())
+  code        Int     @unique
   name        String
   address     String?
   phone       String?
@@ -323,6 +325,7 @@ model Branch {
 
 model Store {
   id          String  @id @default(uuid())
+  code        Int     @unique
   name        String
   address     String?
   phone       String?

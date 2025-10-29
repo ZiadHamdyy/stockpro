@@ -83,8 +83,16 @@ export class UserService {
     });
 
     // Create user directly with hashed password
+    // Generate next user code
+    const last = await this.prisma.user.findFirst({
+      select: { code: true },
+      orderBy: { code: 'desc' },
+    });
+    const nextCode = (last?.code ?? 0) + 1;
+
     const user = await this.prisma.user.create({
       data: {
+        code: nextCode,
         image: data.image ? base64ToBuffer(data.image) : null,
         email: data.email,
         password: await this.helperService.hashPassword(data.password),

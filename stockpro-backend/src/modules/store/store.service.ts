@@ -8,8 +8,14 @@ export class StoreService {
   constructor(private readonly prisma: DatabaseService) {}
 
   async create(createStoreDto: CreateStoreDto) {
+    const last = await this.prisma.store.findFirst({
+      select: { code: true },
+      orderBy: { code: 'desc' },
+    });
+    const nextCode = (last?.code ?? 0) + 1;
+
     return this.prisma.store.create({
-      data: createStoreDto,
+      data: { ...createStoreDto, code: nextCode },
       include: {
         branch: true,
         user: true,

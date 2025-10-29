@@ -75,8 +75,8 @@ const UsersData: React.FC<UsersDataProps> = ({ title }) => {
   );
 
   const handleExcelExport = () => {
-    const dataToExport = filteredUsers.map(({ id, name, email, role }) => ({
-      "كود المستخدم": id,
+    const dataToExport = filteredUsers.map(({ code, name, email, role }) => ({
+      "كود المستخدم": code,
       "الاسم الكامل": name || "",
       "البريد الإلكتروني": email || "",
       "مجموعة الصلاحيات":
@@ -117,7 +117,7 @@ const UsersData: React.FC<UsersDataProps> = ({ title }) => {
               : user.role?.name || "مستخدم",
       user.email || "",
       user.name || "",
-      user.id.toString(),
+      user.code.toString(),
     ]);
 
     exportToPdf("قائمة المستخدمين", head, body, "قائمة-المستخدمين");
@@ -128,6 +128,17 @@ const UsersData: React.FC<UsersDataProps> = ({ title }) => {
 
   return (
     <>
+      <style>
+        {`
+          @media print {
+            @page { size: A4 landscape; margin: 10mm; }
+            .no-print { display: none !important; }
+            .overflow-x-auto { overflow: visible !important; }
+            table { font-size: 12px !important; }
+            th, td { padding: 4px 6px !important; }
+          }
+        `}
+      </style>
       <div className="bg-white p-6 rounded-lg shadow">
         <h1 className="text-2xl font-bold mb-4 text-brand-dark">{title}</h1>
         <div className="flex justify-between items-center mb-4 no-print">
@@ -212,7 +223,7 @@ const UsersData: React.FC<UsersDataProps> = ({ title }) => {
               <tbody className="bg-white divide-y divide-gray-200">
                 {filteredUsers.map((user) => (
                   <tr key={user.id} className="hover:bg-brand-blue-bg">
-                    <td className="px-6 py-4 whitespace-nowrap">{user.id}</td>
+                    <td className="px-6 py-4 whitespace-nowrap">{user.code}</td>
                     <td className="px-6 py-4 whitespace-nowrap font-medium text-brand-dark">
                       {user.name || ""}
                     </td>

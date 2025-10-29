@@ -2,6 +2,7 @@ import { apiSlice } from "../../ApiSlice";
 
 export interface Branch {
   id: string;
+  code: number;
   name: string;
   address?: string;
   phone?: string;

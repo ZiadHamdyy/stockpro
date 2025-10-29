@@ -1,10 +1,8 @@
 import React, { useState } from "react";
-import { useSelector, useDispatch } from "react-redux";
-import type { Branch } from "../../../types";
+import { useDispatch } from "react-redux";
 import { PrintIcon, SearchIcon } from "../../icons";
 import BranchModal from "./BranchModal";
 import { useModal } from "../../common/ModalProvider";
-import { RootState } from "../../store/store";
 import { useGetBranchesQuery } from "../../store/slices/branch/branchApi";
 import {
   useCreateBranchMutation,
@@ -159,7 +157,7 @@ const BranchesData: React.FC<BranchesDataProps> = ({ title }) => {
             <tbody className="bg-white divide-y divide-gray-200">
               {filteredBranches.map((branch) => (
                 <tr key={branch.id} className="hover:bg-brand-blue-bg">
-                  <td className="px-6 py-4 whitespace-nowrap">{branch.id}</td>
+                  <td className="px-6 py-4 whitespace-nowrap">{branch.code}</td>
                   <td className="px-6 py-4 whitespace-nowrap font-medium text-brand-dark">
                     {branch.name}
                   </td>

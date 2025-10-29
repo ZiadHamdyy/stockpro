@@ -69,7 +69,20 @@ const allItemKeys = getAllKeys(permissionTreeData);
 export const useUserPermissions = () => {
   const currentUser = useSelector(selectCurrentUser);
 
-  const userPermissions: Permission[] = currentUser?.role?.permissions || [];
+  // Normalize permissions from backend shape: role.rolePermissions[].permission
+  const userPermissions: Permission[] = useMemo(() => {
+    const role: any = currentUser?.role;
+    if (!role) return [] as Permission[];
+    if (Array.isArray((role as any).permissions)) {
+      return (role as any).permissions as Permission[];
+    }
+    if (Array.isArray(role.rolePermissions)) {
+      return role.rolePermissions
+        .map((rp: any) => rp?.permission)
+        .filter(Boolean) as Permission[];
+    }
+    return [] as Permission[];
+  }, [currentUser]);
   const permissionSet = useMemo(
     () => getPermissionSet(userPermissions),
     [userPermissions],

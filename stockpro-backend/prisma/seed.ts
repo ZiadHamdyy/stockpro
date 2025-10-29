@@ -240,6 +240,28 @@ async function main() {
   }
   console.log(`✅ Created ${permissions.length} permissions`);
 
+  // Ensure system-level permissions not tied to menu exist (e.g., roles management)
+  const extraPermissions = [
+    { resource: 'roles', action: 'create', description: 'Create roles' },
+    { resource: 'roles', action: 'read', description: 'Read roles' },
+    { resource: 'roles', action: 'update', description: 'Update roles' },
+    { resource: 'roles', action: 'delete', description: 'Delete roles' },
+  ];
+
+  console.log('🛠️ Ensuring extra system permissions (roles)...');
+  for (const permission of extraPermissions) {
+    await prisma.permission.upsert({
+      where: {
+        resource_action: {
+          resource: permission.resource,
+          action: permission.action,
+        },
+      },
+      update: permission,
+      create: permission,
+    });
+  }
+
   // Create roles
   const roles = [
     {
@@ -501,8 +523,14 @@ async function main() {
   console.log('🏪 Creating default branch...');
   let existingBranch = await prisma.branch.findFirst();
   if (!existingBranch) {
+    const lastBranchWithCode = await prisma.branch.findFirst({
+      select: { code: true },
+      orderBy: { code: 'desc' },
+    });
+    const nextBranchCode = (lastBranchWithCode?.code ?? 0) + 1;
     existingBranch = await prisma.branch.create({
       data: {
+        code: nextBranchCode,
         name: 'الفرع الرئيسي',
         address: company?.address || 'العنوان',
         phone: company?.phone || '+966000000000',
@@ -523,9 +551,16 @@ async function main() {
   if (!existingAdmin && existingBranch && managerRole) {
     // Hash the password using bcryptjs with 12 rounds (matching TOKEN_CONSTANTS)
     const hashedPassword = await bcryptjs.hash('Password#1', 12);
+    // Next user code
+    const lastUserWithCode = await prisma.user.findFirst({
+      select: { code: true },
+      orderBy: { code: 'desc' },
+    });
+    const nextUserCode = (lastUserWithCode?.code ?? 0) + 1;
     
     await prisma.user.create({
       data: {
+        code: nextUserCode,
         email: 'admin@stockpro.com',
         name: 'مدير النظام',
         password: hashedPassword,

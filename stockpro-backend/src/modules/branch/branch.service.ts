@@ -8,8 +8,15 @@ export class BranchService {
   constructor(private readonly prisma: DatabaseService) {}
 
   async create(createBranchDto: CreateBranchDto) {
+    // Determine next sequential code (starting from 1)
+    const last = await this.prisma.branch.findFirst({
+      select: { code: true },
+      orderBy: { code: 'desc' },
+    });
+    const nextCode = (last?.code ?? 0) + 1;
+
     return this.prisma.branch.create({
-      data: createBranchDto,
+      data: { ...createBranchDto, code: nextCode },
       include: {
         stores: {
           include: {

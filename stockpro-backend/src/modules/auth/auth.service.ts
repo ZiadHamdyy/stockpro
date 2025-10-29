@@ -46,8 +46,14 @@ export class AuthService {
     // Get the first available branch (or create a default one if none exists)
     let branch = await this.prisma.branch.findFirst();
     if (!branch) {
+      const last = await this.prisma.branch.findFirst({
+        select: { code: true },
+        orderBy: { code: 'desc' },
+      });
+      const nextCode = (last?.code ?? 0) + 1;
       branch = await this.prisma.branch.create({
         data: {
+          code: nextCode,
           name: 'Default Branch',
           address: 'Default Address',
           phone: 'Default Phone',
@@ -56,8 +62,16 @@ export class AuthService {
       });
     }
 
+    // Generate next user code
+    const lastUser = await this.prisma.user.findFirst({
+      select: { code: true },
+      orderBy: { code: 'desc' },
+    });
+    const nextUserCode = (lastUser?.code ?? 0) + 1;
+
     const user = await this.prisma.user.create({
       data: {
+        code: nextUserCode,
         email,
         password: await this.helperService.hashPassword(password),
         name: name || email.split('@')[0],

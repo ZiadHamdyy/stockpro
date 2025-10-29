@@ -1,22 +1,28 @@
 import { apiSlice } from "../../ApiSlice";
-import type { Role, AssignPermissionsRequest } from "../../../types";
+import type { Role, AssignPermissionsRequest } from "../../../../types";
 
 export const roleApi = apiSlice.injectEndpoints({
   endpoints: (builder) => ({
-    getRoles: builder.query<Role[], void>({
+    getRoles: builder.query({
       query: () => "roles",
       transformResponse: (response: { data: Role[] }) => response.data,
       providesTags: ["Role"],
     }),
-    getRole: builder.query<Role, string>({
+    getRole: builder.query({
       query: (id) => `roles/${id}`,
       transformResponse: (response: { data: Role }) => response.data,
       providesTags: (result, error, id) => [{ type: "Role", id }],
     }),
-    assignPermissions: builder.mutation<
-      Role,
-      { roleId: string; permissions: AssignPermissionsRequest }
-    >({
+    createRole: builder.mutation({
+      query: (body) => ({
+        url: `roles`,
+        method: "POST",
+        body,
+      }),
+      transformResponse: (response: { data: Role }) => response.data,
+      invalidatesTags: ["Role"],
+    }),
+    assignPermissions: builder.mutation({
       query: ({ roleId, permissions }) => ({
         url: `roles/${roleId}/permissions`,
         method: "POST",
@@ -34,5 +40,6 @@ export const roleApi = apiSlice.injectEndpoints({
 export const {
   useGetRolesQuery,
   useGetRoleQuery,
+  useCreateRoleMutation,
   useAssignPermissionsMutation,
 } = roleApi;
