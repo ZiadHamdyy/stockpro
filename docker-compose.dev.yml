@@ -24,6 +24,7 @@ services:
       - ./stockpro-backend/.env.docker
     volumes:
       - ./stockpro-backend:/app
+      - /app/node_modules
     depends_on:
       - postgres
     networks:
@@ -66,6 +67,7 @@ services:
       - ./stockpro-backend/.env.docker
     volumes:
       - ./stockpro-backend:/app
+      - /app/node_modules
     depends_on:
       - postgres
     networks:

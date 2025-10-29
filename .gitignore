@@ -1,3 +1,33 @@
+# OS/Editor junk
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+
+# Logs
+*.log
+pnpm-debug.log*
+npm-debug.log*
+yarn-error.log*
+
+# Dependencies and build outputs
+stockpro-backend/node_modules/
+stockpro-backend/dist/
+stockpro-backend/.pnpm-store/
+stockpro-frontend/node_modules/
+stockpro-frontend/dist/
+stockpro-frontend/.vite/
+
+# Caches
+.cache/
+.tmp/
+tmp/
+
+# Coverage
+coverage/
+
+# Local uploads (keep in working copy, don’t commit)
+stockpro-backend/uploads/
 # Dependencies
 node_modules/
 */node_modules/

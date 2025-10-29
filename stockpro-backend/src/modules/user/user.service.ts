@@ -3,7 +3,7 @@ import { DatabaseService } from '../../configs/database/database.service';
 import { GenericHttpException } from '../../common/application/exceptions/generic-http-exception';
 import { HttpStatus } from '@nestjs/common';
 import { CreateUserRequest } from './dtos/request/create-user.request';
-import { UpdateUserRequest } from './dtos/request/update-user.request';
+import { UpdateUserRequest } from './dtos/request/update-user.request.js';
 import { UserListFilterInput } from './dtos/request/user-filter.input';
 import { HelperService } from '../../common/utils/helper/helper.service';
 import { ERROR_MESSAGES } from '../../common/constants/error-messages.constant';
