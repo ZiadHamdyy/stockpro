@@ -1,5 +1,7 @@
-import React, { useState } from "react";
+import React, { useCallback, useMemo, useState } from "react";
 import { LockIcon } from "../icons";
+import { useToast } from "./ToastProvider";
+import { useVerifyPasswordMutation } from "../store/slices/auth/authApi";
 
 interface ConfirmationModalProps {
   title: string;
@@ -19,9 +21,35 @@ const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
   showPassword,
 }) => {
   const [password, setPassword] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const { showToast } = (useToast() as any) || {};
+  const [verifyPassword] = useVerifyPasswordMutation();
 
-  const handleConfirm = () => {
-    onConfirm(showPassword ? password : undefined);
+  const handleConfirm = async () => {
+    if (showPassword) {
+      if (!password || isSubmitting) return;
+      setIsSubmitting(true);
+      try {
+        await verifyPassword({ password }).unwrap();
+        // Success: inform parent and close modal
+        onConfirm();
+        onCancel();
+      } catch (err: any) {
+        if (showToast) {
+          const status = err?.status || err?.originalStatus;
+          if (status === 400 || status === 401 || status === 404) {
+            showToast("كلمة المرور غير صحيحة");
+          } else {
+            showToast("حدث خطأ أثناء التحقق. حاول مرة أخرى");
+          }
+        }
+      } finally {
+        setIsSubmitting(false);
+      }
+    } else {
+      // No password required, just inform parent
+      onConfirm();
+    }
   };
 
   const colors = {
@@ -47,7 +75,9 @@ const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
   return (
     <div
       className="fixed inset-0 bg-black bg-opacity-60 z-50 flex justify-center items-center p-4"
-      onClick={onCancel}
+      onClick={() => {
+        if (!isSubmitting) onCancel();
+      }}
     >
       <div
         className={`bg-white rounded-lg shadow-xl w-full max-w-md ${selectedTheme.bg}`}
@@ -77,8 +107,15 @@ const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
                   type="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      void handleConfirm();
+                    }
+                  }}
                   className="w-full pr-10 pl-4 py-3 bg-white border-2 border-gray-300 rounded-md text-brand-blue placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-brand-blue focus:border-brand-blue"
                   placeholder="••••••••"
+                  disabled={isSubmitting}
                 />
               </div>
             </div>
@@ -87,15 +124,17 @@ const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
           <div className="flex justify-center gap-4">
             <button
               onClick={onCancel}
-              className="px-8 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300 font-semibold"
+              disabled={isSubmitting}
+              className="px-8 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300 font-semibold disabled:opacity-60 disabled:cursor-not-allowed"
             >
               إلغاء
             </button>
             <button
               onClick={handleConfirm}
-              className={`px-8 py-2 text-white rounded-md font-semibold focus:outline-none focus:ring-2 focus:ring-offset-2 ${selectedTheme.button}`}
+              disabled={isSubmitting || (showPassword ? password.length === 0 : false)}
+              className={`px-8 py-2 text-white rounded-md font-semibold focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-60 disabled:cursor-not-allowed ${selectedTheme.button}`}
             >
-              تأكيد
+              {isSubmitting ? "جاري التحقق..." : "تأكيد"}
             </button>
           </div>
         </div>

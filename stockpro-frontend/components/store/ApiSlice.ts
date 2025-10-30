@@ -5,6 +5,7 @@ import type {
   FetchBaseQueryError,
 } from "@reduxjs/toolkit/query/react";
 import { setCredentials, logOut, selectCurrentToken } from "./slices/auth/auth";
+import { showToastExternal } from "../common/ToastProvider";
 
 const baseQuery = fetchBaseQuery({
   baseUrl:
@@ -64,6 +65,19 @@ const baseQueryWithReAuth: BaseQueryFn<
     } else {
       api.dispatch(logOut());
     }
+  }
+
+  // Global 409 handler: show Arabic message for delete conflicts
+  if (result?.error?.status === 409) {
+    const data: any = result.error.data as any;
+    let message = "لا يمكن الحذف لوجود بيانات مرتبطة.";
+    const serverMessage = (data?.message ?? data?.data?.message) as any;
+    if (typeof serverMessage === "string" && serverMessage.trim().length > 0) {
+      message = serverMessage;
+    } else if (Array.isArray(serverMessage) && serverMessage.length > 0) {
+      message = serverMessage[0];
+    }
+    showToastExternal(message);
   }
 
   return result;

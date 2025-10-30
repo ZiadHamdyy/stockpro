@@ -10,6 +10,9 @@ import {
   type User,
 } from "../../store/slices/user/userApi";
 import { useGetBranchesQuery } from "../../store/slices/branch/branchApi";
+import { useAppSelector } from "../../store/hooks";
+import { selectCurrentUser } from "../../store/slices/auth/auth";
+import { useToast } from "../../common/ToastProvider";
 
 interface UsersDataProps {
   title: string;
@@ -28,6 +31,8 @@ const UsersData: React.FC<UsersDataProps> = ({ title }) => {
   const [userToEdit, setUserToEdit] = useState<User | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const { showModal } = useModal();
+  const currentUser = useAppSelector(selectCurrentUser as any) as any;
+  const { showToast } = useToast();
 
   const handleOpenModal = (user: User | null = null) => {
     setUserToEdit(user);
@@ -52,6 +57,11 @@ const UsersData: React.FC<UsersDataProps> = ({ title }) => {
   };
 
   const handleDeleteClick = (user: User) => {
+    // Prevent deleting the currently logged-in user
+    if (currentUser && user?.id === currentUser?.id) {
+      showToast("لا يمكنك حذف حسابك الحالي.");
+      return;
+    }
     showModal({
       title: "تأكيد الحذف",
       message: `هل أنت متأكد من حذف المستخدم "${user.name}"؟`,

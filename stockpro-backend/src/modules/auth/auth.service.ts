@@ -14,6 +14,7 @@ import { ForgotPasswordRequest } from './dtos/request/forgot-password.request';
 import { VerifyForgotPasswordRequest } from './dtos/request/verify-forgot-password.request';
 import { ResetPasswordRequest } from './dtos/request/reset-password.request';
 import { UpdatePasswordRequest } from './dtos/request/update-password.request';
+import { VerifyPasswordRequest } from './dtos/request/verify-password.request';
 import type { Response } from 'express';
 import { base64ToBuffer, bufferToDataUri } from '../../common/utils/image-converter';
 
@@ -687,6 +688,31 @@ export class AuthService {
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
+  }
+
+  async verifyPassword(user: User, request: VerifyPasswordRequest) {
+    const { password } = request;
+    // Ensure user has a stored password
+    if (!user.password) {
+      throw new GenericHttpException(
+        ERROR_MESSAGES.USER_NOT_FOUND,
+        HttpStatus.NOT_FOUND,
+      );
+    }
+
+    const isValid = await this.helperService.comparePassword(
+      password,
+      user.password,
+    );
+
+    if (!isValid) {
+      throw new GenericHttpException(
+        ERROR_MESSAGES.INVALID_CREDENTIALS,
+        HttpStatus.UNAUTHORIZED,
+      );
+    }
+
+    return { success: true };
   }
 
   // Email Verification Methods

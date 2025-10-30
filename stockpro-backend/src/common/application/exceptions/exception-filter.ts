@@ -75,6 +75,38 @@ export class HttpExceptionFilter implements ExceptionFilter {
       return response.status(statusCode).json(this.response);
     }
 
+    // Map Prisma FK constraint errors to 409 Conflict (cannot delete due to related records)
+    if ((exception as any)?.code === 'P2003') {
+      const statusCode = HttpStatus.CONFLICT;
+      const message = 'لا يمكن الحذف لوجود بيانات مرتبطة.';
+
+      // Log for observability
+      if (this.logger) {
+        this.logger.setContext(
+          `${HttpExceptionFilter.name}-${request.method} ${request.url}`,
+        );
+        this.logger.error(
+          `Message: ${message}`,
+          `Path: ${request.url}`,
+          `Method: ${request.method}`,
+          `Body: ${JSON.stringify(request.body)}`,
+          `User: ${request.user ? request.user.id : 'No user'}`,
+        );
+      } else {
+        console.error('HTTP Exception:', {
+          message,
+          path: request.url,
+          method: request.method,
+          statusCode,
+          timestamp: new Date().toISOString(),
+        });
+      }
+
+      this.response.code = statusCode;
+      this.response.message = message;
+      return response.status(statusCode).json(this.response);
+    }
+
     if (
       exception instanceof RangeError ||
       (exception as any).name === 'PayloadTooLargeError'

@@ -17,21 +17,7 @@ interface ResetPasswordUser {
   email: string;
   newPassword: string;
 }
-/* interface User {
-  id: string | null,
-  name: string | null,
-  email: string | null,
-  password: string | null,
-  refreshToken: string | null,
-  provider: string | null,
-  providerId: string | null,
-  verified: boolean | null,
-  photo: string | null;
-} */
 
-interface RefreshResponse {
-  accessToken: string;
-}
 
 export const authApi = apiSlice.injectEndpoints({
   endpoints: (builder: any) => ({
@@ -227,6 +213,13 @@ export const authApi = apiSlice.injectEndpoints({
         }
       },
     }),
+    verifyPassword: builder.mutation({
+      query: (payload: { password: string }) => ({
+        url: "auth/verify-password",
+        method: "POST",
+        body: payload,
+      }),
+    }),
   }),
 
   overrideExisting: true,
@@ -243,4 +236,5 @@ export const {
   useVerifyForgotPasswordOtpMutation,
   useResendForgotPasswordOtpMutation,
   useResetPasswordMutation,
+  useVerifyPasswordMutation,
 } = authApi;

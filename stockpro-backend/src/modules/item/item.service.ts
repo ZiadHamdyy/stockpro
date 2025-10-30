@@ -90,9 +90,28 @@ export class ItemService {
   }
 
   async remove(id: string): Promise<void> {
-    await this.prisma.item.delete({
-      where: { id },
-    });
+    try {
+      await this.prisma.item.delete({
+        where: { id },
+      });
+    } catch (error: any) {
+      // Prisma: foreign key constraint failed
+      if (error?.code === 'P2003') {
+        const { GenericHttpException } = require('../../common/application/exceptions/generic-http-exception');
+        const { HttpStatus } = require('@nestjs/common');
+        throw new GenericHttpException(
+          'Cannot delete item because it has related transactions',
+          HttpStatus.CONFLICT,
+        );
+      }
+      // Prisma: record not found
+      if (error?.code === 'P2025') {
+        const { GenericHttpException } = require('../../common/application/exceptions/generic-http-exception');
+        const { HttpStatus } = require('@nestjs/common');
+        throw new GenericHttpException('Item not found', HttpStatus.NOT_FOUND);
+      }
+      throw error;
+    }
   }
 
   private async generateNextCode(): Promise<string> {

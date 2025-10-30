@@ -8,6 +8,7 @@ import {
   TrashIcon,
 } from "../../icons";
 import { useModal } from "../../common/ModalProvider";
+import { useToast } from "../../common/ToastProvider";
 import PermissionWrapper from "../../common/PermissionWrapper";
 import {
   Resources,
@@ -34,6 +35,7 @@ const ItemsList: React.FC<ItemsListProps> = ({ title, onNavigate }) => {
   const inputStyle =
     "w-64 pr-10 pl-4 py-3 bg-brand-blue-bg border-2 border-brand-blue rounded-md text-black placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-brand-blue";
   const { showModal } = useModal();
+  const { showToast } = (useToast() as any) || {};
   const dispatch = useAppDispatch();
 
   // Get data from Redux state
@@ -63,8 +65,16 @@ const ItemsList: React.FC<ItemsListProps> = ({ title, onNavigate }) => {
         try {
           await deleteItem(id).unwrap();
           dispatch(removeItem(id));
+          if (showToast) showToast("تم حذف الصنف بنجاح");
         } catch (error: any) {
           console.error("Delete error:", error);
+          if (showToast) {
+            if (error?.status === 409) {
+              showToast("لا يمكن حذف الصنف لوجود معاملات مرتبطة به");
+            } else {
+              showToast("فشل الحذف، حاول مرة أخرى");
+            }
+          }
         }
       },
       type: "delete",
@@ -316,13 +326,17 @@ const ItemsList: React.FC<ItemsListProps> = ({ title, onNavigate }) => {
                       }
                     >
                       <button
-                        onClick={() =>
-                          onNavigate(
-                            "add_item",
-                            `تعديل صنف #${item.code}`,
-                            item.id,
-                          )
-                        }
+                        onClick={() => {
+                          if (typeof onNavigate === "function") {
+                            onNavigate(
+                              "add_item",
+                              `تعديل صنف #${item.code}`,
+                              item.id,
+                            );
+                          } else {
+                            navigate(`/items/add/${item.id}`);
+                          }
+                        }}
                         className="text-brand-blue hover:text-blue-800 font-semibold ml-4"
                       >
                         تعديل

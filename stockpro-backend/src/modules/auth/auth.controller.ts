@@ -20,6 +20,7 @@ import { ForgotPasswordRequest } from './dtos/request/forgot-password.request';
 import { VerifyForgotPasswordRequest } from './dtos/request/verify-forgot-password.request';
 import { ResetPasswordRequest } from './dtos/request/reset-password.request';
 import { UpdatePasswordRequest } from './dtos/request/update-password.request';
+import { VerifyPasswordRequest } from './dtos/request/verify-password.request';
 import { VerifyEmailRequest } from './dtos/request/verify-email.request';
 import { ResendVerificationRequest } from './dtos/request/resend-verification.request';
 import { ResendForgotPasswordRequest } from './dtos/request/resend-forgot-password.request';
@@ -140,6 +141,16 @@ export class AuthController {
     @Body() updatePasswordRequest: UpdatePasswordRequest,
   ) {
     return await this.authService.updatePassword(user, updatePasswordRequest);
+  }
+
+  @Post('verify-password')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(JwtAuthenticationGuard)
+  async verifyPassword(
+    @currentUser() user: currentUserType,
+    @Body() verifyPasswordRequest: VerifyPasswordRequest,
+  ) {
+    return await this.authService.verifyPassword(user, verifyPasswordRequest);
   }
 
   @Post('verify-email')
