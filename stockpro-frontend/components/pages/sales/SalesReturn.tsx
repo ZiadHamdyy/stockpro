@@ -497,6 +497,27 @@ const SalesReturn: React.FC<SalesReturnProps> = ({
     }
   };
 
+  const navigateBy = (direction: "first" | "prev" | "next" | "last") => {
+    if (!Array.isArray(returns) || returns.length === 0) return;
+
+    let newIndex = currentIndex;
+    switch (direction) {
+      case "first":
+        newIndex = 0;
+        break;
+      case "last":
+        newIndex = returns.length - 1;
+        break;
+      case "next":
+        newIndex = currentIndex === -1 ? 0 : Math.min(returns.length - 1, currentIndex + 1);
+        break;
+      case "prev":
+        newIndex = currentIndex === -1 ? returns.length - 1 : Math.max(0, currentIndex - 1);
+        break;
+    }
+    setCurrentIndex(newIndex);
+  };
+
   const handleSelectReturnFromSearch = (row: { id: string }) => {
     const index = returns.findIndex((ret) => ret.id === row.id);
     if (index > -1) {
@@ -926,19 +947,15 @@ const SalesReturn: React.FC<SalesReturnProps> = ({
 
             <div className="flex items-center justify-center gap-2">
               <button
-                onClick={() => navigate(returns.length - 1)}
-                disabled={
-                  currentIndex >= returns.length - 1 || returns.length === 0
-                }
+                onClick={() => navigateBy("last")}
+                disabled={(returns.length === 0) || currentIndex === returns.length - 1}
                 className="p-2 bg-gray-200 rounded-md hover:bg-gray-300 disabled:opacity-50"
               >
                 الأخير
               </button>
               <button
-                onClick={() => navigate(currentIndex + 1)}
-                disabled={
-                  currentIndex >= returns.length - 1 || returns.length === 0
-                }
+                onClick={() => navigateBy("next")}
+                disabled={(returns.length === 0) || currentIndex === returns.length - 1}
                 className="p-2 bg-gray-200 rounded-md hover:bg-gray-300 disabled:opacity-50"
               >
                 التالي
@@ -951,15 +968,15 @@ const SalesReturn: React.FC<SalesReturnProps> = ({
                 </span>
               </div>
               <button
-                onClick={() => navigate(currentIndex - 1)}
-                disabled={currentIndex <= 0}
+                onClick={() => navigateBy("prev")}
+                disabled={(returns.length === 0) || currentIndex === 0}
                 className="p-2 bg-gray-200 rounded-md hover:bg-gray-300 disabled:opacity-50"
               >
                 السابق
               </button>
               <button
-                onClick={() => navigate(0)}
-                disabled={currentIndex <= 0}
+                onClick={() => navigateBy("first")}
+                disabled={(returns.length === 0) || currentIndex === 0}
                 className="p-2 bg-gray-200 rounded-md hover:bg-gray-300 disabled:opacity-50"
               >
                 الأول

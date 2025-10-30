@@ -95,26 +95,16 @@ const AddSupplier: React.FC<AddSupplierProps> = ({
     setIsReadOnly(false);
   };
 
-  const navigate = (direction: "first" | "prev" | "next" | "last") => {
-    let newIndex = -1;
-    if (suppliers.length === 0) return;
-
+  const navigateBy = (direction: "first" | "prev" | "next" | "last") => {
+    if (!Array.isArray(suppliers) || suppliers.length === 0) return;
+    let newIndex = currentIndex;
     switch (direction) {
-      case "first":
-        newIndex = 0;
-        break;
-      case "prev":
-        newIndex = Math.max(0, currentIndex - 1);
-        break;
-      case "next":
-        newIndex = Math.min(suppliers.length - 1, currentIndex + 1);
-        break;
-      case "last":
-        newIndex = suppliers.length - 1;
-        break;
+      case "first": newIndex = 0; break;
+      case "last": newIndex = suppliers.length - 1; break;
+      case "next": newIndex = currentIndex === -1 ? 0 : Math.min(suppliers.length - 1, currentIndex + 1); break;
+      case "prev": newIndex = currentIndex === -1 ? suppliers.length - 1 : Math.max(0, currentIndex - 1); break;
     }
-
-    if (newIndex !== -1) {
+    if (newIndex >= 0 && newIndex < suppliers.length) {
       const newId = suppliers[newIndex].id;
       onNavigate("add_supplier", `تعديل مورد #${newId}`, newId);
     }
@@ -351,16 +341,16 @@ const AddSupplier: React.FC<AddSupplierProps> = ({
           <div className="flex items-center justify-start gap-1">
             <button
               type="button"
-              onClick={() => navigate("first")}
-              disabled={currentIndex <= 0}
+              onClick={() => navigateBy("first")}
+              disabled={(Array.isArray(suppliers) ? suppliers.length === 0 : true) || currentIndex === 0}
               className="p-2 bg-gray-200 rounded-md hover:bg-gray-300 disabled:opacity-50"
             >
               الأول
             </button>
             <button
               type="button"
-              onClick={() => navigate("prev")}
-              disabled={currentIndex <= 0}
+              onClick={() => navigateBy("prev")}
+              disabled={(Array.isArray(suppliers) ? suppliers.length === 0 : true) || currentIndex === 0}
               className="p-2 bg-gray-200 rounded-md hover:bg-gray-300 disabled:opacity-50"
             >
               السابق
@@ -374,16 +364,16 @@ const AddSupplier: React.FC<AddSupplierProps> = ({
             </div>
             <button
               type="button"
-              onClick={() => navigate("next")}
-              disabled={currentIndex >= suppliers.length - 1}
+              onClick={() => navigateBy("next")}
+              disabled={(Array.isArray(suppliers) ? suppliers.length === 0 : true) || currentIndex === suppliers.length - 1}
               className="p-2 bg-gray-200 rounded-md hover:bg-gray-300 disabled:opacity-50"
             >
               التالي
             </button>
             <button
               type="button"
-              onClick={() => navigate("last")}
-              disabled={currentIndex >= suppliers.length - 1}
+              onClick={() => navigateBy("last")}
+              disabled={(Array.isArray(suppliers) ? suppliers.length === 0 : true) || currentIndex === suppliers.length - 1}
               className="p-2 bg-gray-200 rounded-md hover:bg-gray-300 disabled:opacity-50"
             >
               الأخير

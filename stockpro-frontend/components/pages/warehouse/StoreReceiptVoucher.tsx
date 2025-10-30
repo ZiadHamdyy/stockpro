@@ -386,6 +386,27 @@ const StoreReceiptVoucher: React.FC<StoreReceiptVoucherProps> = ({ title }) => {
     }
   };
 
+  const navigateBy = (direction: "first" | "prev" | "next" | "last") => {
+    if (!Array.isArray(vouchers) || vouchers.length === 0) return;
+
+    let newIndex = currentIndex;
+    switch (direction) {
+      case "first":
+        newIndex = 0;
+        break;
+      case "last":
+        newIndex = vouchers.length - 1;
+        break;
+      case "next":
+        newIndex = currentIndex === -1 ? 0 : Math.min(vouchers.length - 1, currentIndex + 1);
+        break;
+      case "prev":
+        newIndex = currentIndex === -1 ? vouchers.length - 1 : Math.max(0, currentIndex - 1);
+        break;
+    }
+    setCurrentIndex(newIndex);
+  };
+
   const handleSelectVoucherFromSearch = (row: {
     id: string;
     voucherNumber?: string;
@@ -761,19 +782,15 @@ const StoreReceiptVoucher: React.FC<StoreReceiptVoucherProps> = ({ title }) => {
 
             <div className="flex items-center justify-center gap-2">
               <button
-                onClick={() => navigate(vouchers.length - 1)}
-                disabled={
-                  currentIndex >= vouchers.length - 1 || vouchers.length === 0
-                }
+                onClick={() => navigateBy("last")}
+                disabled={(Array.isArray(vouchers) ? vouchers.length === 0 : true) || currentIndex === vouchers.length - 1}
                 className="p-2 bg-gray-200 rounded-md hover:bg-gray-300 disabled:opacity-50"
               >
                 الأخير
               </button>
               <button
-                onClick={() => navigate(currentIndex + 1)}
-                disabled={
-                  currentIndex >= vouchers.length - 1 || vouchers.length === 0
-                }
+                onClick={() => navigateBy("next")}
+                disabled={(Array.isArray(vouchers) ? vouchers.length === 0 : true) || currentIndex === vouchers.length - 1}
                 className="p-2 bg-gray-200 rounded-md hover:bg-gray-300 disabled:opacity-50"
               >
                 التالي
@@ -786,15 +803,15 @@ const StoreReceiptVoucher: React.FC<StoreReceiptVoucherProps> = ({ title }) => {
                 </span>
               </div>
               <button
-                onClick={() => navigate(currentIndex - 1)}
-                disabled={currentIndex <= 0}
+                onClick={() => navigateBy("prev")}
+                disabled={(Array.isArray(vouchers) ? vouchers.length === 0 : true) || currentIndex === 0}
                 className="p-2 bg-gray-200 rounded-md hover:bg-gray-300 disabled:opacity-50"
               >
                 السابق
               </button>
               <button
-                onClick={() => navigate(0)}
-                disabled={currentIndex <= 0}
+                onClick={() => navigateBy("first")}
+                disabled={(Array.isArray(vouchers) ? vouchers.length === 0 : true) || currentIndex === 0}
                 className="p-2 bg-gray-200 rounded-md hover:bg-gray-300 disabled:opacity-50"
               >
                 الأول

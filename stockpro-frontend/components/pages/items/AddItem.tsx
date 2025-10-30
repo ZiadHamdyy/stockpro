@@ -108,7 +108,11 @@ const AddItem: React.FC<AddItemProps> = ({ title, editingId, onNavigate }) => {
         ? items.find((item) => item.id === itemId)
         : null;
       if (foundItem) {
-        setItemData(foundItem);
+        setItemData({
+          ...foundItem,
+          groupId: (foundItem as any).group?.id,
+          unitId: (foundItem as any).unit?.id,
+        });
         if ((foundItem as any).type) {
           setItemType((foundItem as any).type as 'STOCKED' | 'SERVICE');
         }
@@ -226,27 +230,35 @@ const AddItem: React.FC<AddItemProps> = ({ title, editingId, onNavigate }) => {
   };
 
   const navigateToItem = (direction: "first" | "prev" | "next" | "last") => {
-    let newIndex = -1;
     if (!Array.isArray(items) || items.length === 0) return;
+
+    let newIndex = currentIndex;
 
     switch (direction) {
       case "first":
         newIndex = 0;
         break;
-      case "prev":
-        newIndex = Math.max(0, currentIndex - 1);
-        break;
-      case "next":
-        newIndex = Math.min(items.length - 1, currentIndex + 1);
-        break;
       case "last":
         newIndex = items.length - 1;
         break;
+      case "next":
+        if (currentIndex === -1) {
+          newIndex = 0; // from new → first item
+        } else {
+          newIndex = Math.min(items.length - 1, currentIndex + 1);
+        }
+        break;
+      case "prev":
+        if (currentIndex === -1) {
+          newIndex = items.length - 1; // from new → last item
+        } else {
+          newIndex = Math.max(0, currentIndex - 1);
+        }
+        break;
     }
 
-    if (newIndex !== -1) {
+    if (newIndex >= 0 && newIndex < items.length) {
       const newId = items[newIndex].id;
-      // Use React Router navigation with path parameter
       navigate(`/items/add/${newId}`);
     }
   };
@@ -613,7 +625,7 @@ const AddItem: React.FC<AddItemProps> = ({ title, editingId, onNavigate }) => {
             <button
               type="button"
               onClick={() => navigateToItem("first")}
-              disabled={currentIndex <= 0}
+              disabled={(Array.isArray(items) ? items.length === 0 : true) || currentIndex === 0}
               className="p-2 bg-gray-200 rounded-md hover:bg-gray-300 disabled:opacity-50"
             >
               الأول
@@ -621,7 +633,7 @@ const AddItem: React.FC<AddItemProps> = ({ title, editingId, onNavigate }) => {
             <button
               type="button"
               onClick={() => navigateToItem("prev")}
-              disabled={currentIndex <= 0}
+              disabled={(Array.isArray(items) ? items.length === 0 : true) || currentIndex === 0}
               className="p-2 bg-gray-200 rounded-md hover:bg-gray-300 disabled:opacity-50"
             >
               السابق
@@ -636,7 +648,7 @@ const AddItem: React.FC<AddItemProps> = ({ title, editingId, onNavigate }) => {
             <button
               type="button"
               onClick={() => navigateToItem("next")}
-              disabled={currentIndex >= (Array.isArray(items) ? items.length - 1 : 0)}
+              disabled={(Array.isArray(items) ? items.length === 0 : true) || currentIndex === (Array.isArray(items) ? items.length - 1 : 0)}
               className="p-2 bg-gray-200 rounded-md hover:bg-gray-300 disabled:opacity-50"
             >
               التالي
@@ -644,7 +656,7 @@ const AddItem: React.FC<AddItemProps> = ({ title, editingId, onNavigate }) => {
             <button
               type="button"
               onClick={() => navigateToItem("last")}
-              disabled={currentIndex >= (Array.isArray(items) ? items.length - 1 : 0)}
+              disabled={(Array.isArray(items) ? items.length === 0 : true) || currentIndex === (Array.isArray(items) ? items.length - 1 : 0)}
               className="p-2 bg-gray-200 rounded-md hover:bg-gray-300 disabled:opacity-50"
             >
               الأخير

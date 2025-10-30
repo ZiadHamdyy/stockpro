@@ -169,44 +169,25 @@ const AddCurrentAccount: React.FC<AddCurrentAccountProps> = ({
     });
   };
 
-  const navigateToAccount = (direction: "first" | "prev" | "next" | "last") => {
+  const getCurrentIndex = () => {
+    if (!('id' in accountData)) return -1;
+    return Array.isArray(accounts)
+      ? accounts.findIndex((acc) => acc.id === accountData.id)
+      : -1;
+  };
+
+  const navigateBy = (direction: "first" | "prev" | "next" | "last") => {
     if (!Array.isArray(accounts) || accounts.length === 0) return;
-
-    const isNewAccount = !("id" in accountData);
-    let newIndex = 0;
-
+    const currentIndex = getCurrentIndex();
+    let newIndex = currentIndex;
     switch (direction) {
-      case "first":
-        newIndex = 0;
-        break;
-      case "prev":
-        if (isNewAccount) {
-          newIndex = accounts.length - 1;
-        } else {
-          const currentIndex = accounts.findIndex(
-            (acc) => acc.id === accountData.id,
-          );
-          newIndex = Math.max(0, currentIndex - 1);
-        }
-        break;
-      case "next":
-        if (isNewAccount) {
-          newIndex = 0;
-        } else {
-          const currentIndex = accounts.findIndex(
-            (acc) => acc.id === accountData.id,
-          );
-          newIndex = Math.min(accounts.length - 1, currentIndex + 1);
-        }
-        break;
-      case "last":
-        newIndex = accounts.length - 1;
-        break;
+      case "first": newIndex = 0; break;
+      case "last": newIndex = accounts.length - 1; break;
+      case "next": newIndex = currentIndex === -1 ? 0 : Math.min(accounts.length - 1, currentIndex + 1); break;
+      case "prev": newIndex = currentIndex === -1 ? accounts.length - 1 : Math.max(0, currentIndex - 1); break;
     }
-
-    if (newIndex !== -1 && accounts[newIndex]) {
+    if (newIndex >= 0 && newIndex < accounts.length) {
       const newId = accounts[newIndex].id;
-      // Use React Router navigation with path parameter
       navigate(`/financials/current-accounts/add/${newId}`);
     }
   };
@@ -407,45 +388,39 @@ const AddCurrentAccount: React.FC<AddCurrentAccountProps> = ({
           <div className="flex items-center justify-start gap-1">
             <button
               type="button"
-              onClick={() => navigateToAccount("first")}
-              disabled={accountPosition === 1 || (accounts || []).length === 0}
+              onClick={() => navigateBy("first")}
+              disabled={(Array.isArray(accounts) ? accounts.length === 0 : true) || getCurrentIndex() === 0}
               className="p-2 bg-gray-200 rounded-md hover:bg-gray-300 disabled:opacity-50"
             >
               الأول
             </button>
             <button
               type="button"
-              onClick={() => navigateToAccount("prev")}
-              disabled={accountPosition === 1 || (accounts || []).length === 0}
+              onClick={() => navigateBy("prev")}
+              disabled={(Array.isArray(accounts) ? accounts.length === 0 : true) || getCurrentIndex() === 0}
               className="p-2 bg-gray-200 rounded-md hover:bg-gray-300 disabled:opacity-50"
             >
               السابق
             </button>
             <div className="px-4 py-2 bg-brand-blue-bg border-2 border-brand-blue rounded-md">
               <span className="font-bold">
-                {accountPosition
-                  ? `${accountPosition} / ${(accounts || []).length}`
+                {getCurrentIndex() > -1
+                  ? `${getCurrentIndex() + 1} / ${(accounts || []).length}`
                   : `سجل جديد`}
               </span>
             </div>
             <button
               type="button"
-              onClick={() => navigateToAccount("next")}
-              disabled={
-                accountPosition === (accounts || []).length ||
-                (accounts || []).length === 0
-              }
+              onClick={() => navigateBy("next")}
+              disabled={(Array.isArray(accounts) ? accounts.length === 0 : true) || getCurrentIndex() === accounts.length - 1}
               className="p-2 bg-gray-200 rounded-md hover:bg-gray-300 disabled:opacity-50"
             >
               التالي
             </button>
             <button
               type="button"
-              onClick={() => navigateToAccount("last")}
-              disabled={
-                accountPosition === (accounts || []).length ||
-                (accounts || []).length === 0
-              }
+              onClick={() => navigateBy("last")}
+              disabled={(Array.isArray(accounts) ? accounts.length === 0 : true) || getCurrentIndex() === accounts.length - 1}
               className="p-2 bg-gray-200 rounded-md hover:bg-gray-300 disabled:opacity-50"
             >
               الأخير

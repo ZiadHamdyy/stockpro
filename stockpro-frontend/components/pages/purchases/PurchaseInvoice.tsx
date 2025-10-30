@@ -533,6 +533,28 @@ const PurchaseInvoice: React.FC<PurchaseInvoiceProps> = ({
     }
   };
 
+  const navigateBy = (direction: "first" | "prev" | "next" | "last") => {
+    const list = invoices || [];
+    if (!Array.isArray(list) || list.length === 0) return;
+
+    let newIndex = currentIndex;
+    switch (direction) {
+      case "first":
+        newIndex = 0;
+        break;
+      case "last":
+        newIndex = list.length - 1;
+        break;
+      case "next":
+        newIndex = currentIndex === -1 ? 0 : Math.min(list.length - 1, currentIndex + 1);
+        break;
+      case "prev":
+        newIndex = currentIndex === -1 ? list.length - 1 : Math.max(0, currentIndex - 1);
+        break;
+    }
+    setCurrentIndex(newIndex);
+  };
+
   const handleSelectInvoiceFromSearch = (row: { id: string }) => {
     const index = (invoices || []).findIndex((inv) => inv.id === row.id);
     if (index > -1) {
@@ -973,21 +995,15 @@ const PurchaseInvoice: React.FC<PurchaseInvoiceProps> = ({
 
             <div className="flex items-center justify-center gap-2">
               <button
-                onClick={() => navigate((invoices || []).length - 1)}
-                disabled={
-                  currentIndex >= (invoices || []).length - 1 ||
-                  (invoices || []).length === 0
-                }
+                onClick={() => navigateBy("last")}
+                disabled={((invoices || []).length === 0) || currentIndex === (invoices || []).length - 1}
                 className="p-2 bg-gray-200 rounded-md hover:bg-gray-300 disabled:opacity-50"
               >
                 الأخير
               </button>
               <button
-                onClick={() => navigate(currentIndex + 1)}
-                disabled={
-                  currentIndex >= (invoices || []).length - 1 ||
-                  (invoices || []).length === 0
-                }
+                onClick={() => navigateBy("next")}
+                disabled={((invoices || []).length === 0) || currentIndex === (invoices || []).length - 1}
                 className="p-2 bg-gray-200 rounded-md hover:bg-gray-300 disabled:opacity-50"
               >
                 التالي
@@ -1000,15 +1016,15 @@ const PurchaseInvoice: React.FC<PurchaseInvoiceProps> = ({
                 </span>
               </div>
               <button
-                onClick={() => navigate(currentIndex - 1)}
-                disabled={currentIndex <= 0}
+                onClick={() => navigateBy("prev")}
+                disabled={((invoices || []).length === 0) || currentIndex === 0}
                 className="p-2 bg-gray-200 rounded-md hover:bg-gray-300 disabled:opacity-50"
               >
                 السابق
               </button>
               <button
-                onClick={() => navigate(0)}
-                disabled={currentIndex <= 0}
+                onClick={() => navigateBy("first")}
+                disabled={((invoices || []).length === 0) || currentIndex === 0}
                 className="p-2 bg-gray-200 rounded-md hover:bg-gray-300 disabled:opacity-50"
               >
                 الأول
