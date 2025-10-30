@@ -104,7 +104,7 @@ const DailyPurchases: React.FC<DailyPurchasesProps> = ({ title }) => {
       p.subtotal.toFixed(2),
       p.supplier?.name || "-",
       p.code,
-      p.date,
+      p.date ? new Date(p.date).toLocaleDateString() : "",
       (i + 1).toString(),
     ]);
     const footer = [
@@ -127,7 +127,17 @@ const DailyPurchases: React.FC<DailyPurchasesProps> = ({ title }) => {
     "p-2 bg-brand-green-bg border-2 border-brand-green rounded-md text-black placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-brand-green";
 
   return (
-    <div className="bg-white p-6 rounded-lg shadow">
+    <div className="bg-white p-6 rounded-lg shadow print-scale-sm">
+      <style>{`@media print {
+        .no-print { display: none !important; }
+        .print-scale-sm { font-size: 12px; }
+        .print-scale-sm h1 { font-size: 18px; margin-bottom: 8px; }
+        .print-scale-sm .p-6 { padding: 12px; }
+        .print-scale-sm .px-6 { padding-left: 12px; padding-right: 12px; }
+        .print-scale-sm .py-4 { padding-top: 8px; padding-bottom: 8px; }
+        .print-scale-sm .py-3 { padding-top: 6px; padding-bottom: 6px; }
+        .print-scale-sm table th, .print-scale-sm table td { padding: 4px 6px !important; }
+      }`}</style>
       <div className="border-2 border-brand-green rounded-lg mb-4">
         <InvoiceHeader />
       </div>
@@ -220,7 +230,7 @@ const DailyPurchases: React.FC<DailyPurchasesProps> = ({ title }) => {
             {filteredPurchases.map((purchase, index) => (
               <tr key={purchase.id} className="hover:bg-brand-green-bg">
                 <td className="px-6 py-4 whitespace-nowrap">{index + 1}</td>
-                <td className="px-6 py-4 whitespace-nowrap">{purchase.date}</td>
+                <td className="px-6 py-4 whitespace-nowrap">{new Date(purchase.date).toLocaleDateString()}</td>
                 <td className="px-6 py-4 whitespace-nowrap font-medium text-brand-dark">
                   {purchase.code}
                 </td>
