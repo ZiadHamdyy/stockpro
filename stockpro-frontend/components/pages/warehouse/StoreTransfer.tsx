@@ -438,6 +438,7 @@ const StoreTransfer: React.FC<StoreTransferProps> = ({ title }) => {
 
   return (
     <>
+      <style>{`@media print { .no-print { display: none !important; } }`}</style>
       <div className="bg-white p-6 rounded-lg shadow">
         <div className="border-2 border-amber-500 rounded-lg mb-4">
           <DocumentHeader companyInfo={companyInfo} />
@@ -668,7 +669,7 @@ const StoreTransfer: React.FC<StoreTransferProps> = ({ title }) => {
             </div>
           </div>
 
-          <div className="mt-8 pt-6 border-t-2 border-gray-200 flex flex-col items-center space-y-4">
+          <div className="mt-8 pt-6 border-t-2 border-gray-200 flex flex-col items-center space-y-4 no-print">
             <div className="flex justify-center gap-2 flex-wrap">
               <PermissionWrapper
                 requiredPermission={buildPermission(
