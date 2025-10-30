@@ -209,7 +209,13 @@ const AddItem: React.FC<AddItemProps> = ({ title, editingId, onNavigate }) => {
             showToast("تم الحذف بنجاح.");
             navigate("/items/list");
           } catch (error: any) {
-            showToast(error?.data?.message || "حدث خطأ أثناء الحذف");
+            console.error("Error deleting item:", error);
+            const status = error?.status || error?.originalStatus;
+            if (status === 409) {
+              showToast("لا يمكن حذف الصنف لوجود معاملات مرتبطة به");
+            } else {
+              showToast("فشل الحذف، حاول مرة أخرى");
+            }
           }
         },
         type: "delete",
