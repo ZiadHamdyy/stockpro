@@ -36,4 +36,8 @@ export class UpdateItemRequest {
   @IsOptional()
   @IsUUID()
   unitId?: string;
+
+  @IsOptional()
+  @IsString()
+  type?: 'STOCKED' | 'SERVICE';
 }

@@ -12,13 +12,16 @@ export class ItemService {
     // Generate next code automatically
     const nextCode = await this.generateNextCode();
 
+    const payload: any = {
+      ...data,
+      code: nextCode, // Use auto-generated code
+      stock: data.type === 'SERVICE' ? 0 : (data.stock || 0),
+      reorderLimit: data.reorderLimit || 0,
+      type: (data as any).type ?? 'STOCKED',
+    };
+
     const item = await this.prisma.item.create({
-      data: {
-        ...data,
-        code: nextCode, // Use auto-generated code
-        stock: data.stock || 0,
-        reorderLimit: data.reorderLimit || 0,
-      },
+      data: payload,
       include: {
         group: true,
         unit: true,
@@ -73,9 +76,10 @@ export class ItemService {
   }
 
   async update(id: string, data: UpdateItemRequest): Promise<ItemResponse> {
+    const coerced: any = data?.type === 'SERVICE' ? { ...data, stock: 0 } : data;
     const item = await this.prisma.item.update({
       where: { id },
-      data,
+      data: coerced,
       include: {
         group: true,
         unit: true,
@@ -122,6 +126,7 @@ export class ItemService {
       salePrice: item.salePrice,
       stock: item.stock,
       reorderLimit: item.reorderLimit,
+      type: item.type,
       group: {
         id: item.group.id,
         code: item.group.code,

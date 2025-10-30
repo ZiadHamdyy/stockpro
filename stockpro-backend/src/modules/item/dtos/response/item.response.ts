@@ -10,6 +10,7 @@ export class ItemResponse {
   salePrice: number;
   stock: number;
   reorderLimit: number;
+  type: 'STOCKED' | 'SERVICE';
   group: ItemGroupResponse;
   unit: UnitResponse;
   createdAt: Date;

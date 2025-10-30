@@ -31,4 +31,8 @@ export class CreateItemRequest {
 
   @IsUUID()
   unitId: string;
+
+  @IsOptional()
+  @IsString()
+  type?: 'STOCKED' | 'SERVICE';
 }

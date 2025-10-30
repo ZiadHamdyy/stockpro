@@ -180,6 +180,7 @@ model Item {
   salePrice     Float
   stock         Float   @default(0)
   reorderLimit  Float   @default(0)
+  type          ItemType @default(STOCKED)
 
   // Foreign keys
   groupId String
@@ -201,6 +202,11 @@ model Item {
   @@index([barcode])
   @@index([groupId])
   @@index([unitId])
+}
+
+enum ItemType {
+  STOCKED
+  SERVICE
 }
 
 model Company {

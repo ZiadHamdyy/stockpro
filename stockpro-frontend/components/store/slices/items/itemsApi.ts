@@ -26,6 +26,7 @@ export interface Item {
   salePrice: number;
   stock: number;
   reorderLimit: number;
+  type: 'STOCKED' | 'SERVICE';
   group: ItemGroup;
   unit: Unit;
   createdAt: string;
@@ -62,6 +63,7 @@ export interface CreateItemRequest {
   reorderLimit?: number;
   groupId: string;
   unitId: string;
+  type?: 'STOCKED' | 'SERVICE';
 }
 
 export interface UpdateItemRequest {
@@ -74,6 +76,7 @@ export interface UpdateItemRequest {
   reorderLimit?: number;
   groupId?: string;
   unitId?: string;
+  type?: 'STOCKED' | 'SERVICE';
 }
 
 export const itemsApiSlice = apiSlice.injectEndpoints({
@@ -156,6 +159,7 @@ export const itemsApiSlice = apiSlice.injectEndpoints({
         method: "POST",
         body: data,
       }),
+      invalidatesTags: ["Item"],
     }),
     updateItem: builder.mutation({
       query: ({ id, data }) => ({
@@ -163,12 +167,14 @@ export const itemsApiSlice = apiSlice.injectEndpoints({
         method: "PATCH",
         body: data,
       }),
+      invalidatesTags: ["Item"],
     }),
     deleteItem: builder.mutation({
       query: (id) => ({
         url: `items/${id}`,
         method: "DELETE",
       }),
+      invalidatesTags: ["Item"],
     }),
   }),
 });

@@ -46,6 +46,7 @@ const AddItem: React.FC<AddItemProps> = ({ title, editingId, onNavigate }) => {
     reorderLimit: 0,
   });
   const [isReadOnly, setIsReadOnly] = useState(true);
+  const [itemType, setItemType] = useState<'STOCKED' | 'SERVICE'>('STOCKED');
   const [itemPosition, setItemPosition] = useState<number | null>(null);
   const [currentIndex, setCurrentIndex] = useState(-1);
   const { showModal } = useModal();
@@ -108,6 +109,9 @@ const AddItem: React.FC<AddItemProps> = ({ title, editingId, onNavigate }) => {
         : null;
       if (foundItem) {
         setItemData(foundItem);
+        if ((foundItem as any).type) {
+          setItemType((foundItem as any).type as 'STOCKED' | 'SERVICE');
+        }
         setIsReadOnly(true);
         const index = Array.isArray(items) ? items.findIndex((item) => item.id === itemId) : -1;
         setCurrentIndex(index);
@@ -121,6 +125,7 @@ const AddItem: React.FC<AddItemProps> = ({ title, editingId, onNavigate }) => {
         stock: 0,
         reorderLimit: 0,
       });
+      setItemType('STOCKED');
       setIsReadOnly(false);
       setCurrentIndex(-1);
     }
@@ -159,10 +164,11 @@ const AddItem: React.FC<AddItemProps> = ({ title, editingId, onNavigate }) => {
             name: itemData.name,
             purchasePrice: itemData.purchasePrice,
             salePrice: itemData.salePrice,
-            stock: itemData.stock,
+            stock: itemType === 'SERVICE' ? 0 : itemData.stock,
             reorderLimit: itemData.reorderLimit,
             groupId: itemData.groupId,
             unitId: itemData.unitId,
+            type: itemType,
           },
         }).unwrap();
         showToast(`تم تحديث الصنف "${itemData.name}" بنجاح!`);
@@ -174,10 +180,11 @@ const AddItem: React.FC<AddItemProps> = ({ title, editingId, onNavigate }) => {
           name: itemData.name,
           purchasePrice: itemData.purchasePrice,
           salePrice: itemData.salePrice,
-          stock: itemData.stock,
+          stock: itemType === 'SERVICE' ? 0 : itemData.stock,
           reorderLimit: itemData.reorderLimit,
           groupId: itemData.groupId,
           unitId: itemData.unitId,
+          type: itemType,
         }).unwrap();
         showToast(`تم إنشاء الصنف "${itemData.name}" بنجاح!`);
         navigate("/items/list");
@@ -306,7 +313,27 @@ const AddItem: React.FC<AddItemProps> = ({ title, editingId, onNavigate }) => {
               required
             />
           </div>
-          <div className="md:col-span-3">
+          <div className="md:col-span-1">
+            <div className="relative bg-brand-blue-bg border-2 border-brand-blue rounded-md p-1 mt-6 flex items-center">
+              <button
+                type="button"
+                onClick={() => setItemType('STOCKED')}
+                className={`w-1/2 py-2 rounded ${itemType === 'STOCKED' ? 'bg-brand-blue text-white shadow' : 'text-gray-600'} transition-all duration-200`}
+                disabled={isReadOnly}
+              >
+                صنف مخزن
+              </button>
+              <button
+                type="button"
+                onClick={() => setItemType('SERVICE')}
+                className={`w-1/2 py-2 rounded ${itemType === 'SERVICE' ? 'bg-brand-blue text-white shadow' : 'text-gray-600'} transition-all duration-200`}
+                disabled={isReadOnly}
+              >
+                صنف خدمي
+              </button>
+            </div>
+          </div>
+          <div className="md:col-span-2">
             <label
               htmlFor="barcode"
               className="block text-sm font-medium text-gray-700"
@@ -402,7 +429,7 @@ const AddItem: React.FC<AddItemProps> = ({ title, editingId, onNavigate }) => {
               value={"stock" in itemData ? itemData.stock : 0}
               onChange={handleChange}
               className={inputStyle}
-              disabled={isReadOnly || "id" in itemData}
+              disabled={isReadOnly || "id" in itemData || itemType === 'SERVICE'}
             />
           </div>
           <div>
