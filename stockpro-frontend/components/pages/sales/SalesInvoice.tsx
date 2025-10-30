@@ -1109,6 +1109,19 @@ const SalesInvoice: React.FC<SalesInvoiceProps> = ({
         }))}
         onSelectRow={handleSelectInvoiceFromSearch}
       />
+      {(() => {
+        const fullCustomer = selectedCustomer
+          ? (customers as any[]).find((c) => c.id === selectedCustomer.id)
+          : null;
+        const printCustomer = selectedCustomer
+          ? {
+              id: selectedCustomer.id,
+              name: selectedCustomer.name,
+              address: fullCustomer?.nationalAddress || fullCustomer?.address || undefined,
+              taxNumber: fullCustomer?.taxNumber || undefined,
+            }
+          : null;
+        return (
       <InvoicePrintPreview
         isOpen={isPreviewOpen}
         onClose={() => setIsPreviewOpen(false)}
@@ -1118,14 +1131,15 @@ const SalesInvoice: React.FC<SalesInvoiceProps> = ({
           items: invoiceItems,
           totals,
           paymentMethod,
-          customer: selectedCustomer,
+          customer: printCustomer,
           details: {
             ...invoiceDetails,
             userName: currentUser?.fullName || "غير محدد",
             branchName: currentUser?.branch || "غير محدد",
           },
         }}
-      />
+      />);
+      })()}
       <BarcodeScannerModal
         isOpen={isScannerOpen}
         onClose={() => setIsScannerOpen(false)}

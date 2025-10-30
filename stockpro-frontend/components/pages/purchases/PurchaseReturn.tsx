@@ -307,7 +307,7 @@ const PurchaseReturn: React.FC<PurchaseReturnProps> = ({
     field: keyof InvoiceItem,
     value: any,
   ) => {
-    const newItems = [...items];
+    const newItems = [...returnItems];
     let item = { ...newItems[index], [field]: value };
 
     if (field === "name") setActiveItemSearch({ index, query: value });
@@ -324,7 +324,7 @@ const PurchaseReturn: React.FC<PurchaseReturnProps> = ({
   };
 
   const handleSelectItem = (index: number, selectedItem: SelectableItem) => {
-    const newItems = [...items];
+    const newItems = [...returnItems];
     const currentItem = newItems[index];
     const item = { ...currentItem, ...selectedItem, qty: currentItem.qty || 1 };
     const total = item.qty * (item.price || 0);
@@ -1018,24 +1018,38 @@ const PurchaseReturn: React.FC<PurchaseReturnProps> = ({
         }))}
         onSelectRow={handleSelectInvoiceFromSearch}
       />
-      <PurchaseInvoicePrintPreview
-        isOpen={isPreviewOpen}
-        onClose={() => setIsPreviewOpen(false)}
-        invoiceData={{
-          vatRate,
-          isVatEnabled,
-          items: returnItems,
-          totals,
-          paymentMethod,
-          supplier: selectedSupplier,
-          // FIX: Pass userName and branchName to print preview.
-          details: {
-            ...invoiceDetails,
-            userName: currentUser?.fullName || "غير محدد",
-            branchName: currentUser?.branch || "غير محدد",
-          },
-        }}
-      />
+      {(() => {
+        const fullSupplier = selectedSupplier
+          ? (suppliers as any[]).find((s) => s.id === selectedSupplier.id)
+          : null;
+        const printSupplier = selectedSupplier
+          ? {
+              id: selectedSupplier.id,
+              name: selectedSupplier.name,
+              address: fullSupplier?.nationalAddress || fullSupplier?.address || undefined,
+              taxNumber: fullSupplier?.taxNumber || undefined,
+            }
+          : null;
+        return (
+          <PurchaseInvoicePrintPreview
+            isOpen={isPreviewOpen}
+            onClose={() => setIsPreviewOpen(false)}
+            invoiceData={{
+              vatRate,
+              isVatEnabled,
+              items: returnItems,
+              totals,
+              paymentMethod,
+              supplier: printSupplier,
+              details: {
+                ...invoiceDetails,
+                userName: currentUser?.fullName || "غير محدد",
+                branchName: currentUser?.branch || "غير محدد",
+              },
+            }}
+          />
+        );
+      })()}
     </>
   );
 };

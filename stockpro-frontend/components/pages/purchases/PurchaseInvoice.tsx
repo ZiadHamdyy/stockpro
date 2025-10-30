@@ -1065,6 +1065,19 @@ const PurchaseInvoice: React.FC<PurchaseInvoiceProps> = ({
         }))}
         onSelectRow={handleSelectInvoiceFromSearch}
       />
+      {(() => {
+        const fullSupplier = selectedSupplier
+          ? (suppliers as any[]).find((s) => s.id === selectedSupplier.id)
+          : null;
+        const printSupplier = selectedSupplier
+          ? {
+              id: selectedSupplier.id,
+              name: selectedSupplier.name,
+              address: fullSupplier?.nationalAddress || fullSupplier?.address || undefined,
+              taxNumber: fullSupplier?.taxNumber || undefined,
+            }
+          : null;
+        return (
       <PurchaseInvoicePrintPreview
         isOpen={isPreviewOpen}
         onClose={() => setIsPreviewOpen(false)}
@@ -1074,14 +1087,15 @@ const PurchaseInvoice: React.FC<PurchaseInvoiceProps> = ({
           items: purchaseItems,
           totals,
           paymentMethod,
-          supplier: selectedSupplier,
+          supplier: printSupplier,
           details: {
             ...invoiceDetails,
             userName: currentUser?.fullName || "غير محدد",
             branchName: currentUser?.branch || "غير محدد",
           },
         }}
-      />
+      />);
+      })()}
       <BarcodeScannerModal
         isOpen={isScannerOpen}
         onClose={() => setIsScannerOpen(false)}

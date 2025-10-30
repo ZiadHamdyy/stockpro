@@ -16,7 +16,7 @@ interface InvoicePrintPreviewProps {
     items: InvoiceItem[];
     totals: { subtotal: number; discount: number; tax: number; net: number };
     paymentMethod: "cash" | "credit";
-    customer: { id: string; name: string } | null;
+    customer: { id: string; name: string; address?: string; taxNumber?: string } | null;
     details: {
       invoiceNumber: string;
       invoiceDate: string;
@@ -175,11 +175,11 @@ const InvoicePrintPreview: React.FC<InvoicePrintPreviewProps> = ({
                 </p>
                 <p>
                   <span className="font-semibold">العنوان:</span>{" "}
-                  ___________________
+                  {customer?.address || "غير محدد"}
                 </p>
                 <p>
                   <span className="font-semibold">الرقم الضريبي:</span>{" "}
-                  ___________________
+                  {customer?.taxNumber || "غير محدد"}
                 </p>
               </div>
               <div className="border border-gray-300 rounded-md p-3">

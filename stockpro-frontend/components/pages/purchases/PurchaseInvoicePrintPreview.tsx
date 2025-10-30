@@ -14,12 +14,12 @@ interface PurchaseInvoicePrintPreviewProps {
     items: InvoiceItem[];
     totals: { subtotal: number; discount: number; tax: number; net: number };
     paymentMethod: "cash" | "credit";
-    supplier: { id: string; name: string } | null;
+    supplier: { id: string; name: string; address?: string; taxNumber?: string } | null;
     details: {
       invoiceNumber: string;
       invoiceDate: string;
-      userName: string;
-      branchName: string;
+      userName: string | { name: string };
+      branchName: string | { name: string };
     };
   };
 }
@@ -68,19 +68,21 @@ const PurchaseInvoicePrintPreview: React.FC<
   }
 
   const handlePrint = () => {
-    const printContents =
-      document.getElementById("printable-invoice")?.innerHTML;
+    const printContents = document.getElementById("printable-invoice")?.innerHTML;
     if (printContents) {
       const printWindow = window.open("", "", "height=800,width=800");
       printWindow?.document.write("<html><head><title>طباعة الفاتورة</title>");
+      // Add built CSS first
+      printWindow?.document.write('<link rel="stylesheet" href="/dist/assets/index.css" />');
+      // Keep tailwind CDN (as a fallback for core utilities)
       printWindow?.document.write(
-        '<script src="https://cdn.tailwindcss.com"></script>',
+        '<script src="https://cdn.tailwindcss.com"></script>'
       );
       printWindow?.document.write(
-        '<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet">',
+        '<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet">'
       );
       printWindow?.document.write(
-        '<style>body { font-family: "Cairo", sans-serif; -webkit-print-color-adjust: exact !important; color-adjust: exact !important; } @page { size: A4; margin: 0; } </style>',
+        '<style>body { font-family: "Cairo", sans-serif; -webkit-print-color-adjust: exact !important; color-adjust: exact !important; } @page { size: A4; margin: 0; } </style>'
       );
       printWindow?.document.write('</head><body dir="rtl">');
       printWindow?.document.write(printContents);
@@ -134,7 +136,7 @@ const PurchaseInvoicePrintPreview: React.FC<
 
         <div className="overflow-y-auto">
           <div id="printable-invoice" className="p-8 bg-white">
-            <header className="flex justify-between items-start pb-4 border-b-2 border-brand-green">
+            <header className="flex justify-between items-start pb-4 border-b-2 border-brand-blue">
               <div className="flex items-center gap-4">
                 {companyInfo.logo && (
                   <img
@@ -145,16 +147,18 @@ const PurchaseInvoicePrintPreview: React.FC<
                 )}
                 <div>
                   <h2 className="text-2xl font-bold text-black">
-                    {companyInfo.name}
+                    {typeof companyInfo.name === 'string' ? companyInfo.name : JSON.stringify(companyInfo.name) || '---'}
                   </h2>
-                  <p className="text-sm text-gray-600">{companyInfo.address}</p>
                   <p className="text-sm text-gray-600">
-                    الرقم الضريبي: {companyInfo.taxNumber}
+                    {typeof companyInfo.address === 'string' ? companyInfo.address : (companyInfo.address ? JSON.stringify(companyInfo.address) : 'غير محدد')}
+                  </p>
+                  <p className="text-sm text-gray-600">
+                    الرقم الضريبي: {typeof companyInfo.taxNumber === 'string' ? companyInfo.taxNumber : (companyInfo.taxNumber ? JSON.stringify(companyInfo.taxNumber) : 'غير محدد')}
                   </p>
                 </div>
               </div>
               <div className="text-left">
-                <h1 className="text-3xl font-bold text-brand-green">
+                <h1 className="text-3xl font-bold text-brand-blue">
                   فاتورة ضريبية
                 </h1>
                 <p>Tax Invoice</p>
@@ -169,12 +173,12 @@ const PurchaseInvoicePrintPreview: React.FC<
                   {supplier?.name || "مورد نقدي"}
                 </p>
                 <p>
-                  <span className="font-semibold">العنوان:</span>{" "}
-                  ___________________
+                  <span className="font-semibold">العنوان:</span>{' '}
+                  {typeof supplier?.address === 'string' ? supplier?.address : (supplier?.address ? JSON.stringify(supplier?.address) : 'غير محدد')}
                 </p>
                 <p>
-                  <span className="font-semibold">الرقم الضريبي:</span>{" "}
-                  ___________________
+                  <span className="font-semibold">الرقم الضريبي:</span>{' '}
+                  {typeof supplier?.taxNumber === 'string' ? supplier?.taxNumber : (supplier?.taxNumber ? JSON.stringify(supplier?.taxNumber) : 'غير محدد')}
                 </p>
               </div>
               <div className="border border-gray-300 rounded-md p-3">
@@ -186,55 +190,59 @@ const PurchaseInvoicePrintPreview: React.FC<
                   <span className="font-semibold">تاريخ الفاتورة:</span>{" "}
                   {details.invoiceDate}
                 </p>
-                <p>
-                  <span className="font-semibold">الفرع:</span>{" "}
-                  {details.branchName}
-                </p>
-                <p>
-                  <span className="font-semibold">الموظف:</span>{" "}
-                  {details.userName}
-                </p>
+                {(() => {
+                  let renderingBranch = 'غير محدد';
+                  if (details.branchName != null) {
+                    if (typeof details.branchName === 'object' && 'name' in details.branchName && details.branchName.name) {
+                      renderingBranch = details.branchName.name;
+                    } else if (typeof details.branchName === 'string') {
+                      renderingBranch = details.branchName;
+                    }
+                  }
+                  let renderingUser = 'غير محدد';
+                  if (details.userName != null) {
+                    if (typeof details.userName === 'object' && 'name' in details.userName && details.userName.name) {
+                      renderingUser = details.userName.name;
+                    } else if (typeof details.userName === 'string') {
+                      renderingUser = details.userName;
+                    }
+                  }
+                  return <>
+                    <p>
+                      <span className="font-semibold">الفرع:</span>{' '}{renderingBranch}
+                    </p>
+                    <p>
+                      <span className="font-semibold">الموظف:</span>{' '}{renderingUser}
+                    </p>
+                  </>;
+                })()}
               </div>
             </section>
 
             <table className="w-full text-sm border-collapse border border-gray-300">
-              <thead className="bg-brand-green text-white">
+              <thead className="bg-brand-blue text-white">
                 <tr>
-                  <th className="p-2 border border-green-300">#</th>
-                  <th className="p-2 border border-green-300 text-right">
-                    الصنف
-                  </th>
-                  <th className="p-2 border border-green-300">الكمية</th>
-                  <th className="p-2 border border-green-300">السعر</th>
+                  <th className="p-2 border border-blue-300">#</th>
+                  <th className="p-2 border border-blue-300 text-right">الصنف</th>
+                  <th className="p-2 border border-blue-300">الكمية</th>
+                  <th className="p-2 border border-blue-300">السعر</th>
                   {isVatEnabled && (
-                    <th className="p-2 border border-green-300">
-                      مبلغ الضريبة
-                    </th>
+                    <th className="p-2 border border-blue-300">مبلغ الضريبة</th>
                   )}
-                  <th className="p-2 border border-green-300">الاجمالي</th>
+                  <th className="p-2 border border-blue-300">الاجمالي</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-300">
                 {items.map((item, index) => (
                   <tr key={index}>
-                    <td className="p-2 border border-gray-300 text-center">
-                      {index + 1}
-                    </td>
+                    <td className="p-2 border border-gray-300 text-center">{index + 1}</td>
                     <td className="p-2 border border-gray-300">{item.name}</td>
-                    <td className="p-2 border border-gray-300 text-center">
-                      {item.qty}
-                    </td>
-                    <td className="p-2 border border-gray-300 text-center">
-                      {item.price.toFixed(2)}
-                    </td>
+                    <td className="p-2 border border-gray-300 text-center">{item.qty}</td>
+                    <td className="p-2 border border-gray-300 text-center">{item.price.toFixed(2)}</td>
                     {isVatEnabled && (
-                      <td className="p-2 border border-gray-300 text-center">
-                        {item.taxAmount.toFixed(2)}
-                      </td>
+                      <td className="p-2 border border-gray-300 text-center">{item.taxAmount.toFixed(2)}</td>
                     )}
-                    <td className="p-2 border border-gray-300 text-center">
-                      {item.total.toFixed(2)}
-                    </td>
+                    <td className="p-2 border border-gray-300 text-center">{item.total.toFixed(2)}</td>
                   </tr>
                 ))}
               </tbody>
@@ -250,59 +258,41 @@ const PurchaseInvoicePrintPreview: React.FC<
                 <table className="w-full border-collapse border border-gray-300">
                   <tbody>
                     <tr>
-                      <td className="font-semibold p-2 border border-gray-300">
-                        الاجمالي قبل الضريبة
-                      </td>
-                      <td className="p-2 border border-gray-300 text-left">
-                        {totals.subtotal.toFixed(2)}
-                      </td>
+                      <td className="font-semibold p-2 border border-gray-300">الاجمالي قبل الضريبة</td>
+                      <td className="p-2 border border-gray-300 text-left">{totals.subtotal.toFixed(2)}</td>
                     </tr>
                     <tr>
-                      <td className="font-semibold p-2 border border-gray-300">
-                        الخصم
-                      </td>
-                      <td className="p-2 border border-gray-300 text-left">
-                        {totals.discount.toFixed(2)}
-                      </td>
+                      <td className="font-semibold p-2 border border-gray-300">الخصم</td>
+                      <td className="p-2 border border-gray-300 text-left">{totals.discount.toFixed(2)}</td>
                     </tr>
                     {isVatEnabled && (
                       <tr>
-                        <td className="font-semibold p-2 border border-gray-300">
-                          إجمالي الضريبة ({vatRate}%)
-                        </td>
-                        <td className="p-2 border border-gray-300 text-left">
-                          {totals.tax.toFixed(2)}
-                        </td>
+                        <td className="font-semibold p-2 border border-gray-300">إجمالي الضريبة ({vatRate}%)</td>
+                        <td className="p-2 border border-gray-300 text-left">{totals.tax.toFixed(2)}</td>
                       </tr>
                     )}
-                    <tr className="bg-brand-green text-white font-bold text-base">
-                      <td className="p-2 border border-green-300">الصافي</td>
-                      <td className="p-2 border border-green-300 text-left">
-                        {totals.net.toFixed(2)}
-                      </td>
+                    <tr className="bg-brand-blue text-white font-bold text-base">
+                      <td className="p-2 border border-blue-300">الصافي</td>
+                      <td className="p-2 border border-blue-300 text-left">{totals.net.toFixed(2)}</td>
                     </tr>
                   </tbody>
                 </table>
               </div>
             </section>
 
-            <div className="mt-4 p-2 bg-brand-green-bg border border-brand-green text-center font-semibold text-sm rounded-md">
+            <div className="mt-4 p-2 bg-brand-blue-bg border border-brand-blue text-center font-semibold text-sm rounded-md">
               {tafqeet(totals.net, companyInfo.currency)}
             </div>
 
             <footer className="flex justify-around items-center mt-20 text-center text-sm">
               <div>
                 <p className="font-bold">المستلم</p>
-                <p className="mt-8 border-t border-gray-400 pt-1">
-                  الاسم: ..............................
-                </p>
+                <p className="mt-8 border-t border-gray-400 pt-1">الاسم: ..............................</p>
                 <p>التوقيع: ..............................</p>
               </div>
               <div>
                 <p className="font-bold">المحاسب</p>
-                <p className="mt-8 border-t border-gray-400 pt-1">
-                  الاسم: ..............................
-                </p>
+                <p className="mt-8 border-t border-gray-400 pt-1">الاسم: ..............................</p>
                 <p>التوقيع: ..............................</p>
               </div>
             </footer>
