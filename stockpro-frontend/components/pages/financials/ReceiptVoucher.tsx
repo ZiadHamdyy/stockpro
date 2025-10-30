@@ -459,7 +459,7 @@ const ReceiptVoucher: React.FC<ReceiptVoucherProps> = ({ title }) => {
             receivedFrom: voucherData.entity.name,
             description: voucherData.description,
             userName: User?.fullName || "غير محدد",
-            branchName: User?.branch || "غير محدد",
+            branchName: typeof User?.branch === 'string' ? User.branch : User?.branch?.name || "غير محدد",
           }}
         />
       )}

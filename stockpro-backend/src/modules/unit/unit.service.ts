@@ -54,6 +54,7 @@ export class UnitService {
   private mapToResponse(unit: any): UnitResponse {
     return {
       id: unit.id,
+      code: unit.code,
       name: unit.name,
       description: unit.description,
       createdAt: unit.createdAt,

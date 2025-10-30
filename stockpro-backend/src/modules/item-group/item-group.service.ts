@@ -57,6 +57,7 @@ export class ItemGroupService {
   private mapToResponse(itemGroup: any): ItemGroupResponse {
     return {
       id: itemGroup.id,
+      code: itemGroup.code,
       name: itemGroup.name,
       description: itemGroup.description,
       createdAt: itemGroup.createdAt,

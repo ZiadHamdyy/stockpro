@@ -124,6 +124,7 @@ export class ItemService {
       reorderLimit: item.reorderLimit,
       group: {
         id: item.group.id,
+        code: item.group.code,
         name: item.group.name,
         description: item.group.description,
         createdAt: item.group.createdAt,
@@ -131,6 +132,7 @@ export class ItemService {
       },
       unit: {
         id: item.unit.id,
+        code: item.unit.code,
         name: item.unit.name,
         description: item.unit.description,
         createdAt: item.unit.createdAt,

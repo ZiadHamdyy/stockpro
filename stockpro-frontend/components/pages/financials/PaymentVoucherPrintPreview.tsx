@@ -25,6 +25,26 @@ const PaymentVoucherPrintPreview: React.FC<PaymentVoucherPrintPreviewProps> = ({
 }) => {
   const { data: companyInfo, isLoading, error } = useGetCompanyQuery();
 
+  // Match Receipt: lock background scroll while modal open
+  React.useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [isOpen]);
+
+  // Match Receipt: print current modal content
+  const handlePrint = React.useCallback(() => {
+    window.print();
+    setTimeout(() => {
+      onClose();
+    }, 500);
+  }, [onClose]);
+
   if (!isOpen) return null;
 
   const { number, date, amount, paidTo, description, userName, branchName } =
@@ -56,41 +76,40 @@ const PaymentVoucherPrintPreview: React.FC<PaymentVoucherPrintPreviewProps> = ({
     );
   }
 
-  const handlePrint = () => {
-    const printContents =
-      document.getElementById("printable-voucher")?.innerHTML;
-    if (printContents) {
-      const printWindow = window.open("", "", "height=600,width=800");
-      printWindow?.document.write("<html><head><title>طباعة سند صرف</title>");
-      printWindow?.document.write(
-        '<script src="https://cdn.tailwindcss.com"></script>',
-      );
-      printWindow?.document.write(
-        '<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet">',
-      );
-      printWindow?.document.write(
-        '<style>body { font-family: "Cairo", sans-serif; -webkit-print-color-adjust: exact !important; color-adjust: exact !important; } @page { size: A5 landscape; margin: 0.5cm; } </style>',
-      );
-      printWindow?.document.write('</head><body dir="rtl">');
-      printWindow?.document.write(printContents);
-      printWindow?.document.write("</body></html>");
-      printWindow?.document.close();
-      printWindow?.focus();
-      setTimeout(() => {
-        printWindow?.print();
-        printWindow?.close();
-      }, 250);
-    }
-  };
-
   return (
     <div
       className="fixed inset-0 bg-black bg-opacity-60 z-50 flex justify-center items-start p-4 overflow-y-auto"
       onClick={onClose}
     >
+      <style>{`
+        @page {
+          size: A5 landscape;
+          margin: 0;
+        }
+        @media print {
+          html, body { height: auto; }
+          body { margin: 0 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+          body * { visibility: hidden !important; }
+          #printable-voucher, #printable-voucher * { visibility: visible !important; }
+          #printable-voucher {
+            position: absolute !important;
+            inset: 0 !important;
+            margin: 0 !important;
+            width: 210mm !important;
+            min-height: 148mm !important;
+            height: auto !important;
+            padding-bottom: 5mm !important;
+            background: #ffffff !important;
+            box-sizing: border-box !important;
+            overflow: hidden !important;
+          }
+          .print:hidden, .no-print { display: none !important; }
+        }
+      `}</style>
       <div
-        className="bg-white rounded-lg shadow-xl w-full max-w-3xl max-h-[95vh] flex flex-col my-auto"
-        onClick={(e) => e.stopPropagation()}
+        id="modal-print-preview"
+        className="bg-white rounded-lg shadow-xl w-full max-w-4xl max-h-[95vh] flex flex-col my-auto"
+        onClick={e => e.stopPropagation()}
       >
         <div className="p-4 border-b flex justify-between items-center print:hidden bg-gray-50 rounded-t-lg">
           <h2 className="text-xl font-bold text-brand-dark">
@@ -112,14 +131,14 @@ const PaymentVoucherPrintPreview: React.FC<PaymentVoucherPrintPreviewProps> = ({
           </div>
         </div>
 
-        <div className="overflow-y-auto">
+        <div className="overflow-y-auto flex justify-center">
           <div
             id="printable-voucher"
-            className="p-6 bg-white"
+            className="mx-auto p-6 bg-white"
             style={{ width: "210mm", height: "148mm" }}
           >
             <div className="border-2 border-brand-green h-full p-4 flex flex-col justify-between rounded-lg">
-              <header className="flex justify-between items-center pb-2 border-b-2 border-brand-green">
+              <div className="flex justify-between items-center pb-2 border-b-2 border-brand-green">
                 <div className="flex items-center gap-4">
                   {companyInfo.logo && (
                     <img
@@ -135,6 +154,9 @@ const PaymentVoucherPrintPreview: React.FC<PaymentVoucherPrintPreviewProps> = ({
                     <p className="text-xs text-gray-600">
                       {companyInfo.address}
                     </p>
+                    {companyInfo.phone && (
+                      <p className="text-xs text-gray-600">هاتف: {companyInfo.phone}</p>
+                    )}
                   </div>
                 </div>
                 <div className="text-center">
@@ -145,19 +167,19 @@ const PaymentVoucherPrintPreview: React.FC<PaymentVoucherPrintPreviewProps> = ({
                 </div>
                 <div className="text-left text-sm">
                   <p>
-                    <span className="font-semibold">الرقم:</span> {number}
+                    <span className="font-semibold">الرقم الضريبي: {companyInfo.taxNumber}</span> {number}
                   </p>
                   <p>
                     <span className="font-semibold">التاريخ:</span> {date}
                   </p>
                   <p>
-                    <span className="font-semibold">الفرع:</span> {branchName}
+                    <span className="font-semibold">الفرع:</span> {typeof branchName === "string" ? branchName : branchName?.name || "غير محدد"}
                   </p>
                 </div>
-              </header>
+              </div>
 
               <main className="flex-grow my-4 space-y-3 text-base">
-                <div className="flex items-center">
+                <div className="flex items-center pt-4">
                   <label className="font-bold w-48">اصرفوا للسيد/السادة:</label>
                   <span className="border-b-2 border-dotted border-gray-400 flex-grow px-2">
                     {paidTo}

@@ -212,7 +212,7 @@ const ItemGroups: React.FC<ItemGroupsProps> = ({ title }) => {
               ) : (
                 filteredGroups.map((group) => (
                   <tr key={group.id} className="hover:bg-brand-blue-bg">
-                    <td className="px-6 py-4 whitespace-nowrap">{group.id}</td>
+                    <td className="px-6 py-4 whitespace-nowrap">{group.code}</td>
                     <td className="px-6 py-4 whitespace-nowrap font-medium text-brand-dark">
                       {group.name}
                     </td>

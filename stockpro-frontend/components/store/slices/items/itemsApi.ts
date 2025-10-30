@@ -2,6 +2,7 @@ import { apiSlice } from "../../ApiSlice";
 
 export interface ItemGroup {
   id: string;
+  code: number;
   name: string;
   description?: string;
   createdAt: string;

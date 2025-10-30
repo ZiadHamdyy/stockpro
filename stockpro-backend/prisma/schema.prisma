@@ -147,6 +147,7 @@ model RolePermission {
 
 model ItemGroup {
   id          String  @id @default(uuid())
+  code        Int     @unique @default(autoincrement())
   name        String  @unique
   description String?
 
@@ -159,6 +160,7 @@ model ItemGroup {
 
 model Unit {
   id          String  @id @default(uuid())
+  code        Int     @unique @default(autoincrement())
   name        String  @unique
   description String?
 
