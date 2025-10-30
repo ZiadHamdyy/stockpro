@@ -99,7 +99,10 @@ export const salesInvoiceApiSlice = apiSlice.injectEndpoints({
         body: data,
       }),
       transformResponse: (response: { data: SalesInvoice }) => response.data,
-      invalidatesTags: [{ type: "SalesInvoice", id: "LIST" }],
+      invalidatesTags: [
+        { type: "SalesInvoice", id: "LIST" },
+        "Item",
+      ],
     }),
     updateSalesInvoice: builder.mutation<
       SalesInvoice,
@@ -114,6 +117,7 @@ export const salesInvoiceApiSlice = apiSlice.injectEndpoints({
       invalidatesTags: (result, error, { id }) => [
         { type: "SalesInvoice", id },
         { type: "SalesInvoice", id: "LIST" },
+        "Item",
       ],
     }),
     deleteSalesInvoice: builder.mutation<void, string>({
@@ -124,6 +128,7 @@ export const salesInvoiceApiSlice = apiSlice.injectEndpoints({
       invalidatesTags: (result, error, id) => [
         { type: "SalesInvoice", id },
         { type: "SalesInvoice", id: "LIST" },
+        "Item",
       ],
     }),
   }),

@@ -160,7 +160,7 @@ const InvoicePrintPreview: React.FC<InvoicePrintPreviewProps> = ({
               </div>
               <div className="text-left">
                 <h1 className="text-3xl font-bold text-brand-blue">
-                  فاتورة ضريبية
+                  {paymentMethod === "cash" ? "فاتورة ضريبية مبسطة" : "فاتورة ضريبية"}
                 </h1>
                 <p>Tax Invoice</p>
               </div>

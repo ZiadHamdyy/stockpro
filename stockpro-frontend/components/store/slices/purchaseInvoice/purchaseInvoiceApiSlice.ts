@@ -98,7 +98,7 @@ export const purchaseInvoiceApiSlice = apiSlice.injectEndpoints({
         body: data,
       }),
       transformResponse: (response: { data: PurchaseInvoice }) => response.data,
-      invalidatesTags: ["PurchaseInvoice"],
+      invalidatesTags: ["PurchaseInvoice", "Item"],
     }),
     updatePurchaseInvoice: builder.mutation<
       PurchaseInvoice,
@@ -113,6 +113,7 @@ export const purchaseInvoiceApiSlice = apiSlice.injectEndpoints({
       invalidatesTags: (result, error, { id }) => [
         { type: "PurchaseInvoice", id },
         "PurchaseInvoice",
+        "Item",
       ],
     }),
     deletePurchaseInvoice: builder.mutation<void, string>({
@@ -120,7 +121,7 @@ export const purchaseInvoiceApiSlice = apiSlice.injectEndpoints({
         url: `/purchase-invoices/${id}`,
         method: "DELETE",
       }),
-      invalidatesTags: ["PurchaseInvoice"],
+      invalidatesTags: ["PurchaseInvoice", "Item"],
     }),
   }),
 });
