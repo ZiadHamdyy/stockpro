@@ -33,7 +33,7 @@ export class UserService {
       page = 1,
       limit = 8,
       sortBy = 'createdAt',
-      sortOrder = 'desc',
+      sortOrder = 'asc',
     } = filters || {};
 
     const where: any = {};

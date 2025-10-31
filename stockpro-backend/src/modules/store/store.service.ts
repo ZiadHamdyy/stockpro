@@ -30,7 +30,7 @@ export class StoreService {
         user: true,
       },
       orderBy: {
-        createdAt: 'desc',
+        createdAt: 'asc',
       },
     });
   }

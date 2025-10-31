@@ -53,5 +53,5 @@ export class UserListFilterInput {
 
   @IsOptional()
   @IsString()
-  sortOrder?: 'asc' | 'desc' = 'desc';
+  sortOrder?: 'asc' | 'desc' = 'asc';
 }
