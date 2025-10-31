@@ -1,4 +1,5 @@
 import { apiSlice } from "../../ApiSlice";
+import { showApiErrorToast } from "../../../../utils/errorToast";
 
 export interface PurchaseReturnItem {
   id: string;
@@ -81,7 +82,13 @@ export const purchaseReturnApiSlice = apiSlice.injectEndpoints({
       query: () => "/purchase-returns",
       transformResponse: (response: { data: PurchaseReturn[] }) =>
         response.data,
-      providesTags: ["PurchaseReturn"],
+      providesTags: (result) =>
+        result
+          ? [
+              ...result.map(({ id }) => ({ type: "PurchaseReturn" as const, id })),
+              { type: "PurchaseReturn", id: "LIST" },
+            ]
+          : [{ type: "PurchaseReturn", id: "LIST" }],
     }),
     getPurchaseReturnById: builder.query<PurchaseReturn, string>({
       query: (id) => `/purchase-returns/${id}`,
@@ -98,7 +105,25 @@ export const purchaseReturnApiSlice = apiSlice.injectEndpoints({
         body: data,
       }),
       transformResponse: (response: { data: PurchaseReturn }) => response.data,
-      invalidatesTags: ["PurchaseReturn"],
+      invalidatesTags: [
+        { type: "PurchaseReturn", id: "LIST" },
+        "Item",
+        "Safe",
+        "Bank",
+        "CurrentAccount",
+        { type: "DashboardStats", id: "GLOBAL" },
+        { type: "MonthlyStats", id: "GLOBAL" },
+        { type: "SalesByItemGroup", id: "GLOBAL" },
+        { type: "IncomeStatement", id: "GLOBAL" },
+        { type: "BalanceSheet", id: "GLOBAL" },
+      ],
+      async onQueryStarted(arg, { queryFulfilled }) {
+        try {
+          await queryFulfilled;
+        } catch ({ error }) {
+          showApiErrorToast(error);
+        }
+      },
     }),
     updatePurchaseReturn: builder.mutation<
       PurchaseReturn,
@@ -112,15 +137,49 @@ export const purchaseReturnApiSlice = apiSlice.injectEndpoints({
       transformResponse: (response: { data: PurchaseReturn }) => response.data,
       invalidatesTags: (result, error, { id }) => [
         { type: "PurchaseReturn", id },
-        "PurchaseReturn",
+        { type: "PurchaseReturn", id: "LIST" },
+        "Item",
+        "Safe",
+        "Bank",
+        "CurrentAccount",
+        { type: "DashboardStats", id: "GLOBAL" },
+        { type: "MonthlyStats", id: "GLOBAL" },
+        { type: "SalesByItemGroup", id: "GLOBAL" },
+        { type: "IncomeStatement", id: "GLOBAL" },
+        { type: "BalanceSheet", id: "GLOBAL" },
       ],
+      async onQueryStarted(arg, { queryFulfilled }) {
+        try {
+          await queryFulfilled;
+        } catch ({ error }) {
+          showApiErrorToast(error);
+        }
+      },
     }),
     deletePurchaseReturn: builder.mutation<void, string>({
       query: (id) => ({
         url: `/purchase-returns/${id}`,
         method: "DELETE",
       }),
-      invalidatesTags: ["PurchaseReturn"],
+      invalidatesTags: [
+        { type: "PurchaseReturn", id: "LIST" },
+        "Item",
+        "Safe",
+        "Bank",
+        "CurrentAccount",
+        { type: "DashboardStats", id: "GLOBAL" },
+        { type: "MonthlyStats", id: "GLOBAL" },
+        { type: "SalesByItemGroup", id: "GLOBAL" },
+        { type: "IncomeStatement", id: "GLOBAL" },
+        { type: "BalanceSheet", id: "GLOBAL" },
+      ],
+      async onQueryStarted(arg, { queryFulfilled }) {
+        try {
+          await queryFulfilled;
+        } catch ({ error }) {
+          showApiErrorToast(error);
+        }
+      },
     }),
   }),
 });

@@ -31,15 +31,18 @@ export const dashboardApiSlice = apiSlice.injectEndpoints({
     getDashboardStats: builder.query<DashboardStats, void>({
       query: () => "dashboard/stats",
       transformResponse: (response: { data: DashboardStats }) => response.data,
+      providesTags: [{ type: "DashboardStats", id: "GLOBAL" }],
     }),
     getMonthlyStats: builder.query<MonthlyStats, void>({
       query: () => "dashboard/monthly-stats",
       transformResponse: (response: { data: MonthlyStats }) => response.data,
+      providesTags: [{ type: "MonthlyStats", id: "GLOBAL" }],
     }),
     getSalesByItemGroup: builder.query<SalesByItemGroup, void>({
       query: () => "dashboard/sales-by-item-group",
       transformResponse: (response: { data: SalesByItemGroup }) =>
         response.data,
+      providesTags: [{ type: "SalesByItemGroup", id: "GLOBAL" }],
     }),
   }),
 });

@@ -181,7 +181,7 @@ const DataTableModal: React.FC<DataTableModalProps> = ({
           </div>
         </div>
 
-        <div className="overflow-y-auto px-4 pb-4">
+        <div className="overflow-y-auto overflow-x-auto px-4 pb-4">
           <div id="modal-printable-area">
             {companyInfo && (
               <ReportHeader title={title} companyInfo={companyInfo} />

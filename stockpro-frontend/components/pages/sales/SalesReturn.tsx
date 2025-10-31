@@ -20,6 +20,7 @@ import type {
 import InvoicePrintPreview from "./InvoicePrintPreview";
 import { useModal } from "../../common/ModalProvider";
 import { useToast } from "../../common/ToastProvider";
+import { showApiErrorToast } from "../../../utils/errorToast";
 import {
   useGetSalesReturnsQuery,
   useCreateSalesReturnMutation,
@@ -36,7 +37,8 @@ type SelectableItem = {
   id: string;
   name: string;
   unit: string;
-  price: number;
+  salePrice: number;
+  purchasePrice: number;
   stock: number;
 };
 
@@ -74,7 +76,8 @@ const SalesReturn: React.FC<SalesReturnProps> = ({
     id: item.code,
     name: item.name,
     unit: item.unit.name,
-    price: item.salePrice,
+    salePrice: item.salePrice,
+    purchasePrice: item.purchasePrice,
     stock: item.stock,
     barcode: item.barcode,
   }));
@@ -328,7 +331,14 @@ const SalesReturn: React.FC<SalesReturnProps> = ({
   const handleSelectItem = (index: number, selectedItem: SelectableItem) => {
     const newItems = [...returnItems];
     const currentItem = newItems[index];
-    const item = { ...currentItem, ...selectedItem, qty: currentItem.qty || 1 };
+    const item = {
+      ...currentItem,
+      id: selectedItem.id,
+      name: selectedItem.name,
+      unit: selectedItem.unit,
+      qty: currentItem.qty || 1,
+      price: selectedItem.salePrice,
+    };
     const total = item.qty * (item.price || 0);
     item.total = total;
     item.taxAmount = isVatEnabled ? total * (vatRate / 100) : 0;
@@ -448,8 +458,7 @@ const SalesReturn: React.FC<SalesReturnProps> = ({
       // Refresh the returns list
       // The Redux cache will automatically update
     } catch (error) {
-      showToast("حدث خطأ أثناء حفظ المرتجع");
-      console.error("Error saving return:", error);
+      showApiErrorToast(error as any);
     }
   };
 
@@ -482,8 +491,7 @@ const SalesReturn: React.FC<SalesReturnProps> = ({
             setCurrentIndex((prev) => Math.max(0, prev - 1));
           }
         } catch (error) {
-          showToast("حدث خطأ أثناء حذف المرتجع");
-          console.error("Error deleting return:", error);
+          showApiErrorToast(error as any);
         }
       },
       type: "delete",
@@ -994,7 +1002,8 @@ const SalesReturn: React.FC<SalesReturnProps> = ({
           { Header: "الاسم", accessor: "name" },
           { Header: "الرصيد", accessor: "stock" },
           { Header: "الوحدة", accessor: "unit" },
-          { Header: "السعر", accessor: "price" },
+          { Header: "سعر البيع", accessor: "salePrice" },
+          { Header: "سعر الشراء", accessor: "purchasePrice" },
         ]}
         data={allItems}
         onSelectRow={handleSelectItemFromModal}

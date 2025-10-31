@@ -1,4 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
+import { throwHttp } from '../../common/utils/http-error';
+import { ERROR_CODES } from '../../common/constants/error-codes';
 import { DatabaseService } from '../../configs/database/database.service';
 import { CreateSalesInvoiceRequest } from './dtos/request/create-sales-invoice.request';
 import { UpdateSalesInvoiceRequest } from './dtos/request/update-sales-invoice.request';
@@ -12,6 +14,31 @@ export class SalesInvoiceService {
     data: CreateSalesInvoiceRequest,
     userId: string,
   ): Promise<SalesInvoiceResponse> {
+    // Basic validations
+    if (!data.customerId) {
+      throwHttp(422, ERROR_CODES.INV_CUSTOMER_REQUIRED, 'Customer is required');
+    }
+    if (!data.items || data.items.length === 0) {
+      throwHttp(422, ERROR_CODES.INV_ITEMS_REQUIRED, 'Items are required');
+    }
+    if (data.paymentMethod === 'cash') {
+      if (!data.paymentTargetType || !data.paymentTargetId) {
+        throwHttp(
+          422,
+          ERROR_CODES.INV_PAYMENT_ACCOUNT_REQUIRED,
+          'Safe or bank is required for cash payments',
+        );
+      }
+    } else if (data.paymentMethod === 'credit') {
+      if (data.paymentTargetType || data.paymentTargetId) {
+        throwHttp(
+          422,
+          ERROR_CODES.INV_PAYMENT_ACCOUNT_FOR_CREDIT_NOT_ALLOWED,
+          'Payment account must be empty for credit payments',
+        );
+      }
+    }
+
     const code = await this.generateNextCode();
 
     // Calculate totals
@@ -36,49 +63,59 @@ export class SalesInvoiceService {
       total: item.qty * item.price,
     }));
 
-    const salesInvoice = await this.prisma.salesInvoice.create({
-      data: {
-        code,
-        date: data.date ? new Date(data.date) : new Date(),
-        customerId: data.customerId,
-        items: itemsWithTotals,
-        subtotal,
-        discount,
-        tax,
-        net,
-        paymentMethod: data.paymentMethod,
-        paymentTargetType: data.paymentTargetType,
-        paymentTargetId: data.paymentTargetId,
-        notes: data.notes,
-        userId,
-      },
-      include: {
-        customer: {
-          select: {
-            id: true,
-            name: true,
-            code: true,
-          },
+    const result = await this.prisma.$transaction(async (tx) => {
+      // Validate stock availability for all items first
+      for (const item of data.items) {
+        const itemRecord = await tx.item.findUnique({ where: { code: item.id } });
+        if (!itemRecord) {
+          throwHttp(404, ERROR_CODES.INV_ITEM_NOT_FOUND, `Item ${item.id} not found`);
+        }
+        if (itemRecord.stock < item.qty) {
+          throwHttp(
+            409,
+            ERROR_CODES.INV_STOCK_INSUFFICIENT,
+            `Insufficient stock for item ${itemRecord.name}`,
+          );
+        }
+      }
+
+      const created = await tx.salesInvoice.create({
+        data: {
+          code,
+          date: data.date ? new Date(data.date) : new Date(),
+          customerId: data.customerId,
+          items: itemsWithTotals,
+          subtotal,
+          discount,
+          tax,
+          net,
+          paymentMethod: data.paymentMethod,
+          paymentTargetType: data.paymentTargetType,
+          paymentTargetId: data.paymentTargetId,
+          notes: data.notes,
+          userId,
         },
-        user: {
-          select: {
-            id: true,
-            name: true,
+        include: {
+          customer: {
+            select: { id: true, name: true, code: true },
           },
+          user: { select: { id: true, name: true } },
+          branch: { select: { id: true, name: true } },
         },
-        branch: {
-          select: {
-            id: true,
-            name: true,
-          },
-        },
-      },
+      });
+
+      // Decrease stock
+      for (const item of data.items) {
+        await tx.item.update({
+          where: { code: item.id },
+          data: { stock: { decrement: item.qty } },
+        });
+      }
+
+      return created;
     });
 
-    // Update stock for each item
-    await this.updateStockForItems(data.items, 'decrease');
-
-    return this.mapToResponse(salesInvoice);
+    return this.mapToResponse(result);
   }
 
   async findAll(search?: string): Promise<SalesInvoiceResponse[]> {
@@ -163,6 +200,30 @@ export class SalesInvoiceService {
     userId: string,
   ): Promise<SalesInvoiceResponse> {
     try {
+      // Validate base fields
+      const incomingItems = data.items;
+      if (incomingItems && incomingItems.length === 0) {
+        throwHttp(422, ERROR_CODES.INV_ITEMS_REQUIRED, 'Items are required');
+      }
+      if (data.paymentMethod) {
+        if (data.paymentMethod === 'cash') {
+          if (!data.paymentTargetType || !data.paymentTargetId) {
+            throwHttp(
+              422,
+              ERROR_CODES.INV_PAYMENT_ACCOUNT_REQUIRED,
+              'Safe or bank is required for cash payments',
+            );
+          }
+        } else if (data.paymentMethod === 'credit') {
+          if (data.paymentTargetType || data.paymentTargetId) {
+            throwHttp(
+              422,
+              ERROR_CODES.INV_PAYMENT_ACCOUNT_FOR_CREDIT_NOT_ALLOWED,
+              'Payment account must be empty for credit payments',
+            );
+          }
+        }
+      }
       // Get existing invoice to restore stock
       const existingInvoice = await this.prisma.salesInvoice.findUnique({
         where: { id },
@@ -202,44 +263,58 @@ export class SalesInvoiceService {
         total: item.qty * item.price,
       }));
 
-      const salesInvoice = await this.prisma.salesInvoice.update({
-        where: { id },
-        data: {
-          ...data,
-          items: itemsWithTotals,
-          subtotal,
-          discount,
-          tax,
-          net,
-          userId,
-        },
-        include: {
-          customer: {
-            select: {
-              id: true,
-              name: true,
-              code: true,
-            },
+      const updated = await this.prisma.$transaction(async (tx) => {
+        // Restore stock for old items
+        if (existingInvoice) {
+          for (const oldItem of (existingInvoice.items as any[]) || []) {
+            await tx.item.update({
+              where: { code: oldItem.id },
+              data: { stock: { increment: oldItem.qty } },
+            });
+          }
+        }
+
+        // Validate stock for new items
+        for (const item of items) {
+          const itemRecord = await tx.item.findUnique({ where: { code: item.id } });
+          if (!itemRecord) {
+            throwHttp(404, ERROR_CODES.INV_ITEM_NOT_FOUND, `Item ${item.id} not found`);
+          }
+          if (itemRecord.stock < item.qty) {
+            throwHttp(409, ERROR_CODES.INV_STOCK_INSUFFICIENT, `Insufficient stock for item ${itemRecord.name}`);
+          }
+        }
+
+        const inv = await tx.salesInvoice.update({
+          where: { id },
+          data: {
+            ...data,
+            items: itemsWithTotals,
+            subtotal,
+            discount,
+            tax,
+            net,
+            userId,
           },
-          user: {
-            select: {
-              id: true,
-              name: true,
-            },
+          include: {
+            customer: { select: { id: true, name: true, code: true } },
+            user: { select: { id: true, name: true } },
+            branch: { select: { id: true, name: true } },
           },
-          branch: {
-            select: {
-              id: true,
-              name: true,
-            },
-          },
-        },
+        });
+
+        // Decrease stock for new items
+        for (const item of items) {
+          await tx.item.update({
+            where: { code: item.id },
+            data: { stock: { decrement: item.qty } },
+          });
+        }
+
+        return inv;
       });
 
-      // Update stock for new items
-      await this.updateStockForItems(items, 'decrease');
-
-      return this.mapToResponse(salesInvoice);
+      return this.mapToResponse(updated);
     } catch (error) {
       throw new NotFoundException('Sales invoice not found');
     }
@@ -288,21 +363,15 @@ export class SalesInvoiceService {
     operation: 'increase' | 'decrease',
   ): Promise<void> {
     for (const item of items) {
-      const itemRecord = await this.prisma.item.findUnique({
-        where: { id: item.id },
+      await this.prisma.item.update({
+        where: { code: item.id },
+        data: {
+          stock:
+            operation === 'increase'
+              ? { increment: item.qty }
+              : { decrement: item.qty },
+        },
       });
-
-      if (itemRecord) {
-        const newStock =
-          operation === 'increase'
-            ? itemRecord.stock + item.qty
-            : itemRecord.stock - item.qty;
-
-        await this.prisma.item.update({
-          where: { id: item.id },
-          data: { stock: newStock },
-        });
-      }
     }
   }
 

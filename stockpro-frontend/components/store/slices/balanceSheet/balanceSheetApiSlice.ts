@@ -29,6 +29,7 @@ export const balanceSheetApiSlice = apiSlice.injectEndpoints({
       }),
       transformResponse: (response: { data: BalanceSheetData }) =>
         response.data,
+      providesTags: [{ type: "BalanceSheet", id: "GLOBAL" }],
     }),
   }),
 });

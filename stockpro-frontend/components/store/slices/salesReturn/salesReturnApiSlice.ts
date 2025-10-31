@@ -1,4 +1,5 @@
 import { apiSlice } from "../../ApiSlice";
+import { showApiErrorToast } from "../../../../utils/errorToast";
 
 export interface ReturnItem {
   id: string;
@@ -93,7 +94,25 @@ export const salesReturnApiSlice = apiSlice.injectEndpoints({
         body: data,
       }),
       transformResponse: (response: { data: SalesReturn }) => response.data,
-      invalidatesTags: [{ type: "SalesReturn", id: "LIST" }],
+      invalidatesTags: [
+        { type: "SalesReturn", id: "LIST" },
+        "Item",
+        "Safe",
+        "Bank",
+        "CurrentAccount",
+        { type: "DashboardStats", id: "GLOBAL" },
+        { type: "MonthlyStats", id: "GLOBAL" },
+        { type: "SalesByItemGroup", id: "GLOBAL" },
+        { type: "IncomeStatement", id: "GLOBAL" },
+        { type: "BalanceSheet", id: "GLOBAL" },
+      ],
+      async onQueryStarted(arg, { queryFulfilled }) {
+        try {
+          await queryFulfilled;
+        } catch ({ error }) {
+          showApiErrorToast(error);
+        }
+      },
     }),
     updateSalesReturn: builder.mutation<
       SalesReturn,
@@ -108,7 +127,23 @@ export const salesReturnApiSlice = apiSlice.injectEndpoints({
       invalidatesTags: (result, error, { id }) => [
         { type: "SalesReturn", id },
         { type: "SalesReturn", id: "LIST" },
+        "Item",
+        "Safe",
+        "Bank",
+        "CurrentAccount",
+        { type: "DashboardStats", id: "GLOBAL" },
+        { type: "MonthlyStats", id: "GLOBAL" },
+        { type: "SalesByItemGroup", id: "GLOBAL" },
+        { type: "IncomeStatement", id: "GLOBAL" },
+        { type: "BalanceSheet", id: "GLOBAL" },
       ],
+      async onQueryStarted(arg, { queryFulfilled }) {
+        try {
+          await queryFulfilled;
+        } catch ({ error }) {
+          showApiErrorToast(error);
+        }
+      },
     }),
     deleteSalesReturn: builder.mutation<void, string>({
       query: (id) => ({
@@ -118,7 +153,23 @@ export const salesReturnApiSlice = apiSlice.injectEndpoints({
       invalidatesTags: (result, error, id) => [
         { type: "SalesReturn", id },
         { type: "SalesReturn", id: "LIST" },
+        "Item",
+        "Safe",
+        "Bank",
+        "CurrentAccount",
+        { type: "DashboardStats", id: "GLOBAL" },
+        { type: "MonthlyStats", id: "GLOBAL" },
+        { type: "SalesByItemGroup", id: "GLOBAL" },
+        { type: "IncomeStatement", id: "GLOBAL" },
+        { type: "BalanceSheet", id: "GLOBAL" },
       ],
+      async onQueryStarted(arg, { queryFulfilled }) {
+        try {
+          await queryFulfilled;
+        } catch ({ error }) {
+          showApiErrorToast(error);
+        }
+      },
     }),
   }),
 });

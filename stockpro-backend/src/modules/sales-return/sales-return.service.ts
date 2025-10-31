@@ -3,6 +3,8 @@ import { DatabaseService } from '../../configs/database/database.service';
 import { CreateSalesReturnRequest } from './dtos/request/create-sales-return.request';
 import { UpdateSalesReturnRequest } from './dtos/request/update-sales-return.request';
 import { SalesReturnResponse } from './dtos/response/sales-return.response';
+import { throwHttp } from '../../common/utils/http-error';
+import { ERROR_CODES } from '../../common/constants/error-codes';
 
 @Injectable()
 export class SalesReturnService {
@@ -12,6 +14,30 @@ export class SalesReturnService {
     data: CreateSalesReturnRequest,
     userId: string,
   ): Promise<SalesReturnResponse> {
+    // Validations
+    if (!data.customerId) {
+      throwHttp(422, ERROR_CODES.INV_CUSTOMER_REQUIRED, 'Customer is required');
+    }
+    if (!data.items || data.items.length === 0) {
+      throwHttp(422, ERROR_CODES.INV_ITEMS_REQUIRED, 'Items are required');
+    }
+    if (data.paymentMethod === 'cash') {
+      if (!data.paymentTargetType || !data.paymentTargetId) {
+        throwHttp(
+          422,
+          ERROR_CODES.INV_PAYMENT_ACCOUNT_REQUIRED,
+          'Safe or bank is required for cash payments',
+        );
+      }
+    } else if (data.paymentMethod === 'credit') {
+      if (data.paymentTargetType || data.paymentTargetId) {
+        throwHttp(
+          422,
+          ERROR_CODES.INV_PAYMENT_ACCOUNT_FOR_CREDIT_NOT_ALLOWED,
+          'Payment account must be empty for credit payments',
+        );
+      }
+    }
     const code = await this.generateNextCode();
 
     // Calculate totals
@@ -36,49 +62,41 @@ export class SalesReturnService {
       total: item.qty * item.price,
     }));
 
-    const salesReturn = await this.prisma.salesReturn.create({
-      data: {
-        code,
-        date: data.date ? new Date(data.date) : new Date(),
-        customerId: data.customerId,
-        items: itemsWithTotals,
-        subtotal,
-        discount,
-        tax,
-        net,
-        paymentMethod: data.paymentMethod,
-        paymentTargetType: data.paymentTargetType,
-        paymentTargetId: data.paymentTargetId,
-        notes: data.notes,
-        userId,
-      },
-      include: {
-        customer: {
-          select: {
-            id: true,
-            name: true,
-            code: true,
-          },
+    const created = await this.prisma.$transaction(async (tx) => {
+      const ret = await tx.salesReturn.create({
+        data: {
+          code,
+          date: data.date ? new Date(data.date) : new Date(),
+          customerId: data.customerId,
+          items: itemsWithTotals,
+          subtotal,
+          discount,
+          tax,
+          net,
+          paymentMethod: data.paymentMethod,
+          paymentTargetType: data.paymentTargetType,
+          paymentTargetId: data.paymentTargetId,
+          notes: data.notes,
+          userId,
         },
-        user: {
-          select: {
-            id: true,
-            name: true,
-          },
+        include: {
+          customer: { select: { id: true, name: true, code: true } },
+          user: { select: { id: true, name: true } },
+          branch: { select: { id: true, name: true } },
         },
-        branch: {
-          select: {
-            id: true,
-            name: true,
-          },
-        },
-      },
+      });
+
+      for (const item of data.items) {
+        await tx.item.update({
+          where: { code: item.id },
+          data: { stock: { increment: item.qty } },
+        });
+      }
+
+      return ret;
     });
 
-    // Update stock for each item (increase for returns)
-    await this.updateStockForItems(data.items, 'increase');
-
-    return this.mapToResponse(salesReturn);
+    return this.mapToResponse(created);
   }
 
   async findAll(search?: string): Promise<SalesReturnResponse[]> {
@@ -202,44 +220,46 @@ export class SalesReturnService {
         total: item.qty * item.price,
       }));
 
-      const salesReturn = await this.prisma.salesReturn.update({
-        where: { id },
-        data: {
-          ...data,
-          items: itemsWithTotals,
-          subtotal,
-          discount,
-          tax,
-          net,
-          userId,
-        },
-        include: {
-          customer: {
-            select: {
-              id: true,
-              name: true,
-              code: true,
-            },
+      const updated = await this.prisma.$transaction(async (tx) => {
+        // Reverse previous increase
+        if (existingReturn) {
+          for (const oldItem of (existingReturn.items as any[]) || []) {
+            await tx.item.update({
+              where: { code: oldItem.id },
+              data: { stock: { decrement: oldItem.qty } },
+            });
+          }
+        }
+
+        const ret = await tx.salesReturn.update({
+          where: { id },
+          data: {
+            ...data,
+            items: itemsWithTotals,
+            subtotal,
+            discount,
+            tax,
+            net,
+            userId,
           },
-          user: {
-            select: {
-              id: true,
-              name: true,
-            },
+          include: {
+            customer: { select: { id: true, name: true, code: true } },
+            user: { select: { id: true, name: true } },
+            branch: { select: { id: true, name: true } },
           },
-          branch: {
-            select: {
-              id: true,
-              name: true,
-            },
-          },
-        },
+        });
+
+        for (const item of items) {
+          await tx.item.update({
+            where: { code: item.id },
+            data: { stock: { increment: item.qty } },
+          });
+        }
+
+        return ret;
       });
 
-      // Update stock for new items (increase for returns)
-      await this.updateStockForItems(items, 'increase');
-
-      return this.mapToResponse(salesReturn);
+      return this.mapToResponse(updated);
     } catch (error) {
       throw new NotFoundException('Sales return not found');
     }
@@ -288,21 +308,15 @@ export class SalesReturnService {
     operation: 'increase' | 'decrease',
   ): Promise<void> {
     for (const item of items) {
-      const itemRecord = await this.prisma.item.findUnique({
-        where: { id: item.id },
+      await this.prisma.item.update({
+        where: { code: item.id },
+        data: {
+          stock:
+            operation === 'increase'
+              ? { increment: item.qty }
+              : { decrement: item.qty },
+        },
       });
-
-      if (itemRecord) {
-        const newStock =
-          operation === 'increase'
-            ? itemRecord.stock + item.qty
-            : itemRecord.stock - item.qty;
-
-        await this.prisma.item.update({
-          where: { id: item.id },
-          data: { stock: newStock },
-        });
-      }
     }
   }
 

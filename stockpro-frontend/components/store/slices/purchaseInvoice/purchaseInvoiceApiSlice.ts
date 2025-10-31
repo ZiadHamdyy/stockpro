@@ -1,4 +1,5 @@
 import { apiSlice } from "../../ApiSlice";
+import { showApiErrorToast } from "../../../../utils/errorToast";
 
 export interface PurchaseInvoiceItem {
   id: string;
@@ -81,7 +82,13 @@ export const purchaseInvoiceApiSlice = apiSlice.injectEndpoints({
       query: () => "/purchase-invoices",
       transformResponse: (response: { data: PurchaseInvoice[] }) =>
         response.data,
-      providesTags: ["PurchaseInvoice"],
+      providesTags: (result) =>
+        result
+          ? [
+              ...result.map(({ id }) => ({ type: "PurchaseInvoice" as const, id })),
+              { type: "PurchaseInvoice", id: "LIST" },
+            ]
+          : [{ type: "PurchaseInvoice", id: "LIST" }],
     }),
     getPurchaseInvoiceById: builder.query<PurchaseInvoice, string>({
       query: (id) => `/purchase-invoices/${id}`,
@@ -98,7 +105,25 @@ export const purchaseInvoiceApiSlice = apiSlice.injectEndpoints({
         body: data,
       }),
       transformResponse: (response: { data: PurchaseInvoice }) => response.data,
-      invalidatesTags: ["PurchaseInvoice", "Item"],
+      invalidatesTags: [
+        { type: "PurchaseInvoice", id: "LIST" },
+        "Item",
+        "Safe",
+        "Bank",
+        "CurrentAccount",
+        { type: "DashboardStats", id: "GLOBAL" },
+        { type: "MonthlyStats", id: "GLOBAL" },
+        { type: "SalesByItemGroup", id: "GLOBAL" },
+        { type: "IncomeStatement", id: "GLOBAL" },
+        { type: "BalanceSheet", id: "GLOBAL" },
+      ],
+      async onQueryStarted(arg, { queryFulfilled }) {
+        try {
+          await queryFulfilled;
+        } catch ({ error }) {
+          showApiErrorToast(error);
+        }
+      },
     }),
     updatePurchaseInvoice: builder.mutation<
       PurchaseInvoice,
@@ -112,16 +137,49 @@ export const purchaseInvoiceApiSlice = apiSlice.injectEndpoints({
       transformResponse: (response: { data: PurchaseInvoice }) => response.data,
       invalidatesTags: (result, error, { id }) => [
         { type: "PurchaseInvoice", id },
-        "PurchaseInvoice",
+        { type: "PurchaseInvoice", id: "LIST" },
         "Item",
+        "Safe",
+        "Bank",
+        "CurrentAccount",
+        { type: "DashboardStats", id: "GLOBAL" },
+        { type: "MonthlyStats", id: "GLOBAL" },
+        { type: "SalesByItemGroup", id: "GLOBAL" },
+        { type: "IncomeStatement", id: "GLOBAL" },
+        { type: "BalanceSheet", id: "GLOBAL" },
       ],
+      async onQueryStarted(arg, { queryFulfilled }) {
+        try {
+          await queryFulfilled;
+        } catch ({ error }) {
+          showApiErrorToast(error);
+        }
+      },
     }),
     deletePurchaseInvoice: builder.mutation<void, string>({
       query: (id) => ({
         url: `/purchase-invoices/${id}`,
         method: "DELETE",
       }),
-      invalidatesTags: ["PurchaseInvoice", "Item"],
+      invalidatesTags: [
+        { type: "PurchaseInvoice", id: "LIST" },
+        "Item",
+        "Safe",
+        "Bank",
+        "CurrentAccount",
+        { type: "DashboardStats", id: "GLOBAL" },
+        { type: "MonthlyStats", id: "GLOBAL" },
+        { type: "SalesByItemGroup", id: "GLOBAL" },
+        { type: "IncomeStatement", id: "GLOBAL" },
+        { type: "BalanceSheet", id: "GLOBAL" },
+      ],
+      async onQueryStarted(arg, { queryFulfilled }) {
+        try {
+          await queryFulfilled;
+        } catch ({ error }) {
+          showApiErrorToast(error);
+        }
+      },
     }),
   }),
 });

@@ -113,6 +113,11 @@ export const apiSlice = createApi({
     "PurchaseReturn",
     "PaymentVoucher",
     "ReceiptVoucher",
+    "DashboardStats",
+    "MonthlyStats",
+    "SalesByItemGroup",
+    "IncomeStatement",
+    "BalanceSheet",
   ],
   endpoints: () => ({}),
 });

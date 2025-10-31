@@ -23,6 +23,7 @@ import type {
 import PurchaseInvoicePrintPreview from "./PurchaseInvoicePrintPreview";
 import { useModal } from "../../common/ModalProvider";
 import { useToast } from "../../common/ToastProvider";
+import { showApiErrorToast } from "../../../utils/errorToast";
 import BarcodeScannerModal from "../../common/BarcodeScannerModal";
 import {
   useGetPurchaseInvoicesQuery,
@@ -40,7 +41,8 @@ type SelectableItem = {
   id: string;
   name: string;
   unit: string;
-  price: number;
+  salePrice: number;
+  purchasePrice: number;
   stock: number;
   barcode?: string;
 };
@@ -74,7 +76,8 @@ const PurchaseInvoice: React.FC<PurchaseInvoiceProps> = ({
     id: item.code,
     name: item.name,
     unit: item.unit.name,
-    price: item.purchasePrice,
+    salePrice: item.salePrice,
+    purchasePrice: item.purchasePrice,
     stock: item.stock,
     barcode: item.barcode,
   }));
@@ -329,7 +332,14 @@ const PurchaseInvoice: React.FC<PurchaseInvoiceProps> = ({
   const handleSelectItem = (index: number, selectedItem: SelectableItem) => {
     const newItems = [...purchaseItems];
     const currentItem = newItems[index];
-    const item = { ...currentItem, ...selectedItem, qty: currentItem.qty || 1 };
+    const item = {
+      ...currentItem,
+      id: selectedItem.id,
+      name: selectedItem.name,
+      unit: selectedItem.unit,
+      qty: currentItem.qty || 1,
+      price: selectedItem.purchasePrice,
+    };
     const total = item.qty * (item.price || 0);
     item.total = total;
     item.taxAmount = isVatEnabled ? total * (vatRate / 100) : 0;
@@ -412,9 +422,11 @@ const PurchaseInvoice: React.FC<PurchaseInvoiceProps> = ({
 
       const item = {
         ...newItems[indexToFill],
-        ...foundItem,
+        id: foundItem.id,
+        name: foundItem.name,
+        unit: foundItem.unit,
         qty: 1,
-        price: foundItem.price,
+        price: foundItem.purchasePrice,
       };
       const total = item.qty * (item.price || 0);
       item.total = total;
@@ -480,8 +492,7 @@ const PurchaseInvoice: React.FC<PurchaseInvoiceProps> = ({
       // Refresh the invoices list
       // The Redux cache will automatically update
     } catch (error) {
-      showToast("حدث خطأ أثناء حفظ الفاتورة");
-      console.error("Error saving invoice:", error);
+      showApiErrorToast(error as any);
     }
   };
 
@@ -1042,7 +1053,8 @@ const PurchaseInvoice: React.FC<PurchaseInvoiceProps> = ({
           { Header: "الاسم", accessor: "name" },
           { Header: "الرصيد", accessor: "stock" },
           { Header: "الوحدة", accessor: "unit" },
-          { Header: "السعر", accessor: "price" },
+          { Header: "سعر البيع", accessor: "salePrice" },
+          { Header: "سعر الشراء", accessor: "purchasePrice" },
         ]}
         data={allItems}
         onSelectRow={handleSelectItemFromModal}

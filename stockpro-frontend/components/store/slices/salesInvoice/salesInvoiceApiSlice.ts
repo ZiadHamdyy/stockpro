@@ -1,4 +1,5 @@
 import { apiSlice } from "../../ApiSlice";
+import { showApiErrorToast } from "../../../../utils/errorToast";
 
 export interface InvoiceItem {
   id: string;
@@ -102,7 +103,22 @@ export const salesInvoiceApiSlice = apiSlice.injectEndpoints({
       invalidatesTags: [
         { type: "SalesInvoice", id: "LIST" },
         "Item",
+        "Safe",
+        "Bank",
+        "CurrentAccount",
+        { type: "DashboardStats", id: "GLOBAL" },
+        { type: "MonthlyStats", id: "GLOBAL" },
+        { type: "SalesByItemGroup", id: "GLOBAL" },
+        { type: "IncomeStatement", id: "GLOBAL" },
+        { type: "BalanceSheet", id: "GLOBAL" },
       ],
+      async onQueryStarted(arg, { queryFulfilled }) {
+        try {
+          await queryFulfilled;
+        } catch ({ error }) {
+          showApiErrorToast(error);
+        }
+      },
     }),
     updateSalesInvoice: builder.mutation<
       SalesInvoice,
@@ -118,7 +134,22 @@ export const salesInvoiceApiSlice = apiSlice.injectEndpoints({
         { type: "SalesInvoice", id },
         { type: "SalesInvoice", id: "LIST" },
         "Item",
+        "Safe",
+        "Bank",
+        "CurrentAccount",
+        { type: "DashboardStats", id: "GLOBAL" },
+        { type: "MonthlyStats", id: "GLOBAL" },
+        { type: "SalesByItemGroup", id: "GLOBAL" },
+        { type: "IncomeStatement", id: "GLOBAL" },
+        { type: "BalanceSheet", id: "GLOBAL" },
       ],
+      async onQueryStarted(arg, { queryFulfilled }) {
+        try {
+          await queryFulfilled;
+        } catch ({ error }) {
+          showApiErrorToast(error);
+        }
+      },
     }),
     deleteSalesInvoice: builder.mutation<void, string>({
       query: (id) => ({
@@ -129,7 +160,22 @@ export const salesInvoiceApiSlice = apiSlice.injectEndpoints({
         { type: "SalesInvoice", id },
         { type: "SalesInvoice", id: "LIST" },
         "Item",
+        "Safe",
+        "Bank",
+        "CurrentAccount",
+        { type: "DashboardStats", id: "GLOBAL" },
+        { type: "MonthlyStats", id: "GLOBAL" },
+        { type: "SalesByItemGroup", id: "GLOBAL" },
+        { type: "IncomeStatement", id: "GLOBAL" },
+        { type: "BalanceSheet", id: "GLOBAL" },
       ],
+      async onQueryStarted(arg, { queryFulfilled }) {
+        try {
+          await queryFulfilled;
+        } catch ({ error }) {
+          showApiErrorToast(error);
+        }
+      },
     }),
   }),
 });

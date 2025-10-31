@@ -23,6 +23,7 @@ import type {
 import PurchaseInvoicePrintPreview from "./PurchaseInvoicePrintPreview";
 import { useModal } from "../../common/ModalProvider";
 import { useToast } from "../../common/ToastProvider";
+import { showApiErrorToast } from "../../../utils/errorToast";
 import {
   useGetPurchaseReturnsQuery,
   useCreatePurchaseReturnMutation,
@@ -39,7 +40,8 @@ type SelectableItem = {
   id: string;
   name: string;
   unit: string;
-  price: number;
+  salePrice: number;
+  purchasePrice: number;
   stock: number;
 };
 
@@ -73,7 +75,8 @@ const PurchaseReturn: React.FC<PurchaseReturnProps> = ({
     id: item.code,
     name: item.name,
     unit: item.unit.name,
-    price: item.purchasePrice,
+    salePrice: item.salePrice,
+    purchasePrice: item.purchasePrice,
     stock: item.stock,
     barcode: item.barcode,
   }));
@@ -326,7 +329,14 @@ const PurchaseReturn: React.FC<PurchaseReturnProps> = ({
   const handleSelectItem = (index: number, selectedItem: SelectableItem) => {
     const newItems = [...returnItems];
     const currentItem = newItems[index];
-    const item = { ...currentItem, ...selectedItem, qty: currentItem.qty || 1 };
+    const item = {
+      ...currentItem,
+      id: selectedItem.id,
+      name: selectedItem.name,
+      unit: selectedItem.unit,
+      qty: currentItem.qty || 1,
+      price: selectedItem.purchasePrice,
+    };
     const total = item.qty * (item.price || 0);
     item.total = total;
     item.taxAmount = isVatEnabled ? total * (vatRate / 100) : 0;
@@ -445,8 +455,7 @@ const PurchaseReturn: React.FC<PurchaseReturnProps> = ({
       // Refresh the returns list
       // The Redux cache will automatically update
     } catch (error) {
-      showToast("حدث خطأ أثناء حفظ المرتجع");
-      console.error("Error saving return:", error);
+      showApiErrorToast(error as any);
     }
   };
 
@@ -481,7 +490,7 @@ const PurchaseReturn: React.FC<PurchaseReturnProps> = ({
             setCurrentIndex((prev) => Math.max(0, prev - 1));
           }
         } catch (error) {
-          showToast("حدث خطأ أثناء الحذف");
+          showApiErrorToast(error as any);
         }
       },
       type: "delete",
@@ -995,7 +1004,8 @@ const PurchaseReturn: React.FC<PurchaseReturnProps> = ({
           { Header: "الاسم", accessor: "name" },
           { Header: "الرصيد", accessor: "stock" },
           { Header: "الوحدة", accessor: "unit" },
-          { Header: "السعر", accessor: "price" },
+          { Header: "سعر البيع", accessor: "salePrice" },
+          { Header: "سعر الشراء", accessor: "purchasePrice" },
         ]}
         data={allItems}
         onSelectRow={handleSelectItemFromModal}

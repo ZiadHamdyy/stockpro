@@ -4,6 +4,8 @@ import { CreatePurchaseReturnRequest } from './dtos/request/create-purchase-retu
 import { UpdatePurchaseReturnRequest } from './dtos/request/update-purchase-return.request';
 import { PurchaseReturnResponse } from './dtos/response/purchase-return.response';
 import { bufferToDataUri } from '../../common/utils/image-converter';
+import { throwHttp } from '../../common/utils/http-error';
+import { ERROR_CODES } from '../../common/constants/error-codes';
 
 @Injectable()
 export class PurchaseReturnService {
@@ -25,6 +27,30 @@ export class PurchaseReturnService {
     userId: string,
     branchId?: string,
   ): Promise<PurchaseReturnResponse> {
+    // Validations
+    if (!data.supplierId) {
+      throwHttp(422, ERROR_CODES.INV_SUPPLIER_REQUIRED, 'Supplier is required');
+    }
+    if (!data.items || data.items.length === 0) {
+      throwHttp(422, ERROR_CODES.INV_ITEMS_REQUIRED, 'Items are required');
+    }
+    if (data.paymentMethod === 'cash') {
+      if (!data.paymentTargetType || !data.paymentTargetId) {
+        throwHttp(
+          422,
+          ERROR_CODES.INV_PAYMENT_ACCOUNT_REQUIRED,
+          'Safe or bank is required for cash payments',
+        );
+      }
+    } else if (data.paymentMethod === 'credit') {
+      if (data.paymentTargetType || data.paymentTargetId) {
+        throwHttp(
+          422,
+          ERROR_CODES.INV_PAYMENT_ACCOUNT_FOR_CREDIT_NOT_ALLOWED,
+          'Payment account must be empty for credit payments',
+        );
+      }
+    }
     // Generate next code
     const code = await this.generateNextCode();
 
@@ -37,53 +63,55 @@ export class PurchaseReturnService {
     const tax = subtotal * 0.15; // 15% VAT
     const net = subtotal - discount + tax;
 
-    // Create return
-    const returnRecord = await this.prisma.purchaseReturn.create({
-      data: {
-        code,
-        date: data.date ? new Date(data.date) : new Date(),
-        supplierId: data.supplierId,
-        items: data.items as any,
-        subtotal,
-        discount,
-        tax,
-        net,
-        paymentMethod: data.paymentMethod,
-        paymentTargetType: data.paymentTargetType,
-        paymentTargetId: data.paymentTargetId,
-        notes: data.notes,
-        userId,
-        branchId,
-      },
-      include: {
-        supplier: true,
-        user: {
-          select: {
-            id: true,
-            email: true,
-            name: true,
-            image: true,
-          },
-        },
-        branch: true,
-      },
-    });
+    const created = await this.prisma.$transaction(async (tx) => {
+      // Validate stock for all items prior to decrement
+      for (const item of data.items) {
+        const itemRecord = await tx.item.findUnique({ where: { code: item.id } });
+        if (!itemRecord) {
+          throwHttp(404, ERROR_CODES.INV_ITEM_NOT_FOUND, `Item ${item.id} not found`);
+        }
+        if (itemRecord.stock < item.qty) {
+          throwHttp(409, ERROR_CODES.INV_STOCK_INSUFFICIENT, `Insufficient stock for item ${itemRecord.name}`);
+        }
+      }
 
-    // Update stock for each item (decrease stock for returns)
-    for (const item of data.items) {
-      await this.prisma.item.update({
-        where: { code: item.id },
+      const ret = await tx.purchaseReturn.create({
         data: {
-          stock: {
-            decrement: item.qty,
-          },
+          code,
+          date: data.date ? new Date(data.date) : new Date(),
+          supplierId: data.supplierId,
+          items: data.items as any,
+          subtotal,
+          discount,
+          tax,
+          net,
+          paymentMethod: data.paymentMethod,
+          paymentTargetType: data.paymentTargetType,
+          paymentTargetId: data.paymentTargetId,
+          notes: data.notes,
+          userId,
+          branchId,
+        },
+        include: {
+          supplier: true,
+          user: { select: { id: true, email: true, name: true, image: true } },
+          branch: true,
         },
       });
-    }
+
+      for (const item of data.items) {
+        await tx.item.update({
+          where: { code: item.id },
+          data: { stock: { decrement: item.qty } },
+        });
+      }
+
+      return ret;
+    });
 
     return {
-      ...returnRecord,
-      user: this.convertUserForResponse(returnRecord.user),
+      ...created,
+      user: this.convertUserForResponse(created.user),
     } as PurchaseReturnResponse;
   }
 
@@ -173,59 +201,56 @@ export class PurchaseReturnService {
     const tax = subtotal * 0.15; // 15% VAT
     const net = subtotal - discount + tax;
 
-    // Update return
-    const returnRecord = await this.prisma.purchaseReturn.update({
-      where: { id },
-      data: {
-        ...data,
-        items: (data.items || existingReturn.items) as any,
-        subtotal,
-        discount,
-        tax,
-        net,
-        date: data.date ? new Date(data.date) : existingReturn.date,
-      },
-      include: {
-        supplier: true,
-        user: {
-          select: {
-            id: true,
-            email: true,
-            name: true,
-            image: true,
-          },
+    const updated = await this.prisma.$transaction(async (tx) => {
+      // Reverse old stock (increase), then validate new decrements
+      for (const oldItem of oldItems) {
+        await tx.item.update({
+          where: { code: oldItem.id },
+          data: { stock: { increment: oldItem.qty } },
+        });
+      }
+
+      for (const item of items) {
+        const itemRecord = await tx.item.findUnique({ where: { code: item.id } });
+        if (!itemRecord) {
+          throwHttp(404, ERROR_CODES.INV_ITEM_NOT_FOUND, `Item ${item.id} not found`);
+        }
+        if (itemRecord.stock < item.qty) {
+          throwHttp(409, ERROR_CODES.INV_STOCK_INSUFFICIENT, `Insufficient stock for item ${itemRecord.name}`);
+        }
+      }
+
+      const ret = await tx.purchaseReturn.update({
+        where: { id },
+        data: {
+          ...data,
+          items: (data.items || existingReturn.items) as any,
+          subtotal,
+          discount,
+          tax,
+          net,
+          date: data.date ? new Date(data.date) : existingReturn.date,
         },
-        branch: true,
-      },
+        include: {
+          supplier: true,
+          user: { select: { id: true, email: true, name: true, image: true } },
+          branch: true,
+        },
+      });
+
+      for (const item of items) {
+        await tx.item.update({
+          where: { code: item.id },
+          data: { stock: { decrement: item.qty } },
+        });
+      }
+
+      return ret;
     });
 
-    // Restore old stock and apply new stock changes
-    for (const oldItem of oldItems) {
-      await this.prisma.item.update({
-        where: { code: oldItem.id },
-        data: {
-          stock: {
-            increment: oldItem.qty,
-          },
-        },
-      });
-    }
-
-    // Apply new stock changes (decrease for returns)
-    for (const item of items) {
-      await this.prisma.item.update({
-        where: { code: item.id },
-        data: {
-          stock: {
-            decrement: item.qty,
-          },
-        },
-      });
-    }
-
     return {
-      ...returnRecord,
-      user: this.convertUserForResponse(returnRecord.user),
+      ...updated,
+      user: this.convertUserForResponse(updated.user),
     } as PurchaseReturnResponse;
   }
 
@@ -238,21 +263,16 @@ export class PurchaseReturnService {
       throw new NotFoundException('Purchase return not found');
     }
 
-    // Restore stock
-    const items = returnRecord.items as any[];
-    for (const item of items) {
-      await this.prisma.item.update({
-        where: { code: item.id },
-        data: {
-          stock: {
-            increment: item.qty,
-          },
-        },
-      });
-    }
+    await this.prisma.$transaction(async (tx) => {
+      const items = returnRecord.items as any[];
+      for (const item of items) {
+        await tx.item.update({
+          where: { code: item.id },
+          data: { stock: { increment: item.qty } },
+        });
+      }
 
-    await this.prisma.purchaseReturn.delete({
-      where: { id },
+      await tx.purchaseReturn.delete({ where: { id } });
     });
   }
 

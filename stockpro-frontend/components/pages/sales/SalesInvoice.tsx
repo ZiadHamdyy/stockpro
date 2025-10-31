@@ -33,12 +33,14 @@ import { useGetItemsQuery } from "../../store/slices/items/itemsApi";
 import { useGetBanksQuery } from "../../store/slices/bank/bankApiSlice";
 import { useGetSafesQuery } from "../../store/slices/safe/safeApiSlice";
 import { useGetCompanyQuery } from "../../store/slices/companyApiSlice";
+import { showApiErrorToast } from "../../../utils/errorToast";
 
 type SelectableItem = {
   id: string;
   name: string;
   unit: string;
-  price: number;
+  salePrice: number;
+  purchasePrice: number;
   stock: number;
   barcode?: string;
 };
@@ -77,7 +79,8 @@ const SalesInvoice: React.FC<SalesInvoiceProps> = ({
     id: item.code,
     name: item.name,
     unit: item.unit.name,
-    price: item.salePrice,
+    salePrice: item.salePrice,
+    purchasePrice: item.purchasePrice,
     stock: item.stock,
     barcode: item.barcode,
   }));
@@ -344,7 +347,14 @@ const SalesInvoice: React.FC<SalesInvoiceProps> = ({
   const handleSelectItem = (index: number, selectedItem: SelectableItem) => {
     const newItems = [...invoiceItems];
     const currentItem = newItems[index];
-    const item = { ...currentItem, ...selectedItem, qty: currentItem.qty || 1 };
+    const item = {
+      ...currentItem,
+      id: selectedItem.id,
+      name: selectedItem.name,
+      unit: selectedItem.unit,
+      qty: currentItem.qty || 1,
+      price: selectedItem.salePrice,
+    };
     const total = item.qty * (item.price || 0);
     item.total = total;
     item.taxAmount = isVatEnabled ? total * (vatRate / 100) : 0;
@@ -453,9 +463,11 @@ const SalesInvoice: React.FC<SalesInvoiceProps> = ({
 
       const item = {
         ...newItems[indexToFill],
-        ...foundItem,
+        id: foundItem.id,
+        name: foundItem.name,
+        unit: foundItem.unit,
         qty: 1,
-        price: foundItem.price,
+        price: foundItem.salePrice,
       };
       const total = item.qty * (item.price || 0);
       item.total = total;
@@ -521,8 +533,7 @@ const SalesInvoice: React.FC<SalesInvoiceProps> = ({
       // Refresh the invoices list
       // The Redux cache will automatically update
     } catch (error) {
-      showToast("حدث خطأ أثناء حفظ الفاتورة");
-      console.error("Error saving invoice:", error);
+      showApiErrorToast(error as any);
     }
   };
 
@@ -555,8 +566,7 @@ const SalesInvoice: React.FC<SalesInvoiceProps> = ({
             setCurrentIndex((prev) => Math.max(0, prev - 1));
           }
         } catch (error) {
-          showToast("حدث خطأ أثناء حذف الفاتورة");
-          console.error("Error deleting invoice:", error);
+          showApiErrorToast(error as any);
         }
       },
       type: "delete",
@@ -1086,7 +1096,8 @@ const SalesInvoice: React.FC<SalesInvoiceProps> = ({
           { Header: "الاسم", accessor: "name" },
           { Header: "الرصيد", accessor: "stock" },
           { Header: "الوحدة", accessor: "unit" },
-          { Header: "السعر", accessor: "price" },
+          { Header: "سعر البيع", accessor: "salePrice" },
+          { Header: "سعر الشراء", accessor: "purchasePrice" },
         ]}
         data={allItems}
         onSelectRow={handleSelectItemFromModal}

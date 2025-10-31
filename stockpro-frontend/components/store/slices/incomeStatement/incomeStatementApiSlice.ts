@@ -37,6 +37,7 @@ export const incomeStatementApiSlice = apiSlice.injectEndpoints({
       }),
       transformResponse: (response: { data: IncomeStatementData }) =>
         response.data,
+      providesTags: [{ type: "IncomeStatement", id: "GLOBAL" }],
     }),
   }),
 });
