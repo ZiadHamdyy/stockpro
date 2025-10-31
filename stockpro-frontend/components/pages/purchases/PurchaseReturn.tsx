@@ -35,6 +35,7 @@ import { useGetItemsQuery } from "../../store/slices/items/itemsApi";
 import { useGetBanksQuery } from "../../store/slices/bank/bankApiSlice";
 import { useGetSafesQuery } from "../../store/slices/safe/safeApiSlice";
 import { useGetCompanyQuery } from "../../store/slices/companyApiSlice";
+import { useGetPurchaseInvoicesQuery } from "../../store/slices/purchaseInvoice/purchaseInvoiceApiSlice";
 
 type SelectableItem = {
   id: string;
@@ -69,6 +70,7 @@ const PurchaseReturn: React.FC<PurchaseReturnProps> = ({
   const { data: banks = [] } = useGetBanksQuery();
   const { data: safes = [] } = useGetSafesQuery();
   const { data: company } = useGetCompanyQuery();
+  const { data: purchaseInvoices = [] } = useGetPurchaseInvoicesQuery();
 
   // Transform data
   const allItems: SelectableItem[] = (items as any[]).map((item) => ({
@@ -163,6 +165,8 @@ const PurchaseReturn: React.FC<PurchaseReturnProps> = ({
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [isSearchModalOpen, setIsSearchModalOpen] = useState(false);
   const [currentIndex, setCurrentIndex] = useState(-1);
+  const [selectedInvoiceId, setSelectedInvoiceId] = useState<string | null>(null);
+  const [sourceInvoiceQtyById, setSourceInvoiceQtyById] = useState<Record<string, number>>({});
 
   const filteredSuppliers = supplierQuery
     ? allSuppliers.filter((s) =>
@@ -217,7 +221,7 @@ const PurchaseReturn: React.FC<PurchaseReturnProps> = ({
   useEffect(() => {
     if (currentIndex >= 0 && (invoices || [])[currentIndex]) {
       const inv = (invoices || [])[currentIndex];
-      setInvoiceDetails({ invoiceNumber: inv.code, invoiceDate: inv.date });
+      setInvoiceDetails({ invoiceNumber: inv.code, invoiceDate: (inv.date || "").slice(0, 10) });
       setSelectedSupplier(
         inv.supplier ? { id: inv.supplier.id, name: inv.supplier.name } : null,
       );
@@ -315,9 +319,28 @@ const PurchaseReturn: React.FC<PurchaseReturnProps> = ({
 
     if (field === "name") setActiveItemSearch({ index, query: value });
 
+    // If an invoice is selected, prevent items not in that invoice
+    if (field === "id" && selectedInvoiceId) {
+      const enteredId = String(value || "").trim();
+      if (enteredId && sourceInvoiceQtyById[enteredId] == null) {
+        showToast("هذا الصنف غير موجود في الفاتورة المختارة.");
+        // Revert the change
+        item = { ...newItems[index] };
+      }
+    }
+
     if (field === "qty" || field === "price") {
-      const qty = parseFloat(item.qty as any) || 0;
+      let qty = parseFloat(item.qty as any) || 0;
       const price = parseFloat(item.price as any) || 0;
+      // Clamp quantity to max allowed from source invoice
+      if (selectedInvoiceId && item.id) {
+        const maxAllowed = sourceInvoiceQtyById[item.id] ?? Number.POSITIVE_INFINITY;
+        if (qty > maxAllowed) {
+          qty = maxAllowed;
+          item.qty = maxAllowed;
+          showToast("لا يمكن إرجاع كمية أكبر من الموجودة في الفاتورة.");
+        }
+      }
       const total = qty * price;
       item.total = total;
       item.taxAmount = isVatEnabled ? total * (vatRate / 100) : 0;
@@ -327,6 +350,11 @@ const PurchaseReturn: React.FC<PurchaseReturnProps> = ({
   };
 
   const handleSelectItem = (index: number, selectedItem: SelectableItem) => {
+    // Block selecting items not in the selected invoice
+    if (selectedInvoiceId && sourceInvoiceQtyById[selectedItem.id] == null) {
+      showToast("هذا الصنف غير موجود في الفاتورة المختارة.");
+      return;
+    }
     const newItems = [...returnItems];
     const currentItem = newItems[index];
     const item = {
@@ -629,6 +657,52 @@ const PurchaseReturn: React.FC<PurchaseReturnProps> = ({
             </div>
             {paymentMethod === "cash" && (
               <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4 items-end">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    اختر الفاتورة
+                  </label>
+                  <select
+                    className={inputStyle}
+                    value={selectedInvoiceId || ""}
+                    onChange={(e) => {
+                      const invId = e.target.value || null;
+                      setSelectedInvoiceId(invId);
+                      if (!invId) return;
+                      const inv = purchaseInvoices.find((p) => p.id === invId || p.code === invId);
+                      if (!inv) return;
+                      const qtyMap: Record<string, number> = {};
+                      (inv.items || []).forEach((it) => {
+                        qtyMap[it.id] = (qtyMap[it.id] || 0) + (it.qty || 0);
+                      });
+                      setSourceInvoiceQtyById(qtyMap);
+                      setInvoiceDetails({ invoiceNumber: inv.code, invoiceDate: (inv.date || "").slice(0, 10) });
+                      if (inv.supplier) {
+                        setSelectedSupplier({ id: inv.supplier.id.toString(), name: inv.supplier.name });
+                        setSupplierQuery(inv.supplier.name);
+                      }
+                      setReturnItems(
+                        (inv.items || []).map((it) => ({
+                          id: it.id,
+                          name: it.name,
+                          unit: it.unit,
+                          qty: Math.min(it.qty, qtyMap[it.id] ?? it.qty),
+                          price: it.price,
+                          taxAmount: isVatEnabled ? (it.qty * it.price) * (vatRate / 100) : 0,
+                          total: it.qty * it.price,
+                        }))
+                      );
+                      setIsReadOnly(false);
+                    }}
+                    disabled={isReadOnly}
+                  >
+                    <option value="">اختر فاتورة مشتريات...</option>
+                    {purchaseInvoices.map((inv) => (
+                      <option key={inv.id} value={inv.id}>
+                        {inv.code} — {(inv.date || "").slice(0, 10)} — {inv.supplier?.name || "-"}
+                      </option>
+                    ))}
+                  </select>
+                </div>
                 <div className="md:col-start-2">
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     نوع الدفع

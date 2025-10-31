@@ -8,6 +8,7 @@ import {
   type CreateCustomerRequest,
 } from "../store/slices/customer/customerApiSlice";
 import { useToast } from "../common/ToastProvider";
+import { showApiErrorToast } from "../../utils/errorToast";
 import { useModal } from "../common/ModalProvider";
 
 export const useCustomers = () => {
@@ -78,7 +79,7 @@ export const useCustomers = () => {
             await deleteCustomer(customer.id).unwrap();
             showToast("تم حذف العميل بنجاح");
           } catch (error) {
-            showToast("حدث خطأ أثناء حذف العميل");
+            showApiErrorToast(error);
             console.error("Error deleting customer:", error);
           }
         },

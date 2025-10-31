@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
 import { DatabaseService } from '../../configs/database/database.service';
 import { CreateSupplierRequest } from './dtos/request/create-supplier.request';
 import { UpdateSupplierRequest } from './dtos/request/update-supplier.request';
@@ -83,12 +83,37 @@ export class SupplierService {
   }
 
   async remove(id: string): Promise<void> {
+    // Prevent deletion if there are related transactions
+    const [purchaseInvoicesCount, purchaseReturnsCount, paymentVouchersCount, receiptVouchersCount] =
+      await Promise.all([
+        this.prisma.purchaseInvoice.count({ where: { supplierId: id } }),
+        this.prisma.purchaseReturn.count({ where: { supplierId: id } }),
+        this.prisma.paymentVoucher.count({ where: { supplierId: id } }),
+        this.prisma.receiptVoucher.count({ where: { supplierId: id } }),
+      ]);
+
+    if (
+      purchaseInvoicesCount +
+        purchaseReturnsCount +
+        paymentVouchersCount +
+        receiptVouchersCount >
+      0
+    ) {
+      throw new ConflictException('لا يمكن الحذف لوجود بيانات مرتبطة.');
+    }
+
     try {
-      await this.prisma.supplier.delete({
-        where: { id },
-      });
-    } catch (error) {
-      throw new NotFoundException('Supplier not found');
+      await this.prisma.supplier.delete({ where: { id } });
+    } catch (error: any) {
+      // Prisma: record not found
+      if (error?.code === 'P2025') {
+        throw new NotFoundException('Supplier not found');
+      }
+      // Prisma: foreign key constraint failed (fallback)
+      if (error?.code === 'P2003') {
+        throw new ConflictException('لا يمكن الحذف لوجود بيانات مرتبطة.');
+      }
+      throw error;
     }
   }
 

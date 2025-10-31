@@ -9,6 +9,7 @@ import {
 } from "../store/slices/supplier/supplierApiSlice";
 import { useToast } from "../common/ToastProvider";
 import { useModal } from "../common/ModalProvider";
+import { showApiErrorToast } from "../../utils/errorToast";
 
 export const useSuppliers = () => {
   const [searchQuery, setSearchQuery] = useState("");
@@ -78,7 +79,7 @@ export const useSuppliers = () => {
             await deleteSupplier(supplier.id).unwrap();
             showToast("تم حذف المورد بنجاح");
           } catch (error) {
-            showToast("حدث خطأ أثناء حذف المورد");
+            showApiErrorToast(error);
             console.error("Error deleting supplier:", error);
           }
         },

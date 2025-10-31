@@ -48,7 +48,7 @@ export function showApiErrorToast(error: unknown) {
   const effectiveCode = code || deriveCodeFromMessage(message) || "";
   let text = CODE_MESSAGES[effectiveCode];
   if (!text) {
-    if (err.status === 409) text = "يوجد تعارض في المخزون.";
+    if (err.status === 409) text = message || "لا يمكن إتمام العملية لوجود تعارض.";
     else if (err.status === 422) text = "بعض البيانات غير صحيحة.";
     else if (err.status === 404) text = "العنصر المطلوب غير موجود.";
     else text = message || "حدث خطأ أثناء العملية.";
