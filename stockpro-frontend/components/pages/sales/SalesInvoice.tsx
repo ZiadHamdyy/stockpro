@@ -1162,13 +1162,13 @@ const SalesInvoice: React.FC<SalesInvoiceProps> = ({
         onClose={() => setIsSearchModalOpen(false)}
         title="بحث عن فاتورة مبيعات"
         columns={[
-          { Header: "الرقم", accessor: "id" },
+          { Header: "الرقم", accessor: "code" },
           { Header: "التاريخ", accessor: "date" },
           { Header: "العميل", accessor: "customer" },
           { Header: "الصافي", accessor: "total" },
         ]}
         data={invoices.map((inv) => ({
-          id: inv.id,
+          code: inv.code,
           date: inv.date,
           customer: inv.customer?.name || "-",
           total: inv.net.toFixed(2),

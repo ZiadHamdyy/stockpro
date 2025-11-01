@@ -1112,7 +1112,7 @@ const PurchaseReturn: React.FC<PurchaseReturnProps> = ({
         onClose={() => setIsItemModalOpen(false)}
         title="قائمة الأصناف"
         columns={[
-          { Header: "الكود", accessor: "id" },
+          { Header: "الكود", accessor: "code" },
           { Header: "الاسم", accessor: "name" },
           { Header: "الرصيد", accessor: "stock" },
           { Header: "الوحدة", accessor: "unit" },
@@ -1127,13 +1127,13 @@ const PurchaseReturn: React.FC<PurchaseReturnProps> = ({
         onClose={() => setIsSearchModalOpen(false)}
         title="بحث عن مرتجع مشتريات"
         columns={[
-          { Header: "الرقم", accessor: "id" },
+          { Header: "الرقم", accessor: "code" },
           { Header: "التاريخ", accessor: "date" },
           { Header: "المورد", accessor: "supplier" },
           { Header: "الصافي", accessor: "total" },
         ]}
         data={(invoices || []).map((inv) => ({
-          id: inv.code,
+          code: inv.code,
           date: inv.date,
           supplier: inv.supplier?.name || "-",
           total: (inv.net || 0).toFixed(2),

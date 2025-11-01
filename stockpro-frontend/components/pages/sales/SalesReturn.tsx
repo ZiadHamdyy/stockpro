@@ -1110,7 +1110,7 @@ const SalesReturn: React.FC<SalesReturnProps> = ({
         onClose={() => setIsItemModalOpen(false)}
         title="قائمة الأصناف"
         columns={[
-          { Header: "الكود", accessor: "id" },
+          { Header: "الكود", accessor: "code" },
           { Header: "الاسم", accessor: "name" },
           { Header: "الرصيد", accessor: "stock" },
           { Header: "الوحدة", accessor: "unit" },
@@ -1125,13 +1125,13 @@ const SalesReturn: React.FC<SalesReturnProps> = ({
         onClose={() => setIsSearchModalOpen(false)}
         title="بحث عن مرتجع مبيعات"
         columns={[
-          { Header: "الرقم", accessor: "id" },
+          { Header: "الرقم", accessor: "code" },
           { Header: "التاريخ", accessor: "date" },
           { Header: "العميل", accessor: "customer" },
           { Header: "الصافي", accessor: "total" },
         ]}
         data={returns.map((ret) => ({
-          id: ret.id,
+          code: ret.code,
           date: ret.date,
           customer: ret.customer?.name || "-",
           total: ret.net.toFixed(2),
