@@ -240,28 +240,6 @@ async function main() {
   }
   console.log(`✅ Created ${permissions.length} permissions`);
 
-  // Ensure system-level permissions not tied to menu exist (e.g., roles management)
-  const extraPermissions = [
-    { resource: 'roles', action: 'create', description: 'Create roles' },
-    { resource: 'roles', action: 'read', description: 'Read roles' },
-    { resource: 'roles', action: 'update', description: 'Update roles' },
-    { resource: 'roles', action: 'delete', description: 'Delete roles' },
-  ];
-
-  console.log('🛠️ Ensuring extra system permissions (roles)...');
-  for (const permission of extraPermissions) {
-    await prisma.permission.upsert({
-      where: {
-        resource_action: {
-          resource: permission.resource,
-          action: permission.action,
-        },
-      },
-      update: permission,
-      create: permission,
-    });
-  }
-
   // Create roles
   const roles = [
     {

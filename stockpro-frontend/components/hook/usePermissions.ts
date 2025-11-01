@@ -113,7 +113,7 @@ export const usePermissions = () => {
     data: roles = [],
     isLoading: rolesLoading,
     error: rolesError,
-  } = useGetRolesQuery();
+  } = useGetRolesQuery(undefined);
   const {
     data: allPermissions = [],
     isLoading: permissionsLoading,
@@ -142,30 +142,36 @@ export const usePermissions = () => {
       console.warn("Roles is not an array:", roles);
       return [];
     }
+    // Since role names are now in Arabic directly, arabicName is just the name
     return roles.map((role) => ({
       ...role,
-      arabicName:
-        ENGLISH_TO_ARABIC_ROLES[
-          role.name as keyof typeof ENGLISH_TO_ARABIC_ROLES
-        ] || role.name,
+      arabicName: role.name,
     }));
   }, [roles]);
 
-  // Initialize selected role when roles are loaded
+  // Initialize selected role when roles are loaded - default to current user's role
   useEffect(() => {
     if (arabicRoles.length > 0 && !selectedRole) {
+      // Try to find current user's role first
+      if (currentUser?.role) {
+        const userRole = arabicRoles.find(
+          (role) => role.id === currentUser.role?.id || role.name === currentUser.role?.name
+        );
+        if (userRole) {
+          setSelectedRole(userRole.arabicName);
+          return;
+        }
+      }
+      // Fallback to first role if current user doesn't have a role
       setSelectedRole(arabicRoles[0].arabicName);
     }
-  }, [arabicRoles, selectedRole]);
+  }, [arabicRoles, selectedRole, currentUser]);
 
   // Load role permissions when selected role changes
   useEffect(() => {
     if (selectedRole && roles.length > 0) {
-      const englishRoleName =
-        ARABIC_TO_ENGLISH_ROLES[
-          selectedRole as keyof typeof ARABIC_TO_ENGLISH_ROLES
-        ];
-      const role = roles.find((r) => r.name === englishRoleName);
+      // Since role names are now in Arabic directly, find by Arabic name
+      const role = roles.find((r) => r.name === selectedRole);
 
       if (role?.permissions) {
         const rolePermissions = new Set<string>();
@@ -275,11 +281,8 @@ export const usePermissions = () => {
       setIsLoading(true);
       setError(null);
 
-      const englishRoleName =
-        ARABIC_TO_ENGLISH_ROLES[
-          selectedRole as keyof typeof ARABIC_TO_ENGLISH_ROLES
-        ];
-      const role = roles.find((r) => r.name === englishRoleName);
+      // Since role names are now in Arabic directly, find by Arabic name
+      const role = roles.find((r) => r.name === selectedRole);
 
       if (!role) {
         throw new Error("Role not found");
@@ -301,7 +304,7 @@ export const usePermissions = () => {
       });
 
       // Ensure permissions resource is always included for manager role (can't be removed from admin)
-      if (role.name === "manager") {
+      if (role.name === "مدير") {
         const permissionsResourcePermissions = allPermissions.filter(
           (p) => p.resource === "permissions",
         );

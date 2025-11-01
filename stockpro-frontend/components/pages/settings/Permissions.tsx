@@ -3,9 +3,10 @@ import React, { useState } from "react";
 import type { PermissionNode } from "../../../types";
 import { ChevronDownIcon, ChevronLeftIcon } from "../../icons";
 import { usePermissions } from "../../hook/usePermissions";
-import { ARABIC_TO_ENGLISH_ACTIONS, ENGLISH_TO_ARABIC_ROLES } from "../../../constants";
+import { ARABIC_TO_ENGLISH_ACTIONS } from "../../../constants";
 import { useToast } from "../../common/ToastProvider";
-import { useCreateRoleMutation } from "../../store/slices/role/roleApi";
+import { useModal } from "../../common/ModalProvider";
+import { useCreateRoleMutation, useUpdateRoleMutation, useDeleteRoleMutation } from "../../store/slices/role/roleApi";
 import PermissionWrapper from "../../common/PermissionWrapper";
 
 // Helper to render the permission tree
@@ -63,7 +64,7 @@ const PermissionTree: React.FC<{
           const permissionKey = `${node.key}-${englishAction}`;
           const isChecked = permissions.has(permissionKey);
           const isDisabled =
-            isPermissionsResource && selectedRoleName === "manager";
+            isPermissionsResource && selectedRoleName === "مدير";
 
           // Debug logging
           if (node.key === "dashboard" && action === "قراءة") {
@@ -144,12 +145,21 @@ const Permissions: React.FC<{ title: string }> = ({ title }) => {
   } = usePermissions();
 
   const { showToast } = useToast();
+  const { showModal } = useModal();
   const [createRole, { isLoading: isCreatingRole }] = useCreateRoleMutation();
-  const [newRoleName, setNewRoleName] = useState("");
-  const [newRoleDescription, setNewRoleDescription] = useState("");
+  const [updateRole, { isLoading: isUpdatingRole }] = useUpdateRoleMutation();
+  const [deleteRole, { isLoading: isDeletingRole }] = useDeleteRoleMutation();
+  // Create modal state
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [createRoleName, setCreateRoleName] = useState("");
+  const [createRoleDescription, setCreateRoleDescription] = useState("");
+  // Edit modal state
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [editRoleName, setEditRoleName] = useState("");
+  const [editRoleDescription, setEditRoleDescription] = useState("");
   // Add-role section visibility controlled by PermissionWrapper
 
-  // Find the selected role object to get its English name
+  // Find the selected role object (role names are now in Arabic)
   const selectedRoleObj = roles.find(
     (role) => role.arabicName === selectedRole,
   );
@@ -158,31 +168,52 @@ const Permissions: React.FC<{ title: string }> = ({ title }) => {
   const selectStyle =
     "block w-full md:w-1/3 bg-brand-blue-bg border-2 border-brand-blue rounded-md shadow-sm text-black placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-brand-blue focus:border-brand-blue py-3 px-4";
 
-  const handleCreateRole = async () => {
-    const trimmedName = newRoleName.trim();
+  const handleCreateClick = () => {
+    setCreateRoleName("");
+    setCreateRoleDescription("");
+    setIsCreateModalOpen(true);
+  };
+
+  const handleCloseCreateModal = () => {
+    setIsCreateModalOpen(false);
+    setCreateRoleName("");
+    setCreateRoleDescription("");
+  };
+
+  const handleSaveCreate = async () => {
+    const trimmedName = createRoleName.trim();
     if (!trimmedName) {
       showToast("أدخل اسم الدور");
+      return;
+    }
+    // Prevent creating a role with the name "مدير" (manager)
+    if (trimmedName === "مدير") {
+      showToast("لا يمكن إنشاء دور باسم مدير");
       return;
     }
     try {
       const created = await createRole({
         name: trimmedName,
-        description: newRoleDescription.trim() || undefined,
+        description: createRoleDescription.trim() || undefined,
       }).unwrap();
 
-      const arabicName =
-        ENGLISH_TO_ARABIC_ROLES[
-          (created.name as keyof typeof ENGLISH_TO_ARABIC_ROLES) || ""
-        ] || created.name;
-
-      setSelectedRole(arabicName);
-      setNewRoleName("");
-      setNewRoleDescription("");
+      // Role names are now in Arabic directly, so use the name as-is
+      setSelectedRole(created.name);
+      handleCloseCreateModal();
       showToast("تم إنشاء الدور بنجاح");
     } catch (err: any) {
       const status = err?.status ?? err?.originalStatus;
       if (status === 403) {
-        showToast("لا تملك صلاحية إنشاء دور (roles-create)");
+        showToast("لا تملك صلاحية إنشاء دور (permissions-create)");
+        return;
+      }
+      if (status === 409) {
+        // Extract error message from response
+        const errorMessage =
+          err?.data?.message ||
+          err?.message ||
+          "لا يمكن إنشاء دور باسم مدير";
+        showToast(errorMessage);
         return;
       }
       const message = err instanceof Error ? err.message : "فشل إنشاء الدور";
@@ -190,9 +221,110 @@ const Permissions: React.FC<{ title: string }> = ({ title }) => {
     }
   };
 
+  const handleEditClick = () => {
+    if (!selectedRoleObj) return;
+    setEditRoleName(selectedRoleObj.name);
+    setEditRoleDescription(selectedRoleObj.description || "");
+    setIsEditModalOpen(true);
+  };
+
+  const handleCloseEditModal = () => {
+    setIsEditModalOpen(false);
+    setEditRoleName("");
+    setEditRoleDescription("");
+  };
+
+  const handleSaveEdit = async () => {
+    if (!selectedRoleObj) return;
+    const trimmedName = editRoleName.trim();
+    if (!trimmedName) {
+      showToast("أدخل اسم الدور");
+      return;
+    }
+    try {
+      const updated = await updateRole({
+        id: selectedRoleObj.id,
+        name: trimmedName,
+        description: editRoleDescription.trim() || undefined,
+      }).unwrap();
+
+      // Role names are now in Arabic directly, so use the name as-is
+      setSelectedRole(updated.name);
+      handleCloseEditModal();
+      showToast("تم تحديث الدور بنجاح");
+    } catch (err: any) {
+      const status = err?.status ?? err?.originalStatus;
+      if (status === 403) {
+        showToast("لا تملك صلاحية تحديث الدور");
+        return;
+      }
+      const message = err instanceof Error ? err.message : "فشل تحديث الدور";
+      showToast(`خطأ: ${message}`);
+    }
+  };
+
+  const handleDeleteClick = () => {
+    if (!selectedRoleObj) return;
+
+    // Prevent deleting the manager role "مدير" (also checked by backend)
+    if (selectedRoleObj.name === "مدير" || selectedRoleObj.arabicName === "مدير") {
+      showToast("لا يمكن حذف دور المدير");
+      return;
+    }
+
+    // Prevent deleting own role (also checked by backend)
+    if (currentUser?.role?.id === selectedRoleObj.id) {
+      showToast("لا يمكن حذف الدور الخاص بك");
+      return;
+    }
+
+    // Build confirmation message
+    const message = `هل أنت متأكد من حذف الدور "${selectedRoleObj.arabicName}"؟`;
+
+    showModal({
+      title: "تأكيد الحذف",
+      message: message,
+      onConfirm: async () => {
+        try {
+          await deleteRole(selectedRoleObj.id).unwrap();
+          // Select first available role if current role was deleted
+          const remainingRoles = roles.filter((r) => r.id !== selectedRoleObj.id);
+          if (remainingRoles.length > 0) {
+            setSelectedRole(remainingRoles[0].arabicName);
+          }
+          showToast("تم حذف الدور بنجاح");
+        } catch (err: any) {
+          const status = err?.status ?? err?.originalStatus;
+          if (status === 403) {
+            showToast("لا تملك صلاحية حذف الدور");
+            return;
+          }
+          if (status === 409) {
+            // Extract error message from response
+            const errorMessage =
+              err?.data?.message ||
+              err?.message ||
+              "لا يمكن حذف الدور لوجود مستخدمين مرتبطين به";
+            showToast(errorMessage);
+            return;
+          }
+          if (status === 400) {
+            showToast("لا يمكن حذف الأدوار النظامية");
+            return;
+          }
+          const message = err instanceof Error ? err.message : "فشل حذف الدور";
+          showToast(`خطأ: ${message}`);
+        }
+      },
+      type: "delete",
+      showPassword: true,
+    });
+  };
+
   if (!isAuthenticated) {
     return (
-      <div className="bg-white p-6 rounded-lg shadow-md">
+      <div className="bg-white p-6 rounded-lg shad
+ow-md">
         <h1 className="text-2xl font-bold mb-4 border-b border-gray-200 pb-2 text-brand-dark">
           {title}
         </h1>
@@ -285,59 +417,70 @@ const Permissions: React.FC<{ title: string }> = ({ title }) => {
         >
           اختر مجموعة الصلاحيات
         </label>
-        <select
-          id="role-select"
-          value={selectedRole}
-          onChange={(e) => setSelectedRole(e.target.value)}
-          className={selectStyle}
-          disabled={isLoading}
-        >
-          {roles.map((role) => (
-            <option key={role.id} value={role.arabicName}>
-              {role.arabicName}
-            </option>
-          ))}
-        </select>
-      </div>
-
-      <PermissionWrapper requiredPermission="roles-create">
-      <div className="mb-6 grid grid-cols-1 md:grid-cols-3 gap-3 items-end">
-        <div>
-          <label className="block text-sm font-medium text-gray-600 mb-1">
-            اسم الدور الجديد
-          </label>
-          <input
-            type="text"
-            value={newRoleName}
-            onChange={(e) => setNewRoleName(e.target.value)}
-            placeholder="مثال: مدير"
-            className="block w-full bg-brand-blue-bg border-2 border-brand-blue rounded-md text-black focus:outline-none focus:ring-2 focus:ring-brand-blue focus:border-brand-blue py-3 px-4"
-          />
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-600 mb-1">
-            الوصف (اختياري)
-          </label>
-          <input
-            type="text"
-            value={newRoleDescription}
-            onChange={(e) => setNewRoleDescription(e.target.value)}
-            placeholder="مسؤول النظام مع إمكانية الوصول إلى جميع الميزات"
-            className="block w-full bg-brand-blue-bg border-2 border-brand-blue rounded-md text-black focus:outline-none focus:ring-2 focus:ring-brand-blue focus:border-brand-blue py-3 px-4"
-          />
-        </div>
-        <div>
-          <button
-            type="button"
-            onClick={handleCreateRole}
-            disabled={isLoading || isCreatingRole}
-            className="w-full md:w-auto px-6 py-3 bg-green-600 text-white rounded-md hover:bg-green-700 font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
+        <div className="flex items-end gap-2">
+          <select
+            id="role-select"
+            value={selectedRole}
+            onChange={(e) => setSelectedRole(e.target.value)}
+            className={selectStyle}
+            disabled={isLoading}
           >
-            {isCreatingRole ? "جاري الإضافة..." : "إضافة دور جديد"}
-          </button>
+            {roles.map((role) => (
+              <option key={role.id} value={role.arabicName}>
+                {role.arabicName}
+              </option>
+            ))}
+          </select>
+          <PermissionWrapper requiredPermission="permissions-create">
+            <button
+              type="button"
+              onClick={handleCreateClick}
+              disabled={isLoading || isCreatingRole}
+              className="px-4 py-3 bg-green-600 text-white rounded-md hover:bg-green-700 font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              إضافة
+            </button>
+          </PermissionWrapper>
+          {selectedRoleObj && (
+            <>
+              <PermissionWrapper requiredPermission="permissions-update">
+                <button
+                  type="button"
+                  onClick={handleEditClick}
+                  disabled={isLoading || !selectedRoleObj}
+                  className="px-4 py-3 bg-yellow-600 text-white rounded-md hover:bg-yellow-700 font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  تعديل
+                </button>
+              </PermissionWrapper>
+              <PermissionWrapper requiredPermission="permissions-delete">
+                <button
+                  type="button"
+                  onClick={handleDeleteClick}
+                  disabled={
+                    isLoading ||
+                    isDeletingRole ||
+                    !selectedRoleObj ||
+                    currentUser?.role?.id === selectedRoleObj.id ||
+                    selectedRoleObj.name === "مدير" ||
+                    selectedRoleObj.arabicName === "مدير"
+                  }
+                  title={
+                    currentUser?.role?.id === selectedRoleObj.id
+                      ? "لا يمكن حذف الدور الخاص بك"
+                      : selectedRoleObj.name === "مدير" || selectedRoleObj.arabicName === "مدير"
+                      ? "لا يمكن حذف دور المدير"
+                      : undefined
+                  }
+                  className="px-4 py-3 bg-red-600 text-white rounded-md hover:bg-red-700 font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isDeletingRole ? "جاري الحذف..." : "حذف"}
+                </button>
+              </PermissionWrapper>
+            </>
+          )}
         </div>
       </div>
-      </PermissionWrapper>
 
       <div className="border-2 border-brand-blue rounded-md">
         <div className="grid grid-cols-7 items-center p-2 bg-brand-blue-bg font-bold border-b-2 border-brand-blue text-sm">
@@ -384,6 +527,114 @@ const Permissions: React.FC<{ title: string }> = ({ title }) => {
           {isLoading ? "جاري الحفظ..." : "حفظ الصلاحيات"}
         </button>
       </div>
+
+      {/* Create Role Modal */}
+      {isCreateModalOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white p-6 rounded-lg shadow-lg max-w-md w-full mx-4">
+            <h2 className="text-2xl font-bold mb-4 text-brand-dark border-b border-gray-200 pb-2">
+              إضافة دور جديد
+            </h2>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-600 mb-1">
+                  اسم الدور
+                </label>
+                <input
+                  type="text"
+                  value={createRoleName}
+                  onChange={(e) => setCreateRoleName(e.target.value)}
+                  placeholder="مثال: مدير"
+                  className="block w-full bg-brand-blue-bg border-2 border-brand-blue rounded-md text-black focus:outline-none focus:ring-2 focus:ring-brand-blue focus:border-brand-blue py-3 px-4"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-600 mb-1">
+                  الوصف (اختياري)
+                </label>
+                <input
+                  type="text"
+                  value={createRoleDescription}
+                  onChange={(e) => setCreateRoleDescription(e.target.value)}
+                  placeholder="مسؤول النظام مع إمكانية الوصول إلى جميع الميزات"
+                  className="block w-full bg-brand-blue-bg border-2 border-brand-blue rounded-md text-black focus:outline-none focus:ring-2 focus:ring-brand-blue focus:border-brand-blue py-3 px-4"
+                />
+              </div>
+            </div>
+            <div className="flex gap-2 mt-6 justify-end">
+              <button
+                type="button"
+                onClick={handleCloseCreateModal}
+                className="px-4 py-2 bg-gray-500 text-white rounded-md hover:bg-gray-600 font-semibold"
+              >
+                إلغاء
+              </button>
+              <button
+                type="button"
+                onClick={handleSaveCreate}
+                disabled={isCreatingRole}
+                className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isCreatingRole ? "جاري الإضافة..." : "إضافة"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Role Modal */}
+      {isEditModalOpen && selectedRoleObj && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white p-6 rounded-lg shadow-lg max-w-md w-full mx-4">
+            <h2 className="text-2xl font-bold mb-4 text-brand-dark border-b border-gray-200 pb-2">
+              تعديل الدور
+            </h2>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-600 mb-1">
+                  اسم الدور
+                </label>
+                <input
+                  type="text"
+                  value={editRoleName}
+                  onChange={(e) => setEditRoleName(e.target.value)}
+                  placeholder="مثال: مدير"
+                  className="block w-full bg-brand-blue-bg border-2 border-brand-blue rounded-md text-black focus:outline-none focus:ring-2 focus:ring-brand-blue focus:border-brand-blue py-3 px-4"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-600 mb-1">
+                  الوصف (اختياري)
+                </label>
+                <input
+                  type="text"
+                  value={editRoleDescription}
+                  onChange={(e) => setEditRoleDescription(e.target.value)}
+                  placeholder="مسؤول النظام مع إمكانية الوصول إلى جميع الميزات"
+                  className="block w-full bg-brand-blue-bg border-2 border-brand-blue rounded-md text-black focus:outline-none focus:ring-2 focus:ring-brand-blue focus:border-brand-blue py-3 px-4"
+                />
+              </div>
+            </div>
+            <div className="flex gap-2 mt-6 justify-end">
+              <button
+                type="button"
+                onClick={handleCloseEditModal}
+                className="px-4 py-2 bg-gray-500 text-white rounded-md hover:bg-gray-600 font-semibold"
+              >
+                إلغاء
+              </button>
+              <button
+                type="button"
+                onClick={handleSaveEdit}
+                disabled={isUpdatingRole}
+                className="px-4 py-2 bg-brand-blue text-white rounded-md hover:bg-blue-800 font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isUpdatingRole ? "جاري الحفظ..." : "حفظ"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

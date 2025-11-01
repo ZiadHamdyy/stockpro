@@ -16,6 +16,8 @@ import { AssignPermissionsRequest } from './dtos/request/assign-permissions.requ
 import { RoleResponse } from './dtos/response/role.response';
 import { Serialize } from '../../common/interceptors/serialize.interceptor';
 import { Auth } from '../../common/decorators/auth.decorator';
+import { currentUser } from '../../common/decorators/currentUser.decorator';
+import type { currentUserType } from '../../common/types/current-user.type';
 
 @Controller('roles')
 export class RoleController {
@@ -24,7 +26,7 @@ export class RoleController {
   @Post()
   @HttpCode(HttpStatus.CREATED)
   @Serialize(RoleResponse)
-  @Auth({ permissions: ['roles:create'] })
+  @Auth({ permissions: ['permissions:create'] })
   async create(
     @Body() createRoleRequest: CreateRoleRequest,
   ): Promise<RoleResponse> {
@@ -54,8 +56,9 @@ export class RoleController {
   async update(
     @Param('id') id: string,
     @Body() updateRoleRequest: UpdateRoleRequest,
+    @currentUser() user: currentUserType,
   ): Promise<RoleResponse> {
-    return await this.roleService.update(id, updateRoleRequest);
+    return await this.roleService.update(id, updateRoleRequest, user);
   }
 
   @Delete(':id')
