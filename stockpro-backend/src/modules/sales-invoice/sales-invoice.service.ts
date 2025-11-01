@@ -13,6 +13,7 @@ export class SalesInvoiceService {
   async create(
     data: CreateSalesInvoiceRequest,
     userId: string,
+    branchId?: string,
   ): Promise<SalesInvoiceResponse> {
     // Basic validations
     // Customer is only required for credit payments
@@ -95,6 +96,7 @@ export class SalesInvoiceService {
           paymentTargetId: data.paymentTargetId,
           notes: data.notes,
           userId,
+          branchId,
         },
         include: {
           customer: {

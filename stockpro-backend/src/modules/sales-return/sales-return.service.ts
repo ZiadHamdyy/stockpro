@@ -13,6 +13,7 @@ export class SalesReturnService {
   async create(
     data: CreateSalesReturnRequest,
     userId: string,
+    branchId?: string,
   ): Promise<SalesReturnResponse> {
     // Validations
     if (!data.customerId) {
@@ -78,6 +79,7 @@ export class SalesReturnService {
           paymentTargetId: data.paymentTargetId,
           notes: data.notes,
           userId,
+          branchId,
         },
         include: {
           customer: { select: { id: true, name: true, code: true } },
