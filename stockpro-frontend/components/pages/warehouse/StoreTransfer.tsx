@@ -206,6 +206,17 @@ const StoreTransfer: React.FC<StoreTransferProps> = ({ title }) => {
     if (activeItemSearch) setHighlightedIndex(-1);
   }, [activeItemSearch]);
 
+  useEffect(() => {
+    const handleAfterPrint = () => {
+      handleNew();
+    };
+
+    window.addEventListener("afterprint", handleAfterPrint);
+    return () => {
+      window.removeEventListener("afterprint", handleAfterPrint);
+    };
+  }, [handleNew]);
+
   const handleAddItem = () => {
     setItems([...items, { id: "", name: "", unit: "", qty: 1, code: "" }]);
   };
@@ -350,7 +361,10 @@ const StoreTransfer: React.FC<StoreTransferProps> = ({ title }) => {
         showToast("تم حفظ السند بنجاح!");
       }
 
-      handleNew();
+      // Trigger print dialog after successful save
+      setTimeout(() => {
+        window.print();
+      }, 100);
     } catch (error) {
       console.error("Error saving voucher:", error);
       showToast("حدث خطأ أثناء حفظ السند");
@@ -440,7 +454,7 @@ const StoreTransfer: React.FC<StoreTransferProps> = ({ title }) => {
 
   return (
     <>
-      <style>{`@media print { .no-print { display: none !important; } }`}</style>
+      <style>{`@media print { .no-print { display: none !important; } [role="alert"] { display: none !important; } .empty-row { display: none !important; } }`}</style>
       <div className="bg-white p-6 rounded-lg shadow">
         <div className="border-2 border-amber-500 rounded-lg mb-4">
           <DocumentHeader companyInfo={companyInfo} />
@@ -535,10 +549,12 @@ const StoreTransfer: React.FC<StoreTransferProps> = ({ title }) => {
               </tr>
             </thead>
             <tbody ref={itemSearchRef}>
-              {items.map((item, index) => (
+              {items.map((item, index) => {
+                const isEmptyRow = !item.id && !item.name;
+                return (
                 <tr
                   key={index}
-                  className="divide-x divide-gray-200 border-b border-gray-200 last:border-b-0 hover:bg-yellow-100 transition-colors duration-150"
+                  className={`divide-x divide-gray-200 border-b border-gray-200 last:border-b-0 hover:bg-yellow-100 transition-colors duration-150 ${isEmptyRow ? 'empty-row' : ''}`}
                 >
                   <td className="p-2 align-middle text-center">{index + 1}</td>
                   <td className="p-2 align-middle">
@@ -632,7 +648,8 @@ const StoreTransfer: React.FC<StoreTransferProps> = ({ title }) => {
                     </button>
                   </td>
                 </tr>
-              ))}
+                );
+              })}
             </tbody>
           </table>
         </div>
@@ -644,7 +661,7 @@ const StoreTransfer: React.FC<StoreTransferProps> = ({ title }) => {
           fallback={
             <button
               disabled
-              className="mb-4 px-4 py-2 bg-gray-400 text-white rounded-md cursor-not-allowed opacity-50 font-semibold"
+              className="no-print mb-4 px-4 py-2 bg-gray-400 text-white rounded-md cursor-not-allowed opacity-50 font-semibold"
             >
               اضافة سطر
             </button>
@@ -652,7 +669,7 @@ const StoreTransfer: React.FC<StoreTransferProps> = ({ title }) => {
         >
           <button
             onClick={handleAddItem}
-            className="mb-4 px-4 py-2 bg-gray-200 text-brand-dark rounded-md hover:bg-gray-300 font-semibold disabled:bg-gray-300 disabled:cursor-not-allowed"
+            className="no-print mb-4 px-4 py-2 bg-gray-200 text-brand-dark rounded-md hover:bg-gray-300 font-semibold disabled:bg-gray-300 disabled:cursor-not-allowed"
             disabled={isReadOnly}
           >
             اضافة سطر

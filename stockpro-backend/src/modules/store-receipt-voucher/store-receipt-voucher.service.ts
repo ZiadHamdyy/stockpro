@@ -68,7 +68,7 @@ export class StoreReceiptVoucherService {
         },
       },
       orderBy: {
-        createdAt: 'desc',
+        createdAt: 'asc',
       },
     });
   }

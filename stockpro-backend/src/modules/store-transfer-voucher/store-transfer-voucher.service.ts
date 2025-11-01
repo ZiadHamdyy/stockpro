@@ -82,7 +82,7 @@ export class StoreTransferVoucherService {
         },
       },
       orderBy: {
-        createdAt: 'desc',
+        createdAt: 'asc',
       },
     });
   }

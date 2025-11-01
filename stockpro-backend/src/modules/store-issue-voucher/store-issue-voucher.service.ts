@@ -68,7 +68,7 @@ export class StoreIssueVoucherService {
         },
       },
       orderBy: {
-        createdAt: 'desc',
+        createdAt: 'asc',
       },
     });
   }
