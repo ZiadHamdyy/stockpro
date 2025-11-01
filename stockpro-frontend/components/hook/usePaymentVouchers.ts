@@ -113,7 +113,7 @@ export const usePaymentVouchers = () => {
   const handleSave = useCallback(async () => {
     if (!voucherData.entity.name || voucherData.amount <= 0) {
       showToast("الرجاء تعبئة جميع الحقول المطلوبة.");
-      return;
+      return null;
     }
 
     // Build entity foreign key based on entity type
@@ -143,7 +143,7 @@ export const usePaymentVouchers = () => {
           entityFields.expenseCodeId = firstExpenseCode.id;
         } else {
           showToast("لا توجد بنود مصروفات لهذا النوع. يرجى إضافة بند مصروف أولاً.");
-          return;
+          return null;
         }
       }
     }
@@ -178,19 +178,25 @@ export const usePaymentVouchers = () => {
 
     try {
       if (currentIndex >= 0 && vouchers[currentIndex]) {
-        await updatePaymentVoucher({
+        const updated = await updatePaymentVoucher({
           id: vouchers[currentIndex].id,
           data: payload,
         }).unwrap();
         showToast("تم تعديل السند بنجاح!");
+        setIsReadOnly(true);
+        // Keep current data for preview
+        return updated;
       } else {
-        await createPaymentVoucher(payload).unwrap();
+        const saved = await createPaymentVoucher(payload).unwrap();
         showToast("تم حفظ السند بنجاح!");
+        setIsReadOnly(true);
+        // Return saved voucher directly for preview
+        return saved;
       }
-      handleNew();
     } catch (error) {
       showToast("حدث خطأ أثناء حفظ السند");
       console.error("Error saving payment voucher:", error);
+      return null;
     }
   }, [
     voucherData,
@@ -200,7 +206,6 @@ export const usePaymentVouchers = () => {
     createPaymentVoucher,
     updatePaymentVoucher,
     showToast,
-    handleNew,
   ]);
 
   const handleEdit = useCallback(() => {

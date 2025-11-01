@@ -405,7 +405,34 @@ const PaymentVoucher: React.FC<PaymentVoucherProps> = ({ title }) => {
               }
             >
               <button
-                onClick={handleSave}
+                onClick={async () => {
+                  const savedVoucher = await handleSave();
+                  if (savedVoucher) {
+                    // Update voucher data with saved voucher data
+                    setVoucherData({
+                      number: savedVoucher.code,
+                      date: savedVoucher.date ? new Date(savedVoucher.date).toISOString().substring(0, 10) : voucherData.date,
+                      entity: {
+                        type: savedVoucher.entityType as any,
+                        id: savedVoucher.customerId || savedVoucher.supplierId || savedVoucher.currentAccountId || savedVoucher.expenseCodeId || null,
+                        name: savedVoucher.entityName,
+                      },
+                      amount: savedVoucher.amount,
+                      paymentMethod: savedVoucher.paymentMethod as "safe" | "bank",
+                      safeOrBankId: savedVoucher.paymentMethod === "safe" ? savedVoucher.safeId || null : savedVoucher.bankId || null,
+                      description: savedVoucher.description || "",
+                    });
+                    // Find and set current index for navigation
+                    setTimeout(() => {
+                      const savedIndex = vouchers.findIndex((v) => v.id === savedVoucher.id);
+                      if (savedIndex >= 0) {
+                        navigate(savedIndex);
+                      }
+                    }, 300);
+                    // Open print preview
+                    setIsPreviewOpen(true);
+                  }
+                }}
                 disabled={isReadOnly}
                 className="px-4 py-2 bg-brand-green text-white rounded-md hover:bg-green-700 font-semibold disabled:bg-gray-400"
               >

@@ -106,7 +106,7 @@ export const useReceiptVouchers = () => {
   const handleSave = useCallback(async () => {
     if (!voucherData.entity.name || voucherData.amount <= 0) {
       showToast("الرجاء تعبئة جميع الحقول المطلوبة.");
-      return;
+      return null;
     }
 
     const entityId = voucherData.entity.id
@@ -148,19 +148,25 @@ export const useReceiptVouchers = () => {
 
     try {
       if (currentIndex >= 0 && vouchers[currentIndex]) {
-        await updateReceiptVoucher({
+        const updated = await updateReceiptVoucher({
           id: vouchers[currentIndex].id,
           data: payload,
         }).unwrap();
         showToast("تم تعديل السند بنجاح!");
+        setIsReadOnly(true);
+        // Keep current data for preview
+        return updated;
       } else {
-        await createReceiptVoucher(payload).unwrap();
+        const saved = await createReceiptVoucher(payload).unwrap();
         showToast("تم حفظ السند بنجاح!");
+        setIsReadOnly(true);
+        // Return saved voucher directly for preview
+        return saved;
       }
-      handleNew();
     } catch (error) {
       showToast("حدث خطأ أثناء حفظ السند");
       console.error("Error saving receipt voucher:", error);
+      return null;
     }
   }, [
     voucherData,
@@ -169,7 +175,6 @@ export const useReceiptVouchers = () => {
     createReceiptVoucher,
     updateReceiptVoucher,
     showToast,
-    handleNew,
   ]);
 
   const handleEdit = useCallback(() => {
