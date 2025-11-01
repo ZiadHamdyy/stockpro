@@ -224,7 +224,9 @@ const SalesReturn: React.FC<SalesReturnProps> = ({
   useEffect(() => {
     if (currentIndex >= 0 && returns[currentIndex]) {
       const ret = returns[currentIndex];
-      setInvoiceDetails({ invoiceNumber: ret.code, invoiceDate: (ret.date || "").slice(0, 10) });
+      // Convert date to yyyy-MM-dd format for date input
+      const formattedDate = ret.date ? new Date(ret.date).toISOString().split('T')[0] : new Date().toISOString().split('T')[0];
+      setInvoiceDetails({ invoiceNumber: ret.code, invoiceDate: formattedDate });
       setSelectedCustomer(
         ret.customer ? { id: ret.customer.id, name: ret.customer.name } : null,
       );
@@ -491,9 +493,11 @@ const SalesReturn: React.FC<SalesReturnProps> = ({
         justSavedRef.current = true;
         
         // Update invoice details with the saved return data (especially return number)
+        // Convert date to yyyy-MM-dd format for date input
+        const formattedDate = savedReturn.date ? new Date(savedReturn.date).toISOString().split('T')[0] : new Date().toISOString().split('T')[0];
         setInvoiceDetails({
           invoiceNumber: savedReturn.code,
-          invoiceDate: savedReturn.date,
+          invoiceDate: formattedDate,
         });
         
         // Keep the return items and totals in state for the preview

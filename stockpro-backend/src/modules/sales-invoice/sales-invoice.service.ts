@@ -15,7 +15,8 @@ export class SalesInvoiceService {
     userId: string,
   ): Promise<SalesInvoiceResponse> {
     // Basic validations
-    if (!data.customerId) {
+    // Customer is only required for credit payments
+    if (data.paymentMethod === 'credit' && !data.customerId) {
       throwHttp(422, ERROR_CODES.INV_CUSTOMER_REQUIRED, 'Customer is required');
     }
     if (!data.items || data.items.length === 0) {
@@ -228,6 +229,12 @@ export class SalesInvoiceService {
       const existingInvoice = await this.prisma.salesInvoice.findUnique({
         where: { id },
       });
+      // Customer is only required for credit payments
+      // If payment method is credit (or being changed to credit), customer must be provided
+      const paymentMethod = data.paymentMethod || existingInvoice?.paymentMethod;
+      if (paymentMethod === 'credit' && data.customerId === null) {
+        throwHttp(422, ERROR_CODES.INV_CUSTOMER_REQUIRED, 'Customer is required for credit payments');
+      }
 
       if (existingInvoice) {
         // Restore stock for old items

@@ -28,7 +28,8 @@ export class PurchaseInvoiceService {
     branchId?: string,
   ): Promise<PurchaseInvoiceResponse> {
     // Validations
-    if (!data.supplierId) {
+    // Supplier is only required for credit payments
+    if (data.paymentMethod === 'credit' && !data.supplierId) {
       throwHttp(422, ERROR_CODES.INV_SUPPLIER_REQUIRED, 'Supplier is required');
     }
     if (!data.items || data.items.length === 0) {
@@ -175,6 +176,13 @@ export class PurchaseInvoiceService {
 
     if (!existingInvoice) {
       throw new NotFoundException('Purchase invoice not found');
+    }
+
+    // Supplier is only required for credit payments
+    // If payment method is credit (or being changed to credit), supplier must be provided
+    const paymentMethod = data.paymentMethod || existingInvoice.paymentMethod;
+    if (paymentMethod === 'credit' && data.supplierId === null) {
+      throwHttp(422, ERROR_CODES.INV_SUPPLIER_REQUIRED, 'Supplier is required for credit payments');
     }
 
     // Get old items to restore stock

@@ -227,11 +227,14 @@ const SalesInvoice: React.FC<SalesInvoiceProps> = ({
   useEffect(() => {
     if (currentIndex >= 0 && invoices[currentIndex]) {
       const inv = invoices[currentIndex];
-      setInvoiceDetails({ invoiceNumber: inv.code, invoiceDate: inv.date });
+      // Convert date to yyyy-MM-dd format for date input
+      const formattedDate = inv.date ? new Date(inv.date).toISOString().split('T')[0] : new Date().toISOString().split('T')[0];
+      setInvoiceDetails({ invoiceNumber: inv.code, invoiceDate: formattedDate });
       setSelectedCustomer(
         inv.customer ? { id: inv.customer.id, name: inv.customer.name } : null,
       );
-      setCustomerQuery(inv.customer?.name || "");
+      // Show "عميل نقدي" when editing cash invoice without customer
+      setCustomerQuery(inv.customer?.name || (inv.paymentMethod === "cash" && !inv.customer ? "عميل نقدي" : ""));
       setInvoiceItems(inv.items as InvoiceItem[]);
       setTotals({
         subtotal: inv.subtotal,
@@ -498,8 +501,11 @@ const SalesInvoice: React.FC<SalesInvoiceProps> = ({
     }
 
     try {
+      // For cash payments without a customer, pass null (backend will handle default)
       const invoiceData = {
-        customerId: selectedCustomer?.id,
+        customerId: paymentMethod === "cash" && !selectedCustomer 
+          ? null 
+          : selectedCustomer?.id,
         date: invoiceDetails.invoiceDate,
         items: finalItems.map((item) => ({
           id: item.id,
@@ -538,9 +544,11 @@ const SalesInvoice: React.FC<SalesInvoiceProps> = ({
         justSavedRef.current = true;
         
         // Update invoice details with the saved invoice data (especially invoice number)
+        // Convert date to yyyy-MM-dd format for date input
+        const formattedDate = savedInvoice.date ? new Date(savedInvoice.date).toISOString().split('T')[0] : new Date().toISOString().split('T')[0];
         setInvoiceDetails({
           invoiceNumber: savedInvoice.code,
-          invoiceDate: savedInvoice.date,
+          invoiceDate: formattedDate,
         });
         
         // Keep the invoice items and totals in state for the preview

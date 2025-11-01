@@ -221,11 +221,14 @@ const PurchaseInvoice: React.FC<PurchaseInvoiceProps> = ({
   useEffect(() => {
     if (currentIndex >= 0 && (invoices || [])[currentIndex]) {
       const inv = (invoices || [])[currentIndex];
-      setInvoiceDetails({ invoiceNumber: inv.code, invoiceDate: inv.date });
+      // Convert date to yyyy-MM-dd format for date input
+      const formattedDate = inv.date ? new Date(inv.date).toISOString().split('T')[0] : new Date().toISOString().split('T')[0];
+      setInvoiceDetails({ invoiceNumber: inv.code, invoiceDate: formattedDate });
       setSelectedSupplier(
         inv.supplier ? { id: inv.supplier.id, name: inv.supplier.name } : null,
       );
-      setSupplierQuery(inv.supplier?.name || "");
+      // Show "مورد نقدي" when editing cash invoice without supplier
+      setSupplierQuery(inv.supplier?.name || (inv.paymentMethod === "cash" && !inv.supplier ? "مورد نقدي" : ""));
       setPurchaseItems(inv.items as InvoiceItem[]);
       setTotals({
         subtotal: inv.subtotal,
@@ -458,8 +461,11 @@ const PurchaseInvoice: React.FC<PurchaseInvoiceProps> = ({
     }
 
     try {
+      // For cash payments without a supplier, pass null (backend will handle default)
       const invoiceData = {
-        supplierId: selectedSupplier?.id,
+        supplierId: paymentMethod === "cash" && !selectedSupplier 
+          ? null 
+          : selectedSupplier?.id,
         date: invoiceDetails.invoiceDate,
         items: finalItems.map((item) => ({
           id: item.id,
@@ -497,9 +503,11 @@ const PurchaseInvoice: React.FC<PurchaseInvoiceProps> = ({
         justSavedRef.current = true;
         
         // Update invoice details with the saved invoice data (especially invoice number)
+        // Convert date to yyyy-MM-dd format for date input
+        const formattedDate = savedInvoice.date ? new Date(savedInvoice.date).toISOString().split('T')[0] : new Date().toISOString().split('T')[0];
         setInvoiceDetails({
           invoiceNumber: savedInvoice.code,
-          invoiceDate: savedInvoice.date,
+          invoiceDate: formattedDate,
         });
         
         // Keep the invoice items and totals in state for the preview

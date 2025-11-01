@@ -222,7 +222,9 @@ const PurchaseReturn: React.FC<PurchaseReturnProps> = ({
   useEffect(() => {
     if (currentIndex >= 0 && (invoices || [])[currentIndex]) {
       const inv = (invoices || [])[currentIndex];
-      setInvoiceDetails({ invoiceNumber: inv.code, invoiceDate: (inv.date || "").slice(0, 10) });
+      // Convert date to yyyy-MM-dd format for date input
+      const formattedDate = inv.date ? new Date(inv.date).toISOString().split('T')[0] : new Date().toISOString().split('T')[0];
+      setInvoiceDetails({ invoiceNumber: inv.code, invoiceDate: formattedDate });
       setSelectedSupplier(
         inv.supplier ? { id: inv.supplier.id, name: inv.supplier.name } : null,
       );
@@ -488,9 +490,11 @@ const PurchaseReturn: React.FC<PurchaseReturnProps> = ({
         justSavedRef.current = true;
         
         // Update invoice details with the saved return data (especially return number)
+        // Convert date to yyyy-MM-dd format for date input
+        const formattedDate = savedReturn.date ? new Date(savedReturn.date).toISOString().split('T')[0] : new Date().toISOString().split('T')[0];
         setInvoiceDetails({
           invoiceNumber: savedReturn.code,
-          invoiceDate: savedReturn.date,
+          invoiceDate: formattedDate,
         });
         
         // Keep the return items and totals in state for the preview
