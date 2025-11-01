@@ -60,13 +60,22 @@ export const usePaymentVouchers = () => {
 
   const isLoading = isLoadingVouchers || isCreating || isUpdating || isDeleting;
 
+  // Helper function to format date to yyyy-MM-dd
+  const formatDateForInput = (dateString: string): string => {
+    if (!dateString) return new Date().toISOString().substring(0, 10);
+    // If it's already in yyyy-MM-dd format, return as is
+    if (/^\d{4}-\d{2}-\d{2}$/.test(dateString)) return dateString;
+    // If it's an ISO string, extract the date part
+    return dateString.substring(0, 10);
+  };
+
   // Sync voucher data when currentIndex changes
   useEffect(() => {
     if (currentIndex >= 0 && vouchers[currentIndex]) {
       const v = vouchers[currentIndex];
       setVoucherData({
         number: v.code,
-        date: v.date,
+        date: formatDateForInput(v.date),
         entity: {
           type: v.entityType as any,
           id:

@@ -167,6 +167,39 @@ const PaymentVoucher: React.FC<PaymentVoucherProps> = ({ title }) => {
   const inputStyle =
     "mt-1 block w-full bg-brand-green-bg border-2 border-brand-green rounded-md shadow-sm text-black placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-brand-green focus:border-brand-green py-3 px-4 disabled:bg-gray-200 disabled:cursor-not-allowed";
 
+  const navigateToVoucher = (direction: "first" | "prev" | "next" | "last") => {
+    if (!Array.isArray(vouchers) || vouchers.length === 0) return;
+
+    let newIndex = currentIndex;
+
+    switch (direction) {
+      case "first":
+        newIndex = 0;
+        break;
+      case "last":
+        newIndex = vouchers.length - 1;
+        break;
+      case "next":
+        if (currentIndex === -1) {
+          newIndex = 0; // from new → first voucher
+        } else {
+          newIndex = Math.min(vouchers.length - 1, currentIndex + 1);
+        }
+        break;
+      case "prev":
+        if (currentIndex === -1) {
+          newIndex = vouchers.length - 1; // from new → last voucher
+        } else {
+          newIndex = Math.max(0, currentIndex - 1);
+        }
+        break;
+    }
+
+    if (newIndex >= 0 && newIndex < vouchers.length) {
+      navigate(newIndex);
+    }
+  };
+
   const voucher = currentIndex > -1 ? vouchers[currentIndex] : null;
 
   if (isLoading) {
@@ -451,43 +484,53 @@ const PaymentVoucher: React.FC<PaymentVoucherProps> = ({ title }) => {
 
           <div className="flex items-center justify-center gap-2">
             <button
-              onClick={() => navigate(vouchers.length - 1)}
+              onClick={() => navigateToVoucher("first")}
               disabled={
-                currentIndex >= vouchers.length - 1 || vouchers.length === 0
+                (Array.isArray(vouchers) ? vouchers.length === 0 : true) ||
+                currentIndex === 0
               }
               className="p-2 bg-gray-200 rounded-md hover:bg-gray-300 disabled:opacity-50"
             >
-              الأخير
+              الأول
             </button>
             <button
-              onClick={() => navigate(currentIndex + 1)}
+              onClick={() => navigateToVoucher("prev")}
               disabled={
-                currentIndex >= vouchers.length - 1 || vouchers.length === 0
+                (Array.isArray(vouchers) ? vouchers.length === 0 : true) ||
+                currentIndex === 0
+              }
+              className="p-2 bg-gray-200 rounded-md hover:bg-gray-300 disabled:opacity-50"
+            >
+              السابق
+            </button>
+            <div className="px-4 py-2 bg-brand-green-bg border-2 border-brand-green rounded-md">
+              <span className="font-bold">
+                {currentIndex > -1
+                  ? `${currentIndex + 1} / ${Array.isArray(vouchers) ? vouchers.length : 0}`
+                  : `جديد`}
+              </span>
+            </div>
+            <button
+              onClick={() => navigateToVoucher("next")}
+              disabled={
+                (Array.isArray(vouchers) ? vouchers.length === 0 : true) ||
+                currentIndex ===
+                  (Array.isArray(vouchers) ? vouchers.length - 1 : 0)
               }
               className="p-2 bg-gray-200 rounded-md hover:bg-gray-300 disabled:opacity-50"
             >
               التالي
             </button>
-            <div className="px-4 py-2 bg-brand-green-bg border-2 border-brand-green rounded-md">
-              <span className="font-bold">
-                {currentIndex > -1
-                  ? `${currentIndex + 1} / ${vouchers.length}`
-                  : `جديد`}
-              </span>
-            </div>
             <button
-              onClick={() => navigate(currentIndex - 1)}
-              disabled={currentIndex <= 0}
+              onClick={() => navigateToVoucher("last")}
+              disabled={
+                (Array.isArray(vouchers) ? vouchers.length === 0 : true) ||
+                currentIndex ===
+                  (Array.isArray(vouchers) ? vouchers.length - 1 : 0)
+              }
               className="p-2 bg-gray-200 rounded-md hover:bg-gray-300 disabled:opacity-50"
             >
-              السابق
-            </button>
-            <button
-              onClick={() => navigate(0)}
-              disabled={currentIndex <= 0}
-              className="p-2 bg-gray-200 rounded-md hover:bg-gray-300 disabled:opacity-50"
-            >
-              الأول
+              الأخير
             </button>
           </div>
         </div>
