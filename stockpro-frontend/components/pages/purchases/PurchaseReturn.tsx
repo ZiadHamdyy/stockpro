@@ -602,6 +602,34 @@ const PurchaseReturn: React.FC<PurchaseReturnProps> = ({
     setIsSearchModalOpen(false);
   };
 
+  const handleSearchInvoice = (invoiceCode: string) => {
+    if (!invoiceCode) return;
+    const inv = purchaseInvoices.find((p) => p.code === invoiceCode);
+    if (!inv) return;
+    const qtyMap: Record<string, number> = {};
+    (inv.items || []).forEach((it) => {
+      qtyMap[it.id] = (qtyMap[it.id] || 0) + (it.qty || 0);
+    });
+    setSourceInvoiceQtyById(qtyMap);
+    setInvoiceDetails({ invoiceNumber: inv.code, invoiceDate: (inv.date || "").slice(0, 10) });
+    if (inv.supplier) {
+      setSelectedSupplier({ id: inv.supplier.id.toString(), name: inv.supplier.name });
+      setSupplierQuery(inv.supplier.name);
+    }
+    setReturnItems(
+      (inv.items || []).map((it) => ({
+        id: it.id,
+        name: it.name,
+        unit: it.unit,
+        qty: Math.min(it.qty, qtyMap[it.id] ?? it.qty),
+        price: it.price,
+        taxAmount: isVatEnabled ? (it.qty * it.price) * (vatRate / 100) : 0,
+        total: it.qty * it.price,
+      }))
+    );
+    setIsReadOnly(false);
+  };
+
   const inputStyle =
     "block w-full bg-brand-green-bg border-2 border-brand-green rounded-md shadow-sm text-black placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-brand-green focus:border-brand-green py-3 px-4 disabled:bg-gray-200 disabled:cursor-not-allowed";
   const tableInputStyle =
@@ -699,47 +727,26 @@ const PurchaseReturn: React.FC<PurchaseReturnProps> = ({
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     اختر الفاتورة
                   </label>
-                  <select
+                  <input
+                    type="text"
+                    placeholder="اكتب رقم الفاتورة"
                     className={inputStyle}
                     value={selectedInvoiceId || ""}
                     onChange={(e) => {
-                      const invId = e.target.value || null;
-                      setSelectedInvoiceId(invId);
-                      if (!invId) return;
-                      const inv = purchaseInvoices.find((p) => p.id === invId || p.code === invId);
-                      if (!inv) return;
-                      const qtyMap: Record<string, number> = {};
-                      (inv.items || []).forEach((it) => {
-                        qtyMap[it.id] = (qtyMap[it.id] || 0) + (it.qty || 0);
-                      });
-                      setSourceInvoiceQtyById(qtyMap);
-                      setInvoiceDetails({ invoiceNumber: inv.code, invoiceDate: (inv.date || "").slice(0, 10) });
-                      if (inv.supplier) {
-                        setSelectedSupplier({ id: inv.supplier.id.toString(), name: inv.supplier.name });
-                        setSupplierQuery(inv.supplier.name);
+                      setSelectedInvoiceId(e.target.value);
+                    }}
+                    onBlur={(e) => {
+                      handleSearchInvoice(e.target.value.trim());
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        handleSearchInvoice(selectedInvoiceId?.trim() || "");
+                        e.currentTarget.blur();
                       }
-                      setReturnItems(
-                        (inv.items || []).map((it) => ({
-                          id: it.id,
-                          name: it.name,
-                          unit: it.unit,
-                          qty: Math.min(it.qty, qtyMap[it.id] ?? it.qty),
-                          price: it.price,
-                          taxAmount: isVatEnabled ? (it.qty * it.price) * (vatRate / 100) : 0,
-                          total: it.qty * it.price,
-                        }))
-                      );
-                      setIsReadOnly(false);
                     }}
                     disabled={isReadOnly}
-                  >
-                    <option value="">اختر فاتورة مشتريات...</option>
-                    {purchaseInvoices.map((inv) => (
-                      <option key={inv.id} value={inv.id}>
-                        {inv.code} — {(inv.date || "").slice(0, 10)} — {inv.supplier?.name || "-"}
-                      </option>
-                    ))}
-                  </select>
+                  />
                 </div>
                 <div className="md:col-start-2">
                   <label className="block text-sm font-medium text-gray-700 mb-1">
