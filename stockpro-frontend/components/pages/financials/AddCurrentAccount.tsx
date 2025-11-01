@@ -251,17 +251,19 @@ const AddCurrentAccount: React.FC<AddCurrentAccountProps> = ({
             >
               نوع الحساب
             </label>
-            <input
-              type="text"
+            <select
               name="type"
               id="type"
               value={accountData.type}
               onChange={handleChange}
               className={inputStyle}
-              placeholder="شريك, سلفة,..."
               disabled={isReadOnly}
               required
-            />
+            >
+              <option value="">-- اختر النوع --</option>
+              <option value="شريك">شريك</option>
+              <option value="ارصدة مالية">أرصدة مالية</option>
+            </select>
           </div>
           <div>
             <label

@@ -27,6 +27,7 @@ const CurrentAccountsList: React.FC<CurrentAccountsListProps> = ({
 }) => {
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState("");
+  const [typeFilter, setTypeFilter] = useState("");
   const { token } = useAppSelector((state) => state.auth);
   const {
     data: accounts = [],
@@ -43,13 +44,22 @@ const CurrentAccountsList: React.FC<CurrentAccountsListProps> = ({
   const inputStyle =
     "w-64 pr-10 pl-4 py-3 bg-brand-blue-bg border-2 border-brand-blue rounded-md text-black placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-brand-blue";
 
-  // Filter accounts based on search term
+  const selectStyle =
+    "pr-10 pl-4 py-3 bg-brand-blue-bg border-2 border-brand-blue rounded-md text-black focus:outline-none focus:ring-2 focus:ring-brand-blue";
+
+  // Filter accounts based on search term and type filter
   const filteredAccounts = Array.isArray(accounts)
     ? accounts.filter(
-        (account) =>
-          account.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          account.code.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          account.type.toLowerCase().includes(searchTerm.toLowerCase()),
+        (account) => {
+          const matchesSearch =
+            account.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            account.code.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            account.type.toLowerCase().includes(searchTerm.toLowerCase());
+          
+          const matchesType = !typeFilter || account.type === typeFilter;
+          
+          return matchesSearch && matchesType;
+        },
       )
     : [];
 
@@ -144,15 +154,28 @@ const CurrentAccountsList: React.FC<CurrentAccountsListProps> = ({
         </PermissionWrapper>
       </div>
       <div className="flex justify-between items-center mb-4 no-print">
-        <div className="relative">
-          <SearchIcon className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 w-6 h-6" />
-          <input
-            type="text"
-            placeholder="بحث عن حساب..."
-            className={inputStyle}
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
+        <div className="flex items-center gap-4">
+          <div className="relative">
+            <SearchIcon className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 w-6 h-6" />
+            <input
+              type="text"
+              placeholder="بحث عن حساب..."
+              className={inputStyle}
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+          </div>
+          <div>
+            <select
+              value={typeFilter}
+              onChange={(e) => setTypeFilter(e.target.value)}
+              className={selectStyle}
+            >
+              <option value="">جميع الأنواع</option>
+              <option value="شريك">شريك</option>
+              <option value="ارصدة مالية">أرصدة مالية</option>
+            </select>
+          </div>
         </div>
         <div className="flex items-center gap-2">
           <button
