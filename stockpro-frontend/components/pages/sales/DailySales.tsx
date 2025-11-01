@@ -5,6 +5,7 @@ import { exportToExcel, exportToPdf } from "../../../utils/formatting";
 import InvoiceHeader from "../../common/InvoiceHeader";
 import { useGetSalesInvoicesQuery } from "../../store/slices/salesInvoice/salesInvoiceApiSlice";
 import { useGetCompanyQuery } from "../../store/slices/companyApiSlice";
+import { useGetBranchesQuery } from "../../store/slices/branch/branchApi";
 
 interface DailySalesProps {
   title: string;
@@ -14,6 +15,7 @@ const DailySales: React.FC<DailySalesProps> = ({ title }) => {
   // Redux hooks
   const { data: salesInvoices = [] } = useGetSalesInvoicesQuery();
   const { data: company } = useGetCompanyQuery();
+  const { data: branches = [] } = useGetBranchesQuery();
 
   const companyInfo: CompanyInfo = company || {
     name: "",
@@ -35,21 +37,27 @@ const DailySales: React.FC<DailySalesProps> = ({ title }) => {
     new Date().toISOString().substring(0, 10),
   ); // Current day
   const [searchTerm, setSearchTerm] = useState("");
+  const [selectedBranchId, setSelectedBranchId] = useState<string>("");
 
   const filteredSales = useMemo(() => {
     return salesInvoices.filter((sale) => {
       const saleDate = sale.date.substring(0, 10); // Extract just the date part
-      return (
-        saleDate >= startDate &&
-        saleDate <= endDate &&
-        (sale.code.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          (sale.customer &&
-            sale.customer.name
-              .toLowerCase()
-              .includes(searchTerm.toLowerCase())))
-      );
+      const matchesDateRange = saleDate >= startDate && saleDate <= endDate;
+      const matchesBranch = !selectedBranchId || sale.branchId === selectedBranchId;
+      const matchesSearch =
+        !searchTerm ||
+        sale.code.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (sale.customer &&
+          sale.customer.name
+            .toLowerCase()
+            .includes(searchTerm.toLowerCase())) ||
+        (sale.branch &&
+          sale.branch.name
+            .toLowerCase()
+            .includes(searchTerm.toLowerCase()));
+      return matchesDateRange && matchesBranch && matchesSearch;
     });
-  }, [salesInvoices, startDate, endDate, searchTerm]);
+  }, [salesInvoices, startDate, endDate, searchTerm, selectedBranchId]);
 
   const totals = filteredSales.reduce(
     (acc, sale) => {
@@ -67,6 +75,7 @@ const DailySales: React.FC<DailySalesProps> = ({ title }) => {
       التاريخ: s.date,
       "رقم الفاتورة": s.code,
       العميل: s.customer?.name || "عميل نقدي",
+      الفرع: s.branch?.name || "-",
       المبلغ: s.subtotal.toFixed(2),
       الضريبة: s.tax.toFixed(2),
       الخصم: s.discount.toFixed(2),
@@ -76,6 +85,7 @@ const DailySales: React.FC<DailySalesProps> = ({ title }) => {
       التاريخ: "الإجمالي",
       "رقم الفاتورة": "",
       العميل: "",
+      الفرع: "",
       المبلغ: totals.subtotal.toFixed(2),
       الضريبة: totals.tax.toFixed(2),
       الخصم: totals.discount.toFixed(2),
@@ -91,6 +101,7 @@ const DailySales: React.FC<DailySalesProps> = ({ title }) => {
         "الخصم",
         "الضريبة",
         "المبلغ",
+        "الفرع",
         "العميل",
         "رقم الفاتورة",
         "التاريخ",
@@ -102,6 +113,7 @@ const DailySales: React.FC<DailySalesProps> = ({ title }) => {
       s.discount.toFixed(2),
       s.tax.toFixed(2),
       s.subtotal.toFixed(2),
+      s.branch?.name || "-",
       s.customer?.name || "عميل نقدي",
       s.code,
       s.date ? new Date(s.date).toLocaleDateString() : "",
@@ -113,6 +125,7 @@ const DailySales: React.FC<DailySalesProps> = ({ title }) => {
         totals.discount.toFixed(2),
         totals.tax.toFixed(2),
         totals.subtotal.toFixed(2),
+        "",
         "",
         "",
         "",
@@ -170,6 +183,19 @@ const DailySales: React.FC<DailySalesProps> = ({ title }) => {
               onChange={(e) => setSearchTerm(e.target.value)}
             />
           </div>
+          <label className="font-semibold">الفرع:</label>
+          <select
+            value={selectedBranchId}
+            onChange={(e) => setSelectedBranchId(e.target.value)}
+            className={inputStyle + " w-48"}
+          >
+            <option value="">جميع الفروع</option>
+            {branches.map((branch) => (
+              <option key={branch.id} value={branch.id}>
+                {branch.name}
+              </option>
+            ))}
+          </select>
         </div>
         <div className="flex items-center gap-2">
           <button
@@ -213,6 +239,9 @@ const DailySales: React.FC<DailySalesProps> = ({ title }) => {
                 العميل
               </th>
               <th className="px-6 py-3 text-right text-sm font-semibold text-white uppercase tracking-wider">
+                الفرع
+              </th>
+              <th className="px-6 py-3 text-right text-sm font-semibold text-white uppercase tracking-wider">
                 المبلغ
               </th>
               <th className="px-6 py-3 text-right text-sm font-semibold text-white uppercase tracking-wider">
@@ -238,6 +267,9 @@ const DailySales: React.FC<DailySalesProps> = ({ title }) => {
                   {sale.customer?.name || "عميل نقدي"}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
+                  {sale.branch?.name || "-"}
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap">
                   {sale.subtotal.toFixed(2)}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
@@ -254,7 +286,7 @@ const DailySales: React.FC<DailySalesProps> = ({ title }) => {
           </tbody>
           <tfoot className="bg-gray-100">
             <tr className="font-bold text-brand-dark">
-              <td colSpan={4} className="px-6 py-3 text-right">
+              <td colSpan={5} className="px-6 py-3 text-right">
                 الإجمالي
               </td>
               <td className="px-6 py-3 text-right">

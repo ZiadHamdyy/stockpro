@@ -5,6 +5,7 @@ import { exportToExcel, exportToPdf } from "../../../utils/formatting";
 import InvoiceHeader from "../../common/InvoiceHeader";
 import { useGetPurchaseReturnsQuery } from "../../store/slices/purchaseReturn/purchaseReturnApiSlice";
 import { useGetCompanyQuery } from "../../store/slices/companyApiSlice";
+import { useGetBranchesQuery } from "../../store/slices/branch/branchApi";
 
 interface DailyPurchaseReturnsProps {
   title: string;
@@ -16,6 +17,7 @@ const DailyPurchaseReturns: React.FC<DailyPurchaseReturnsProps> = ({
   // Redux hooks
   const { data: purchaseReturns = [] } = useGetPurchaseReturnsQuery();
   const { data: company } = useGetCompanyQuery();
+  const { data: branches = [] } = useGetBranchesQuery();
 
   const companyInfo: CompanyInfo = company || {
     name: "",
@@ -37,21 +39,27 @@ const DailyPurchaseReturns: React.FC<DailyPurchaseReturnsProps> = ({
     new Date().toISOString().substring(0, 10),
   );
   const [searchTerm, setSearchTerm] = useState("");
+  const [selectedBranchId, setSelectedBranchId] = useState<string>("");
 
   const filteredReturns = useMemo(() => {
     return purchaseReturns.filter((purchase) => {
       const purchaseDate = purchase.date.substring(0, 10); // Extract just the date part
-      return (
-        purchaseDate >= startDate &&
-        purchaseDate <= endDate &&
-        (purchase.code.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          (purchase.supplier &&
-            purchase.supplier.name
-              .toLowerCase()
-              .includes(searchTerm.toLowerCase())))
-      );
+      const matchesDateRange = purchaseDate >= startDate && purchaseDate <= endDate;
+      const matchesBranch = !selectedBranchId || purchase.branchId === selectedBranchId;
+      const matchesSearch =
+        !searchTerm ||
+        purchase.code.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (purchase.supplier &&
+          purchase.supplier.name
+            .toLowerCase()
+            .includes(searchTerm.toLowerCase())) ||
+        (purchase.branch &&
+          purchase.branch.name
+            .toLowerCase()
+            .includes(searchTerm.toLowerCase()));
+      return matchesDateRange && matchesBranch && matchesSearch;
     });
-  }, [purchaseReturns, startDate, endDate, searchTerm]);
+  }, [purchaseReturns, startDate, endDate, searchTerm, selectedBranchId]);
 
   const totals = filteredReturns.reduce(
     (acc, purchase) => {
@@ -69,6 +77,7 @@ const DailyPurchaseReturns: React.FC<DailyPurchaseReturnsProps> = ({
       التاريخ: p.date,
       "رقم المرتجع": p.code,
       المورد: p.supplier?.name || "-",
+      الفرع: p.branch?.name || "-",
       المبلغ: p.subtotal.toFixed(2),
       الضريبة: p.tax.toFixed(2),
       الخصم: p.discount.toFixed(2),
@@ -78,6 +87,7 @@ const DailyPurchaseReturns: React.FC<DailyPurchaseReturnsProps> = ({
       التاريخ: "الإجمالي",
       "رقم المرتجع": "",
       المورد: "",
+      الفرع: "",
       المبلغ: totals.subtotal.toFixed(2),
       الضريبة: totals.tax.toFixed(2),
       الخصم: totals.discount.toFixed(2),
@@ -93,6 +103,7 @@ const DailyPurchaseReturns: React.FC<DailyPurchaseReturnsProps> = ({
         "الخصم",
         "الضريبة",
         "المبلغ",
+        "الفرع",
         "المورد",
         "رقم المرتجع",
         "التاريخ",
@@ -104,6 +115,7 @@ const DailyPurchaseReturns: React.FC<DailyPurchaseReturnsProps> = ({
       p.discount.toFixed(2),
       p.tax.toFixed(2),
       p.subtotal.toFixed(2),
+      p.branch?.name || "-",
       p.supplier?.name || "-",
       p.code,
       p.date ? new Date(p.date).toLocaleDateString() : "",
@@ -115,6 +127,7 @@ const DailyPurchaseReturns: React.FC<DailyPurchaseReturnsProps> = ({
         totals.discount.toFixed(2),
         totals.tax.toFixed(2),
         totals.subtotal.toFixed(2),
+        "",
         "",
         "",
         "",
@@ -172,6 +185,19 @@ const DailyPurchaseReturns: React.FC<DailyPurchaseReturnsProps> = ({
               onChange={(e) => setSearchTerm(e.target.value)}
             />
           </div>
+          <label className="font-semibold">الفرع:</label>
+          <select
+            value={selectedBranchId}
+            onChange={(e) => setSelectedBranchId(e.target.value)}
+            className={inputStyle + " w-48"}
+          >
+            <option value="">جميع الفروع</option>
+            {branches.map((branch) => (
+              <option key={branch.id} value={branch.id}>
+                {branch.name}
+              </option>
+            ))}
+          </select>
         </div>
         <div className="flex items-center gap-2">
           <button
@@ -215,6 +241,9 @@ const DailyPurchaseReturns: React.FC<DailyPurchaseReturnsProps> = ({
                 المورد
               </th>
               <th className="px-6 py-3 text-right text-sm font-semibold text-white uppercase tracking-wider">
+                الفرع
+              </th>
+              <th className="px-6 py-3 text-right text-sm font-semibold text-white uppercase tracking-wider">
                 المبلغ
               </th>
               <th className="px-6 py-3 text-right text-sm font-semibold text-white uppercase tracking-wider">
@@ -240,6 +269,9 @@ const DailyPurchaseReturns: React.FC<DailyPurchaseReturnsProps> = ({
                   {purchase.supplier?.name || "-"}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
+                  {purchase.branch?.name || "-"}
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap">
                   {purchase.subtotal.toFixed(2)}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
@@ -256,7 +288,7 @@ const DailyPurchaseReturns: React.FC<DailyPurchaseReturnsProps> = ({
           </tbody>
           <tfoot className="bg-gray-100">
             <tr className="font-bold text-brand-dark">
-              <td colSpan={4} className="px-6 py-3 text-right">
+              <td colSpan={5} className="px-6 py-3 text-right">
                 الإجمالي
               </td>
               <td className="px-6 py-3 text-right">

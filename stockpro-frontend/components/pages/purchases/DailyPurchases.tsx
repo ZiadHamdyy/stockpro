@@ -5,6 +5,7 @@ import { exportToExcel, exportToPdf } from "../../../utils/formatting";
 import InvoiceHeader from "../../common/InvoiceHeader";
 import { useGetPurchaseInvoicesQuery } from "../../store/slices/purchaseInvoice/purchaseInvoiceApiSlice";
 import { useGetCompanyQuery } from "../../store/slices/companyApiSlice";
+import { useGetBranchesQuery } from "../../store/slices/branch/branchApi";
 
 interface DailyPurchasesProps {
   title: string;
@@ -14,6 +15,7 @@ const DailyPurchases: React.FC<DailyPurchasesProps> = ({ title }) => {
   // Redux hooks
   const { data: purchaseInvoices = [] } = useGetPurchaseInvoicesQuery();
   const { data: company } = useGetCompanyQuery();
+  const { data: branches = [] } = useGetBranchesQuery();
 
   const companyInfo: CompanyInfo = company || {
     name: "",
@@ -35,21 +37,27 @@ const DailyPurchases: React.FC<DailyPurchasesProps> = ({ title }) => {
     new Date().toISOString().substring(0, 10),
   );
   const [searchTerm, setSearchTerm] = useState("");
+  const [selectedBranchId, setSelectedBranchId] = useState<string>("");
 
   const filteredPurchases = useMemo(() => {
     return purchaseInvoices.filter((purchase) => {
       const purchaseDate = purchase.date.substring(0, 10); // Extract just the date part
-      return (
-        purchaseDate >= startDate &&
-        purchaseDate <= endDate &&
-        (purchase.code.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          (purchase.supplier &&
-            purchase.supplier.name
-              .toLowerCase()
-              .includes(searchTerm.toLowerCase())))
-      );
+      const matchesDateRange = purchaseDate >= startDate && purchaseDate <= endDate;
+      const matchesBranch = !selectedBranchId || purchase.branchId === selectedBranchId;
+      const matchesSearch =
+        !searchTerm ||
+        purchase.code.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (purchase.supplier &&
+          purchase.supplier.name
+            .toLowerCase()
+            .includes(searchTerm.toLowerCase())) ||
+        (purchase.branch &&
+          purchase.branch.name
+            .toLowerCase()
+            .includes(searchTerm.toLowerCase()));
+      return matchesDateRange && matchesBranch && matchesSearch;
     });
-  }, [purchaseInvoices, startDate, endDate, searchTerm]);
+  }, [purchaseInvoices, startDate, endDate, searchTerm, selectedBranchId]);
 
   const totals = filteredPurchases.reduce(
     (acc, purchase) => {
@@ -67,6 +75,7 @@ const DailyPurchases: React.FC<DailyPurchasesProps> = ({ title }) => {
       التاريخ: p.date,
       "رقم الفاتورة": p.code,
       المورد: p.supplier?.name || "-",
+      الفرع: p.branch?.name || "-",
       المبلغ: p.subtotal.toFixed(2),
       الضريبة: p.tax.toFixed(2),
       الخصم: p.discount.toFixed(2),
@@ -76,6 +85,7 @@ const DailyPurchases: React.FC<DailyPurchasesProps> = ({ title }) => {
       التاريخ: "الإجمالي",
       "رقم الفاتورة": "",
       المورد: "",
+      الفرع: "",
       المبلغ: totals.subtotal.toFixed(2),
       الضريبة: totals.tax.toFixed(2),
       الخصم: totals.discount.toFixed(2),
@@ -91,6 +101,7 @@ const DailyPurchases: React.FC<DailyPurchasesProps> = ({ title }) => {
         "الخصم",
         "الضريبة",
         "المبلغ",
+        "الفرع",
         "المورد",
         "رقم الفاتورة",
         "التاريخ",
@@ -102,6 +113,7 @@ const DailyPurchases: React.FC<DailyPurchasesProps> = ({ title }) => {
       p.discount.toFixed(2),
       p.tax.toFixed(2),
       p.subtotal.toFixed(2),
+      p.branch?.name || "-",
       p.supplier?.name || "-",
       p.code,
       p.date ? new Date(p.date).toLocaleDateString() : "",
@@ -113,6 +125,7 @@ const DailyPurchases: React.FC<DailyPurchasesProps> = ({ title }) => {
         totals.discount.toFixed(2),
         totals.tax.toFixed(2),
         totals.subtotal.toFixed(2),
+        "",
         "",
         "",
         "",
@@ -170,6 +183,19 @@ const DailyPurchases: React.FC<DailyPurchasesProps> = ({ title }) => {
               onChange={(e) => setSearchTerm(e.target.value)}
             />
           </div>
+          <label className="font-semibold">الفرع:</label>
+          <select
+            value={selectedBranchId}
+            onChange={(e) => setSelectedBranchId(e.target.value)}
+            className={inputStyle + " w-48"}
+          >
+            <option value="">جميع الفروع</option>
+            {branches.map((branch) => (
+              <option key={branch.id} value={branch.id}>
+                {branch.name}
+              </option>
+            ))}
+          </select>
         </div>
         <div className="flex items-center gap-2">
           <button
@@ -213,6 +239,9 @@ const DailyPurchases: React.FC<DailyPurchasesProps> = ({ title }) => {
                 المورد
               </th>
               <th className="px-6 py-3 text-right text-sm font-semibold text-white uppercase tracking-wider">
+                الفرع
+              </th>
+              <th className="px-6 py-3 text-right text-sm font-semibold text-white uppercase tracking-wider">
                 المبلغ
               </th>
               <th className="px-6 py-3 text-right text-sm font-semibold text-white uppercase tracking-wider">
@@ -238,6 +267,9 @@ const DailyPurchases: React.FC<DailyPurchasesProps> = ({ title }) => {
                   {purchase.supplier?.name || "-"}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
+                  {purchase.branch?.name || "-"}
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap">
                   {purchase.subtotal.toFixed(2)}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
@@ -254,7 +286,7 @@ const DailyPurchases: React.FC<DailyPurchasesProps> = ({ title }) => {
           </tbody>
           <tfoot className="bg-gray-100">
             <tr className="font-bold text-brand-dark">
-              <td colSpan={4} className="px-6 py-3 text-right">
+              <td colSpan={5} className="px-6 py-3 text-right">
                 الإجمالي
               </td>
               <td className="px-6 py-3 text-right">
