@@ -114,7 +114,7 @@ const ExpenseTypes: React.FC<ExpenseTypesProps> = ({ title }) => {
             <thead className="bg-brand-blue">
               <tr>
                 <th className="px-6 py-3 text-right text-sm font-semibold text-white uppercase tracking-wider">
-                  كود النوع
+                  م
                 </th>
                 <th className="px-6 py-3 text-right text-sm font-semibold text-white uppercase tracking-wider">
                   اسم النوع
@@ -135,9 +135,9 @@ const ExpenseTypes: React.FC<ExpenseTypesProps> = ({ title }) => {
                   </td>
                 </tr>
               ) : (
-                expenseTypes.map((type) => (
+                expenseTypes.map((type, index) => (
                   <tr key={type.id} className="hover:bg-brand-blue-bg">
-                    <td className="px-6 py-4 whitespace-nowrap">{type.id}</td>
+                    <td className="px-6 py-4 whitespace-nowrap">{index + 1}</td>
                     <td className="px-6 py-4 whitespace-nowrap font-medium text-brand-dark">
                       {type.name}
                     </td>

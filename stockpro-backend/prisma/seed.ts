@@ -520,6 +520,36 @@ async function main() {
     console.log('✅ Branch already exists');
   }
 
+  // Create expense types
+  console.log('💰 Creating expense types...');
+  const expenseTypes = [
+    {
+      name: 'مصروفات تشغيلية',
+      description: 'المصروفات المتعلقة بتشغيل الأعمال اليومية مثل الكهرباء والماء والإنترنت والصيانة',
+    },
+    {
+      name: 'مصروفات تسويقية',
+      description: 'المصروفات المتعلقة بالترويج والتسويق للمنتجات والخدمات مثل الإعلانات والمعارض',
+    },
+    {
+      name: 'مصروفات إدارية',
+      description: 'المصروفات المتعلقة بالإدارة العامة للشركة مثل الرواتب والمكاتب والتأمينات',
+    },
+    {
+      name: 'مصروفات اخري',
+      description: 'المصروفات الأخرى التي لا تنتمي إلى الفئات السابقة',
+    },
+  ];
+
+  for (const expenseType of expenseTypes) {
+    await prisma.expenseType.upsert({
+      where: { name: expenseType.name },
+      update: expenseType,
+      create: expenseType,
+    });
+  }
+  console.log(`✅ Created ${expenseTypes.length} expense types`);
+
   // Create or update default admin user
   console.log('👤 Creating/updating default admin user...');
   const existingAdmin = await prisma.user.findFirst({
