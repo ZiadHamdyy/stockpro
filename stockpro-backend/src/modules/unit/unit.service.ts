@@ -18,7 +18,7 @@ export class UnitService {
 
   async findAll(): Promise<UnitResponse[]> {
     const units = await this.prisma.unit.findMany({
-      orderBy: { name: 'asc' },
+      orderBy: { name: 'desc' },
     });
 
     return units.map((unit) => this.mapToResponse(unit));

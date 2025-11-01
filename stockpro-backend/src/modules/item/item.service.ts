@@ -37,7 +37,7 @@ export class ItemService {
         group: true,
         unit: true,
       },
-      orderBy: { createdAt: 'desc' },
+      orderBy: { createdAt: 'asc' },
     });
 
     return items.map((item) => this.mapToResponse(item));

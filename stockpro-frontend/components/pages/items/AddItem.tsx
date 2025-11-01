@@ -447,7 +447,7 @@ const AddItem: React.FC<AddItemProps> = ({ title, editingId, onNavigate }) => {
               value={"stock" in itemData ? itemData.stock : 0}
               onChange={handleChange}
               className={inputStyle}
-              disabled={isReadOnly || "id" in itemData || itemType === 'SERVICE'}
+              disabled={isReadOnly || itemType === 'SERVICE'}
             />
           </div>
           <div>
