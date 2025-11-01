@@ -4,6 +4,7 @@ import { tafqeet } from "../../../utils/tafqeet";
 import InvoiceHeader from "../../common/InvoiceHeader";
 import { useGetCompanyQuery } from "../../store/slices/companyApiSlice";
 import { usePaymentVouchers } from "../../hook/usePaymentVouchers";
+import { useGetExpenseTypesQuery } from "../../store/slices/expense/expenseApiSlice";
 import PermissionWrapper from "../../common/PermissionWrapper";
 import {
   buildPermission,
@@ -39,6 +40,7 @@ const PaymentVoucher: React.FC<PaymentVoucherProps> = ({ title }) => {
     navigate,
     currentIndex,
   } = usePaymentVouchers();
+  const { data: expenseTypes = [] } = useGetExpenseTypesQuery();
 
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
 
@@ -64,6 +66,8 @@ const PaymentVoucher: React.FC<PaymentVoucherProps> = ({ title }) => {
           foundName = currentAccounts.find((a) => a.id === value)?.name || "";
         if (newEntity.type === "expense")
           foundName = expenseCodes.find((c) => c.id === value)?.name || "";
+        if (newEntity.type === "expense-Type")
+          foundName = expenseTypes.find((t) => t.id === value)?.name || "";
         newEntity.name = foundName;
       }
       return { ...prev, entity: newEntity };
@@ -140,6 +144,23 @@ const PaymentVoucher: React.FC<PaymentVoucherProps> = ({ title }) => {
         </select>
       );
     }
+    if (entityType === "expense-Type") {
+      return (
+        <select
+          value={voucherData.entity.id || ""}
+          onChange={(e) => handleEntityChange("id", e.target.value)}
+          className={inputStyle}
+          disabled={isReadOnly}
+        >
+          <option value="">اختر نوع مصروف...</option>
+          {expenseTypes.map((t) => (
+            <option key={t.id} value={t.id}>
+              {t.name}
+            </option>
+          ))}
+        </select>
+      );
+    }
     return null;
   };
 
@@ -171,6 +192,7 @@ const PaymentVoucher: React.FC<PaymentVoucherProps> = ({ title }) => {
               value={voucherData.number}
               className={inputStyle + " bg-gray-200"}
               readOnly
+              disabled
             />
           </div>
           <div>
@@ -221,6 +243,7 @@ const PaymentVoucher: React.FC<PaymentVoucherProps> = ({ title }) => {
                 <option value="expense">مصروف</option>
                 <option value="customer">عميل</option>
                 <option value="current_account">حساب جاري</option>
+                <option value="expense-Type">مصروفات ضريبية</option>
               </select>
             </div>
             <div>

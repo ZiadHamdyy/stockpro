@@ -107,20 +107,36 @@ export const usePaymentVouchers = () => {
       return;
     }
 
-    const entityId = voucherData.entity.id
-      ? String(voucherData.entity.id)
-      : undefined;
-
     // Build entity foreign key based on entity type
     const entityFields: Partial<CreatePaymentVoucherRequest> = {};
+    
     if (voucherData.entity.type === "customer") {
+      const entityId = voucherData.entity.id ? String(voucherData.entity.id) : undefined;
       entityFields.customerId = entityId;
     } else if (voucherData.entity.type === "supplier") {
+      const entityId = voucherData.entity.id ? String(voucherData.entity.id) : undefined;
       entityFields.supplierId = entityId;
     } else if (voucherData.entity.type === "current_account") {
+      const entityId = voucherData.entity.id ? String(voucherData.entity.id) : undefined;
       entityFields.currentAccountId = entityId;
     } else if (voucherData.entity.type === "expense") {
+      const entityId = voucherData.entity.id ? String(voucherData.entity.id) : undefined;
       entityFields.expenseCodeId = entityId;
+    } else if (voucherData.entity.type === "expense-Type") {
+      // For expense types, find the first expense code for that type
+      // to use as expenseCodeId (since backend doesn't support expenseTypeId directly)
+      const expenseTypeId = voucherData.entity.id ? String(voucherData.entity.id) : undefined;
+      if (expenseTypeId) {
+        const firstExpenseCode = expenseCodes.find(
+          (code) => code.expenseTypeId === expenseTypeId
+        );
+        if (firstExpenseCode) {
+          entityFields.expenseCodeId = firstExpenseCode.id;
+        } else {
+          showToast("لا توجد بنود مصروفات لهذا النوع. يرجى إضافة بند مصروف أولاً.");
+          return;
+        }
+      }
     }
 
     // Build payment target foreign key based on payment method
@@ -136,9 +152,14 @@ export const usePaymentVouchers = () => {
       paymentFields.safeId = undefined;
     }
 
+    // Map expense-Type to expense for backend compatibility
+    const entityType = voucherData.entity.type === "expense-Type" 
+      ? "expense" 
+      : voucherData.entity.type;
+
     const payload: CreatePaymentVoucherRequest = {
       date: voucherData.date,
-      entityType: voucherData.entity.type,
+      entityType: entityType,
       amount: voucherData.amount,
       description: voucherData.description || undefined,
       paymentMethod: voucherData.paymentMethod,
@@ -166,6 +187,7 @@ export const usePaymentVouchers = () => {
     voucherData,
     currentIndex,
     vouchers,
+    expenseCodes,
     createPaymentVoucher,
     updatePaymentVoucher,
     showToast,

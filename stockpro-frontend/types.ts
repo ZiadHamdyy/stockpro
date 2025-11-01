@@ -211,7 +211,7 @@ export interface Bank {
 }
 
 export interface VoucherEntity {
-  type: "customer" | "supplier" | "current_account" | "expense";
+  type: "customer" | "supplier" | "current_account" | "expense" | "expense-Type";
   id: string | number | null;
   name: string;
 }
