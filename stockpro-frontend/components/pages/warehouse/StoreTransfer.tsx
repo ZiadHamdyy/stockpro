@@ -131,6 +131,7 @@ const StoreTransfer: React.FC<StoreTransferProps> = ({ title }) => {
   const [highlightedIndex, setHighlightedIndex] = useState(-1);
 
   const qtyInputRefs = useRef<(HTMLInputElement | null)[]>([]);
+  const handleNewRef = useRef<(() => void) | undefined>(undefined);
 
   const [isSearchModalOpen, setIsSearchModalOpen] = useState(false);
   const [currentIndex, setCurrentIndex] = useState(-1);
@@ -162,6 +163,11 @@ const StoreTransfer: React.FC<StoreTransferProps> = ({ title }) => {
     });
     setIsReadOnly(false);
   }, [stores]);
+
+  // Keep ref updated with latest handleNew
+  useEffect(() => {
+    handleNewRef.current = handleNew;
+  }, [handleNew]);
 
   useEffect(() => {
     if (currentIndex >= 0 && vouchers[currentIndex]) {
@@ -208,14 +214,16 @@ const StoreTransfer: React.FC<StoreTransferProps> = ({ title }) => {
 
   useEffect(() => {
     const handleAfterPrint = () => {
-      handleNew();
+      if (handleNewRef.current) {
+        handleNewRef.current();
+      }
     };
 
     window.addEventListener("afterprint", handleAfterPrint);
     return () => {
       window.removeEventListener("afterprint", handleAfterPrint);
     };
-  }, [handleNew]);
+  }, []);
 
   const handleAddItem = () => {
     setItems([...items, { id: "", name: "", unit: "", qty: 1, code: "" }]);
@@ -454,18 +462,18 @@ const StoreTransfer: React.FC<StoreTransferProps> = ({ title }) => {
 
   return (
     <>
-      <style>{`@media print { .no-print { display: none !important; } [role="alert"] { display: none !important; } .empty-row { display: none !important; } }`}</style>
+      <style>{`@media print { .no-print { display: none !important; } [role="alert"] { display: none !important; } .empty-row { display: none !important; } .voucher-header-container { padding: 0.5rem !important; margin-bottom: 0.5rem !important; } .voucher-header-title { margin-bottom: 0.5rem !important; font-size: 1.25rem !important; padding-bottom: 0.25rem !important; } .voucher-header-grid { grid-template-columns: repeat(4, 1fr) !important; gap: 0.5rem !important; margin-bottom: 0.5rem !important; } .voucher-header-grid input, .voucher-header-grid select { padding: 0.25rem 0.5rem !important; font-size: 0.75rem !important; margin: 0 !important; } .voucher-header-grid input.bg-gray-200, .voucher-header-grid input:disabled, .voucher-header-grid select:disabled { background-color: white !important; color: black !important; opacity: 1 !important; -webkit-text-fill-color: black !important; } }`}</style>
       <div className="bg-white p-6 rounded-lg shadow">
         <div className="border-2 border-amber-500 rounded-lg mb-4">
           <DocumentHeader companyInfo={companyInfo} />
         </div>
 
-        <div className="border-2 border-amber-500 rounded-lg mb-4">
+        <div className="border-2 border-amber-500 rounded-lg mb-4 voucher-header-container">
           <div className="p-4">
-            <h1 className="text-2xl font-bold mb-4 border-b-2 border-dashed border-gray-300 pb-2 text-brand-dark">
+            <h1 className="text-2xl font-bold mb-4 border-b-2 border-dashed border-gray-300 pb-2 text-brand-dark voucher-header-title">
               {title}
             </h1>
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4 voucher-header-grid">
               <input
                 type="text"
                 placeholder=""
