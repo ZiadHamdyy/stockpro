@@ -66,18 +66,24 @@ export class SalesInvoiceService {
     }));
 
     const result = await this.prisma.$transaction(async (tx) => {
-      // Validate stock availability for all items first
-      for (const item of data.items) {
-        const itemRecord = await tx.item.findUnique({ where: { code: item.id } });
-        if (!itemRecord) {
-          throwHttp(404, ERROR_CODES.INV_ITEM_NOT_FOUND, `Item ${item.id} not found`);
-        }
-        if (itemRecord.stock < item.qty) {
-          throwHttp(
-            409,
-            ERROR_CODES.INV_STOCK_INSUFFICIENT,
-            `Insufficient stock for item ${itemRecord.name}`,
-          );
+      // Validate stock availability for STOCKED items only (skip SERVICE items)
+      // Skip validation if allowInsufficientStock is true
+      if (!data.allowInsufficientStock) {
+        for (const item of data.items) {
+          const itemRecord = await tx.item.findUnique({ 
+            where: { code: item.id }
+          });
+          if (!itemRecord) {
+            throwHttp(404, ERROR_CODES.INV_ITEM_NOT_FOUND, `Item ${item.id} not found`);
+          }
+          // Only validate stock for STOCKED items, SERVICE items don't have stock
+          if ((itemRecord as any).type === 'STOCKED' && itemRecord.stock < item.qty) {
+            throwHttp(
+              409,
+              ERROR_CODES.INV_STOCK_INSUFFICIENT,
+              `Insufficient stock for item ${itemRecord.name}`,
+            );
+          }
         }
       }
 
@@ -107,12 +113,17 @@ export class SalesInvoiceService {
         },
       });
 
-      // Decrease stock
+      // Decrease stock (only for STOCKED items, SERVICE items don't have stock)
       for (const item of data.items) {
-        await tx.item.update({
-          where: { code: item.id },
-          data: { stock: { decrement: item.qty } },
+        const itemRecord = await tx.item.findUnique({ 
+          where: { code: item.id }
         });
+        if (itemRecord && (itemRecord as any).type === 'STOCKED') {
+          await tx.item.update({
+            where: { code: item.id },
+            data: { stock: { decrement: item.qty } },
+          });
+        }
       }
 
       return created;
@@ -273,24 +284,35 @@ export class SalesInvoiceService {
       }));
 
       const updated = await this.prisma.$transaction(async (tx) => {
-        // Restore stock for old items
+        // Restore stock for old items (only for STOCKED items, SERVICE items don't have stock)
         if (existingInvoice) {
           for (const oldItem of (existingInvoice.items as any[]) || []) {
-            await tx.item.update({
-              where: { code: oldItem.id },
-              data: { stock: { increment: oldItem.qty } },
+            const oldItemRecord = await tx.item.findUnique({ 
+              where: { code: oldItem.id }
             });
+            if (oldItemRecord && (oldItemRecord as any).type === 'STOCKED') {
+              await tx.item.update({
+                where: { code: oldItem.id },
+                data: { stock: { increment: oldItem.qty } },
+              });
+            }
           }
         }
 
-        // Validate stock for new items
-        for (const item of items) {
-          const itemRecord = await tx.item.findUnique({ where: { code: item.id } });
-          if (!itemRecord) {
-            throwHttp(404, ERROR_CODES.INV_ITEM_NOT_FOUND, `Item ${item.id} not found`);
-          }
-          if (itemRecord.stock < item.qty) {
-            throwHttp(409, ERROR_CODES.INV_STOCK_INSUFFICIENT, `Insufficient stock for item ${itemRecord.name}`);
+        // Validate stock for new items (only for STOCKED items, skip SERVICE items)
+        // Skip validation if allowInsufficientStock is true
+        if (!data.allowInsufficientStock) {
+          for (const item of items) {
+            const itemRecord = await tx.item.findUnique({ 
+              where: { code: item.id }
+            });
+            if (!itemRecord) {
+              throwHttp(404, ERROR_CODES.INV_ITEM_NOT_FOUND, `Item ${item.id} not found`);
+            }
+            // Only validate stock for STOCKED items, SERVICE items don't have stock
+            if ((itemRecord as any).type === 'STOCKED' && itemRecord.stock < item.qty) {
+              throwHttp(409, ERROR_CODES.INV_STOCK_INSUFFICIENT, `Insufficient stock for item ${itemRecord.name}`);
+            }
           }
         }
 
@@ -312,12 +334,17 @@ export class SalesInvoiceService {
           },
         });
 
-        // Decrease stock for new items
+        // Decrease stock for new items (only for STOCKED items, SERVICE items don't have stock)
         for (const item of items) {
-          await tx.item.update({
-            where: { code: item.id },
-            data: { stock: { decrement: item.qty } },
+          const itemRecord = await tx.item.findUnique({ 
+            where: { code: item.id }
           });
+          if (itemRecord && (itemRecord as any).type === 'STOCKED') {
+            await tx.item.update({
+              where: { code: item.id },
+              data: { stock: { decrement: item.qty } },
+            });
+          }
         }
 
         return inv;
@@ -372,15 +399,21 @@ export class SalesInvoiceService {
     operation: 'increase' | 'decrease',
   ): Promise<void> {
     for (const item of items) {
-      await this.prisma.item.update({
-        where: { code: item.id },
-        data: {
-          stock:
-            operation === 'increase'
-              ? { increment: item.qty }
-              : { decrement: item.qty },
-        },
+      const itemRecord = await this.prisma.item.findUnique({ 
+        where: { code: item.id }
       });
+      // Only update stock for STOCKED items, SERVICE items don't have stock
+      if (itemRecord && (itemRecord as any).type === 'STOCKED') {
+        await this.prisma.item.update({
+          where: { code: item.id },
+          data: {
+            stock:
+              operation === 'increase'
+                ? { increment: item.qty }
+                : { decrement: item.qty },
+          },
+        });
+      }
     }
   }
 

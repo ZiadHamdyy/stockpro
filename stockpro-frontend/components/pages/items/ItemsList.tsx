@@ -32,6 +32,18 @@ interface ItemsListProps {
 const ItemsList: React.FC<ItemsListProps> = ({ title, onNavigate }) => {
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState("");
+  
+  // Load allowSellingLessThanStock from localStorage, default to false
+  const [allowSellingLessThanStock, setAllowSellingLessThanStock] = useState(() => {
+    const stored = localStorage.getItem('allowSellingLessThanStock');
+    return stored ? JSON.parse(stored) : false;
+  });
+  
+  // Save to localStorage whenever it changes
+  useEffect(() => {
+    localStorage.setItem('allowSellingLessThanStock', JSON.stringify(allowSellingLessThanStock));
+  }, [allowSellingLessThanStock]);
+  
   const inputStyle =
     "w-64 pr-10 pl-4 py-3 bg-brand-blue-bg border-2 border-brand-blue rounded-md text-black placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-brand-blue";
   const { showModal } = useModal();
@@ -157,15 +169,32 @@ const ItemsList: React.FC<ItemsListProps> = ({ title, onNavigate }) => {
         </PermissionWrapper>
       </div>
       <div className="flex justify-between items-center mb-4 no-print">
-        <div className="relative">
-          <SearchIcon className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 w-6 h-6" />
-          <input
-            type="text"
-            placeholder="بحث عن صنف..."
-            className={inputStyle}
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
+        <div className="flex items-center gap-4">
+          <div className="relative">
+            <SearchIcon className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 w-6 h-6" />
+            <input
+              type="text"
+              placeholder="بحث عن صنف..."
+              className={inputStyle}
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+          </div>
+          <div className="flex items-center gap-2">
+            <input
+              type="checkbox"
+              id="allowSellingLessThanStock"
+              checked={allowSellingLessThanStock}
+              onChange={(e) => setAllowSellingLessThanStock(e.target.checked)}
+              className="h-5 w-5 rounded border-gray-300 text-brand-blue focus:ring-brand-blue"
+            />
+            <label
+              htmlFor="allowSellingLessThanStock"
+              className="text-sm font-medium text-gray-700"
+            >
+              السماح ببيع الصنف مع عدم وجود رصيد كافي
+            </label>
+          </div>
         </div>
         <div className="flex items-center gap-2">
           <PermissionWrapper

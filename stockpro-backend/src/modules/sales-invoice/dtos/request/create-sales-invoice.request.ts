@@ -5,6 +5,7 @@ import {
   IsArray,
   ValidateNested,
   IsEnum,
+  IsBoolean,
 } from 'class-validator';
 import { Type } from 'class-transformer';
 
@@ -65,4 +66,8 @@ export class CreateSalesInvoiceRequest {
   @IsString()
   @IsOptional()
   notes?: string;
+
+  @IsBoolean()
+  @IsOptional()
+  allowInsufficientStock?: boolean;
 }

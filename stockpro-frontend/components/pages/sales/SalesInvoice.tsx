@@ -42,6 +42,7 @@ type SelectableItem = {
   salePrice: number;
   purchasePrice: number;
   stock: number;
+  type: 'STOCKED' | 'SERVICE';
   barcode?: string;
 };
 
@@ -74,6 +75,12 @@ const SalesInvoice: React.FC<SalesInvoiceProps> = ({
   const { data: safes = [] } = useGetSafesQuery();
   const { data: company } = useGetCompanyQuery();
 
+  // Read allowSellingLessThanStock setting from localStorage
+  const allowSellingLessThanStock = (() => {
+    const stored = localStorage.getItem('allowSellingLessThanStock');
+    return stored ? JSON.parse(stored) : false;
+  })();
+
   // Transform data for component
   const allItems: SelectableItem[] = (items as any[]).map((item) => ({
     id: item.code,
@@ -82,6 +89,7 @@ const SalesInvoice: React.FC<SalesInvoiceProps> = ({
     salePrice: item.salePrice,
     purchasePrice: item.purchasePrice,
     stock: item.stock,
+    type: item.type || 'STOCKED',
     barcode: item.barcode,
   }));
 
@@ -512,6 +520,20 @@ const SalesInvoice: React.FC<SalesInvoiceProps> = ({
       return;
     }
 
+    // Validate stock for STOCKED items if allowSellingLessThanStock is false
+    if (!allowSellingLessThanStock) {
+      for (const item of finalItems) {
+        const itemInfo = allItems.find((i) => i.id === item.id);
+        // Only validate stock for STOCKED items, skip SERVICE items
+        if (itemInfo && itemInfo.type === 'STOCKED') {
+          if (itemInfo.stock < item.qty) {
+            showToast(`الرصيد غير كافي لهذا الصنف: ${item.name}`);
+            return;
+          }
+        }
+      }
+    }
+
     try {
       // For cash payments without a customer, pass null (backend will handle default)
       const invoiceData = {
@@ -535,6 +557,7 @@ const SalesInvoice: React.FC<SalesInvoiceProps> = ({
         paymentTargetId:
           paymentMethod === "cash" ? paymentTargetId?.toString() : undefined,
         notes: "",
+        allowInsufficientStock: allowSellingLessThanStock,
       };
 
       if (currentIndex >= 0 && invoices[currentIndex]) {
