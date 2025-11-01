@@ -161,9 +161,9 @@ const PurchaseInvoicePrintPreview: React.FC<
               </div>
               <div className="text-left">
                 <h1 className="text-3xl font-bold text-brand-blue">
-                  {paymentMethod === "cash" ? "فاتورة ضريبية مبسطة" : "فاتورة ضريبية"}
+                  فاتورة مشتريات
                 </h1>
-                <p>Tax Invoice</p>
+                <p>Purchase Invoice</p>
               </div>
             </header>
 

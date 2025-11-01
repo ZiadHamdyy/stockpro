@@ -46,6 +46,11 @@ const InvoicePrintPreview: React.FC<InvoicePrintPreviewProps> = ({
     details,
   } = invoiceData;
 
+  // Determine the original VAT status from invoice data (not current company settings)
+  // If invoice has no tax (total tax is 0 and all items have 0 or no taxAmount), 
+  // then VAT was disabled when invoice was created
+  const originalIsVatEnabled = totals.tax > 0 || items.some(item => (item.taxAmount || 0) > 0);
+
   if (isLoading) {
     return (
       <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
@@ -162,7 +167,11 @@ const InvoicePrintPreview: React.FC<InvoicePrintPreviewProps> = ({
               </div>
               <div className="text-left">
                 <h1 className="text-3xl font-bold text-brand-blue">
-                  {paymentMethod === "cash" ? "فاتورة ضريبية مبسطة" : "فاتورة ضريبية"}
+                  {!originalIsVatEnabled 
+                    ? "فاتورة مبيعات"
+                    : (customer?.taxNumber 
+                        ? "فاتورة ضريبية" 
+                        : "فاتورة ضريبية مبيسطة")}
                 </h1>
                 <p>Tax Invoice</p>
               </div>

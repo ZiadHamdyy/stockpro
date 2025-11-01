@@ -173,6 +173,10 @@ const SalesInvoice: React.FC<SalesInvoiceProps> = ({
   const justSavedRef = useRef(false); // Flag to prevent resetting state after save
 
   const [focusIndex, setFocusIndex] = useState<number | null>(null);
+  const [originalInvoiceVatEnabled, setOriginalInvoiceVatEnabled] = useState<boolean>(false);
+
+  // Use original invoice VAT status if editing existing invoice, otherwise use current company setting
+  const effectiveVatEnabled = currentIndex >= 0 ? originalInvoiceVatEnabled : isVatEnabled;
 
   const filteredCustomers = customerQuery
     ? allCustomers.filter((c) =>
@@ -209,6 +213,7 @@ const SalesInvoice: React.FC<SalesInvoiceProps> = ({
     setCustomerQuery("");
     setPaymentTargetType("safe");
     setPaymentTargetId(safes.length > 0 ? safes[0].id : null);
+    setOriginalInvoiceVatEnabled(false); // Reset for new invoices
     setIsReadOnly(false);
   };
 
@@ -242,6 +247,11 @@ const SalesInvoice: React.FC<SalesInvoiceProps> = ({
         tax: inv.tax,
         net: inv.net,
       });
+      // Determine original VAT status from invoice data
+      // If invoice has tax > 0 or any items have taxAmount > 0, VAT was enabled
+      const invoiceItems = inv.items as InvoiceItem[];
+      const originalVatEnabled = inv.tax > 0 || invoiceItems.some((item: InvoiceItem) => (item.taxAmount || 0) > 0);
+      setOriginalInvoiceVatEnabled(originalVatEnabled);
       setPaymentMethod(inv.paymentMethod);
       setPaymentTargetType(inv.paymentTargetType || "safe");
       setPaymentTargetId(inv.paymentTargetId || null);
@@ -295,12 +305,14 @@ const SalesInvoice: React.FC<SalesInvoiceProps> = ({
       (acc, item) => acc + item.qty * item.price,
       0,
     );
-    const taxTotal = isVatEnabled
+    const taxTotal = effectiveVatEnabled
       ? invoiceItems.reduce((acc, item) => acc + item.taxAmount, 0)
       : 0;
-    const net = subtotal + taxTotal - totals.discount;
-    setTotals((prev) => ({ ...prev, subtotal, tax: taxTotal, net }));
-  }, [invoiceItems, totals.discount, isVatEnabled]);
+    setTotals((prev) => {
+      const net = subtotal + taxTotal - prev.discount;
+      return { ...prev, subtotal, tax: taxTotal, net };
+    });
+  }, [invoiceItems, effectiveVatEnabled]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -344,7 +356,7 @@ const SalesInvoice: React.FC<SalesInvoiceProps> = ({
       const price = parseFloat(item.price as any) || 0;
       const total = qty * price;
       item.total = total;
-      item.taxAmount = isVatEnabled ? total * (vatRate / 100) : 0;
+      item.taxAmount = effectiveVatEnabled ? total * (vatRate / 100) : 0;
     }
     newItems[index] = item;
     setInvoiceItems(newItems);
@@ -363,7 +375,7 @@ const SalesInvoice: React.FC<SalesInvoiceProps> = ({
     };
     const total = item.qty * (item.price || 0);
     item.total = total;
-    item.taxAmount = isVatEnabled ? total * (vatRate / 100) : 0;
+    item.taxAmount = effectiveVatEnabled ? total * (vatRate / 100) : 0;
     newItems[index] = item;
     setInvoiceItems(newItems);
     setActiveItemSearch(null);
@@ -477,7 +489,7 @@ const SalesInvoice: React.FC<SalesInvoiceProps> = ({
       };
       const total = item.qty * (item.price || 0);
       item.total = total;
-      item.taxAmount = isVatEnabled ? total * (vatRate / 100) : 0;
+      item.taxAmount = effectiveVatEnabled ? total * (vatRate / 100) : 0;
       newItems[indexToFill] = item;
 
       setInvoiceItems(newItems);
@@ -818,7 +830,7 @@ const SalesInvoice: React.FC<SalesInvoiceProps> = ({
                 >
                   السعر
                 </th>
-                {isVatEnabled && (
+                {effectiveVatEnabled && (
                   <th className="px-2 py-3 w-36 text-center text-sm font-semibold uppercase border border-blue-300">
                     مبلغ الضريبة
                   </th>
@@ -949,7 +961,7 @@ const SalesInvoice: React.FC<SalesInvoiceProps> = ({
                       disabled={isReadOnly}
                     />
                   </td>
-                  {isVatEnabled && (
+                  {effectiveVatEnabled && (
                     <td className="p-2 align-middle text-center border-x border-gray-300">
                       {item.taxAmount.toFixed(2)}
                     </td>
@@ -1012,17 +1024,18 @@ const SalesInvoice: React.FC<SalesInvoiceProps> = ({
                   <input
                     type="number"
                     value={totals.discount}
-                    onChange={(e) =>
-                      setTotals({
-                        ...totals,
-                        discount: parseFloat(e.target.value) || 0,
-                      })
-                    }
+                    onChange={(e) => {
+                      const discount = parseFloat(e.target.value) || 0;
+                      setTotals((prev) => {
+                        const net = prev.subtotal + prev.tax - discount;
+                        return { ...prev, discount, net };
+                      });
+                    }}
                     className="w-28 text-left p-1 rounded border-2 border-gray-600 bg-gray-700 text-white focus:ring-brand-blue focus:border-brand-blue font-bold"
                     disabled={isReadOnly}
                   />
                 </div>
-                {isVatEnabled && (
+                {effectiveVatEnabled && (
                   <div className="flex justify-between p-3 border-t-2 border-dashed border-gray-200">
                     <span className="font-semibold text-gray-600">
                       إجمالي الضريبة ({vatRate}%)
@@ -1183,7 +1196,7 @@ const SalesInvoice: React.FC<SalesInvoiceProps> = ({
         }}
         invoiceData={{
           vatRate,
-          isVatEnabled,
+          isVatEnabled: effectiveVatEnabled,
           items: invoiceItems.filter((i) => i.id && i.name && i.qty > 0),
           totals,
           paymentMethod,
