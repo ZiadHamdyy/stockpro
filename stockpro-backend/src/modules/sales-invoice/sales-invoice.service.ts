@@ -155,7 +155,7 @@ export class SalesInvoiceService {
           },
         },
       },
-      orderBy: { createdAt: 'desc' },
+      orderBy: { createdAt: 'asc' },
     });
 
     return salesInvoices.map((invoice) => this.mapToResponse(invoice));

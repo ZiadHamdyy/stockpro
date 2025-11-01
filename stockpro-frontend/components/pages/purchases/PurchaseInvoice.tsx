@@ -166,6 +166,7 @@ const PurchaseInvoice: React.FC<PurchaseInvoiceProps> = ({
   const [isSearchModalOpen, setIsSearchModalOpen] = useState(false);
   const [isScannerOpen, setIsScannerOpen] = useState(false);
   const [currentIndex, setCurrentIndex] = useState(-1);
+  const justSavedRef = useRef(false); // Flag to prevent resetting state after save
 
   const filteredSuppliers = supplierQuery
     ? allSuppliers.filter((s) =>
@@ -236,7 +237,9 @@ const PurchaseInvoice: React.FC<PurchaseInvoiceProps> = ({
       setPaymentTargetType(inv.paymentTargetType || "safe");
       setPaymentTargetId(inv.paymentTargetId || null);
       setIsReadOnly(true);
-    } else {
+      justSavedRef.current = false; // Clear the flag after loading invoice
+    } else if (!justSavedRef.current) {
+      // Only call handleNew if we haven't just saved
       handleNew();
     }
   }, [currentIndex, invoices]);
@@ -482,15 +485,46 @@ const PurchaseInvoice: React.FC<PurchaseInvoiceProps> = ({
           data: invoiceData,
         }).unwrap();
         showToast("تم تحديث الفاتورة بنجاح!");
+        setIsReadOnly(true);
+        // Automatically open print preview after successful save
+        setIsPreviewOpen(true);
       } else {
         // Create new invoice
-        await createPurchaseInvoice(invoiceData).unwrap();
+        const savedInvoice = await createPurchaseInvoice(invoiceData).unwrap();
         showToast("تم حفظ الفاتورة بنجاح!");
+        
+        // Set flag to prevent useEffect from resetting state
+        justSavedRef.current = true;
+        
+        // Update invoice details with the saved invoice data (especially invoice number)
+        setInvoiceDetails({
+          invoiceNumber: savedInvoice.code,
+          invoiceDate: savedInvoice.date,
+        });
+        
+        // Keep the invoice items and totals in state for the preview
+        // The state already has the correct data from the form that was just saved
+        
+        setIsReadOnly(true);
+        
+        // Automatically open print preview immediately with current state
+        // The current state already has the correct saved data
+        setIsPreviewOpen(true);
+        
+        // Wait for invoice list to refresh, then find and load the saved invoice
+        // This ensures the invoice is properly tracked for navigation
+        setTimeout(() => {
+          const savedIndex = (invoices as any[]).findIndex(
+            (inv) => inv.id === savedInvoice.id
+          );
+          if (savedIndex >= 0) {
+            setCurrentIndex(savedIndex);
+          } else {
+            // If invoice not found, clear flag (preview already open with current state)
+            justSavedRef.current = false;
+          }
+        }, 300);
       }
-
-      setIsReadOnly(true);
-      // Refresh the invoices list
-      // The Redux cache will automatically update
     } catch (error) {
       showApiErrorToast(error as any);
     }
@@ -1092,11 +1126,14 @@ const PurchaseInvoice: React.FC<PurchaseInvoiceProps> = ({
         return (
       <PurchaseInvoicePrintPreview
         isOpen={isPreviewOpen}
-        onClose={() => setIsPreviewOpen(false)}
+        onClose={() => {
+          setIsPreviewOpen(false);
+          handleNew();
+        }}
         invoiceData={{
           vatRate,
           isVatEnabled,
-          items: purchaseItems,
+          items: purchaseItems.filter((i) => i.id && i.name && i.qty > 0),
           totals,
           paymentMethod,
           supplier: printSupplier,

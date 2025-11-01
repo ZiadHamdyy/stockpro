@@ -129,7 +129,7 @@ export class PurchaseInvoiceService {
         },
         branch: true,
       },
-      orderBy: { createdAt: 'desc' },
+      orderBy: { createdAt: 'asc' },
     });
 
     return invoices.map(invoice => ({

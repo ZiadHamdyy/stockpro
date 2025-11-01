@@ -95,6 +95,8 @@ const InvoicePrintPreview: React.FC<InvoicePrintPreviewProps> = ({
       setTimeout(() => {
         printWindow?.print();
         printWindow?.close();
+        // Close the modal and reset to new invoice after printing
+        onClose();
       }, 250);
     }
   };

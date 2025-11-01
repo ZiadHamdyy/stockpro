@@ -136,7 +136,7 @@ export class SalesReturnService {
           },
         },
       },
-      orderBy: { createdAt: 'desc' },
+      orderBy: { createdAt: 'asc' },
     });
 
     return salesReturns.map((return_) => this.mapToResponse(return_));

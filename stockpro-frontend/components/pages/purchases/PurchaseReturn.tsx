@@ -165,6 +165,7 @@ const PurchaseReturn: React.FC<PurchaseReturnProps> = ({
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [isSearchModalOpen, setIsSearchModalOpen] = useState(false);
   const [currentIndex, setCurrentIndex] = useState(-1);
+  const justSavedRef = useRef(false); // Flag to prevent resetting state after save
   const [selectedInvoiceId, setSelectedInvoiceId] = useState<string | null>(null);
   const [sourceInvoiceQtyById, setSourceInvoiceQtyById] = useState<Record<string, number>>({});
 
@@ -237,7 +238,9 @@ const PurchaseReturn: React.FC<PurchaseReturnProps> = ({
       setPaymentTargetType(inv.paymentTargetType || "safe");
       setPaymentTargetId(inv.paymentTargetId || null);
       setIsReadOnly(true);
-    } else {
+      justSavedRef.current = false; // Clear the flag after loading return
+    } else if (!justSavedRef.current) {
+      // Only call handleNew if we haven't just saved
       handleNew();
     }
   }, [currentIndex, invoices]);
@@ -473,15 +476,46 @@ const PurchaseReturn: React.FC<PurchaseReturnProps> = ({
           data: returnData,
         }).unwrap();
         showToast("تم تحديث المرتجع بنجاح!");
+        setIsReadOnly(true);
+        // Automatically open print preview after successful save
+        setIsPreviewOpen(true);
       } else {
         // Create new return
-        await createPurchaseReturn(returnData).unwrap();
+        const savedReturn = await createPurchaseReturn(returnData).unwrap();
         showToast("تم حفظ المرتجع بنجاح!");
+        
+        // Set flag to prevent useEffect from resetting state
+        justSavedRef.current = true;
+        
+        // Update invoice details with the saved return data (especially return number)
+        setInvoiceDetails({
+          invoiceNumber: savedReturn.code,
+          invoiceDate: savedReturn.date,
+        });
+        
+        // Keep the return items and totals in state for the preview
+        // The state already has the correct data from the form that was just saved
+        
+        setIsReadOnly(true);
+        
+        // Automatically open print preview immediately with current state
+        // The current state already has the correct saved data
+        setIsPreviewOpen(true);
+        
+        // Wait for return list to refresh, then find and load the saved return
+        // This ensures the return is properly tracked for navigation
+        setTimeout(() => {
+          const savedIndex = (invoices as any[]).findIndex(
+            (ret) => ret.id === savedReturn.id
+          );
+          if (savedIndex >= 0) {
+            setCurrentIndex(savedIndex);
+          } else {
+            // If return not found, clear flag (preview already open with current state)
+            justSavedRef.current = false;
+          }
+        }, 300);
       }
-
-      setIsReadOnly(true);
-      // Refresh the returns list
-      // The Redux cache will automatically update
     } catch (error) {
       showApiErrorToast(error as any);
     }
@@ -1117,11 +1151,14 @@ const PurchaseReturn: React.FC<PurchaseReturnProps> = ({
         return (
           <PurchaseInvoicePrintPreview
             isOpen={isPreviewOpen}
-            onClose={() => setIsPreviewOpen(false)}
+            onClose={() => {
+              setIsPreviewOpen(false);
+              handleNew();
+            }}
             invoiceData={{
               vatRate,
               isVatEnabled,
-              items: returnItems,
+              items: returnItems.filter((i) => i.id && i.name && i.qty > 0),
               totals,
               paymentMethod,
               supplier: printSupplier,

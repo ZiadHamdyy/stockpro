@@ -137,7 +137,7 @@ export class PurchaseReturnService {
         },
         branch: true,
       },
-      orderBy: { createdAt: 'desc' },
+      orderBy: { createdAt: 'asc' },
     });
 
     return returns.map(returnInvoice => ({
