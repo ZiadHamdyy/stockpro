@@ -27,7 +27,9 @@ export class CurrentAccountService {
 
     const currentAccount = await this.prisma.currentAccount.create({
       data: {
-        ...createCurrentAccountDto,
+        name: createCurrentAccountDto.name,
+        type: createCurrentAccountDto.type || '',
+        openingBalance: createCurrentAccountDto.openingBalance,
         code,
       },
     });

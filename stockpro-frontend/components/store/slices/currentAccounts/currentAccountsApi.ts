@@ -4,7 +4,7 @@ export interface CurrentAccount {
   id: string;
   code: string;
   name: string;
-  type: string;
+  type?: string;
   openingBalance: number;
   createdAt: string;
   updatedAt: string;
@@ -12,7 +12,7 @@ export interface CurrentAccount {
 
 export interface CreateCurrentAccountRequest {
   name: string;
-  type: string;
+  type?: string;
   openingBalance: number;
 }
 

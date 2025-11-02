@@ -1,4 +1,4 @@
-import { IsString, IsNumber, IsNotEmpty } from 'class-validator';
+import { IsString, IsNumber, IsNotEmpty, IsOptional } from 'class-validator';
 
 export class CreateCurrentAccountRequest {
   @IsString()
@@ -6,8 +6,8 @@ export class CreateCurrentAccountRequest {
   name: string;
 
   @IsString()
-  @IsNotEmpty()
-  type: string;
+  @IsOptional()
+  type?: string;
 
   @IsNumber()
   openingBalance: number;

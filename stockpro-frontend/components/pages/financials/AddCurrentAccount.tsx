@@ -24,10 +24,13 @@ interface AddCurrentAccountProps {
   onNavigate?: (key: string, label: string, id?: string | null) => void;
 }
 
-const emptyAccount: Omit<CurrentAccount, "id" | "createdAt" | "updatedAt"> = {
+const emptyAccount: {
+  code: string;
+  name: string;
+  openingBalance: number;
+} = {
   code: "",
   name: "",
-  type: "",
   openingBalance: 0,
 };
 
@@ -119,7 +122,6 @@ const AddCurrentAccount: React.FC<AddCurrentAccountProps> = ({
         // Create new account
         await createCurrentAccount({
           name: accountData.name,
-          type: accountData.type,
           openingBalance: accountData.openingBalance,
         }).unwrap();
         showToast(`تم إنشاء الحساب "${accountData.name}" بنجاح!`);
@@ -129,7 +131,6 @@ const AddCurrentAccount: React.FC<AddCurrentAccountProps> = ({
           id: accountData.id,
           data: {
             name: accountData.name,
-            type: accountData.type,
             openingBalance: accountData.openingBalance,
           },
         }).unwrap();
@@ -243,27 +244,6 @@ const AddCurrentAccount: React.FC<AddCurrentAccountProps> = ({
               disabled={isReadOnly}
               required
             />
-          </div>
-          <div>
-            <label
-              htmlFor="type"
-              className="block text-sm font-medium text-gray-700"
-            >
-              نوع الحساب
-            </label>
-            <select
-              name="type"
-              id="type"
-              value={accountData.type}
-              onChange={handleChange}
-              className={inputStyle}
-              disabled={isReadOnly}
-              required
-            >
-              <option value="">-- اختر النوع --</option>
-              <option value="شريك">شريك</option>
-              <option value="ارصدة مالية">أرصدة مالية</option>
-            </select>
           </div>
           <div>
             <label

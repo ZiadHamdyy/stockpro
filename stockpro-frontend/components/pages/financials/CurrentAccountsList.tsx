@@ -27,7 +27,6 @@ const CurrentAccountsList: React.FC<CurrentAccountsListProps> = ({
 }) => {
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState("");
-  const [typeFilter, setTypeFilter] = useState("");
   const { token } = useAppSelector((state) => state.auth);
   const {
     data: accounts = [],
@@ -44,21 +43,15 @@ const CurrentAccountsList: React.FC<CurrentAccountsListProps> = ({
   const inputStyle =
     "w-64 pr-10 pl-4 py-3 bg-brand-blue-bg border-2 border-brand-blue rounded-md text-black placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-brand-blue";
 
-  const selectStyle =
-    "pr-10 pl-4 py-3 bg-brand-blue-bg border-2 border-brand-blue rounded-md text-black focus:outline-none focus:ring-2 focus:ring-brand-blue";
-
-  // Filter accounts based on search term and type filter
+  // Filter accounts based on search term
   const filteredAccounts = Array.isArray(accounts)
     ? accounts.filter(
         (account) => {
           const matchesSearch =
             account.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            account.code.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            account.type.toLowerCase().includes(searchTerm.toLowerCase());
+            account.code.toLowerCase().includes(searchTerm.toLowerCase());
           
-          const matchesType = !typeFilter || account.type === typeFilter;
-          
-          return matchesSearch && matchesType;
+          return matchesSearch;
         },
       )
     : [];
@@ -80,17 +73,16 @@ const CurrentAccountsList: React.FC<CurrentAccountsListProps> = ({
   };
 
   const handleExcelExport = () => {
-    const dataToExport = filteredAccounts.map(({ code, name, type }) => ({
+    const dataToExport = filteredAccounts.map(({ code, name }) => ({
       الكود: code,
       "اسم الحساب": name,
-      النوع: type,
     }));
     exportToExcel(dataToExport, "قائمة-الحسابات-الجارية");
   };
 
   const handlePdfExport = () => {
-    const head = [["النوع", "اسم الحساب", "الكود"]];
-    const body = filteredAccounts.map((acc) => [acc.type, acc.name, acc.code]);
+    const head = [["اسم الحساب", "الكود"]];
+    const body = filteredAccounts.map((acc) => [acc.name, acc.code]);
 
     exportToPdf("قائمة الحسابات الجارية", head, body, "قائمة-الحسابات-الجارية");
   };
@@ -165,17 +157,6 @@ const CurrentAccountsList: React.FC<CurrentAccountsListProps> = ({
               onChange={(e) => setSearchTerm(e.target.value)}
             />
           </div>
-          <div>
-            <select
-              value={typeFilter}
-              onChange={(e) => setTypeFilter(e.target.value)}
-              className={selectStyle}
-            >
-              <option value="">جميع الأنواع</option>
-              <option value="شريك">شريك</option>
-              <option value="ارصدة مالية">أرصدة مالية</option>
-            </select>
-          </div>
         </div>
         <div className="flex items-center gap-2">
           <button
@@ -211,9 +192,6 @@ const CurrentAccountsList: React.FC<CurrentAccountsListProps> = ({
               <th className="px-6 py-3 text-right text-sm font-semibold text-white uppercase">
                 اسم الحساب
               </th>
-              <th className="px-6 py-3 text-right text-sm font-semibold text-white uppercase">
-                النوع
-              </th>
               <th className="px-6 py-3 text-right text-sm font-semibold text-white uppercase no-print">
                 اجراءات
               </th>
@@ -226,7 +204,6 @@ const CurrentAccountsList: React.FC<CurrentAccountsListProps> = ({
                 <td className="px-6 py-4 font-medium text-brand-dark">
                   {account.name}
                 </td>
-                <td className="px-6 py-4">{account.type}</td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm font-medium no-print">
                   <PermissionWrapper
                     requiredPermission={buildPermission(
