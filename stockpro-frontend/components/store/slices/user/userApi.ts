@@ -123,6 +123,17 @@ export const userSlice = apiSlice.injectEndpoints({
       }),
       invalidatesTags: (result, error, id) => [{ type: "User", id }, "User"],
     }),
+    toggleUserActivity: builder.mutation<User, string>({
+      query: (id) => ({
+        url: `users/${id}/toggle-activity`,
+        method: "PATCH",
+      }),
+      transformResponse: (response: { data: User }) => response.data,
+      invalidatesTags: (result, error, id) => [
+        { type: "User", id },
+        "User",
+      ],
+    }),
   }),
 });
 export const {
@@ -132,6 +143,7 @@ export const {
   useCreateUserMutation,
   useUpdateUserMutation,
   useDeleteUserMutation,
+  useToggleUserActivityMutation,
 } = userSlice;
 
 export default userSlice.reducer;

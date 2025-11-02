@@ -7,6 +7,7 @@ import { exportToExcel, exportToPdf } from "../../../utils/formatting";
 import {
   useGetUsersQuery,
   useDeleteUserMutation,
+  useToggleUserActivityMutation,
   type User,
 } from "../../store/slices/user/userApi";
 import { useGetBranchesQuery } from "../../store/slices/branch/branchApi";
@@ -27,6 +28,8 @@ const UsersData: React.FC<UsersDataProps> = ({ title }) => {
   const { data: branches = [], isLoading: isLoadingBranches } =
     useGetBranchesQuery();
   const [deleteUser, { isLoading: isDeleting }] = useDeleteUserMutation();
+  const [toggleUserActivity, { isLoading: isToggling }] =
+    useToggleUserActivityMutation();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [userToEdit, setUserToEdit] = useState<User | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
@@ -76,6 +79,29 @@ const UsersData: React.FC<UsersDataProps> = ({ title }) => {
       type: "delete",
       showPassword: true,
     });
+  };
+
+  const handleToggleStatus = async (user: User) => {
+    // Prevent users from deactivating themselves
+    if (currentUser && user?.id === currentUser?.id) {
+      showToast("لا يمكنك تعطيل حسابك الحالي.");
+      return;
+    }
+
+    try {
+      await toggleUserActivity(user.id).unwrap();
+      showToast(
+        user.active
+          ? "تم تعطيل المستخدم بنجاح"
+          : "تم تفعيل المستخدم بنجاح",
+      );
+    } catch (error: any) {
+      console.error("Error toggling user status:", error);
+      showToast(
+        error?.data?.message ||
+          "حدث خطأ أثناء تحديث حالة المستخدم",
+      );
+    }
   };
 
   const filteredUsers = users.filter(
@@ -219,7 +245,7 @@ const UsersData: React.FC<UsersDataProps> = ({ title }) => {
                   <th className="px-6 py-3 text-right text-sm font-semibold text-white uppercase tracking-wider">
                     مجموعة الصلاحيات
                   </th>
-                  <th className="px-6 py-3 text-right text-sm font-semibold text-white uppercase tracking-wider">
+                  <th className="px-6 py-3 text-right text-sm font-semibold text-white uppercase tracking-wider w-52 min-w-[208px]">
                     الحالة
                   </th>
                   <th className="px-6 py-3 text-right text-sm font-semibold text-white uppercase tracking-wider">
@@ -233,7 +259,7 @@ const UsersData: React.FC<UsersDataProps> = ({ title }) => {
               <tbody className="bg-white divide-y divide-gray-200">
                 {filteredUsers.map((user) => (
                   <tr key={user.id} className="hover:bg-brand-blue-bg">
-                    <td className="px-6 py-4 whitespace-nowrap">{user.code}</td>
+                    <td className="px-6 py-4 whitespace-nowrap">{user?.code}</td>
                     <td className="px-6 py-4 whitespace-nowrap font-medium text-brand-dark">
                       {user.name || ""}
                     </td>
@@ -259,12 +285,29 @@ const UsersData: React.FC<UsersDataProps> = ({ title }) => {
                                 : user.role?.name || "مستخدم"}
                       </span>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span
-                        className={`px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${user.active ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"}`}
-                      >
-                        {user.active ? "نشط" : "غير نشط"}
-                      </span>
+                    <td className="px-6 py-4 whitespace-nowrap w-52 min-w-[208px]">
+                      <div className="flex items-center gap-4">
+                        <span
+                          className={`px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full flex-shrink-0 ${user.active ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"}`}
+                        >
+                          {user.active ? "نشط" : "غير نشط"}
+                        </span>
+                        <label className="relative inline-flex items-center cursor-pointer flex-shrink-0">
+                          <input
+                            type="checkbox"
+                            checked={user.active}
+                            onChange={() => handleToggleStatus(user)}
+                            disabled={
+                              isToggling ||
+                              (currentUser && user?.id === currentUser?.id)
+                            }
+                            className="sr-only peer"
+                          />
+                          <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-brand-blue/20 rounded-full peer peer-checked:bg-brand-blue peer-disabled:opacity-50 peer-disabled:cursor-not-allowed">
+                            <div className={`absolute top-[2px] h-5 w-5 bg-white border border-gray-300 rounded-full transition-all duration-200 ${user.active ? 'left-[2px]' : 'right-[2px]'}`}></div>
+                          </div>
+                        </label>
+                      </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       {new Date(user.createdAt).toLocaleDateString("ar-SA")}
