@@ -40,6 +40,17 @@ const CompanyData: React.FC<CompanyDataProps> = ({ title }) => {
     );
   };
 
+  const handleCapitalChange = (
+    e: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    const value = e.target.value;
+    // Allow empty string and valid positive numbers (including decimals, no negatives)
+    if (value === "" || /^\d*\.?\d*$/.test(value)) {
+      // Store as string if empty, otherwise as number
+      handleFieldChange("capital", value === "" ? (value as any) : parseFloat(value) || 0);
+    }
+  };
+
   const handleLogoFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     handleLogoChange(file || null);
@@ -196,13 +207,20 @@ const CompanyData: React.FC<CompanyDataProps> = ({ title }) => {
               رأس المال
             </label>
             <input
-              type="number"
+              type="text"
               id="capital"
               name="capital"
-              value={company.capital}
-              onChange={handleInfoChange}
+              value={
+                typeof company.capital === "string"
+                  ? company.capital
+                  : company.capital === 0 || company.capital === null
+                  ? ""
+                  : company.capital
+              }
+              onChange={handleCapitalChange}
               className={inputStyle}
               placeholder="ادخل رأس المال"
+              inputMode="numeric"
             />
           </div>
 

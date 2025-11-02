@@ -22,7 +22,7 @@ const emptyCustomer = {
   taxNumber: "",
   nationalAddress: "",
   phone: "",
-  openingBalance: 0,
+  openingBalance: "",
 };
 
 const AddCustomer: React.FC<AddCustomerProps> = ({
@@ -43,7 +43,14 @@ const AddCustomer: React.FC<AddCustomerProps> = ({
     if (editingId !== null) {
       const index = customers.findIndex((c) => c.id === editingId);
       if (index !== -1) {
-        setCustomerData(customers[index]);
+        const customer = customers[index];
+        setCustomerData({
+          ...customer,
+          openingBalance:
+            customer.openingBalance === 0 || customer.openingBalance === null
+              ? ""
+              : customer.openingBalance,
+        });
         setCurrentIndex(index);
         setCustomerPosition(index + 1);
         setIsReadOnly(true);
@@ -71,12 +78,32 @@ const AddCustomer: React.FC<AddCustomerProps> = ({
     const { name, value } = e.target;
     setCustomerData((prev: any) => ({
       ...prev,
-      [name]: name === "openingBalance" ? parseFloat(value) : value,
+      [name]: name === "openingBalance" ? parseFloat(value) || 0 : value,
     }));
   };
 
+  const handleOpeningBalanceChange = (
+    e: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    const value = e.target.value;
+    // Allow empty string, negative sign, and valid numbers (including decimals)
+    if (value === "" || value === "-" || /^-?\d*\.?\d*$/.test(value)) {
+      setCustomerData((prev: any) => ({
+        ...prev,
+        openingBalance: value === "" || value === "-" ? value : parseFloat(value) || 0,
+      }));
+    }
+  };
+
   const onSave = async () => {
-    await handleSave(customerData, editingId || undefined);
+    const dataToSave = {
+      ...customerData,
+      openingBalance:
+        typeof customerData.openingBalance === "string"
+          ? parseFloat(customerData.openingBalance) || 0
+          : customerData.openingBalance,
+    };
+    await handleSave(dataToSave, editingId || undefined);
     if (!("id" in customerData)) {
       // After saving new customer, navigate back to list
       onNavigate("customers_list", "قائمة العملاء");
@@ -246,13 +273,14 @@ const AddCustomer: React.FC<AddCustomerProps> = ({
               الرصيد الافتتاحي
             </label>
             <input
-              type="number"
+              type="text"
               name="openingBalance"
               id="openingBalance"
               value={customerData.openingBalance}
-              onChange={handleChange}
+              onChange={handleOpeningBalanceChange}
               className={inputStyle}
               disabled={isReadOnly}
+              inputMode="numeric"
             />
           </div>
         </div>
@@ -304,7 +332,15 @@ const AddCustomer: React.FC<AddCustomerProps> = ({
                         (c) => c.id === customerData.id,
                       );
                       if (index !== -1) {
-                        setCustomerData(customers[index]);
+                        const customer = customers[index];
+                        setCustomerData({
+                          ...customer,
+                          openingBalance:
+                            customer.openingBalance === 0 ||
+                            customer.openingBalance === null
+                              ? ""
+                              : customer.openingBalance,
+                        });
                       }
                       setIsReadOnly(true);
                     }}

@@ -22,7 +22,7 @@ const emptySupplier = {
   taxNumber: "",
   nationalAddress: "",
   phone: "",
-  openingBalance: 0,
+  openingBalance: "",
 };
 
 const AddSupplier: React.FC<AddSupplierProps> = ({
@@ -43,7 +43,14 @@ const AddSupplier: React.FC<AddSupplierProps> = ({
     if (editingId !== null) {
       const index = suppliers.findIndex((s) => s.id === editingId);
       if (index !== -1) {
-        setSupplierData(suppliers[index]);
+        const supplier = suppliers[index];
+        setSupplierData({
+          ...supplier,
+          openingBalance:
+            supplier.openingBalance === 0 || supplier.openingBalance === null
+              ? ""
+              : supplier.openingBalance,
+        });
         setCurrentIndex(index);
         setSupplierPosition(index + 1);
         setIsReadOnly(true);
@@ -71,12 +78,32 @@ const AddSupplier: React.FC<AddSupplierProps> = ({
     const { name, value } = e.target;
     setSupplierData((prev: any) => ({
       ...prev,
-      [name]: name === "openingBalance" ? parseFloat(value) : value,
+      [name]: name === "openingBalance" ? parseFloat(value) || 0 : value,
     }));
   };
 
+  const handleOpeningBalanceChange = (
+    e: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    const value = e.target.value;
+    // Allow empty string, negative sign, and valid numbers (including decimals)
+    if (value === "" || value === "-" || /^-?\d*\.?\d*$/.test(value)) {
+      setSupplierData((prev: any) => ({
+        ...prev,
+        openingBalance: value === "" || value === "-" ? value : parseFloat(value) || 0,
+      }));
+    }
+  };
+
   const onSave = async () => {
-    await handleSave(supplierData, editingId || undefined);
+    const dataToSave = {
+      ...supplierData,
+      openingBalance:
+        typeof supplierData.openingBalance === "string"
+          ? parseFloat(supplierData.openingBalance) || 0
+          : supplierData.openingBalance,
+    };
+    await handleSave(dataToSave, editingId || undefined);
     if (!("id" in supplierData)) {
       // After saving new supplier, navigate back to list
       onNavigate("suppliers_list", "قائمة الموردين");
@@ -245,13 +272,14 @@ const AddSupplier: React.FC<AddSupplierProps> = ({
               الرصيد الافتتاحي
             </label>
             <input
-              type="number"
+              type="text"
               name="openingBalance"
               id="openingBalance"
               value={supplierData.openingBalance}
-              onChange={handleChange}
+              onChange={handleOpeningBalanceChange}
               className={inputStyle}
               disabled={isReadOnly}
+              inputMode="numeric"
             />
           </div>
         </div>
@@ -303,7 +331,15 @@ const AddSupplier: React.FC<AddSupplierProps> = ({
                         (s) => s.id === supplierData.id,
                       );
                       if (index !== -1) {
-                        setSupplierData(suppliers[index]);
+                        const supplier = suppliers[index];
+                        setSupplierData({
+                          ...supplier,
+                          openingBalance:
+                            supplier.openingBalance === 0 ||
+                            supplier.openingBalance === null
+                              ? ""
+                              : supplier.openingBalance,
+                        });
                       }
                       setIsReadOnly(true);
                     }}

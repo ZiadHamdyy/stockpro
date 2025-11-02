@@ -41,9 +41,9 @@ const AddItem: React.FC<AddItemProps> = ({ title, editingId, onNavigate }) => {
     barcode: "",
     name: "",
     purchasePrice: 0,
-    salePrice: 0,
-    stock: 0,
-    reorderLimit: 0,
+    salePrice: "" as any,
+    stock: "" as any,
+    reorderLimit: "" as any,
   });
   const [isReadOnly, setIsReadOnly] = useState(true);
   const [itemType, setItemType] = useState<'STOCKED' | 'SERVICE'>('STOCKED');
@@ -112,6 +112,18 @@ const AddItem: React.FC<AddItemProps> = ({ title, editingId, onNavigate }) => {
           ...foundItem,
           groupId: (foundItem as any).group?.id,
           unitId: (foundItem as any).unit?.id,
+          salePrice:
+            foundItem.salePrice === 0 || foundItem.salePrice === null
+              ? ("" as any)
+              : foundItem.salePrice,
+          stock:
+            foundItem.stock === 0 || foundItem.stock === null
+              ? ("" as any)
+              : foundItem.stock,
+          reorderLimit:
+            foundItem.reorderLimit === 0 || foundItem.reorderLimit === null
+              ? ("" as any)
+              : foundItem.reorderLimit,
         });
         if ((foundItem as any).type) {
           setItemType((foundItem as any).type as 'STOCKED' | 'SERVICE');
@@ -125,9 +137,9 @@ const AddItem: React.FC<AddItemProps> = ({ title, editingId, onNavigate }) => {
         barcode: "",
         name: "",
         purchasePrice: 0,
-        salePrice: 0,
-        stock: 0,
-        reorderLimit: 0,
+        salePrice: "" as any,
+        stock: "" as any,
+        reorderLimit: "" as any,
       });
       setItemType('STOCKED');
       setIsReadOnly(false);
@@ -141,15 +153,38 @@ const AddItem: React.FC<AddItemProps> = ({ title, editingId, onNavigate }) => {
     const { name, value } = e.target;
     setItemData((prev) => ({
       ...prev,
-      // FIX: Add 'reorderLimit' to the list of numeric fields.
       [name]:
-        name === "purchasePrice" ||
-        name === "salePrice" ||
-        name === "stock" ||
-        name === "reorderLimit"
+        name === "purchasePrice"
           ? parseFloat(value) || 0
           : value,
     }));
+  };
+
+  const handlePositiveNumberChange = (
+    e: React.ChangeEvent<HTMLInputElement>,
+    fieldName: "salePrice" | "reorderLimit"
+  ) => {
+    const value = e.target.value;
+    // Allow empty string and valid positive numbers (including decimals, no negatives)
+    if (value === "" || /^\d*\.?\d*$/.test(value)) {
+      setItemData((prev) => ({
+        ...prev,
+        [fieldName]: value === "" ? ("" as any) : parseFloat(value) || 0,
+      }));
+    }
+  };
+
+  const handleStockChange = (
+    e: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    const value = e.target.value;
+    // Allow empty string, negative sign, and valid numbers (including decimals and negatives)
+    if (value === "" || value === "-" || /^-?\d*\.?\d*$/.test(value)) {
+      setItemData((prev) => ({
+        ...prev,
+        stock: value === "" || value === "-" ? (value as any) : parseFloat(value) || 0,
+      }));
+    }
   };
 
   const handleSave = async () => {
@@ -159,6 +194,20 @@ const AddItem: React.FC<AddItemProps> = ({ title, editingId, onNavigate }) => {
     }
 
     try {
+      // Normalize salePrice, stock, and reorderLimit to numbers before saving
+      const salePriceValue =
+        typeof itemData.salePrice === "string"
+          ? parseFloat(itemData.salePrice) || 0
+          : itemData.salePrice || 0;
+      const stockValue =
+        typeof itemData.stock === "string"
+          ? parseFloat(itemData.stock) || 0
+          : itemData.stock || 0;
+      const reorderLimitValue =
+        typeof itemData.reorderLimit === "string"
+          ? parseFloat(itemData.reorderLimit) || 0
+          : itemData.reorderLimit || 0;
+
       if (itemData.id) {
         // Update existing item
         await updateItem({
@@ -167,9 +216,9 @@ const AddItem: React.FC<AddItemProps> = ({ title, editingId, onNavigate }) => {
             barcode: itemData.barcode,
             name: itemData.name,
             purchasePrice: itemData.purchasePrice,
-            salePrice: itemData.salePrice,
-            stock: itemType === 'SERVICE' ? 0 : itemData.stock,
-            reorderLimit: itemData.reorderLimit,
+            salePrice: salePriceValue,
+            stock: itemType === 'SERVICE' ? 0 : stockValue,
+            reorderLimit: reorderLimitValue,
             groupId: itemData.groupId,
             unitId: itemData.unitId,
             type: itemType,
@@ -183,9 +232,9 @@ const AddItem: React.FC<AddItemProps> = ({ title, editingId, onNavigate }) => {
           barcode: itemData.barcode,
           name: itemData.name,
           purchasePrice: itemData.purchasePrice,
-          salePrice: itemData.salePrice,
-          stock: itemType === 'SERVICE' ? 0 : itemData.stock,
-          reorderLimit: itemData.reorderLimit,
+          salePrice: salePriceValue,
+          stock: itemType === 'SERVICE' ? 0 : stockValue,
+          reorderLimit: reorderLimitValue,
           groupId: itemData.groupId,
           unitId: itemData.unitId,
           type: itemType,
@@ -441,13 +490,20 @@ const AddItem: React.FC<AddItemProps> = ({ title, editingId, onNavigate }) => {
               الرصيد الافتتاحي
             </label>
             <input
-              type="number"
+              type="text"
               name="stock"
               id="stock"
-              value={"stock" in itemData ? itemData.stock : 0}
-              onChange={handleChange}
+              value={
+                typeof itemData.stock === "string"
+                  ? itemData.stock
+                  : itemData.stock === 0 || itemData.stock === null
+                  ? ""
+                  : itemData.stock
+              }
+              onChange={handleStockChange}
               className={inputStyle}
               disabled={isReadOnly || itemType === 'SERVICE'}
+              inputMode="numeric"
             />
           </div>
           <div>
@@ -476,14 +532,21 @@ const AddItem: React.FC<AddItemProps> = ({ title, editingId, onNavigate }) => {
               سعر البيع
             </label>
             <input
-              type="number"
+              type="text"
               name="salePrice"
               id="salePrice"
-              value={itemData.salePrice}
-              onChange={handleChange}
+              value={
+                typeof itemData.salePrice === "string"
+                  ? itemData.salePrice
+                  : itemData.salePrice === 0 || itemData.salePrice === null
+                  ? ""
+                  : itemData.salePrice
+              }
+              onChange={(e) => handlePositiveNumberChange(e, "salePrice")}
               className={inputStyle}
               disabled={isReadOnly}
               required
+              inputMode="numeric"
             />
           </div>
           {/* FIX: Add input field for 'reorderLimit'. */}
@@ -495,14 +558,21 @@ const AddItem: React.FC<AddItemProps> = ({ title, editingId, onNavigate }) => {
               حد إعادة الطلب
             </label>
             <input
-              type="number"
+              type="text"
               name="reorderLimit"
               id="reorderLimit"
-              value={itemData.reorderLimit}
-              onChange={handleChange}
+              value={
+                typeof itemData.reorderLimit === "string"
+                  ? itemData.reorderLimit
+                  : itemData.reorderLimit === 0 || itemData.reorderLimit === null
+                  ? ""
+                  : itemData.reorderLimit
+              }
+              onChange={(e) => handlePositiveNumberChange(e, "reorderLimit")}
               className={inputStyle}
               disabled={isReadOnly}
               required
+              inputMode="numeric"
             />
           </div>
         </div>

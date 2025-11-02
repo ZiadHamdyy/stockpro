@@ -24,7 +24,7 @@ export const useCompanyData = () => {
     commercialReg: "",
     currency: "SAR",
     logo: null,
-    capital: 0,
+    capital: "" as any, // Allow empty string temporarily during editing
     vatRate: 15,
     isVatEnabled: true,
   });
@@ -44,7 +44,7 @@ export const useCompanyData = () => {
         phone: company.phone === '+966000000000' ? '' : company.phone,
         taxNumber: company.taxNumber === '000000000000003' ? '' : company.taxNumber,
         commercialReg: company.commercialReg === '0000000000' ? '' : company.commercialReg,
-        capital: company.capital === 0 ? 0 : company.capital,
+        capital: company.capital === 0 || company.capital === null ? ("" as any) : company.capital,
       };
       
       setFormData(filteredCompany);
@@ -78,6 +78,12 @@ export const useCompanyData = () => {
     e.preventDefault();
 
     try {
+      // Normalize capital to number before saving
+      const capitalValue =
+        typeof formData.capital === "string"
+          ? parseFloat(formData.capital) || 0
+          : formData.capital || 0;
+
       await upsertCompany({
         name: formData.name,
         activity: formData.activity,
@@ -86,7 +92,7 @@ export const useCompanyData = () => {
         taxNumber: formData.taxNumber,
         commercialReg: formData.commercialReg,
         currency: formData.currency,
-        capital: formData.capital,
+        capital: capitalValue,
         vatRate: vatRate,
         isVatEnabled: isVatEnabled,
         logo: formData.logo,
