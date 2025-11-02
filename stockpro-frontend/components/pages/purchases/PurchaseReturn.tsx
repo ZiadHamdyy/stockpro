@@ -175,6 +175,9 @@ const PurchaseReturn: React.FC<PurchaseReturnProps> = ({
   const [currentIndex, setCurrentIndex] = useState(-1);
   const justSavedRef = useRef(false); // Flag to prevent resetting state after save
   const [selectedInvoiceId, setSelectedInvoiceId] = useState<string | null>(null);
+  const [invoiceQuery, setInvoiceQuery] = useState("");
+  const [isInvoiceDropdownOpen, setIsInvoiceDropdownOpen] = useState(false);
+  const invoiceRef = useRef<HTMLDivElement>(null);
   const [sourceInvoiceQtyById, setSourceInvoiceQtyById] = useState<Record<string, number>>({});
   const [focusIndex, setFocusIndex] = useState<number | null>(null);
 
@@ -183,6 +186,12 @@ const PurchaseReturn: React.FC<PurchaseReturnProps> = ({
         s.name.toLowerCase().includes(supplierQuery.toLowerCase()),
       )
     : allSuppliers;
+
+  const filteredInvoices = invoiceQuery
+    ? purchaseInvoices.filter((inv) =>
+        inv.code.toLowerCase().includes(invoiceQuery.toLowerCase()),
+      )
+    : purchaseInvoices;
 
   const filteredItems =
     activeItemSearch && typeof activeItemSearch.query === "string"
@@ -211,6 +220,8 @@ const PurchaseReturn: React.FC<PurchaseReturnProps> = ({
     });
     setSelectedSupplier(null);
     setSupplierQuery("");
+    setSelectedInvoiceId(null);
+    setInvoiceQuery("");
     setPaymentTargetType("safe");
     // For safes, we don't need paymentTargetId (we send branchId instead)
     setPaymentTargetId(null);
@@ -318,6 +329,11 @@ const PurchaseReturn: React.FC<PurchaseReturnProps> = ({
         !supplierRef.current.contains(event.target as Node)
       )
         setIsSupplierDropdownOpen(false);
+      if (
+        invoiceRef.current &&
+        !invoiceRef.current.contains(event.target as Node)
+      )
+        setIsInvoiceDropdownOpen(false);
     };
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
@@ -705,15 +721,16 @@ const PurchaseReturn: React.FC<PurchaseReturnProps> = ({
     setIsSearchModalOpen(false);
   };
 
-  const handleSearchInvoice = (invoiceCode: string) => {
-    if (!invoiceCode) return;
-    const inv = purchaseInvoices.find((p) => p.code === invoiceCode);
+  const handleSelectInvoice = (invoice: { code: string }) => {
+    const inv = purchaseInvoices.find((p) => p.code === invoice.code);
     if (!inv) return;
     const qtyMap: Record<string, number> = {};
     (inv.items || []).forEach((it) => {
       qtyMap[it.id] = (qtyMap[it.id] || 0) + (it.qty || 0);
     });
     setSourceInvoiceQtyById(qtyMap);
+    setSelectedInvoiceId(inv.code);
+    setInvoiceQuery(inv.code);
     setInvoiceDetails({ invoiceNumber: inv.code, invoiceDate: (inv.date || "").slice(0, 10) });
     if (inv.supplier) {
       setSelectedSupplier({ id: inv.supplier.id.toString(), name: inv.supplier.name });
@@ -730,7 +747,15 @@ const PurchaseReturn: React.FC<PurchaseReturnProps> = ({
         total: it.qty * it.price,
       }))
     );
+    setIsInvoiceDropdownOpen(false);
     setIsReadOnly(false);
+  };
+
+  const handleSearchInvoice = (invoiceCode: string) => {
+    if (!invoiceCode) return;
+    const inv = purchaseInvoices.find((p) => p.code === invoiceCode);
+    if (!inv) return;
+    handleSelectInvoice({ code: invoiceCode });
   };
 
   const inputStyle =
@@ -831,30 +856,42 @@ const PurchaseReturn: React.FC<PurchaseReturnProps> = ({
             </div>
             {paymentMethod === "cash" && (
               <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4 items-end">
-                <div>
+                <div className="relative" ref={invoiceRef}>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     اختر الفاتورة
                   </label>
                   <input
                     type="text"
-                    placeholder="اكتب رقم الفاتورة"
+                    placeholder="ابحث عن فاتورة..."
                     className={inputStyle}
-                    value={selectedInvoiceId || ""}
+                    value={invoiceQuery}
                     onChange={(e) => {
-                      setSelectedInvoiceId(e.target.value);
+                      setInvoiceQuery(e.target.value);
+                      setIsInvoiceDropdownOpen(true);
+                      setSelectedInvoiceId(null);
                     }}
-                    onBlur={(e) => {
-                      handleSearchInvoice(e.target.value.trim());
-                    }}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") {
-                        e.preventDefault();
-                        handleSearchInvoice(selectedInvoiceId?.trim() || "");
-                        e.currentTarget.blur();
-                      }
-                    }}
+                    onFocus={() => setIsInvoiceDropdownOpen(true)}
                     disabled={isReadOnly}
                   />
+                  {isInvoiceDropdownOpen && !isReadOnly && (
+                    <div className="absolute z-20 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-y-auto">
+                      {filteredInvoices.length > 0 ? (
+                        filteredInvoices.map((invoice) => (
+                          <div
+                            key={invoice.id}
+                            onClick={() => handleSelectInvoice(invoice)}
+                            className="p-2 cursor-pointer hover:bg-brand-green-bg"
+                          >
+                            {invoice.code}
+                          </div>
+                        ))
+                      ) : (
+                        <div className="p-2 text-gray-500 text-center">
+                          لا توجد فواتير
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
                 <div className="md:col-start-2">
                   <label className="block text-sm font-medium text-gray-700 mb-1">
