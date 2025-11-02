@@ -5,6 +5,7 @@ import {
   useGetMonthlyStatsQuery,
   useGetSalesByItemGroupQuery,
 } from "../store/slices/dashboard/dashboardApiSlice";
+import { useGetCompanyQuery } from "../store/slices/companyApiSlice";
 import { formatNumber } from "../../utils/formatting";
 
 declare var Chart: any;
@@ -49,6 +50,10 @@ const Dashboard: React.FC<{ title: string }> = ({ title }) => {
   const barChartRef = useRef<HTMLCanvasElement>(null);
   const doughnutChartRef = useRef<HTMLCanvasElement>(null);
   const chartInstances = useRef<{ bar?: any; doughnut?: any }>({});
+
+  // Fetch company data for currency
+  const { data: company } = useGetCompanyQuery();
+  const currency = company?.currency || "SAR";
 
   // Fetch dashboard statistics
   const { data: dashboardStats, isLoading: statsLoading } =
@@ -192,7 +197,7 @@ const Dashboard: React.FC<{ title: string }> = ({ title }) => {
                     const value = context.parsed || 0;
                     const percentage =
                       salesByItemGroup.itemGroups[context.dataIndex].percentage;
-                    return `${label}: ${formatNumber(value)} SAR (${percentage}%)`;
+                    return `${label}: ${formatNumber(value)} ${currency} (${percentage}%)`;
                   },
                 },
               },
@@ -207,7 +212,7 @@ const Dashboard: React.FC<{ title: string }> = ({ title }) => {
       if (chartInstances.current.doughnut)
         chartInstances.current.doughnut.destroy();
     };
-  }, [monthlyStats, salesByItemGroup]);
+  }, [monthlyStats, salesByItemGroup, currency]);
 
   return (
     <div>
@@ -219,8 +224,8 @@ const Dashboard: React.FC<{ title: string }> = ({ title }) => {
             statsLoading
               ? "جاري التحميل..."
               : dashboardStats
-                ? `SAR ${formatLargeNumber(dashboardStats.netSales)}`
-                : "SAR 0"
+                ? `${currency} ${formatLargeNumber(dashboardStats.netSales)}`
+                : `${currency} 0`
           }
           icon={<ShoppingCartIcon className="w-12 h-12" />}
           gradient="from-blue-500 to-brand-blue"
@@ -231,8 +236,8 @@ const Dashboard: React.FC<{ title: string }> = ({ title }) => {
             statsLoading
               ? "جاري التحميل..."
               : dashboardStats
-                ? `SAR ${formatLargeNumber(dashboardStats.totalPurchases)}`
-                : "SAR 0"
+                ? `${currency} ${formatLargeNumber(dashboardStats.totalPurchases)}`
+                : `${currency} 0`
           }
           icon={<ReceiptIcon className="w-12 h-12" />}
           gradient="from-lime-500 to-green-600"

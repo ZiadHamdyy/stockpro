@@ -35,8 +35,21 @@ export const useCompanyData = () => {
   // Update form data when company data is fetched
   useEffect(() => {
     if (company) {
-      setFormData(company);
-      setVatRate(company.vatRate);
+      // Filter out seed placeholder values - show empty instead
+      const filteredCompany = {
+        ...company,
+        name: company.name === 'اسم الشركة' ? '' : company.name,
+        activity: company.activity === 'النشاط التجاري' ? '' : company.activity,
+        address: company.address === 'العنوان' ? '' : company.address,
+        phone: company.phone === '+966000000000' ? '' : company.phone,
+        taxNumber: company.taxNumber === '000000000000003' ? '' : company.taxNumber,
+        commercialReg: company.commercialReg === '0000000000' ? '' : company.commercialReg,
+        capital: company.capital === 0 ? 0 : company.capital,
+      };
+      
+      setFormData(filteredCompany);
+      // Only set VAT rate if it's not the seed default, otherwise keep it at 15
+      setVatRate(company.vatRate === 15 ? 15 : company.vatRate);
       setIsVatEnabled(company.isVatEnabled);
     }
   }, [company]);
