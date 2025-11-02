@@ -127,11 +127,13 @@ const StoreReceiptVoucher: React.FC<StoreReceiptVoucherProps> = ({ title }) => {
   const [editingItemIndex, setEditingItemIndex] = useState<number | null>(null);
   const [highlightedIndex, setHighlightedIndex] = useState(-1);
 
+  const nameInputRefs = useRef<(HTMLInputElement | null)[]>([]);
   const qtyInputRefs = useRef<(HTMLInputElement | null)[]>([]);
   const handleNewRef = useRef<(() => void) | undefined>(undefined);
 
   const [isSearchModalOpen, setIsSearchModalOpen] = useState(false);
   const [currentIndex, setCurrentIndex] = useState(-1);
+  const [focusIndex, setFocusIndex] = useState<number | null>(null);
 
   const filteredItems =
     activeItemSearch && typeof activeItemSearch.query === "string"
@@ -211,6 +213,13 @@ const StoreReceiptVoucher: React.FC<StoreReceiptVoucherProps> = ({ title }) => {
   }, []);
 
   useEffect(() => {
+    if (focusIndex !== null && nameInputRefs.current[focusIndex]) {
+      nameInputRefs.current[focusIndex]?.focus();
+      setFocusIndex(null); // Reset after focusing
+    }
+  }, [focusIndex]);
+
+  useEffect(() => {
     if (activeItemSearch) setHighlightedIndex(-1);
   }, [activeItemSearch]);
 
@@ -228,7 +237,9 @@ const StoreReceiptVoucher: React.FC<StoreReceiptVoucherProps> = ({ title }) => {
   }, []);
 
   const handleAddItem = () => {
-    setItems([...items, { id: "", name: "", unit: "", qty: 1, code: "" }]);
+    const newIndex = items.length;
+    setItems((prevItems) => [...prevItems, { id: "", name: "", unit: "", qty: 1, code: "" }]);
+    setFocusIndex(newIndex);
   };
 
   const handleItemChange = (
@@ -265,6 +276,20 @@ const StoreReceiptVoucher: React.FC<StoreReceiptVoucherProps> = ({ title }) => {
     }, 0);
   };
 
+  const handleTableKeyDown = (
+    e: React.KeyboardEvent<HTMLInputElement>,
+    index: number,
+  ) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      if (index === items.length - 1) {
+        handleAddItem();
+      } else {
+        nameInputRefs.current[index + 1]?.focus();
+      }
+    }
+  };
+
   const handleRemoveItem = (index: number) => {
     setItems(items.filter((_, i) => i !== index));
   };
@@ -279,7 +304,22 @@ const StoreReceiptVoucher: React.FC<StoreReceiptVoucherProps> = ({ title }) => {
   const handleItemSearchKeyDown = (
     e: React.KeyboardEvent<HTMLInputElement>,
   ) => {
-    if (!activeItemSearch || filteredItems.length === 0) return;
+    if (!activeItemSearch) return;
+
+    if (e.key === "Enter") {
+      e.preventDefault();
+      if (highlightedIndex > -1 && filteredItems[highlightedIndex]) {
+        handleSelectItem(
+          activeItemSearch.index,
+          filteredItems[highlightedIndex],
+        );
+      } else {
+        qtyInputRefs.current[activeItemSearch.index]?.focus();
+      }
+      return;
+    }
+
+    if (filteredItems.length === 0) return;
 
     switch (e.key) {
       case "ArrowDown":
@@ -291,15 +331,6 @@ const StoreReceiptVoucher: React.FC<StoreReceiptVoucherProps> = ({ title }) => {
         setHighlightedIndex(
           (prev) => (prev - 1 + filteredItems.length) % filteredItems.length,
         );
-        break;
-      case "Enter":
-        e.preventDefault();
-        if (highlightedIndex > -1 && filteredItems[highlightedIndex]) {
-          handleSelectItem(
-            activeItemSearch.index,
-            filteredItems[highlightedIndex],
-          );
-        }
         break;
       case "Escape":
         e.preventDefault();
@@ -649,6 +680,9 @@ const StoreReceiptVoucher: React.FC<StoreReceiptVoucherProps> = ({ title }) => {
                           setActiveItemSearch({ index, query: item.name })
                         }
                         onKeyDown={handleItemSearchKeyDown}
+                        ref={(el) => {
+                          if (el) nameInputRefs.current[index] = el;
+                        }}
                         className="bg-transparent w-full focus:outline-none p-1"
                         disabled={isReadOnly}
                       />
@@ -697,6 +731,7 @@ const StoreReceiptVoucher: React.FC<StoreReceiptVoucherProps> = ({ title }) => {
                       onChange={(e) =>
                         handleItemChange(index, "qty", e.target.value)
                       }
+                      onKeyDown={(e) => handleTableKeyDown(e, index)}
                       ref={(el) => {
                         if (el) qtyInputRefs.current[index] = el;
                       }}

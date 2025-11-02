@@ -34,6 +34,7 @@ import { useGetBanksQuery } from "../../store/slices/bank/bankApiSlice";
 import { useGetSafesQuery } from "../../store/slices/safe/safeApiSlice";
 import { useGetCompanyQuery } from "../../store/slices/companyApiSlice";
 import { showApiErrorToast } from "../../../utils/errorToast";
+import { formatMoney } from "../../../utils/formatting";
 
 type SelectableItem = {
   id: string;
@@ -74,6 +75,12 @@ const SalesInvoice: React.FC<SalesInvoiceProps> = ({
   const { data: banks = [] } = useGetBanksQuery();
   const { data: safes = [] } = useGetSafesQuery();
   const { data: company } = useGetCompanyQuery();
+
+  // Filter safes by current user's branch
+  const userBranchId = currentUser?.branchId || currentUser?.branch;
+  const filteredSafes = userBranchId
+    ? safes.filter((safe) => safe.branchId === userBranchId)
+    : safes;
 
   // Read allowSellingLessThanStock setting from localStorage
   const allowSellingLessThanStock = (() => {
@@ -220,7 +227,8 @@ const SalesInvoice: React.FC<SalesInvoiceProps> = ({
     setSelectedCustomer(null);
     setCustomerQuery("");
     setPaymentTargetType("safe");
-    setPaymentTargetId(safes.length > 0 ? safes[0].id : null);
+    // For safes, we don't need paymentTargetId (we send branchId instead)
+    setPaymentTargetId(null);
     setOriginalInvoiceVatEnabled(false); // Reset for new invoices
     setIsReadOnly(false);
   };
@@ -342,6 +350,22 @@ const SalesInvoice: React.FC<SalesInvoiceProps> = ({
   useEffect(() => {
     if (activeItemSearch) setHighlightedIndex(-1);
   }, [activeItemSearch]);
+
+  // Auto-select first bank when payment target type is "bank"
+  useEffect(() => {
+    if (paymentTargetType === "bank" && !isReadOnly) {
+      // Reset paymentTargetId if it doesn't belong to a bank
+      const isValidBank = paymentTargetId && banks.some((bank) => bank.id === paymentTargetId);
+      if (!isValidBank && banks.length > 0) {
+        setPaymentTargetId(banks[0].id);
+      } else if (!isValidBank) {
+        setPaymentTargetId(null);
+      }
+    } else if (paymentTargetType === "safe" && !isReadOnly) {
+      // For safes, we don't need paymentTargetId anymore (we send branchId instead)
+      setPaymentTargetId(null);
+    }
+  }, [paymentTargetType, banks, paymentTargetId, isReadOnly]);
 
   const handleAddItemAndFocus = () => {
     const newIndex = invoiceItems.length;
@@ -536,6 +560,10 @@ const SalesInvoice: React.FC<SalesInvoiceProps> = ({
 
     try {
       // For cash payments without a customer, pass null (backend will handle default)
+      // Get branch ID from current user - use it as paymentTargetId when payment target is "safe"
+      const userBranchId = currentUser?.branchId || 
+        (typeof currentUser?.branch === 'string' ? currentUser.branch : (currentUser?.branch as any)?.id);
+      
       const invoiceData = {
         customerId: paymentMethod === "cash" && !selectedCustomer 
           ? null 
@@ -554,8 +582,14 @@ const SalesInvoice: React.FC<SalesInvoiceProps> = ({
         paymentMethod,
         paymentTargetType:
           paymentMethod === "cash" ? paymentTargetType : undefined,
+        // When payment target is "safe", send branch ID as paymentTargetId
+        // When payment target is "bank", send bank ID as paymentTargetId
         paymentTargetId:
-          paymentMethod === "cash" ? paymentTargetId?.toString() : undefined,
+          paymentMethod === "cash" 
+            ? (paymentTargetType === "safe" && userBranchId
+                ? userBranchId.toString()
+                : paymentTargetId?.toString())
+            : undefined,
         notes: "",
         allowInsufficientStock: allowSellingLessThanStock,
       };
@@ -809,21 +843,31 @@ const SalesInvoice: React.FC<SalesInvoiceProps> = ({
                       ? "اختر الخزنة"
                       : "اختر البنك"}
                   </label>
-                  <select
-                    value={paymentTargetId || ""}
-                    onChange={(e) => setPaymentTargetId(e.target.value || null)}
-                    className={inputStyle}
-                    disabled={isReadOnly}
-                  >
-                    <option value="">اختر...</option>
-                    {(paymentTargetType === "safe" ? safes : banks).map(
-                      (target) => (
+                  {paymentTargetType === "safe" ? (
+                    <input
+                      type="text"
+                      value={typeof currentUser?.branch === 'string' 
+                        ? currentUser.branch 
+                        : (currentUser?.branch as any)?.name || currentUser?.branch || ""}
+                      className={inputStyle}
+                      disabled={true}
+                      readOnly
+                    />
+                  ) : (
+                    <select
+                      value={paymentTargetId || ""}
+                      onChange={(e) => setPaymentTargetId(e.target.value || null)}
+                      className={inputStyle}
+                      disabled={isReadOnly}
+                    >
+                      <option value="">اختر...</option>
+                      {banks.map((target) => (
                         <option key={target.id} value={target.id}>
                           {target.name}
                         </option>
-                      ),
-                    )}
-                  </select>
+                      ))}
+                    </select>
+                  )}
                 </div>
               </div>
             )}
@@ -858,11 +902,9 @@ const SalesInvoice: React.FC<SalesInvoiceProps> = ({
                 >
                   السعر
                 </th>
-                {effectiveVatEnabled && (
-                  <th className="px-2 py-3 w-36 text-center text-sm font-semibold uppercase border border-blue-300">
-                    مبلغ الضريبة
-                  </th>
-                )}
+                <th className="px-2 py-3 w-36 text-center text-sm font-semibold uppercase border border-blue-300">
+                  الضريبة {effectiveVatEnabled ? `(%${vatRate})` : '(%0)'}
+                </th>
                 <th className="px-2 py-3 w-36 text-center text-sm font-semibold uppercase border border-blue-300">
                   الاجمالي
                 </th>
@@ -987,13 +1029,11 @@ const SalesInvoice: React.FC<SalesInvoiceProps> = ({
                       disabled={isReadOnly}
                     />
                   </td>
-                  {effectiveVatEnabled && (
-                    <td className="p-2 align-middle text-center border-x border-gray-300">
-                      {item.taxAmount.toFixed(2)}
-                    </td>
-                  )}
                   <td className="p-2 align-middle text-center border-x border-gray-300">
-                    {item.total.toFixed(2)}
+                    {formatMoney(effectiveVatEnabled ? item.taxAmount : 0)}
+                  </td>
+                  <td className="p-2 align-middle text-center border-x border-gray-300">
+                    {formatMoney(item.total)}
                   </td>
                   <td className="p-2 align-middle text-center border-x border-gray-300 no-print-delete-col">
                     <button
@@ -1042,7 +1082,7 @@ const SalesInvoice: React.FC<SalesInvoiceProps> = ({
                     الاجمالي قبل الضريبة
                   </span>
                   <span className="font-bold text-lg text-brand-dark">
-                    {totals.subtotal.toFixed(2)}
+                    {formatMoney(totals.subtotal)}
                   </span>
                 </div>
                 <div className="flex justify-between items-center p-3 border-t-2 border-dashed border-gray-200">
@@ -1067,13 +1107,13 @@ const SalesInvoice: React.FC<SalesInvoiceProps> = ({
                       إجمالي الضريبة ({vatRate}%)
                     </span>
                     <span className="font-bold text-lg text-brand-dark">
-                      {totals.tax.toFixed(2)}
+                      {formatMoney(totals.tax)}
                     </span>
                   </div>
                 )}
                 <div className="flex justify-between font-bold text-xl text-brand-dark bg-brand-green-bg p-4 border-t-4 border-brand-green rounded-b-md">
                   <span>الصافي</span>
-                  <span>{totals.net.toFixed(2)}</span>
+                  <span>{formatMoney(totals.net)}</span>
                 </div>
               </div>
             </div>
@@ -1197,7 +1237,7 @@ const SalesInvoice: React.FC<SalesInvoiceProps> = ({
           code: inv.code,
           date: inv.date,
           customer: inv.customer?.name || "-",
-          total: inv.net.toFixed(2),
+          total: formatMoney(inv.net),
         }))}
         onSelectRow={handleSelectInvoiceFromSearch}
       />

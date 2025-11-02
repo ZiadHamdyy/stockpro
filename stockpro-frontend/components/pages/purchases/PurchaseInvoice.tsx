@@ -24,6 +24,7 @@ import PurchaseInvoicePrintPreview from "./PurchaseInvoicePrintPreview";
 import { useModal } from "../../common/ModalProvider";
 import { useToast } from "../../common/ToastProvider";
 import { showApiErrorToast } from "../../../utils/errorToast";
+import { formatMoney } from "../../../utils/formatting";
 import BarcodeScannerModal from "../../common/BarcodeScannerModal";
 import {
   useGetPurchaseInvoicesQuery,
@@ -70,6 +71,12 @@ const PurchaseInvoice: React.FC<PurchaseInvoiceProps> = ({
   const { data: banks = [] } = useGetBanksQuery();
   const { data: safes = [] } = useGetSafesQuery();
   const { data: company } = useGetCompanyQuery();
+
+  // Filter safes by current user's branch
+  const userBranchId = currentUser?.branchId || currentUser?.branch;
+  const filteredSafes = userBranchId
+    ? safes.filter((safe) => safe.branchId === userBranchId)
+    : safes;
 
   // Transform data
   const allItems: SelectableItem[] = (items as any[]).map((item) => ({
@@ -158,6 +165,7 @@ const PurchaseInvoice: React.FC<PurchaseInvoiceProps> = ({
   const [editingItemIndex, setEditingItemIndex] = useState<number | null>(null);
   const [highlightedIndex, setHighlightedIndex] = useState(-1);
 
+  const nameInputRefs = useRef<(HTMLInputElement | null)[]>([]);
   const qtyInputRefs = useRef<(HTMLInputElement | null)[]>([]);
   const priceInputRefs = useRef<(HTMLInputElement | null)[]>([]);
   const tableInputSizerRef = useRef<HTMLSpanElement | null>(null);
@@ -167,6 +175,7 @@ const PurchaseInvoice: React.FC<PurchaseInvoiceProps> = ({
   const [isScannerOpen, setIsScannerOpen] = useState(false);
   const [currentIndex, setCurrentIndex] = useState(-1);
   const justSavedRef = useRef(false); // Flag to prevent resetting state after save
+  const [focusIndex, setFocusIndex] = useState<number | null>(null);
 
   const filteredSuppliers = supplierQuery
     ? allSuppliers.filter((s) =>
@@ -202,7 +211,8 @@ const PurchaseInvoice: React.FC<PurchaseInvoiceProps> = ({
     setSelectedSupplier(null);
     setSupplierQuery("");
     setPaymentTargetType("safe");
-    setPaymentTargetId(safes.length > 0 ? safes[0].id.toString() : null);
+    // For safes, we don't need paymentTargetId (we send branchId instead)
+    setPaymentTargetId(null);
     setIsReadOnly(false);
   };
 
@@ -271,6 +281,13 @@ const PurchaseInvoice: React.FC<PurchaseInvoiceProps> = ({
   };
 
   useEffect(() => {
+    if (focusIndex !== null && nameInputRefs.current[focusIndex]) {
+      nameInputRefs.current[focusIndex]?.focus();
+      setFocusIndex(null); // Reset after focusing
+    }
+  }, [focusIndex]);
+
+  useEffect(() => {
     purchaseItems.forEach((_, index) => {
       autosizeInput(qtyInputRefs.current[index]);
       autosizeInput(priceInputRefs.current[index]);
@@ -310,8 +327,26 @@ const PurchaseInvoice: React.FC<PurchaseInvoiceProps> = ({
     if (activeItemSearch) setHighlightedIndex(-1);
   }, [activeItemSearch]);
 
+  // Auto-select first bank when payment target type is "bank"
+  useEffect(() => {
+    if (paymentTargetType === "bank" && !isReadOnly) {
+      // Reset paymentTargetId if it doesn't belong to a bank
+      const isValidBank = paymentTargetId && banks.some((bank) => bank.id === paymentTargetId);
+      if (!isValidBank && banks.length > 0) {
+        setPaymentTargetId(banks[0].id);
+      } else if (!isValidBank) {
+        setPaymentTargetId(null);
+      }
+    } else if (paymentTargetType === "safe" && !isReadOnly) {
+      // For safes, we don't need paymentTargetId anymore (we send branchId instead)
+      setPaymentTargetId(null);
+    }
+  }, [paymentTargetType, banks, paymentTargetId, isReadOnly]);
+
   const handleAddItem = () => {
-    setPurchaseItems([...purchaseItems, createEmptyItem()]);
+    const newIndex = purchaseItems.length;
+    setPurchaseItems((prevItems) => [...prevItems, createEmptyItem()]);
+    setFocusIndex(newIndex);
   };
 
   const handleItemChange = (
@@ -359,6 +394,25 @@ const PurchaseInvoice: React.FC<PurchaseInvoiceProps> = ({
     }, 0);
   };
 
+  const handleTableKeyDown = (
+    e: React.KeyboardEvent<HTMLInputElement>,
+    index: number,
+    field: "qty" | "price",
+  ) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      if (field === "qty") {
+        priceInputRefs.current[index]?.focus();
+      } else if (field === "price") {
+        if (index === purchaseItems.length - 1) {
+          handleAddItem();
+        } else {
+          nameInputRefs.current[index + 1]?.focus();
+        }
+      }
+    }
+  };
+
   const handleRemoveItem = (index: number) => {
     const newItems = purchaseItems.filter((_, i) => i !== index);
     while (newItems.length < 6) {
@@ -383,7 +437,22 @@ const PurchaseInvoice: React.FC<PurchaseInvoiceProps> = ({
   const handleItemSearchKeyDown = (
     e: React.KeyboardEvent<HTMLInputElement>,
   ) => {
-    if (!activeItemSearch || filteredItems.length === 0) return;
+    if (!activeItemSearch) return;
+
+    if (e.key === "Enter") {
+      e.preventDefault();
+      if (highlightedIndex > -1 && filteredItems[highlightedIndex]) {
+        handleSelectItem(
+          activeItemSearch.index,
+          filteredItems[highlightedIndex],
+        );
+      } else {
+        qtyInputRefs.current[activeItemSearch.index]?.focus();
+      }
+      return;
+    }
+
+    if (filteredItems.length === 0) return;
 
     switch (e.key) {
       case "ArrowDown":
@@ -395,15 +464,6 @@ const PurchaseInvoice: React.FC<PurchaseInvoiceProps> = ({
         setHighlightedIndex(
           (prev) => (prev - 1 + filteredItems.length) % filteredItems.length,
         );
-        break;
-      case "Enter":
-        e.preventDefault();
-        if (highlightedIndex > -1 && filteredItems[highlightedIndex]) {
-          handleSelectItem(
-            activeItemSearch.index,
-            filteredItems[highlightedIndex],
-          );
-        }
         break;
       case "Escape":
         e.preventDefault();
@@ -462,6 +522,10 @@ const PurchaseInvoice: React.FC<PurchaseInvoiceProps> = ({
 
     try {
       // For cash payments without a supplier, pass null (backend will handle default)
+      // Get branch ID from current user - use it as paymentTargetId when payment target is "safe"
+      const userBranchId = currentUser?.branchId || 
+        (typeof currentUser?.branch === 'string' ? currentUser.branch : (currentUser?.branch as any)?.id);
+      
       const invoiceData = {
         supplierId: paymentMethod === "cash" && !selectedSupplier 
           ? null 
@@ -480,7 +544,14 @@ const PurchaseInvoice: React.FC<PurchaseInvoiceProps> = ({
         paymentMethod,
         paymentTargetType:
           paymentMethod === "cash" ? paymentTargetType : undefined,
-        paymentTargetId: paymentMethod === "cash" ? paymentTargetId : undefined,
+        // When payment target is "safe", send branch ID as paymentTargetId
+        // When payment target is "bank", send bank ID as paymentTargetId
+        paymentTargetId:
+          paymentMethod === "cash" 
+            ? (paymentTargetType === "safe" && userBranchId
+                ? userBranchId.toString()
+                : paymentTargetId?.toString())
+            : undefined,
         notes: "",
       };
 
@@ -736,21 +807,31 @@ const PurchaseInvoice: React.FC<PurchaseInvoiceProps> = ({
                       ? "اختر الخزنة"
                       : "اختر البنك"}
                   </label>
-                  <select
-                    value={paymentTargetId || ""}
-                    onChange={(e) => setPaymentTargetId(e.target.value || null)}
-                    className={inputStyle}
-                    disabled={isReadOnly}
-                  >
-                    <option value="">اختر...</option>
-                    {(paymentTargetType === "safe" ? safes : banks).map(
-                      (target) => (
+                  {paymentTargetType === "safe" ? (
+                    <input
+                      type="text"
+                      value={typeof currentUser?.branch === 'string' 
+                        ? currentUser.branch 
+                        : (currentUser?.branch as any)?.name || currentUser?.branch || ""}
+                      className={inputStyle}
+                      disabled={true}
+                      readOnly
+                    />
+                  ) : (
+                    <select
+                      value={paymentTargetId || ""}
+                      onChange={(e) => setPaymentTargetId(e.target.value || null)}
+                      className={inputStyle}
+                      disabled={isReadOnly}
+                    >
+                      <option value="">اختر...</option>
+                      {banks.map((target) => (
                         <option key={target.id} value={target.id}>
                           {target.name}
                         </option>
-                      ),
-                    )}
-                  </select>
+                      ))}
+                    </select>
+                  )}
                 </div>
               </div>
             )}
@@ -785,11 +866,9 @@ const PurchaseInvoice: React.FC<PurchaseInvoiceProps> = ({
                 >
                   السعر
                 </th>
-                {isVatEnabled && (
-                  <th className="px-2 py-3 w-36 text-center text-sm font-semibold uppercase border border-green-300">
-                    مبلغ الضريبة
-                  </th>
-                )}
+                <th className="px-2 py-3 w-36 text-center text-sm font-semibold uppercase border border-green-300">
+                  الضريبة {isVatEnabled ? `(%${vatRate})` : '(%0)'}
+                </th>
                 <th className="px-2 py-3 w-36 text-center text-sm font-semibold uppercase border border-green-300">
                   الاجمالي
                 </th>
@@ -829,6 +908,9 @@ const PurchaseInvoice: React.FC<PurchaseInvoiceProps> = ({
                           setActiveItemSearch({ index, query: item.name })
                         }
                         onKeyDown={handleItemSearchKeyDown}
+                        ref={(el) => {
+                          if (el) nameInputRefs.current[index] = el;
+                        }}
                         className="bg-transparent w-full focus:outline-none p-1"
                         disabled={isReadOnly}
                       />
@@ -883,6 +965,7 @@ const PurchaseInvoice: React.FC<PurchaseInvoiceProps> = ({
                         );
                         autosizeInput(e.target);
                       }}
+                      onKeyDown={(e) => handleTableKeyDown(e, index, "qty")}
                       ref={(el) => {
                         if (el) qtyInputRefs.current[index] = el;
                       }}
@@ -902,6 +985,7 @@ const PurchaseInvoice: React.FC<PurchaseInvoiceProps> = ({
                         );
                         autosizeInput(e.target);
                       }}
+                      onKeyDown={(e) => handleTableKeyDown(e, index, "price")}
                       ref={(el) => {
                         if (el) priceInputRefs.current[index] = el;
                       }}
@@ -909,13 +993,11 @@ const PurchaseInvoice: React.FC<PurchaseInvoiceProps> = ({
                       disabled={isReadOnly}
                     />
                   </td>
-                  {isVatEnabled && (
-                    <td className="p-2 align-middle text-center border-x border-gray-300">
-                      {(item.taxAmount || 0).toFixed(2)}
-                    </td>
-                  )}
                   <td className="p-2 align-middle text-center border-x border-gray-300">
-                    {(item.total || 0).toFixed(2)}
+                    {formatMoney(isVatEnabled ? item.taxAmount || 0 : 0)}
+                  </td>
+                  <td className="p-2 align-middle text-center border-x border-gray-300">
+                    {formatMoney(item.total || 0)}
                   </td>
                   <td className="p-2 align-middle text-center border-x border-gray-300 no-print-delete-col">
                     <button
@@ -964,7 +1046,7 @@ const PurchaseInvoice: React.FC<PurchaseInvoiceProps> = ({
                     الاجمالي قبل الضريبة
                   </span>
                   <span className="font-bold text-lg text-brand-dark">
-                    {(totals.subtotal || 0).toFixed(2)}
+                    {formatMoney(totals.subtotal || 0)}
                   </span>
                 </div>
                 <div className="flex justify-between items-center p-3 border-t-2 border-dashed border-gray-200">
@@ -988,13 +1070,13 @@ const PurchaseInvoice: React.FC<PurchaseInvoiceProps> = ({
                       إجمالي الضريبة ({vatRate}%)
                     </span>
                     <span className="font-bold text-lg text-brand-dark">
-                      {(totals.tax || 0).toFixed(2)}
+                      {formatMoney(totals.tax || 0)}
                     </span>
                   </div>
                 )}
                 <div className="flex justify-between font-bold text-xl text-brand-dark bg-brand-green-bg p-4 border-t-4 border-brand-green rounded-b-md">
                   <span>الصافي</span>
-                  <span>{(totals.net || 0).toFixed(2)}</span>
+                  <span>{formatMoney(totals.net || 0)}</span>
                 </div>
               </div>
             </div>
@@ -1118,7 +1200,7 @@ const PurchaseInvoice: React.FC<PurchaseInvoiceProps> = ({
           code: inv.code,
           date: inv.date,
           supplier: inv.supplier?.name || "-",
-          total: (inv.net || 0).toFixed(2),
+          total: formatMoney(inv.net || 0),
         }))}
         onSelectRow={handleSelectInvoiceFromSearch}
       />

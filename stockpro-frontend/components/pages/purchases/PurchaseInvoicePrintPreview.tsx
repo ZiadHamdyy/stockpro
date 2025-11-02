@@ -286,6 +286,10 @@ const PurchaseInvoicePrintPreview: React.FC<
               {tafqeet(totals.net, companyInfo.currency)}
             </div>
 
+            <div className="mt-6 pt-4 text-center text-sm text-gray-600 font-semibold border-t-2 border-dashed border-gray-300">
+              استلمت البضاعة كاملة و بجودة سليمة
+            </div>
+
             <footer className="flex justify-around items-center mt-20 text-center text-sm">
               <div>
                 <p className="font-bold">المستلم</p>

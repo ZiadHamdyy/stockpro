@@ -24,6 +24,7 @@ import PurchaseInvoicePrintPreview from "./PurchaseInvoicePrintPreview";
 import { useModal } from "../../common/ModalProvider";
 import { useToast } from "../../common/ToastProvider";
 import { showApiErrorToast } from "../../../utils/errorToast";
+import { formatMoney } from "../../../utils/formatting";
 import {
   useGetPurchaseReturnsQuery,
   useCreatePurchaseReturnMutation,
@@ -71,6 +72,12 @@ const PurchaseReturn: React.FC<PurchaseReturnProps> = ({
   const { data: safes = [] } = useGetSafesQuery();
   const { data: company } = useGetCompanyQuery();
   const { data: purchaseInvoices = [] } = useGetPurchaseInvoicesQuery();
+
+  // Filter safes by current user's branch
+  const userBranchId = currentUser?.branchId || currentUser?.branch;
+  const filteredSafes = userBranchId
+    ? safes.filter((safe) => safe.branchId === userBranchId)
+    : safes;
 
   // Transform data
   const allItems: SelectableItem[] = (items as any[]).map((item) => ({
@@ -158,6 +165,7 @@ const PurchaseReturn: React.FC<PurchaseReturnProps> = ({
   const [editingItemIndex, setEditingItemIndex] = useState<number | null>(null);
   const [highlightedIndex, setHighlightedIndex] = useState(-1);
 
+  const nameInputRefs = useRef<(HTMLInputElement | null)[]>([]);
   const qtyInputRefs = useRef<(HTMLInputElement | null)[]>([]);
   const priceInputRefs = useRef<(HTMLInputElement | null)[]>([]);
   const tableInputSizerRef = useRef<HTMLSpanElement | null>(null);
@@ -168,6 +176,7 @@ const PurchaseReturn: React.FC<PurchaseReturnProps> = ({
   const justSavedRef = useRef(false); // Flag to prevent resetting state after save
   const [selectedInvoiceId, setSelectedInvoiceId] = useState<string | null>(null);
   const [sourceInvoiceQtyById, setSourceInvoiceQtyById] = useState<Record<string, number>>({});
+  const [focusIndex, setFocusIndex] = useState<number | null>(null);
 
   const filteredSuppliers = supplierQuery
     ? allSuppliers.filter((s) =>
@@ -203,7 +212,8 @@ const PurchaseReturn: React.FC<PurchaseReturnProps> = ({
     setSelectedSupplier(null);
     setSupplierQuery("");
     setPaymentTargetType("safe");
-    setPaymentTargetId(safes.length > 0 ? safes[0].id.toString() : null);
+    // For safes, we don't need paymentTargetId (we send branchId instead)
+    setPaymentTargetId(null);
     setIsReadOnly(false);
   };
 
@@ -271,6 +281,13 @@ const PurchaseReturn: React.FC<PurchaseReturnProps> = ({
   };
 
   useEffect(() => {
+    if (focusIndex !== null && nameInputRefs.current[focusIndex]) {
+      nameInputRefs.current[focusIndex]?.focus();
+      setFocusIndex(null); // Reset after focusing
+    }
+  }, [focusIndex]);
+
+  useEffect(() => {
     returnItems.forEach((_, index) => {
       autosizeInput(qtyInputRefs.current[index]);
       autosizeInput(priceInputRefs.current[index]);
@@ -310,8 +327,26 @@ const PurchaseReturn: React.FC<PurchaseReturnProps> = ({
     if (activeItemSearch) setHighlightedIndex(-1);
   }, [activeItemSearch]);
 
+  // Auto-select first bank when payment target type is "bank"
+  useEffect(() => {
+    if (paymentTargetType === "bank" && !isReadOnly) {
+      // Reset paymentTargetId if it doesn't belong to a bank
+      const isValidBank = paymentTargetId && banks.some((bank) => bank.id === paymentTargetId);
+      if (!isValidBank && banks.length > 0) {
+        setPaymentTargetId(banks[0].id);
+      } else if (!isValidBank) {
+        setPaymentTargetId(null);
+      }
+    } else if (paymentTargetType === "safe" && !isReadOnly) {
+      // For safes, we don't need paymentTargetId anymore (we send branchId instead)
+      setPaymentTargetId(null);
+    }
+  }, [paymentTargetType, banks, paymentTargetId, isReadOnly]);
+
   const handleAddItem = () => {
-    setReturnItems([...returnItems, createEmptyItem()]);
+    const newIndex = returnItems.length;
+    setReturnItems((prevItems) => [...prevItems, createEmptyItem()]);
+    setFocusIndex(newIndex);
   };
 
   const handleItemChange = (
@@ -383,6 +418,25 @@ const PurchaseReturn: React.FC<PurchaseReturnProps> = ({
     }, 0);
   };
 
+  const handleTableKeyDown = (
+    e: React.KeyboardEvent<HTMLInputElement>,
+    index: number,
+    field: "qty" | "price",
+  ) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      if (field === "qty") {
+        priceInputRefs.current[index]?.focus();
+      } else if (field === "price") {
+        if (index === returnItems.length - 1) {
+          handleAddItem();
+        } else {
+          nameInputRefs.current[index + 1]?.focus();
+        }
+      }
+    }
+  };
+
   const handleRemoveItem = (index: number) => {
     const newItems = returnItems.filter((_, i) => i !== index);
     while (newItems.length < 6) {
@@ -407,7 +461,22 @@ const PurchaseReturn: React.FC<PurchaseReturnProps> = ({
   const handleItemSearchKeyDown = (
     e: React.KeyboardEvent<HTMLInputElement>,
   ) => {
-    if (!activeItemSearch || filteredItems.length === 0) return;
+    if (!activeItemSearch) return;
+
+    if (e.key === "Enter") {
+      e.preventDefault();
+      if (highlightedIndex > -1 && filteredItems[highlightedIndex]) {
+        handleSelectItem(
+          activeItemSearch.index,
+          filteredItems[highlightedIndex],
+        );
+      } else {
+        qtyInputRefs.current[activeItemSearch.index]?.focus();
+      }
+      return;
+    }
+
+    if (filteredItems.length === 0) return;
 
     switch (e.key) {
       case "ArrowDown":
@@ -419,15 +488,6 @@ const PurchaseReturn: React.FC<PurchaseReturnProps> = ({
         setHighlightedIndex(
           (prev) => (prev - 1 + filteredItems.length) % filteredItems.length,
         );
-        break;
-      case "Enter":
-        e.preventDefault();
-        if (highlightedIndex > -1 && filteredItems[highlightedIndex]) {
-          handleSelectItem(
-            activeItemSearch.index,
-            filteredItems[highlightedIndex],
-          );
-        }
         break;
       case "Escape":
         e.preventDefault();
@@ -451,6 +511,10 @@ const PurchaseReturn: React.FC<PurchaseReturnProps> = ({
     }
 
     try {
+      // Get branch ID from current user - use it as paymentTargetId when payment target is "safe"
+      const userBranchId = currentUser?.branchId || 
+        (typeof currentUser?.branch === 'string' ? currentUser.branch : (currentUser?.branch as any)?.id);
+      
       const returnData = {
         supplierId: selectedSupplier?.id,
         date: invoiceDetails.invoiceDate,
@@ -467,7 +531,14 @@ const PurchaseReturn: React.FC<PurchaseReturnProps> = ({
         paymentMethod,
         paymentTargetType:
           paymentMethod === "cash" ? paymentTargetType : undefined,
-        paymentTargetId: paymentMethod === "cash" ? paymentTargetId : undefined,
+        // When payment target is "safe", send branch ID as paymentTargetId
+        // When payment target is "bank", send bank ID as paymentTargetId
+        paymentTargetId:
+          paymentMethod === "cash" 
+            ? (paymentTargetType === "safe" && userBranchId
+                ? userBranchId.toString()
+                : paymentTargetId?.toString())
+            : undefined,
         notes: "",
       };
 
@@ -775,21 +846,31 @@ const PurchaseReturn: React.FC<PurchaseReturnProps> = ({
                       ? "اختر الخزنة"
                       : "اختر البنك"}
                   </label>
-                  <select
-                    value={paymentTargetId || ""}
-                    onChange={(e) => setPaymentTargetId(e.target.value || null)}
-                    className={inputStyle}
-                    disabled={isReadOnly}
-                  >
-                    <option value="">اختر...</option>
-                    {(paymentTargetType === "safe" ? safes : banks).map(
-                      (target) => (
+                  {paymentTargetType === "safe" ? (
+                    <input
+                      type="text"
+                      value={typeof currentUser?.branch === 'string' 
+                        ? currentUser.branch 
+                        : (currentUser?.branch as any)?.name || currentUser?.branch || ""}
+                      className={inputStyle}
+                      disabled={true}
+                      readOnly
+                    />
+                  ) : (
+                    <select
+                      value={paymentTargetId || ""}
+                      onChange={(e) => setPaymentTargetId(e.target.value || null)}
+                      className={inputStyle}
+                      disabled={isReadOnly}
+                    >
+                      <option value="">اختر...</option>
+                      {banks.map((target) => (
                         <option key={target.id} value={target.id}>
                           {target.name}
                         </option>
-                      ),
-                    )}
-                  </select>
+                      ))}
+                    </select>
+                  )}
                 </div>
               </div>
             )}
@@ -824,11 +905,9 @@ const PurchaseReturn: React.FC<PurchaseReturnProps> = ({
                 >
                   السعر
                 </th>
-                {isVatEnabled && (
-                  <th className="px-2 py-3 w-36 text-center text-sm font-semibold uppercase border border-green-300">
-                    مبلغ الضريبة
-                  </th>
-                )}
+                <th className="px-2 py-3 w-36 text-center text-sm font-semibold uppercase border border-green-300">
+                  الضريبة {isVatEnabled ? `(%${vatRate})` : '(%0)'}
+                </th>
                 <th className="px-2 py-3 w-36 text-center text-sm font-semibold uppercase border border-green-300">
                   الاجمالي
                 </th>
@@ -868,6 +947,9 @@ const PurchaseReturn: React.FC<PurchaseReturnProps> = ({
                           setActiveItemSearch({ index, query: item.name })
                         }
                         onKeyDown={handleItemSearchKeyDown}
+                        ref={(el) => {
+                          if (el) nameInputRefs.current[index] = el;
+                        }}
                         className="bg-transparent w-full focus:outline-none p-1"
                         disabled={isReadOnly}
                       />
@@ -922,6 +1004,7 @@ const PurchaseReturn: React.FC<PurchaseReturnProps> = ({
                         );
                         autosizeInput(e.target);
                       }}
+                      onKeyDown={(e) => handleTableKeyDown(e, index, "qty")}
                       ref={(el) => {
                         if (el) qtyInputRefs.current[index] = el;
                       }}
@@ -941,6 +1024,7 @@ const PurchaseReturn: React.FC<PurchaseReturnProps> = ({
                         );
                         autosizeInput(e.target);
                       }}
+                      onKeyDown={(e) => handleTableKeyDown(e, index, "price")}
                       ref={(el) => {
                         if (el) priceInputRefs.current[index] = el;
                       }}
@@ -948,13 +1032,11 @@ const PurchaseReturn: React.FC<PurchaseReturnProps> = ({
                       disabled={isReadOnly}
                     />
                   </td>
-                  {isVatEnabled && (
-                    <td className="p-2 align-middle text-center border-x border-gray-300">
-                      {(item.taxAmount || 0).toFixed(2)}
-                    </td>
-                  )}
                   <td className="p-2 align-middle text-center border-x border-gray-300">
-                    {(item.total || 0).toFixed(2)}
+                    {formatMoney(isVatEnabled ? item.taxAmount || 0 : 0)}
+                  </td>
+                  <td className="p-2 align-middle text-center border-x border-gray-300">
+                    {formatMoney(item.total || 0)}
                   </td>
                   <td className="p-2 align-middle text-center border-x border-gray-300 no-print-delete-col">
                     <button
@@ -992,7 +1074,7 @@ const PurchaseReturn: React.FC<PurchaseReturnProps> = ({
                     الاجمالي قبل الضريبة
                   </span>
                   <span className="font-bold text-lg text-brand-dark">
-                    {(totals.subtotal || 0).toFixed(2)}
+                    {formatMoney(totals.subtotal || 0)}
                   </span>
                 </div>
                 <div className="flex justify-between items-center p-3 border-t-2 border-dashed border-gray-200">
@@ -1016,13 +1098,13 @@ const PurchaseReturn: React.FC<PurchaseReturnProps> = ({
                       إجمالي الضريبة ({vatRate}%)
                     </span>
                     <span className="font-bold text-lg text-brand-dark">
-                      {(totals.tax || 0).toFixed(2)}
+                      {formatMoney(totals.tax || 0)}
                     </span>
                   </div>
                 )}
                 <div className="flex justify-between font-bold text-xl text-brand-dark bg-brand-green-bg p-4 border-t-4 border-brand-green rounded-b-md">
                   <span>الصافي</span>
-                  <span>{(totals.net || 0).toFixed(2)}</span>
+                  <span>{formatMoney(totals.net || 0)}</span>
                 </div>
               </div>
             </div>
@@ -1146,7 +1228,7 @@ const PurchaseReturn: React.FC<PurchaseReturnProps> = ({
           code: inv.code,
           date: inv.date,
           supplier: inv.supplier?.name || "-",
-          total: (inv.net || 0).toFixed(2),
+          total: formatMoney(inv.net || 0),
         }))}
         onSelectRow={handleSelectInvoiceFromSearch}
       />
