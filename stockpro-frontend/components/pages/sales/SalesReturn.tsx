@@ -1168,7 +1168,7 @@ const SalesReturn: React.FC<SalesReturnProps> = ({
                     </span>
                   </div>
                 )}
-                <div className="flex justify-between font-bold text-xl text-brand-dark bg-brand-green-bg p-4 border-t-4 border-brand-green rounded-b-md">
+                <div className="flex justify-between font-bold text-xl text-brand-dark bg-brand-blue-bg p-4 border-t-4 border-brand-blue rounded-b-md">
                   <span>الصافي</span>
                   <span>{formatMoney(totals.net)}</span>
                 </div>

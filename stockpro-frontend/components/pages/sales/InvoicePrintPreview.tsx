@@ -85,14 +85,68 @@ const InvoicePrintPreview: React.FC<InvoicePrintPreviewProps> = ({
       const printWindow = window.open("", "", "height=800,width=800");
       printWindow?.document.write("<html><head><title>طباعة الفاتورة</title>");
       printWindow?.document.write(
-        '<script src="https://cdn.tailwindcss.com"></script>',
-      );
-      printWindow?.document.write(
         '<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet">',
       );
+      printWindow?.document.write(`
+        <script>
+          tailwind.config = {
+            theme: {
+              extend: {
+                colors: {
+                  'brand-blue': '#1E40AF',
+                  'brand-blue-bg': '#EFF6FF',
+                  'brand-green': '#16a34a',
+                  'brand-green-active': '#4ade80',
+                  'brand-green-bg': '#ECFDF5',
+                  'brand-dark': '#1F2937',
+                  'brand-light-gray': '#F8FAFC',
+                  'brand-text': '#111827',
+                },
+              },
+            },
+          };
+        </script>
+      `);
       printWindow?.document.write(
-        '<style>body { font-family: "Cairo", sans-serif; -webkit-print-color-adjust: exact !important; color-adjust: exact !important; } @page { size: A4; margin: 0; } </style>',
+        '<script src="https://cdn.tailwindcss.com"></script>',
       );
+      printWindow?.document.write(`
+        <style>
+          * {
+            -webkit-print-color-adjust: exact !important;
+            color-adjust: exact !important;
+            print-color-adjust: exact !important;
+          }
+          body {
+            font-family: "Cairo", sans-serif;
+            direction: rtl;
+            padding: 1.5cm;
+            margin: 0;
+          }
+          @page {
+            size: A4;
+            margin: 0;
+          }
+          .bg-brand-blue {
+            background-color: #1E40AF !important;
+          }
+          .text-brand-blue {
+            color: #1E40AF !important;
+          }
+          .border-brand-blue {
+            border-color: #1E40AF !important;
+          }
+          .bg-brand-blue-bg {
+            background-color: #EFF6FF !important;
+          }
+          .text-brand-dark {
+            color: #1F2937 !important;
+          }
+          .border-blue-300 {
+            border-color: #93c5fd !important;
+          }
+        </style>
+      `);
       printWindow?.document.write('</head><body dir="rtl">');
       printWindow?.document.write(printContents);
       printWindow?.document.write("</body></html>");
