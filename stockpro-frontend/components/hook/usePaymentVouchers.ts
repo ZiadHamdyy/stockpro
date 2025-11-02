@@ -25,7 +25,7 @@ export const usePaymentVouchers = () => {
     number: "",
     date: new Date().toISOString().substring(0, 10),
     entity: { type: "supplier", id: null, name: "" } as VoucherEntity,
-    amount: 0,
+    amount: "" as any,
     paymentMethod: "safe" as "safe" | "bank",
     safeOrBankId: null as string | null,
     description: "",
@@ -86,7 +86,7 @@ export const usePaymentVouchers = () => {
             null,
           name: v.entityName,
         },
-        amount: v.amount,
+        amount: v.amount === 0 || v.amount === null ? ("" as any) : v.amount,
         paymentMethod: v.paymentMethod as "safe" | "bank",
         safeOrBankId:
           v.paymentMethod === "safe" ? v.safeId || null : v.bankId || null,
@@ -102,7 +102,7 @@ export const usePaymentVouchers = () => {
       number: "",
       date: new Date().toISOString().substring(0, 10),
       entity: { type: "supplier", id: null, name: "" },
-      amount: 0,
+      amount: "" as any,
       paymentMethod: "safe",
       safeOrBankId: safes.length > 0 ? safes[0].id : null,
       description: "",
@@ -111,7 +111,13 @@ export const usePaymentVouchers = () => {
   }, [safes]);
 
   const handleSave = useCallback(async () => {
-    if (!voucherData.entity.name || voucherData.amount <= 0) {
+    // Normalize amount to number before validation
+    const amountValue =
+      typeof voucherData.amount === "string"
+        ? parseFloat(voucherData.amount) || 0
+        : voucherData.amount || 0;
+
+    if (!voucherData.entity.name || amountValue <= 0) {
       showToast("الرجاء تعبئة جميع الحقول المطلوبة.", 'error');
       return null;
     }
@@ -169,7 +175,7 @@ export const usePaymentVouchers = () => {
     const payload: CreatePaymentVoucherRequest = {
       date: voucherData.date,
       entityType: entityType,
-      amount: voucherData.amount,
+      amount: amountValue,
       description: voucherData.description || undefined,
       paymentMethod: voucherData.paymentMethod,
       ...paymentFields,

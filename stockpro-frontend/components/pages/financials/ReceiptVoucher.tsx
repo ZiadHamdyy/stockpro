@@ -205,17 +205,28 @@ const ReceiptVoucher: React.FC<ReceiptVoucherProps> = ({ title }) => {
               المبلغ
             </label>
             <input
-              type="number"
-              value={voucherData.amount}
-              onChange={(e) =>
-                setVoucherData((prev) => ({
-                  ...prev,
-                  amount: parseFloat(e.target.value) || 0,
-                }))
+              type="text"
+              value={
+                typeof voucherData.amount === "string"
+                  ? voucherData.amount
+                  : voucherData.amount === 0 || voucherData.amount === null
+                  ? ""
+                  : voucherData.amount
               }
+              onChange={(e) => {
+                const value = e.target.value;
+                // Allow empty string, negative sign, and valid numbers (including decimals and negatives)
+                if (value === "" || value === "-" || /^-?\d*\.?\d*$/.test(value)) {
+                  setVoucherData((prev) => ({
+                    ...prev,
+                    amount: value === "" || value === "-" ? (value as any) : parseFloat(value) || 0,
+                  }));
+                }
+              }}
               className={inputStyle}
               placeholder="0.00"
               disabled={isReadOnly}
+              inputMode="numeric"
             />
           </div>
 
@@ -333,7 +344,12 @@ const ReceiptVoucher: React.FC<ReceiptVoucherProps> = ({ title }) => {
         <div className="mt-6">
           <div className="bg-brand-blue-bg p-3 rounded-md text-center text-brand-dark font-semibold">
             {companyInfo
-              ? tafqeet(voucherData.amount, companyInfo.currency)
+              ? tafqeet(
+                  typeof voucherData.amount === "string"
+                    ? parseFloat(voucherData.amount) || 0
+                    : voucherData.amount || 0,
+                  companyInfo.currency
+                )
               : "جاري التحميل..."}
           </div>
         </div>
@@ -373,7 +389,7 @@ const ReceiptVoucher: React.FC<ReceiptVoucherProps> = ({ title }) => {
                         id: savedVoucher.customerId || savedVoucher.supplierId || savedVoucher.currentAccountId || null,
                         name: savedVoucher.entityName,
                       },
-                      amount: savedVoucher.amount,
+                      amount: savedVoucher.amount === 0 || savedVoucher.amount === null ? ("" as any) : savedVoucher.amount,
                       paymentMethod: savedVoucher.paymentMethod as "safe" | "bank",
                       safeOrBankId: savedVoucher.paymentMethod === "safe" ? savedVoucher.safeId || null : savedVoucher.bankId || null,
                       description: savedVoucher.description || "",
