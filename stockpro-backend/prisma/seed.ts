@@ -114,6 +114,7 @@ const MENU_ITEMS: MenuItem[] = [
     children: [
       { key: 'receipt_voucher', label: 'سند قبض' },
       { key: 'payment_voucher', label: 'سند صرف' },
+      { key: 'internal_transfers', label: 'تحويلات بينية' },
     ],
   },
   {
@@ -337,6 +338,7 @@ async function main() {
         p.resource === 'financials' ||
         p.resource === 'receipt_voucher' ||
         p.resource === 'payment_voucher' ||
+        p.resource === 'internal_transfers' ||
         p.resource === 'reports' ||
         p.resource === 'item_reports' ||
         p.resource === 'item_movement_report' ||

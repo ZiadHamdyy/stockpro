@@ -47,6 +47,7 @@ import AddSupplier from "./components/pages/suppliers/AddSupplier";
 import SuppliersList from "./components/pages/suppliers/SuppliersList";
 import ReceiptVoucher from "./components/pages/financials/ReceiptVoucher";
 import PaymentVoucher from "./components/pages/financials/PaymentVoucher";
+import InternalTransfers from "./components/pages/financials/InternalTransfers";
 import ExpensesList from "./components/pages/financials/ExpensesList";
 import ExpenseCodes from "./components/pages/financials/ExpenseCodes";
 import ExpenseTypes from "./components/pages/financials/ExpenseTypes";
@@ -808,6 +809,14 @@ const AppContent = () => {
               element={
                 <ProtectedRoute requiredPermission="payment_voucher-read">
                   <PaymentVoucher title={currentPageTitle} />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/financials/internal-transfers"
+              element={
+                <ProtectedRoute requiredPermission="internal_transfers-read">
+                  <InternalTransfers title={currentPageTitle} />
                 </ProtectedRoute>
               }
             />

@@ -210,6 +210,7 @@ export const MENU_ITEMS: MenuItem[] = [
     children: [
       { key: "receipt_voucher", label: "سند قبض", icon: DollarSignIcon },
       { key: "payment_voucher", label: "سند صرف", icon: DollarSignIcon },
+      { key: "internal_transfers", label: "تحويلات بينية", icon: DollarSignIcon },
     ],
   },
   {

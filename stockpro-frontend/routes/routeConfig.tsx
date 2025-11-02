@@ -26,6 +26,7 @@ import AddSupplier from "../components/pages/suppliers/AddSupplier";
 import SuppliersList from "../components/pages/suppliers/SuppliersList";
 import ReceiptVoucher from "../components/pages/financials/ReceiptVoucher";
 import PaymentVoucher from "../components/pages/financials/PaymentVoucher";
+import InternalTransfers from "../components/pages/financials/InternalTransfers";
 import ExpensesList from "../components/pages/financials/ExpensesList";
 import ExpenseCodes from "../components/pages/financials/ExpenseCodes";
 import ExpenseTypes from "../components/pages/financials/ExpenseTypes";
@@ -319,6 +320,12 @@ export const routeConfig = [
     component: PaymentVoucher,
     requiredPermission: "payment_voucher-read",
     label: "سند صرف",
+  },
+  {
+    path: "/financials/internal-transfers",
+    component: InternalTransfers,
+    requiredPermission: "internal_transfers-read",
+    label: "تحويلات بينية",
   },
 
   // Reports - Items

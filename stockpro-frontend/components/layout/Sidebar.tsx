@@ -83,12 +83,13 @@ const filterByPermissions = (
   };
   items.forEach(addParents);
 
-  const recursiveFilter = (menuItems: MenuItem[]): MenuItem[] => {
+  const recursiveFilter = (menuItems: MenuItem[], parentAllowed = false): MenuItem[] => {
     return menuItems
       .map((item) => {
         // If item has children, it's a grouping/parent item
         if (item.children) {
-          const filteredChildren = recursiveFilter(item.children);
+          const isParentAllowed = allowedKeys.has(item.key) || parentAllowed;
+          const filteredChildren = recursiveFilter(item.children, isParentAllowed);
           
           // Show parent if it has filtered children or if it's explicitly allowed
           if (filteredChildren.length > 0 || allowedKeys.has(item.key)) {
@@ -111,6 +112,7 @@ const filterByPermissions = (
               // For grouping items that contain other grouping items,
               // show all children (both grouping and leaf) without strict permission filtering
               // This preserves the menu structure for items like "financial_balances"
+              const isParentAllowed = allowedKeys.has(item.key) || parentAllowed;
               const processedChildren = item.children.map((child) => {
                 if (child.children && child.children.length > 0) {
                   // This child is also a grouping item
@@ -118,7 +120,7 @@ const filterByPermissions = (
                   const allChildren = child.children.map((grandchild) => {
                     if (grandchild.children && grandchild.children.length > 0) {
                       // Grandchild is also grouping - process recursively but show structure
-                      const grandchildFiltered = recursiveFilter(grandchild.children);
+                      const grandchildFiltered = recursiveFilter(grandchild.children, isParentAllowed);
                       // If has filtered children, use them; otherwise show all original
                       return grandchildFiltered.length > 0
                         ? { ...grandchild, children: grandchildFiltered }
@@ -147,13 +149,13 @@ const filterByPermissions = (
         }
 
         // If item has no children, it's a clickable leaf item
-        // Only show it if it's explicitly allowed
-        return allowedKeys.has(item.key) ? item : null;
+        // Show it if it's explicitly allowed OR if parent has permission
+        return (allowedKeys.has(item.key) || parentAllowed) ? item : null;
       })
       .filter((item): item is MenuItem => item !== null);
   };
 
-  return recursiveFilter(items);
+  return recursiveFilter(items, false);
 };
 
 const filterMenuItems = (items: MenuItem[], term: string): MenuItem[] => {

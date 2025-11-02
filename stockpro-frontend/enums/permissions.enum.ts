@@ -76,6 +76,7 @@ export enum Resources {
   FINANCIALS = "financials",
   RECEIPT_VOUCHER = "receipt_voucher",
   PAYMENT_VOUCHER = "payment_voucher",
+  INTERNAL_TRANSFER = "internal_transfers",
 
   // Reports
   REPORTS = "reports",

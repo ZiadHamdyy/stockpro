@@ -69,6 +69,7 @@ export const getPathFromMenuKey = (key: string): string => {
     // Financials - Vouchers
     receipt_voucher: "/financials/receipt-voucher",
     payment_voucher: "/financials/payment-voucher",
+    internal_transfers: "/financials/internal-transfers",
 
     // Reports - Items
     item_movement_report: "/reports/items/movement",
@@ -146,6 +147,7 @@ export const getMenuKeyFromPath = (path: string): string => {
     "/financials/banks": "banks",
     "/financials/receipt-voucher": "receipt_voucher",
     "/financials/payment-voucher": "payment_voucher",
+    "/financials/internal-transfers": "internal_transfers",
     "/reports/items/movement": "item_movement_report",
     "/reports/items/balance": "item_balance_report",
     "/reports/items/valuation": "inventory_valuation_report",
