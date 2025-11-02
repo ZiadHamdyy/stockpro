@@ -588,7 +588,7 @@ const PaymentVoucher: React.FC<PaymentVoucherProps> = ({ title }) => {
             amount: voucherData.amount,
             paidTo: voucherData.entity.name,
             description: voucherData.description,
-            userName: User?.fullName || "غير محدد",
+            userName: User?.fullName || User?.name || "غير محدد",
             branchName: typeof User?.branch === 'string' ? User.branch : User?.branch?.name || "غير محدد",
           }}
         />

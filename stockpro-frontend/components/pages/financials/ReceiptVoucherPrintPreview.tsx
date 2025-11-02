@@ -22,7 +22,7 @@ const ReceiptVoucherPrintPreview: React.FC<ReceiptVoucherPrintPreviewProps> = ({
   isOpen,
   onClose,
   voucherData,
-}) => {
+}) => { <option value="expense-Type">مصروفات ضريبية</option>
   const { data: companyInfo, isLoading, error } = useGetCompanyQuery();
 
   // Add css for printing
@@ -179,6 +179,9 @@ const ReceiptVoucherPrintPreview: React.FC<ReceiptVoucherPrintPreviewProps> = ({
                   </p>
                   <p>
                     <span className="font-semibold">الفرع:</span> {typeof branchName === "string" ? branchName : branchName?.name || "غير محدد"}
+                  </p>
+                  <p>
+                    <span className="font-semibold">الموظف:</span> {typeof userName === "string" ? userName : userName?.name || "غير محدد"}
                   </p>
                 </div>
               </div>
