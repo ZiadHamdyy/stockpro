@@ -54,6 +54,14 @@ export const getPathFromMenuKey = (key: string): string => {
     add_current_account: "/financials/current-accounts/add",
     current_accounts_list: "/financials/current-accounts/list",
 
+    // Financials - Financial Balances (Receivable Accounts)
+    add_receivable_account: "/financials/receivable-accounts/add",
+    receivable_accounts_list: "/financials/receivable-accounts/list",
+
+    // Financials - Financial Balances (Payable Accounts)
+    add_payable_account: "/financials/payable-accounts/add",
+    payable_accounts_list: "/financials/payable-accounts/list",
+
     // Financials - Safes & Banks
     safes: "/financials/safes",
     banks: "/financials/banks",
@@ -130,6 +138,10 @@ export const getMenuKeyFromPath = (path: string): string => {
     "/financials/expenses/types": "expense_types",
     "/financials/current-accounts/add": "add_current_account",
     "/financials/current-accounts/list": "current_accounts_list",
+    "/financials/receivable-accounts/add": "add_receivable_account",
+    "/financials/receivable-accounts/list": "receivable_accounts_list",
+    "/financials/payable-accounts/add": "add_payable_account",
+    "/financials/payable-accounts/list": "payable_accounts_list",
     "/financials/safes": "safes",
     "/financials/banks": "banks",
     "/financials/receipt-voucher": "receipt_voucher",

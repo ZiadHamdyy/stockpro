@@ -62,6 +62,13 @@ export enum Resources {
   CURRENT_ACCOUNTS = "current_accounts",
   ADD_CURRENT_ACCOUNT = "add_current_account",
   CURRENT_ACCOUNTS_LIST = "current_accounts_list",
+  FINANCIAL_BALANCES = "financial_balances",
+  RECEIVABLE_ACCOUNTS = "receivable_accounts",
+  ADD_RECEIVABLE_ACCOUNT = "add_receivable_account",
+  RECEIVABLE_ACCOUNTS_LIST = "receivable_accounts_list",
+  PAYABLE_ACCOUNTS = "payable_accounts",
+  ADD_PAYABLE_ACCOUNT = "add_payable_account",
+  PAYABLE_ACCOUNTS_LIST = "payable_accounts_list",
   SAFES = "safes",
   BANKS = "banks",
 

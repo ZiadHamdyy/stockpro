@@ -158,6 +158,47 @@ export const MENU_ITEMS: MenuItem[] = [
           },
         ],
       },
+      {
+        key: "financial_balances",
+        label: "أرصدة مالية",
+        icon: LandmarkIcon,
+        children: [
+          {
+            key: "receivable_accounts",
+            label: "أرصدة مدينة اخري",
+            icon: LandmarkIcon,
+            children: [
+              {
+                key: "add_receivable_account",
+                label: "اضافة حساب",
+                icon: LandmarkIcon,
+              },
+              {
+                key: "receivable_accounts_list",
+                label: "قائمة الأرصدة",
+                icon: LandmarkIcon,
+              },
+            ],
+          },
+          {
+            key: "payable_accounts",
+            label: "أرصدة دائنة اخري",
+            icon: LandmarkIcon,
+            children: [
+              {
+                key: "add_payable_account",
+                label: "اضافة حساب",
+                icon: LandmarkIcon,
+              },
+              {
+                key: "payable_accounts_list",
+                label: "قائمة الأرصدة",
+                icon: LandmarkIcon,
+              },
+            ],
+          },
+        ],
+      },
       { key: "safes", label: "الخزنات", icon: LandmarkIcon },
       { key: "banks", label: "البنوك", icon: LandmarkIcon },
     ],

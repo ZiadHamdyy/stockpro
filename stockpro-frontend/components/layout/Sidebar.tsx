@@ -59,11 +59,22 @@ const filterByPermissions = (
     allowedKeys.add(resource);
   });
 
-  // Add parent keys for any allowed child
+  // Helper function to check if any descendant has permission
+  const hasAnyAllowedDescendant = (item: MenuItem): boolean => {
+    if (allowedKeys.has(item.key)) {
+      return true;
+    }
+    if (item.children) {
+      return item.children.some((child) => hasAnyAllowedDescendant(child));
+    }
+    return false;
+  };
+
+  // Add parent keys for any allowed child (recursively)
   const addParents = (item: MenuItem) => {
     if (item.children) {
       item.children.forEach((child) => {
-        if (allowedKeys.has(child.key)) {
+        if (hasAnyAllowedDescendant(child)) {
           allowedKeys.add(item.key);
         }
         addParents(child);
@@ -75,23 +86,68 @@ const filterByPermissions = (
   const recursiveFilter = (menuItems: MenuItem[]): MenuItem[] => {
     return menuItems
       .map((item) => {
-        if (
-          !allowedKeys.has(item.key) &&
-          !item.children?.some((child) => allowedKeys.has(child.key))
-        ) {
-          // This is a rough check, a better one would check all descendants
-          // but for our structure this should work.
-          if (!item.children) return null;
-        }
-
+        // If item has children, it's a grouping/parent item
         if (item.children) {
           const filteredChildren = recursiveFilter(item.children);
-          if (filteredChildren.length === 0 && !allowedKeys.has(item.key)) {
-            return null;
+          
+          // Show parent if it has filtered children or if it's explicitly allowed
+          if (filteredChildren.length > 0 || allowedKeys.has(item.key)) {
+            return { ...item, children: filteredChildren };
           }
-          return { ...item, children: filteredChildren };
+          
+          // Special case: For pure grouping/category items (items that only exist to organize other items),
+          // show them even without permissions if they have children in the menu structure.
+          // This handles cases like "financial_balances" which is just a category container.
+          // Only apply this if the item itself is not clickable (no direct route mapped to it)
+          // and it exists in the menu structure with children
+          if (item.children.length > 0) {
+            // Check if this is a grouping-only item (not directly clickable)
+            // by checking if it has children that are also grouping items
+            const hasGroupingChildren = item.children.some(
+              (child) => child.children && child.children.length > 0,
+            );
+            
+            if (hasGroupingChildren) {
+              // For grouping items that contain other grouping items,
+              // show all children (both grouping and leaf) without strict permission filtering
+              // This preserves the menu structure for items like "financial_balances"
+              const processedChildren = item.children.map((child) => {
+                if (child.children && child.children.length > 0) {
+                  // This child is also a grouping item
+                  // Show all its children (both grouping and leaf) without permission checks
+                  const allChildren = child.children.map((grandchild) => {
+                    if (grandchild.children && grandchild.children.length > 0) {
+                      // Grandchild is also grouping - process recursively but show structure
+                      const grandchildFiltered = recursiveFilter(grandchild.children);
+                      // If has filtered children, use them; otherwise show all original
+                      return grandchildFiltered.length > 0
+                        ? { ...grandchild, children: grandchildFiltered }
+                        : grandchild;
+                    } else {
+                      // Grandchild is leaf - show it always (part of structure)
+                      return grandchild;
+                    }
+                  }).filter((gc): gc is MenuItem => gc !== null);
+                  
+                  return { ...child, children: allChildren };
+                } else {
+                  // This child is a leaf item - show it always (part of structure)
+                  return child;
+                }
+              }).filter((child): child is MenuItem => child !== null);
+              
+              // Show parent if it has at least one processed child
+              if (processedChildren.length > 0) {
+                return { ...item, children: processedChildren };
+              }
+            }
+          }
+          
+          return null;
         }
 
+        // If item has no children, it's a clickable leaf item
+        // Only show it if it's explicitly allowed
         return allowedKeys.has(item.key) ? item : null;
       })
       .filter((item): item is MenuItem => item !== null);
