@@ -635,6 +635,11 @@ const SalesReturn: React.FC<SalesReturnProps> = ({
 
   return (
     <>
+      <style>{`
+        @media print {
+          .no-print-delete-col { display: none !important; }
+        }
+      `}</style>
       <div className="bg-white p-6 rounded-lg shadow">
         <div className="border-2 border-brand-blue rounded-lg mb-4">
           <InvoiceHeader />
@@ -825,7 +830,7 @@ const SalesReturn: React.FC<SalesReturnProps> = ({
                 <th className="px-2 py-3 w-36 text-center text-sm font-semibold uppercase border border-blue-300">
                   الاجمالي
                 </th>
-                <th className="px-2 py-3 w-16 text-center border border-blue-300"></th>
+                <th className="px-2 py-3 w-16 text-center border border-blue-300 no-print-delete-col"></th>
               </tr>
             </thead>
             <tbody ref={itemSearchRef} className="divide-y divide-gray-300">
@@ -898,11 +903,9 @@ const SalesReturn: React.FC<SalesReturnProps> = ({
                     <input
                       type="text"
                       value={item.unit}
-                      onChange={(e) =>
-                        handleItemChange(index, "unit", e.target.value)
-                      }
+                      readOnly
                       className={tableInputStyle + " w-full"}
-                      disabled={isReadOnly}
+                      disabled
                     />
                   </td>
                   <td className="p-2 align-middle border-x border-gray-300">
@@ -951,7 +954,7 @@ const SalesReturn: React.FC<SalesReturnProps> = ({
                   <td className="p-2 align-middle text-center border-x border-gray-300">
                     {item.total.toFixed(2)}
                   </td>
-                  <td className="p-2 align-middle text-center border-x border-gray-300">
+                  <td className="p-2 align-middle text-center border-x border-gray-300 no-print-delete-col">
                     <button
                       onClick={() => handleRemoveItem(index)}
                       className="text-red-500 p-1 rounded-full hover:bg-red-100 hover:text-red-700 disabled:text-gray-400 disabled:hover:bg-transparent"
@@ -1074,18 +1077,18 @@ const SalesReturn: React.FC<SalesReturnProps> = ({
 
             <div className="flex items-center justify-center gap-2">
               <button
-                onClick={() => navigateBy("last")}
-                disabled={(returns.length === 0) || currentIndex === returns.length - 1}
+                onClick={() => navigateBy("first")}
+                disabled={(returns.length === 0) || currentIndex === 0}
                 className="p-2 bg-gray-200 rounded-md hover:bg-gray-300 disabled:opacity-50"
               >
-                الأخير
+                الأول
               </button>
               <button
-                onClick={() => navigateBy("next")}
-                disabled={(returns.length === 0) || currentIndex === returns.length - 1}
+                onClick={() => navigateBy("prev")}
+                disabled={(returns.length === 0) || currentIndex === 0}
                 className="p-2 bg-gray-200 rounded-md hover:bg-gray-300 disabled:opacity-50"
               >
-                التالي
+                السابق
               </button>
               <div className="px-4 py-2 bg-brand-blue-bg border-2 border-brand-blue rounded-md">
                 <span className="font-bold">
@@ -1095,18 +1098,18 @@ const SalesReturn: React.FC<SalesReturnProps> = ({
                 </span>
               </div>
               <button
-                onClick={() => navigateBy("prev")}
-                disabled={(returns.length === 0) || currentIndex === 0}
+                onClick={() => navigateBy("next")}
+                disabled={(returns.length === 0) || currentIndex === returns.length - 1}
                 className="p-2 bg-gray-200 rounded-md hover:bg-gray-300 disabled:opacity-50"
               >
-                السابق
+                التالي
               </button>
               <button
-                onClick={() => navigateBy("first")}
-                disabled={(returns.length === 0) || currentIndex === 0}
+                onClick={() => navigateBy("last")}
+                disabled={(returns.length === 0) || currentIndex === returns.length - 1}
                 className="p-2 bg-gray-200 rounded-md hover:bg-gray-300 disabled:opacity-50"
               >
-                الأول
+                الأخير
               </button>
             </div>
           </div>

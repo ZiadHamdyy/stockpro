@@ -685,11 +685,9 @@ const StoreReceiptVoucher: React.FC<StoreReceiptVoucherProps> = ({ title }) => {
                     <input
                       type="text"
                       value={item.unit}
-                      onChange={(e) =>
-                        handleItemChange(index, "unit", e.target.value)
-                      }
+                      readOnly
                       className={tableInputStyle}
-                      disabled={isReadOnly}
+                      disabled
                     />
                   </td>
                   <td className="p-2 align-middle">
