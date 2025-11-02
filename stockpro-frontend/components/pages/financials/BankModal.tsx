@@ -14,22 +14,28 @@ const BankModal: React.FC<BankModalProps> = ({
   onSave,
   bankToEdit,
 }) => {
-  const [bankData, setBankData] = useState<Partial<Bank>>({
+  const [bankData, setBankData] = useState<any>({
     name: "",
     accountNumber: "",
     iban: "",
-    openingBalance: 0,
+    openingBalance: "" as any,
   });
 
   useEffect(() => {
     if (bankToEdit) {
-      setBankData(bankToEdit);
+      setBankData({
+        ...bankToEdit,
+        openingBalance:
+          bankToEdit.openingBalance === 0 || bankToEdit.openingBalance === null
+            ? ("" as any)
+            : bankToEdit.openingBalance,
+      });
     } else {
       setBankData({
         name: "",
         accountNumber: "",
         iban: "",
-        openingBalance: 0,
+        openingBalance: "" as any,
       });
     }
   }, [bankToEdit, isOpen]);
@@ -42,9 +48,29 @@ const BankModal: React.FC<BankModalProps> = ({
     }));
   };
 
+  const handleOpeningBalanceChange = (
+    e: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    const value = e.target.value;
+    // Allow empty string and valid positive numbers (including decimals, no negatives)
+    if (value === "" || /^\d*\.?\d*$/.test(value)) {
+      setBankData((prev) => ({
+        ...prev,
+        openingBalance: value === "" ? "" : parseFloat(value) || 0,
+      }));
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    await onSave(bankData);
+    const dataToSave = {
+      ...bankData,
+      openingBalance:
+        typeof bankData.openingBalance === "string"
+          ? parseFloat(bankData.openingBalance) || 0
+          : bankData.openingBalance || 0,
+    };
+    await onSave(dataToSave);
   };
 
   if (!isOpen) return null;
@@ -145,12 +171,19 @@ const BankModal: React.FC<BankModalProps> = ({
                 الرصيد الافتتاحي
               </label>
               <input
-                type="number"
+                type="text"
                 id="openingBalance"
                 name="openingBalance"
-                value={bankData.openingBalance}
-                onChange={handleChange}
+                value={
+                  typeof bankData.openingBalance === "string"
+                    ? bankData.openingBalance
+                    : bankData.openingBalance === 0 || bankData.openingBalance === null
+                    ? ""
+                    : bankData.openingBalance
+                }
+                onChange={handleOpeningBalanceChange}
                 className={inputStyle}
+                inputMode="numeric"
               />
             </div>
           </div>

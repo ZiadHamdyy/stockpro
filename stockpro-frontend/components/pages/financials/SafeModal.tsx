@@ -16,20 +16,26 @@ const SafeModal: React.FC<SafeModalProps> = ({
   safeToEdit,
 }) => {
   const { data: branches = [] } = useGetBranchesQuery();
-  const [safeData, setSafeData] = useState<Partial<Safe>>({
+  const [safeData, setSafeData] = useState<any>({
     name: "",
     branchId: "",
-    openingBalance: 0,
+    openingBalance: "" as any,
   });
 
   useEffect(() => {
     if (safeToEdit) {
-      setSafeData(safeToEdit);
+      setSafeData({
+        ...safeToEdit,
+        openingBalance:
+          safeToEdit.openingBalance === 0 || safeToEdit.openingBalance === null
+            ? ("" as any)
+            : safeToEdit.openingBalance,
+      });
     } else {
       setSafeData({
         name: "",
         branchId: "",
-        openingBalance: 0,
+        openingBalance: "" as any,
       });
     }
   }, [safeToEdit, isOpen]);
@@ -44,9 +50,29 @@ const SafeModal: React.FC<SafeModalProps> = ({
     }));
   };
 
+  const handleOpeningBalanceChange = (
+    e: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    const value = e.target.value;
+    // Allow empty string and valid positive numbers (including decimals, no negatives)
+    if (value === "" || /^\d*\.?\d*$/.test(value)) {
+      setSafeData((prev) => ({
+        ...prev,
+        openingBalance: value === "" ? "" : parseFloat(value) || 0,
+      }));
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    await onSave(safeData);
+    const dataToSave = {
+      ...safeData,
+      openingBalance:
+        typeof safeData.openingBalance === "string"
+          ? parseFloat(safeData.openingBalance) || 0
+          : safeData.openingBalance || 0,
+    };
+    await onSave(dataToSave);
   };
 
   if (!isOpen) return null;
@@ -136,12 +162,19 @@ const SafeModal: React.FC<SafeModalProps> = ({
                 الرصيد الافتتاحي
               </label>
               <input
-                type="number"
+                type="text"
                 id="openingBalance"
                 name="openingBalance"
-                value={safeData.openingBalance}
-                onChange={handleChange}
+                value={
+                  typeof safeData.openingBalance === "string"
+                    ? safeData.openingBalance
+                    : safeData.openingBalance === 0 || safeData.openingBalance === null
+                    ? ""
+                    : safeData.openingBalance
+                }
+                onChange={handleOpeningBalanceChange}
                 className={inputStyle}
+                inputMode="numeric"
               />
             </div>
           </div>
