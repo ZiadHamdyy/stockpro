@@ -80,7 +80,7 @@ export const useExpenseTypes = () => {
             await deleteExpenseType(expenseType.id).unwrap();
             showToast("تم حذف النوع بنجاح");
           } catch (error) {
-            showToast("حدث خطأ أثناء حذف النوع");
+            showToast("حدث خطأ أثناء حذف النوع", 'error');
             console.error("Error deleting expense type:", error);
           }
         },
@@ -119,6 +119,7 @@ export const useExpenseTypes = () => {
           expenseTypeToEdit
             ? "حدث خطأ أثناء تعديل النوع"
             : "حدث خطأ أثناء إضافة النوع",
+          'error',
         );
         console.error("Error saving expense type:", error);
       }

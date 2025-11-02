@@ -113,7 +113,7 @@ const VerifyOtp: React.FC<VerifyOtpProps> = ({ email, onNavigate }) => {
     const otpCode = otp.join("");
 
     if (otpCode.length !== 6) {
-      showToast("يرجى إدخال رمز التحقق المكون من 6 أرقام");
+      showToast("يرجى إدخال رمز التحقق المكون من 6 أرقام", 'error');
       return;
     }
 
@@ -124,7 +124,7 @@ const VerifyOtp: React.FC<VerifyOtpProps> = ({ email, onNavigate }) => {
       onNavigate("reset-password");
     } catch (error: any) {
       console.error("Verify OTP error:", error);
-      showToast("رمز التحقق غير صحيح");
+      showToast("رمز التحقق غير صحيح", 'error');
     } finally {
       setIsLoading(false);
     }
@@ -142,7 +142,7 @@ const VerifyOtp: React.FC<VerifyOtpProps> = ({ email, onNavigate }) => {
       }
     } catch (error: any) {
       console.error("Resend OTP error:", error);
-      showToast("حدث خطأ في إرسال الرمز");
+      showToast("حدث خطأ في إرسال الرمز", 'error');
     } finally {
       setIsResending(false);
     }

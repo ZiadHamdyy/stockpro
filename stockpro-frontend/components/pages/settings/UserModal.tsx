@@ -144,7 +144,7 @@ const UserModal: React.FC<UserModalProps> = ({
 
     // Validate form before submission
     if (!validateForm()) {
-      showToast("يرجى تصحيح الأخطاء في النموذج");
+      showToast("يرجى تصحيح الأخطاء في النموذج", 'error');
       return;
     }
 
@@ -207,7 +207,7 @@ const UserModal: React.FC<UserModalProps> = ({
         errorMessage = "انتهت مهلة الاتصال، يرجى المحاولة مرة أخرى";
       }
 
-      showToast(errorMessage);
+      showToast(errorMessage, 'error');
     }
   };
 

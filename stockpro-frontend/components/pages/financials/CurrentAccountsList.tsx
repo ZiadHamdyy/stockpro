@@ -72,7 +72,7 @@ const CurrentAccountsList: React.FC<CurrentAccountsListProps> = ({
           await deleteCurrentAccount(id).unwrap();
           showToast("تم حذف الحساب بنجاح");
         } catch (error) {
-          showToast("حدث خطأ أثناء حذف الحساب");
+          showToast("حدث خطأ أثناء حذف الحساب", 'error');
         }
       },
       type: "delete",

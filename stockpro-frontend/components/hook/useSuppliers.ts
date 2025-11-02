@@ -135,6 +135,7 @@ export const useSuppliers = () => {
           isUpdate
             ? "حدث خطأ أثناء تعديل المورد"
             : "حدث خطأ أثناء إضافة المورد",
+          'error',
         );
         console.error("Error saving supplier:", error);
       }

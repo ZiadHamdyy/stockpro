@@ -352,11 +352,11 @@ const StoreTransfer: React.FC<StoreTransferProps> = ({ title }) => {
     const filledItems = items.filter(i => i.id || i.name);
 
     if (filledItems.length === 0 || filledItems.some((i) => !i.id || !i.name)) {
-      showToast("لا يمكن حفظ سند فارغ أو يحتوي على أسطر غير مكتملة.");
+      showToast("لا يمكن حفظ سند فارغ أو يحتوي على أسطر غير مكتملة.", 'error');
       return;
     }
     if (voucherDetails.fromStore === voucherDetails.toStore) {
-      showToast("لا يمكن التحويل من وإلى نفس المخزن.");
+      showToast("لا يمكن التحويل من وإلى نفس المخزن.", 'error');
       return;
     }
 
@@ -365,13 +365,13 @@ const StoreTransfer: React.FC<StoreTransferProps> = ({ title }) => {
     const toStore = stores.find((s) => s.name === voucherDetails.toStore);
 
     if (!fromStore || !toStore) {
-      showToast("يرجى اختيار مخزن صحيح.");
+      showToast("يرجى اختيار مخزن صحيح.", 'error');
       return;
     }
 
     try {
       if (!currentUser?.id) {
-        showToast("يرجى تسجيل الدخول أولاً.");
+        showToast("يرجى تسجيل الدخول أولاً.", 'error');
         return;
       }
 
@@ -458,7 +458,7 @@ const StoreTransfer: React.FC<StoreTransferProps> = ({ title }) => {
       }
     } catch (error) {
       console.error("Error saving voucher:", error);
-      showToast("حدث خطأ أثناء حفظ السند");
+      showToast("حدث خطأ أثناء حفظ السند", 'error');
     }
   };
 
@@ -486,7 +486,7 @@ const StoreTransfer: React.FC<StoreTransferProps> = ({ title }) => {
           else setCurrentIndex((prev) => Math.max(0, prev - 1));
         } catch (error) {
           console.error("Error deleting voucher:", error);
-          showToast("حدث خطأ أثناء حذف السند");
+          showToast("حدث خطأ أثناء حذف السند", 'error');
         }
       },
       type: "delete",

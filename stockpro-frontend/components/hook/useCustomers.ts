@@ -135,6 +135,7 @@ export const useCustomers = () => {
           isUpdate
             ? "حدث خطأ أثناء تعديل العميل"
             : "حدث خطأ أثناء إضافة العميل",
+          'error',
         );
         console.error("Error saving customer:", error);
       }

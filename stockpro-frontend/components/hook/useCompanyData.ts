@@ -94,7 +94,7 @@ export const useCompanyData = () => {
 
       showToast("تم حفظ البيانات بنجاح!");
     } catch (error) {
-      showToast("حدث خطأ أثناء حفظ البيانات");
+      showToast("حدث خطأ أثناء حفظ البيانات", 'error');
       console.error("Error saving company data:", error);
     }
   };

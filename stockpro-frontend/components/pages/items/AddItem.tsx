@@ -154,7 +154,7 @@ const AddItem: React.FC<AddItemProps> = ({ title, editingId, onNavigate }) => {
 
   const handleSave = async () => {
     if (!itemData.name || !itemData.groupId || !itemData.unitId) {
-      showToast("الرجاء تعبئة جميع الحقول المطلوبة.");
+      showToast("الرجاء تعبئة جميع الحقول المطلوبة.", 'error');
       return;
     }
 
@@ -194,7 +194,7 @@ const AddItem: React.FC<AddItemProps> = ({ title, editingId, onNavigate }) => {
         navigate("/items/list");
       }
     } catch (error: any) {
-      showToast(error?.data?.message || "حدث خطأ أثناء حفظ الصنف");
+      showToast(error?.data?.message || "حدث خطأ أثناء حفظ الصنف", 'error');
     }
   };
 
@@ -212,9 +212,9 @@ const AddItem: React.FC<AddItemProps> = ({ title, editingId, onNavigate }) => {
             console.error("Error deleting item:", error);
             const status = error?.status || error?.originalStatus;
             if (status === 409) {
-              showToast("لا يمكن حذف الصنف لوجود معاملات مرتبطة به");
+              showToast("لا يمكن حذف الصنف لوجود معاملات مرتبطة به", 'error');
             } else {
-              showToast("فشل الحذف، حاول مرة أخرى");
+              showToast("فشل الحذف، حاول مرة أخرى", 'error');
             }
           }
         },

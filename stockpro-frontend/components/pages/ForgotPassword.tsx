@@ -15,7 +15,7 @@ const ForgotPassword: React.FC<ForgotPasswordProps> = ({ onNavigate }) => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email) {
-      showToast("يرجى إدخال البريد الإلكتروني");
+      showToast("يرجى إدخال البريد الإلكتروني", 'error');
       return;
     }
 
@@ -26,7 +26,7 @@ const ForgotPassword: React.FC<ForgotPasswordProps> = ({ onNavigate }) => {
       onNavigate("verify-otp", email);
     } catch (error: any) {
       console.error("Forgot password error:", error);
-      showToast("حدث خطأ في إرسال رمز التحقق");
+      showToast("حدث خطأ في إرسال رمز التحقق", 'error');
     } finally {
       setIsLoading(false);
     }

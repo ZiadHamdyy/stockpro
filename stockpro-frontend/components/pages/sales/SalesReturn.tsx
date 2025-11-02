@@ -225,7 +225,7 @@ const SalesReturn: React.FC<SalesReturnProps> = ({
       if (index !== -1) {
         setCurrentIndex(index);
       } else {
-        showToast(`المرتجع رقم ${viewingId} غير موجود.`);
+        showToast(`المرتجع رقم ${viewingId} غير موجود.`, 'error');
       }
       onClearViewingId();
     }
@@ -365,7 +365,7 @@ const SalesReturn: React.FC<SalesReturnProps> = ({
     if (field === "id" && selectedInvoiceId) {
       const enteredId = String(value || "").trim();
       if (enteredId && sourceInvoiceQtyById[enteredId] == null) {
-        showToast("هذا الصنف غير موجود في الفاتورة المختارة.");
+        showToast("هذا الصنف غير موجود في الفاتورة المختارة.", 'error');
         // Revert the change
         item = { ...newItems[index] };
       }
@@ -380,7 +380,7 @@ const SalesReturn: React.FC<SalesReturnProps> = ({
         if (qty > maxAllowed) {
           qty = maxAllowed;
           item.qty = maxAllowed;
-          showToast("لا يمكن إرجاع كمية أكبر من الموجودة في الفاتورة.");
+          showToast("لا يمكن إرجاع كمية أكبر من الموجودة في الفاتورة.", 'error');
         }
       }
       const total = qty * price;
@@ -504,11 +504,11 @@ const SalesReturn: React.FC<SalesReturnProps> = ({
     const finalItems = returnItems.filter((i) => i.id && i.name && i.qty > 0);
 
     if (finalItems.length === 0) {
-      showToast("الرجاء إضافة صنف واحد على الأقل للمرتجع.");
+      showToast("الرجاء إضافة صنف واحد على الأقل للمرتجع.", 'error');
       return;
     }
     if (paymentMethod === "credit" && !selectedCustomer) {
-      showToast("الرجاء اختيار العميل للمرتجعات الآجلة.");
+      showToast("الرجاء اختيار العميل للمرتجعات الآجلة.", 'error');
       return;
     }
 
@@ -611,7 +611,7 @@ const SalesReturn: React.FC<SalesReturnProps> = ({
 
   const handleDelete = () => {
     if (currentIndex === -1) {
-      showToast("لا يمكن حذف مرتجع جديد لم يتم حفظه.");
+      showToast("لا يمكن حذف مرتجع جديد لم يتم حفظه.", 'error');
       return;
     }
     showModal({

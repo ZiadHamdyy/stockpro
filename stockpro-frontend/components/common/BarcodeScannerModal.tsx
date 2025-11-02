@@ -42,7 +42,7 @@ const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({
     const startScan = async () => {
       // @ts-ignore
       if (!("BarcodeDetector" in window)) {
-        showToast("متصفحك لا يدعم قارئ الباركود.");
+        showToast("متصفحك لا يدعم قارئ الباركود.", 'error');
         onClose();
         return;
       }
@@ -59,7 +59,7 @@ const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({
         }
       } catch (err) {
         console.error("Error accessing camera:", err);
-        showToast("لا يمكن الوصول إلى الكاميرا. الرجاء التحقق من الصلاحيات.");
+        showToast("لا يمكن الوصول إلى الكاميرا. الرجاء التحقق من الصلاحيات.", 'error');
         setIsScanning(false);
         onClose();
       }

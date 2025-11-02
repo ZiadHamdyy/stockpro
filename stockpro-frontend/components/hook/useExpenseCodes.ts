@@ -87,7 +87,7 @@ export const useExpenseCodes = () => {
             await deleteExpenseCode(expenseCode.id).unwrap();
             showToast("تم حذف البند بنجاح");
           } catch (error) {
-            showToast("حدث خطأ أثناء حذف البند");
+            showToast("حدث خطأ أثناء حذف البند", 'error');
             console.error("Error deleting expense code:", error);
           }
         },
@@ -132,6 +132,7 @@ export const useExpenseCodes = () => {
           expenseCodeToEdit
             ? "حدث خطأ أثناء تعديل البند"
             : "حدث خطأ أثناء إضافة البند",
+          'error',
         );
         console.error("Error saving expense code:", error);
       }

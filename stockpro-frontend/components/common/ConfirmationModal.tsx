@@ -38,9 +38,9 @@ const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
         if (showToast) {
           const status = err?.status || err?.originalStatus;
           if (status === 400 || status === 401 || status === 404) {
-            showToast("كلمة المرور غير صحيحة");
+            showToast("كلمة المرور غير صحيحة", 'error');
           } else {
-            showToast("حدث خطأ أثناء التحقق. حاول مرة أخرى");
+            showToast("حدث خطأ أثناء التحقق. حاول مرة أخرى", 'error');
           }
         }
       } finally {

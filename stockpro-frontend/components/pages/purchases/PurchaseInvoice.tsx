@@ -222,7 +222,7 @@ const PurchaseInvoice: React.FC<PurchaseInvoiceProps> = ({
       if (index !== -1) {
         setCurrentIndex(index);
       } else {
-        showToast(`الفاتورة رقم ${viewingId} غير موجودة.`);
+        showToast(`الفاتورة رقم ${viewingId} غير موجودة.`, 'error');
       }
       onClearViewingId();
     }
@@ -503,7 +503,7 @@ const PurchaseInvoice: React.FC<PurchaseInvoiceProps> = ({
 
       showToast(`تم إضافة الصنف: ${foundItem.name}`);
     } else {
-      showToast("الصنف غير موجود. لم يتم العثور على باركود مطابق.");
+      showToast("الصنف غير موجود. لم يتم العثور على باركود مطابق.", 'error');
     }
   };
 
@@ -511,12 +511,12 @@ const PurchaseInvoice: React.FC<PurchaseInvoiceProps> = ({
     const finalItems = purchaseItems.filter((i) => i.id && i.name && i.qty > 0);
 
     if (finalItems.length === 0) {
-      showToast("الرجاء إضافة صنف واحد على الأقل للفاتورة.");
+      showToast("الرجاء إضافة صنف واحد على الأقل للفاتورة.", 'error');
       return;
     }
 
     if (paymentMethod === "credit" && !selectedSupplier) {
-      showToast("الرجاء اختيار المورد للفواتير الآجلة.");
+      showToast("الرجاء اختيار المورد للفواتير الآجلة.", 'error');
       return;
     }
 
@@ -623,7 +623,7 @@ const PurchaseInvoice: React.FC<PurchaseInvoiceProps> = ({
 
   const handleDelete = () => {
     if (currentIndex === -1) {
-      showToast("لا يمكن حذف فاتورة جديدة لم يتم حفظها.");
+      showToast("لا يمكن حذف فاتورة جديدة لم يتم حفظها.", 'error');
       return;
     }
     showModal({
@@ -641,7 +641,7 @@ const PurchaseInvoice: React.FC<PurchaseInvoiceProps> = ({
             setCurrentIndex((prev) => Math.max(0, prev - 1));
           }
         } catch (error) {
-          showToast("حدث خطأ أثناء الحذف");
+          showToast("حدث خطأ أثناء الحذف", 'error');
         }
       },
       type: "delete",

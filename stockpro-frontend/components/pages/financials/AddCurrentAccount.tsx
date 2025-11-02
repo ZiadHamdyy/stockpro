@@ -137,7 +137,7 @@ const AddCurrentAccount: React.FC<AddCurrentAccountProps> = ({
         setIsReadOnly(true);
       }
     } catch (error) {
-      showToast("حدث خطأ أثناء حفظ الحساب");
+      showToast("حدث خطأ أثناء حفظ الحساب", 'error');
     }
   };
 
@@ -152,7 +152,7 @@ const AddCurrentAccount: React.FC<AddCurrentAccountProps> = ({
             showToast("تم الحذف بنجاح.");
             onNavigate("add_current_account", "إضافة حساب جاري");
           } catch (error) {
-            showToast("حدث خطأ أثناء حذف الحساب");
+            showToast("حدث خطأ أثناء حذف الحساب", 'error');
           }
         },
         type: "delete",

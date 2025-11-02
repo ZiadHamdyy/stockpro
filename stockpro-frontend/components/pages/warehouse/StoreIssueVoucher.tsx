@@ -346,25 +346,25 @@ const StoreIssueVoucher: React.FC<StoreIssueVoucherProps> = ({ title }) => {
     const filledItems = items.filter(i => i.id || i.name);
 
     if (filledItems.length === 0 || filledItems.some(i => !i.id || !i.name)) {
-      showToast("لا يمكن حفظ إذن فارغ أو يحتوي على أسطر غير مكتملة.");
+      showToast("لا يمكن حفظ إذن فارغ أو يحتوي على أسطر غير مكتملة.", 'error');
       return;
     }
 
     // Find branch and store
     const branch = branches.find((b) => b.name === voucherDetails.branch);
     if (!branch) {
-      showToast("يرجى اختيار فرع صحيح.");
+      showToast("يرجى اختيار فرع صحيح.", 'error');
       return;
     }
 
     if (!branch.stores || branch.stores.length === 0) {
-      showToast("لا يوجد مخزن متاح في هذا الفرع.");
+      showToast("لا يوجد مخزن متاح في هذا الفرع.", 'error');
       return;
     }
 
     try {
       if (!currentUser?.id) {
-        showToast("يرجى تسجيل الدخول أولاً.");
+        showToast("يرجى تسجيل الدخول أولاً.", 'error');
         return;
       }
 
@@ -452,7 +452,7 @@ const StoreIssueVoucher: React.FC<StoreIssueVoucherProps> = ({ title }) => {
       }
     } catch (error) {
       console.error("Error saving voucher:", error);
-      showToast("حدث خطأ أثناء حفظ الإذن");
+      showToast("حدث خطأ أثناء حفظ الإذن", 'error');
     }
   };
 
@@ -480,7 +480,7 @@ const StoreIssueVoucher: React.FC<StoreIssueVoucherProps> = ({ title }) => {
           else setCurrentIndex((prev) => Math.max(0, prev - 1));
         } catch (error) {
           console.error("Error deleting voucher:", error);
-          showToast("حدث خطأ أثناء حذف الإذن");
+          showToast("حدث خطأ أثناء حذف الإذن", 'error');
         }
       },
       type: "delete",

@@ -53,7 +53,7 @@ export function showApiErrorToast(error: unknown) {
     else if (err.status === 404) text = "العنصر المطلوب غير موجود.";
     else text = message || "حدث خطأ أثناء العملية.";
   }
-  showToastExternal(text);
+  showToastExternal(text, 'error');
 }
 
 

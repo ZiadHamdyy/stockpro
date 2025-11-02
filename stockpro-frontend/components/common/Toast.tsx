@@ -2,15 +2,17 @@ import React from "react";
 import { useToast } from "./ToastProvider";
 
 const Toast: React.FC = () => {
-  const { isToastVisible, toastMessage, hideToast } = useToast();
+  const { isToastVisible, toastMessage, toastType, hideToast } = useToast();
 
   if (!isToastVisible) {
     return null;
   }
 
+  const bgColor = toastType === 'error' ? 'bg-red-500' : 'bg-brand-green';
+
   return (
     <div
-      className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[100] px-6 py-3 rounded-md shadow-lg bg-brand-green text-white text-lg font-semibold animate-fade-in-out"
+      className={`fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[100] px-6 py-3 rounded-md shadow-lg ${bgColor} text-white text-lg font-semibold animate-fade-in-out`}
       role="alert"
       aria-live="assertive"
     >

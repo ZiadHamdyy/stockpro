@@ -239,7 +239,7 @@ const SalesInvoice: React.FC<SalesInvoiceProps> = ({
       if (index !== -1) {
         setCurrentIndex(index);
       } else {
-        showToast(`الفاتورة رقم ${viewingId} غير موجودة.`);
+        showToast(`الفاتورة رقم ${viewingId} غير موجودة.`, 'error');
       }
       onClearViewingId();
     }
@@ -527,7 +527,7 @@ const SalesInvoice: React.FC<SalesInvoiceProps> = ({
       setInvoiceItems(newItems);
       showToast(`تم إضافة الصنف: ${foundItem.name}`);
     } else {
-      showToast("الصنف غير موجود. لم يتم العثور على باركود مطابق.");
+      showToast("الصنف غير موجود. لم يتم العثور على باركود مطابق.", 'error');
     }
   };
 
@@ -535,12 +535,12 @@ const SalesInvoice: React.FC<SalesInvoiceProps> = ({
     const finalItems = invoiceItems.filter((i) => i.id && i.name && i.qty > 0);
 
     if (finalItems.length === 0) {
-      showToast("الرجاء إضافة صنف واحد على الأقل للفاتورة.");
+      showToast("الرجاء إضافة صنف واحد على الأقل للفاتورة.", 'error');
       return;
     }
 
     if (paymentMethod === "credit" && !selectedCustomer) {
-      showToast("الرجاء اختيار العميل للفواتير الآجلة.");
+      showToast("الرجاء اختيار العميل للفواتير الآجلة.", 'error');
       return;
     }
 
@@ -551,7 +551,7 @@ const SalesInvoice: React.FC<SalesInvoiceProps> = ({
         // Only validate stock for STOCKED items, skip SERVICE items
         if (itemInfo && itemInfo.type === 'STOCKED') {
           if (itemInfo.stock < item.qty) {
-            showToast(`الرصيد غير كافي لهذا الصنف: ${item.name}`);
+            showToast(`الرصيد غير كافي لهذا الصنف: ${item.name}`, 'error');
             return;
           }
         }
@@ -661,7 +661,7 @@ const SalesInvoice: React.FC<SalesInvoiceProps> = ({
 
   const handleDelete = () => {
     if (currentIndex === -1) {
-      showToast("لا يمكن حذف فاتورة جديدة لم يتم حفظها.");
+      showToast("لا يمكن حذف فاتورة جديدة لم يتم حفظها.", 'error');
       return;
     }
     showModal({

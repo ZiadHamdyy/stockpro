@@ -57,7 +57,7 @@ export const useExpenses = () => {
             await deleteExpense(expense.id).unwrap();
             showToast("تم حذف المصروف بنجاح");
           } catch (error) {
-            showToast("حدث خطأ أثناء حذف المصروف");
+            showToast("حدث خطأ أثناء حذف المصروف", 'error');
             console.error("Error deleting expense:", error);
           }
         },
@@ -82,7 +82,7 @@ export const useExpenses = () => {
         await createExpense(createData).unwrap();
         showToast("تم إضافة المصروف بنجاح");
       } catch (error) {
-        showToast("حدث خطأ أثناء إضافة المصروف");
+        showToast("حدث خطأ أثناء إضافة المصروف", 'error');
         console.error("Error creating expense:", error);
       }
     },
@@ -102,7 +102,7 @@ export const useExpenses = () => {
         await updateExpense({ id, data }).unwrap();
         showToast("تم تعديل المصروف بنجاح");
       } catch (error) {
-        showToast("حدث خطأ أثناء تعديل المصروف");
+        showToast("حدث خطأ أثناء تعديل المصروف", 'error');
         console.error("Error updating expense:", error);
       }
     },

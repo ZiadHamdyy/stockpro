@@ -90,7 +90,7 @@ const AddExpense: React.FC<AddExpenseProps> = ({
 
   const handleSave = () => {
     if (!expenseData.expenseCodeId || expenseData.amount <= 0) {
-      showToast("الرجاء اختيار بند المصروف وإدخال مبلغ صحيح.");
+      showToast("الرجاء اختيار بند المصروف وإدخال مبلغ صحيح.", 'error');
       return;
     }
     onSave(expenseData);

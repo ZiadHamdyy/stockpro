@@ -74,7 +74,7 @@ export const useSafes = () => {
             await deleteSafe(safe.id).unwrap();
             showToast("تم حذف الخزنة بنجاح");
           } catch (error) {
-            showToast("حدث خطأ أثناء حذف الخزنة");
+            showToast("حدث خطأ أثناء حذف الخزنة", 'error');
             console.error("Error deleting safe:", error);
           }
         },
@@ -115,6 +115,7 @@ export const useSafes = () => {
           safeToEdit
             ? "حدث خطأ أثناء تعديل الخزنة"
             : "حدث خطأ أثناء إضافة الخزنة",
+          'error',
         );
         console.error("Error saving safe:", error);
       }

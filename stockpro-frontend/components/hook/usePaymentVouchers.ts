@@ -112,7 +112,7 @@ export const usePaymentVouchers = () => {
 
   const handleSave = useCallback(async () => {
     if (!voucherData.entity.name || voucherData.amount <= 0) {
-      showToast("الرجاء تعبئة جميع الحقول المطلوبة.");
+      showToast("الرجاء تعبئة جميع الحقول المطلوبة.", 'error');
       return null;
     }
 
@@ -142,7 +142,7 @@ export const usePaymentVouchers = () => {
         if (firstExpenseCode) {
           entityFields.expenseCodeId = firstExpenseCode.id;
         } else {
-          showToast("لا توجد بنود مصروفات لهذا النوع. يرجى إضافة بند مصروف أولاً.");
+          showToast("لا توجد بنود مصروفات لهذا النوع. يرجى إضافة بند مصروف أولاً.", 'error');
           return null;
         }
       }
@@ -194,7 +194,7 @@ export const usePaymentVouchers = () => {
         return saved;
       }
     } catch (error) {
-      showToast("حدث خطأ أثناء حفظ السند");
+      showToast("حدث خطأ أثناء حفظ السند", 'error');
       console.error("Error saving payment voucher:", error);
       return null;
     }
@@ -231,7 +231,7 @@ export const usePaymentVouchers = () => {
           if (vouchers.length <= 1) handleNew();
           else setCurrentIndex((prev) => Math.max(0, prev - 1));
         } catch (error) {
-          showToast("حدث خطأ أثناء حذف السند");
+          showToast("حدث خطأ أثناء حذف السند", 'error');
           console.error("Error deleting payment voucher:", error);
         }
       },

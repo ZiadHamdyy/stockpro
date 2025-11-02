@@ -75,7 +75,7 @@ export const useBanks = () => {
             await deleteBank(bank.id).unwrap();
             showToast("تم حذف البنك بنجاح");
           } catch (error) {
-            showToast("حدث خطأ أثناء حذف البنك");
+            showToast("حدث خطأ أثناء حذف البنك", 'error');
             console.error("Error deleting bank:", error);
           }
         },
@@ -118,6 +118,7 @@ export const useBanks = () => {
           bankToEdit
             ? "حدث خطأ أثناء تعديل البنك"
             : "حدث خطأ أثناء إضافة البنك",
+          'error',
         );
         console.error("Error saving bank:", error);
       }

@@ -105,7 +105,7 @@ export const useReceiptVouchers = () => {
 
   const handleSave = useCallback(async () => {
     if (!voucherData.entity.name || voucherData.amount <= 0) {
-      showToast("الرجاء تعبئة جميع الحقول المطلوبة.");
+      showToast("الرجاء تعبئة جميع الحقول المطلوبة.", 'error');
       return null;
     }
 
@@ -164,7 +164,7 @@ export const useReceiptVouchers = () => {
         return saved;
       }
     } catch (error) {
-      showToast("حدث خطأ أثناء حفظ السند");
+      showToast("حدث خطأ أثناء حفظ السند", 'error');
       console.error("Error saving receipt voucher:", error);
       return null;
     }
@@ -200,7 +200,7 @@ export const useReceiptVouchers = () => {
           if (vouchers.length <= 1) handleNew();
           else setCurrentIndex((prev) => Math.max(0, prev - 1));
         } catch (error) {
-          showToast("حدث خطأ أثناء حذف السند");
+          showToast("حدث خطأ أثناء حذف السند", 'error');
           console.error("Error deleting receipt voucher:", error);
         }
       },

@@ -82,9 +82,9 @@ const ItemsList: React.FC<ItemsListProps> = ({ title, onNavigate }) => {
           console.error("Delete error:", error);
           if (showToast) {
             if (error?.status === 409) {
-              showToast("لا يمكن حذف الصنف لوجود معاملات مرتبطة به");
+              showToast("لا يمكن حذف الصنف لوجود معاملات مرتبطة به", 'error');
             } else {
-              showToast("فشل الحذف، حاول مرة أخرى");
+              showToast("فشل الحذف، حاول مرة أخرى", 'error');
             }
           }
         }

@@ -62,7 +62,7 @@ const UsersData: React.FC<UsersDataProps> = ({ title }) => {
   const handleDeleteClick = (user: User) => {
     // Prevent deleting the currently logged-in user
     if (currentUser && user?.id === currentUser?.id) {
-      showToast("لا يمكنك حذف حسابك الحالي.");
+      showToast("لا يمكنك حذف حسابك الحالي.", 'error');
       return;
     }
     showModal({
@@ -84,7 +84,7 @@ const UsersData: React.FC<UsersDataProps> = ({ title }) => {
   const handleToggleStatus = async (user: User) => {
     // Prevent users from deactivating themselves
     if (currentUser && user?.id === currentUser?.id) {
-      showToast("لا يمكنك تعطيل حسابك الحالي.");
+      showToast("لا يمكنك تعطيل حسابك الحالي.", 'error');
       return;
     }
 
@@ -100,6 +100,7 @@ const UsersData: React.FC<UsersDataProps> = ({ title }) => {
       showToast(
         error?.data?.message ||
           "حدث خطأ أثناء تحديث حالة المستخدم",
+        'error',
       );
     }
   };

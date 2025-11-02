@@ -326,7 +326,7 @@ export const usePermissions = () => {
       const errorMessage =
         err instanceof Error ? err.message : "حدث خطأ أثناء حفظ الصلاحيات";
       setError(errorMessage);
-      showToast(`خطأ: ${errorMessage}`);
+      showToast(`خطأ: ${errorMessage}`, 'error');
     } finally {
       setIsLoading(false);
     }

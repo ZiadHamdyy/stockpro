@@ -183,12 +183,12 @@ const Permissions: React.FC<{ title: string }> = ({ title }) => {
   const handleSaveCreate = async () => {
     const trimmedName = createRoleName.trim();
     if (!trimmedName) {
-      showToast("أدخل اسم الدور");
+      showToast("أدخل اسم الدور", 'error');
       return;
     }
     // Prevent creating a role with the name "مدير" (manager)
     if (trimmedName === "مدير") {
-      showToast("لا يمكن إنشاء دور باسم مدير");
+      showToast("لا يمكن إنشاء دور باسم مدير", 'error');
       return;
     }
     try {
@@ -204,7 +204,7 @@ const Permissions: React.FC<{ title: string }> = ({ title }) => {
     } catch (err: any) {
       const status = err?.status ?? err?.originalStatus;
       if (status === 403) {
-        showToast("لا تملك صلاحية إنشاء دور (permissions-create)");
+        showToast("لا تملك صلاحية إنشاء دور (permissions-create)", 'error');
         return;
       }
       if (status === 409) {
@@ -213,11 +213,11 @@ const Permissions: React.FC<{ title: string }> = ({ title }) => {
           err?.data?.message ||
           err?.message ||
           "لا يمكن إنشاء دور باسم مدير";
-        showToast(errorMessage);
+        showToast(errorMessage, 'error');
         return;
       }
       const message = err instanceof Error ? err.message : "فشل إنشاء الدور";
-      showToast(`خطأ: ${message}`);
+      showToast(`خطأ: ${message}`, 'error');
     }
   };
 
@@ -238,7 +238,7 @@ const Permissions: React.FC<{ title: string }> = ({ title }) => {
     if (!selectedRoleObj) return;
     const trimmedName = editRoleName.trim();
     if (!trimmedName) {
-      showToast("أدخل اسم الدور");
+      showToast("أدخل اسم الدور", 'error');
       return;
     }
     try {
@@ -255,11 +255,11 @@ const Permissions: React.FC<{ title: string }> = ({ title }) => {
     } catch (err: any) {
       const status = err?.status ?? err?.originalStatus;
       if (status === 403) {
-        showToast("لا تملك صلاحية تحديث الدور");
+        showToast("لا تملك صلاحية تحديث الدور", 'error');
         return;
       }
       const message = err instanceof Error ? err.message : "فشل تحديث الدور";
-      showToast(`خطأ: ${message}`);
+      showToast(`خطأ: ${message}`, 'error');
     }
   };
 
@@ -268,13 +268,13 @@ const Permissions: React.FC<{ title: string }> = ({ title }) => {
 
     // Prevent deleting the manager role "مدير" (also checked by backend)
     if (selectedRoleObj.name === "مدير" || selectedRoleObj.arabicName === "مدير") {
-      showToast("لا يمكن حذف دور المدير");
+      showToast("لا يمكن حذف دور المدير", 'error');
       return;
     }
 
     // Prevent deleting own role (also checked by backend)
     if (currentUser?.role?.id === selectedRoleObj.id) {
-      showToast("لا يمكن حذف الدور الخاص بك");
+      showToast("لا يمكن حذف الدور الخاص بك", 'error');
       return;
     }
 
@@ -296,7 +296,7 @@ const Permissions: React.FC<{ title: string }> = ({ title }) => {
         } catch (err: any) {
           const status = err?.status ?? err?.originalStatus;
           if (status === 403) {
-            showToast("لا تملك صلاحية حذف الدور");
+            showToast("لا تملك صلاحية حذف الدور", 'error');
             return;
           }
           if (status === 409) {
@@ -305,15 +305,15 @@ const Permissions: React.FC<{ title: string }> = ({ title }) => {
               err?.data?.message ||
               err?.message ||
               "لا يمكن حذف الدور لوجود مستخدمين مرتبطين به";
-            showToast(errorMessage);
+            showToast(errorMessage, 'error');
             return;
           }
           if (status === 400) {
-            showToast("لا يمكن حذف الأدوار النظامية");
+            showToast("لا يمكن حذف الأدوار النظامية", 'error');
             return;
           }
           const message = err instanceof Error ? err.message : "فشل حذف الدور";
-          showToast(`خطأ: ${message}`);
+          showToast(`خطأ: ${message}`, 'error');
         }
       },
       type: "delete",

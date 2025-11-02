@@ -223,7 +223,7 @@ const PurchaseReturn: React.FC<PurchaseReturnProps> = ({
       if (index !== -1) {
         setCurrentIndex(index);
       } else {
-        showToast(`المرتجع رقم ${viewingId} غير موجود.`);
+        showToast(`المرتجع رقم ${viewingId} غير موجود.`, 'error');
       }
       onClearViewingId();
     }
@@ -363,7 +363,7 @@ const PurchaseReturn: React.FC<PurchaseReturnProps> = ({
     if (field === "id" && selectedInvoiceId) {
       const enteredId = String(value || "").trim();
       if (enteredId && sourceInvoiceQtyById[enteredId] == null) {
-        showToast("هذا الصنف غير موجود في الفاتورة المختارة.");
+        showToast("هذا الصنف غير موجود في الفاتورة المختارة.", 'error');
         // Revert the change
         item = { ...newItems[index] };
       }
@@ -378,7 +378,7 @@ const PurchaseReturn: React.FC<PurchaseReturnProps> = ({
         if (qty > maxAllowed) {
           qty = maxAllowed;
           item.qty = maxAllowed;
-          showToast("لا يمكن إرجاع كمية أكبر من الموجودة في الفاتورة.");
+          showToast("لا يمكن إرجاع كمية أكبر من الموجودة في الفاتورة.", 'error');
         }
       }
       const total = qty * price;
@@ -501,12 +501,12 @@ const PurchaseReturn: React.FC<PurchaseReturnProps> = ({
   const handleSave = async () => {
     const finalItems = returnItems.filter((i) => i.id && i.name && i.qty > 0);
     if (finalItems.length === 0) {
-      showToast("الرجاء إضافة صنف واحد على الأقل للمرتجع.");
+      showToast("الرجاء إضافة صنف واحد على الأقل للمرتجع.", 'error');
       return;
     }
 
     if (paymentMethod === "credit" && !selectedSupplier) {
-      showToast("الرجاء اختيار المورد للمرتجعات الآجلة.");
+      showToast("الرجاء اختيار المورد للمرتجعات الآجلة.", 'error');
       return;
     }
 
@@ -609,7 +609,7 @@ const PurchaseReturn: React.FC<PurchaseReturnProps> = ({
 
   const handleDelete = () => {
     if (currentIndex === -1) {
-      showToast("لا يمكن حذف مرتجع جديد لم يتم حفظه.");
+      showToast("لا يمكن حذف مرتجع جديد لم يتم حفظه.", 'error');
       return;
     }
     showModal({

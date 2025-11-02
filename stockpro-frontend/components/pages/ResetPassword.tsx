@@ -20,17 +20,17 @@ const ResetPassword: React.FC<ResetPasswordProps> = ({ email, onNavigate }) => {
     e.preventDefault();
 
     if (!password || !confirmPassword) {
-      showToast("يرجى ملء جميع الحقول");
+      showToast("يرجى ملء جميع الحقول", 'error');
       return;
     }
 
     if (password.length < 6) {
-      showToast("كلمة المرور يجب أن تكون 6 أحرف على الأقل");
+      showToast("كلمة المرور يجب أن تكون 6 أحرف على الأقل", 'error');
       return;
     }
 
     if (password !== confirmPassword) {
-      showToast("كلمة المرور وتأكيد كلمة المرور غير متطابقتين");
+      showToast("كلمة المرور وتأكيد كلمة المرور غير متطابقتين", 'error');
       return;
     }
 
@@ -41,7 +41,7 @@ const ResetPassword: React.FC<ResetPasswordProps> = ({ email, onNavigate }) => {
       onNavigate("login");
     } catch (error: any) {
       console.error("Reset password error:", error);
-      showToast("حدث خطأ في تغيير كلمة المرور");
+      showToast("حدث خطأ في تغيير كلمة المرور", 'error');
     } finally {
       setIsLoading(false);
     }
