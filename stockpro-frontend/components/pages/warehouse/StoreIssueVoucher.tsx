@@ -77,7 +77,7 @@ const StoreIssueVoucher: React.FC<StoreIssueVoucherProps> = ({ title }) => {
   const { data: companyInfo } = useGetCompanyQuery();
   const { data: branches = [] } = useGetBranchesQuery();
   const { data: itemsData = [] } = useGetItemsQuery({});
-  const { data: vouchers = [], isLoading: isLoadingVouchers } =
+  const { data: vouchers = [], isLoading: isLoadingVouchers, refetch: refetchVouchers } =
     useGetStoreIssueVouchersQuery();
   const [createVoucher, { isLoading: isCreating }] =
     useCreateStoreIssueVoucherMutation();
@@ -361,28 +361,64 @@ const StoreIssueVoucher: React.FC<StoreIssueVoucherProps> = ({ title }) => {
 
       if (
         voucherDetails.id &&
-        vouchers.find((v) => v.id === voucherDetails.id)
+        vouchers.find((v) => v.id === voucherDetails.id || v.voucherNumber === voucherDetails.id)
       ) {
         // Update existing voucher
-        await updateVoucher({
-          id: voucherDetails.id,
+        const voucherId = vouchers.find((v) => v.id === voucherDetails.id || v.voucherNumber === voucherDetails.id)?.id || voucherDetails.id;
+        const updatedVoucher = await updateVoucher({
+          id: voucherId,
           data: voucherData,
         }).unwrap();
+        
+        // Refetch vouchers to get updated data
+        const updatedVouchers = await refetchVouchers();
+        if (updatedVouchers.data) {
+          const voucherIndex = updatedVouchers.data.findIndex(
+            (v) => v.id === updatedVoucher.id || v.voucherNumber === updatedVoucher.voucherNumber
+          );
+          if (voucherIndex !== -1) {
+            setCurrentIndex(voucherIndex);
+          }
+        }
+        
         showToast("تم تحديث الإذن بنجاح!");
+        
+        // Wait for state to update, then print
+        requestAnimationFrame(() => {
+          setTimeout(() => {
+            window.print();
+          }, 300);
+        });
       } else {
         // Create new voucher
         const newVoucher = await createVoucher(voucherData).unwrap();
-        setVoucherDetails((prev) => ({
-          ...prev,
-          id: newVoucher.voucherNumber,
-        }));
+        
+        // Refetch vouchers to get the new voucher in the list
+        const refetchedData = await refetchVouchers();
+        
+        // Find the newly created voucher in the refetched list
+        if (refetchedData.data) {
+          const voucherIndex = refetchedData.data.findIndex(
+            (v) => v.id === newVoucher.id || v.voucherNumber === newVoucher.voucherNumber
+          );
+          if (voucherIndex !== -1) {
+            // Set the current index to display the saved voucher
+            setCurrentIndex(voucherIndex);
+          }
+        }
+        
         showToast("تم حفظ الإذن بنجاح!");
+        
+        // Wait for state to update (useEffect will run and populate the form), then print
+        // Use requestAnimationFrame to wait for React to render, then additional timeout for data to populate
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => {
+            setTimeout(() => {
+              window.print();
+            }, 300);
+          });
+        });
       }
-
-      // Trigger print dialog after successful save
-      setTimeout(() => {
-        window.print();
-      }, 100);
     } catch (error) {
       console.error("Error saving voucher:", error);
       showToast("حدث خطأ أثناء حفظ الإذن");
@@ -472,7 +508,7 @@ const StoreIssueVoucher: React.FC<StoreIssueVoucherProps> = ({ title }) => {
 
   return (
     <>
-      <style>{`@media print { .no-print { display: none !important; } [role="alert"] { display: none !important; } .empty-row { display: none !important; } .voucher-header-container { padding: 0.5rem !important; margin-bottom: 0.5rem !important; } .voucher-header-title { margin-bottom: 0.5rem !important; font-size: 1.25rem !important; padding-bottom: 0.25rem !important; } .voucher-header-grid { grid-template-columns: repeat(3, 1fr) !important; gap: 0.5rem !important; margin-bottom: 0.5rem !important; } .voucher-header-grid input, .voucher-header-grid select { padding: 0.25rem 0.5rem !important; font-size: 0.75rem !important; margin: 0 !important; } .voucher-header-grid input.bg-gray-200, .voucher-header-grid input:disabled { background-color: white !important; color: black !important; opacity: 1 !important; -webkit-text-fill-color: black !important; } }`}</style>
+      <style>{`@media print { .no-print { display: none !important; } .no-print-select { display: none !important; } .no-print-date { display: none !important; } .no-print-delete-col { display: none !important; } [role="alert"] { display: none !important; } .empty-row { display: none !important; } .print-only-branch { display: block !important; } .print-only-date { display: block !important; } .voucher-header-container { padding: 0.25rem !important; margin-bottom: 0.25rem !important; border-width: 1px !important; } .voucher-header-title { margin-bottom: 0.25rem !important; font-size: 1rem !important; padding-bottom: 0.125rem !important; } .voucher-header-grid { grid-template-columns: repeat(3, 1fr) !important; gap: 0.25rem !important; margin-bottom: 0.25rem !important; } .voucher-header-grid input, .voucher-header-grid select { padding: 0.125rem 0.25rem !important; font-size: 0.7rem !important; margin: 0 !important; } .voucher-header-grid input.bg-gray-200, .voucher-header-grid input:disabled { background-color: white !important; color: black !important; opacity: 1 !important; -webkit-text-fill-color: black !important; } .voucher-header-grid select { appearance: none !important; -webkit-appearance: none !important; -moz-appearance: none !important; background: transparent !important; border: none !important; border-bottom: 1px solid transparent !important; background-image: none !important; cursor: default !important; } } @media screen { .print-only-branch { display: none !important; } .print-only-date { display: none !important; } }`}</style>
       <div className="bg-white p-6 rounded-lg shadow">
         <div className="border-2 border-brand-green rounded-lg mb-4">
           <DocumentHeader companyInfo={companyInfo} />
@@ -492,32 +528,68 @@ const StoreIssueVoucher: React.FC<StoreIssueVoucherProps> = ({ title }) => {
                 readOnly
                 disabled
               />
-              <input
-                type="date"
-                className={inputStyle}
-                value={voucherDetails.date}
-                onChange={(e) =>
-                  setVoucherDetails({ ...voucherDetails, date: e.target.value })
-                }
-                disabled={isReadOnly}
-              />
-              <select
-                className={inputStyle}
-                value={voucherDetails.branch}
-                onChange={(e) =>
-                  setVoucherDetails({
-                    ...voucherDetails,
-                    branch: e.target.value,
-                  })
-                }
-                disabled={isReadOnly}
-              >
-                {branches.map((b) => (
-                  <option key={b.id} value={b.name}>
-                    {b.name}
-                  </option>
-                ))}
-              </select>
+              {isReadOnly ? (
+                <input
+                  type="text"
+                  className={inputStyle + " bg-gray-200"}
+                  value={voucherDetails.date || ""}
+                  readOnly
+                  disabled
+                />
+              ) : (
+                <>
+                  <input
+                    type="date"
+                    className={inputStyle + " no-print-date"}
+                    value={voucherDetails.date}
+                    onChange={(e) =>
+                      setVoucherDetails({ ...voucherDetails, date: e.target.value })
+                    }
+                  />
+                  <input
+                    type="text"
+                    className={inputStyle + " bg-gray-200 print-only-date"}
+                    value={voucherDetails.date || ""}
+                    readOnly
+                    disabled
+                  />
+                </>
+              )}
+              {isReadOnly ? (
+                <input
+                  type="text"
+                  className={inputStyle + " bg-gray-200"}
+                  value={voucherDetails.branch || ""}
+                  readOnly
+                  disabled
+                />
+              ) : (
+                <>
+                  <select
+                    className={inputStyle + " no-print-select"}
+                    value={voucherDetails.branch}
+                    onChange={(e) =>
+                      setVoucherDetails({
+                        ...voucherDetails,
+                        branch: e.target.value,
+                      })
+                    }
+                  >
+                    {branches.map((b) => (
+                      <option key={b.id} value={b.name}>
+                        {b.name}
+                      </option>
+                    ))}
+                  </select>
+                  <input
+                    type="text"
+                    className={inputStyle + " bg-gray-200 print-only-branch"}
+                    value={voucherDetails.branch || ""}
+                    readOnly
+                    disabled
+                  />
+                </>
+              )}
             </div>
           </div>
         </div>
@@ -541,7 +613,7 @@ const StoreIssueVoucher: React.FC<StoreIssueVoucherProps> = ({ title }) => {
                 <th className="px-2 py-3 w-32 text-center text-sm font-semibold text-white uppercase">
                   الكمية
                 </th>
-                <th className="px-2 py-3 w-16 text-center"></th>
+                <th className="px-2 py-3 w-16 text-center no-print-delete-col"></th>
               </tr>
             </thead>
             <tbody ref={itemSearchRef}>
@@ -589,7 +661,7 @@ const StoreIssueVoucher: React.FC<StoreIssueVoucherProps> = ({ title }) => {
                         className="p-1 text-gray-400 hover:text-brand-green"
                         disabled={isReadOnly}
                       >
-                        <ListIcon className="w-5 h-5" />
+                        <ListIcon className="no-print w-5 h-5" />
                       </button>
                     </div>
                     {activeItemSearch?.index === index &&
@@ -634,7 +706,7 @@ const StoreIssueVoucher: React.FC<StoreIssueVoucherProps> = ({ title }) => {
                       disabled={isReadOnly}
                     />
                   </td>
-                  <td className="p-2 align-middle text-center">
+                  <td className="p-2 align-middle text-center no-print-delete-col">
                     <button
                       onClick={() => handleRemoveItem(index)}
                       className="text-red-500 p-1 rounded-full hover:bg-red-100 hover:text-red-700 disabled:text-gray-400 disabled:hover:bg-transparent"
@@ -827,18 +899,18 @@ const StoreIssueVoucher: React.FC<StoreIssueVoucherProps> = ({ title }) => {
 
             <div className="flex items-center justify-center gap-2">
               <button
-                onClick={() => navigateBy("last")}
-                disabled={(Array.isArray(vouchers) ? vouchers.length === 0 : true) || currentIndex === vouchers.length - 1}
+                onClick={() => navigateBy("first")}
+                disabled={(Array.isArray(vouchers) ? vouchers.length === 0 : true) || currentIndex === 0}
                 className="p-2 bg-gray-200 rounded-md hover:bg-gray-300 disabled:opacity-50"
               >
-                الأخير
+                الأول
               </button>
               <button
-                onClick={() => navigateBy("next")}
-                disabled={(Array.isArray(vouchers) ? vouchers.length === 0 : true) || currentIndex === vouchers.length - 1}
+                onClick={() => navigateBy("prev")}
+                disabled={(Array.isArray(vouchers) ? vouchers.length === 0 : true) || currentIndex === 0}
                 className="p-2 bg-gray-200 rounded-md hover:bg-gray-300 disabled:opacity-50"
               >
-                التالي
+                السابق
               </button>
               <div className="px-4 py-2 bg-brand-green-bg border-2 border-brand-green rounded-md">
                 <span className="font-bold">
@@ -848,18 +920,18 @@ const StoreIssueVoucher: React.FC<StoreIssueVoucherProps> = ({ title }) => {
                 </span>
               </div>
               <button
-                onClick={() => navigateBy("prev")}
-                disabled={(Array.isArray(vouchers) ? vouchers.length === 0 : true) || currentIndex === 0}
+                onClick={() => navigateBy("next")}
+                disabled={(Array.isArray(vouchers) ? vouchers.length === 0 : true) || currentIndex === vouchers.length - 1}
                 className="p-2 bg-gray-200 rounded-md hover:bg-gray-300 disabled:opacity-50"
               >
-                السابق
+                التالي
               </button>
               <button
-                onClick={() => navigateBy("first")}
-                disabled={(Array.isArray(vouchers) ? vouchers.length === 0 : true) || currentIndex === 0}
+                onClick={() => navigateBy("last")}
+                disabled={(Array.isArray(vouchers) ? vouchers.length === 0 : true) || currentIndex === vouchers.length - 1}
                 className="p-2 bg-gray-200 rounded-md hover:bg-gray-300 disabled:opacity-50"
               >
-                الأول
+                الأخير
               </button>
             </div>
           </div>
