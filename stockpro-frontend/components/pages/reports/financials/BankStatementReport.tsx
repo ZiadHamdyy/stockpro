@@ -4,6 +4,7 @@ import { ExcelIcon, PdfIcon, PrintIcon, SearchIcon } from "../../../icons";
 import ReportHeader from "../ReportHeader";
 import { formatNumber } from "../../../../utils/formatting";
 import { useGetBanksQuery } from "../../../store/slices/bank/bankApiSlice";
+import { useGetInternalTransfersQuery } from "../../../store/slices/internalTransferApiSlice";
 
 interface BankStatementReportProps {
   title: string;
@@ -23,6 +24,7 @@ const BankStatementReport: React.FC<BankStatementReportProps> = ({
   // API hooks
   const { data: apiBanks = [], isLoading: banksLoading } =
     useGetBanksQuery(undefined);
+  const { data: apiInternalTransfers = [] } = useGetInternalTransfersQuery();
 
   // Transform API data to match expected format
   const banks = useMemo(() => {
@@ -53,6 +55,7 @@ const BankStatementReport: React.FC<BankStatementReportProps> = ({
 
   const openingBalance = useMemo(() => {
     if (!selectedBank) return 0;
+    const bankId = selectedBank.id.toString();
     const receiptsBefore = receiptVouchers
       .filter(
         (v) =>
@@ -69,8 +72,27 @@ const BankStatementReport: React.FC<BankStatementReportProps> = ({
           v.date < startDate,
       )
       .reduce((sum, v) => sum + v.amount, 0);
-    return selectedBank.openingBalance + receiptsBefore - paymentsBefore;
-  }, [selectedBank, receiptVouchers, paymentVouchers, startDate]);
+    
+    // Include internal transfers before startDate
+    const outgoingBefore = (apiInternalTransfers as any[])
+      .filter(
+        (t) =>
+          t.fromType === "bank" &&
+          t.fromBankId === bankId &&
+          new Date(t.date).toISOString().substring(0, 10) < startDate,
+      )
+      .reduce((sum, t) => sum + t.amount, 0);
+    const incomingBefore = (apiInternalTransfers as any[])
+      .filter(
+        (t) =>
+          t.toType === "bank" &&
+          t.toBankId === bankId &&
+          new Date(t.date).toISOString().substring(0, 10) < startDate,
+      )
+      .reduce((sum, t) => sum + t.amount, 0);
+    
+    return selectedBank.openingBalance + receiptsBefore - paymentsBefore - outgoingBefore + incomingBefore;
+  }, [selectedBank, receiptVouchers, paymentVouchers, apiInternalTransfers, startDate]);
 
   const reportData = useMemo(() => {
     if (!selectedBankId) return [];
@@ -117,6 +139,48 @@ const BankStatementReport: React.FC<BankStatementReportProps> = ({
       }
     });
 
+    // Add outgoing internal transfers (money going out)
+    (apiInternalTransfers as any[]).forEach((t) => {
+      const transferDate = new Date(t.date).toISOString().substring(0, 10);
+      if (
+        t.fromType === "bank" &&
+        t.fromBankId === bankId.toString() &&
+        transferDate >= startDate &&
+        transferDate <= endDate
+      ) {
+        const toAccountName =
+          t.toType === "safe" ? t.toSafe?.name : t.toBank?.name || "حساب";
+        transactions.push({
+          date: transferDate,
+          description: `تحويل إلى ${toAccountName}`,
+          ref: t.code,
+          debit: 0,
+          credit: t.amount,
+        });
+      }
+    });
+
+    // Add incoming internal transfers (money coming in)
+    (apiInternalTransfers as any[]).forEach((t) => {
+      const transferDate = new Date(t.date).toISOString().substring(0, 10);
+      if (
+        t.toType === "bank" &&
+        t.toBankId === bankId.toString() &&
+        transferDate >= startDate &&
+        transferDate <= endDate
+      ) {
+        const fromAccountName =
+          t.fromType === "safe" ? t.fromSafe?.name : t.fromBank?.name || "حساب";
+        transactions.push({
+          date: transferDate,
+          description: `تحويل من ${fromAccountName}`,
+          ref: t.code,
+          debit: t.amount,
+          credit: 0,
+        });
+      }
+    });
+
     transactions.sort(
       (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime(),
     );
@@ -130,6 +194,7 @@ const BankStatementReport: React.FC<BankStatementReportProps> = ({
     selectedBankId,
     receiptVouchers,
     paymentVouchers,
+    apiInternalTransfers,
     startDate,
     endDate,
     openingBalance,

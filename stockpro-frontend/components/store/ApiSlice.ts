@@ -113,6 +113,7 @@ export const apiSlice = createApi({
     "PurchaseReturn",
     "PaymentVoucher",
     "ReceiptVoucher",
+    "InternalTransfer",
     "DashboardStats",
     "MonthlyStats",
     "SalesByItemGroup",

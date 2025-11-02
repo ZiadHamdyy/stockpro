@@ -37,6 +37,7 @@ import { PurchaseInvoiceModule } from './modules/purchase-invoice/purchase-invoi
 import { PurchaseReturnModule } from './modules/purchase-return/purchase-return.module';
 import { PaymentVoucherModule } from './modules/payment-voucher/payment-voucher.module';
 import { ReceiptVoucherModule } from './modules/receipt-voucher/receipt-voucher.module';
+import { InternalTransferModule } from './modules/internal-transfer/internal-transfer.module';
 import { IncomeStatementModule } from './modules/income-statement/income-statement.module';
 import { BalanceSheetModule } from './modules/balance-sheet/balance-sheet.module';
 import { BackupModule } from './modules/backup/backup.module';
@@ -76,6 +77,7 @@ import { ReportPdfModule } from './modules/report-pdf/report-pdf.module.js';
     PurchaseReturnModule,
     PaymentVoucherModule,
     ReceiptVoucherModule,
+    InternalTransferModule,
     IncomeStatementModule,
     BalanceSheetModule,
     BackupModule,

@@ -1,18 +1,18 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { PrintIcon } from "../../icons";
 import { tafqeet } from "../../../utils/tafqeet";
 import InvoiceHeader from "../../common/InvoiceHeader";
 import { useGetCompanyQuery } from "../../store/slices/companyApiSlice";
-import { useGetSafesQuery } from "../../store/slices/safe/safeApiSlice";
-import { useGetBanksQuery } from "../../store/slices/bank/bankApiSlice";
 import PermissionWrapper from "../../common/PermissionWrapper";
 import {
   buildPermission,
   Resources,
   Actions,
 } from "../../../enums/permissions.enum";
+import { useInternalTransfers } from "../../hook/useInternalTransfers";
+import DataTableModal from "../../common/DataTableModal";
+import InternalTransferPrintPreview from "./InternalTransferPrintPreview";
 import { useAuth } from "../../hook/Auth";
-import { useToast } from "../../common/ToastProvider";
 
 interface InternalTransfersProps {
   title: string;
@@ -21,73 +21,44 @@ interface InternalTransfersProps {
 const InternalTransfers: React.FC<InternalTransfersProps> = ({ title }) => {
   const { data: companyInfo } = useGetCompanyQuery();
   const { User } = useAuth();
-  const { showToast } = useToast();
   
-  const { data: safes = [] } = useGetSafesQuery();
-  const { data: banks = [] } = useGetBanksQuery();
+  const {
+    vouchers,
+    safes,
+    banks,
+    isLoading,
+    currentIndex,
+    transferData,
+    setTransferData,
+    isReadOnly,
+    handleNew,
+    handleSave,
+    handleEdit,
+    handleDelete,
+    navigate,
+    refetch,
+    isCreating,
+    isUpdating,
+    isDeleting,
+  } = useInternalTransfers();
 
-  const [transferData, setTransferData] = useState({
-    number: "",
-    date: new Date().toISOString().substring(0, 10),
-    fromType: "safe" as "safe" | "bank",
-    fromId: null as string | null,
-    toType: "bank" as "safe" | "bank",
-    toId: null as string | null,
-    amount: "" as any,
-    description: "",
-  });
-
-  const [isReadOnly, setIsReadOnly] = useState(false);
-  const [currentIndex, setCurrentIndex] = useState(-1);
-  const [vouchers] = useState<any[]>([]); // TODO: Replace with actual API call
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+  const [isSearchModalOpen, setIsSearchModalOpen] = useState(false);
+  const [previewVoucherData, setPreviewVoucherData] = useState<{
+    number: string;
+    date: string;
+    amount: number;
+    fromAccount: string;
+    fromType: string;
+    toAccount: string;
+    toType: string;
+    description: string;
+    userName: string;
+    branchName: string;
+  } | null>(null);
 
   const inputStyle =
     "mt-1 block w-full bg-yellow-100 border-2 border-amber-500 rounded-md shadow-sm text-black placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-amber-500 py-3 px-4 disabled:bg-gray-200 disabled:cursor-not-allowed";
-
-  const handleSave = async () => {
-    if (!transferData.fromId || !transferData.toId) {
-      showToast("يرجى اختيار الحساب المصدر والوجهة", "error");
-      return;
-    }
-
-    if (transferData.fromId === transferData.toId && transferData.fromType === transferData.toType) {
-      showToast("لا يمكن التحويل لنفس الحساب", "error");
-      return;
-    }
-
-    if (!transferData.amount || parseFloat(String(transferData.amount)) <= 0) {
-      showToast("يرجى إدخال مبلغ صحيح", "error");
-      return;
-    }
-
-    // TODO: Implement API call when backend is ready
-    showToast("سيتم تطبيق هذه الوظيفة قريباً - جاري تطوير واجهة برمجة التطبيقات", "success");
-  };
-
-  const handleNew = () => {
-    setTransferData({
-      number: "",
-      date: new Date().toISOString().substring(0, 10),
-      fromType: "safe",
-      fromId: null,
-      toType: "bank",
-      toId: null,
-      amount: "",
-      description: "",
-    });
-    setIsReadOnly(false);
-    setCurrentIndex(-1);
-  };
-
-  const handleEdit = () => {
-    setIsReadOnly(false);
-  };
-
-  const handleDelete = async () => {
-    // TODO: Implement API call when backend is ready
-    showToast("سيتم تطبيق هذه الوظيفة قريباً - جاري تطوير واجهة برمجة التطبيقات", "success");
-  };
 
   const navigateToVoucher = (direction: "first" | "prev" | "next" | "last") => {
     if (!Array.isArray(vouchers) || vouchers.length === 0) return;
@@ -118,9 +89,7 @@ const InternalTransfers: React.FC<InternalTransfersProps> = ({ title }) => {
     }
 
     if (newIndex >= 0 && newIndex < vouchers.length) {
-      setCurrentIndex(newIndex);
-      // TODO: Load voucher data when backend is ready
-      setIsReadOnly(true);
+      navigate(newIndex);
     }
   };
 
@@ -140,10 +109,10 @@ const InternalTransfers: React.FC<InternalTransfersProps> = ({ title }) => {
             </label>
             <input
               type="text"
-              value={transferData.number}
+              value={transferData.number || ""}
               className={inputStyle + " bg-gray-200"}
               readOnly
-              placeholder="سيتم توليده تلقائياً"
+              disabled
             />
           </div>
           <div>
@@ -385,159 +354,326 @@ const InternalTransfers: React.FC<InternalTransfersProps> = ({ title }) => {
           </div>
         </div>
 
-        <div className="mt-8 pt-6 border-t-2 border-gray-200 flex flex-col items-center space-y-4">
-          <div className="flex justify-center gap-2 flex-wrap">
-            <button
-              onClick={handleNew}
-              className="px-4 py-2 bg-brand-blue text-white rounded-md hover:bg-blue-800 font-semibold"
-            >
-              جديد
-            </button>
-            <PermissionWrapper
-              requiredPermission={[
-                buildPermission(Resources.INTERNAL_TRANSFER, Actions.CREATE),
-                buildPermission(Resources.INTERNAL_TRANSFER, Actions.UPDATE),
-              ]}
-              fallback={
-                <button
-                  disabled={true}
-                  className="px-4 py-2 bg-gray-400 text-white rounded-md font-semibold"
-                >
-                  حفظ
-                </button>
-              }
-            >
-              <button
-                onClick={handleSave}
-                disabled={isReadOnly}
-                className="px-4 py-2 bg-amber-500 text-white rounded-md hover:bg-amber-600 font-semibold disabled:bg-gray-400"
+        <div className="bg-gray-50 -mx-6 -mb-6 mt-4 p-6 rounded-b-lg">
+          <div className="mt-8 pt-6 border-t-2 border-gray-200 flex flex-col items-center space-y-4 no-print">
+            <div className="flex justify-center gap-2 flex-wrap">
+              <PermissionWrapper
+                requiredPermission={buildPermission(
+                  Resources.INTERNAL_TRANSFER,
+                  Actions.CREATE,
+                )}
+                fallback={
+                  <button
+                    disabled
+                    className="px-4 py-2 bg-gray-400 text-white rounded-md cursor-not-allowed opacity-50 font-semibold"
+                  >
+                    جديد
+                  </button>
+                }
               >
-                حفظ
-              </button>
-            </PermissionWrapper>
-            <PermissionWrapper
-              requiredPermission={buildPermission(
-                Resources.INTERNAL_TRANSFER,
-                Actions.UPDATE,
-              )}
-              fallback={
                 <button
-                  disabled={true}
-                  className="px-4 py-2 bg-gray-400 text-white rounded-md font-semibold"
+                  onClick={handleNew}
+                  className="px-4 py-2 bg-brand-blue text-white rounded-md hover:bg-blue-800 font-semibold"
+                >
+                  جديد
+                </button>
+              </PermissionWrapper>
+              <PermissionWrapper
+                requiredPermission={[
+                  buildPermission(Resources.INTERNAL_TRANSFER, Actions.CREATE),
+                  buildPermission(Resources.INTERNAL_TRANSFER, Actions.UPDATE),
+                ]}
+                fallback={
+                  <button
+                    disabled
+                    className="px-4 py-2 bg-gray-400 text-white rounded-md cursor-not-allowed opacity-50 font-semibold"
+                  >
+                    {isCreating || isUpdating ? "جاري الحفظ..." : "حفظ"}
+                  </button>
+                }
+              >
+                <button
+                  onClick={async () => {
+                    const savedVoucher = await handleSave();
+                    if (savedVoucher) {
+                      // Get account names from saved voucher data
+                      const fromAccountName =
+                        savedVoucher.fromType === "safe"
+                          ? savedVoucher.fromSafe?.name || "-"
+                          : savedVoucher.fromBank?.name || "-";
+                      const toAccountName =
+                        savedVoucher.toType === "safe"
+                          ? savedVoucher.toSafe?.name || "-"
+                          : savedVoucher.toBank?.name || "-";
+                      
+                      // Prepare preview data from saved voucher
+                      const previewData = {
+                        number: savedVoucher.code,
+                        date: savedVoucher.date
+                          ? new Date(savedVoucher.date).toISOString().substring(0, 10)
+                          : transferData.date,
+                        amount: savedVoucher.amount || 0,
+                        fromAccount: fromAccountName,
+                        fromType: savedVoucher.fromType,
+                        toAccount: toAccountName,
+                        toType: savedVoucher.toType,
+                        description: savedVoucher.description || "",
+                        userName: User?.fullName || User?.name || "غير محدد",
+                        branchName:
+                          typeof User?.branch === "string"
+                            ? User.branch
+                            : User?.branch?.name || "غير محدد",
+                      };
+                      
+                      // Set preview data and open preview immediately
+                      setPreviewVoucherData(previewData);
+                      
+                      // Update transfer data with saved voucher data
+                      setTransferData({
+                        number: savedVoucher.code,
+                        date: savedVoucher.date
+                          ? new Date(savedVoucher.date).toISOString().substring(0, 10)
+                          : transferData.date,
+                        fromType: savedVoucher.fromType as "safe" | "bank",
+                        fromId:
+                          savedVoucher.fromType === "safe"
+                            ? savedVoucher.fromSafeId || null
+                            : savedVoucher.fromBankId || null,
+                        toType: savedVoucher.toType as "safe" | "bank",
+                        toId:
+                          savedVoucher.toType === "safe"
+                            ? savedVoucher.toSafeId || null
+                            : savedVoucher.toBankId || null,
+                        amount:
+                          savedVoucher.amount === 0 || savedVoucher.amount === null
+                            ? ("" as any)
+                            : savedVoucher.amount,
+                        description: savedVoucher.description || "",
+                      });
+                      
+                      // Open print preview immediately with saved data
+                      setIsPreviewOpen(true);
+                      
+                      // Refetch vouchers and find index for navigation (async, non-blocking)
+                      refetch().then(() => {
+                        setTimeout(() => {
+                          const updatedVouchers = vouchers;
+                          const savedIndex = updatedVouchers.findIndex(
+                            (v) => v.id === savedVoucher.id
+                          );
+                          if (savedIndex >= 0) {
+                            navigate(savedIndex);
+                          }
+                        }, 300);
+                      });
+                    }
+                  }}
+                  disabled={
+                    isReadOnly || isCreating || isUpdating
+                  }
+                  className="px-4 py-2 bg-amber-500 text-white rounded-md hover:bg-amber-600 font-semibold disabled:bg-gray-400"
+                >
+                  {isCreating || isUpdating ? "جاري الحفظ..." : "حفظ"}
+                </button>
+              </PermissionWrapper>
+              <PermissionWrapper
+                requiredPermission={buildPermission(
+                  Resources.INTERNAL_TRANSFER,
+                  Actions.UPDATE,
+                )}
+                fallback={
+                  <button
+                    disabled
+                    className="px-4 py-2 bg-gray-400 text-white rounded-md cursor-not-allowed opacity-50 font-semibold"
+                  >
+                    تعديل
+                  </button>
+                }
+              >
+                <button
+                  onClick={handleEdit}
+                  disabled={currentIndex < 0 || !isReadOnly}
+                  className="px-4 py-2 bg-yellow-500 text-white rounded-md hover:bg-yellow-600 font-semibold disabled:bg-gray-400"
                 >
                   تعديل
                 </button>
-              }
-            >
-              <button
-                onClick={handleEdit}
-                disabled={currentIndex < 0 || !isReadOnly}
-                className="px-4 py-2 bg-yellow-500 text-white rounded-md hover:bg-yellow-600 font-semibold disabled:bg-gray-400"
+              </PermissionWrapper>
+              <PermissionWrapper
+                requiredPermission={buildPermission(
+                  Resources.INTERNAL_TRANSFER,
+                  Actions.DELETE,
+                )}
+                fallback={
+                  <button
+                    disabled
+                    className="px-4 py-2 bg-gray-400 text-white rounded-md cursor-not-allowed opacity-50 font-semibold"
+                  >
+                    {isDeleting ? "جاري الحذف..." : "حذف"}
+                  </button>
+                }
               >
-                تعديل
-              </button>
-            </PermissionWrapper>
-            <PermissionWrapper
-              requiredPermission={buildPermission(
-                Resources.INTERNAL_TRANSFER,
-                Actions.DELETE,
-              )}
-              fallback={
                 <button
-                  disabled={true}
-                  className="px-4 py-2 bg-gray-400 text-white rounded-md font-semibold"
+                  onClick={handleDelete}
+                  disabled={currentIndex < 0 || isDeleting}
+                  className="px-4 py-2 bg-red-500 text-white rounded-md hover:bg-red-600 font-semibold disabled:bg-gray-400"
                 >
-                  حذف
+                  {isDeleting ? "جاري الحذف..." : "حذف"}
                 </button>
-              }
-            >
-              <button
-                onClick={handleDelete}
-                disabled={currentIndex < 0}
-                className="px-4 py-2 bg-red-500 text-white rounded-md hover:bg-red-600 font-semibold disabled:bg-gray-400"
+              </PermissionWrapper>
+              <PermissionWrapper
+                requiredPermission={buildPermission(
+                  Resources.INTERNAL_TRANSFER,
+                  Actions.SEARCH,
+                )}
+                fallback={
+                  <button
+                    disabled
+                    className="px-4 py-2 bg-gray-400 text-white rounded-md cursor-not-allowed opacity-50 font-semibold"
+                  >
+                    بحث
+                  </button>
+                }
               >
-                حذف
-              </button>
-            </PermissionWrapper>
-            <button className="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 font-semibold">
-              بحث
-            </button>
-            <PermissionWrapper
-              requiredPermission={buildPermission(
-                Resources.INTERNAL_TRANSFER,
-                Actions.PRINT,
-              )}
-              fallback={
                 <button
-                  disabled={true}
-                  className="px-4 py-2 bg-gray-400 text-brand-dark rounded-md font-semibold flex items-center"
+                  onClick={() => setIsSearchModalOpen(true)}
+                  className="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 font-semibold"
+                >
+                  بحث
+                </button>
+              </PermissionWrapper>
+              <PermissionWrapper
+                requiredPermission={buildPermission(
+                  Resources.INTERNAL_TRANSFER,
+                  Actions.PRINT,
+                )}
+                fallback={
+                  <button
+                    disabled
+                    className="px-4 py-2 bg-gray-400 text-white rounded-md cursor-not-allowed opacity-50 font-semibold flex items-center"
+                  >
+                    <PrintIcon className="mr-2 w-5 h-5" /> معاينة وطباعة
+                  </button>
+                }
+              >
+                <button
+                  onClick={() => setIsPreviewOpen(true)}
+                  className="px-4 py-2 bg-gray-200 text-brand-dark rounded-md hover:bg-gray-300 font-semibold flex items-center"
                 >
                   <PrintIcon className="mr-2 w-5 h-5" /> معاينة وطباعة
                 </button>
-              }
-            >
-              <button
-                onClick={() => setIsPreviewOpen(true)}
-                className="px-4 py-2 bg-gray-200 text-brand-dark rounded-md hover:bg-gray-300 font-semibold flex items-center"
-              >
-                <PrintIcon className="mr-2 w-5 h-5" /> معاينة وطباعة
-              </button>
-            </PermissionWrapper>
-          </div>
-
-          <div className="flex items-center justify-center gap-2">
-            <button
-              onClick={() => navigateToVoucher("first")}
-              disabled={
-                (Array.isArray(vouchers) ? vouchers.length === 0 : true) ||
-                currentIndex === 0
-              }
-              className="p-2 bg-gray-200 rounded-md hover:bg-gray-300 disabled:opacity-50"
-            >
-              الأول
-            </button>
-            <button
-              onClick={() => navigateToVoucher("prev")}
-              disabled={
-                (Array.isArray(vouchers) ? vouchers.length === 0 : true) ||
-                currentIndex === 0
-              }
-              className="p-2 bg-gray-200 rounded-md hover:bg-gray-300 disabled:opacity-50"
-            >
-              السابق
-            </button>
-            <div className="px-4 py-2 bg-yellow-100 border-2 border-amber-500 rounded-md">
-              <span className="font-bold">
-                {currentIndex > -1
-                  ? `${currentIndex + 1} / ${Array.isArray(vouchers) ? vouchers.length : 0}`
-                  : `جديد`}
-              </span>
+              </PermissionWrapper>
             </div>
-            <button
-              onClick={() => navigateToVoucher("next")}
-              disabled={
-                (Array.isArray(vouchers) ? vouchers.length === 0 : true) ||
-                currentIndex ===
-                  (Array.isArray(vouchers) ? vouchers.length - 1 : 0)
-              }
-              className="p-2 bg-gray-200 rounded-md hover:bg-gray-300 disabled:opacity-50"
-            >
-              التالي
-            </button>
-            <button
-              onClick={() => navigateToVoucher("last")}
-              disabled={
-                (Array.isArray(vouchers) ? vouchers.length === 0 : true) ||
-                currentIndex ===
-                  (Array.isArray(vouchers) ? vouchers.length - 1 : 0)
-              }
-              className="p-2 bg-gray-200 rounded-md hover:bg-gray-300 disabled:opacity-50"
-            >
-              الأخير
-            </button>
+
+            <div className="flex items-center justify-center gap-2">
+              <button
+                onClick={() => navigateToVoucher("first")}
+                disabled={(Array.isArray(vouchers) ? vouchers.length === 0 : true) || currentIndex === 0}
+                className="p-2 bg-gray-200 rounded-md hover:bg-gray-300 disabled:opacity-50"
+              >
+                الأول
+              </button>
+              <button
+                onClick={() => navigateToVoucher("prev")}
+                disabled={(Array.isArray(vouchers) ? vouchers.length === 0 : true) || currentIndex === 0}
+                className="p-2 bg-gray-200 rounded-md hover:bg-gray-300 disabled:opacity-50"
+              >
+                السابق
+              </button>
+              <div className="px-4 py-2 bg-yellow-100 border-2 border-amber-500 rounded-md">
+                <span className="font-bold">
+                  {currentIndex > -1
+                    ? `${currentIndex + 1} / ${vouchers.length}`
+                    : `جديد`}
+                </span>
+              </div>
+              <button
+                onClick={() => navigateToVoucher("next")}
+                disabled={(Array.isArray(vouchers) ? vouchers.length === 0 : true) || currentIndex === vouchers.length - 1}
+                className="p-2 bg-gray-200 rounded-md hover:bg-gray-300 disabled:opacity-50"
+              >
+                التالي
+              </button>
+              <button
+                onClick={() => navigateToVoucher("last")}
+                disabled={(Array.isArray(vouchers) ? vouchers.length === 0 : true) || currentIndex === vouchers.length - 1}
+                className="p-2 bg-gray-200 rounded-md hover:bg-gray-300 disabled:opacity-50"
+              >
+                الأخير
+              </button>
+            </div>
           </div>
         </div>
       </div>
+      <DataTableModal
+        isOpen={isSearchModalOpen}
+        onClose={() => setIsSearchModalOpen(false)}
+        title="بحث عن سند تحويل"
+        columns={[
+          { Header: "الرقم", accessor: "code" },
+          { Header: "التاريخ", accessor: "date" },
+          { Header: "من", accessor: "fromAccount" },
+          { Header: "إلى", accessor: "toAccount" },
+          { Header: "المبلغ", accessor: "amount" },
+        ]}
+        data={vouchers.map((v) => ({
+          ...v,
+          fromAccount: v.fromType === "safe" 
+            ? (v.fromSafe?.name || "-")
+            : (v.fromBank?.name || "-"),
+          toAccount: v.toType === "safe"
+            ? (v.toSafe?.name || "-")
+            : (v.toBank?.name || "-"),
+          date: v.date
+            ? new Date(v.date).toISOString().substring(0, 10)
+            : "-",
+        }))}
+        onSelectRow={(row: { id: string }) => {
+          const index = vouchers.findIndex((v) => v.id === row.id);
+          if (index > -1) navigate(index);
+          setIsSearchModalOpen(false);
+        }}
+        colorTheme="amber"
+      />
+      {companyInfo && previewVoucherData && (
+        <InternalTransferPrintPreview
+          isOpen={isPreviewOpen}
+          onClose={() => {
+            setIsPreviewOpen(false);
+            setPreviewVoucherData(null);
+          }}
+          voucherData={previewVoucherData}
+        />
+      )}
+      {companyInfo && !previewVoucherData && (
+        <InternalTransferPrintPreview
+          isOpen={isPreviewOpen}
+          onClose={() => setIsPreviewOpen(false)}
+          voucherData={{
+            number: transferData.number || "",
+            date: transferData.date || "",
+            amount:
+              typeof transferData.amount === "string"
+                ? parseFloat(transferData.amount) || 0
+                : transferData.amount || 0,
+            fromAccount:
+              transferData.fromType === "safe"
+                ? safes.find((s) => s.id === transferData.fromId)?.name || "-"
+                : banks.find((b) => b.id === transferData.fromId)?.name || "-",
+            fromType: transferData.fromType,
+            toAccount:
+              transferData.toType === "safe"
+                ? safes.find((s) => s.id === transferData.toId)?.name || "-"
+                : banks.find((b) => b.id === transferData.toId)?.name || "-",
+            toType: transferData.toType,
+            description: transferData.description || "",
+            userName: User?.fullName || User?.name || "غير محدد",
+            branchName:
+              typeof User?.branch === "string"
+                ? User.branch
+                : User?.branch?.name || "غير محدد",
+          }}
+        />
+      )}
     </>
   );
 };
