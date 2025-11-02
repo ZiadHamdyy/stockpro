@@ -1223,11 +1223,14 @@ const SalesReturn: React.FC<SalesReturnProps> = ({
         ]}
         data={returns.map((ret) => ({
           code: ret.code,
-          date: ret.date,
+          date: ret.date
+            ? new Date(ret.date).toISOString().substring(0, 10)
+            : "-",
           customer: ret.customer?.name || "-",
           total: formatMoney(ret.net),
         }))}
         onSelectRow={handleSelectReturnFromSearch}
+        colorTheme="blue"
       />
       <InvoicePrintPreview
         isOpen={isPreviewOpen}

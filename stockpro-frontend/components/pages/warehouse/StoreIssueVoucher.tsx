@@ -992,8 +992,15 @@ const StoreIssueVoucher: React.FC<StoreIssueVoucherProps> = ({ title }) => {
           { Header: "التاريخ", accessor: "date" },
           { Header: "الفرع", accessor: "branch" },
         ]}
-        data={vouchers}
+        data={vouchers.map((v) => ({
+          ...v,
+          branch: v.store?.branch?.name || "-",
+          date: v.date
+            ? new Date(v.date).toISOString().substring(0, 10)
+            : "-",
+        }))}
         onSelectRow={handleSelectVoucherFromSearch}
+        colorTheme="green"
       />
     </>
   );

@@ -83,6 +83,7 @@ export const exportToExcel = (data: any[], fileName: string) => {
  * @param fileName The name of the file to create (without extension).
  * @param companyInfo Optional company info for the header.
  * @param footerRows Optional rows for the table footer (for totals).
+ * @param colorTheme Optional color theme for the table header ("blue" | "green" | "amber").
  */
 export const exportToPdf = async (
   title: string,
@@ -91,6 +92,7 @@ export const exportToPdf = async (
   fileName: string,
   companyInfo?: any,
   footerRows?: any[][],
+  colorTheme?: "blue" | "green" | "amber",
 ): Promise<void> => {
   try {
     const baseUrl = (import.meta as any).env?.VITE_BASE_BACK_URL || "http://localhost:4000/api/v1";
@@ -103,7 +105,7 @@ export const exportToPdf = async (
         "Content-Type": "application/json",
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
       },
-      body: JSON.stringify({ title, columns, body, fileName, companyInfo, footerRows }),
+      body: JSON.stringify({ title, columns, body, fileName, companyInfo, footerRows, colorTheme }),
     });
     if (!resp.ok) throw new Error(`PDF export failed: ${resp.status}`);
     const blob = await resp.blob();

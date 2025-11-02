@@ -16,6 +16,7 @@ interface DataTableModalProps {
   data: any[];
   onSelectRow: (row: any) => void;
   companyInfo?: CompanyInfo;
+  colorTheme?: "blue" | "green" | "amber";
 }
 
 const DataTableModal: React.FC<DataTableModalProps> = ({
@@ -26,8 +27,41 @@ const DataTableModal: React.FC<DataTableModalProps> = ({
   data,
   onSelectRow,
   companyInfo,
+  colorTheme = "blue",
 }) => {
   const [searchTerm, setSearchTerm] = useState("");
+
+  // Determine color classes based on theme
+  const headerBgClass =
+    colorTheme === "green"
+      ? "bg-brand-green"
+      : colorTheme === "amber"
+      ? "bg-amber-500"
+      : "bg-brand-blue";
+  const hoverBgClass =
+    colorTheme === "green"
+      ? "hover:bg-brand-green-bg"
+      : colorTheme === "amber"
+      ? "hover:bg-yellow-100"
+      : "hover:bg-brand-blue-bg";
+  const inputBorderClass =
+    colorTheme === "green"
+      ? "border-brand-green"
+      : colorTheme === "amber"
+      ? "border-amber-500"
+      : "border-brand-blue";
+  const inputBgClass =
+    colorTheme === "green"
+      ? "bg-brand-green-bg"
+      : colorTheme === "amber"
+      ? "bg-yellow-100"
+      : "bg-brand-blue-bg";
+  const inputRingClass =
+    colorTheme === "green"
+      ? "focus:ring-brand-green"
+      : colorTheme === "amber"
+      ? "focus:ring-amber-500"
+      : "focus:ring-brand-blue";
 
   const filteredData = useMemo(
     () =>
@@ -87,7 +121,7 @@ const DataTableModal: React.FC<DataTableModalProps> = ({
       columns.map((col) => row[col.accessor]).reverse(),
     );
 
-    exportToPdf(title, head, body, title, companyInfo);
+    exportToPdf(title, head, body, title, companyInfo, undefined, colorTheme);
   };
 
   if (!isOpen) {
@@ -98,6 +132,14 @@ const DataTableModal: React.FC<DataTableModalProps> = ({
     onSelectRow(row);
     onClose();
   };
+
+  // Get print header color based on theme
+  const printHeaderColor =
+    colorTheme === "green"
+      ? "#16A34A" // green-600 (brand-green equivalent)
+      : colorTheme === "amber"
+      ? "#F59E0B" // amber-500
+      : "#1E40AF"; // blue-700 (default)
 
   const handlePrint = () => {
     const tableContent = document.getElementById(
@@ -110,7 +152,7 @@ const DataTableModal: React.FC<DataTableModalProps> = ({
       "<html><head><title>طباعة - " + title + "</title>",
     );
     printWindow?.document.write(
-      "<style>body { font-family: Cairo, sans-serif; direction: rtl; } table { width: 100%; border-collapse: collapse; } th, td { border: 1px solid #ddd; padding: 8px; text-align: right; } thead { background-color: #1E40AF; color: white; } </style>",
+      `<style>body { font-family: Cairo, sans-serif; direction: rtl; } table { width: 100%; border-collapse: collapse; } th, td { border: 1px solid #ddd; padding: 8px; text-align: right; } thead { background-color: ${printHeaderColor}; color: white; } </style>`,
     );
     if (companyInfo) {
       printWindow?.document.write(
@@ -124,8 +166,7 @@ const DataTableModal: React.FC<DataTableModalProps> = ({
     printWindow?.print();
   };
 
-  const inputStyle =
-    "w-full pr-10 pl-4 py-3 bg-brand-blue-bg border-2 border-brand-blue rounded-md text-black placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-brand-blue";
+  const inputStyle = `w-full pr-10 pl-4 py-3 ${inputBgClass} border-2 ${inputBorderClass} rounded-md text-black placeholder-gray-500 focus:outline-none focus:ring-2 ${inputRingClass}`;
 
   return (
     <div
@@ -188,7 +229,7 @@ const DataTableModal: React.FC<DataTableModalProps> = ({
             )}
             <div className={companyInfo ? "mt-4" : ""}>
               <table className="min-w-full border-collapse">
-                <thead className="bg-brand-blue">
+                <thead className={headerBgClass}>
                   <tr>
                     {columns.map((col) => (
                       <th
@@ -205,7 +246,7 @@ const DataTableModal: React.FC<DataTableModalProps> = ({
                     <tr
                       key={i}
                       onClick={() => handleSelect(row)}
-                      className="cursor-pointer hover:bg-brand-blue-bg"
+                      className={`cursor-pointer ${hoverBgClass}`}
                     >
                       {columns.map((col) => {
                         const value = row[col.accessor];

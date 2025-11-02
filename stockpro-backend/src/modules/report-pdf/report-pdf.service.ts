@@ -33,8 +33,16 @@ export class ReportPdfService {
       )
       .join('');
 
+    // Get header color based on theme
+    const headerColor =
+      dto.colorTheme === "green"
+        ? "#16A34A" // green-600
+        : dto.colorTheme === "amber"
+        ? "#F59E0B" // amber-500
+        : "#1E40AF"; // blue-700 (default)
+
     const thead = `<thead><tr>${head
-      .map((h: any) => `<th style="padding:8px;border:1px solid #e5e7eb;background:#1E40AF;color:#fff;">${this.escapeHtml(h?.content ?? h ?? '')}</th>`)
+      .map((h: any) => `<th style="padding:8px;border:1px solid #e5e7eb;background:${headerColor};color:#fff;">${this.escapeHtml(h?.content ?? h ?? '')}</th>`)
       .join('')}</tr></thead>`;
 
     const companyName = dto.companyInfo?.name ? `<div class="company">${this.escapeHtml(dto.companyInfo.name)}</div>` : '';

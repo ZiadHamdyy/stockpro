@@ -1033,8 +1033,16 @@ const StoreTransfer: React.FC<StoreTransferProps> = ({ title }) => {
           { Header: "من مخزن", accessor: "fromStore" },
           { Header: "إلى مخزن", accessor: "toStore" },
         ]}
-        data={vouchers}
+        data={vouchers.map((v) => ({
+          ...v,
+          fromStore: v.fromStore?.name || "-",
+          toStore: v.toStore?.name || "-",
+          date: v.date
+            ? new Date(v.date).toISOString().substring(0, 10)
+            : "-",
+        }))}
         onSelectRow={handleSelectVoucherFromSearch}
+        colorTheme="amber"
       />
     </>
   );

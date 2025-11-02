@@ -21,6 +21,10 @@ export class ExportPdfDto {
   @IsOptional()
   @IsString()
   fileName?: string;
+
+  @IsOptional()
+  @IsString()
+  colorTheme?: "blue" | "green" | "amber";
 }
 
 

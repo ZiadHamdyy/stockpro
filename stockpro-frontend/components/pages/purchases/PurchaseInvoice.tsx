@@ -1198,11 +1198,14 @@ const PurchaseInvoice: React.FC<PurchaseInvoiceProps> = ({
         ]}
         data={(invoices || []).map((inv) => ({
           code: inv.code,
-          date: inv.date,
+          date: inv.date
+            ? new Date(inv.date).toISOString().substring(0, 10)
+            : "-",
           supplier: inv.supplier?.name || "-",
           total: formatMoney(inv.net || 0),
         }))}
         onSelectRow={handleSelectInvoiceFromSearch}
+        colorTheme="green"
       />
       {(() => {
         const fullSupplier = selectedSupplier

@@ -1235,11 +1235,14 @@ const SalesInvoice: React.FC<SalesInvoiceProps> = ({
         ]}
         data={invoices.map((inv) => ({
           code: inv.code,
-          date: inv.date,
+          date: inv.date
+            ? new Date(inv.date).toISOString().substring(0, 10)
+            : "-",
           customer: inv.customer?.name || "-",
           total: formatMoney(inv.net),
         }))}
         onSelectRow={handleSelectInvoiceFromSearch}
+        colorTheme="blue"
       />
       {(() => {
         const fullCustomer = selectedCustomer

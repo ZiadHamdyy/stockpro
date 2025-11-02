@@ -123,7 +123,7 @@ const PurchaseInvoicePrintPreview: React.FC<
           <div className="flex items-center gap-2">
             <button
               onClick={handlePrint}
-              className="px-4 py-2 bg-brand-blue text-white rounded-md hover:bg-blue-800 font-semibold flex items-center"
+              className="px-4 py-2 bg-brand-green text-white rounded-md hover:bg-green-700 font-semibold flex items-center"
             >
               <PrintIcon className="ml-2 w-5 h-5" /> طباعة
             </button>
@@ -138,7 +138,7 @@ const PurchaseInvoicePrintPreview: React.FC<
 
         <div className="overflow-y-auto">
           <div id="printable-invoice" className="p-8 bg-white">
-            <header className="flex justify-between items-start pb-4 border-b-2 border-brand-blue">
+            <header className="flex justify-between items-start pb-4 border-b-2 border-brand-green">
               <div className="flex items-center gap-4">
                 {companyInfo.logo && (
                   <img
@@ -160,7 +160,7 @@ const PurchaseInvoicePrintPreview: React.FC<
                 </div>
               </div>
               <div className="text-left">
-                <h1 className="text-3xl font-bold text-brand-blue">
+                <h1 className="text-3xl font-bold text-brand-green">
                   فاتورة مشتريات
                 </h1>
                 <p>Purchase Invoice</p>
@@ -222,16 +222,16 @@ const PurchaseInvoicePrintPreview: React.FC<
             </section>
 
             <table className="w-full text-sm border-collapse border border-gray-300">
-              <thead className="bg-brand-blue text-white">
+              <thead className="bg-brand-green text-white">
                 <tr>
-                  <th className="p-2 border border-blue-300">#</th>
-                  <th className="p-2 border border-blue-300 text-right">الصنف</th>
-                  <th className="p-2 border border-blue-300">الكمية</th>
-                  <th className="p-2 border border-blue-300">السعر</th>
+                  <th className="p-2 border border-green-300">#</th>
+                  <th className="p-2 border border-green-300 text-right">الصنف</th>
+                  <th className="p-2 border border-green-300">الكمية</th>
+                  <th className="p-2 border border-green-300">السعر</th>
                   {isVatEnabled && (
-                    <th className="p-2 border border-blue-300">مبلغ الضريبة</th>
+                    <th className="p-2 border border-green-300">مبلغ الضريبة</th>
                   )}
-                  <th className="p-2 border border-blue-300">الاجمالي</th>
+                  <th className="p-2 border border-green-300">الاجمالي</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-300">
@@ -273,16 +273,16 @@ const PurchaseInvoicePrintPreview: React.FC<
                         <td className="p-2 border border-gray-300 text-left">{totals.tax.toFixed(2)}</td>
                       </tr>
                     )}
-                    <tr className="bg-brand-blue text-white font-bold text-base">
-                      <td className="p-2 border border-blue-300">الصافي</td>
-                      <td className="p-2 border border-blue-300 text-left">{totals.net.toFixed(2)}</td>
+                    <tr className="bg-brand-green text-white font-bold text-base">
+                      <td className="p-2 border border-green-300">الصافي</td>
+                      <td className="p-2 border border-green-300 text-left">{totals.net.toFixed(2)}</td>
                     </tr>
                   </tbody>
                 </table>
               </div>
             </section>
 
-            <div className="mt-4 p-2 bg-brand-blue-bg border border-brand-blue text-center font-semibold text-sm rounded-md">
+            <div className="mt-4 p-2 bg-brand-green-bg border border-brand-green text-center font-semibold text-sm rounded-md">
               {tafqeet(totals.net, companyInfo.currency)}
             </div>
 
