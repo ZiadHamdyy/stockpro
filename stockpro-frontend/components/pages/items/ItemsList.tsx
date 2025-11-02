@@ -143,8 +143,20 @@ const ItemsList: React.FC<ItemsListProps> = ({ title, onNavigate }) => {
   };
 
   return (
-    <div className="bg-white p-6 rounded-lg shadow">
-      <div className="flex justify-between items-center mb-4 border-b pb-4 no-print">
+    <>
+      <style>
+        {`
+          @media print {
+            @page { size: A4 landscape; margin: 10mm; }
+            .no-print { display: none !important; }
+            .overflow-x-auto { overflow: visible !important; }
+            table { font-size: 12px !important; }
+            th, td { padding: 4px 6px !important; }
+          }
+        `}
+      </style>
+      <div className="bg-white p-6 rounded-lg shadow">
+        <div className="flex justify-between items-center mb-4 border-b pb-4 no-print">
         <h1 className="text-2xl font-bold text-brand-dark">{title}</h1>
         <PermissionWrapper
           requiredPermission={buildPermission(
@@ -275,7 +287,7 @@ const ItemsList: React.FC<ItemsListProps> = ({ title, onNavigate }) => {
               <th className="px-6 py-3 text-right text-sm font-semibold text-white uppercase">
                 الكود
               </th>
-              <th className="px-6 py-3 text-right text-sm font-semibold text-white uppercase">
+              <th className="px-6 py-3 text-right text-sm font-semibold text-white uppercase min-w-[200px]">
                 الاسم
               </th>
               <th className="px-6 py-3 text-right text-sm font-semibold text-white uppercase">
@@ -331,7 +343,7 @@ const ItemsList: React.FC<ItemsListProps> = ({ title, onNavigate }) => {
               filteredItems.map((item) => (
                 <tr key={item.id} className="hover:bg-brand-blue-bg">
                   <td className="px-6 py-4">{item.code}</td>
-                  <td className="px-6 py-4 font-medium text-brand-dark">
+                  <td className="px-6 py-4 font-medium text-brand-dark min-w-[200px]">
                     {item.name}
                   </td>
                   <td className="px-6 py-4">{item.group.name}</td>
@@ -400,6 +412,7 @@ const ItemsList: React.FC<ItemsListProps> = ({ title, onNavigate }) => {
         </table>
       </div>
     </div>
+    </>
   );
 };
 
