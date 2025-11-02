@@ -95,7 +95,7 @@ const SuppliersList: React.FC<SuppliersListProps> = ({
   }, [suppliers, searchTerm, sortBy]);
 
   const inputStyle =
-    "w-full md:w-72 pr-10 pl-4 py-3 bg-brand-blue-bg border-2 border-brand-blue rounded-md text-black placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-brand-blue";
+    "w-full md:w-72 pr-10 pl-4 py-3 bg-brand-green-bg border-2 border-brand-green rounded-md text-black placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-brand-green";
 
   if (isLoading) {
     return (
@@ -172,7 +172,7 @@ const SuppliersList: React.FC<SuppliersListProps> = ({
               id="sort"
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value as any)}
-              className="bg-brand-blue-bg border-2 border-brand-blue rounded-md py-2 px-3 focus:outline-none focus:ring-2 focus:ring-brand-blue"
+              className="bg-brand-green-bg border-2 border-brand-green rounded-md py-2 px-3 focus:outline-none focus:ring-2 focus:ring-brand-green"
             >
               <option value="name">الاسم</option>
               <option value="balance_high">الرصيد (الأعلى)</option>
@@ -201,7 +201,7 @@ const SuppliersList: React.FC<SuppliersListProps> = ({
         {sortedAndFilteredSuppliers.map((supplier) => (
           <div
             key={supplier.id}
-            className="bg-white rounded-lg shadow-md border-t-4 border-brand-blue p-5 flex flex-col justify-between relative transition-all hover:shadow-xl"
+            className="bg-white rounded-lg shadow-md border-t-4 border-brand-green p-5 flex flex-col justify-between relative transition-all hover:shadow-xl"
           >
             <div>
               <div className="flex justify-between items-start">
@@ -307,6 +307,7 @@ const SuppliersList: React.FC<SuppliersListProps> = ({
         onClose={() => setIsListModalOpen(false)}
         title="قائمة الموردين"
         companyInfo={companyInfo}
+        colorTheme="green"
         columns={[
           { Header: "#", accessor: "sn" },
           { Header: "اسم المورد", accessor: "name" },
