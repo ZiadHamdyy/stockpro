@@ -1291,6 +1291,7 @@ const SalesReturn: React.FC<SalesReturnProps> = ({
           { Header: "الصافي", accessor: "total" },
         ]}
         data={returns.map((ret) => ({
+          id: ret.id,
           code: ret.code,
           date: ret.date
             ? new Date(ret.date).toISOString().substring(0, 10)

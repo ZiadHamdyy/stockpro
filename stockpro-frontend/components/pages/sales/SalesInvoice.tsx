@@ -1234,6 +1234,7 @@ const SalesInvoice: React.FC<SalesInvoiceProps> = ({
           { Header: "الصافي", accessor: "total" },
         ]}
         data={invoices.map((inv) => ({
+          id: inv.id,
           code: inv.code,
           date: inv.date
             ? new Date(inv.date).toISOString().substring(0, 10)
