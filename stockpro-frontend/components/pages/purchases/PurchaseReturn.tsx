@@ -373,11 +373,21 @@ const PurchaseReturn: React.FC<PurchaseReturnProps> = ({
       let qty = parseFloat(item.qty as any) || 0;
       const price = parseFloat(item.price as any) || 0;
       // Clamp quantity to max allowed from source invoice
+      // Check sum of all rows with the same item ID
       if (selectedInvoiceId && item.id) {
         const maxAllowed = sourceInvoiceQtyById[item.id] ?? Number.POSITIVE_INFINITY;
-        if (qty > maxAllowed) {
-          qty = maxAllowed;
-          item.qty = maxAllowed;
+        // Calculate sum of quantities for all other rows with the same item ID
+        const sumOfOtherRowsWithSameItem = newItems.reduce((sum, it, idx) => {
+          if (idx !== index && it.id === item.id && it.id) {
+            return sum + (parseFloat(it.qty as any) || 0);
+          }
+          return sum;
+        }, 0);
+        // Calculate remaining allowed quantity
+        const remainingAllowed = maxAllowed - sumOfOtherRowsWithSameItem;
+        if (qty > remainingAllowed) {
+          qty = Math.max(0, remainingAllowed);
+          item.qty = qty;
           showToast("لا يمكن إرجاع كمية أكبر من الموجودة في الفاتورة.", 'error');
         }
       }
@@ -397,12 +407,34 @@ const PurchaseReturn: React.FC<PurchaseReturnProps> = ({
     }
     const newItems = [...returnItems];
     const currentItem = newItems[index];
+    let initialQty = currentItem.qty || 1;
+    
+    // Validate quantity against sum of all rows with same item ID
+    if (selectedInvoiceId && selectedItem.id) {
+      const maxAllowed = sourceInvoiceQtyById[selectedItem.id] ?? Number.POSITIVE_INFINITY;
+      // Calculate sum of quantities for all other rows with the same item ID
+      const sumOfOtherRowsWithSameItem = newItems.reduce((sum, it, idx) => {
+        if (idx !== index && it.id === selectedItem.id && it.id) {
+          return sum + (parseFloat(it.qty as any) || 0);
+        }
+        return sum;
+      }, 0);
+      // Calculate remaining allowed quantity
+      const remainingAllowed = maxAllowed - sumOfOtherRowsWithSameItem;
+      if (initialQty > remainingAllowed) {
+        initialQty = Math.max(0, remainingAllowed);
+        if (initialQty < (currentItem.qty || 1)) {
+          showToast("لا يمكن إرجاع كمية أكبر من الموجودة في الفاتورة.", 'error');
+        }
+      }
+    }
+    
     const item = {
       ...currentItem,
       id: selectedItem.id,
       name: selectedItem.name,
       unit: selectedItem.unit,
-      qty: currentItem.qty || 1,
+      qty: initialQty,
       price: selectedItem.purchasePrice,
     };
     const total = item.qty * (item.price || 0);
