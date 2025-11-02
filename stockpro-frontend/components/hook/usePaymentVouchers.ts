@@ -138,20 +138,8 @@ export const usePaymentVouchers = () => {
       const entityId = voucherData.entity.id ? String(voucherData.entity.id) : undefined;
       entityFields.expenseCodeId = entityId;
     } else if (voucherData.entity.type === "expense-Type") {
-      // For expense types, find the first expense code for that type
-      // to use as expenseCodeId (since backend doesn't support expenseTypeId directly)
-      const expenseTypeId = voucherData.entity.id ? String(voucherData.entity.id) : undefined;
-      if (expenseTypeId) {
-        const firstExpenseCode = expenseCodes.find(
-          (code) => code.expenseTypeId === expenseTypeId
-        );
-        if (firstExpenseCode) {
-          entityFields.expenseCodeId = firstExpenseCode.id;
-        } else {
-          showToast("لا توجد بنود مصروفات لهذا النوع. يرجى إضافة بند مصروف أولاً.", 'error');
-          return null;
-        }
-      }
+      const entityId = voucherData.entity.id ? String(voucherData.entity.id) : undefined;
+      entityFields.expenseCodeId = entityId;
     }
 
     // Build payment target foreign key based on payment method

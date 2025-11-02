@@ -244,6 +244,8 @@ const ReceiptVoucher: React.FC<ReceiptVoucherProps> = ({ title }) => {
                 <option value="customer">عميل</option>
                 <option value="supplier">مورد</option>
                 <option value="current_account">حساب جاري</option>
+                <option value="receivable_account">أرصدة مدينة اخري</option>
+                <option value="payable_account">أرصدة دائنة اخري</option>
               </select>
             </div>
             <div>

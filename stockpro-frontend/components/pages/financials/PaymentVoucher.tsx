@@ -4,7 +4,6 @@ import { tafqeet } from "../../../utils/tafqeet";
 import InvoiceHeader from "../../common/InvoiceHeader";
 import { useGetCompanyQuery } from "../../store/slices/companyApiSlice";
 import { usePaymentVouchers } from "../../hook/usePaymentVouchers";
-import { useGetExpenseTypesQuery } from "../../store/slices/expense/expenseApiSlice";
 import PermissionWrapper from "../../common/PermissionWrapper";
 import {
   buildPermission,
@@ -40,7 +39,6 @@ const PaymentVoucher: React.FC<PaymentVoucherProps> = ({ title }) => {
     navigate,
     currentIndex,
   } = usePaymentVouchers();
-  const { data: expenseTypes = [] } = useGetExpenseTypesQuery();
 
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
 
@@ -67,7 +65,7 @@ const PaymentVoucher: React.FC<PaymentVoucherProps> = ({ title }) => {
         if (newEntity.type === "expense")
           foundName = expenseCodes.find((c) => c.id === value)?.name || "";
         if (newEntity.type === "expense-Type")
-          foundName = expenseTypes.find((t) => t.id === value)?.name || "";
+          foundName = expenseCodes.find((c) => c.id === value)?.name || "";
         newEntity.name = foundName;
       }
       return { ...prev, entity: newEntity };
@@ -152,10 +150,10 @@ const PaymentVoucher: React.FC<PaymentVoucherProps> = ({ title }) => {
           className={inputStyle}
           disabled={isReadOnly}
         >
-          <option value="">اختر نوع مصروف...</option>
-          {expenseTypes.map((t) => (
-            <option key={t.id} value={t.id}>
-              {t.name}
+          <option value="">اختر بند مصروف...</option>
+          {expenseCodes.map((c) => (
+            <option key={c.id} value={c.id}>
+              {c.name}
             </option>
           ))}
         </select>
@@ -288,6 +286,8 @@ const PaymentVoucher: React.FC<PaymentVoucherProps> = ({ title }) => {
                 <option value="customer">عميل</option>
                 <option value="current_account">حساب جاري</option>
                 <option value="expense-Type">مصروفات ضريبية</option>
+                <option value="receivable_account">أرصدة مدينة أخرى</option>
+                <option value="payable_account">أرصدة دائنة أخرى</option>
               </select>
             </div>
             <div>
