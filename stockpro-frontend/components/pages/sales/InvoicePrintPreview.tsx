@@ -6,6 +6,7 @@ import { PrintIcon, XIcon } from "../../icons";
 import { useGetCompanyQuery } from "../../store/slices/companyApiSlice";
 import { useSelector } from "react-redux";
 import type { RootState } from "../../store/store";
+import { formatMoney } from "../../../utils/formatting";
 
 interface InvoicePrintPreviewProps {
   isOpen: boolean;
@@ -171,7 +172,7 @@ const InvoicePrintPreview: React.FC<InvoicePrintPreviewProps> = ({
                     ? "فاتورة مبيعات"
                     : (customer?.taxNumber 
                         ? "فاتورة ضريبية" 
-                        : "فاتورة ضريبية مبيسطة")}
+                        : "فاتورة ضريبية مبسطة")}
                 </h1>
                 <p>Tax Invoice</p>
               </div>
@@ -186,11 +187,11 @@ const InvoicePrintPreview: React.FC<InvoicePrintPreviewProps> = ({
                 </p>
                 <p>
                   <span className="font-semibold">العنوان:</span>{" "}
-                  {customer?.address || "غير محدد"}
+                  {customer?.address || "--------------------------------"}
                 </p>
                 <p>
                   <span className="font-semibold">الرقم الضريبي:</span>{" "}
-                  {customer?.taxNumber || "غير محدد"}
+                  {customer?.taxNumber || "--------------------------------"}
                 </p>
               </div>
               <div className="border border-gray-300 rounded-md p-3">
@@ -216,14 +217,15 @@ const InvoicePrintPreview: React.FC<InvoicePrintPreviewProps> = ({
             <table className="w-full text-sm border-collapse border border-gray-300">
               <thead className="bg-brand-blue text-white">
                 <tr>
-                  <th className="p-2 border border-blue-300">#</th>
-                  <th className="p-2 border border-blue-300 text-right">
+                  <th className="p-2 border border-blue-300">م</th>
+                  <th className="p-2 border border-blue-300 text-right" style={{ width: '35%' }}>
                     الصنف
                   </th>
+                  <th className="p-2 border border-blue-300">الوحدة</th>
                   <th className="p-2 border border-blue-300">الكمية</th>
                   <th className="p-2 border border-blue-300">السعر</th>
                   {isVatEnabled && (
-                    <th className="p-2 border border-blue-300">مبلغ الضريبة</th>
+                    <th className="p-2 border border-blue-300">الضريبة {isVatEnabled ? `(%${vatRate})` : '(%0)'}</th>
                   )}
                   <th className="p-2 border border-blue-300">الاجمالي</th>
                 </tr>
@@ -234,20 +236,23 @@ const InvoicePrintPreview: React.FC<InvoicePrintPreviewProps> = ({
                     <td className="p-2 border border-gray-300 text-center">
                       {index + 1}
                     </td>
-                    <td className="p-2 border border-gray-300">{item.name}</td>
+                    <td className="p-2 border border-gray-300" style={{ width: '35%' }}>{item.name}</td>
+                    <td className="p-2 border border-gray-300 text-center">
+                      {item.unit}
+                    </td>
                     <td className="p-2 border border-gray-300 text-center">
                       {item.qty}
                     </td>
                     <td className="p-2 border border-gray-300 text-center">
-                      {item.price.toFixed(2)}
+                      {formatMoney(item.price)}
                     </td>
                     {isVatEnabled && (
                       <td className="p-2 border border-gray-300 text-center">
-                        {item.taxAmount.toFixed(2)}
+                        {formatMoney(item.taxAmount || 0)}
                       </td>
                     )}
                     <td className="p-2 border border-gray-300 text-center">
-                      {item.total.toFixed(2)}
+                      {formatMoney(item.total)}
                     </td>
                   </tr>
                 ))}
@@ -268,7 +273,7 @@ const InvoicePrintPreview: React.FC<InvoicePrintPreviewProps> = ({
                         الاجمالي قبل الضريبة
                       </td>
                       <td className="p-2 border border-gray-300 text-left">
-                        {totals.subtotal.toFixed(2)}
+                        {formatMoney(totals.subtotal)}
                       </td>
                     </tr>
                     <tr>
@@ -276,7 +281,7 @@ const InvoicePrintPreview: React.FC<InvoicePrintPreviewProps> = ({
                         الخصم
                       </td>
                       <td className="p-2 border border-gray-300 text-left">
-                        {totals.discount.toFixed(2)}
+                        {formatMoney(totals.discount)}
                       </td>
                     </tr>
                     {isVatEnabled && (
@@ -285,14 +290,14 @@ const InvoicePrintPreview: React.FC<InvoicePrintPreviewProps> = ({
                           إجمالي الضريبة ({vatRate}%)
                         </td>
                         <td className="p-2 border border-gray-300 text-left">
-                          {totals.tax.toFixed(2)}
+                          {formatMoney(totals.tax)}
                         </td>
                       </tr>
                     )}
                     <tr className="bg-brand-blue text-white font-bold text-base">
                       <td className="p-2 border border-blue-300">الصافي</td>
                       <td className="p-2 border border-blue-300 text-left">
-                        {totals.net.toFixed(2)}
+                        {formatMoney(totals.net)}
                       </td>
                     </tr>
                   </tbody>

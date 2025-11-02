@@ -4,6 +4,7 @@ import { tafqeet } from "../../../utils/tafqeet";
 import { generateZatcaBase64 } from "../../../utils/qrCodeGenerator";
 import { PrintIcon, XIcon } from "../../icons";
 import { useGetCompanyQuery } from "../../store/slices/companyApiSlice";
+import { formatMoney } from "../../../utils/formatting";
 
 interface PurchaseInvoicePrintPreviewProps {
   isOpen: boolean;
@@ -152,10 +153,10 @@ const PurchaseInvoicePrintPreview: React.FC<
                     {typeof companyInfo.name === 'string' ? companyInfo.name : JSON.stringify(companyInfo.name) || '---'}
                   </h2>
                   <p className="text-sm text-gray-600">
-                    {typeof companyInfo.address === 'string' ? companyInfo.address : (companyInfo.address ? JSON.stringify(companyInfo.address) : 'غير محدد')}
+                    {typeof companyInfo.address === 'string' ? companyInfo.address : (companyInfo.address ? JSON.stringify(companyInfo.address) : '--------------------------------')}
                   </p>
                   <p className="text-sm text-gray-600">
-                    الرقم الضريبي: {typeof companyInfo.taxNumber === 'string' ? companyInfo.taxNumber : (companyInfo.taxNumber ? JSON.stringify(companyInfo.taxNumber) : 'غير محدد')}
+                    الرقم الضريبي: {typeof companyInfo.taxNumber === 'string' ? companyInfo.taxNumber : (companyInfo.taxNumber ? JSON.stringify(companyInfo.taxNumber) : '--------------------------------')}
                   </p>
                 </div>
               </div>
@@ -176,11 +177,11 @@ const PurchaseInvoicePrintPreview: React.FC<
                 </p>
                 <p>
                   <span className="font-semibold">العنوان:</span>{' '}
-                  {typeof supplier?.address === 'string' ? supplier?.address : (supplier?.address ? JSON.stringify(supplier?.address) : 'غير محدد')}
+                  {typeof supplier?.address === 'string' ? supplier?.address : (supplier?.address ? JSON.stringify(supplier?.address) : '--------------------------------')}
                 </p>
                 <p>
                   <span className="font-semibold">الرقم الضريبي:</span>{' '}
-                  {typeof supplier?.taxNumber === 'string' ? supplier?.taxNumber : (supplier?.taxNumber ? JSON.stringify(supplier?.taxNumber) : 'غير محدد')}
+                  {typeof supplier?.taxNumber === 'string' ? supplier?.taxNumber : (supplier?.taxNumber ? JSON.stringify(supplier?.taxNumber) : '--------------------------------')}
                 </p>
               </div>
               <div className="border border-gray-300 rounded-md p-3">
@@ -193,7 +194,7 @@ const PurchaseInvoicePrintPreview: React.FC<
                   {details.invoiceDate}
                 </p>
                 {(() => {
-                  let renderingBranch = 'غير محدد';
+                  let renderingBranch = '--------------------------------';
                   if (details.branchName != null) {
                     if (typeof details.branchName === 'object' && 'name' in details.branchName && details.branchName.name) {
                       renderingBranch = details.branchName.name;
@@ -201,7 +202,7 @@ const PurchaseInvoicePrintPreview: React.FC<
                       renderingBranch = details.branchName;
                     }
                   }
-                  let renderingUser = 'غير محدد';
+                  let renderingUser = '--------------------------------';
                   if (details.userName != null) {
                     if (typeof details.userName === 'object' && 'name' in details.userName && details.userName.name) {
                       renderingUser = details.userName.name;
@@ -224,12 +225,13 @@ const PurchaseInvoicePrintPreview: React.FC<
             <table className="w-full text-sm border-collapse border border-gray-300">
               <thead className="bg-brand-green text-white">
                 <tr>
-                  <th className="p-2 border border-green-300">#</th>
-                  <th className="p-2 border border-green-300 text-right">الصنف</th>
+                  <th className="p-2 border border-green-300">م</th>
+                  <th className="p-2 border border-green-300 text-right" style={{ width: '35%' }}>الصنف</th>
+                  <th className="p-2 border border-green-300">الوحدة</th>
                   <th className="p-2 border border-green-300">الكمية</th>
                   <th className="p-2 border border-green-300">السعر</th>
                   {isVatEnabled && (
-                    <th className="p-2 border border-green-300">مبلغ الضريبة</th>
+                    <th className="p-2 border border-green-300">الضريبة {isVatEnabled ? `(%${vatRate})` : '(%0)'}</th>
                   )}
                   <th className="p-2 border border-green-300">الاجمالي</th>
                 </tr>
@@ -238,13 +240,14 @@ const PurchaseInvoicePrintPreview: React.FC<
                 {items.map((item, index) => (
                   <tr key={index}>
                     <td className="p-2 border border-gray-300 text-center">{index + 1}</td>
-                    <td className="p-2 border border-gray-300">{item.name}</td>
+                    <td className="p-2 border border-gray-300" style={{ width: '35%' }}>{item.name}</td>
+                    <td className="p-2 border border-gray-300 text-center">{item.unit}</td>
                     <td className="p-2 border border-gray-300 text-center">{item.qty}</td>
-                    <td className="p-2 border border-gray-300 text-center">{item.price.toFixed(2)}</td>
+                    <td className="p-2 border border-gray-300 text-center">{formatMoney(item.price)}</td>
                     {isVatEnabled && (
-                      <td className="p-2 border border-gray-300 text-center">{item.taxAmount.toFixed(2)}</td>
+                      <td className="p-2 border border-gray-300 text-center">{formatMoney(item.taxAmount || 0)}</td>
                     )}
-                    <td className="p-2 border border-gray-300 text-center">{item.total.toFixed(2)}</td>
+                    <td className="p-2 border border-gray-300 text-center">{formatMoney(item.total)}</td>
                   </tr>
                 ))}
               </tbody>
@@ -261,21 +264,21 @@ const PurchaseInvoicePrintPreview: React.FC<
                   <tbody>
                     <tr>
                       <td className="font-semibold p-2 border border-gray-300">الاجمالي قبل الضريبة</td>
-                      <td className="p-2 border border-gray-300 text-left">{totals.subtotal.toFixed(2)}</td>
+                      <td className="p-2 border border-gray-300 text-left">{formatMoney(totals.subtotal)}</td>
                     </tr>
                     <tr>
                       <td className="font-semibold p-2 border border-gray-300">الخصم</td>
-                      <td className="p-2 border border-gray-300 text-left">{totals.discount.toFixed(2)}</td>
+                      <td className="p-2 border border-gray-300 text-left">{formatMoney(totals.discount)}</td>
                     </tr>
                     {isVatEnabled && (
                       <tr>
                         <td className="font-semibold p-2 border border-gray-300">إجمالي الضريبة ({vatRate}%)</td>
-                        <td className="p-2 border border-gray-300 text-left">{totals.tax.toFixed(2)}</td>
+                        <td className="p-2 border border-gray-300 text-left">{formatMoney(totals.tax)}</td>
                       </tr>
                     )}
                     <tr className="bg-brand-green text-white font-bold text-base">
                       <td className="p-2 border border-green-300">الصافي</td>
-                      <td className="p-2 border border-green-300 text-left">{totals.net.toFixed(2)}</td>
+                      <td className="p-2 border border-green-300 text-left">{formatMoney(totals.net)}</td>
                     </tr>
                   </tbody>
                 </table>
