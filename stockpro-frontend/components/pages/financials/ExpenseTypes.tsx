@@ -1,6 +1,5 @@
 import React from "react";
 import { PrintIcon, SearchIcon } from "../../icons";
-import ExpenseTypeModal from "./ExpenseTypeModal.tsx";
 import { useExpenseTypes } from "../../hook/useExpenseTypes";
 import PermissionWrapper from "../../common/PermissionWrapper";
 import {
@@ -20,13 +19,6 @@ const ExpenseTypes: React.FC<ExpenseTypesProps> = ({ title }) => {
     error,
     searchQuery,
     setSearchQuery,
-    isModalOpen,
-    expenseTypeToEdit,
-    handleOpenModal,
-    handleCloseModal,
-    handleEditClick,
-    handleDeleteClick,
-    handleSave,
   } = useExpenseTypes();
 
   const inputStyle =
@@ -75,28 +67,6 @@ const ExpenseTypes: React.FC<ExpenseTypesProps> = ({ title }) => {
             <PermissionWrapper
               requiredPermission={buildPermission(
                 Resources.EXPENSE_TYPES,
-                Actions.CREATE,
-              )}
-              fallback={
-                <button
-                  type="button"
-                  disabled
-                  className="px-6 py-3 bg-gray-400 text-white rounded-md ml-2 font-semibold cursor-not-allowed opacity-50"
-                >
-                  اضافة نوع جديد
-                </button>
-              }
-            >
-              <button
-                onClick={() => handleOpenModal()}
-                className="px-6 py-3 bg-brand-blue text-white rounded-md hover:bg-blue-800 ml-2 font-semibold"
-              >
-                اضافة نوع جديد
-              </button>
-            </PermissionWrapper>
-            <PermissionWrapper
-              requiredPermission={buildPermission(
-                Resources.EXPENSE_TYPES,
                 Actions.PRINT,
               )}
             >
@@ -119,16 +89,13 @@ const ExpenseTypes: React.FC<ExpenseTypesProps> = ({ title }) => {
                 <th className="px-6 py-3 text-right text-sm font-semibold text-white uppercase tracking-wider">
                   اسم النوع
                 </th>
-                <th className="px-6 py-3 text-right text-sm font-semibold text-white uppercase tracking-wider no-print">
-                  اجراءات
-                </th>
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
               {expenseTypes.length === 0 ? (
                 <tr>
                   <td
-                    colSpan={3}
+                    colSpan={2}
                     className="px-6 py-8 text-center text-gray-500"
                   >
                     لا توجد بيانات
@@ -141,52 +108,6 @@ const ExpenseTypes: React.FC<ExpenseTypesProps> = ({ title }) => {
                     <td className="px-6 py-4 whitespace-nowrap font-medium text-brand-dark">
                       {type.name}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium no-print">
-                      <PermissionWrapper
-                        requiredPermission={buildPermission(
-                          Resources.EXPENSE_TYPES,
-                          Actions.UPDATE,
-                        )}
-                        fallback={
-                          <button
-                            type="button"
-                            disabled
-                            className="text-gray-400 font-semibold ml-4 cursor-not-allowed opacity-50"
-                          >
-                            تعديل
-                          </button>
-                        }
-                      >
-                        <button
-                          onClick={() => handleEditClick(type)}
-                          className="text-brand-blue hover:text-blue-800 font-semibold ml-4"
-                        >
-                          تعديل
-                        </button>
-                      </PermissionWrapper>
-                      <PermissionWrapper
-                        requiredPermission={buildPermission(
-                          Resources.EXPENSE_TYPES,
-                          Actions.DELETE,
-                        )}
-                        fallback={
-                          <button
-                            type="button"
-                            disabled
-                            className="text-gray-400 font-semibold cursor-not-allowed opacity-50"
-                          >
-                            حذف
-                          </button>
-                        }
-                      >
-                        <button
-                          onClick={() => handleDeleteClick(type)}
-                          className="text-red-600 hover:text-red-900 font-semibold"
-                        >
-                          حذف
-                        </button>
-                      </PermissionWrapper>
-                    </td>
                   </tr>
                 ))
               )}
@@ -194,12 +115,6 @@ const ExpenseTypes: React.FC<ExpenseTypesProps> = ({ title }) => {
           </table>
         </div>
       </div>
-      <ExpenseTypeModal
-        isOpen={isModalOpen}
-        onClose={handleCloseModal}
-        onSave={handleSave}
-        typeToEdit={expenseTypeToEdit}
-      />
     </>
   );
 };

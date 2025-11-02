@@ -33,15 +33,67 @@ export const useExpenseTypes = () => {
   const [deleteExpenseType, { isLoading: isDeleting }] =
     useDeleteExpenseTypeMutation();
 
-  // Filtered expense types based on search query
+  // Define the order of expense types
+  const expenseTypeOrder = [
+    'مصروفات تشغيلية',
+    'مصروفات تسويقية',
+    'مصروفات إدارية',
+    'مصروفات ادارية', // Handle both spellings (إ vs ا)
+    'مصروفات اخري',
+  ];
+
+  // Filtered and sorted expense types based on search query
   const filteredExpenseTypes = useMemo(() => {
-    if (!searchQuery) return expenseTypes;
-    const query = searchQuery.toLowerCase();
-    return expenseTypes.filter(
-      (type) =>
-        type.name.toLowerCase().includes(query) ||
-        (type.description && type.description.toLowerCase().includes(query)),
-    );
+    let filtered = expenseTypes;
+    
+    // Apply search filter if query exists
+    if (searchQuery) {
+      const query = searchQuery.toLowerCase();
+      filtered = expenseTypes.filter(
+        (type) =>
+          type.name.toLowerCase().includes(query) ||
+          (type.description && type.description.toLowerCase().includes(query)),
+      );
+    }
+    
+    // Sort by predefined order
+    return [...filtered].sort((a, b) => {
+      const getOrderIndex = (name: string): number => {
+        // Normalize name for comparison (handle both spellings of ادارية)
+        const normalizedName = name.replace(/[إا]دارية/g, 'ادارية');
+        
+        // Try exact match first
+        for (let i = 0; i < expenseTypeOrder.length; i++) {
+          const normalizedOrder = expenseTypeOrder[i].replace(/[إا]دارية/g, 'ادارية');
+          if (normalizedName === normalizedOrder || name === expenseTypeOrder[i]) {
+            return i;
+          }
+        }
+        
+        // Try partial match (includes check)
+        for (let i = 0; i < expenseTypeOrder.length; i++) {
+          if (name.includes(expenseTypeOrder[i]) || expenseTypeOrder[i].includes(name)) {
+            return i;
+          }
+        }
+        
+        return -1; // Not found in order list
+      };
+      
+      const indexA = getOrderIndex(a.name);
+      const indexB = getOrderIndex(b.name);
+      
+      // If both are in the order list, sort by their position
+      if (indexA !== -1 && indexB !== -1) {
+        return indexA - indexB;
+      }
+      // If only A is in the list, A comes first
+      if (indexA !== -1) return -1;
+      // If only B is in the list, B comes first
+      if (indexB !== -1) return 1;
+      // If neither is in the list, maintain original order
+      return 0;
+    });
   }, [expenseTypes, searchQuery]);
 
   const handleOpenModal = useCallback(
