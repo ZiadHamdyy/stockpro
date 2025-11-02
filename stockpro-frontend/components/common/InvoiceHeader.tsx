@@ -1,7 +1,12 @@
 import React from "react";
 import { useGetCompanyQuery } from "../store/slices/companyApiSlice";
 
-const InvoiceHeader: React.FC = () => {
+interface InvoiceHeaderProps {
+  branchName?: string;
+  userName?: string;
+}
+
+const InvoiceHeader: React.FC<InvoiceHeaderProps> = ({ branchName, userName }) => {
   const { data: companyInfo, isLoading, error } = useGetCompanyQuery();
 
   if (isLoading) {
@@ -58,6 +63,20 @@ const InvoiceHeader: React.FC = () => {
           <span className="font-semibold">السجل التجاري:</span>{" "}
           {companyInfo.commercialReg}
         </p>
+        {(branchName || userName) && (
+          <div className="hidden print:block mt-2 pt-2 border-t border-gray-300">
+            {branchName && (
+              <p>
+                <span className="font-semibold">الفرع:</span> {branchName}
+              </p>
+            )}
+            {userName && (
+              <p>
+                <span className="font-semibold">المستخدم:</span> {userName}
+              </p>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );

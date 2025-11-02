@@ -1,11 +1,13 @@
 import React, { useState, useMemo } from "react";
 import type { CompanyInfo } from "../../../types";
 import { ExcelIcon, PdfIcon, PrintIcon, SearchIcon } from "../../icons";
-import { exportToExcel, exportToPdf } from "../../../utils/formatting";
+import { exportToExcel, exportToPdf, formatMoney } from "../../../utils/formatting";
 import InvoiceHeader from "../../common/InvoiceHeader";
 import { useGetSalesReturnsQuery } from "../../store/slices/salesReturn/salesReturnApiSlice";
 import { useGetCompanyQuery } from "../../store/slices/companyApiSlice";
 import { useGetBranchesQuery } from "../../store/slices/branch/branchApi";
+import { useAppSelector } from "../../store/hooks";
+import { selectCurrentUser } from "../../store/slices/auth/auth";
 
 interface DailySalesReturnsProps {
   title: string;
@@ -16,6 +18,7 @@ const DailySalesReturns: React.FC<DailySalesReturnsProps> = ({ title }) => {
   const { data: salesReturns = [] } = useGetSalesReturnsQuery();
   const { data: company } = useGetCompanyQuery();
   const { data: branches = [] } = useGetBranchesQuery();
+  const currentUser = useAppSelector(selectCurrentUser);
 
   const companyInfo: CompanyInfo = company || {
     name: "",
@@ -76,20 +79,20 @@ const DailySalesReturns: React.FC<DailySalesReturnsProps> = ({ title }) => {
       "رقم المرتجع": s.code,
       العميل: s.customer?.name || "عميل نقدي",
       الفرع: s.branch?.name || "-",
-      المبلغ: s.subtotal.toFixed(2),
-      الضريبة: s.tax.toFixed(2),
-      الخصم: s.discount.toFixed(2),
-      "صافي المبلغ": s.net.toFixed(2),
+      المبلغ: formatMoney(s.subtotal),
+      الضريبة: formatMoney(s.tax),
+      الخصم: formatMoney(s.discount),
+      "صافي المبلغ": formatMoney(s.net),
     }));
     dataToExport.push({
       التاريخ: "الإجمالي",
       "رقم المرتجع": "",
       العميل: "",
       الفرع: "",
-      المبلغ: totals.subtotal.toFixed(2),
-      الضريبة: totals.tax.toFixed(2),
-      الخصم: totals.discount.toFixed(2),
-      "صافي المبلغ": totals.net.toFixed(2),
+      المبلغ: formatMoney(totals.subtotal),
+      الضريبة: formatMoney(totals.tax),
+      الخصم: formatMoney(totals.discount),
+      "صافي المبلغ": formatMoney(totals.net),
     });
     exportToExcel(dataToExport, title);
   };
@@ -109,10 +112,10 @@ const DailySalesReturns: React.FC<DailySalesReturnsProps> = ({ title }) => {
       ],
     ];
     const body = filteredReturns.map((s, i) => [
-      s.net.toFixed(2),
-      s.discount.toFixed(2),
-      s.tax.toFixed(2),
-      s.subtotal.toFixed(2),
+      formatMoney(s.net),
+      formatMoney(s.discount),
+      formatMoney(s.tax),
+      formatMoney(s.subtotal),
       s.branch?.name || "-",
       s.customer?.name || "عميل نقدي",
       s.code,
@@ -121,10 +124,10 @@ const DailySalesReturns: React.FC<DailySalesReturnsProps> = ({ title }) => {
     ]);
     const footer = [
       [
-        totals.net.toFixed(2),
-        totals.discount.toFixed(2),
-        totals.tax.toFixed(2),
-        totals.subtotal.toFixed(2),
+        formatMoney(totals.net),
+        formatMoney(totals.discount),
+        formatMoney(totals.tax),
+        formatMoney(totals.subtotal),
         "",
         "",
         "",
@@ -133,7 +136,13 @@ const DailySalesReturns: React.FC<DailySalesReturnsProps> = ({ title }) => {
       ],
     ];
 
-    exportToPdf(title, head, body, title, companyInfo, footer);
+    const selectedBranchName = selectedBranchId 
+      ? branches.find(b => b.id === selectedBranchId)?.name || "جميع الفروع"
+      : "جميع الفروع";
+    const dateRangeText = `من: ${startDate} - إلى: ${endDate} | الفرع: ${selectedBranchName}`;
+    const pdfTitle = `${title} - ${dateRangeText}`;
+
+    exportToPdf(pdfTitle, head, body, title, companyInfo, footer);
   };
 
   const inputStyle =
@@ -152,10 +161,45 @@ const DailySalesReturns: React.FC<DailySalesReturnsProps> = ({ title }) => {
         .print-scale-sm table th, .print-scale-sm table td { padding: 4px 6px !important; }
       }`}</style>
       <div className="border-2 border-brand-blue rounded-lg mb-4">
-        <InvoiceHeader />
+        <InvoiceHeader 
+          branchName={selectedBranchId ? branches.find(b => b.id === selectedBranchId)?.name : undefined}
+          userName={currentUser?.name}
+        />
       </div>
 
       <h1 className="text-2xl font-bold mb-4 text-brand-dark">{title}</h1>
+
+      <div className="mb-4 p-3 bg-gray-50 rounded-md border-2 border-gray-300 hidden print:block">
+        <div className="flex items-center gap-4 flex-wrap">
+          <div className="flex items-center gap-2">
+            <label className="font-semibold">من:</label>
+            <input
+              type="text"
+              readOnly
+              value={startDate}
+              className="p-2 bg-white border border-gray-300 rounded-md text-black w-32"
+            />
+          </div>
+          <div className="flex items-center gap-2">
+            <label className="font-semibold">إلى:</label>
+            <input
+              type="text"
+              readOnly
+              value={endDate}
+              className="p-2 bg-white border border-gray-300 rounded-md text-black w-32"
+            />
+          </div>
+          <div className="flex items-center gap-2">
+            <label className="font-semibold">الفرع:</label>
+            <input
+              type="text"
+              readOnly
+              value={selectedBranchId ? branches.find(b => b.id === selectedBranchId)?.name || "جميع الفروع" : "جميع الفروع"}
+              className="p-2 bg-white border border-gray-300 rounded-md text-black w-48"
+            />
+          </div>
+        </div>
+      </div>
 
       <div className="flex justify-between items-center mb-4 no-print bg-gray-50 p-3 rounded-md border-2">
         <div className="flex items-center gap-4 flex-wrap">
@@ -270,16 +314,16 @@ const DailySalesReturns: React.FC<DailySalesReturnsProps> = ({ title }) => {
                   {sale.branch?.name || "-"}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
-                  {sale.subtotal.toFixed(2)}
+                  {formatMoney(sale.subtotal)}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
-                  {sale.tax.toFixed(2)}
+                  {formatMoney(sale.tax)}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
-                  {sale.discount.toFixed(2)}
+                  {formatMoney(sale.discount)}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap font-bold">
-                  {sale.net.toFixed(2)}
+                  {formatMoney(sale.net)}
                 </td>
               </tr>
             ))}
@@ -290,13 +334,13 @@ const DailySalesReturns: React.FC<DailySalesReturnsProps> = ({ title }) => {
                 الإجمالي
               </td>
               <td className="px-6 py-3 text-right">
-                {totals.subtotal.toFixed(2)}
+                {formatMoney(totals.subtotal)}
               </td>
-              <td className="px-6 py-3 text-right">{totals.tax.toFixed(2)}</td>
+              <td className="px-6 py-3 text-right">{formatMoney(totals.tax)}</td>
               <td className="px-6 py-3 text-right">
-                {totals.discount.toFixed(2)}
+                {formatMoney(totals.discount)}
               </td>
-              <td className="px-6 py-3 text-right">{totals.net.toFixed(2)}</td>
+              <td className="px-6 py-3 text-right">{formatMoney(totals.net)}</td>
             </tr>
           </tfoot>
         </table>
