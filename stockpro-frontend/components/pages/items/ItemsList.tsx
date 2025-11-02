@@ -15,7 +15,7 @@ import {
   Actions,
   buildPermission,
 } from "../../../enums/permissions.enum";
-import { exportToExcel, exportToPdf } from "../../../utils/formatting";
+import { exportToExcel, exportToPdf, formatMoney } from "../../../utils/formatting";
 import { useAppDispatch, useAppSelector } from "../../store/hooks";
 import {
   useGetItemsQuery,
@@ -131,8 +131,8 @@ const ItemsList: React.FC<ItemsListProps> = ({ title, onNavigate }) => {
     ];
     const body = filteredItems.map((item) => [
       item.stock.toString(),
-      item.salePrice.toFixed(2),
-      item.purchasePrice.toFixed(2),
+      formatMoney(item.salePrice),
+      formatMoney(item.purchasePrice),
       item.unit.name,
       item.group.name,
       item.name,
@@ -348,9 +348,11 @@ const ItemsList: React.FC<ItemsListProps> = ({ title, onNavigate }) => {
                   </td>
                   <td className="px-6 py-4">{item.group.name}</td>
                   <td className="px-6 py-4">{item.unit.name}</td>
-                  <td className="px-6 py-4">{item.purchasePrice.toFixed(2)}</td>
-                  <td className="px-6 py-4">{item.salePrice.toFixed(2)}</td>
-                  <td className="px-6 py-4 font-bold">{item.stock}</td>
+                  <td className="px-6 py-4">{formatMoney(item.purchasePrice)}</td>
+                  <td className="px-6 py-4">{formatMoney(item.salePrice)}</td>
+                  <td className={`px-6 py-4 font-bold ${item.stock < 0 ? 'text-red-600' : ''}`}>
+                    {item.stock}
+                  </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium no-print">
                     <PermissionWrapper
                       requiredPermission={buildPermission(

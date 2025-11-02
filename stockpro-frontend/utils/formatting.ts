@@ -46,6 +46,19 @@ export const formatNumber = (num: number): string => {
 };
 
 /**
+ * Formats a number as currency with commas and 2 decimal places for money display.
+ * Example: 1000000 -> "1,000,000.00"
+ * @param num The number to format
+ * @returns Formatted string with commas and 2 decimal places
+ */
+export const formatMoney = (num: number): string => {
+  return new Intl.NumberFormat("en-US", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(num);
+};
+
+/**
  * Exports data to an Excel file.
  * @param data The array of objects to export.
  * @param fileName The name of the file to create (without extension).
