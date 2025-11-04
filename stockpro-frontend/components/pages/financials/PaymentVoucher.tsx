@@ -12,6 +12,8 @@ import {
 } from "../../../enums/permissions.enum";
 import PaymentVoucherPrintPreview from "./PaymentVoucherPrintPreview";
 import { useAuth } from "../../hook/Auth";
+import { useGetReceivableAccountsQuery } from "../../store/slices/receivableAccounts/receivableAccountsApi";
+import { useGetPayableAccountsQuery } from "../../store/slices/payableAccounts/payableAccountsApi";
 
 interface PaymentVoucherProps {
   title: string;
@@ -20,6 +22,8 @@ interface PaymentVoucherProps {
 const PaymentVoucher: React.FC<PaymentVoucherProps> = ({ title }) => {
   const { data: companyInfo } = useGetCompanyQuery();
   const { User } = useAuth();
+  const { data: receivableAccounts = [] } = useGetReceivableAccountsQuery();
+  const { data: payableAccounts = [] } = useGetPayableAccountsQuery();
   const {
     vouchers,
     customers,
@@ -62,6 +66,10 @@ const PaymentVoucher: React.FC<PaymentVoucherProps> = ({ title }) => {
           foundName = suppliers.find((s) => s.id === value)?.name || "";
         if (newEntity.type === "current_account")
           foundName = currentAccounts.find((a) => a.id === value)?.name || "";
+        if (newEntity.type === "receivable_account")
+          foundName = (receivableAccounts as any[]).find((a) => a.id === value)?.name || "";
+        if (newEntity.type === "payable_account")
+          foundName = (payableAccounts as any[]).find((a) => a.id === value)?.name || "";
         if (newEntity.type === "expense")
           foundName = expenseCodes.find((c) => c.id === value)?.name || "";
         if (newEntity.type === "expense-Type")
@@ -118,6 +126,40 @@ const PaymentVoucher: React.FC<PaymentVoucherProps> = ({ title }) => {
         >
           <option value="">اختر حساب...</option>
           {currentAccounts.map((a) => (
+            <option key={a.id} value={a.id}>
+              {a.name}
+            </option>
+          ))}
+        </select>
+      );
+    }
+    if (entityType === "receivable_account") {
+      return (
+        <select
+          value={voucherData.entity.id || ""}
+          onChange={(e) => handleEntityChange("id", e.target.value)}
+          className={inputStyle}
+          disabled={isReadOnly}
+        >
+          <option value="">اختر حساب مدين...</option>
+          {(receivableAccounts as any[]).map((a) => (
+            <option key={a.id} value={a.id}>
+              {a.name}
+            </option>
+          ))}
+        </select>
+      );
+    }
+    if (entityType === "payable_account") {
+      return (
+        <select
+          value={voucherData.entity.id || ""}
+          onChange={(e) => handleEntityChange("id", e.target.value)}
+          className={inputStyle}
+          disabled={isReadOnly}
+        >
+          <option value="">اختر حساب دائن...</option>
+          {(payableAccounts as any[]).map((a) => (
             <option key={a.id} value={a.id}>
               {a.name}
             </option>

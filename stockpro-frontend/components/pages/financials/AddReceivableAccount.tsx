@@ -51,13 +51,30 @@ const AddReceivableAccount: React.FC<Props> = ({ title, editingId, onNavigate })
     setAccountData(prev => ({ ...prev, [name]: name === "openingBalance" ? parseFloat(value) || 0 : value } as any));
   };
 
+  const handleOpeningBalanceChange = (
+    e: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    const value = e.target.value;
+    // Allow empty string and valid positive numbers (including decimals, no negatives)
+    if (value === "" || /^\d*\.?\d*$/.test(value)) {
+      setAccountData((prev: any) => ({
+        ...prev,
+        openingBalance: value === "" ? "" : parseFloat(value) || 0,
+      }));
+    }
+  };
+
   const handleSave = async () => {
     try {
+      const openingBalanceValue =
+        typeof (accountData as any).openingBalance === "string"
+          ? parseFloat((accountData as any).openingBalance) || 0
+          : (accountData as any).openingBalance || 0;
       if (!("id" in accountData)) {
-        await createAccount({ name: accountData.name, openingBalance: accountData.openingBalance }).unwrap();
+        await createAccount({ name: accountData.name, openingBalance: openingBalanceValue }).unwrap();
         showToast(`تم إنشاء الحساب "${accountData.name}" بنجاح!`);
       } else {
-        await updateAccount({ id: accountData.id, data: { name: accountData.name, openingBalance: accountData.openingBalance } }).unwrap();
+        await updateAccount({ id: accountData.id, data: { name: accountData.name, openingBalance: openingBalanceValue } }).unwrap();
         showToast(`تم تحديث الحساب "${accountData.name}" بنجاح!`);
         setIsReadOnly(true);
       }
@@ -123,7 +140,22 @@ const AddReceivableAccount: React.FC<Props> = ({ title, editingId, onNavigate })
           </div>
           <div>
             <label htmlFor="openingBalance" className="block text-sm font-medium text-gray-700">الرصيد الافتتاحي</label>
-            <input type="number" name="openingBalance" id="openingBalance" value={(accountData as any).openingBalance} onChange={handleChange} className={inputStyle} disabled={isReadOnly} />
+            <input
+              type="text"
+              name="openingBalance"
+              id="openingBalance"
+              value={
+                typeof (accountData as any).openingBalance === "string"
+                  ? (accountData as any).openingBalance
+                  : (accountData as any).openingBalance === 0 || (accountData as any).openingBalance === null
+                  ? ""
+                  : (accountData as any).openingBalance
+              }
+              onChange={handleOpeningBalanceChange}
+              className={inputStyle}
+              disabled={isReadOnly}
+              inputMode="numeric"
+            />
           </div>
         </div>
 

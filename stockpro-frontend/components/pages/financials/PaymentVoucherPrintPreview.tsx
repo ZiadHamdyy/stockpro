@@ -2,7 +2,7 @@ import React from "react";
 import { tafqeet } from "../../../utils/tafqeet";
 import { PrintIcon, XIcon } from "../../icons";
 import { useGetCompanyQuery } from "../../store/slices/companyApiSlice";
-import { formatNumber } from "../../../utils/formatting";
+import { formatMoney } from "../../../utils/formatting";
 
 interface PaymentVoucherPrintPreviewProps {
   isOpen: boolean;
@@ -191,7 +191,7 @@ const PaymentVoucherPrintPreview: React.FC<PaymentVoucherPrintPreviewProps> = ({
                 <div className="flex items-center">
                   <label className="font-bold w-48">مبلغ وقدره:</label>
                   <span className="border-b-2 border-dotted border-gray-400 flex-grow px-2 font-mono font-bold bg-brand-green-bg text-brand-green text-lg">
-                    {formatNumber(amount)} {companyInfo.currency}
+                    {formatMoney(amount)} {companyInfo.currency}
                   </span>
                 </div>
                 <div className="flex items-start">

@@ -116,13 +116,30 @@ const AddCurrentAccount: React.FC<AddCurrentAccountProps> = ({
     }));
   };
 
+  const handleOpeningBalanceChange = (
+    e: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    const value = e.target.value;
+    // Allow empty string and valid positive numbers (including decimals, no negatives)
+    if (value === "" || /^\d*\.?\d*$/.test(value)) {
+      setAccountData((prev: any) => ({
+        ...prev,
+        openingBalance: value === "" ? "" : parseFloat(value) || 0,
+      }));
+    }
+  };
+
   const handleSave = async () => {
     try {
+      const openingBalanceValue =
+        typeof (accountData as any).openingBalance === "string"
+          ? parseFloat((accountData as any).openingBalance) || 0
+          : (accountData as any).openingBalance || 0;
       if (!("id" in accountData)) {
         // Create new account
         await createCurrentAccount({
           name: accountData.name,
-          openingBalance: accountData.openingBalance,
+          openingBalance: openingBalanceValue,
         }).unwrap();
         showToast(`تم إنشاء الحساب "${accountData.name}" بنجاح!`);
       } else {
@@ -131,7 +148,7 @@ const AddCurrentAccount: React.FC<AddCurrentAccountProps> = ({
           id: accountData.id,
           data: {
             name: accountData.name,
-            openingBalance: accountData.openingBalance,
+            openingBalance: openingBalanceValue,
           },
         }).unwrap();
         showToast(`تم تحديث الحساب "${accountData.name}" بنجاح!`);
@@ -253,13 +270,20 @@ const AddCurrentAccount: React.FC<AddCurrentAccountProps> = ({
               الرصيد الافتتاحي
             </label>
             <input
-              type="number"
+              type="text"
               name="openingBalance"
               id="openingBalance"
-              value={accountData.openingBalance}
-              onChange={handleChange}
+              value={
+                typeof (accountData as any).openingBalance === "string"
+                  ? (accountData as any).openingBalance
+                  : (accountData as any).openingBalance === 0 || (accountData as any).openingBalance === null
+                  ? ""
+                  : (accountData as any).openingBalance
+              }
+              onChange={handleOpeningBalanceChange}
               className={inputStyle}
               disabled={isReadOnly}
+              inputMode="numeric"
             />
           </div>
         </div>
