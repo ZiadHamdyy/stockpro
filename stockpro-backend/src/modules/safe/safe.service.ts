@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { DatabaseService } from '../../configs/database/database.service';
 import { CreateSafeRequest } from './dtos/request/create-safe.request';
 import { UpdateSafeRequest } from './dtos/request/update-safe.request';
@@ -10,6 +10,15 @@ export class SafeService {
 
   async create(data: CreateSafeRequest): Promise<SafeResponse> {
     const code = await this.generateNextCode();
+
+    // Enforce one safe per branch (friendly error; DB unique handles races)
+    const existingForBranch = await this.prisma.safe.findFirst({
+      where: { branchId: data.branchId },
+      select: { id: true },
+    });
+    if (existingForBranch) {
+      throw new BadRequestException('هذا الفرع لديه خزنة بالفعل');
+    }
 
     const safe = await this.prisma.safe.create({
       data: {
@@ -82,6 +91,17 @@ export class SafeService {
   }
 
   async update(id: string, data: UpdateSafeRequest): Promise<SafeResponse> {
+    // If branch is being changed, ensure target branch does not already have a safe
+    if (data.branchId) {
+      const targetHasSafe = await this.prisma.safe.findFirst({
+        where: { branchId: data.branchId, NOT: { id } },
+        select: { id: true },
+      });
+      if (targetHasSafe) {
+        throw new BadRequestException('هذا الفرع لديه خزنة بالفعل');
+      }
+    }
+
     try {
       const safe = await this.prisma.safe.update({
         where: { id },
@@ -95,6 +115,20 @@ export class SafeService {
     } catch {
       throw new NotFoundException('Safe not found');
     }
+  }
+
+  async findAvailableBranches(includeId?: string) {
+    const available = await this.prisma.branch.findMany({
+      where: { safes: { none: {} } },
+      orderBy: { code: 'asc' },
+    });
+    if (!includeId) return available;
+
+    const included = await this.prisma.branch.findUnique({ where: { id: includeId } });
+    if (!included) return available;
+
+    const exists = available.some((b) => b.id === included.id);
+    return exists ? available : [included, ...available];
   }
 
   async remove(id: string): Promise<void> {

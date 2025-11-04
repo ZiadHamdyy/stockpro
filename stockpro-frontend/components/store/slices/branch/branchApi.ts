@@ -56,6 +56,17 @@ export const branchApi = apiSlice.injectEndpoints({
       transformResponse: (response: { data: Branch[] }) => response.data,
       providesTags: ["Branch"],
     }),
+    getBranchesAvailableForSafe: builder.query<Branch[], { includeId?: string } | void>({
+      query: (args) => {
+        const includeId = args && args.includeId ? `?includeId=${args.includeId}` : "";
+        return `safes/available-branches${includeId}`;
+      },
+      // backend returns raw array, without { data }
+      transformResponse: (response: Branch[] | { data: Branch[] }) => {
+        return Array.isArray(response) ? response : response.data;
+      },
+      providesTags: ["Branch"],
+    }),
     getBranch: builder.query<Branch, string>({
       query: (id) => `branches/${id}`,
       transformResponse: (response: { data: Branch }) => response.data,
@@ -104,4 +115,8 @@ export const {
   useCreateBranchMutation,
   useUpdateBranchMutation,
   useDeleteBranchMutation,
+  useGetBranchesAvailableForSafeQuery,
 } = branchApi;
+
+// Explicit export for TS tooling
+export const useGetBranchesAvailableForSafeQueryAlias = branchApi.useGetBranchesAvailableForSafeQuery;

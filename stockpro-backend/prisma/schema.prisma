@@ -271,6 +271,7 @@ model Safe {
 
   @@index([code])
   @@index([branchId])
+  @@unique([branchId])
 }
 
 model Customer {

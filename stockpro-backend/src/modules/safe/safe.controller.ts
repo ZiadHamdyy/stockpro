@@ -35,6 +35,12 @@ export class SafeController {
     return this.safeService.findAll(search);
   }
 
+  @Get('available-branches')
+  @Auth({ permissions: ['safes:read'] })
+  async availableBranches(@Query('includeId') includeId?: string) {
+    return this.safeService.findAvailableBranches(includeId);
+  }
+
   @Get('code/:code')
   @Auth({ permissions: ['safes:read'] })
   async findByCode(@Param('code') code: string): Promise<SafeResponse> {

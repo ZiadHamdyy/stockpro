@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import type { Safe } from "../../../types";
-import { useGetBranchesQuery } from "../../store/slices/branch/branchApi";
+import { useGetBranchesAvailableForSafeQueryAlias as useGetBranchesAvailableForSafeQuery } from "../../store/slices/branch/branchApi";
 
 interface SafeModalProps {
   isOpen: boolean;
@@ -15,7 +15,10 @@ const SafeModal: React.FC<SafeModalProps> = ({
   onSave,
   safeToEdit,
 }) => {
-  const { data: branches = [] } = useGetBranchesQuery();
+  const includeId = safeToEdit ? safeToEdit.branchId : undefined;
+  const { data: branches = [] } = useGetBranchesAvailableForSafeQuery(
+    includeId ? { includeId } : undefined as any
+  );
   const [safeData, setSafeData] = useState<any>({
     name: "",
     branchId: "",
