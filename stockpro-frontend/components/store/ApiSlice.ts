@@ -100,6 +100,8 @@ export const apiSlice = createApi({
     "StoreIssueVoucher",
     "StoreTransferVoucher",
     "CurrentAccount",
+    "ReceivableAccount",
+    "PayableAccount",
     "Safe",
     "Bank",
     "Customer",

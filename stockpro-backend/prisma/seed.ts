@@ -109,6 +109,28 @@ const MENU_ITEMS: MenuItem[] = [
     ],
   },
   {
+    key: 'financial_balances',
+    label: 'أرصدة مالية',
+    children: [
+      {
+        key: 'receivable_accounts',
+        label: 'أرصدة مدينة اخري',
+        children: [
+          { key: 'add_receivable_account', label: 'اضافة حساب' },
+          { key: 'receivable_accounts_list', label: 'قائمة الأرصدة' },
+        ],
+      },
+      {
+        key: 'payable_accounts',
+        label: 'أرصدة دائنة اخري',
+        children: [
+          { key: 'add_payable_account', label: 'اضافة حساب' },
+          { key: 'payable_accounts_list', label: 'قائمة الأرصدة' },
+        ],
+      },
+    ],
+  },
+  {
     key: 'financials',
     label: 'الحركة المالية',
     children: [

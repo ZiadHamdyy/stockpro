@@ -32,6 +32,10 @@ import ExpenseCodes from "../components/pages/financials/ExpenseCodes";
 import ExpenseTypes from "../components/pages/financials/ExpenseTypes";
 import AddCurrentAccount from "../components/pages/financials/AddCurrentAccount";
 import CurrentAccountsList from "../components/pages/financials/CurrentAccountsList";
+import AddReceivableAccount from "../components/pages/financials/AddReceivableAccount";
+import ReceivableAccountsList from "../components/pages/financials/ReceivableAccountsList";
+import AddPayableAccount from "../components/pages/financials/AddPayableAccount";
+import PayableAccountsList from "../components/pages/financials/PayableAccountsList";
 import Safes from "../components/pages/financials/Safes";
 import Banks from "../components/pages/financials/Banks";
 import ItemMovementReport from "../components/pages/reports/items/ItemMovementReport";
@@ -280,6 +284,45 @@ export const routeConfig = [
     component: AddCurrentAccount,
     requiredPermission: "add_current_account-read",
     label: "إضافة حساب جاري",
+  },
+  // Financials - Receivable Accounts
+  {
+    path: "/financials/receivable-accounts/add",
+    component: AddReceivableAccount,
+    requiredPermission: "add_receivable_account-read",
+    label: "إضافة رصيد مدين"
+  },
+  {
+    path: "/financials/receivable-accounts/add/:id",
+    component: AddReceivableAccount,
+    requiredPermission: "add_receivable_account-read",
+    label: "تعديل رصيد مدين"
+  },
+  {
+    path: "/financials/receivable-accounts/list",
+    component: ReceivableAccountsList,
+    requiredPermission: "receivable_accounts_list-read",
+    label: "قائمة الأرصدة المدينة"
+  },
+
+  // Financials - Payable Accounts
+  {
+    path: "/financials/payable-accounts/add",
+    component: AddPayableAccount,
+    requiredPermission: "add_payable_account-read",
+    label: "إضافة رصيد دائن"
+  },
+  {
+    path: "/financials/payable-accounts/add/:id",
+    component: AddPayableAccount,
+    requiredPermission: "add_payable_account-read",
+    label: "تعديل رصيد دائن"
+  },
+  {
+    path: "/financials/payable-accounts/list",
+    component: PayableAccountsList,
+    requiredPermission: "payable_accounts_list-read",
+    label: "قائمة الأرصدة الدائنة"
   },
   {
     path: "/financials/current-accounts/edit/:id",

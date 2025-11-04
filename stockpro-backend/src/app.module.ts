@@ -39,6 +39,8 @@ import { PaymentVoucherModule } from './modules/payment-voucher/payment-voucher.
 import { ReceiptVoucherModule } from './modules/receipt-voucher/receipt-voucher.module';
 import { InternalTransferModule } from './modules/internal-transfer/internal-transfer.module';
 import { IncomeStatementModule } from './modules/income-statement/income-statement.module';
+import { ReceivableAccountModule } from './modules/receivable-account/receivable-account.module';
+import { PayableAccountModule } from './modules/payable-account/payable-account.module';
 import { BalanceSheetModule } from './modules/balance-sheet/balance-sheet.module';
 import { BackupModule } from './modules/backup/backup.module';
 import { ReportPdfModule } from './modules/report-pdf/report-pdf.module.js';
@@ -82,6 +84,8 @@ import { ReportPdfModule } from './modules/report-pdf/report-pdf.module.js';
     BalanceSheetModule,
     BackupModule,
     ReportPdfModule,
+    ReceivableAccountModule,
+    PayableAccountModule,
   ],
   controllers: [AppController],
   providers: [

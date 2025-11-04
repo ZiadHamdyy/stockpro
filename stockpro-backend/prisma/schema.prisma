@@ -523,6 +523,30 @@ model CurrentAccount {
   @@index([code])
 }
 
+model ReceivableAccount {
+  id             String @id @default(uuid())
+  code           String @unique
+  name           String
+  openingBalance Float  @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([code])
+}
+
+model PayableAccount {
+  id             String @id @default(uuid())
+  code           String @unique
+  name           String
+  openingBalance Float  @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([code])
+}
+
 model ExpenseType {
   id          String  @id @default(uuid())
   name        String  @unique
