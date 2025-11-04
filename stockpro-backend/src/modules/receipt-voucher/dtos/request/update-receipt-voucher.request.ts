@@ -13,7 +13,7 @@ export class UpdateReceiptVoucherRequest {
   date?: string;
 
   @IsOptional()
-  @IsEnum(['customer', 'supplier', 'current_account'])
+  @IsEnum(['customer', 'supplier', 'current_account', 'receivable_account', 'payable_account'])
   entityType?: string;
 
   @IsOptional()
@@ -52,6 +52,14 @@ export class UpdateReceiptVoucherRequest {
   @IsOptional()
   @IsString()
   currentAccountId?: string;
+
+  @IsOptional()
+  @IsString()
+  receivableAccountId?: string;
+
+  @IsOptional()
+  @IsString()
+  payableAccountId?: string;
 
   @IsOptional()
   @IsString()

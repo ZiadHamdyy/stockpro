@@ -3,6 +3,7 @@ export class ReceivableAccountResponse {
   code: string;
   name: string;
   openingBalance: number;
+  currentBalance: number;
   createdAt: Date;
   updatedAt: Date;
 }

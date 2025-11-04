@@ -512,6 +512,7 @@ model CurrentAccount {
   name           String
   type           String
   openingBalance Float  @default(0)
+  currentBalance Float  @default(0)
 
   // Relationships
   paymentVouchers PaymentVoucher[]
@@ -528,6 +529,11 @@ model ReceivableAccount {
   code           String @unique
   name           String
   openingBalance Float  @default(0)
+  currentBalance Float  @default(0)
+
+  // Relationships
+  paymentVouchers PaymentVoucher[]
+  receiptVouchers ReceiptVoucher[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -540,6 +546,11 @@ model PayableAccount {
   code           String @unique
   name           String
   openingBalance Float  @default(0)
+  currentBalance Float  @default(0)
+
+  // Relationships
+  paymentVouchers PaymentVoucher[]
+  receiptVouchers ReceiptVoucher[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -751,6 +762,8 @@ model PaymentVoucher {
   supplierId       String?
   currentAccountId String?
   expenseCodeId    String?
+  receivableAccountId String?
+  payableAccountId    String?
 
   // Foreign keys
   userId   String
@@ -765,6 +778,8 @@ model PaymentVoucher {
   supplier       Supplier?       @relation(fields: [supplierId], references: [id])
   currentAccount CurrentAccount? @relation(fields: [currentAccountId], references: [id])
   expenseCode    ExpenseCode?    @relation(fields: [expenseCodeId], references: [id])
+  receivableAccount ReceivableAccount? @relation(fields: [receivableAccountId], references: [id])
+  payableAccount    PayableAccount?    @relation(fields: [payableAccountId], references: [id])
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -773,6 +788,8 @@ model PaymentVoucher {
   @@index([date])
   @@index([entityType])
   @@index([userId])
+  @@index([receivableAccountId])
+  @@index([payableAccountId])
 }
 
 model ReceiptVoucher {
@@ -791,6 +808,8 @@ model ReceiptVoucher {
   customerId       String?
   supplierId       String?
   currentAccountId String?
+  receivableAccountId String?
+  payableAccountId    String?
 
   // Foreign keys
   userId   String
@@ -804,6 +823,8 @@ model ReceiptVoucher {
   customer       Customer?       @relation(fields: [customerId], references: [id])
   supplier       Supplier?       @relation(fields: [supplierId], references: [id])
   currentAccount CurrentAccount? @relation(fields: [currentAccountId], references: [id])
+  receivableAccount ReceivableAccount? @relation(fields: [receivableAccountId], references: [id])
+  payableAccount    PayableAccount?    @relation(fields: [payableAccountId], references: [id])
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -812,6 +833,8 @@ model ReceiptVoucher {
   @@index([date])
   @@index([entityType])
   @@index([userId])
+  @@index([receivableAccountId])
+  @@index([payableAccountId])
 }
 
 model InternalTransfer {

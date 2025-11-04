@@ -30,6 +30,7 @@ export class CurrentAccountService {
         name: createCurrentAccountDto.name,
         type: createCurrentAccountDto.type || '',
         openingBalance: createCurrentAccountDto.openingBalance,
+        currentBalance: createCurrentAccountDto.openingBalance,
         code,
       },
     });
@@ -110,6 +111,7 @@ export class CurrentAccountService {
       name: currentAccount.name,
       type: currentAccount.type,
       openingBalance: currentAccount.openingBalance,
+      currentBalance: currentAccount.currentBalance,
       createdAt: currentAccount.createdAt,
       updatedAt: currentAccount.updatedAt,
     };

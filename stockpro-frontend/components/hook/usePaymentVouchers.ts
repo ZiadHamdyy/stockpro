@@ -16,6 +16,7 @@ import { useGetBanksQuery } from "../store/slices/bank/bankApiSlice";
 import { useToast } from "../common/ToastProvider";
 import { useModal } from "../common/ModalProvider";
 import { VoucherEntity } from "../../types";
+import { showApiErrorToast } from "../../utils/errorToast";
 
 export const usePaymentVouchers = () => {
   const [currentIndex, setCurrentIndex] = useState(-1);
@@ -188,7 +189,7 @@ export const usePaymentVouchers = () => {
         return saved;
       }
     } catch (error) {
-      showToast("حدث خطأ أثناء حفظ السند", 'error');
+      showApiErrorToast(error as any);
       console.error("Error saving payment voucher:", error);
       return null;
     }
@@ -225,7 +226,7 @@ export const usePaymentVouchers = () => {
           if (vouchers.length <= 1) handleNew();
           else setCurrentIndex((prev) => Math.max(0, prev - 1));
         } catch (error) {
-          showToast("حدث خطأ أثناء حذف السند", 'error');
+          showApiErrorToast(error as any);
           console.error("Error deleting payment voucher:", error);
         }
       },

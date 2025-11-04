@@ -21,6 +21,7 @@ export class ReceivableAccountService {
       data: {
         name: dto.name,
         openingBalance: dto.openingBalance ?? 0,
+        currentBalance: dto.openingBalance ?? 0,
         code,
       },
     });
@@ -67,6 +68,7 @@ export class ReceivableAccountService {
     code: entity.code,
     name: entity.name,
     openingBalance: entity.openingBalance,
+    currentBalance: entity.currentBalance,
     createdAt: entity.createdAt,
     updatedAt: entity.updatedAt,
   });

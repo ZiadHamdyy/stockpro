@@ -14,7 +14,7 @@ export class PayableAccountService {
     const code = `PA-${String(lastNum + 1).padStart(3, '0')}`;
 
     const entity = await this.prisma.payableAccount.create({
-      data: { name: dto.name, openingBalance: dto.openingBalance ?? 0, code },
+      data: { name: dto.name, openingBalance: dto.openingBalance ?? 0, currentBalance: dto.openingBalance ?? 0, code },
     });
     return this.map(entity);
   }
@@ -54,6 +54,7 @@ export class PayableAccountService {
     code: entity.code,
     name: entity.name,
     openingBalance: entity.openingBalance,
+    currentBalance: entity.currentBalance,
     createdAt: entity.createdAt,
     updatedAt: entity.updatedAt,
   });

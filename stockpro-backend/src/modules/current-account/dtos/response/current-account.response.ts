@@ -4,6 +4,7 @@ export class CurrentAccountResponse {
   name: string;
   type: string;
   openingBalance: number;
+  currentBalance: number;
   createdAt: Date;
   updatedAt: Date;
 }
