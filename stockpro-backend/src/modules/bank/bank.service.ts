@@ -16,6 +16,7 @@ export class BankService {
         ...data,
         code,
         openingBalance: data.openingBalance || 0,
+        currentBalance: data.openingBalance || 0,
       },
     });
 

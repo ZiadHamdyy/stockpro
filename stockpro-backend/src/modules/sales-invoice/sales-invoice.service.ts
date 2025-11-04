@@ -5,6 +5,7 @@ import { DatabaseService } from '../../configs/database/database.service';
 import { CreateSalesInvoiceRequest } from './dtos/request/create-sales-invoice.request';
 import { UpdateSalesInvoiceRequest } from './dtos/request/update-sales-invoice.request';
 import { SalesInvoiceResponse } from './dtos/response/sales-invoice.response';
+import { AccountingService } from '../../common/services/accounting.service';
 
 @Injectable()
 export class SalesInvoiceService {
@@ -124,6 +125,18 @@ export class SalesInvoiceService {
             data: { stock: { decrement: item.qty } },
           });
         }
+      }
+
+      // Apply cash impact if applicable
+      if (data.paymentMethod === 'cash' && data.paymentTargetType) {
+        await AccountingService.applyImpact({
+          kind: 'sales-invoice',
+          amount: net,
+          paymentTargetType: data.paymentTargetType as any,
+          branchId,
+          bankId: data.paymentTargetType === 'bank' ? data.paymentTargetId || null : null,
+          tx,
+        });
       }
 
       return created;
@@ -347,6 +360,30 @@ export class SalesInvoiceService {
           }
         }
 
+        // Reverse previous cash impact if needed
+        if (existingInvoice?.paymentMethod === 'cash' && existingInvoice.paymentTargetType) {
+          await AccountingService.reverseImpact({
+            kind: 'sales-invoice',
+            amount: (existingInvoice as any).net,
+            paymentTargetType: existingInvoice.paymentTargetType as any,
+            branchId: (existingInvoice as any).branchId,
+            bankId: existingInvoice.paymentTargetType === 'bank' ? (existingInvoice as any).paymentTargetId : null,
+            tx,
+          });
+        }
+        // Apply new cash impact if applicable
+        const targetType = (inv as any).paymentMethod === 'cash' ? (inv as any).paymentTargetType : null;
+        if (targetType) {
+          await AccountingService.applyImpact({
+            kind: 'sales-invoice',
+            amount: (inv as any).net,
+            paymentTargetType: targetType as any,
+            branchId: (inv as any).branchId,
+            bankId: targetType === 'bank' ? (inv as any).paymentTargetId : null,
+            tx,
+          });
+        }
+
         return inv;
       });
 
@@ -366,6 +403,20 @@ export class SalesInvoiceService {
       if (invoice) {
         // Restore stock
         await this.updateStockForItems(invoice.items as any[], 'increase');
+
+        // Reverse cash impact if applicable
+        if ((invoice as any).paymentMethod === 'cash' && (invoice as any).paymentTargetType) {
+          await this.prisma.$transaction(async (tx) => {
+            await AccountingService.reverseImpact({
+              kind: 'sales-invoice',
+              amount: (invoice as any).net,
+              paymentTargetType: (invoice as any).paymentTargetType as any,
+              branchId: (invoice as any).branchId,
+              bankId: (invoice as any).paymentTargetType === 'bank' ? (invoice as any).paymentTargetId : null,
+              tx,
+            });
+          });
+        }
       }
 
       await this.prisma.salesInvoice.delete({

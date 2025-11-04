@@ -6,6 +6,7 @@ import { PurchaseInvoiceResponse } from './dtos/response/purchase-invoice.respon
 import { bufferToDataUri } from '../../common/utils/image-converter';
 import { throwHttp } from '../../common/utils/http-error';
 import { ERROR_CODES } from '../../common/constants/error-codes';
+import { AccountingService } from '../../common/services/accounting.service';
 
 @Injectable()
 export class PurchaseInvoiceService {
@@ -96,6 +97,18 @@ export class PurchaseInvoiceService {
         await tx.item.update({
           where: { code: item.id },
           data: { stock: { increment: item.qty }, purchasePrice: item.price },
+        });
+      }
+
+      // Apply cash impact if applicable (purchase invoice decreases balance)
+      if (data.paymentMethod === 'cash' && data.paymentTargetType) {
+        await AccountingService.applyImpact({
+          kind: 'purchase-invoice',
+          amount: net,
+          paymentTargetType: data.paymentTargetType as any,
+          branchId,
+          bankId: data.paymentTargetType === 'bank' ? data.paymentTargetId || null : null,
+          tx,
         });
       }
 
@@ -236,6 +249,30 @@ export class PurchaseInvoiceService {
         });
       }
 
+      // Reverse previous cash impact if needed
+      if (existingInvoice.paymentMethod === 'cash' && (existingInvoice as any).paymentTargetType) {
+        await AccountingService.reverseImpact({
+          kind: 'purchase-invoice',
+          amount: (existingInvoice as any).net,
+          paymentTargetType: (existingInvoice as any).paymentTargetType as any,
+          branchId: (existingInvoice as any).branchId,
+          bankId: (existingInvoice as any).paymentTargetType === 'bank' ? (existingInvoice as any).paymentTargetId : null,
+          tx,
+        });
+      }
+      // Apply new cash impact if applicable
+      const targetType = (inv as any).paymentMethod === 'cash' ? (inv as any).paymentTargetType : null;
+      if (targetType) {
+        await AccountingService.applyImpact({
+          kind: 'purchase-invoice',
+          amount: (inv as any).net,
+          paymentTargetType: targetType as any,
+          branchId: (inv as any).branchId,
+          bankId: targetType === 'bank' ? (inv as any).paymentTargetId : null,
+          tx,
+        });
+      }
+
       return inv;
     });
 
@@ -260,6 +297,18 @@ export class PurchaseInvoiceService {
         await tx.item.update({
           where: { code: item.id },
           data: { stock: { decrement: item.qty } },
+        });
+      }
+
+      // Reverse cash impact if applicable
+      if ((invoice as any).paymentMethod === 'cash' && (invoice as any).paymentTargetType) {
+        await AccountingService.reverseImpact({
+          kind: 'purchase-invoice',
+          amount: (invoice as any).net,
+          paymentTargetType: (invoice as any).paymentTargetType as any,
+          branchId: (invoice as any).branchId,
+          bankId: (invoice as any).paymentTargetType === 'bank' ? (invoice as any).paymentTargetId : null,
+          tx,
         });
       }
 

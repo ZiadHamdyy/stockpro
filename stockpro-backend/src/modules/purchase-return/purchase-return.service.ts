@@ -6,6 +6,7 @@ import { PurchaseReturnResponse } from './dtos/response/purchase-return.response
 import { bufferToDataUri } from '../../common/utils/image-converter';
 import { throwHttp } from '../../common/utils/http-error';
 import { ERROR_CODES } from '../../common/constants/error-codes';
+import { AccountingService } from '../../common/services/accounting.service';
 
 @Injectable()
 export class PurchaseReturnService {
@@ -103,6 +104,18 @@ export class PurchaseReturnService {
         await tx.item.update({
           where: { code: item.id },
           data: { stock: { decrement: item.qty } },
+        });
+      }
+
+      // Apply cash impact if applicable (purchase return increases balance)
+      if (data.paymentMethod === 'cash' && data.paymentTargetType) {
+        await AccountingService.applyImpact({
+          kind: 'purchase-return',
+          amount: net,
+          paymentTargetType: data.paymentTargetType as any,
+          branchId,
+          bankId: data.paymentTargetType === 'bank' ? data.paymentTargetId || null : null,
+          tx,
         });
       }
 
@@ -245,6 +258,30 @@ export class PurchaseReturnService {
         });
       }
 
+      // Reverse previous cash impact if needed
+      if (existingReturn.paymentMethod === 'cash' && (existingReturn as any).paymentTargetType) {
+        await AccountingService.reverseImpact({
+          kind: 'purchase-return',
+          amount: (existingReturn as any).net,
+          paymentTargetType: (existingReturn as any).paymentTargetType as any,
+          branchId: (existingReturn as any).branchId,
+          bankId: (existingReturn as any).paymentTargetType === 'bank' ? (existingReturn as any).paymentTargetId : null,
+          tx,
+        });
+      }
+      // Apply new cash impact if applicable
+      const targetType = (ret as any).paymentMethod === 'cash' ? (ret as any).paymentTargetType : null;
+      if (targetType) {
+        await AccountingService.applyImpact({
+          kind: 'purchase-return',
+          amount: (ret as any).net,
+          paymentTargetType: targetType as any,
+          branchId: (ret as any).branchId,
+          bankId: targetType === 'bank' ? (ret as any).paymentTargetId : null,
+          tx,
+        });
+      }
+
       return ret;
     });
 
@@ -269,6 +306,17 @@ export class PurchaseReturnService {
         await tx.item.update({
           where: { code: item.id },
           data: { stock: { increment: item.qty } },
+        });
+      }
+      // Reverse cash impact if applicable
+      if ((returnRecord as any).paymentMethod === 'cash' && (returnRecord as any).paymentTargetType) {
+        await AccountingService.reverseImpact({
+          kind: 'purchase-return',
+          amount: (returnRecord as any).net,
+          paymentTargetType: (returnRecord as any).paymentTargetType as any,
+          branchId: (returnRecord as any).branchId,
+          bankId: (returnRecord as any).paymentTargetType === 'bank' ? (returnRecord as any).paymentTargetId : null,
+          tx,
         });
       }
 
