@@ -237,6 +237,7 @@ model Bank {
   accountNumber  String
   iban           String
   openingBalance Float  @default(0)
+  currentBalance Float  @default(0)
 
   // Relationships
   paymentVouchers PaymentVoucher[]
@@ -256,6 +257,7 @@ model Safe {
   name           String
   branchId       String
   openingBalance Float  @default(0)
+  currentBalance Float  @default(0)
 
   // Relationships
   branch          Branch             @relation(fields: [branchId], references: [id])

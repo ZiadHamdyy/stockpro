@@ -19,38 +19,51 @@ export class PaymentVoucherService {
     // Fetch entity name based on type
     const entityName = await this.fetchEntityName(
       data.entityType,
-      data.customerId ||
-        data.supplierId ||
-        data.currentAccountId ||
-        data.expenseCodeId ||
-        '',
+      data.customerId || data.supplierId || data.currentAccountId || data.expenseCodeId || '',
     );
 
-    const paymentVoucher = await this.prisma.paymentVoucher.create({
-      data: {
-        code,
-        date: new Date(data.date),
-        entityType: data.entityType,
-        entityName,
-        amount: data.amount,
-        description: data.description,
-        paymentMethod: data.paymentMethod,
-        safeId: data.safeId,
-        bankId: data.bankId,
-        customerId: data.customerId,
-        supplierId: data.supplierId,
-        currentAccountId: data.currentAccountId,
-        expenseCodeId: data.expenseCodeId,
-        userId,
-        branchId: data.branchId,
-      },
-      include: {
-        user: true,
-        branch: true,
-      },
+    const result = await this.prisma.$transaction(async (tx) => {
+      // Validate and debit from source
+      if (data.paymentMethod === 'safe') {
+        const sender = await tx.safe.findUnique({ where: { id: data.safeId! } });
+        if (!sender) throw new NotFoundException('Safe not found');
+        if ((sender as any).currentBalance < data.amount) {
+          throw new NotFoundException('Insufficient balance');
+        }
+        await tx.safe.update({ where: { id: data.safeId! }, data: { currentBalance: { decrement: data.amount } } as any });
+      } else if (data.paymentMethod === 'bank') {
+        const sender = await tx.bank.findUnique({ where: { id: data.bankId! } });
+        if (!sender) throw new NotFoundException('Bank not found');
+        if ( (sender as any).currentBalance < data.amount) {
+          throw new NotFoundException('Insufficient balance');
+        }
+        await tx.bank.update({ where: { id: data.bankId! }, data: { currentBalance: { decrement: data.amount } } as any });
+      }
+
+      const paymentVoucher = await tx.paymentVoucher.create({
+        data: {
+          code,
+          date: new Date(data.date),
+          entityType: data.entityType,
+          entityName,
+          amount: data.amount,
+          description: data.description,
+          paymentMethod: data.paymentMethod,
+          safeId: data.safeId,
+          bankId: data.bankId,
+          customerId: data.customerId,
+          supplierId: data.supplierId,
+          currentAccountId: data.currentAccountId,
+          expenseCodeId: data.expenseCodeId,
+          userId,
+          branchId: data.branchId,
+        },
+        include: { user: true, branch: true },
+      });
+      return paymentVoucher;
     });
 
-    return this.mapToResponse(paymentVoucher);
+    return this.mapToResponse(result);
   }
 
   async findAllPaymentVouchers(
@@ -117,30 +130,58 @@ export class PaymentVoucherService {
     data: UpdatePaymentVoucherRequest,
   ): Promise<PaymentVoucherResponse> {
     try {
-      const updateData: any = { ...data };
+      const result = await this.prisma.$transaction(async (tx) => {
+        const existing = await tx.paymentVoucher.findUnique({ where: { id } });
+        if (!existing) throw new NotFoundException('Payment voucher not found');
 
-      if (data.date) {
-        updateData.date = new Date(data.date);
-      }
+        // Reverse previous debit
+        if (existing.paymentMethod === 'safe' && existing.safeId) {
+          await tx.safe.update({ where: { id: existing.safeId }, data: { currentBalance: { increment: existing.amount } } as any });
+        } else if (existing.paymentMethod === 'bank' && existing.bankId) {
+          await tx.bank.update({ where: { id: existing.bankId }, data: { currentBalance: { increment: existing.amount } } as any });
+        }
 
-      // If entity type or ID changed, fetch new entity name
-      if (data.entityType && data.entityId) {
-        updateData.entityName = await this.fetchEntityName(
-          data.entityType,
-          data.entityId,
-        );
-      }
+        // Determine new source and amount, then validate and apply debit
+        const newPaymentMethod = data.paymentMethod || existing.paymentMethod;
+        const newAmount = data.amount !== undefined ? data.amount : existing.amount;
+        const newSafeId = newPaymentMethod === 'safe' ? (data.safeId || existing.safeId) : null;
+        const newBankId = newPaymentMethod === 'bank' ? (data.bankId || existing.bankId) : null;
 
-      const paymentVoucher = await this.prisma.paymentVoucher.update({
-        where: { id },
-        data: updateData,
-        include: {
-          user: true,
-          branch: true,
-        },
+        if (newPaymentMethod === 'safe') {
+          const sender = await tx.safe.findUnique({ where: { id: newSafeId! } });
+          if (!sender) throw new NotFoundException('Safe not found');
+          if ((sender as any).currentBalance < newAmount) throw new NotFoundException('Insufficient balance');
+          await tx.safe.update({ where: { id: newSafeId! }, data: { currentBalance: { decrement: newAmount } } as any });
+        } else if (newPaymentMethod === 'bank') {
+          const sender = await tx.bank.findUnique({ where: { id: newBankId! } });
+          if (!sender) throw new NotFoundException('Bank not found');
+          if ((sender as any).currentBalance < newAmount) throw new NotFoundException('Insufficient balance');
+          await tx.bank.update({ where: { id: newBankId! }, data: { currentBalance: { decrement: newAmount } } as any });
+        }
+
+        const updateData: any = {
+          ...data,
+          date: data.date ? new Date(data.date) : undefined,
+          paymentMethod: newPaymentMethod,
+          amount: newAmount,
+          safeId: newSafeId,
+          bankId: newBankId,
+        };
+
+        // If entity type or ID changed, fetch new entity name
+        if (data.entityType && data.entityId) {
+          updateData.entityName = await this.fetchEntityName(data.entityType, data.entityId);
+        }
+
+        const updated = await tx.paymentVoucher.update({
+          where: { id },
+          data: updateData,
+          include: { user: true, branch: true },
+        });
+        return updated;
       });
 
-      return this.mapToResponse(paymentVoucher);
+      return this.mapToResponse(result);
     } catch (error) {
       throw new NotFoundException('Payment voucher not found');
     }
@@ -148,8 +189,18 @@ export class PaymentVoucherService {
 
   async removePaymentVoucher(id: string): Promise<void> {
     try {
-      await this.prisma.paymentVoucher.delete({
-        where: { id },
+      await this.prisma.$transaction(async (tx) => {
+        const existing = await tx.paymentVoucher.findUnique({ where: { id } });
+        if (!existing) throw new NotFoundException('Payment voucher not found');
+
+        // Reverse debit
+        if (existing.paymentMethod === 'safe' && existing.safeId) {
+          await tx.safe.update({ where: { id: existing.safeId }, data: { currentBalance: { increment: existing.amount } } as any });
+        } else if (existing.paymentMethod === 'bank' && existing.bankId) {
+          await tx.bank.update({ where: { id: existing.bankId }, data: { currentBalance: { increment: existing.amount } } as any });
+        }
+
+        await tx.paymentVoucher.delete({ where: { id } });
       });
     } catch (error) {
       throw new NotFoundException('Payment voucher not found');

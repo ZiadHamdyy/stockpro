@@ -22,30 +22,43 @@ export class ReceiptVoucherService {
       data.customerId || data.supplierId || data.currentAccountId || '',
     );
 
-    const receiptVoucher = await this.prisma.receiptVoucher.create({
-      data: {
-        code,
-        date: new Date(data.date),
-        entityType: data.entityType,
-        entityName,
-        amount: data.amount,
-        description: data.description,
-        paymentMethod: data.paymentMethod,
-        safeId: data.safeId,
-        bankId: data.bankId,
-        customerId: data.customerId,
-        supplierId: data.supplierId,
-        currentAccountId: data.currentAccountId,
-        userId,
-        branchId: data.branchId,
-      },
-      include: {
-        user: true,
-        branch: true,
-      },
+    const result = await this.prisma.$transaction(async (tx) => {
+      // Credit target account
+      if (data.paymentMethod === 'safe') {
+        await tx.safe.update({
+          where: { id: data.safeId! },
+          data: { currentBalance: { increment: data.amount } } as any,
+        });
+      } else if (data.paymentMethod === 'bank') {
+        await tx.bank.update({
+          where: { id: data.bankId! },
+          data: { currentBalance: { increment: data.amount } } as any,
+        });
+      }
+
+      const receiptVoucher = await tx.receiptVoucher.create({
+        data: {
+          code,
+          date: new Date(data.date),
+          entityType: data.entityType,
+          entityName,
+          amount: data.amount,
+          description: data.description,
+          paymentMethod: data.paymentMethod,
+          safeId: data.safeId,
+          bankId: data.bankId,
+          customerId: data.customerId,
+          supplierId: data.supplierId,
+          currentAccountId: data.currentAccountId,
+          userId,
+          branchId: data.branchId,
+        },
+        include: { user: true, branch: true },
+      });
+      return receiptVoucher;
     });
 
-    return this.mapToResponse(receiptVoucher);
+    return this.mapToResponse(result);
   }
 
   async findAllReceiptVouchers(
@@ -94,30 +107,52 @@ export class ReceiptVoucherService {
     data: UpdateReceiptVoucherRequest,
   ): Promise<ReceiptVoucherResponse> {
     try {
-      const updateData: any = { ...data };
+      const result = await this.prisma.$transaction(async (tx) => {
+        const existing = await tx.receiptVoucher.findUnique({ where: { id } });
+        if (!existing) throw new NotFoundException('Receipt voucher not found');
 
-      if (data.date) {
-        updateData.date = new Date(data.date);
-      }
+        // Reverse previous effect
+        if (existing.paymentMethod === 'safe' && existing.safeId) {
+          await tx.safe.update({ where: { id: existing.safeId }, data: { currentBalance: { decrement: existing.amount } } as any });
+        } else if (existing.paymentMethod === 'bank' && existing.bankId) {
+          await tx.bank.update({ where: { id: existing.bankId }, data: { currentBalance: { decrement: existing.amount } } as any });
+        }
 
-      // If entity type or ID changed, fetch new entity name
-      if (data.entityType && data.entityId) {
-        updateData.entityName = await this.fetchEntityName(
-          data.entityType,
-          data.entityId,
-        );
-      }
+        // Determine new target and apply
+        const newPaymentMethod = data.paymentMethod || existing.paymentMethod;
+        const newAmount = data.amount !== undefined ? data.amount : existing.amount;
+        const newSafeId = newPaymentMethod === 'safe' ? (data.safeId || existing.safeId) : null;
+        const newBankId = newPaymentMethod === 'bank' ? (data.bankId || existing.bankId) : null;
 
-      const receiptVoucher = await this.prisma.receiptVoucher.update({
-        where: { id },
-        data: updateData,
-        include: {
-          user: true,
-          branch: true,
-        },
+        if (newPaymentMethod === 'safe') {
+          await tx.safe.update({ where: { id: newSafeId! }, data: { currentBalance: { increment: newAmount } } as any });
+        } else if (newPaymentMethod === 'bank') {
+          await tx.bank.update({ where: { id: newBankId! }, data: { currentBalance: { increment: newAmount } } as any });
+        }
+
+        const updateData: any = {
+          ...data,
+          date: data.date ? new Date(data.date) : undefined,
+          paymentMethod: newPaymentMethod,
+          amount: newAmount,
+          safeId: newSafeId,
+          bankId: newBankId,
+        };
+
+        // If entity type or ID changed, fetch new entity name
+        if (data.entityType && data.entityId) {
+          updateData.entityName = await this.fetchEntityName(data.entityType, data.entityId);
+        }
+
+        const updated = await tx.receiptVoucher.update({
+          where: { id },
+          data: updateData,
+          include: { user: true, branch: true },
+        });
+        return updated;
       });
 
-      return this.mapToResponse(receiptVoucher);
+      return this.mapToResponse(result);
     } catch (error) {
       throw new NotFoundException('Receipt voucher not found');
     }
@@ -125,8 +160,18 @@ export class ReceiptVoucherService {
 
   async removeReceiptVoucher(id: string): Promise<void> {
     try {
-      await this.prisma.receiptVoucher.delete({
-        where: { id },
+      await this.prisma.$transaction(async (tx) => {
+        const existing = await tx.receiptVoucher.findUnique({ where: { id } });
+        if (!existing) throw new NotFoundException('Receipt voucher not found');
+
+        // Reverse effect
+        if (existing.paymentMethod === 'safe' && existing.safeId) {
+          await tx.safe.update({ where: { id: existing.safeId }, data: { currentBalance: { decrement: existing.amount } } as any });
+        } else if (existing.paymentMethod === 'bank' && existing.bankId) {
+          await tx.bank.update({ where: { id: existing.bankId }, data: { currentBalance: { decrement: existing.amount } } as any });
+        }
+
+        await tx.receiptVoucher.delete({ where: { id } });
       });
     } catch (error) {
       throw new NotFoundException('Receipt voucher not found');
