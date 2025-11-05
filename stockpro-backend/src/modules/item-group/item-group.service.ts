@@ -18,7 +18,7 @@ export class ItemGroupService {
 
   async findAll(): Promise<ItemGroupResponse[]> {
     const itemGroups = await this.prisma.itemGroup.findMany({
-      orderBy: { name: 'asc' },
+      orderBy: { createdAt: 'asc' },
     });
 
     return itemGroups.map((itemGroup) => this.mapToResponse(itemGroup));
