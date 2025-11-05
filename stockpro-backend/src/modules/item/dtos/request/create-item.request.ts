@@ -15,8 +15,9 @@ export class CreateItemRequest {
   @IsNumber()
   purchasePrice: number;
 
+  @IsOptional()
   @IsNumber()
-  salePrice: number;
+  salePrice?: number;
 
   @IsNumber()
   @IsOptional()

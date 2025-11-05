@@ -15,6 +15,7 @@ export class ItemService {
     const payload: any = {
       ...data,
       code: nextCode, // Use auto-generated code
+      salePrice: (data as any).salePrice ?? 0,
       stock: data.type === 'SERVICE' ? 0 : (data.stock || 0),
       reorderLimit: data.reorderLimit || 0,
       type: (data as any).type ?? 'STOCKED',

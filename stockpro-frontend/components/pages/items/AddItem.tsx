@@ -545,7 +545,6 @@ const AddItem: React.FC<AddItemProps> = ({ title, editingId, onNavigate }) => {
               onChange={(e) => handlePositiveNumberChange(e, "salePrice")}
               className={inputStyle}
               disabled={isReadOnly}
-              required
               inputMode="numeric"
             />
           </div>
@@ -571,7 +570,6 @@ const AddItem: React.FC<AddItemProps> = ({ title, editingId, onNavigate }) => {
               onChange={(e) => handlePositiveNumberChange(e, "reorderLimit")}
               className={inputStyle}
               disabled={isReadOnly}
-              required
               inputMode="numeric"
             />
           </div>
