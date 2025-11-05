@@ -31,6 +31,11 @@ export interface CreateStoreDto {
 
 export interface UpdateStoreDto extends Partial<CreateStoreDto> {}
 
+export interface StoreItemBalance {
+  existsInStore: boolean;
+  availableQty: number;
+}
+
 export const storeApi = apiSlice.injectEndpoints({
   endpoints: (builder) => ({
     getStores: builder.query<Store[], void>({
@@ -71,6 +76,15 @@ export const storeApi = apiSlice.injectEndpoints({
       }),
       invalidatesTags: (result, error, id) => [{ type: "Store", id }, "Store"],
     }),
+    getStoreItemBalance: builder.query<
+      StoreItemBalance,
+      { storeId: string; itemId: string }
+    >({
+      query: ({ storeId, itemId }) =>
+        `stores/${storeId}/items/${itemId}/balance`,
+      transformResponse: (response: { data: StoreItemBalance }) =>
+        response.data,
+    }),
   }),
 });
 
@@ -80,4 +94,6 @@ export const {
   useCreateStoreMutation,
   useUpdateStoreMutation,
   useDeleteStoreMutation,
+  useGetStoreItemBalanceQuery,
+  useLazyGetStoreItemBalanceQuery,
 } = storeApi;

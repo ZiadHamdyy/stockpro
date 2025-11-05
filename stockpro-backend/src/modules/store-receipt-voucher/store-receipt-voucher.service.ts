@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { DatabaseService } from '../../configs/database/database.service';
 import { CreateStoreReceiptVoucherDto } from './dtos/create-store-receipt-voucher.dto';
 import { UpdateStoreReceiptVoucherDto } from './dtos/update-store-receipt-voucher.dto';
@@ -10,12 +10,22 @@ export class StoreReceiptVoucherService {
   async create(createStoreReceiptVoucherDto: CreateStoreReceiptVoucherDto) {
     const { items, ...voucherData } = createStoreReceiptVoucherDto;
 
+    // Validate quantities are positive
+    for (const item of items) {
+      if (item.quantity <= 0) {
+        throw new BadRequestException(
+          `Quantity must be greater than zero for item ${item.itemId}`,
+        );
+      }
+    }
+
     // Generate voucher number
     const voucherNumber = await this.generateVoucherNumber();
 
     // Calculate total amount
     const totalAmount = items.reduce((sum, item) => sum + item.totalPrice, 0);
 
+    // Receipt operations don't need stock validation - can add any item, any quantity
     return this.prisma.storeReceiptVoucher.create({
       data: {
         ...voucherData,
@@ -112,11 +122,23 @@ export class StoreReceiptVoucherService {
     // Check if voucher exists
     await this.findOne(id);
 
+    // Validate quantities are positive if items provided
+    if (items) {
+      for (const item of items) {
+        if (item.quantity <= 0) {
+          throw new BadRequestException(
+            `Quantity must be greater than zero for item ${item.itemId}`,
+          );
+        }
+      }
+    }
+
     // Calculate total amount if items are provided
     const totalAmount = items
       ? items.reduce((sum, item) => sum + item.totalPrice, 0)
       : undefined;
 
+    // Receipt operations don't need stock validation
     return this.prisma.storeReceiptVoucher.update({
       where: { id },
       data: {

@@ -26,6 +26,7 @@ import {
   useUpdateStoreIssueVoucherMutation,
   useDeleteStoreIssueVoucherMutation,
 } from "../../store/slices/storeIssueVoucher/storeIssueVoucherApi";
+import { useLazyGetStoreItemBalanceQuery } from "../../store/slices/store/storeApi";
 
 type SelectableItem = {
   id: string;
@@ -85,6 +86,7 @@ const StoreIssueVoucher: React.FC<StoreIssueVoucherProps> = ({ title }) => {
     useUpdateStoreIssueVoucherMutation();
   const [deleteVoucher, { isLoading: isDeleting }] =
     useDeleteStoreIssueVoucherMutation();
+  const [getStoreItemBalance] = useLazyGetStoreItemBalanceQuery();
 
   // Get current user from auth state
   const currentUser = useSelector((state: RootState) => state.auth.user);
@@ -384,8 +386,46 @@ const StoreIssueVoucher: React.FC<StoreIssueVoucherProps> = ({ title }) => {
         };
       });
 
+      // Validate stock for each item before creating/updating
+      const storeId = branch.stores[0].id;
+      for (const item of filledItems) {
+        if (!item.id) continue;
+        
+        try {
+          const balanceResult = await getStoreItemBalance({
+            storeId,
+            itemId: item.id,
+          }).unwrap();
+          
+          if (!balanceResult.existsInStore) {
+            const itemName = allItems.find(i => i.id === item.id)?.name || item.name || 'هذا العنصر';
+            showToast(
+              `${itemName} غير موجود في المخزن. لا يمكن إصدار عناصر غير موجودة في المخزن.`,
+              'error'
+            );
+            return;
+          }
+          
+          if (balanceResult.availableQty < (item.qty || 1)) {
+            const itemName = allItems.find(i => i.id === item.id)?.name || item.name || 'هذا العنصر';
+            showToast(
+              `الكمية المتاحة لـ ${itemName} غير كافية. المتاح: ${balanceResult.availableQty}، المطلوب: ${item.qty || 1}`,
+              'error'
+            );
+            return;
+          }
+        } catch (error: any) {
+          console.error('Error checking stock:', error);
+          showToast(
+            `خطأ في التحقق من المخزون للعنصر. يرجى المحاولة مرة أخرى.`,
+            'error'
+          );
+          return;
+        }
+      }
+
       const voucherData = {
-        storeId: branch.stores[0].id,
+        storeId,
         userId: currentUser.id,
         items: apiItems,
       };
@@ -399,7 +439,11 @@ const StoreIssueVoucher: React.FC<StoreIssueVoucherProps> = ({ title }) => {
         const updatedVoucher = await updateVoucher({
           id: voucherId,
           data: voucherData,
-        }).unwrap();
+        }).unwrap().catch((error: any) => {
+          const errorMessage = error?.data?.message || error?.message || 'حدث خطأ أثناء التحديث';
+          showToast(errorMessage, 'error');
+          throw error;
+        });
         
         // Refetch vouchers to get updated data
         const updatedVouchers = await refetchVouchers();
@@ -422,7 +466,11 @@ const StoreIssueVoucher: React.FC<StoreIssueVoucherProps> = ({ title }) => {
         });
       } else {
         // Create new voucher
-        const newVoucher = await createVoucher(voucherData).unwrap();
+        const newVoucher = await createVoucher(voucherData).unwrap().catch((error: any) => {
+          const errorMessage = error?.data?.message || error?.message || 'حدث خطأ أثناء الحفظ';
+          showToast(errorMessage, 'error');
+          throw error;
+        });
         
         // Refetch vouchers to get the new voucher in the list
         const refetchedData = await refetchVouchers();
