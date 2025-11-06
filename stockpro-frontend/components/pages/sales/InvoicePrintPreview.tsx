@@ -79,85 +79,103 @@ const InvoicePrintPreview: React.FC<InvoicePrintPreviewProps> = ({
   }
 
   const handlePrint = () => {
-    const printContents =
-      document.getElementById("printable-invoice")?.innerHTML;
-    if (printContents) {
-      const printWindow = window.open("", "", "height=800,width=800");
-      printWindow?.document.write("<html><head><title>طباعة الفاتورة</title>");
-      printWindow?.document.write(
-        '<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet">',
-      );
-      printWindow?.document.write(`
-        <script>
-          tailwind.config = {
-            theme: {
-              extend: {
-                colors: {
-                  'brand-blue': '#1E40AF',
-                  'brand-blue-bg': '#EFF6FF',
-                  'brand-green': '#16a34a',
-                  'brand-green-active': '#4ade80',
-                  'brand-green-bg': '#ECFDF5',
-                  'brand-dark': '#1F2937',
-                  'brand-light-gray': '#F8FAFC',
-                  'brand-text': '#111827',
-                },
-              },
-            },
-          };
-        </script>
-      `);
-      printWindow?.document.write(
-        '<script src="https://cdn.tailwindcss.com"></script>',
-      );
-      printWindow?.document.write(`
-        <style>
-          * {
-            -webkit-print-color-adjust: exact !important;
-            color-adjust: exact !important;
-            print-color-adjust: exact !important;
-          }
-          body {
-            font-family: "Cairo", sans-serif;
-            direction: rtl;
-            padding: 1.5cm;
-            margin: 0;
-          }
-          @page {
-            size: A4;
-            margin: 0;
-          }
-          .bg-brand-blue {
-            background-color: #1E40AF !important;
-          }
-          .text-brand-blue {
-            color: #1E40AF !important;
-          }
-          .border-brand-blue {
-            border-color: #1E40AF !important;
-          }
-          .bg-brand-blue-bg {
-            background-color: #EFF6FF !important;
-          }
-          .text-brand-dark {
-            color: #1F2937 !important;
-          }
-          .border-blue-300 {
-            border-color: #93c5fd !important;
-          }
-        </style>
-      `);
-      printWindow?.document.write('</head><body dir="rtl">');
-      printWindow?.document.write(printContents);
-      printWindow?.document.write("</body></html>");
-      printWindow?.document.close();
-      printWindow?.focus();
-      setTimeout(() => {
-        printWindow?.print();
-        printWindow?.close();
-        // Close the modal and reset to new invoice after printing
+    const printable = document.getElementById("printable-invoice");
+    if (!printable) return;
+
+    // Build a minimal header for print to guarantee company info appears
+    const headerHtml = `
+      <div class="flex justify-between items-start pb-4 border-b-2 border-brand-blue mb-3">
+        <div class="flex items-center gap-4">
+          ${companyInfo.logo ? `<img src="${companyInfo.logo}" alt="Company Logo" class="h-20 w-auto object-contain" />` : ''}
+          <div>
+            <div class="text-2xl font-bold text-black">${companyInfo.name || ''}</div>
+            <div class="text-sm text-gray-600">${companyInfo.address || ''}</div>
+            <div class="text-sm text-gray-600">الرقم الضريبي: ${companyInfo.taxNumber || ''}</div>
+            <div class="text-sm text-gray-600">السجل التجاري: ${companyInfo.commercialReg || ''}</div>
+          </div>
+        </div>
+        <div class="text-left">
+          <div class="text-3xl font-bold text-brand-blue">${!originalIsVatEnabled ? 'فاتورة مبيعات' : (customer?.taxNumber ? 'فاتورة ضريبية' : 'فاتورة ضريبية مبسطة')}</div>
+          <div class="text-sm">Tax Invoice</div>
+        </div>
+      </div>
+    `;
+
+    // Collect stylesheets and inline styles from current document only (skip scripts)
+    const styleNodes = Array.from(
+      document.querySelectorAll('link[rel="stylesheet"], style')
+    ) as HTMLElement[];
+    const stylesHtml = styleNodes.map((n) => n.outerHTML).join("\n");
+
+    const extraPrintStyles = `
+      <style>
+        * { -webkit-print-color-adjust: exact !important; color-adjust: exact !important; print-color-adjust: exact !important; }
+        @page { size: A4; margin: 0; }
+        body { direction: rtl; margin: 0; background: #fff; }
+        .page-break { page-break-after: always; }
+        .no-break-inside { break-inside: avoid; }
+      </style>
+      <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet">
+    `;
+
+    const html = `<!DOCTYPE html>
+      <html lang="ar" dir="rtl">
+        <head>
+          <meta charSet="utf-8" />
+          <title>طباعة الفاتورة</title>
+          ${stylesHtml}
+          ${extraPrintStyles}
+        </head>
+        <body>
+          <div class="print-root" style="margin:0 auto;max-width:23cm;padding:0.6cm;">${headerHtml}${printable.innerHTML}</div>
+        </body>
+      </html>`;
+
+    const printWindow = window.open("", "printWindow", "width=900,height=850");
+    if (!printWindow) return;
+    printWindow.document.open();
+    printWindow.document.write(html);
+    printWindow.document.close();
+
+    const doPrint = () => {
+      try {
+        printWindow.focus();
+        printWindow.print();
+      } finally {
+        printWindow.close();
         onClose();
-      }, 250);
+      }
+    };
+
+    const waitForImages = () => {
+      const imgs = Array.from(printWindow.document.images || []);
+      if (imgs.length === 0) {
+        setTimeout(doPrint, 200);
+        return;
+      }
+      let loaded = 0;
+      const done = () => {
+        loaded += 1;
+        if (loaded >= imgs.length) {
+          setTimeout(doPrint, 150);
+        }
+      };
+      imgs.forEach((img) => {
+        if (img.complete) {
+          done();
+        } else {
+          img.addEventListener('load', done);
+          img.addEventListener('error', done);
+        }
+      });
+      // Fallback timeout in case some images never fire events
+      setTimeout(doPrint, 1200);
+    };
+
+    if (printWindow.document.readyState === "complete") {
+      setTimeout(waitForImages, 100);
+    } else {
+      printWindow.addEventListener("load", () => setTimeout(waitForImages, 100));
     }
   };
 
@@ -201,188 +219,234 @@ const InvoicePrintPreview: React.FC<InvoicePrintPreviewProps> = ({
 
         <div className="overflow-y-auto">
           <div id="printable-invoice" className="p-8 bg-white">
-            <header className="flex justify-between items-start pb-4 border-b-2 border-brand-blue">
-              <div className="flex items-center gap-4">
-                {companyInfo.logo && (
-                  <img
-                    src={companyInfo.logo}
-                    alt="Company Logo"
-                    className="h-20 w-auto object-contain"
-                  />
-                )}
-                <div>
-                  <h2 className="text-2xl font-bold text-black">
-                    {companyInfo.name}
-                  </h2>
-                  <p className="text-sm text-gray-600">{companyInfo.address}</p>
-                  <p className="text-sm text-gray-600">
-                    الرقم الضريبي: {companyInfo.taxNumber}
-                  </p>
-                </div>
-              </div>
-              <div className="text-left">
-                <h1 className="text-3xl font-bold text-brand-blue">
-                  {!originalIsVatEnabled 
-                    ? "فاتورة مبيعات"
-                    : (customer?.taxNumber 
-                        ? "فاتورة ضريبية" 
-                        : "فاتورة ضريبية مبسطة")}
-                </h1>
-                <p>Tax Invoice</p>
-              </div>
-            </header>
+            <style>
+              {`
+                @media print {
+                  .page-break { page-break-after: always; }
+                }
+                .page-break { page-break-after: always; }
+                .no-break-inside { break-inside: avoid; }
+              `}
+            </style>
+            {(() => {
+              const rowsPerPage = 16;
+              const pages: InvoiceItem[][] = [];
+              for (let i = 0; i < items.length; i += rowsPerPage) {
+                pages.push(items.slice(i, i + rowsPerPage));
+              }
+              const totalPages = Math.max(pages.length, 1);
+              const ensureAtLeastOnePage = pages.length === 0 ? [[]] : pages;
+              return ensureAtLeastOnePage.map((pageItems, pageIndex) => {
+                const isFirstPage = pageIndex === 0;
+                const isLastPage = pageIndex === totalPages - 1;
+                const rowNumberOffset = pageIndex * rowsPerPage;
+                return (
+                  <div key={pageIndex} className={!isLastPage ? "page-break" : undefined}>
+                    {isFirstPage && (
+                      <>
+                        <header className="flex justify-between items-start pb-4 border-b-2 border-brand-blue">
+                          <div className="flex items-center gap-4">
+                            {companyInfo.logo && (
+                              <img
+                                src={companyInfo.logo}
+                                alt="Company Logo"
+                                className="h-20 w-auto object-contain"
+                              />
+                            )}
+                            <div>
+                              <h2 className="text-2xl font-bold text-black">
+                                {companyInfo.name}
+                              </h2>
+                              <p className="text-sm text-gray-600">{companyInfo.address}</p>
+                              <p className="text-sm text-gray-600">
+                                الرقم الضريبي: {companyInfo.taxNumber}
+                              </p>
+                              <p className="text-sm text-gray-600">
+                                السجل التجاري: {companyInfo.commercialReg}
+                              </p>
+                            </div>
+                          </div>
+                          <div className="text-left">
+                            <h1 className="text-3xl font-bold text-brand-blue">
+                              {!originalIsVatEnabled 
+                                ? "فاتورة مبيعات"
+                                : (customer?.taxNumber 
+                                    ? "فاتورة ضريبية" 
+                                    : "فاتورة ضريبية مبسطة")}
+                            </h1>
+                            <p>Tax Invoice</p>
+                          </div>
+                        </header>
 
-            <section className="grid grid-cols-2 gap-x-8 text-sm my-6">
-              <div className="border border-gray-300 rounded-md p-3">
-                <h3 className="font-bold text-base mb-2">بيانات العميل:</h3>
-                <p>
-                  <span className="font-semibold">الاسم:</span>{" "}
-                  {customer?.name || "عميل نقدي"}
-                </p>
-                <p>
-                  <span className="font-semibold">العنوان:</span>{" "}
-                  {customer?.address || "--------------------------------"}
-                </p>
-                <p>
-                  <span className="font-semibold">الرقم الضريبي:</span>{" "}
-                  {customer?.taxNumber || "--------------------------------"}
-                </p>
-              </div>
-              <div className="border border-gray-300 rounded-md p-3">
-                <p>
-                  <span className="font-semibold">رقم الفاتورة:</span>{" "}
-                  {details.invoiceNumber}
-                </p>
-                <p>
-                  <span className="font-semibold">تاريخ الفاتورة:</span>{" "}
-                  {details.invoiceDate}
-                </p>
-                <p>
-                  <span className="font-semibold">الفرع:</span>{" "}
-                  {currentUser?.branch?.name || details.branchName}
-                </p>
-                <p>
-                  <span className="font-semibold">الموظف:</span>{" "}
-                  {currentUser?.name || details.userName}
-                </p>
-              </div>
-            </section>
-
-            <table className="w-full text-sm border-collapse border border-gray-300">
-              <thead className="bg-brand-blue text-white">
-                <tr>
-                  <th className="p-2 border border-blue-300">م</th>
-                  <th className="p-2 border border-blue-300 text-right" style={{ width: '35%' }}>
-                    الصنف
-                  </th>
-                  <th className="p-2 border border-blue-300">الوحدة</th>
-                  <th className="p-2 border border-blue-300">الكمية</th>
-                  <th className="p-2 border border-blue-300">السعر</th>
-                  {isVatEnabled && (
-                    <th className="p-2 border border-blue-300">الضريبة {isVatEnabled ? `(%${vatRate})` : '(%0)'}</th>
-                  )}
-                  <th className="p-2 border border-blue-300">الاجمالي</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-300">
-                {items.map((item, index) => (
-                  <tr key={index}>
-                    <td className="p-2 border border-gray-300 text-center">
-                      {index + 1}
-                    </td>
-                    <td className="p-2 border border-gray-300" style={{ width: '35%' }}>{item.name}</td>
-                    <td className="p-2 border border-gray-300 text-center">
-                      {item.unit}
-                    </td>
-                    <td className="p-2 border border-gray-300 text-center">
-                      {item.qty}
-                    </td>
-                    <td className="p-2 border border-gray-300 text-center">
-                      {formatMoney(item.price)}
-                    </td>
-                    {isVatEnabled && (
-                      <td className="p-2 border border-gray-300 text-center">
-                        {formatMoney(item.taxAmount || 0)}
-                      </td>
+                        <section className="grid grid-cols-2 gap-x-8 text-sm my-6">
+                          <div className="border border-gray-300 rounded-md p-3">
+                            <h3 className="font-bold text-base mb-2">بيانات العميل:</h3>
+                            <p>
+                              <span className="font-semibold">الاسم:</span>{" "}
+                              {customer?.name || "عميل نقدي"}
+                            </p>
+                            <p>
+                              <span className="font-semibold">العنوان:</span>{" "}
+                              {customer?.address || "--------------------------------"}
+                            </p>
+                            <p>
+                              <span className="font-semibold">الرقم الضريبي:</span>{" "}
+                              {customer?.taxNumber || "--------------------------------"}
+                            </p>
+                          </div>
+                          <div className="border border-gray-300 rounded-md p-3">
+                            <p>
+                              <span className="font-semibold">رقم الفاتورة:</span>{" "}
+                              {details.invoiceNumber}
+                            </p>
+                            <p>
+                              <span className="font-semibold">تاريخ الفاتورة:</span>{" "}
+                              {details.invoiceDate}
+                            </p>
+                            <p>
+                              <span className="font-semibold">الفرع:</span>{" "}
+                              {currentUser?.branch?.name || details.branchName}
+                            </p>
+                            <p>
+                              <span className="font-semibold">الموظف:</span>{" "}
+                              {currentUser?.name || details.userName}
+                            </p>
+                          </div>
+                        </section>
+                      </>
                     )}
-                    <td className="p-2 border border-gray-300 text-center">
-                      {formatMoney(item.total)}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-
-            <section className="flex justify-between items-start mt-4 gap-4">
-              <div className="w-1/2">
-                {isVatEnabled && qrData && (
-                  <img src={qrCodeUrl} alt="QR Code" className="w-28 h-28" />
-                )}
-              </div>
-              <div className="w-1/2 text-sm">
-                <table className="w-full border-collapse border border-gray-300">
-                  <tbody>
-                    <tr>
-                      <td className="font-semibold p-2 border border-gray-300">
-                        الاجمالي قبل الضريبة
-                      </td>
-                      <td className="p-2 border border-gray-300 text-left">
-                        {formatMoney(totals.subtotal)}
-                      </td>
-                    </tr>
-                    <tr>
-                      <td className="font-semibold p-2 border border-gray-300">
-                        الخصم
-                      </td>
-                      <td className="p-2 border border-gray-300 text-left">
-                        {formatMoney(totals.discount)}
-                      </td>
-                    </tr>
-                    {isVatEnabled && (
-                      <tr>
-                        <td className="font-semibold p-2 border border-gray-300">
-                          إجمالي الضريبة ({vatRate}%)
-                        </td>
-                        <td className="p-2 border border-gray-300 text-left">
-                          {formatMoney(totals.tax)}
-                        </td>
-                      </tr>
+                    
+                    {!isFirstPage && totalPages > 1 && (
+                      <div className="text-center text-xs text-gray-500 mb-4 pb-2 border-b border-gray-300">
+                        صفحة {pageIndex + 1} من {totalPages} - {details.invoiceNumber}
+                      </div>
                     )}
-                    <tr className="bg-brand-blue text-white font-bold text-base">
-                      <td className="p-2 border border-blue-300">الصافي</td>
-                      <td className="p-2 border border-blue-300 text-left">
-                        {formatMoney(totals.net)}
-                      </td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-            </section>
 
-            <div className="mt-4 p-2 bg-brand-blue-bg border border-brand-blue text-center font-semibold text-sm rounded-md">
-              {tafqeet(totals.net, companyInfo.currency)}
-            </div>
+                    <table className="w-full text-sm border-collapse border border-gray-300">
+                      <thead className="bg-brand-blue text-white">
+                        <tr>
+                          <th className="p-2 border border-blue-300">م</th>
+                          <th className="p-2 border border-blue-300 text-right" style={{ width: '35%' }}>
+                            الصنف
+                          </th>
+                          <th className="p-2 border border-blue-300">الوحدة</th>
+                          <th className="p-2 border border-blue-300">الكمية</th>
+                          <th className="p-2 border border-blue-300">السعر</th>
+                          {isVatEnabled && (
+                            <th className="p-2 border border-blue-300">الضريبة {isVatEnabled ? `(%${vatRate})` : '(%0)'}</th>
+                          )}
+                          <th className="p-2 border border-blue-300">الاجمالي</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-300">
+                        {pageItems.map((item, index) => (
+                          <tr key={index}>
+                            <td className="p-2 border border-gray-300 text-center">
+                              {rowNumberOffset + index + 1}
+                            </td>
+                            <td className="p-2 border border-gray-300" style={{ width: '35%' }}>{item.name}</td>
+                            <td className="p-2 border border-gray-300 text-center">
+                              {item.unit}
+                            </td>
+                            <td className="p-2 border border-gray-300 text-center">
+                              {item.qty}
+                            </td>
+                            <td className="p-2 border border-gray-300 text-center">
+                              {formatMoney(item.price)}
+                            </td>
+                            {isVatEnabled && (
+                              <td className="p-2 border border-gray-300 text-center">
+                                {formatMoney(item.taxAmount || 0)}
+                              </td>
+                            )}
+                            <td className="p-2 border border-gray-300 text-center">
+                              {formatMoney(item.total)}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
 
-            <div className="mt-6 pt-4 text-center text-sm text-gray-600 font-semibold border-t-2 border-dashed border-gray-300">
-              استلمت البضاعة كاملة و بجودة سليمة
-            </div>
+                    {isLastPage ? (
+                      <>
+                        <section className="flex justify-between items-start mt-4 gap-4">
+                          <div className="w-1/2">
+                            {isVatEnabled && qrData && (
+                              <img src={qrCodeUrl} alt="QR Code" className="w-28 h-28" />
+                            )}
+                          </div>
+                          <div className="w-1/2 text-sm">
+                            <table className="w-full border-collapse border border-gray-300">
+                              <tbody>
+                                <tr>
+                                  <td className="font-semibold p-2 border border-gray-300">
+                                    الاجمالي قبل الضريبة
+                                  </td>
+                                  <td className="p-2 border border-gray-300 text-left">
+                                    {formatMoney(totals.subtotal)}
+                                  </td>
+                                </tr>
+                                <tr>
+                                  <td className="font-semibold p-2 border border-gray-300">
+                                    الخصم
+                                  </td>
+                                  <td className="p-2 border border-gray-300 text-left">
+                                    {formatMoney(totals.discount)}
+                                  </td>
+                                </tr>
+                                {isVatEnabled && (
+                                  <tr>
+                                    <td className="font-semibold p-2 border border-gray-300">
+                                      إجمالي الضريبة ({vatRate}%)
+                                    </td>
+                                    <td className="p-2 border border-gray-300 text-left">
+                                      {formatMoney(totals.tax)}
+                                    </td>
+                                  </tr>
+                                )}
+                                <tr className="bg-brand-blue text-white font-bold text-base">
+                                  <td className="p-2 border border-blue-300">الصافي</td>
+                                  <td className="p-2 border border-blue-300 text-left">
+                                    {formatMoney(totals.net)}
+                                  </td>
+                                </tr>
+                              </tbody>
+                            </table>
+                          </div>
+                        </section>
 
-            <footer className="flex justify-around items-center mt-20 text-center text-sm">
-              <div>
-                <p className="font-bold">المستلم</p>
-                <p className="mt-8 border-t border-gray-400 pt-1">
-                  الاسم: ..............................
-                </p>
-                <p>التوقيع: ..............................</p>
-              </div>
-              <div>
-                <p className="font-bold">المحاسب</p>
-                <p className="mt-8 border-t border-gray-400 pt-1">
-                  الاسم: ..............................
-                </p>
-                <p>التوقيع: ..............................</p>
-              </div>
-            </footer>
+                        <div className="mt-4 p-2 bg-brand-blue-bg border border-brand-blue text-center font-semibold text-sm rounded-md">
+                          {tafqeet(totals.net, companyInfo.currency)}
+                        </div>
+
+                        <div className="mt-6 pt-4 text-center text-sm text-gray-600 font-semibold border-t-2 border-dashed border-gray-300">
+                          استلمت البضاعة كاملة و بجودة سليمة
+                        </div>
+
+                        <footer className="flex justify-around items-center mt-20 text-center text-sm">
+                          <div>
+                            <p className="font-bold">المستلم</p>
+                            <p className="mt-8 border-t border-gray-400 pt-1">
+                              الاسم: ..............................
+                            </p>
+                            <p>التوقيع: ..............................</p>
+                          </div>
+                          <div>
+                            <p className="font-bold">المحاسب</p>
+                            <p className="mt-8 border-t border-gray-400 pt-1">
+                              الاسم: ..............................
+                            </p>
+                            <p>التوقيع: ..............................</p>
+                          </div>
+                        </footer>
+                      </>
+                    ) : (
+                      <div className="text-center text-xs text-gray-500 mt-2">يتبع...</div>
+                    )}
+                  </div>
+                );
+              });
+            })()}
           </div>
         </div>
       </div>
