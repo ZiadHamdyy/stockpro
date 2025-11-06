@@ -23,16 +23,14 @@ export class ReceiptVoucherService {
     );
 
     const result = await this.prisma.$transaction(async (tx) => {
-      // Always debit cash/bank account (new rule) with conflict checks
+      // Always debit cash/bank account (new rule)
       if (data.paymentMethod === 'safe') {
         const acct = await tx.safe.findUnique({ where: { id: data.safeId! } });
         if (!acct) throw new NotFoundException('Safe not found');
-        if ((acct as any).currentBalance < data.amount) throw new ConflictException(`الرصيد غير كافي في ${acct.name}`);
         await tx.safe.update({ where: { id: data.safeId! }, data: { currentBalance: { decrement: data.amount } } as any });
       } else if (data.paymentMethod === 'bank') {
         const acct = await tx.bank.findUnique({ where: { id: data.bankId! } });
         if (!acct) throw new NotFoundException('Bank not found');
-        if ((acct as any).currentBalance < data.amount) throw new ConflictException(`الرصيد غير كافي في ${acct.name}`);
         await tx.bank.update({ where: { id: data.bankId! }, data: { currentBalance: { decrement: data.amount } } as any });
       }
 
@@ -147,12 +145,10 @@ export class ReceiptVoucherService {
         if (newPaymentMethod === 'safe') {
           const acct = await tx.safe.findUnique({ where: { id: newSafeId! } });
           if (!acct) throw new NotFoundException('Safe not found');
-          if ((acct as any).currentBalance < newAmount) throw new ConflictException(`الرصيد غير كافي في ${acct.name}`);
           await tx.safe.update({ where: { id: newSafeId! }, data: { currentBalance: { decrement: newAmount } } as any });
         } else if (newPaymentMethod === 'bank') {
           const acct = await tx.bank.findUnique({ where: { id: newBankId! } });
           if (!acct) throw new NotFoundException('Bank not found');
-          if ((acct as any).currentBalance < newAmount) throw new ConflictException(`الرصيد غير كافي في ${acct.name}`);
           await tx.bank.update({ where: { id: newBankId! }, data: { currentBalance: { decrement: newAmount } } as any });
         }
 
