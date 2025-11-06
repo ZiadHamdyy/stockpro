@@ -17,10 +17,13 @@ export class ReceiptVoucherService {
     const code = await this.generateNextCode();
 
     // Fetch entity name based on type
-    const entityName = await this.fetchEntityName(
-      data.entityType,
-      data.customerId || data.supplierId || data.currentAccountId || '',
-    );
+    const entityId = data.customerId || 
+                     data.supplierId || 
+                     data.currentAccountId || 
+                     (data as any).receivableAccountId || 
+                     (data as any).payableAccountId || 
+                     '';
+    const entityName = await this.fetchEntityName(data.entityType, entityId);
 
     const result = await this.prisma.$transaction(async (tx) => {
       // Always debit cash/bank account (new rule)
@@ -89,7 +92,7 @@ export class ReceiptVoucherService {
         user: true,
         branch: true,
       },
-      orderBy: { date: 'desc' },
+      orderBy: { createdAt: 'asc' },
     });
 
     return vouchers.map((voucher) => this.mapToResponse(voucher));
@@ -175,8 +178,21 @@ export class ReceiptVoucherService {
         };
 
         // If entity type or ID changed, fetch new entity name
-        if (data.entityType && data.entityId) {
-          updateData.entityName = await this.fetchEntityName(data.entityType, data.entityId);
+        const newEntityId = data.customerId ?? 
+                           data.supplierId ?? 
+                           data.currentAccountId ?? 
+                           (data as any).receivableAccountId ?? 
+                           (data as any).payableAccountId ?? 
+                           null;
+        if (newEntityType !== existing.entityType || newEntityId !== null) {
+          const entityIdToUse = newEntityId || 
+                                existing.customerId || 
+                                existing.supplierId || 
+                                existing.currentAccountId || 
+                                (existing as any).receivableAccountId || 
+                                (existing as any).payableAccountId || 
+                                '';
+          updateData.entityName = await this.fetchEntityName(newEntityType, entityIdToUse);
         }
 
         const updated = await tx.receiptVoucher.update({
@@ -348,6 +364,8 @@ export class ReceiptVoucherService {
       customerId: voucher.customerId,
       supplierId: voucher.supplierId,
       currentAccountId: voucher.currentAccountId,
+      receivableAccountId: (voucher as any).receivableAccountId || null,
+      payableAccountId: (voucher as any).payableAccountId || null,
       userId: voucher.userId,
       branchId: voucher.branchId,
       createdAt: voucher.createdAt,

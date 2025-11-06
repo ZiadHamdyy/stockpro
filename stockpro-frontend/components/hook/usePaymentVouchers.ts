@@ -20,7 +20,7 @@ import { showApiErrorToast } from "../../utils/errorToast";
 
 export const usePaymentVouchers = () => {
   const [currentIndex, setCurrentIndex] = useState(-1);
-  const [isReadOnly, setIsReadOnly] = useState(true);
+  const [isReadOnly, setIsReadOnly] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [voucherData, setVoucherData] = useState({
     number: "",
@@ -74,16 +74,21 @@ export const usePaymentVouchers = () => {
   useEffect(() => {
     if (currentIndex >= 0 && vouchers[currentIndex]) {
       const v = vouchers[currentIndex];
+      // Use entityType as-is from the backend (now supports "expense-Type")
+      let entityType = v.entityType as any;
+      
       setVoucherData({
         number: v.code,
         date: formatDateForInput(v.date),
         entity: {
-          type: v.entityType as any,
+          type: entityType,
           id:
             v.customerId ||
             v.supplierId ||
             v.currentAccountId ||
             v.expenseCodeId ||
+            v.receivableAccountId ||
+            v.payableAccountId ||
             null,
           name: v.entityName,
         },
@@ -94,6 +99,9 @@ export const usePaymentVouchers = () => {
         description: v.description || "",
       });
       setIsReadOnly(true);
+    } else if (currentIndex === -1) {
+      // Ensure new mode is editable
+      setIsReadOnly(false);
     }
   }, [currentIndex, vouchers]);
 
@@ -141,6 +149,12 @@ export const usePaymentVouchers = () => {
     } else if (voucherData.entity.type === "expense-Type") {
       const entityId = voucherData.entity.id ? String(voucherData.entity.id) : undefined;
       entityFields.expenseCodeId = entityId;
+    } else if (voucherData.entity.type === "receivable_account") {
+      const entityId = voucherData.entity.id ? String(voucherData.entity.id) : undefined;
+      entityFields.receivableAccountId = entityId;
+    } else if (voucherData.entity.type === "payable_account") {
+      const entityId = voucherData.entity.id ? String(voucherData.entity.id) : undefined;
+      entityFields.payableAccountId = entityId;
     }
 
     // Build payment target foreign key based on payment method
@@ -156,14 +170,9 @@ export const usePaymentVouchers = () => {
       paymentFields.safeId = undefined;
     }
 
-    // Map expense-Type to expense for backend compatibility
-    const entityType = voucherData.entity.type === "expense-Type" 
-      ? "expense" 
-      : voucherData.entity.type;
-
     const payload: CreatePaymentVoucherRequest = {
       date: voucherData.date,
-      entityType: entityType,
+      entityType: voucherData.entity.type,
       amount: amountValue,
       description: voucherData.description || undefined,
       paymentMethod: voucherData.paymentMethod,

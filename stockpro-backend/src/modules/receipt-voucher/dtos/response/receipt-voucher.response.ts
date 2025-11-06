@@ -41,6 +41,12 @@ export class ReceiptVoucherResponse {
   currentAccountId?: string | null;
 
   @Expose()
+  receivableAccountId?: string | null;
+
+  @Expose()
+  payableAccountId?: string | null;
+
+  @Expose()
   userId: string;
 
   @Expose()

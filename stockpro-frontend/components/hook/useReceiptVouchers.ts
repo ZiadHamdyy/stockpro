@@ -19,7 +19,7 @@ import { showApiErrorToast } from "../../utils/errorToast";
 
 export const useReceiptVouchers = () => {
   const [currentIndex, setCurrentIndex] = useState(-1);
-  const [isReadOnly, setIsReadOnly] = useState(true);
+  const [isReadOnly, setIsReadOnly] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [voucherData, setVoucherData] = useState({
     number: "",
@@ -77,7 +77,13 @@ export const useReceiptVouchers = () => {
         date: formatDateForInput(v.date),
         entity: {
           type: v.entityType as any,
-          id: v.customerId || v.supplierId || v.currentAccountId || null,
+          id:
+            v.customerId ||
+            v.supplierId ||
+            v.currentAccountId ||
+            v.receivableAccountId ||
+            v.payableAccountId ||
+            null,
           name: v.entityName,
         },
         amount: v.amount === 0 || v.amount === null ? ("" as any) : v.amount,
@@ -87,6 +93,9 @@ export const useReceiptVouchers = () => {
         description: v.description || "",
       });
       setIsReadOnly(true);
+    } else if (currentIndex === -1) {
+      // Ensure new mode is editable
+      setIsReadOnly(false);
     }
   }, [currentIndex, vouchers]);
 
@@ -116,18 +125,23 @@ export const useReceiptVouchers = () => {
       return null;
     }
 
-    const entityId = voucherData.entity.id
-      ? String(voucherData.entity.id)
-      : undefined;
-
     // Build entity foreign key based on entity type
     const entityFields: Partial<CreateReceiptVoucherRequest> = {};
     if (voucherData.entity.type === "customer") {
+      const entityId = voucherData.entity.id ? String(voucherData.entity.id) : undefined;
       entityFields.customerId = entityId;
     } else if (voucherData.entity.type === "supplier") {
+      const entityId = voucherData.entity.id ? String(voucherData.entity.id) : undefined;
       entityFields.supplierId = entityId;
     } else if (voucherData.entity.type === "current_account") {
+      const entityId = voucherData.entity.id ? String(voucherData.entity.id) : undefined;
       entityFields.currentAccountId = entityId;
+    } else if (voucherData.entity.type === "receivable_account") {
+      const entityId = voucherData.entity.id ? String(voucherData.entity.id) : undefined;
+      entityFields.receivableAccountId = entityId;
+    } else if (voucherData.entity.type === "payable_account") {
+      const entityId = voucherData.entity.id ? String(voucherData.entity.id) : undefined;
+      entityFields.payableAccountId = entityId;
     }
 
     // Build payment target foreign key based on payment method

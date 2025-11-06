@@ -71,6 +71,12 @@ export class PaymentVoucherResponse {
   expenseCodeId?: string | null;
 
   @Expose()
+  receivableAccountId?: string | null;
+
+  @Expose()
+  payableAccountId?: string | null;
+
+  @Expose()
   userId: string;
 
   @Expose()

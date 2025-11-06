@@ -16,6 +16,8 @@ export interface ReceiptVoucher {
   customerId?: string | null;
   supplierId?: string | null;
   currentAccountId?: string | null;
+  receivableAccountId?: string | null;
+  payableAccountId?: string | null;
   userId: string;
   branchId?: string | null;
   createdAt: string;
@@ -33,6 +35,8 @@ export interface CreateReceiptVoucherRequest {
   customerId?: string;
   supplierId?: string;
   currentAccountId?: string;
+  receivableAccountId?: string;
+  payableAccountId?: string;
   branchId?: string;
 }
 
@@ -47,6 +51,8 @@ export interface UpdateReceiptVoucherRequest {
   customerId?: string;
   supplierId?: string;
   currentAccountId?: string;
+  receivableAccountId?: string;
+  payableAccountId?: string;
   branchId?: string;
 }
 

@@ -123,7 +123,7 @@ export class InternalTransferService {
         toSafe: true,
         toBank: true,
       },
-      orderBy: { date: 'desc' },
+      orderBy: { createdAt: 'asc' },
     });
 
     return transfers.map((transfer) => this.mapToResponse(transfer));
