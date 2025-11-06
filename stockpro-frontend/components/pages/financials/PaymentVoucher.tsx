@@ -15,6 +15,17 @@ import { useAuth } from "../../hook/Auth";
 import { useGetReceivableAccountsQuery } from "../../store/slices/receivableAccounts/receivableAccountsApi";
 import { useGetPayableAccountsQuery } from "../../store/slices/payableAccounts/payableAccountsApi";
 
+type AllEntityType =
+  | "customer"
+  | "supplier"
+  | "current_account"
+  | "receivable_account"
+  | "payable_account"
+  | "expense"
+  | "expense-Type";
+import DataTableModal from "../../common/DataTableModal";
+import { formatNumber } from "../../../utils/formatting";
+
 interface PaymentVoucherProps {
   title: string;
 }
@@ -45,6 +56,7 @@ const PaymentVoucher: React.FC<PaymentVoucherProps> = ({ title }) => {
   } = usePaymentVouchers();
 
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+  const [isSearchModalOpen, setIsSearchModalOpen] = useState(false);
 
   useEffect(() => {
     // Initialize with a new voucher on mount
@@ -60,19 +72,20 @@ const PaymentVoucher: React.FC<PaymentVoucherProps> = ({ title }) => {
       }
       if (field === "id") {
         let foundName = "";
-        if (newEntity.type === "customer")
+        const t = newEntity.type as AllEntityType;
+        if (t === "customer")
           foundName = customers.find((c) => c.id === value)?.name || "";
-        if (newEntity.type === "supplier")
+        if (t === "supplier")
           foundName = suppliers.find((s) => s.id === value)?.name || "";
-        if (newEntity.type === "current_account")
+        if (t === "current_account")
           foundName = currentAccounts.find((a) => a.id === value)?.name || "";
-        if (newEntity.type === "receivable_account")
+        if (t === "receivable_account")
           foundName = (receivableAccounts as any[]).find((a) => a.id === value)?.name || "";
-        if (newEntity.type === "payable_account")
+        if (t === "payable_account")
           foundName = (payableAccounts as any[]).find((a) => a.id === value)?.name || "";
-        if (newEntity.type === "expense")
+        if (t === "expense")
           foundName = expenseCodes.find((c) => c.id === value)?.name || "";
-        if (newEntity.type === "expense-Type")
+        if (t === "expense-Type")
           foundName = expenseCodes.find((c) => c.id === value)?.name || "";
         newEntity.name = foundName;
       }
@@ -81,7 +94,7 @@ const PaymentVoucher: React.FC<PaymentVoucherProps> = ({ title }) => {
   };
 
   const renderEntitySelector = () => {
-    const entityType = voucherData.entity.type;
+    const entityType = voucherData.entity.type as AllEntityType;
     if (entityType === "customer") {
       return (
         <select
@@ -541,9 +554,27 @@ const PaymentVoucher: React.FC<PaymentVoucherProps> = ({ title }) => {
                 حذف
               </button>
             </PermissionWrapper>
-            <button className="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 font-semibold">
-              بحث
-            </button>
+            <PermissionWrapper
+              requiredPermission={buildPermission(
+                Resources.PAYMENT_VOUCHER,
+                Actions.SEARCH,
+              )}
+              fallback={
+                <button
+                  disabled={true}
+                  className="px-4 py-2 bg-gray-400 text-white rounded-md font-semibold"
+                >
+                  بحث
+                </button>
+              }
+            >
+              <button
+                onClick={() => setIsSearchModalOpen(true)}
+                className="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 font-semibold"
+              >
+                بحث
+              </button>
+            </PermissionWrapper>
             <PermissionWrapper
               requiredPermission={buildPermission(
                 Resources.PAYMENT_VOUCHER,
@@ -635,6 +666,31 @@ const PaymentVoucher: React.FC<PaymentVoucherProps> = ({ title }) => {
           }}
         />
       )}
+      <DataTableModal
+        isOpen={isSearchModalOpen}
+        onClose={() => setIsSearchModalOpen(false)}
+        title="بحث عن سند صرف"
+        columns={[
+          { Header: "الرقم", accessor: "code" },
+          { Header: "التاريخ", accessor: "date" },
+          { Header: "الاسم", accessor: "entityName" },
+          { Header: "المبلغ", accessor: "amount" },
+        ]}
+        data={vouchers.map((v) => ({
+          ...v,
+          date: v.date ? new Date(v.date).toLocaleDateString("ar-EG") : "-",
+          amount: formatNumber(v.amount || 0),
+        }))}
+        onSelectRow={(row) => {
+          const index = vouchers.findIndex((v) => v.id === row.id);
+          if (index >= 0) {
+            navigate(index);
+            setIsSearchModalOpen(false);
+          }
+        }}
+        companyInfo={companyInfo}
+        colorTheme="green"
+      />
     </>
   );
 };
