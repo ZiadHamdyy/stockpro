@@ -13,8 +13,8 @@ interface ReceiptVoucherPrintPreviewProps {
     amount: number;
     receivedFrom: string;
     description: string;
-    userName: string;
-    branchName: string;
+    userName: string | { name: string };
+    branchName: string | { name: string };
   };
 }
 
@@ -22,7 +22,7 @@ const ReceiptVoucherPrintPreview: React.FC<ReceiptVoucherPrintPreviewProps> = ({
   isOpen,
   onClose,
   voucherData,
-}) => { <option value="expense-Type">مصروفات ضريبية</option>
+}) => {
   const { data: companyInfo, isLoading, error } = useGetCompanyQuery();
 
   // Add css for printing
@@ -162,6 +162,11 @@ const ReceiptVoucherPrintPreview: React.FC<ReceiptVoucherPrintPreviewProps> = ({
                     {companyInfo.phone && (
                       <p className="text-xs text-gray-600">هاتف: {companyInfo.phone}</p>
                     )}
+                    {companyInfo.commercialReg && (
+                      <p className="text-xs text-gray-600">
+                        السجل التجاري: {companyInfo.commercialReg}
+                      </p>
+                    )}
                   </div>
                 </div>
                 <div className="text-center">
@@ -172,7 +177,10 @@ const ReceiptVoucherPrintPreview: React.FC<ReceiptVoucherPrintPreviewProps> = ({
                 </div>
                 <div className="text-left text-sm">
                   <p>
-                    <span className="font-semibold">الرقم الضريبي: {companyInfo.taxNumber}</span> {number}
+                    <span className="font-semibold"> رقم السند:</span> {number}
+                  </p>
+                  <p>
+                    <span className="font-semibold">الرقم الضريبي:</span> {companyInfo.taxNumber}
                   </p>
                   <p>
                     <span className="font-semibold">التاريخ:</span> {date}
@@ -218,7 +226,7 @@ const ReceiptVoucherPrintPreview: React.FC<ReceiptVoucherPrintPreviewProps> = ({
                 <div>
                   <p className="font-bold">المحاسب</p>
                   <p className="mt-8 border-t-2 border-dotted border-gray-500 w-40 mx-auto pt-1">
-                    {userName}
+                    {typeof userName === "string" ? userName : userName?.name || "غير محدد"}
                   </p>
                 </div>
                 <div>

@@ -157,6 +157,11 @@ const PaymentVoucherPrintPreview: React.FC<PaymentVoucherPrintPreviewProps> = ({
                     {companyInfo.phone && (
                       <p className="text-xs text-gray-600">هاتف: {companyInfo.phone}</p>
                     )}
+                    {companyInfo.commercialReg && (
+                      <p className="text-xs text-gray-600">
+                        السجل التجاري: {companyInfo.commercialReg}
+                      </p>
+                    )}
                   </div>
                 </div>
                 <div className="text-center">
@@ -167,7 +172,10 @@ const PaymentVoucherPrintPreview: React.FC<PaymentVoucherPrintPreviewProps> = ({
                 </div>
                 <div className="text-left text-sm">
                   <p>
-                    <span className="font-semibold">الرقم الضريبي: {companyInfo.taxNumber}</span> {number}
+                    <span className="font-semibold"> رقم السند:</span> {number}
+                  </p>
+                  <p>
+                    <span className="font-semibold">الرقم الضريبي:</span> {companyInfo.taxNumber}
                   </p>
                   <p>
                     <span className="font-semibold">التاريخ:</span> {date}
