@@ -619,6 +619,7 @@ const ReceiptVoucher: React.FC<ReceiptVoucherProps> = ({ title }) => {
             amount: voucherData.amount,
             receivedFrom: voucherData.entity.name,
             description: voucherData.description,
+            paymentMethod: voucherData.paymentMethod,
             userName: User?.fullName || User?.name || "غير محدد",
             branchName: typeof User?.branch === 'string' ? User.branch : User?.branch?.name || "غير محدد",
           }}

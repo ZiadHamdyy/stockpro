@@ -13,6 +13,7 @@ interface ReceiptVoucherPrintPreviewProps {
     amount: number;
     receivedFrom: string;
     description: string;
+    paymentMethod: "safe" | "bank";
     userName: string | { name: string };
     branchName: string | { name: string };
   };
@@ -53,6 +54,7 @@ const ReceiptVoucherPrintPreview: React.FC<ReceiptVoucherPrintPreviewProps> = ({
     amount,
     receivedFrom,
     description,
+    paymentMethod,
     userName,
     branchName,
   } = voucherData;
@@ -218,6 +220,12 @@ const ReceiptVoucherPrintPreview: React.FC<ReceiptVoucherPrintPreviewProps> = ({
                   <label className="font-bold w-48">وذلك عن:</label>
                   <span className="border-b-2 border-dotted border-gray-400 flex-grow px-2">
                     {description}
+                  </span>
+                </div>
+                <div className="flex items-center">
+                  <label className="font-bold w-48">طريقة الدفع:</label>
+                  <span className="border-b-2 border-dotted border-gray-400 flex-grow px-2 font-semibold">
+                    {paymentMethod === "safe" ? "نقداً (خزنة)" : "شيك (بنك)"}
                   </span>
                 </div>
               </main>
