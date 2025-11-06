@@ -57,6 +57,7 @@ const PaymentVoucher: React.FC<PaymentVoucherProps> = ({ title }) => {
 
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [isSearchModalOpen, setIsSearchModalOpen] = useState(false);
+  const [shouldResetOnClose, setShouldResetOnClose] = useState(false);
 
   useEffect(() => {
     // Initialize with a new voucher on mount
@@ -500,7 +501,8 @@ const PaymentVoucher: React.FC<PaymentVoucherProps> = ({ title }) => {
                         navigate(savedIndex);
                       }
                     }, 300);
-                    // Open print preview
+                    // Open print preview and mark for reset on close
+                    setShouldResetOnClose(true);
                     setIsPreviewOpen(true);
                   }
                 }}
@@ -590,7 +592,10 @@ const PaymentVoucher: React.FC<PaymentVoucherProps> = ({ title }) => {
               }
             >
               <button
-                onClick={() => setIsPreviewOpen(true)}
+                onClick={() => {
+                  setShouldResetOnClose(false);
+                  setIsPreviewOpen(true);
+                }}
                 className="px-4 py-2 bg-gray-200 text-brand-dark rounded-md hover:bg-gray-300 font-semibold flex items-center"
               >
                 <PrintIcon className="mr-2 w-5 h-5" /> معاينة وطباعة
@@ -654,7 +659,13 @@ const PaymentVoucher: React.FC<PaymentVoucherProps> = ({ title }) => {
       {companyInfo && (
         <PaymentVoucherPrintPreview
           isOpen={isPreviewOpen}
-          onClose={() => setIsPreviewOpen(false)}
+          onClose={() => {
+            setIsPreviewOpen(false);
+            if (shouldResetOnClose) {
+              handleNew();
+              setShouldResetOnClose(false);
+            }
+          }}
           voucherData={{
             number: voucherData.number,
             date: voucherData.date,

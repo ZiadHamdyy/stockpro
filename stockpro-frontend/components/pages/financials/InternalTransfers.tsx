@@ -44,6 +44,7 @@ const InternalTransfers: React.FC<InternalTransfersProps> = ({ title }) => {
 
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [isSearchModalOpen, setIsSearchModalOpen] = useState(false);
+  const [shouldResetOnClose, setShouldResetOnClose] = useState(false);
   const [previewVoucherData, setPreviewVoucherData] = useState<{
     number: string;
     date: string;
@@ -451,7 +452,8 @@ const InternalTransfers: React.FC<InternalTransfersProps> = ({ title }) => {
                         description: savedVoucher.description || "",
                       });
                       
-                      // Open print preview immediately with saved data
+                      // Open print preview immediately with saved data and mark for reset on close
+                      setShouldResetOnClose(true);
                       setIsPreviewOpen(true);
                       
                       // Refetch vouchers and find index for navigation (async, non-blocking)
@@ -556,7 +558,10 @@ const InternalTransfers: React.FC<InternalTransfersProps> = ({ title }) => {
                 }
               >
                 <button
-                  onClick={() => setIsPreviewOpen(true)}
+                  onClick={() => {
+                    setShouldResetOnClose(false);
+                    setIsPreviewOpen(true);
+                  }}
                   className="px-4 py-2 bg-gray-200 text-brand-dark rounded-md hover:bg-gray-300 font-semibold flex items-center"
                 >
                   <PrintIcon className="mr-2 w-5 h-5" /> معاينة وطباعة
@@ -640,6 +645,10 @@ const InternalTransfers: React.FC<InternalTransfersProps> = ({ title }) => {
           onClose={() => {
             setIsPreviewOpen(false);
             setPreviewVoucherData(null);
+            if (shouldResetOnClose) {
+              handleNew();
+              setShouldResetOnClose(false);
+            }
           }}
           voucherData={previewVoucherData}
         />
@@ -647,7 +656,13 @@ const InternalTransfers: React.FC<InternalTransfersProps> = ({ title }) => {
       {companyInfo && !previewVoucherData && (
         <InternalTransferPrintPreview
           isOpen={isPreviewOpen}
-          onClose={() => setIsPreviewOpen(false)}
+          onClose={() => {
+            setIsPreviewOpen(false);
+            if (shouldResetOnClose) {
+              handleNew();
+              setShouldResetOnClose(false);
+            }
+          }}
           voucherData={{
             number: transferData.number || "",
             date: transferData.date || "",
