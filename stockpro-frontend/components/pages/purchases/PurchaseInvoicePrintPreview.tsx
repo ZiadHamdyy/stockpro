@@ -1,7 +1,6 @@
 import React from "react";
 import type { InvoiceItem } from "../../../types";
 import { tafqeet } from "../../../utils/tafqeet";
-import { generateZatcaBase64 } from "../../../utils/qrCodeGenerator";
 import { PrintIcon, XIcon } from "../../icons";
 import { useGetCompanyQuery } from "../../store/slices/companyApiSlice";
 import { formatMoney } from "../../../utils/formatting";
@@ -9,6 +8,7 @@ import { formatMoney } from "../../../utils/formatting";
 interface PurchaseInvoicePrintPreviewProps {
   isOpen: boolean;
   onClose: () => void;
+  isReturn?: boolean;
   invoiceData: {
     vatRate: number;
     isVatEnabled: boolean;
@@ -27,7 +27,7 @@ interface PurchaseInvoicePrintPreviewProps {
 
 const PurchaseInvoicePrintPreview: React.FC<
   PurchaseInvoicePrintPreviewProps
-> = ({ isOpen, onClose, invoiceData }) => {
+> = ({ isOpen, onClose, isReturn = false, invoiceData }) => {
   const { data: companyInfo, isLoading, error } = useGetCompanyQuery();
 
   if (!isOpen) return null;
@@ -150,14 +150,7 @@ const PurchaseInvoicePrintPreview: React.FC<
     }
   };
 
-  const qrData = generateZatcaBase64(
-    companyInfo.name,
-    companyInfo.taxNumber,
-    new Date(details.invoiceDate).toISOString(),
-    totals.net.toFixed(2),
-    totals.tax.toFixed(2),
-  );
-  const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?data=${encodeURIComponent(qrData)}&size=128x128&margin=0`;
+  
 
   return (
     <div
@@ -213,7 +206,7 @@ const PurchaseInvoicePrintPreview: React.FC<
               </div>
               <div className="text-left">
                 <h1 className="text-3xl font-bold text-brand-green">
-                  فاتورة مشتريات
+                  {isReturn ? 'مرتجع مشتريات' : 'فاتورة مشتريات'}
                 </h1>
                 <p>Purchase Invoice</p>
               </div>
@@ -305,12 +298,7 @@ const PurchaseInvoicePrintPreview: React.FC<
             </table>
 
             <section className="flex justify-between items-start mt-4 gap-4">
-              <div className="w-1/2">
-                {isVatEnabled && qrData && (
-                  <img src={qrCodeUrl} alt="QR Code" className="w-28 h-28" />
-                )}
-              </div>
-              <div className="w-1/2 text-sm">
+              <div className="w-full text-sm">
                 <table className="w-full border-collapse border border-gray-300">
                   <tbody>
                     <tr>

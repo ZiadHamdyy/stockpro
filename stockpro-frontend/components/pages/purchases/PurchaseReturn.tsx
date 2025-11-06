@@ -1324,6 +1324,7 @@ const PurchaseReturn: React.FC<PurchaseReturnProps> = ({
               setIsPreviewOpen(false);
               handleNew();
             }}
+            isReturn={true}
             invoiceData={{
               vatRate,
               isVatEnabled,
