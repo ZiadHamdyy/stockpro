@@ -11,6 +11,7 @@ import { formatMoney } from "../../../utils/formatting";
 interface InvoicePrintPreviewProps {
   isOpen: boolean;
   onClose: () => void;
+  isReturn?: boolean;
   invoiceData: {
     vatRate: number;
     isVatEnabled: boolean;
@@ -30,6 +31,7 @@ interface InvoicePrintPreviewProps {
 const InvoicePrintPreview: React.FC<InvoicePrintPreviewProps> = ({
   isOpen,
   onClose,
+  isReturn = false,
   invoiceData,
 }) => {
   const { data: companyInfo, isLoading, error } = useGetCompanyQuery();
@@ -95,8 +97,8 @@ const InvoicePrintPreview: React.FC<InvoicePrintPreviewProps> = ({
           </div>
         </div>
         <div class="text-left">
-          <div class="text-3xl font-bold text-brand-blue">${!originalIsVatEnabled ? 'فاتورة مبيعات' : (customer?.taxNumber ? 'فاتورة ضريبية' : 'فاتورة ضريبية مبسطة')}</div>
-          <div class="text-sm">Tax Invoice</div>
+          <div class="text-3xl font-bold text-brand-blue">${isReturn ? 'فاتورة ضريبية' : (!originalIsVatEnabled ? 'فاتورة مبيعات' : (customer?.taxNumber ? 'فاتورة ضريبية' : 'فاتورة ضريبية مبسطة'))}</div>
+          <div class="text-sm">Tax Invoice ${isReturn ? '<span class="text-gray-700">إشغار دائن</span>' : ''}</div>
         </div>
       </div>
     `;
@@ -268,13 +270,19 @@ const InvoicePrintPreview: React.FC<InvoicePrintPreviewProps> = ({
                           </div>
                           <div className="text-left">
                             <h1 className="text-3xl font-bold text-brand-blue">
-                              {!originalIsVatEnabled 
-                                ? "فاتورة مبيعات"
-                                : (customer?.taxNumber 
-                                    ? "فاتورة ضريبية" 
-                                    : "فاتورة ضريبية مبسطة")}
+                              {isReturn
+                                ? "فاتورة ضريبية"
+                                : (!originalIsVatEnabled 
+                                    ? "فاتورة مبيعات"
+                                    : (customer?.taxNumber 
+                                        ? "فاتورة ضريبية" 
+                                        : "فاتورة ضريبية مبسطة"))}
                             </h1>
-                            <p>Tax Invoice</p>
+                            <p>
+                              {isReturn && (
+                                <span className="text-sm text-gray-700">إشغار دائن</span>
+                              )} Tax Invoice
+                            </p>
                           </div>
                         </header>
 

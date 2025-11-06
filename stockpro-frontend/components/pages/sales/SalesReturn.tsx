@@ -1302,27 +1302,42 @@ const SalesReturn: React.FC<SalesReturnProps> = ({
         onSelectRow={handleSelectReturnFromSearch}
         colorTheme="blue"
       />
-      <InvoicePrintPreview
-        isOpen={isPreviewOpen}
-        onClose={() => {
-          setIsPreviewOpen(false);
-          handleNew();
-        }}
-        invoiceData={{
-          vatRate,
-          isVatEnabled,
-          items: returnItems.filter((i) => i.id && i.name && i.qty > 0),
-          totals,
-          paymentMethod,
-          customer: selectedCustomer,
-          // FIX: Pass userName and branchName to print preview.
-          details: {
-            ...invoiceDetails,
-            userName: currentUser?.fullName || "غير محدد",
-            branchName: currentUser?.branch || "غير محدد",
-          },
-        }}
-      />
+      {(() => {
+        const fullCustomer = selectedCustomer
+          ? (customers as any[]).find((c) => c.id === selectedCustomer.id)
+          : null;
+        const printCustomer = selectedCustomer
+          ? {
+              id: selectedCustomer.id,
+              name: selectedCustomer.name,
+              address: fullCustomer?.nationalAddress || fullCustomer?.address || undefined,
+              taxNumber: fullCustomer?.taxNumber || undefined,
+            }
+          : null;
+        return (
+          <InvoicePrintPreview
+            isOpen={isPreviewOpen}
+            onClose={() => {
+              setIsPreviewOpen(false);
+              handleNew();
+            }}
+            isReturn={true}
+            invoiceData={{
+              vatRate,
+              isVatEnabled,
+              items: returnItems.filter((i) => i.id && i.name && i.qty > 0),
+              totals,
+              paymentMethod,
+              customer: printCustomer,
+              details: {
+                ...invoiceDetails,
+                userName: currentUser?.fullName || "غير محدد",
+                branchName: currentUser?.branch || "غير محدد",
+              },
+            }}
+          />
+        );
+      })()}
     </>
   );
 };
