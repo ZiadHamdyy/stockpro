@@ -257,11 +257,7 @@ const DataTableModal: React.FC<DataTableModalProps> = ({
                           displayValue = formatNumber(Math.abs(value));
                         }
 
-                        const isDebit =
-                          isBalanceColumn &&
-                          typeof value === "number" &&
-                          value > 0;
-                        const isCredit =
+                        const isNegativeBalance =
                           isBalanceColumn &&
                           typeof value === "number" &&
                           value < 0;
@@ -269,7 +265,7 @@ const DataTableModal: React.FC<DataTableModalProps> = ({
                         return (
                           <td
                             key={col.accessor}
-                            className={`px-6 py-4 whitespace-nowrap text-sm text-brand-text border border-gray-300 ${isDebit ? "text-red-600" : ""} ${isCredit ? "text-green-600" : ""} ${isBalanceColumn ? "font-bold" : ""}`}
+                            className={`px-6 py-4 whitespace-nowrap text-sm text-brand-text border border-gray-300 ${isNegativeBalance ? "text-red-600" : ""} ${isBalanceColumn ? "font-bold" : ""}`}
                           >
                             {displayValue}
                           </td>
@@ -290,10 +286,11 @@ const DataTableModal: React.FC<DataTableModalProps> = ({
                       {columns.slice(firstTotalColIndex).map((col) => {
                         if (totalableColumns.includes(col.accessor)) {
                           const total = totals[col.accessor];
+                          const isNegativeTotal = total < 0;
                           return (
                             <td
                               key={`total-${col.accessor}`}
-                              className={`px-6 py-3 text-right border border-gray-300 ${total >= 0 ? "text-red-600" : "text-green-600"}`}
+                              className={`px-6 py-3 text-right border border-gray-300 ${isNegativeTotal ? "text-red-600" : ""}`}
                             >
                               {formatNumber(Math.abs(total))}
                             </td>
