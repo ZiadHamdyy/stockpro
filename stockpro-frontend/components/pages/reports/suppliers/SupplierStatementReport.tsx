@@ -7,7 +7,7 @@ import type {
   Voucher,
 } from "../../../../types";
 import { ExcelIcon, PdfIcon, PrintIcon, SearchIcon } from "../../../icons";
-import ReportHeader from "../ReportHeader";
+import InvoiceHeader from "../../../common/InvoiceHeader";
 import { formatNumber } from "../../../../utils/formatting";
 import { useGetSuppliersQuery } from "../../../store/slices/supplier/supplierApiSlice";
 import { useGetPurchaseInvoicesQuery } from "../../../store/slices/purchaseInvoice/purchaseInvoiceApiSlice";
@@ -314,7 +314,12 @@ const SupplierStatementReport: React.FC<SupplierStatementReportProps> = ({
   return (
     <div className="bg-white p-6 rounded-lg shadow">
       <div id="printable-area">
-        <ReportHeader title={title} companyInfo={companyInfo} />
+        <div className="border-2 border-brand-blue rounded-lg mb-4">
+          <InvoiceHeader
+            branchName={typeof currentUser?.branch === 'string' ? currentUser.branch : (currentUser?.branch as any)?.name}
+            userName={currentUser?.fullName || currentUser?.name}
+          />
+        </div>
         <div className="px-6 py-2 text-sm print:block hidden border-t-2 mt-2 space-y-1">
           <p>
             <strong>المورد:</strong> {selectedSupplierName}
