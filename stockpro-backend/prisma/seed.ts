@@ -266,23 +266,23 @@ async function main() {
   // Create roles
   const roles = [
     {
-      name: 'manager',
-      description: 'System administrator with full access to all features',
+      name: 'مدير',
+      description: 'مدير النظام مع صلاحيات كاملة للوصول إلى جميع الميزات والوظائف',
       isSystem: true,
     },
     {
-      name: 'accountant',
-      description: 'Accountant with access to financial operations',
+      name: 'محاسب',
+      description: 'محاسب مع صلاحيات الوصول إلى العمليات المالية والتقارير المحاسبية',
       isSystem: true,
     },
     {
-      name: 'salesperson',
-      description: 'Salesperson with access to sales operations',
+      name: 'بائع',
+      description: 'بائع مع صلاحيات الوصول إلى عمليات المبيعات والعملاء',
       isSystem: true,
     },
     {
-      name: 'data_entry',
-      description: 'Data entry operator with access to warehouse and items',
+      name: 'مدخل بيانات',
+      description: 'مدخل بيانات مع صلاحيات الوصول إلى إدارة المخازن والأصناف',
       isSystem: true,
     },
   ];
