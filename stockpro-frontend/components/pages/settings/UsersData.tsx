@@ -293,7 +293,7 @@ const UsersData: React.FC<UsersDataProps> = ({ title }) => {
                         >
                           {user.active ? "نشط" : "غير نشط"}
                         </span>
-                        <label className="relative inline-flex items-center cursor-pointer flex-shrink-0">
+                        <label className="no-print relative inline-flex items-center cursor-pointer flex-shrink-0">
                           <input
                             type="checkbox"
                             checked={user.active}
