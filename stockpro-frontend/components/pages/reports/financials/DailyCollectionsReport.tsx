@@ -232,7 +232,7 @@ const DailyCollectionsReport: React.FC<DailyCollectionsReportProps> = ({
               {filteredVouchers.map((voucher, index) => (
                 <tr key={voucher.id} className="hover:bg-brand-blue-bg">
                   <td className="px-6 py-4">{index + 1}</td>
-                  <td className="px-6 py-4">{voucher.date}</td>
+                  <td className="px-6 py-4">{voucher.date.substring(0, 10)}</td>
                   <td className="px-6 py-4 font-medium text-brand-dark">
                     {voucher.id}
                   </td>
@@ -247,8 +247,8 @@ const DailyCollectionsReport: React.FC<DailyCollectionsReportProps> = ({
                 </tr>
               ))}
             </tbody>
-            <tfoot className="bg-gray-100">
-              <tr className="font-bold text-brand-dark">
+            <tfoot className="bg-brand-blue">
+              <tr className="font-bold text-white">
                 <td colSpan={5} className="px-6 py-3 text-right">
                   الإجمالي
                 </td>

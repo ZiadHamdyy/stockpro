@@ -433,7 +433,7 @@ const SupplierStatementReport: React.FC<SupplierStatementReportProps> = ({
               </tr>
               {reportData.map((item, index) => (
                 <tr key={index} className="hover:bg-brand-blue-bg">
-                  <td className="px-6 py-4">{item.date}</td>
+                  <td className="px-6 py-4">{item.date.substring(0, 10)}</td>
                   <td className="px-6 py-4 font-medium text-brand-dark">
                     {item.description}{" "}
                     {item.link ? (
@@ -466,15 +466,15 @@ const SupplierStatementReport: React.FC<SupplierStatementReportProps> = ({
                 </tr>
               ))}
             </tbody>
-            <tfoot className="bg-gray-100">
-              <tr className="font-bold text-brand-dark">
+            <tfoot className="bg-brand-blue">
+              <tr className="font-bold text-white">
                 <td colSpan={2} className="px-6 py-3 text-right">
                   الإجمالي
                 </td>
-                <td className="px-6 py-3 text-right text-green-600">
+                <td className="px-6 py-3 text-right">
                   {formatNumber(totalDebit)}
                 </td>
-                <td className="px-6 py-3 text-right text-red-600">
+                <td className="px-6 py-3 text-right">
                   {formatNumber(totalCredit)}
                 </td>
                 <td className="px-6 py-3 text-right">

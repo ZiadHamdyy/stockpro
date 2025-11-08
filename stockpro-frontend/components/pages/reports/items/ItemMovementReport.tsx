@@ -282,6 +282,7 @@ const ItemMovementReport: React.FC<ItemMovementReportProps> = ({
     // --- Report Data Calculation for the period ---
     type Transaction = {
       date: string;
+      branch: string;
       type: string;
       ref: string;
       inward: number;
@@ -303,10 +304,12 @@ const ItemMovementReport: React.FC<ItemMovementReportProps> = ({
           ? tx.branchName === selectedBranch
           : tx.branch === selectedBranch);
       if (branchMatches && tx.date >= startDate && tx.date <= endDate) {
+        const branchName = isInvoice ? tx.branchName : tx.branch;
         tx.items.forEach((item: any) => {
           if (item.id === itemCode) {
             transactions.push({
               date: tx.date,
+              branch: branchName || "",
               type: type,
               ref: tx.id,
               inward: factor > 0 ? item.qty : 0,
@@ -386,6 +389,7 @@ const ItemMovementReport: React.FC<ItemMovementReportProps> = ({
             ) {
               transactions.push({
                 date: v.date,
+                branch: fromStore?.branch?.name || "",
                 type: `تحويل من ${v.fromStore}`,
                 ref: v.id,
                 inward: 0,
@@ -399,6 +403,7 @@ const ItemMovementReport: React.FC<ItemMovementReportProps> = ({
             ) {
               transactions.push({
                 date: v.date,
+                branch: toStore?.branch?.name || "",
                 type: `تحويل إلى ${v.toStore}`,
                 ref: v.id,
                 inward: item.qty,
@@ -617,6 +622,9 @@ const ItemMovementReport: React.FC<ItemMovementReportProps> = ({
                   التاريخ
                 </th>
                 <th className="px-6 py-3 text-right text-sm font-semibold text-white uppercase">
+                  الفرع
+                </th>
+                <th className="px-6 py-3 text-right text-sm font-semibold text-white uppercase">
                   نوع الحركة
                 </th>
                 <th className="px-6 py-3 text-right text-sm font-semibold text-white uppercase">
@@ -635,16 +643,19 @@ const ItemMovementReport: React.FC<ItemMovementReportProps> = ({
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
               <tr className="bg-gray-50">
-                <td colSpan={5} className="px-6 py-3 font-bold">
+                <td colSpan={6} className="px-6 py-3 font-bold">
                   رصيد أول المدة
                 </td>
                 <td className="px-6 py-3 font-bold">
-                  {formatNumber(openingBalance)}
+                  {formatNumber(openingBalance)}<th className="px-6 py-3 text-right text-sm font-semibold text-white uppercase">
+                  الفرع
+                </th>
                 </td>
               </tr>
               {reportData.map((item, index) => (
                 <tr key={index} className="hover:bg-brand-blue-bg">
-                  <td className="px-6 py-4">{item.date}</td>
+                  <td className="px-6 py-4">{item.date.substring(0, 10)}</td>
+                  <td className="px-6 py-4">{item.branch}</td>
                   <td className="px-6 py-4 font-medium text-brand-dark">
                     {item.type}
                   </td>
@@ -660,12 +671,12 @@ const ItemMovementReport: React.FC<ItemMovementReportProps> = ({
                         }
                         className="text-brand-blue hover:underline font-semibold no-print"
                       >
-                        {item.ref}
+                        {selectedItem?.code || ""}
                       </button>
                     ) : (
-                      item.ref
+                      selectedItem?.code || ""
                     )}
-                    <span className="print:inline hidden">{item.ref}</span>
+                    <span className="print:inline hidden">{selectedItem?.code || ""}</span>
                   </td>
                   <td className="px-6 py-4 text-green-600">
                     {formatNumber(item.inward)}
@@ -679,15 +690,15 @@ const ItemMovementReport: React.FC<ItemMovementReportProps> = ({
                 </tr>
               ))}
             </tbody>
-            <tfoot className="bg-gray-100">
-              <tr className="font-bold text-brand-dark">
-                <td colSpan={3} className="px-6 py-3 text-right">
+            <tfoot className="bg-brand-blue">
+              <tr className="font-bold text-white">
+                <td colSpan={4} className="px-6 py-3 text-right">
                   الإجمالي
                 </td>
-                <td className="px-6 py-3 text-right text-green-600">
+                <td className="px-6 py-3 text-right">
                   {formatNumber(totalInward)}
                 </td>
-                <td className="px-6 py-3 text-right text-red-600">
+                <td className="px-6 py-3 text-right">
                   {formatNumber(totalOutward)}
                 </td>
                 <td className="px-6 py-3 text-right">
