@@ -285,6 +285,7 @@ const ItemMovementReport: React.FC<ItemMovementReportProps> = ({
       branch: string;
       type: string;
       ref: string;
+      code: string;
       inward: number;
       outward: number;
       link: { page: string; label: string } | null;
@@ -305,6 +306,9 @@ const ItemMovementReport: React.FC<ItemMovementReportProps> = ({
           : tx.branch === selectedBranch);
       if (branchMatches && tx.date >= startDate && tx.date <= endDate) {
         const branchName = isInvoice ? tx.branchName : tx.branch;
+        // For sales/purchase invoices and returns, use 'code' field
+        // For warehouse vouchers, use 'voucherNumber' field
+        const displayCode = tx.code || tx.voucherNumber || tx.id;
         tx.items.forEach((item: any) => {
           if (item.id === itemCode) {
             transactions.push({
@@ -312,6 +316,7 @@ const ItemMovementReport: React.FC<ItemMovementReportProps> = ({
               branch: branchName || "",
               type: type,
               ref: tx.id,
+              code: displayCode,
               inward: factor > 0 ? item.qty : 0,
               outward: factor < 0 ? item.qty : 0,
               link: linkInfo,
@@ -381,6 +386,7 @@ const ItemMovementReport: React.FC<ItemMovementReportProps> = ({
       if (v.date >= startDate && v.date <= endDate) {
         const fromStore = stores.find((s) => s.name === v.fromStore);
         const toStore = stores.find((s) => s.name === v.toStore);
+        const displayCode = v.voucherNumber || v.id;
         v.items.forEach((item: any) => {
           if (item.id === itemCode) {
             if (
@@ -392,6 +398,7 @@ const ItemMovementReport: React.FC<ItemMovementReportProps> = ({
                 branch: fromStore?.branch?.name || "",
                 type: `تحويل من ${v.fromStore}`,
                 ref: v.id,
+                code: displayCode,
                 inward: 0,
                 outward: item.qty,
                 link: { page: "store_transfer", label: "تحويل مخزني" },
@@ -406,6 +413,7 @@ const ItemMovementReport: React.FC<ItemMovementReportProps> = ({
                 branch: toStore?.branch?.name || "",
                 type: `تحويل إلى ${v.toStore}`,
                 ref: v.id,
+                code: displayCode,
                 inward: item.qty,
                 outward: 0,
                 link: { page: "store_transfer", label: "تحويل مخزني" },
@@ -665,18 +673,18 @@ const ItemMovementReport: React.FC<ItemMovementReportProps> = ({
                         onClick={() =>
                           onNavigate(
                             item.link.page,
-                            `${item.link.label} #${item.ref}`,
+                            `${item.link.label} #${item.code}`,
                             item.ref,
                           )
                         }
                         className="text-brand-blue hover:underline font-semibold no-print"
                       >
-                        {selectedItem?.code || ""}
+                        {item.code}
                       </button>
                     ) : (
-                      selectedItem?.code || ""
+                      item.code
                     )}
-                    <span className="print:inline hidden">{selectedItem?.code || ""}</span>
+                    <span className="print:inline hidden">{item.code}</span>
                   </td>
                   <td className="px-6 py-4 text-green-600">
                     {formatNumber(item.inward)}

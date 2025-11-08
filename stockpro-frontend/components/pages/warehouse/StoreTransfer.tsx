@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { useSelector, useDispatch } from "react-redux";
+import { useSearchParams } from "react-router-dom";
 import DataTableModal from "../../common/DataTableModal";
 import { ListIcon, PrintIcon, SearchIcon, TrashIcon } from "../../icons";
 import PermissionWrapper from "../../common/PermissionWrapper";
@@ -75,6 +76,8 @@ const DocumentHeader: React.FC<{ companyInfo: CompanyInfo }> = ({
 );
 
 const StoreTransfer: React.FC<StoreTransferProps> = ({ title }) => {
+  const [searchParams, setSearchParams] = useSearchParams();
+  
   // Redux API hooks
   const { data: companyInfo } = useGetCompanyQuery();
   const { data: branches = [] } = useGetBranchesQuery();
@@ -172,6 +175,22 @@ const StoreTransfer: React.FC<StoreTransferProps> = ({ title }) => {
   useEffect(() => {
     handleNewRef.current = handleNew;
   }, [handleNew]);
+
+  // Handle voucherId from URL query params
+  useEffect(() => {
+    const voucherId = searchParams.get("voucherId");
+    if (voucherId && vouchers.length > 0 && !isLoadingVouchers) {
+      const index = vouchers.findIndex(
+        (v) => v.id === voucherId || v.voucherNumber === voucherId
+      );
+      if (index !== -1 && index !== currentIndex) {
+        setCurrentIndex(index);
+        // Remove the query param after setting the index
+        searchParams.delete("voucherId");
+        setSearchParams(searchParams, { replace: true });
+      }
+    }
+  }, [vouchers, isLoadingVouchers, searchParams, setSearchParams, currentIndex]);
 
   useEffect(() => {
     if (currentIndex >= 0 && vouchers[currentIndex]) {

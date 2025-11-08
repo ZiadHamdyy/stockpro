@@ -7,6 +7,7 @@ import {
   useNavigate,
   useParams,
   useLocation,
+  useSearchParams,
 } from "react-router-dom";
 import { Provider } from "react-redux";
 import { PersistGate } from "redux-persist/integration/react";
@@ -244,6 +245,154 @@ const AddCurrentAccountWrapper = ({
       title={title}
       editingId={id || null}
       onNavigate={onNavigate}
+    />
+  );
+};
+
+// Wrapper component to handle URL-based viewing for SalesInvoice
+const SalesInvoiceWrapper = ({
+  title,
+  currentUser,
+}: {
+  title: string;
+  currentUser: User | null;
+}) => {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const invoiceId = searchParams.get("invoiceId");
+  const [viewingId, setViewingId] = useState<string | number | null>(null);
+
+  useEffect(() => {
+    if (invoiceId) {
+      // Convert to number if it's a numeric string, otherwise keep as string
+      const id = isNaN(Number(invoiceId)) ? invoiceId : Number(invoiceId);
+      setViewingId(id);
+      // Remove the query param after setting viewingId
+      searchParams.delete("invoiceId");
+      setSearchParams(searchParams, { replace: true });
+    }
+  }, [invoiceId, searchParams, setSearchParams]);
+
+  const handleClearViewingId = () => {
+    setViewingId(null);
+  };
+
+  return (
+    <SalesInvoice
+      title={title}
+      currentUser={currentUser}
+      viewingId={viewingId}
+      onClearViewingId={handleClearViewingId}
+    />
+  );
+};
+
+// Wrapper component to handle URL-based viewing for SalesReturn
+const SalesReturnWrapper = ({
+  title,
+  currentUser,
+}: {
+  title: string;
+  currentUser: User | null;
+}) => {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const returnId = searchParams.get("returnId");
+  const [viewingId, setViewingId] = useState<string | number | null>(null);
+
+  useEffect(() => {
+    if (returnId) {
+      // Convert to number if it's a numeric string, otherwise keep as string
+      const id = isNaN(Number(returnId)) ? returnId : Number(returnId);
+      setViewingId(id);
+      // Remove the query param after setting viewingId
+      searchParams.delete("returnId");
+      setSearchParams(searchParams, { replace: true });
+    }
+  }, [returnId, searchParams, setSearchParams]);
+
+  const handleClearViewingId = () => {
+    setViewingId(null);
+  };
+
+  return (
+    <SalesReturn
+      title={title}
+      currentUser={currentUser}
+      viewingId={viewingId}
+      onClearViewingId={handleClearViewingId}
+    />
+  );
+};
+
+// Wrapper component to handle URL-based viewing for PurchaseInvoice
+const PurchaseInvoiceWrapper = ({
+  title,
+  currentUser,
+}: {
+  title: string;
+  currentUser: User | null;
+}) => {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const invoiceId = searchParams.get("invoiceId");
+  const [viewingId, setViewingId] = useState<string | number | null>(null);
+
+  useEffect(() => {
+    if (invoiceId) {
+      // Convert to number if it's a numeric string, otherwise keep as string
+      const id = isNaN(Number(invoiceId)) ? invoiceId : Number(invoiceId);
+      setViewingId(id);
+      // Remove the query param after setting viewingId
+      searchParams.delete("invoiceId");
+      setSearchParams(searchParams, { replace: true });
+    }
+  }, [invoiceId, searchParams, setSearchParams]);
+
+  const handleClearViewingId = () => {
+    setViewingId(null);
+  };
+
+  return (
+    <PurchaseInvoice
+      title={title}
+      currentUser={currentUser}
+      viewingId={viewingId}
+      onClearViewingId={handleClearViewingId}
+    />
+  );
+};
+
+// Wrapper component to handle URL-based viewing for PurchaseReturn
+const PurchaseReturnWrapper = ({
+  title,
+  currentUser,
+}: {
+  title: string;
+  currentUser: User | null;
+}) => {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const returnId = searchParams.get("returnId");
+  const [viewingId, setViewingId] = useState<string | number | null>(null);
+
+  useEffect(() => {
+    if (returnId) {
+      // Convert to number if it's a numeric string, otherwise keep as string
+      const id = isNaN(Number(returnId)) ? returnId : Number(returnId);
+      setViewingId(id);
+      // Remove the query param after setting viewingId
+      searchParams.delete("returnId");
+      setSearchParams(searchParams, { replace: true });
+    }
+  }, [returnId, searchParams, setSearchParams]);
+
+  const handleClearViewingId = () => {
+    setViewingId(null);
+  };
+
+  return (
+    <PurchaseReturn
+      title={title}
+      currentUser={currentUser}
+      viewingId={viewingId}
+      onClearViewingId={handleClearViewingId}
     />
   );
 };
@@ -650,11 +799,9 @@ const AppContent = () => {
               path="/sales/invoice"
               element={
                 <ProtectedRoute requiredPermission="sales_invoice-read">
-                  <SalesInvoice
+                  <SalesInvoiceWrapper
                     title={currentPageTitle}
                     currentUser={currentUser}
-                    viewingId={null}
-                    onClearViewingId={() => {}}
                   />
                 </ProtectedRoute>
               }
@@ -663,11 +810,9 @@ const AppContent = () => {
               path="/sales/return"
               element={
                 <ProtectedRoute requiredPermission="sales_return-read">
-                  <SalesReturn
+                  <SalesReturnWrapper
                     title={currentPageTitle}
                     currentUser={currentUser}
-                    viewingId={null}
-                    onClearViewingId={() => {}}
                   />
                 </ProtectedRoute>
               }
@@ -694,11 +839,9 @@ const AppContent = () => {
               path="/purchases/invoice"
               element={
                 <ProtectedRoute requiredPermission="purchase_invoice-read">
-                  <PurchaseInvoice
+                  <PurchaseInvoiceWrapper
                     title={currentPageTitle}
                     currentUser={currentUser}
-                    viewingId={null}
-                    onClearViewingId={() => {}}
                   />
                 </ProtectedRoute>
               }
@@ -707,11 +850,9 @@ const AppContent = () => {
               path="/purchases/return"
               element={
                 <ProtectedRoute requiredPermission="purchase_return-read">
-                  <PurchaseReturn
+                  <PurchaseReturnWrapper
                     title={currentPageTitle}
                     currentUser={currentUser}
-                    viewingId={null}
-                    onClearViewingId={() => {}}
                   />
                 </ProtectedRoute>
               }
@@ -1006,7 +1147,23 @@ const AppContent = () => {
                   <ItemMovementReport
                     title={currentPageTitle}
                     companyInfo={companyInfo}
-                    onNavigate={() => {}}
+                    onNavigate={(key, label, id) => {
+                      if (key === "store_issue_voucher" && id) {
+                        navigate(`/warehouse/issue-voucher?voucherId=${id}`);
+                      } else if (key === "store_receipt_voucher" && id) {
+                        navigate(`/warehouse/receipt-voucher?voucherId=${id}`);
+                      } else if (key === "store_transfer" && id) {
+                        navigate(`/warehouse/transfer?voucherId=${id}`);
+                      } else if (key === "sales_invoice" && id) {
+                        navigate(`/sales/invoice?invoiceId=${id}`);
+                      } else if (key === "sales_return" && id) {
+                        navigate(`/sales/return?returnId=${id}`);
+                      } else if (key === "purchase_invoice" && id) {
+                        navigate(`/purchases/invoice?invoiceId=${id}`);
+                      } else if (key === "purchase_return" && id) {
+                        navigate(`/purchases/return?returnId=${id}`);
+                      }
+                    }}
                     currentUser={currentUser}
                   />
                 </ProtectedRoute>
