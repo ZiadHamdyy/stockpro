@@ -2,7 +2,7 @@ import React, { useState, useMemo, useCallback, useEffect } from "react";
 import type { CompanyInfo, User } from "../../../../types";
 import { ExcelIcon, PdfIcon, PrintIcon, SearchIcon } from "../../../icons";
 import InvoiceHeader from "../../../common/InvoiceHeader";
-import { formatNumber } from "../../../../utils/formatting";
+import { formatNumber, getNegativeNumberClass } from "../../../../utils/formatting";
 import { useGetItemsQuery } from "../../../store/slices/items/itemsApi";
 import { useGetBranchesQuery } from "../../../store/slices/branch/branchApi";
 import { useGetStoresQuery } from "../../../store/slices/store/storeApi";
@@ -408,7 +408,7 @@ const ItemBalanceReport: React.FC<ItemBalanceReportProps> = ({
                     {item.name}
                   </td>
                   <td className="px-6 py-4">{item.unit}</td>
-                  <td className="px-6 py-4 font-bold">
+                  <td className={`px-6 py-4 font-bold ${getNegativeNumberClass(item.balance)}`}>
                     {formatNumber(item.balance)}
                   </td>
                 </tr>

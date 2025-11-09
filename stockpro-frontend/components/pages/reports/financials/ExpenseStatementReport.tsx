@@ -5,7 +5,7 @@ import type {
 } from "../../../../types";
 import { ExcelIcon, PdfIcon, PrintIcon, SearchIcon } from "../../../icons";
 import InvoiceHeader from "../../../common/InvoiceHeader";
-import { formatNumber } from "../../../../utils/formatting";
+import { formatNumber, getNegativeNumberClass } from "../../../../utils/formatting";
 import { useGetExpenseCodesQuery } from "../../../store/slices/expense/expenseApiSlice";
 import { useGetExpensePaymentVouchersQuery } from "../../../store/slices/paymentVoucherApiSlice";
 import { useAuth } from "../../../hook/Auth";
@@ -289,10 +289,10 @@ const ExpenseStatementReport: React.FC<ExpenseStatementReportProps> = ({
                     {item.description}
                   </td>
                   <td className="px-6 py-4">{item.ref}</td>
-                  <td className="px-6 py-4 text-red-600">
+                  <td className={`px-6 py-4 text-red-600 ${getNegativeNumberClass(item.amount)}`}>
                     {formatNumber(item.amount)}
                   </td>
-                  <td className="px-6 py-4 font-bold">
+                  <td className={`px-6 py-4 font-bold ${getNegativeNumberClass(item.balance)}`}>
                     {formatNumber(item.balance)}
                   </td>
                 </tr>
@@ -303,10 +303,10 @@ const ExpenseStatementReport: React.FC<ExpenseStatementReportProps> = ({
                 <td colSpan={3} className="px-6 py-3 text-right">
                   الإجمالي
                 </td>
-                <td className="px-6 py-3 text-right">
+                <td className={`px-6 py-3 text-right ${getNegativeNumberClass(totalAmount)}`}>
                   {formatNumber(totalAmount)}
                 </td>
-                <td className="px-6 py-3 text-right">
+                <td className={`px-6 py-3 text-right ${getNegativeNumberClass(totalAmount)}`}>
                   {formatNumber(totalAmount)}
                 </td>
               </tr>

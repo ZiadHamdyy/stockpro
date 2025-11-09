@@ -2,7 +2,7 @@ import React, { useState, useMemo } from "react";
 import type { CompanyInfo, User, Voucher } from "../../../../types";
 import { ExcelIcon, PdfIcon, PrintIcon, SearchIcon } from "../../../icons";
 import InvoiceHeader from "../../../common/InvoiceHeader";
-import { formatNumber } from "../../../../utils/formatting";
+import { formatNumber, getNegativeNumberClass } from "../../../../utils/formatting";
 import { useGetPaymentVouchersQuery } from "../../../store/slices/paymentVoucherApiSlice";
 import { useAuth } from "../../../hook/Auth";
 
@@ -240,7 +240,7 @@ const DailyPaymentsReport: React.FC<DailyPaymentsReportProps> = ({
                   <td className="px-6 py-4">
                     {voucher.paymentMethod === "safe" ? "نقداً" : "بنك"}
                   </td>
-                  <td className="px-6 py-4 font-bold">
+                  <td className={`px-6 py-4 font-bold ${getNegativeNumberClass(voucher.amount)}`}>
                     {formatNumber(voucher.amount)}
                   </td>
                   <td className="px-6 py-4">{voucher.description}</td>
@@ -252,7 +252,7 @@ const DailyPaymentsReport: React.FC<DailyPaymentsReportProps> = ({
                 <td colSpan={5} className="px-6 py-3 text-right">
                   الإجمالي
                 </td>
-                <td className="px-6 py-3 text-right">
+                <td className={`px-6 py-3 text-right ${getNegativeNumberClass(totals.amount)}`}>
                   {formatNumber(totals.amount)}
                 </td>
                 <td></td>

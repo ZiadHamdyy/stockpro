@@ -2,7 +2,7 @@ import React, { useState, useMemo, useCallback, useEffect } from "react";
 import type { CompanyInfo, User } from "../../../../types";
 import { ExcelIcon, PdfIcon, PrintIcon, SearchIcon } from "../../../icons";
 import InvoiceHeader from "../../../common/InvoiceHeader";
-import { formatNumber } from "../../../../utils/formatting";
+import { formatNumber, getNegativeNumberClass } from "../../../../utils/formatting";
 import { useGetItemsQuery } from "../../../store/slices/items/itemsApi";
 import { useGetBranchesQuery } from "../../../store/slices/branch/branchApi";
 import { useGetStoresQuery } from "../../../store/slices/store/storeApi";
@@ -449,9 +449,9 @@ const InventoryValuationReport: React.FC<InventoryValuationReportProps> = ({
                     {item.name}
                   </td>
                   <td className="px-6 py-4">{item.unit}</td>
-                  <td className="px-6 py-4">{formatNumber(item.balance)}</td>
-                  <td className="px-6 py-4">{formatNumber(item.cost)}</td>
-                  <td className="px-6 py-4 font-bold">
+                  <td className={`px-6 py-4 ${getNegativeNumberClass(item.balance)}`}>{formatNumber(item.balance)}</td>
+                  <td className={`px-6 py-4 ${getNegativeNumberClass(item.cost)}`}>{formatNumber(item.cost)}</td>
+                  <td className={`px-6 py-4 font-bold ${getNegativeNumberClass(item.value)}`}>
                     {formatNumber(item.value)}
                   </td>
                 </tr>
@@ -462,7 +462,7 @@ const InventoryValuationReport: React.FC<InventoryValuationReportProps> = ({
                 <td colSpan={5} className="px-6 py-3 text-right">
                   إجمالي قيمة المخزون
                 </td>
-                <td className="px-6 py-3 text-right">
+                <td className={`px-6 py-3 text-right ${getNegativeNumberClass(totalValue)}`}>
                   {formatNumber(totalValue)}
                 </td>
               </tr>

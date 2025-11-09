@@ -2,7 +2,7 @@ import React, { useState, useMemo, useEffect } from "react";
 import type { CompanyInfo, Safe, User, Voucher } from "../../../../types";
 import { ExcelIcon, PdfIcon, PrintIcon, SearchIcon } from "../../../icons";
 import InvoiceHeader from "../../../common/InvoiceHeader";
-import { formatNumber } from "../../../../utils/formatting";
+import { formatNumber, getNegativeNumberClass } from "../../../../utils/formatting";
 import { useGetSafesQuery } from "../../../store/slices/safe/safeApiSlice";
 import { useGetInternalTransfersQuery } from "../../../store/slices/internalTransferApiSlice";
 
@@ -352,7 +352,7 @@ const SafeStatementReport: React.FC<SafeStatementReportProps> = ({
                 <td colSpan={5} className="px-6 py-3 font-bold">
                   رصيد أول المدة
                 </td>
-                <td className="px-6 py-3 font-bold">
+                <td className={`px-6 py-3 font-bold ${getNegativeNumberClass(openingBalance)}`}>
                   {formatNumber(openingBalance)}
                 </td>
               </tr>
@@ -363,13 +363,13 @@ const SafeStatementReport: React.FC<SafeStatementReportProps> = ({
                     {item.description}
                   </td>
                   <td className="px-6 py-4">{item.ref}</td>
-                  <td className="px-6 py-4 text-green-600">
+                  <td className={`px-6 py-4 text-green-600 ${getNegativeNumberClass(item.debit)}`}>
                     {formatNumber(item.debit)}
                   </td>
-                  <td className="px-6 py-4 text-red-600">
+                  <td className={`px-6 py-4 text-red-600 ${getNegativeNumberClass(item.credit)}`}>
                     {formatNumber(item.credit)}
                   </td>
-                  <td className="px-6 py-4 font-bold">
+                  <td className={`px-6 py-4 font-bold ${getNegativeNumberClass(item.balance)}`}>
                     {formatNumber(item.balance)}
                   </td>
                 </tr>
@@ -380,13 +380,13 @@ const SafeStatementReport: React.FC<SafeStatementReportProps> = ({
                 <td colSpan={3} className="px-6 py-3 text-right">
                   الإجمالي
                 </td>
-                <td className="px-6 py-3 text-right">
+                <td className={`px-6 py-3 text-right ${getNegativeNumberClass(totalDebit)}`}>
                   {formatNumber(totalDebit)}
                 </td>
-                <td className="px-6 py-3 text-right">
+                <td className={`px-6 py-3 text-right ${getNegativeNumberClass(totalCredit)}`}>
                   {formatNumber(totalCredit)}
                 </td>
-                <td className="px-6 py-3 text-right">
+                <td className={`px-6 py-3 text-right ${getNegativeNumberClass(finalBalance)}`}>
                   {formatNumber(finalBalance)}
                 </td>
               </tr>

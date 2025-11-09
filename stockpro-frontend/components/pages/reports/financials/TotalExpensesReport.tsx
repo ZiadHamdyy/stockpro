@@ -2,7 +2,7 @@ import React, { useMemo, useState, useCallback, useEffect } from "react";
 import type { CompanyInfo, User } from "../../../../types";
 import { ExcelIcon, PdfIcon, PrintIcon, SearchIcon } from "../../../icons";
 import InvoiceHeader from "../../../common/InvoiceHeader";
-import { formatNumber } from "../../../../utils/formatting";
+import { formatNumber, getNegativeNumberClass } from "../../../../utils/formatting";
 import { useGetExpensePaymentVouchersQuery } from "../../../store/slices/paymentVoucherApiSlice";
 import { useAuth } from "../../../hook/Auth";
 
@@ -238,12 +238,12 @@ const TotalExpensesReport: React.FC<TotalExpensesReportProps> = ({
                     {item.monthly.map((amount, index) => (
                       <td
                         key={index}
-                        className="px-4 py-4 text-center whitespace-nowrap"
+                        className={`px-4 py-4 text-center whitespace-nowrap ${getNegativeNumberClass(amount)}`}
                       >
                         {amount > 0 ? formatNumber(amount) : "-"}
                       </td>
                     ))}
-                    <td className="px-4 py-4 font-bold text-center whitespace-nowrap">
+                    <td className={`px-4 py-4 font-bold text-center whitespace-nowrap ${getNegativeNumberClass(itemTotal)}`}>
                       {formatNumber(itemTotal)}
                     </td>
                   </tr>
@@ -258,12 +258,12 @@ const TotalExpensesReport: React.FC<TotalExpensesReportProps> = ({
                 {monthlyTotals.map((total, index) => (
                   <td
                     key={index}
-                    className="px-4 py-3 text-center whitespace-nowrap"
+                    className={`px-4 py-3 text-center whitespace-nowrap ${getNegativeNumberClass(total)}`}
                   >
                     {formatNumber(total)}
                   </td>
                 ))}
-                <td className="px-4 py-3 text-center whitespace-nowrap">
+                <td className={`px-4 py-3 text-center whitespace-nowrap ${getNegativeNumberClass(grandTotal)}`}>
                   {formatNumber(grandTotal)}
                 </td>
               </tr>

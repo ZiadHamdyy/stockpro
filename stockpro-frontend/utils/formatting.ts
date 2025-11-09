@@ -46,6 +46,16 @@ export const formatNumber = (num: number): string => {
 };
 
 /**
+ * Returns the appropriate className for displaying numbers based on whether they are negative.
+ * Negative numbers will be styled in red.
+ * @param num The number to check
+ * @returns CSS className string (empty string if number is positive or zero)
+ */
+export const getNegativeNumberClass = (num: number): string => {
+  return num < 0 ? "text-red-600" : "";
+};
+
+/**
  * Formats a number as currency with commas and 2 decimal places for money display.
  * Example: 1000000 -> "1,000,000.00"
  * @param num The number to format

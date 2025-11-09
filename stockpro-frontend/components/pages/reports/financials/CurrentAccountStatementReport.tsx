@@ -7,7 +7,7 @@ import type {
 } from "../../../../types";
 import { ExcelIcon, PdfIcon, PrintIcon, SearchIcon } from "../../../icons";
 import InvoiceHeader from "../../../common/InvoiceHeader";
-import { formatNumber } from "../../../../utils/formatting";
+import { formatNumber, getNegativeNumberClass } from "../../../../utils/formatting";
 import { useGetCurrentAccountsQuery } from "../../../store/slices/currentAccounts/currentAccountsApi";
 
 interface CurrentAccountStatementReportProps {
@@ -305,7 +305,7 @@ const CurrentAccountStatementReport: React.FC<
                 <td colSpan={4} className="px-6 py-3 font-bold">
                   رصيد أول المدة
                 </td>
-                <td className="px-6 py-3 font-bold">
+                <td className={`px-6 py-3 font-bold ${getNegativeNumberClass(openingBalance)}`}>
                   {formatNumber(openingBalance)}
                 </td>
               </tr>
@@ -315,16 +315,14 @@ const CurrentAccountStatementReport: React.FC<
                   <td className="px-6 py-4 font-medium text-brand-dark">
                     {item.description} ({item.ref})
                   </td>
-                  <td className="px-6 py-4 text-red-600">
+                  <td className={`px-6 py-4 text-red-600 ${getNegativeNumberClass(item.debit)}`}>
                     {formatNumber(item.debit)}
                   </td>
-                  <td className="px-6 py-4 text-green-600">
+                  <td className={`px-6 py-4 text-green-600 ${getNegativeNumberClass(item.credit)}`}>
                     {formatNumber(item.credit)}
                   </td>
-                  <td
-                    className={`px-6 py-4 font-bold ${item.balance >= 0 ? "text-green-600" : "text-red-600"}`}
-                  >
-                    {formatNumber(Math.abs(item.balance))}
+                  <td className={`px-6 py-4 font-bold ${getNegativeNumberClass(item.balance)}`}>
+                    {formatNumber(item.balance)}
                   </td>
                 </tr>
               ))}
@@ -334,16 +332,14 @@ const CurrentAccountStatementReport: React.FC<
                 <td colSpan={2} className="px-6 py-3 text-right">
                   الإجمالي
                 </td>
-                <td className="px-6 py-3 text-right">
+                <td className={`px-6 py-3 text-right ${getNegativeNumberClass(totalDebit)}`}>
                   {formatNumber(totalDebit)}
                 </td>
-                <td className="px-6 py-3 text-right">
+                <td className={`px-6 py-3 text-right ${getNegativeNumberClass(totalCredit)}`}>
                   {formatNumber(totalCredit)}
                 </td>
-                <td
-                  className={`px-6 py-3 text-right ${finalBalance >= 0 ? "text-green-600" : "text-red-600"}`}
-                >
-                  {formatNumber(Math.abs(finalBalance))}
+                <td className={`px-6 py-3 text-right ${getNegativeNumberClass(finalBalance)}`}>
+                  {formatNumber(finalBalance)}
                 </td>
               </tr>
             </tfoot>

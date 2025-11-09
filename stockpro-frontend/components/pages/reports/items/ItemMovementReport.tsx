@@ -2,7 +2,7 @@ import React, { useState, useMemo, useCallback, useEffect } from "react";
 import type { CompanyInfo, User } from "../../../../types";
 import { ExcelIcon, PdfIcon, PrintIcon, SearchIcon } from "../../../icons";
 import InvoiceHeader from "../../../common/InvoiceHeader";
-import { formatNumber } from "../../../../utils/formatting";
+import { formatNumber, getNegativeNumberClass } from "../../../../utils/formatting";
 import { useGetItemsQuery } from "../../../store/slices/items/itemsApi";
 import { useGetBranchesQuery } from "../../../store/slices/branch/branchApi";
 import { useGetStoresQuery } from "../../../store/slices/store/storeApi";
@@ -654,10 +654,8 @@ const ItemMovementReport: React.FC<ItemMovementReportProps> = ({
                 <td colSpan={6} className="px-6 py-3 font-bold">
                   رصيد أول المدة
                 </td>
-                <td className="px-6 py-3 font-bold">
-                  {formatNumber(openingBalance)}<th className="px-6 py-3 text-right text-sm font-semibold text-white uppercase">
-                  الفرع
-                </th>
+                <td className={`px-6 py-3 font-bold ${getNegativeNumberClass(openingBalance)}`}>
+                  {formatNumber(openingBalance)}
                 </td>
               </tr>
               {reportData.map((item, index) => (
@@ -692,7 +690,7 @@ const ItemMovementReport: React.FC<ItemMovementReportProps> = ({
                   <td className="px-6 py-4 text-red-600">
                     {formatNumber(item.outward)}
                   </td>
-                  <td className="px-6 py-4 font-bold">
+                  <td className={`px-6 py-4 font-bold ${getNegativeNumberClass(item.balance)}`}>
                     {formatNumber(item.balance)}
                   </td>
                 </tr>
@@ -709,7 +707,7 @@ const ItemMovementReport: React.FC<ItemMovementReportProps> = ({
                 <td className="px-6 py-3 text-right">
                   {formatNumber(totalOutward)}
                 </td>
-                <td className="px-6 py-3 text-right">
+                <td className={`px-6 py-3 text-right ${getNegativeNumberClass(finalBalance)}`}>
                   {formatNumber(finalBalance)}
                 </td>
               </tr>

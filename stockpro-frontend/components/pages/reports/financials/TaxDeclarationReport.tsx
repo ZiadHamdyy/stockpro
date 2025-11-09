@@ -2,7 +2,7 @@ import React, { useState, useMemo, useEffect, useCallback } from "react";
 import type { CompanyInfo, Branch, User, Invoice } from "../../../../types";
 import { ExcelIcon, PdfIcon, PrintIcon, SearchIcon } from "../../../icons";
 import InvoiceHeader from "../../../common/InvoiceHeader";
-import { formatNumber } from "../../../../utils/formatting";
+import { formatNumber, getNegativeNumberClass } from "../../../../utils/formatting";
 import { useGetSalesInvoicesQuery } from "../../../store/slices/salesInvoice/salesInvoiceApiSlice";
 import { useGetSalesReturnsQuery } from "../../../store/slices/salesReturn/salesReturnApiSlice";
 import { useGetPurchaseInvoicesQuery } from "../../../store/slices/purchaseInvoice/purchaseInvoiceApiSlice";
@@ -372,20 +372,20 @@ const TaxDeclarationReport: React.FC<TaxDeclarationReportProps> = ({
               <tr>
                 <td className="px-4 py-3 text-center">1</td>
                 <td className="px-4 py-3">المبيعات الخاضعة للنسبة الأساسية</td>
-                <td className="px-4 py-3">
+                <td className={`px-4 py-3 ${getNegativeNumberClass(reportData.salesSubtotal)}`}>
                   {formatNumber(reportData.salesSubtotal)}
                 </td>
-                <td className="px-4 py-3">
+                <td className={`px-4 py-3 ${getNegativeNumberClass(reportData.salesTax)}`}>
                   {formatNumber(reportData.salesTax)}
                 </td>
               </tr>
               <tr>
                 <td className="px-4 py-3 text-center">2</td>
                 <td className="px-4 py-3">مرتجعات المبيعات</td>
-                <td className="px-4 py-3 text-red-600">
+                <td className={`px-4 py-3 text-red-600 ${getNegativeNumberClass(reportData.returnsSubtotal)}`}>
                   ({formatNumber(reportData.returnsSubtotal)})
                 </td>
-                <td className="px-4 py-3 text-red-600">
+                <td className={`px-4 py-3 text-red-600 ${getNegativeNumberClass(reportData.returnsTax)}`}>
                   ({formatNumber(reportData.returnsTax)})
                 </td>
               </tr>
@@ -393,7 +393,7 @@ const TaxDeclarationReport: React.FC<TaxDeclarationReportProps> = ({
                 <td colSpan={3} className="px-4 py-2 text-right">
                   إجمالي ضريبة المخرجات
                 </td>
-                <td className="px-4 py-2 text-green-600">
+                <td className={`px-4 py-2 text-green-600 ${getNegativeNumberClass(reportData.outputVat)}`}>
                   {formatNumber(reportData.outputVat)}
                 </td>
               </tr>
@@ -406,20 +406,20 @@ const TaxDeclarationReport: React.FC<TaxDeclarationReportProps> = ({
               <tr>
                 <td className="px-4 py-3 text-center">3</td>
                 <td className="px-4 py-3">المشتريات الخاضعة للنسبة الأساسية</td>
-                <td className="px-4 py-3">
+                <td className={`px-4 py-3 ${getNegativeNumberClass(reportData.purchasesSubtotal)}`}>
                   {formatNumber(reportData.purchasesSubtotal)}
                 </td>
-                <td className="px-4 py-3">
+                <td className={`px-4 py-3 ${getNegativeNumberClass(reportData.purchasesTax)}`}>
                   {formatNumber(reportData.purchasesTax)}
                 </td>
               </tr>
               <tr>
                 <td className="px-4 py-3 text-center">4</td>
                 <td className="px-4 py-3">مرتجعات المشتريات</td>
-                <td className="px-4 py-3 text-red-600">
+                <td className={`px-4 py-3 text-red-600 ${getNegativeNumberClass(reportData.purchaseReturnsSubtotal)}`}>
                   ({formatNumber(reportData.purchaseReturnsSubtotal)})
                 </td>
-                <td className="px-4 py-3 text-red-600">
+                <td className={`px-4 py-3 text-red-600 ${getNegativeNumberClass(reportData.purchaseReturnsTax)}`}>
                   ({formatNumber(reportData.purchaseReturnsTax)})
                 </td>
               </tr>
@@ -427,7 +427,7 @@ const TaxDeclarationReport: React.FC<TaxDeclarationReportProps> = ({
                 <td colSpan={3} className="px-4 py-2 text-right">
                   إجمالي ضريبة المدخلات
                 </td>
-                <td className="px-4 py-2 text-red-600">
+                <td className={`px-4 py-2 text-red-600 ${getNegativeNumberClass(reportData.inputVat)}`}>
                   {formatNumber(reportData.inputVat)}
                 </td>
               </tr>
@@ -436,9 +436,7 @@ const TaxDeclarationReport: React.FC<TaxDeclarationReportProps> = ({
                 <td colSpan={3} className="px-4 py-3 text-right">
                   ثالثاً: صافي الضريبة المستحقة
                 </td>
-                <td
-                  className={`px-4 py-3 ${reportData.netVat >= 0 ? "text-green-300" : "text-red-300"}`}
-                >
+                <td className={`px-4 py-3 ${getNegativeNumberClass(reportData.netVat)}`}>
                   {formatNumber(reportData.netVat)}
                 </td>
               </tr>

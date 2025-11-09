@@ -2,7 +2,7 @@ import React, { useState, useMemo, useCallback, useEffect } from "react";
 import type { CompanyInfo, User, Voucher } from "../../../../types";
 import { ExcelIcon, PdfIcon, PrintIcon, SearchIcon } from "../../../icons";
 import InvoiceHeader from "../../../common/InvoiceHeader";
-import { formatNumber } from "../../../../utils/formatting";
+import { formatNumber, getNegativeNumberClass } from "../../../../utils/formatting";
 import { useGetCurrentAccountsQuery } from "../../../store/slices/currentAccounts/currentAccountsApi";
 
 interface TotalCurrentAccountsReportProps {
@@ -236,16 +236,14 @@ const TotalCurrentAccountsReport: React.FC<TotalCurrentAccountsReportProps> = ({
                   <td className="px-6 py-4 font-medium text-brand-dark">
                     {item.name}
                   </td>
-                  <td className="px-6 py-4">{formatNumber(item.opening)}</td>
-                  <td className="px-6 py-4 text-red-600">
+                  <td className={`px-6 py-4 ${getNegativeNumberClass(item.opening)}`}>{formatNumber(item.opening)}</td>
+                  <td className={`px-6 py-4 text-red-600 ${getNegativeNumberClass(item.debit)}`}>
                     {formatNumber(item.debit)}
                   </td>
-                  <td className="px-6 py-4 text-green-600">
+                  <td className={`px-6 py-4 text-green-600 ${getNegativeNumberClass(item.credit)}`}>
                     {formatNumber(item.credit)}
                   </td>
-                  <td
-                    className={`px-6 py-4 font-bold ${item.balance < 0 ? "text-red-600" : ""}`}
-                  >
+                  <td className={`px-6 py-4 font-bold ${getNegativeNumberClass(item.balance)}`}>
                     {formatNumber(item.balance)}
                   </td>
                 </tr>
@@ -256,18 +254,16 @@ const TotalCurrentAccountsReport: React.FC<TotalCurrentAccountsReportProps> = ({
                 <td colSpan={2} className="px-6 py-3 text-right">
                   الإجمالي
                 </td>
-                <td className="px-6 py-3 text-right">
+                <td className={`px-6 py-3 text-right ${getNegativeNumberClass(totals.opening)}`}>
                   {formatNumber(totals.opening)}
                 </td>
-                <td className="px-6 py-3 text-right">
+                <td className={`px-6 py-3 text-right ${getNegativeNumberClass(totals.debit)}`}>
                   {formatNumber(totals.debit)}
                 </td>
-                <td className="px-6 py-3 text-right">
+                <td className={`px-6 py-3 text-right ${getNegativeNumberClass(totals.credit)}`}>
                   {formatNumber(totals.credit)}
                 </td>
-                <td
-                  className={`px-6 py-3 text-right ${totals.balance < 0 ? "text-red-300" : ""}`}
-                >
+                <td className={`px-6 py-3 text-right ${getNegativeNumberClass(totals.balance)}`}>
                   {formatNumber(totals.balance)}
                 </td>
               </tr>
