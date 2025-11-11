@@ -153,6 +153,7 @@ const CustomerStatementReport: React.FC<CustomerStatementReportProps> = ({
       date: string;
       description: string;
       ref: string;
+      voucherCode: string;
       debit: number;
       credit: number;
       link: { page: string; label: string } | null;
@@ -168,6 +169,7 @@ const CustomerStatementReport: React.FC<CustomerStatementReportProps> = ({
           date: inv.date,
           description: "فاتورة مبيعات",
           ref: inv.id,
+          voucherCode: inv.code || inv.id,
           debit: inv.totals.net,
           credit: 0,
           link: { page: "sales_invoice", label: "فاتورة مبيعات" },
@@ -184,6 +186,7 @@ const CustomerStatementReport: React.FC<CustomerStatementReportProps> = ({
           date: inv.date,
           description: "مرتجع مبيعات",
           ref: inv.id,
+          voucherCode: inv.code || inv.id,
           debit: 0,
           credit: inv.totals.net,
           link: { page: "sales_return", label: "مرتجع مبيعات" },
@@ -201,6 +204,7 @@ const CustomerStatementReport: React.FC<CustomerStatementReportProps> = ({
           date: v.date,
           description: "سند قبض",
           ref: v.id,
+          voucherCode: (v as any).code || v.id,
           debit: 0,
           credit: v.amount,
           link: { page: "receipt_voucher", label: "سند قبض" },
@@ -219,6 +223,7 @@ const CustomerStatementReport: React.FC<CustomerStatementReportProps> = ({
           date: v.date,
           description: "سند صرف (رد مبلغ)",
           ref: v.id,
+          voucherCode: (v as any).code || v.id,
           debit: v.amount,
           credit: 0,
           link: { page: "payment_voucher", label: "سند صرف" },
@@ -413,6 +418,9 @@ const CustomerStatementReport: React.FC<CustomerStatementReportProps> = ({
                   البيان
                 </th>
                 <th className="px-6 py-3 text-right text-sm font-semibold text-white uppercase">
+                  رقم السند
+                </th>
+                <th className="px-6 py-3 text-right text-sm font-semibold text-white uppercase">
                   مدين
                 </th>
                 <th className="px-6 py-3 text-right text-sm font-semibold text-white uppercase">
@@ -425,7 +433,7 @@ const CustomerStatementReport: React.FC<CustomerStatementReportProps> = ({
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
               <tr className="bg-gray-50">
-                <td colSpan={4} className="px-6 py-3 font-bold">
+                <td colSpan={5} className="px-6 py-3 font-bold">
                   رصيد أول المدة
                 </td>
                 <td className={`px-6 py-3 font-bold ${getNegativeNumberClass(openingBalance)}`}>
@@ -455,6 +463,9 @@ const CustomerStatementReport: React.FC<CustomerStatementReportProps> = ({
                     )}
                     <span className="print:inline hidden">({item.ref})</span>
                   </td>
+                  <td className="px-6 py-4 font-medium text-brand-dark">
+                    {item.voucherCode}
+                  </td>
                   <td className={`px-6 py-4 text-red-600 ${getNegativeNumberClass(item.debit)}`}>
                     {formatNumber(item.debit)}
                   </td>
@@ -469,7 +480,7 @@ const CustomerStatementReport: React.FC<CustomerStatementReportProps> = ({
             </tbody>
             <tfoot className="bg-brand-blue">
               <tr className="font-bold text-white">
-                <td colSpan={2} className="px-6 py-3 text-right">
+                <td colSpan={3} className="px-6 py-3 text-right">
                   الإجمالي
                 </td>
                 <td className={`px-6 py-3 text-right ${getNegativeNumberClass(totalDebit)}`}>
