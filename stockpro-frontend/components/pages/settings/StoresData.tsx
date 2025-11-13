@@ -1,25 +1,21 @@
-import React, { useState } from "react";
-import { useSelector, useDispatch } from "react-redux";
-import type { Store, Branch, User } from "../../../types";
+import React, { useState, useMemo } from "react";
 import { PrintIcon, SearchIcon } from "../../icons";
 import StoreModal from "./StoreModal.tsx";
 import { useModal } from "../../common/ModalProvider.tsx";
-import { RootState } from "../../store/store";
 import { useGetBranchesQuery } from "../../store/slices/branch/branchApi";
-import { useGetStoresQuery } from "../../store/slices/store/storeApi";
 import {
+  useGetStoresQuery,
   useCreateStoreMutation,
   useUpdateStoreMutation,
   useDeleteStoreMutation,
 } from "../../store/slices/store/storeApi";
-import { useGetUsersQuery } from "../../store/slices/user/userApi";
+import type { Store as StoreEntity } from "../../store/slices/store/storeApi";
 
 interface StoresDataProps {
   title: string;
 }
 
 const StoresData: React.FC<StoresDataProps> = ({ title }) => {
-  const dispatch = useDispatch();
   const {
     data: stores = [],
     isLoading: storesLoading,
@@ -27,17 +23,16 @@ const StoresData: React.FC<StoresDataProps> = ({ title }) => {
   } = useGetStoresQuery();
   const { data: branches = [], isLoading: branchesLoading } =
     useGetBranchesQuery();
-  const { data: users = [], isLoading: usersLoading } = useGetUsersQuery();
   const [createStore] = useCreateStoreMutation();
   const [updateStore] = useUpdateStoreMutation();
   const [deleteStore] = useDeleteStoreMutation();
 
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [storeToEdit, setStoreToEdit] = useState<any | null>(null);
+  const [storeToEdit, setStoreToEdit] = useState<StoreEntity | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const { showModal } = useModal();
 
-  const handleOpenModal = (store: any | null = null) => {
+  const handleOpenModal = (store: StoreEntity | null = null) => {
     setStoreToEdit(store);
     setIsModalOpen(true);
   };
@@ -47,7 +42,7 @@ const StoresData: React.FC<StoresDataProps> = ({ title }) => {
     setStoreToEdit(null);
   };
 
-  const handleEditClick = (store: any) => {
+  const handleEditClick = (store: StoreEntity) => {
     showModal({
       title: "تأكيد التعديل",
       message: "هل أنت متأكد من رغبتك في تعديل بيانات هذا المخزن؟",
@@ -59,7 +54,7 @@ const StoresData: React.FC<StoresDataProps> = ({ title }) => {
     });
   };
 
-  const handleDeleteClick = (store: any) => {
+  const handleDeleteClick = (store: StoreEntity) => {
     showModal({
       title: "تأكيد الحذف",
       message: `هل أنت متأكد من حذف المخزن "${store.name}"؟`,
@@ -69,30 +64,59 @@ const StoresData: React.FC<StoresDataProps> = ({ title }) => {
     });
   };
 
-  const handleSave = async (store: any) => {
+  const handleSave = async (
+    store: {
+      id?: string;
+      name: string;
+      address?: string;
+      phone?: string;
+      description?: string;
+      branchId: string;
+      userId: string;
+    },
+  ) => {
     try {
+      const branchId =
+        store.branchId ||
+        storeToEdit?.branchId ||
+        storeToEdit?.branch?.id ||
+        "";
+      const userId =
+        store.userId ||
+        storeToEdit?.userId ||
+        storeToEdit?.user?.id ||
+        "";
+
+      if (!branchId || !userId) {
+        console.error("Branch or user missing for store save.");
+        return;
+      }
+
       if (storeToEdit) {
-        // Update existing store
+        const targetId = store.id ?? storeToEdit.id;
+        if (!targetId) {
+          console.error("Missing store id for update.");
+          return;
+        }
         await updateStore({
-          id: store.id,
+          id: targetId,
           data: {
             name: store.name,
             address: store.address || "",
             phone: store.phone || "",
             description: store.description || "",
-            branchId: branches.find((b) => b.name === store.branch)?.id || "",
-            userId: users.find((u) => u.name === store.manager)?.id || "",
+            branchId,
+            userId,
           },
         }).unwrap();
       } else {
-        // Create new store
         await createStore({
           name: store.name,
           address: store.address || "",
           phone: store.phone || "",
           description: store.description || "",
-          branchId: branches.find((b) => b.name === store.branch)?.id || "",
-          userId: users.find((u) => u.name === store.manager)?.id || "",
+          branchId,
+          userId,
         }).unwrap();
       }
     } catch (error) {
@@ -104,7 +128,29 @@ const StoresData: React.FC<StoresDataProps> = ({ title }) => {
     store.name.toLowerCase().includes(searchTerm.toLowerCase()),
   );
 
-  if (storesLoading || branchesLoading || usersLoading) {
+  const availableBranches = useMemo(() => {
+    if (!branches.length) return [];
+
+    const editingBranchId =
+      storeToEdit?.branchId ?? storeToEdit?.branch?.id ?? null;
+
+    const occupiedBranchIds = new Set(
+      stores
+        .map(
+          (store) => store.branchId ?? store.branch?.id ?? null,
+        )
+        .filter((id): id is string => Boolean(id)),
+    );
+
+    return branches.filter((branch) => {
+      if (editingBranchId && branch.id === editingBranchId) {
+        return true;
+      }
+      return !occupiedBranchIds.has(branch.id);
+    });
+  }, [branches, stores, storeToEdit]);
+
+  if (storesLoading || branchesLoading) {
     return <div className="p-6">Loading stores...</div>;
   }
 
@@ -204,6 +250,7 @@ const StoresData: React.FC<StoresDataProps> = ({ title }) => {
         onClose={handleCloseModal}
         onSave={handleSave}
         storeToEdit={storeToEdit}
+        availableBranches={availableBranches}
       />
     </>
   );

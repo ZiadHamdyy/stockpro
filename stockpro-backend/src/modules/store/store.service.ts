@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
 import { DatabaseService } from '../../configs/database/database.service';
 import { CreateStoreDto } from './dtos/create-store.dto';
 import { UpdateStoreDto } from './dtos/update-store.dto';
@@ -8,6 +12,15 @@ export class StoreService {
   constructor(private readonly prisma: DatabaseService) {}
 
   async create(createStoreDto: CreateStoreDto) {
+    // Enforce one store per branch (friendly error; DB unique handles races)
+    const existingForBranch = await this.prisma.store.findFirst({
+      where: { branchId: createStoreDto.branchId },
+      select: { id: true },
+    });
+    if (existingForBranch) {
+      throw new BadRequestException('هذا الفرع لديه مخزن بالفعل');
+    }
+
     const last = await this.prisma.store.findFirst({
       select: { code: true },
       orderBy: { code: 'desc' },
@@ -53,6 +66,17 @@ export class StoreService {
 
   async update(id: string, updateStoreDto: UpdateStoreDto) {
     await this.findOne(id);
+
+    // If branch is being changed, ensure target branch does not already have a store
+    if (updateStoreDto.branchId) {
+      const targetHasStore = await this.prisma.store.findFirst({
+        where: { branchId: updateStoreDto.branchId, NOT: { id } },
+        select: { id: true },
+      });
+      if (targetHasStore) {
+        throw new BadRequestException('هذا الفرع لديه مخزن بالفعل');
+      }
+    }
 
     return this.prisma.store.update({
       where: { id },

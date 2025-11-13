@@ -366,6 +366,9 @@ model Store {
   storeIssueVouchers   StoreIssueVoucher[]
   fromTransfers        StoreTransferVoucher[] @relation("FromStore")
   toTransfers          StoreTransferVoucher[] @relation("ToStore")
+
+  @@unique([branchId])
+  @@index([branchId])
 }
 
 model StoreReceiptVoucher {

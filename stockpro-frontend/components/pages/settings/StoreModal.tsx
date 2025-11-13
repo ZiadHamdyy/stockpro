@@ -1,13 +1,24 @@
 import React, { useState, useEffect } from "react";
-import type { Store, Branch } from "../../../types";
 import { useGetUsersQuery } from "../../store/slices/user/userApi";
-import { useGetBranchesQuery } from "../../store/slices/branch/branchApi";
+import type { Branch } from "../../store/slices/branch/branchApi";
+import type { Store as StoreEntity } from "../../store/slices/store/storeApi";
+
+interface StoreFormData {
+  name: string;
+  branchId: string;
+  userId: string;
+}
+
+interface StoreFormSubmit extends StoreFormData {
+  id?: string;
+}
 
 interface StoreModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSave: (store: Store) => void;
-  storeToEdit: Store | null;
+  onSave: (store: StoreFormSubmit) => void;
+  storeToEdit: StoreEntity | null;
+  availableBranches: Branch[];
 }
 
 const StoreModal: React.FC<StoreModalProps> = ({
@@ -15,21 +26,30 @@ const StoreModal: React.FC<StoreModalProps> = ({
   onClose,
   onSave,
   storeToEdit,
+  availableBranches,
 }) => {
-  const { data: users = [], isLoading: isLoadingUsers } = useGetUsersQuery();
-  const { data: branches = [], isLoading: isLoadingBranches } =
-    useGetBranchesQuery();
-  const [storeData, setStoreData] = useState<Omit<Store, "id">>({
+  const { data: users = [] } = useGetUsersQuery();
+  const [storeData, setStoreData] = useState<StoreFormData>({
     name: "",
-    branch: "",
-    manager: "",
+    branchId: "",
+    userId: "",
   });
 
   useEffect(() => {
     if (storeToEdit) {
-      setStoreData(storeToEdit);
+      setStoreData({
+        name: storeToEdit.name ?? "",
+        branchId:
+          storeToEdit.branchId ??
+          storeToEdit.branch?.id ??
+          "",
+        userId:
+          storeToEdit.userId ??
+          storeToEdit.user?.id ??
+          "",
+      });
     } else {
-      setStoreData({ name: "", branch: "", manager: "" });
+      setStoreData({ name: "", branchId: "", userId: "" });
     }
   }, [storeToEdit, isOpen]);
 
@@ -42,9 +62,9 @@ const StoreModal: React.FC<StoreModalProps> = ({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    const storeToSave: Store = {
+    const storeToSave: StoreFormSubmit = {
       ...storeData,
-      id: storeToEdit?.id || 0,
+      id: storeToEdit?.id ?? undefined,
     };
     onSave(storeToSave);
     onClose();
@@ -90,22 +110,22 @@ const StoreModal: React.FC<StoreModalProps> = ({
             </div>
             <div>
               <label
-                htmlFor="branch"
+                htmlFor="branchId"
                 className="block text-sm font-medium text-gray-700"
               >
                 الفرع التابع له
               </label>
               <select
-                id="branch"
-                name="branch"
-                value={storeData.branch}
+                id="branchId"
+                name="branchId"
+                value={storeData.branchId}
                 onChange={handleChange}
                 className={inputStyle}
                 required
               >
                 <option value="">اختر فرع...</option>
-                {branches.map((branch) => (
-                  <option key={branch.id} value={branch.name}>
+                {availableBranches.map((branch) => (
+                  <option key={branch.id} value={branch.id}>
                     {branch.name}
                   </option>
                 ))}
@@ -113,22 +133,22 @@ const StoreModal: React.FC<StoreModalProps> = ({
             </div>
             <div>
               <label
-                htmlFor="manager"
+                htmlFor="userId"
                 className="block text-sm font-medium text-gray-700"
               >
                 أمين المخزن
               </label>
               <select
-                id="manager"
-                name="manager"
-                value={storeData.manager}
+                id="userId"
+                name="userId"
+                value={storeData.userId}
                 onChange={handleChange}
                 className={inputStyle}
                 required
               >
                 <option value="">اختر أمين مخزن...</option>
                 {users.map((user) => (
-                  <option key={user.id} value={user.name}>
+                  <option key={user.id} value={user.id}>
                     {user.name}
                   </option>
                 ))}
