@@ -10,12 +10,14 @@ export class CustomerService {
 
   async create(data: CreateCustomerRequest): Promise<CustomerResponse> {
     const code = await this.generateNextCode();
+    const openingBalance = data.openingBalance || 0;
 
     const customer = await this.prisma.customer.create({
       data: {
         ...data,
         code,
-        openingBalance: data.openingBalance || 0,
+        openingBalance,
+        currentBalance: openingBalance, // Initialize currentBalance from openingBalance
       },
     });
 
@@ -71,6 +73,28 @@ export class CustomerService {
     data: UpdateCustomerRequest,
   ): Promise<CustomerResponse> {
     try {
+      // If openingBalance is being updated, adjust currentBalance accordingly
+      if (data.openingBalance !== undefined) {
+        const existingCustomer = await this.prisma.customer.findUnique({
+          where: { id },
+        });
+        
+        if (existingCustomer) {
+          const openingBalanceDiff = data.openingBalance - existingCustomer.openingBalance;
+          const customer = await this.prisma.customer.update({
+            where: { id },
+            data: {
+              ...data,
+              currentBalance: {
+                increment: openingBalanceDiff, // Adjust currentBalance by the difference
+              },
+            },
+          });
+
+          return this.mapToResponse(customer);
+        }
+      }
+
       const customer = await this.prisma.customer.update({
         where: { id },
         data,

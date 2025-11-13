@@ -129,9 +129,12 @@ const SupplierBalanceReport: React.FC<SupplierBalanceReportProps> = ({
         .reduce((sum, v) => sum + v.amount, 0);
 
       const opening = supplier.openingBalance;
-      const totalDebit = totalReturns + totalPayments;
-      const totalCredit = totalPurchases + totalReceipts;
-      const balance = opening + totalDebit - totalCredit;
+      // Split opening balance: positive goes to debit, negative goes to credit
+      const openingDebit = opening > 0 ? opening : 0;
+      const openingCredit = opening < 0 ? Math.abs(opening) : 0;
+      const totalDebit = totalReturns + totalPayments + openingDebit;
+      const totalCredit = totalPurchases + totalReceipts + openingCredit;
+      const balance = opening + (totalReturns + totalPayments) - (totalPurchases + totalReceipts);
 
       return {
         id: supplier.id,
@@ -299,9 +302,6 @@ const SupplierBalanceReport: React.FC<SupplierBalanceReportProps> = ({
                   اسم المورد
                 </th>
                 <th className="px-6 py-3 text-right text-sm font-semibold text-white uppercase">
-                  رصيد أول المدة
-                </th>
-                <th className="px-6 py-3 text-right text-sm font-semibold text-white uppercase">
                   إجمالي مدين
                 </th>
                 <th className="px-6 py-3 text-right text-sm font-semibold text-white uppercase">
@@ -319,14 +319,11 @@ const SupplierBalanceReport: React.FC<SupplierBalanceReportProps> = ({
                   <td className="px-6 py-4 font-medium text-brand-dark">
                     {item.name}
                   </td>
-                  <td className={`px-6 py-4 font-bold ${getNegativeNumberClass(item.opening)}`}>
-                    {formatNumber(item.opening)}
-                  </td>
-                  <td className={`px-6 py-4 text-green-600 ${getNegativeNumberClass(item.debit)}`}>
+                  <td className="px-6 py-4 text-green-600">
                     {formatNumber(item.debit)}
                   </td>
-                  <td className={`px-6 py-4 text-red-600 ${getNegativeNumberClass(item.credit)}`}>
-                    {formatNumber(item.credit)}
+                  <td className="px-6 py-4 text-red-600">
+                    {item.credit > 0 ? formatNumber(item.credit) : "0.00"}
                   </td>
                   <td className={`px-6 py-4 font-bold ${getNegativeNumberClass(item.balance)}`}>
                     {formatNumber(item.balance)}
@@ -339,13 +336,10 @@ const SupplierBalanceReport: React.FC<SupplierBalanceReportProps> = ({
                 <td colSpan={2} className="px-6 py-3 text-right">
                   الإجمالي
                 </td>
-                <td className={`px-6 py-3 text-right ${getNegativeNumberClass(totals.opening)}`}>
-                  {formatNumber(totals.opening)}
-                </td>
-                <td className={`px-6 py-3 text-right ${getNegativeNumberClass(totals.debit)}`}>
+                <td className="px-6 py-3 text-right text-green-600">
                   {formatNumber(totals.debit)}
                 </td>
-                <td className={`px-6 py-3 text-right ${getNegativeNumberClass(totals.credit)}`}>
+                <td className="px-6 py-3 text-right text-red-600">
                   {formatNumber(totals.credit)}
                 </td>
                 <td className={`px-6 py-3 text-right ${getNegativeNumberClass(totals.balance)}`}>

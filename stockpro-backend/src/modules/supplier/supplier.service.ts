@@ -10,12 +10,14 @@ export class SupplierService {
 
   async create(data: CreateSupplierRequest): Promise<SupplierResponse> {
     const code = await this.generateNextCode();
+    const openingBalance = data.openingBalance || 0;
 
     const supplier = await this.prisma.supplier.create({
       data: {
         ...data,
         code,
-        openingBalance: data.openingBalance || 0,
+        openingBalance,
+        currentBalance: openingBalance, // Initialize currentBalance from openingBalance
       },
     });
 
@@ -71,6 +73,28 @@ export class SupplierService {
     data: UpdateSupplierRequest,
   ): Promise<SupplierResponse> {
     try {
+      // If openingBalance is being updated, adjust currentBalance accordingly
+      if (data.openingBalance !== undefined) {
+        const existingSupplier = await this.prisma.supplier.findUnique({
+          where: { id },
+        });
+        
+        if (existingSupplier) {
+          const openingBalanceDiff = data.openingBalance - existingSupplier.openingBalance;
+          const supplier = await this.prisma.supplier.update({
+            where: { id },
+            data: {
+              ...data,
+              currentBalance: {
+                increment: openingBalanceDiff, // Adjust currentBalance by the difference
+              },
+            },
+          });
+
+          return this.mapToResponse(supplier);
+        }
+      }
+
       const supplier = await this.prisma.supplier.update({
         where: { id },
         data,

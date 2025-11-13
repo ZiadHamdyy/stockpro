@@ -138,16 +138,16 @@ const SuppliersList: React.FC<SuppliersListProps> = ({
           />
         </div>
         <StatCard
-          title="إجمالي المستحقات (دائن)"
+          title="إجمالي المستحقات"
           value={`${formatNumber(Math.abs(stats.totalAsset))}`}
           icon={<DollarSignIcon className="w-8 h-8 text-red-500" />}
           color="border-red-500"
         />
         <StatCard
-          title="إجمالي الأرصدة (مدين)"
+          title="إجمالي السندات"
           value={`${formatNumber(Math.abs(stats.totalLiability))}`}
-          icon={<DollarSignIcon className="w-8 h-8 text-blue-500" />}
-          color="border-blue-500"
+          icon={<DollarSignIcon className="w-8 h-8 text-green-500" />}
+          color="border-green-500"
         />
       </div>
 
