@@ -139,6 +139,14 @@ export class SalesInvoiceService {
         });
       }
 
+      // Apply credit impact if applicable (increase customer balance)
+      if (data.paymentMethod === 'credit' && data.customerId) {
+        await tx.customer.update({
+          where: { id: data.customerId },
+          data: { currentBalance: { increment: net } },
+        });
+      }
+
       return created;
     });
 
@@ -371,6 +379,13 @@ export class SalesInvoiceService {
             tx,
           });
         }
+        // Reverse previous credit impact if needed
+        if (existingInvoice?.paymentMethod === 'credit' && existingInvoice.customerId) {
+          await tx.customer.update({
+            where: { id: existingInvoice.customerId },
+            data: { currentBalance: { decrement: (existingInvoice as any).net } },
+          });
+        }
         // Apply new cash impact if applicable
         const targetType = (inv as any).paymentMethod === 'cash' ? (inv as any).paymentTargetType : null;
         if (targetType) {
@@ -381,6 +396,13 @@ export class SalesInvoiceService {
             branchId: (inv as any).branchId,
             bankId: targetType === 'bank' ? (inv as any).paymentTargetId : null,
             tx,
+          });
+        }
+        // Apply new credit impact if applicable (increase customer balance)
+        if ((inv as any).paymentMethod === 'credit' && (inv as any).customerId) {
+          await tx.customer.update({
+            where: { id: (inv as any).customerId },
+            data: { currentBalance: { increment: (inv as any).net } },
           });
         }
 
@@ -415,6 +437,13 @@ export class SalesInvoiceService {
               bankId: (invoice as any).paymentTargetType === 'bank' ? (invoice as any).paymentTargetId : null,
               tx,
             });
+          });
+        }
+        // Reverse credit impact if applicable (decrease customer balance)
+        if ((invoice as any).paymentMethod === 'credit' && (invoice as any).customerId) {
+          await this.prisma.customer.update({
+            where: { id: (invoice as any).customerId },
+            data: { currentBalance: { decrement: (invoice as any).net } },
           });
         }
       }

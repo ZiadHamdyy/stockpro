@@ -112,6 +112,14 @@ export class PurchaseInvoiceService {
         });
       }
 
+      // Apply credit impact if applicable (increase supplier balance)
+      if (data.paymentMethod === 'credit' && data.supplierId) {
+        await tx.supplier.update({
+          where: { id: data.supplierId },
+          data: { currentBalance: { increment: net } },
+        });
+      }
+
       return inv;
     });
 
@@ -260,6 +268,13 @@ export class PurchaseInvoiceService {
           tx,
         });
       }
+      // Reverse previous credit impact if needed
+      if (existingInvoice.paymentMethod === 'credit' && existingInvoice.supplierId) {
+        await tx.supplier.update({
+          where: { id: existingInvoice.supplierId },
+          data: { currentBalance: { decrement: (existingInvoice as any).net } },
+        });
+      }
       // Apply new cash impact if applicable
       const targetType = (inv as any).paymentMethod === 'cash' ? (inv as any).paymentTargetType : null;
       if (targetType) {
@@ -270,6 +285,13 @@ export class PurchaseInvoiceService {
           branchId: (inv as any).branchId,
           bankId: targetType === 'bank' ? (inv as any).paymentTargetId : null,
           tx,
+        });
+      }
+      // Apply new credit impact if applicable (increase supplier balance)
+      if ((inv as any).paymentMethod === 'credit' && (inv as any).supplierId) {
+        await tx.supplier.update({
+          where: { id: (inv as any).supplierId },
+          data: { currentBalance: { increment: (inv as any).net } },
         });
       }
 
@@ -309,6 +331,13 @@ export class PurchaseInvoiceService {
           branchId: (invoice as any).branchId,
           bankId: (invoice as any).paymentTargetType === 'bank' ? (invoice as any).paymentTargetId : null,
           tx,
+        });
+      }
+      // Reverse credit impact if applicable (decrease supplier balance)
+      if ((invoice as any).paymentMethod === 'credit' && (invoice as any).supplierId) {
+        await tx.supplier.update({
+          where: { id: (invoice as any).supplierId },
+          data: { currentBalance: { decrement: (invoice as any).net } },
         });
       }
 

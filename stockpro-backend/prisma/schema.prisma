@@ -283,6 +283,7 @@ model Customer {
   nationalAddress String
   phone           String
   openingBalance  Float  @default(0)
+  currentBalance  Float  @default(0)
 
   // Relationships
   salesInvoices   SalesInvoice[]
@@ -305,6 +306,7 @@ model Supplier {
   nationalAddress String
   phone           String
   openingBalance  Float  @default(0)
+  currentBalance  Float  @default(0)
 
   // Relationships
   purchaseInvoices PurchaseInvoice[]

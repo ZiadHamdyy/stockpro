@@ -119,6 +119,14 @@ export class PurchaseReturnService {
         });
       }
 
+      // Apply credit impact if applicable (decrease supplier balance)
+      if (data.paymentMethod === 'credit' && data.supplierId) {
+        await tx.supplier.update({
+          where: { id: data.supplierId },
+          data: { currentBalance: { decrement: net } },
+        });
+      }
+
       return ret;
     });
 
@@ -269,6 +277,13 @@ export class PurchaseReturnService {
           tx,
         });
       }
+      // Reverse previous credit impact if needed
+      if (existingReturn.paymentMethod === 'credit' && existingReturn.supplierId) {
+        await tx.supplier.update({
+          where: { id: existingReturn.supplierId },
+          data: { currentBalance: { increment: (existingReturn as any).net } },
+        });
+      }
       // Apply new cash impact if applicable
       const targetType = (ret as any).paymentMethod === 'cash' ? (ret as any).paymentTargetType : null;
       if (targetType) {
@@ -279,6 +294,13 @@ export class PurchaseReturnService {
           branchId: (ret as any).branchId,
           bankId: targetType === 'bank' ? (ret as any).paymentTargetId : null,
           tx,
+        });
+      }
+      // Apply new credit impact if applicable (decrease supplier balance)
+      if ((ret as any).paymentMethod === 'credit' && (ret as any).supplierId) {
+        await tx.supplier.update({
+          where: { id: (ret as any).supplierId },
+          data: { currentBalance: { decrement: (ret as any).net } },
         });
       }
 
@@ -317,6 +339,13 @@ export class PurchaseReturnService {
           branchId: (returnRecord as any).branchId,
           bankId: (returnRecord as any).paymentTargetType === 'bank' ? (returnRecord as any).paymentTargetId : null,
           tx,
+        });
+      }
+      // Reverse credit impact if applicable (increase supplier balance)
+      if ((returnRecord as any).paymentMethod === 'credit' && (returnRecord as any).supplierId) {
+        await tx.supplier.update({
+          where: { id: (returnRecord as any).supplierId },
+          data: { currentBalance: { increment: (returnRecord as any).net } },
         });
       }
 
