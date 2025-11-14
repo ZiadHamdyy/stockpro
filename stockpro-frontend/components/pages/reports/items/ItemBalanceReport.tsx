@@ -186,12 +186,17 @@ const ItemBalanceReport: React.FC<ItemBalanceReportProps> = ({
     storeTransferVouchersLoading;
   const [reportData, setReportData] = useState<any[]>([]);
   const [selectedBranch, setSelectedBranch] = useState("all");
+  const currentYear = new Date().getFullYear();
+  const [startDate, setStartDate] = useState(`${currentYear}-01-01`);
+  const [endDate, setEndDate] = useState(
+    new Date().toISOString().substring(0, 10),
+  );
 
   const handleViewReport = useCallback(() => {
     if (isLoading) return;
 
     const balanceData = items.map((item) => {
-      const openingBalance = item.stock; // Opening balance
+      let openingBalance = item.stock; // Starting stock
       let totalIncoming = 0;
       let totalOutgoing = 0;
 
@@ -200,43 +205,112 @@ const ItemBalanceReport: React.FC<ItemBalanceReportProps> = ({
         tx.branch === selectedBranch ||
         tx.branchName === selectedBranch;
 
-      // Calculate total incoming
-      transformedPurchaseInvoices.filter(filterByBranch).forEach((inv) =>
+      const getDateString = (date: any): string => {
+        if (!date) return "";
+        if (typeof date === "string") {
+          return date.substring(0, 10); // Get YYYY-MM-DD format
+        }
+        if (date instanceof Date) {
+          return date.toISOString().substring(0, 10);
+        }
+        return "";
+      };
+
+      const filterByDate = (tx: any) => {
+        const txDate = getDateString(tx.date);
+        if (!txDate) return false;
+        return txDate >= startDate && txDate <= endDate;
+      };
+
+      const isBeforeStartDate = (tx: any) => {
+        const txDate = getDateString(tx.date);
+        if (!txDate) return false;
+        return txDate < startDate;
+      };
+
+      // Calculate opening balance (transactions before start date)
+      transformedPurchaseInvoices.filter(filterByBranch).filter(isBeforeStartDate).forEach((inv) =>
         inv.items.forEach((i) => {
-          if (i.id === item.code) totalIncoming += i.qty;
+          if (i.id === item.code) openingBalance += i.qty;
         }),
       );
-      transformedSalesReturns.filter(filterByBranch).forEach((inv) =>
+      transformedSalesReturns.filter(filterByBranch).filter(isBeforeStartDate).forEach((inv) =>
         inv.items.forEach((i) => {
-          if (i.id === item.code) totalIncoming += i.qty;
+          if (i.id === item.code) openingBalance += i.qty;
         }),
       );
-      transformedStoreReceiptVouchers.filter(filterByBranch).forEach((v) =>
+      transformedStoreReceiptVouchers.filter(filterByBranch).filter(isBeforeStartDate).forEach((v) =>
         v.items.forEach((i) => {
-          if (i.id === item.code) totalIncoming += i.qty;
+          if (i.id === item.code) openingBalance += i.qty;
+        }),
+      );
+      transformedSalesInvoices.filter(filterByBranch).filter(isBeforeStartDate).forEach((inv) =>
+        inv.items.forEach((i) => {
+          if (i.id === item.code) openingBalance -= i.qty;
+        }),
+      );
+      transformedPurchaseReturns.filter(filterByBranch).filter(isBeforeStartDate).forEach((inv) =>
+        inv.items.forEach((i) => {
+          if (i.id === item.code) openingBalance -= i.qty;
+        }),
+      );
+      transformedStoreIssueVouchers.filter(filterByBranch).filter(isBeforeStartDate).forEach((v) =>
+        v.items.forEach((i) => {
+          if (i.id === item.code) openingBalance -= i.qty;
         }),
       );
 
-      // Calculate total outgoing
-      transformedSalesInvoices.filter(filterByBranch).forEach((inv) =>
-        inv.items.forEach((i) => {
-          if (i.id === item.code) totalOutgoing += i.qty;
-        }),
-      );
-      transformedPurchaseReturns.filter(filterByBranch).forEach((inv) =>
-        inv.items.forEach((i) => {
-          if (i.id === item.code) totalOutgoing += i.qty;
-        }),
-      );
-      transformedStoreIssueVouchers.filter(filterByBranch).forEach((v) =>
-        v.items.forEach((i) => {
-          if (i.id === item.code) totalOutgoing += i.qty;
-        }),
-      );
-
-      // Store transfers are neutral for total inventory but matter for branch-specific inventory
+      // Store transfers before start date
       if (selectedBranch !== "all") {
-        transformedStoreTransferVouchers.forEach((v) => {
+        transformedStoreTransferVouchers.filter(isBeforeStartDate).forEach((v) => {
+          const fromStore = stores.find((s) => s.name === v.fromStore);
+          const toStore = stores.find((s) => s.name === v.toStore);
+          v.items.forEach((i) => {
+            if (i.id === item.code) {
+              if (fromStore?.branch?.name === selectedBranch) openingBalance -= i.qty;
+              if (toStore?.branch?.name === selectedBranch) openingBalance += i.qty;
+            }
+          });
+        });
+      }
+
+      // Calculate total incoming (within date range)
+      transformedPurchaseInvoices.filter(filterByBranch).filter(filterByDate).forEach((inv) =>
+        inv.items.forEach((i) => {
+          if (i.id === item.code) totalIncoming += i.qty;
+        }),
+      );
+      transformedSalesReturns.filter(filterByBranch).filter(filterByDate).forEach((inv) =>
+        inv.items.forEach((i) => {
+          if (i.id === item.code) totalIncoming += i.qty;
+        }),
+      );
+      transformedStoreReceiptVouchers.filter(filterByBranch).filter(filterByDate).forEach((v) =>
+        v.items.forEach((i) => {
+          if (i.id === item.code) totalIncoming += i.qty;
+        }),
+      );
+
+      // Calculate total outgoing (within date range)
+      transformedSalesInvoices.filter(filterByBranch).filter(filterByDate).forEach((inv) =>
+        inv.items.forEach((i) => {
+          if (i.id === item.code) totalOutgoing += i.qty;
+        }),
+      );
+      transformedPurchaseReturns.filter(filterByBranch).filter(filterByDate).forEach((inv) =>
+        inv.items.forEach((i) => {
+          if (i.id === item.code) totalOutgoing += i.qty;
+        }),
+      );
+      transformedStoreIssueVouchers.filter(filterByBranch).filter(filterByDate).forEach((v) =>
+        v.items.forEach((i) => {
+          if (i.id === item.code) totalOutgoing += i.qty;
+        }),
+      );
+
+      // Store transfers within date range
+      if (selectedBranch !== "all") {
+        transformedStoreTransferVouchers.filter(filterByDate).forEach((v) => {
           const fromStore = stores.find((s) => s.name === v.fromStore);
           const toStore = stores.find((s) => s.name === v.toStore);
           v.items.forEach((i) => {
@@ -262,6 +336,8 @@ const ItemBalanceReport: React.FC<ItemBalanceReportProps> = ({
   }, [
     items,
     selectedBranch,
+    startDate,
+    endDate,
     transformedSalesInvoices,
     transformedSalesReturns,
     transformedPurchaseInvoices,
@@ -360,6 +436,20 @@ const ItemBalanceReport: React.FC<ItemBalanceReportProps> = ({
                 </option>
               ))}
             </select>
+            <label className="font-semibold">من:</label>
+            <input
+              type="date"
+              className="p-2 border-2 border-brand-blue rounded-md bg-brand-blue-bg"
+              value={startDate}
+              onChange={(e) => setStartDate(e.target.value)}
+            />
+            <label className="font-semibold">إلى:</label>
+            <input
+              type="date"
+              className="p-2 border-2 border-brand-blue rounded-md bg-brand-blue-bg"
+              value={endDate}
+              onChange={(e) => setEndDate(e.target.value)}
+            />
             <button
               onClick={handleViewReport}
               className="px-6 py-2 bg-brand-blue text-white rounded-md hover:bg-blue-800 font-semibold flex items-center gap-2"
