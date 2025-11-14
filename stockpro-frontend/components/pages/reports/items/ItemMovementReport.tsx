@@ -666,10 +666,10 @@ const ItemMovementReport: React.FC<ItemMovementReportProps> = ({
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
               <tr className="bg-gray-50">
-                <td colSpan={6} className="px-6 py-3 font-bold">
+                <td colSpan={6} className="px-6 py-3">
                   رصيد أول المدة
                 </td>
-                <td className={`px-6 py-3 font-bold ${getNegativeNumberClass(openingBalance)}`}>
+                <td className={`px-6 py-3 ${getNegativeNumberClass(openingBalance)}`}>
                   {formatNumber(openingBalance)}
                 </td>
               </tr>

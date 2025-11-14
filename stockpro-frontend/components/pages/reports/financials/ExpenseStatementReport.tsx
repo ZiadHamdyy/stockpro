@@ -292,10 +292,10 @@ const ExpenseStatementReport: React.FC<ExpenseStatementReportProps> = ({
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
               <tr className="bg-gray-50">
-                <td colSpan={4} className="px-6 py-3 font-bold">
+                <td colSpan={4} className="px-6 py-3">
                   رصيد أول المدة
                 </td>
-                <td className="px-6 py-3 font-bold">{formatNumber(0)}</td>
+                <td className="px-6 py-3">{formatNumber(0)}</td>
               </tr>
               {reportData.map((item, index) => (
                 <tr key={index} className="hover:bg-brand-blue-bg">
