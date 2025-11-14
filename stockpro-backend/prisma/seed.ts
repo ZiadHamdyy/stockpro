@@ -305,7 +305,7 @@ async function main() {
   console.log('🔗 Assigning permissions to roles...');
 
   // Manager - all permissions
-  const managerRole = createdRoles.find((r) => r.name === 'manager');
+  const managerRole = createdRoles.find((r) => r.name === 'مدير');
   if (managerRole) {
     for (const permission of createdPermissions) {
       await prisma.rolePermission.upsert({
@@ -326,7 +326,7 @@ async function main() {
   }
 
   // Accountant - financial operations and reports
-  const accountantRole = createdRoles.find((r) => r.name === 'accountant');
+  const accountantRole = createdRoles.find((r) => r.name === 'محاسب');
   if (accountantRole) {
     const accountantPermissions = createdPermissions.filter(
       (p) =>
@@ -408,7 +408,7 @@ async function main() {
   }
 
   // Salesperson - sales operations and customers
-  const salespersonRole = createdRoles.find((r) => r.name === 'salesperson');
+  const salespersonRole = createdRoles.find((r) => r.name === 'بائع');
   if (salespersonRole) {
     const salespersonPermissions = createdPermissions.filter(
       (p) =>
@@ -448,7 +448,7 @@ async function main() {
   }
 
   // Data Entry - warehouse operations and items management
-  const dataEntryRole = createdRoles.find((r) => r.name === 'data_entry');
+  const dataEntryRole = createdRoles.find((r) => r.name === 'مدخل بيانات');
   if (dataEntryRole) {
     const dataEntryPermissions = createdPermissions.filter(
       (p) =>
@@ -486,7 +486,7 @@ async function main() {
 
   // Assign default role to existing users
   console.log('👤 Assigning default role to existing users...');
-  const defaultRole = createdRoles.find((r) => r.name === 'manager');
+  const defaultRole = createdRoles.find((r) => r.name === 'مدير');
   if (defaultRole) {
     await prisma.user.updateMany({
       where: { roleId: null },
