@@ -373,17 +373,18 @@ const ItemBalanceReport: React.FC<ItemBalanceReportProps> = ({
     const printWindow = window.open("", "", "height=800,width=1200");
     printWindow?.document.write("<html><head><title>طباعة التقرير</title>");
     printWindow?.document.write(
-      '<script src="https://cdn.tailwindcss.com"></script>',
+      '<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet">',
     );
     printWindow?.document.write(
-      '<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet">',
+      '<script src="https://cdn.tailwindcss.com"></script>',
     );
     printWindow?.document.write(`
             <style>
                 body { font-family: "Cairo", sans-serif; direction: rtl; }
+                .no-print, .no-print * { display: none !important; visibility: hidden !important; margin: 0 !important; padding: 0 !important; }
                 @media print {
                     body { -webkit-print-color-adjust: exact !important; color-adjust: exact !important; }
-                    .no-print { display: none !important; }
+                    .no-print, .no-print * { display: none !important; visibility: hidden !important; }
                     thead { display: table-header-group; }
                     tfoot { display: table-footer-group; }
                     table { width: 100%; border-collapse: collapse; }
@@ -444,20 +445,14 @@ const ItemBalanceReport: React.FC<ItemBalanceReportProps> = ({
             </div>
             <div className="space-y-2 text-right">
               <p className="text-base text-gray-700">
-                <span className="font-semibold text-gray-800">فرع الطباعة:</span> {typeof currentUser?.branch === 'string' ? currentUser.branch : (currentUser?.branch as any)?.name}
-              </p>
-              <p className="text-base text-gray-700">
-                <span className="font-semibold text-gray-800">المستخدم:</span> {currentUser?.fullName || currentUser?.name}
-              </p>
-              <p className="text-base text-gray-700">
                 <span className="font-semibold text-gray-800">التاريخ:</span> {new Date().toLocaleDateString('ar-EG', { year: 'numeric', month: 'long', day: 'numeric' })}
               </p>
             </div>
           </div>
         </div>
 
-        <div className="flex justify-between items-center my-4 no-print">
-          <div className="flex items-center gap-4">
+        <div className="flex justify-between items-center my-4 bg-gray-50 p-3 rounded-md border-2 border-gray-200 no-print">
+          <div className="flex items-center gap-4 flex-wrap no-print">
             <label className="font-semibold">الفرع:</label>
             <select
               className="p-2 border-2 border-brand-blue rounded-md bg-brand-blue-bg"
@@ -493,7 +488,7 @@ const ItemBalanceReport: React.FC<ItemBalanceReportProps> = ({
               <span>عرض التقرير</span>
             </button>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="no-print flex items-center gap-2">
             <button
               title="تصدير Excel"
               className="p-3 border-2 border-gray-200 rounded-md hover:bg-gray-100"

@@ -366,11 +366,32 @@ const SafeStatementReport: React.FC<SafeStatementReportProps> = ({
     const printWindow = window.open("", "", "height=800,width=1200");
     printWindow?.document.write("<html><head><title>طباعة التقرير</title>");
     printWindow?.document.write(
-      '<script src="https://cdn.tailwindcss.com"></script><link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet">',
+      '<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet">',
     );
     printWindow?.document.write(
-      '<style>body { font-family: "Cairo", sans-serif; direction: rtl; } @media print { body { -webkit-print-color-adjust: exact !important; color-adjust: exact !important; } .no-print { display: none !important; } thead { display: table-header-group; } tfoot { display: table-footer-group; } table { width: 100%; border-collapse: collapse; } .bg-brand-blue { background-color: #1E40AF !important; } .text-white { color: white !important; } .bg-gray-50 { background-color: #F9FAFB !important; } .text-brand-blue { color: #1E40AF !important; } .text-gray-700 { color: #374151 !important; } .text-gray-800 { color: #1F2937 !important; } .flex { display: flex !important; } .justify-between { justify-content: space-between !important; } }</style>',
+      '<script src="https://cdn.tailwindcss.com"></script>',
     );
+    printWindow?.document.write(`
+            <style>
+                body { font-family: "Cairo", sans-serif; direction: rtl; }
+                .no-print, .no-print * { display: none !important; visibility: hidden !important; margin: 0 !important; padding: 0 !important; }
+                @media print {
+                    body { -webkit-print-color-adjust: exact !important; color-adjust: exact !important; }
+                    .no-print, .no-print * { display: none !important; visibility: hidden !important; }
+                    thead { display: table-header-group; }
+                    tfoot { display: table-footer-group; }
+                    table { width: 100%; border-collapse: collapse; }
+                    .bg-brand-blue { background-color: #1E40AF !important; }
+                    .text-white { color: white !important; }
+                    .bg-gray-50 { background-color: #F9FAFB !important; }
+                    .text-brand-blue { color: #1E40AF !important; }
+                    .text-gray-700 { color: #374151 !important; }
+                    .text-gray-800 { color: #1F2937 !important; }
+                    .flex { display: flex !important; }
+                    .justify-between { justify-content: space-between !important; }
+                }
+            </style>
+        `);
     printWindow?.document.write(
       "</head><body>" + reportContent.innerHTML + "</body></html>",
     );
@@ -416,12 +437,6 @@ const SafeStatementReport: React.FC<SafeStatementReportProps> = ({
               </p>
             </div>
             <div className="space-y-2 text-right">
-              <p className="text-base text-gray-700">
-                <span className="font-semibold text-gray-800">فرع الطباعة:</span> {typeof currentUser?.branch === 'string' ? currentUser.branch : (currentUser?.branch as any)?.name}
-              </p>
-              <p className="text-base text-gray-700">
-                <span className="font-semibold text-gray-800">المستخدم:</span> {currentUser?.fullName || currentUser?.name}
-              </p>
               <p className="text-base text-gray-700">
                 <span className="font-semibold text-gray-800">التاريخ:</span> {new Date().toLocaleDateString('ar-EG', { year: 'numeric', month: 'long', day: 'numeric' })}
               </p>

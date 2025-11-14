@@ -468,17 +468,23 @@ const ItemMovementReport: React.FC<ItemMovementReportProps> = ({
     const printWindow = window.open("", "", "height=800,width=1200");
     printWindow?.document.write("<html><head><title>طباعة التقرير</title>");
     printWindow?.document.write(
-      '<script src="https://cdn.tailwindcss.com"></script>',
+      '<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet">',
     );
     printWindow?.document.write(
-      '<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet">',
+      '<script src="https://cdn.tailwindcss.com"></script>',
     );
     printWindow?.document.write(`
             <style>
                 body { font-family: "Cairo", sans-serif; direction: rtl; }
+                .no-print, .no-print * { display: none !important; visibility: hidden !important; margin: 0 !important; padding: 0 !important; }
+                .print-only.hidden { display: block !important; }
+                .print-only { display: block !important; }
                 @media print {
                     body { -webkit-print-color-adjust: exact !important; color-adjust: exact !important; }
-                    .no-print { display: none !important; }
+                    .no-print, .no-print * { display: none !important; visibility: hidden !important; }
+                    .print-only.hidden { display: block !important; }
+                    .print-only { display: block !important; }
+                    .print\\:inline { display: inline !important; }
                     thead { display: table-header-group; }
                     tfoot { display: table-footer-group; }
                     table { width: 100%; border-collapse: collapse; }
@@ -530,11 +536,14 @@ const ItemMovementReport: React.FC<ItemMovementReportProps> = ({
             userName={currentUser?.fullName || currentUser?.name}
           />
         </div>
-        <div className="px-6 py-4 text-base print:block hidden border-t-2 border-b-2 mt-2 mb-4 bg-gray-50">
+        <div className="px-6 py-4 text-base print-only border-t-2 border-b-2 mt-2 mb-4 bg-gray-50 hidden">
           <div className="flex justify-between items-start">
             <div className="space-y-2 text-right">
               <p className="text-lg font-bold text-gray-800">
                 <span className="text-brand-blue">الصنف:</span> {selectedItemName}
+              </p>
+              <p className="text-base text-gray-700">
+                <span className="font-semibold text-gray-800">الفرع:</span> {selectedBranch === "all" ? "جميع الفروع" : selectedBranch}
               </p>
               <p className="text-base text-gray-700">
                 <span className="font-semibold text-gray-800">الفترة من:</span> {startDate} 
@@ -543,12 +552,6 @@ const ItemMovementReport: React.FC<ItemMovementReportProps> = ({
             </div>
             <div className="space-y-2 text-right">
               <p className="text-base text-gray-700">
-                <span className="font-semibold text-gray-800">فرع الطباعة:</span> {typeof currentUser?.branch === 'string' ? currentUser.branch : (currentUser?.branch as any)?.name}
-              </p>
-              <p className="text-base text-gray-700">
-                <span className="font-semibold text-gray-800">المستخدم:</span> {currentUser?.fullName || currentUser?.name}
-              </p>
-              <p className="text-base text-gray-700">
                 <span className="font-semibold text-gray-800">التاريخ:</span> {new Date().toLocaleDateString('ar-EG', { year: 'numeric', month: 'long', day: 'numeric' })}
               </p>
             </div>
@@ -556,7 +559,7 @@ const ItemMovementReport: React.FC<ItemMovementReportProps> = ({
         </div>
 
         <div className="flex justify-between items-center my-4 bg-gray-50 p-3 rounded-md border-2 border-gray-200 no-print">
-          <div className="flex items-center gap-4 flex-wrap">
+          <div className="flex items-center gap-4 flex-wrap no-print">
             <div className="relative">
               <SearchIcon className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
               <input
@@ -614,7 +617,7 @@ const ItemMovementReport: React.FC<ItemMovementReportProps> = ({
               <span>عرض التقرير</span>
             </button>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="no-print flex items-center gap-2">
             <button
               title="تصدير Excel"
               className="p-3 border-2 border-gray-200 rounded-md hover:bg-gray-100"
