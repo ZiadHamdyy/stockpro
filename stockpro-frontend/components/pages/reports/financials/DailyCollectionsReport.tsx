@@ -1,9 +1,11 @@
 import React, { useState, useMemo } from "react";
+import { useNavigate } from "react-router-dom";
 import type { CompanyInfo, User, Voucher } from "../../../../types";
 import { ExcelIcon, PdfIcon, PrintIcon, SearchIcon } from "../../../icons";
 import InvoiceHeader from "../../../common/InvoiceHeader";
 import { formatNumber, getNegativeNumberClass } from "../../../../utils/formatting";
 import { useGetReceiptVouchersQuery } from "../../../store/slices/receiptVoucherApiSlice";
+import { useGetBranchesQuery } from "../../../store/slices/branch/branchApi";
 import { useAuth } from "../../../hook/Auth";
 
 interface DailyCollectionsReportProps {
@@ -18,50 +20,114 @@ const DailyCollectionsReport: React.FC<DailyCollectionsReportProps> = ({
   currentUser,
 }) => {
   const { isAuthed } = useAuth();
+  const navigate = useNavigate();
   
   // Only fetch if user is authenticated
   const skip = !isAuthed;
   const {
     data: apiReceiptVouchers = [],
-    isLoading,
+    isLoading: vouchersLoading,
     error,
+    refetch: refetchVouchers,
   } = useGetReceiptVouchersQuery(undefined, { skip });
+
+  const { data: apiBranches = [], isLoading: branchesLoading } =
+    useGetBranchesQuery(undefined);
+
+  // Transform branches
+  const branches = useMemo(() => {
+    return (apiBranches as any[]).map((branch) => ({
+      ...branch,
+    }));
+  }, [apiBranches]);
+
+  // Helper function to normalize date to YYYY-MM-DD format
+  const normalizeDate = useMemo(() => {
+    return (date: any): string => {
+      if (!date) return "";
+      if (typeof date === "string") {
+        // If it's already in YYYY-MM-DD format, return as is
+        if (/^\d{4}-\d{2}-\d{2}$/.test(date)) return date;
+        // If it's an ISO string, extract the date part
+        return date.substring(0, 10);
+      }
+      if (date instanceof Date) {
+        return date.toISOString().split("T")[0];
+      }
+      // Try to parse as Date if it's a string that looks like a date
+      try {
+        const parsed = new Date(date);
+        if (!isNaN(parsed.getTime())) {
+          return parsed.toISOString().split("T")[0];
+        }
+      } catch (e) {
+        // Ignore parsing errors
+      }
+      return "";
+    };
+  }, []);
 
   // Transform API data to match expected format
   const receiptVouchers = useMemo(() => {
-    return (apiReceiptVouchers as any[]).map((voucher) => ({
-      id: voucher.code,
-      date: typeof voucher.date === "string" 
-        ? voucher.date 
-        : voucher.date?.toISOString().split("T")[0] || "",
-      entity: {
-        type: voucher.entityType,
-        id:
-          voucher.customerId ||
-          voucher.supplierId ||
-          voucher.currentAccountId ||
-          "",
-        name: voucher.entityName,
-      },
-      amount: voucher.amount,
-      description: voucher.description || "",
-      paymentMethod: voucher.paymentMethod,
-      safeOrBankId: voucher.safeId || voucher.bankId,
-    }));
-  }, [apiReceiptVouchers]);
+    return (apiReceiptVouchers as any[]).map((voucher) => {
+      const branchName = voucher.branch?.name || 
+        branches.find((b) => b.id === voucher.branchId)?.name || 
+        "غير محدد";
+      
+      return {
+        id: voucher.id,
+        code: voucher.code,
+        date: normalizeDate(voucher.date),
+        entity: {
+          type: voucher.entityType,
+          id:
+            voucher.customerId ||
+            voucher.supplierId ||
+            voucher.currentAccountId ||
+            "",
+          name: voucher.entityName,
+        },
+        amount: voucher.amount,
+        description: voucher.description || "",
+        paymentMethod: voucher.paymentMethod,
+        safeOrBankId: voucher.safeId || voucher.bankId,
+        branchId: voucher.branchId,
+        branchName: branchName,
+      };
+    });
+  }, [apiReceiptVouchers, branches, normalizeDate]);
+
+  // Helper to get local date in YYYY-MM-DD format
+  const getLocalDateString = (date: Date = new Date()): string => {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
 
   const currentYear = new Date().getFullYear();
   const [startDate, setStartDate] = useState(`${currentYear}-01-01`);
-  const [endDate, setEndDate] = useState(
-    new Date().toISOString().substring(0, 10),
-  );
+  const [endDate, setEndDate] = useState(getLocalDateString());
+  const [selectedBranch, setSelectedBranch] = useState("all");
 
-  // Filter vouchers by date range
+  // Filter vouchers by date range and branch
   const filteredVouchers = useMemo(() => {
-    return receiptVouchers.filter(
-      (voucher) => voucher.date >= startDate && voucher.date <= endDate,
-    );
-  }, [receiptVouchers, startDate, endDate]);
+    return receiptVouchers.filter((voucher) => {
+      // Normalize voucher date to ensure proper comparison
+      const voucherDate = normalizeDate(voucher.date);
+      if (!voucherDate) return false;
+      
+      // Ensure dates are in YYYY-MM-DD format for string comparison
+      const normalizedStartDate = normalizeDate(startDate);
+      const normalizedEndDate = normalizeDate(endDate);
+      
+      const dateMatch = voucherDate >= normalizedStartDate && voucherDate <= normalizedEndDate;
+      const branchMatch = selectedBranch === "all" || voucher.branchName === selectedBranch;
+      return dateMatch && branchMatch;
+    });
+  }, [receiptVouchers, startDate, endDate, selectedBranch, normalizeDate]);
+
+  const isLoading = vouchersLoading || branchesLoading;
 
   const totals = filteredVouchers.reduce(
     (acc, voucher) => {
@@ -161,6 +227,9 @@ const DailyCollectionsReport: React.FC<DailyCollectionsReportProps> = ({
                 <span className="font-semibold text-gray-800">الفترة من:</span> {startDate} 
                 <span className="font-semibold text-gray-800 mr-2">إلى:</span> {endDate}
               </p>
+              <p className="text-base text-gray-700">
+                <span className="font-semibold text-gray-800">الفرع:</span> {selectedBranch === "all" ? "جميع الفروع" : selectedBranch}
+              </p>
             </div>
             <div className="space-y-2 text-right">
               <p className="text-base text-gray-700">
@@ -178,6 +247,19 @@ const DailyCollectionsReport: React.FC<DailyCollectionsReportProps> = ({
 
         <div className="flex justify-between items-center my-4 bg-gray-50 p-3 rounded-md border-2 border-gray-200 no-print">
           <div className="flex items-center gap-4 flex-wrap">
+            <label className="font-semibold">الفرع:</label>
+            <select
+              className={inputStyle}
+              value={selectedBranch}
+              onChange={(e) => setSelectedBranch(e.target.value)}
+            >
+              <option value="all">جميع الفروع</option>
+              {branches.map((branch) => (
+                <option key={branch.id} value={branch.name}>
+                  {branch.name}
+                </option>
+              ))}
+            </select>
             <label className="font-semibold">من:</label>
             <input
               type="date"
@@ -192,7 +274,10 @@ const DailyCollectionsReport: React.FC<DailyCollectionsReportProps> = ({
               value={endDate}
               onChange={(e) => setEndDate(e.target.value)}
             />
-            <button className="px-6 py-2 bg-brand-blue text-white rounded-md hover:bg-blue-800 font-semibold flex items-center gap-2">
+            <button 
+              onClick={() => refetchVouchers()}
+              className="px-6 py-2 bg-brand-blue text-white rounded-md hover:bg-blue-800 font-semibold flex items-center gap-2"
+            >
               <SearchIcon className="w-5 h-5" />
               <span>عرض التقرير</span>
             </button>
@@ -234,6 +319,9 @@ const DailyCollectionsReport: React.FC<DailyCollectionsReportProps> = ({
                   رقم السند
                 </th>
                 <th className="px-6 py-3 text-right text-sm font-semibold text-white uppercase">
+                  الفرع
+                </th>
+                <th className="px-6 py-3 text-right text-sm font-semibold text-white uppercase">
                   قبضنا من
                 </th>
                 <th className="px-6 py-3 text-right text-sm font-semibold text-white uppercase">
@@ -252,9 +340,28 @@ const DailyCollectionsReport: React.FC<DailyCollectionsReportProps> = ({
                 <tr key={voucher.id} className="hover:bg-brand-blue-bg">
                   <td className="px-6 py-4">{index + 1}</td>
                   <td className="px-6 py-4 w-36">{voucher.date.substring(0, 10)}</td>
-                  <td className="px-6 py-4 font-medium text-brand-dark">
-                    {voucher.id}
+                  <td className="px-6 py-4">
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        if (voucher.id) {
+                          const url = `/financials/receipt-voucher?voucherId=${encodeURIComponent(voucher.id)}`;
+                          // Use window.location to ensure URL updates
+                          window.location.href = url;
+                        } else {
+                          console.error("Voucher ID is missing:", voucher);
+                        }
+                      }}
+                      className="text-brand-blue hover:underline font-semibold no-print cursor-pointer"
+                      title="فتح سند القبض"
+                    >
+                      {voucher.code}
+                    </button>
+                    <span className="print:inline hidden">{voucher.code}</span>
                   </td>
+                  <td className="px-6 py-4">{voucher.branchName}</td>
                   <td className="px-6 py-4">{voucher.entity.name}</td>
                   <td className="px-6 py-4">
                     {voucher.paymentMethod === "safe" ? "نقداً" : "بنك"}
@@ -268,7 +375,7 @@ const DailyCollectionsReport: React.FC<DailyCollectionsReportProps> = ({
             </tbody>
             <tfoot className="bg-brand-blue">
               <tr className="font-bold text-white">
-                <td colSpan={5} className="px-6 py-3 text-right">
+                <td colSpan={6} className="px-6 py-3 text-right">
                   الإجمالي
                 </td>
                 <td className={`px-6 py-3 text-right ${getNegativeNumberClass(totals.amount)}`}>

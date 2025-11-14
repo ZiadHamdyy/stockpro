@@ -16,6 +16,7 @@ import { CreateReceiptVoucherRequest } from './dtos/request/create-receipt-vouch
 import { UpdateReceiptVoucherRequest } from './dtos/request/update-receipt-voucher.request';
 import { ReceiptVoucherResponse } from './dtos/response/receipt-voucher.response';
 import { Auth } from '../../common/decorators/auth.decorator';
+import { Serialize } from '../../common/interceptors/serialize.interceptor';
 
 @Controller('receipt-vouchers')
 export class ReceiptVoucherController {
@@ -28,14 +29,17 @@ export class ReceiptVoucherController {
     @Body() createDto: CreateReceiptVoucherRequest,
     @Request() req: any,
   ): Promise<ReceiptVoucherResponse> {
+    // Use user's branchId as default if not provided
+    const branchId = createDto.branchId || req.user.branchId || null;
     return this.receiptVoucherService.createReceiptVoucher(
-      createDto,
+      { ...createDto, branchId },
       req.user.id,
     );
   }
 
   @Get()
   @Auth({ permissions: ['receipt_voucher:read'] })
+  @Serialize(ReceiptVoucherResponse, ReceiptVoucherResponse)
   async findAllReceiptVouchers(
     @Query('search') search?: string,
   ): Promise<ReceiptVoucherResponse[]> {

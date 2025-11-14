@@ -415,6 +415,7 @@ export class ReceiptVoucherService {
       payableAccountId: (voucher as any).payableAccountId || null,
       userId: voucher.userId,
       branchId: voucher.branchId,
+      branch: voucher.branch || null,
       createdAt: voucher.createdAt,
       updatedAt: voucher.updatedAt,
     };

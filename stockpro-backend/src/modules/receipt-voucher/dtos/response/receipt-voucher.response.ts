@@ -1,4 +1,12 @@
-import { Expose } from 'class-transformer';
+import { Expose, Type } from 'class-transformer';
+
+class Branch {
+  @Expose()
+  id: string;
+
+  @Expose()
+  name: string;
+}
 
 export class ReceiptVoucherResponse {
   @Expose()
@@ -51,6 +59,10 @@ export class ReceiptVoucherResponse {
 
   @Expose()
   branchId?: string | null;
+
+  @Expose()
+  @Type(() => Branch)
+  branch?: Branch | null;
 
   @Expose()
   createdAt: Date;

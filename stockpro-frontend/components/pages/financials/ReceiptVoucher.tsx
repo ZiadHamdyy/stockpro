@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import { PrintIcon } from "../../icons";
 import { tafqeet } from "../../../utils/tafqeet";
 import InvoiceHeader from "../../common/InvoiceHeader";
@@ -35,6 +36,7 @@ const ReceiptVoucher: React.FC<ReceiptVoucherProps> = ({ title }) => {
   const { User } = useAuth();
   const { data: receivableAccounts = [] } = useGetReceivableAccountsQuery();
   const { data: payableAccounts = [] } = useGetPayableAccountsQuery();
+  const [searchParams, setSearchParams] = useSearchParams();
   const {
     vouchers,
     customers,
@@ -52,16 +54,47 @@ const ReceiptVoucher: React.FC<ReceiptVoucherProps> = ({ title }) => {
     handleDelete,
     navigate,
     currentIndex,
+    setCurrentIndex,
   } = useReceiptVouchers();
 
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [isSearchModalOpen, setIsSearchModalOpen] = useState(false);
   const [shouldResetOnClose, setShouldResetOnClose] = useState(false);
+  const [hasInitialized, setHasInitialized] = useState(false);
 
+  // Handle voucherId from URL query params
   useEffect(() => {
-    // Initialize with a new voucher on mount
-    handleNew();
-  }, []);
+    const voucherId = searchParams.get("voucherId");
+    if (voucherId) {
+      // Wait for vouchers to load before processing
+      if (vouchers.length > 0 && !isLoading) {
+        const index = vouchers.findIndex(
+          (v) => v.id === voucherId || v.code === voucherId
+        );
+        if (index !== -1) {
+          if (index !== currentIndex) {
+            setCurrentIndex(index);
+            setHasInitialized(true);
+          }
+          // Remove the query param after setting the index
+          searchParams.delete("voucherId");
+          setSearchParams(searchParams, { replace: true });
+        } else {
+          // Voucher not found, but vouchers are loaded - might be invalid ID
+          console.warn(`Voucher with ID/code "${voucherId}" not found. Available vouchers:`, vouchers.map(v => ({ id: v.id, code: v.code })));
+          setHasInitialized(true);
+        }
+      }
+      // If vouchers haven't loaded yet, wait - don't initialize with "new"
+      return;
+    }
+    
+    // Only initialize with new voucher if no voucherId in URL and not already initialized
+    if (!hasInitialized && !isLoading && vouchers.length >= 0 && currentIndex === -1) {
+      handleNew();
+      setHasInitialized(true);
+    }
+  }, [vouchers, isLoading, searchParams, setSearchParams, currentIndex, setCurrentIndex, hasInitialized, handleNew]);
 
   const handleEntityChange = (field: "type" | "id", value: any) => {
     setVoucherData((prev) => {

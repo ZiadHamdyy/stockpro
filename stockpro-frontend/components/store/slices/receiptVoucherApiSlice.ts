@@ -20,6 +20,10 @@ export interface ReceiptVoucher {
   payableAccountId?: string | null;
   userId: string;
   branchId?: string | null;
+  branch?: {
+    id: string;
+    name: string;
+  } | null;
   createdAt: string;
   updatedAt: string;
 }

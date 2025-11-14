@@ -1,6 +1,6 @@
-import React, { useMemo, useState, useCallback, useEffect } from "react";
+import React, { useMemo, useState, useCallback, useEffect, useRef } from "react";
 import type { CompanyInfo, User } from "../../../../types";
-import { ExcelIcon, PdfIcon, PrintIcon, SearchIcon } from "../../../icons";
+import { ExcelIcon, PdfIcon, PrintIcon, SearchIcon, XIcon } from "../../../icons";
 import InvoiceHeader from "../../../common/InvoiceHeader";
 import { formatNumber, getNegativeNumberClass } from "../../../../utils/formatting";
 import { useGetExpensePaymentVouchersQuery } from "../../../store/slices/paymentVoucherApiSlice";
@@ -55,10 +55,60 @@ const TotalExpensesReport: React.FC<TotalExpensesReportProps> = ({
     }));
   }, [apiExpenseVouchers]);
 
-  const [year, setYear] = useState(new Date().getFullYear());
-  const [reportData, setReportData] = useState<any[]>([]);
+  const currentYear = new Date().getFullYear();
+  const [year, setYear] = useState(currentYear);
+  const [yearQuery, setYearQuery] = useState<string | null>(null);
+  const [isYearDropdownOpen, setIsYearDropdownOpen] = useState(false);
+  const yearRef = useRef<HTMLDivElement>(null);
 
-  const handleViewReport = useCallback(() => {
+  // Generate years list (from current year going backwards to 2000)
+  const years = useMemo(() => {
+    const yearsList = [];
+    for (let y = currentYear; y >= 2000; y--) {
+      yearsList.push(y);
+    }
+    return yearsList; // Current year first, then descending
+  }, [currentYear]);
+
+  // Filter years based on search query
+  const filteredYears = useMemo(() => {
+    if (!yearQuery || !yearQuery.trim()) {
+      return years;
+    }
+    const query = yearQuery.toLowerCase();
+    return years.filter((y) => y.toString().includes(query));
+  }, [yearQuery, years]);
+
+  // Handle year selection
+  const handleSelectYear = useCallback((selectedYear: number) => {
+    setYear(selectedYear);
+    setYearQuery(selectedYear.toString());
+    setIsYearDropdownOpen(false);
+  }, []);
+
+  // Handle clear search
+  const handleClearSearch = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation();
+    setYearQuery(null);
+    setIsYearDropdownOpen(true);
+  }, []);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (yearRef.current && !yearRef.current.contains(event.target as Node)) {
+        setIsYearDropdownOpen(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
+
+  // Compute report data using useMemo to avoid infinite loops
+  const reportData = useMemo(() => {
     const summary: Record<string, { name: string; monthly: number[] }> = {};
 
     const filteredExpenseVouchers = expenseVouchers.filter(
@@ -78,12 +128,8 @@ const TotalExpensesReport: React.FC<TotalExpensesReportProps> = ({
       summary[key].monthly[monthIndex] += voucher.amount;
     });
 
-    setReportData(Object.values(summary));
+    return Object.values(summary);
   }, [expenseVouchers, year]);
-
-  useEffect(() => {
-    handleViewReport();
-  }, [handleViewReport]);
 
   const monthlyTotals = months.map((_, monthIndex) =>
     reportData.reduce((sum, item) => sum + (item.monthly[monthIndex] || 0), 0),
@@ -174,17 +220,59 @@ const TotalExpensesReport: React.FC<TotalExpensesReportProps> = ({
         <div className="flex justify-between items-center my-4 no-print">
           <div className="flex items-center gap-4">
             <label className="font-semibold">للسنة:</label>
-            <input
-              type="number"
-              value={year}
-              onChange={(e) =>
-                setYear(parseInt(e.target.value) || new Date().getFullYear())
-              }
-              className="p-2 border-2 border-brand-blue rounded-md w-32"
-            />
+            <div className="relative" ref={yearRef}>
+              <input
+                type="text"
+                placeholder="ابحث عن سنة..."
+                value={yearQuery !== null ? yearQuery : year.toString()}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  setYearQuery(value);
+                  setIsYearDropdownOpen(true);
+                  // If user types a valid year number, update the year
+                  const numValue = parseInt(value);
+                  if (!isNaN(numValue) && numValue >= 2000 && numValue <= currentYear + 10) {
+                    setYear(numValue);
+                  }
+                }}
+                onFocus={() => {
+                  setIsYearDropdownOpen(true);
+                }}
+                className="p-2 pr-8 border-2 border-brand-blue rounded-md w-32"
+              />
+              {yearQuery !== null && yearQuery !== "" && (
+                <button
+                  type="button"
+                  onClick={handleClearSearch}
+                  className="absolute left-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                  title="مسح البحث"
+                >
+                  <XIcon className="w-4 h-4" />
+                </button>
+              )}
+              {isYearDropdownOpen && (
+                <div className="absolute z-20 w-32 mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-y-auto">
+                  {filteredYears.length > 0 ? (
+                    filteredYears.map((y) => (
+                      <div
+                        key={y}
+                        onClick={() => handleSelectYear(y)}
+                        className="p-2 cursor-pointer hover:bg-brand-blue-bg text-center"
+                      >
+                        {y}
+                      </div>
+                    ))
+                  ) : (
+                    <div className="p-2 text-center text-gray-500">
+                      لا توجد نتائج
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
             <button
-              onClick={handleViewReport}
               className="px-6 py-2 bg-brand-blue text-white rounded-md hover:bg-blue-800 font-semibold flex items-center gap-2"
+              disabled
             >
               <SearchIcon className="w-5 h-5" />
               <span>عرض التقرير</span>
