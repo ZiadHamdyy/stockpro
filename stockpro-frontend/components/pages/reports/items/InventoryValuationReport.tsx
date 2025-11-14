@@ -359,6 +359,17 @@ const InventoryValuationReport: React.FC<InventoryValuationReportProps> = ({
           <p>
             <strong>المستخدم:</strong> {currentUser?.fullName || currentUser?.name}
           </p>
+          <p>
+            <strong>التاريخ:</strong> {new Date().toLocaleDateString('ar-EG', { year: 'numeric', month: 'long', day: 'numeric' })}
+          </p>
+          <p>
+            <strong>تقييم حسب سعر:</strong> {
+              valuationMethod === 'purchasePrice' ? 'آخر شراء' :
+              valuationMethod === 'averageCost' ? 'متوسط التكلفة' :
+              valuationMethod === 'salePrice' ? 'سعر البيع' :
+              'آخر شراء'
+            }
+          </p>
         </div>
 
         <div className="flex justify-between items-center my-4 no-print">
@@ -434,7 +445,7 @@ const InventoryValuationReport: React.FC<InventoryValuationReportProps> = ({
                   الرصيد
                 </th>
                 <th className="px-6 py-3 text-right text-sm font-semibold text-white uppercase">
-                  التكلفة
+                  السعر
                 </th>
                 <th className="px-6 py-3 text-right text-sm font-semibold text-white uppercase">
                   القيمة الإجمالية
