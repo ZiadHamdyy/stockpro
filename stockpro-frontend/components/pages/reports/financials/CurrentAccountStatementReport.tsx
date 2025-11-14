@@ -9,21 +9,93 @@ import { ExcelIcon, PdfIcon, PrintIcon, SearchIcon } from "../../../icons";
 import InvoiceHeader from "../../../common/InvoiceHeader";
 import { formatNumber, getNegativeNumberClass } from "../../../../utils/formatting";
 import { useGetCurrentAccountsQuery } from "../../../store/slices/currentAccounts/currentAccountsApi";
+import { useGetBranchesQuery } from "../../../store/slices/branch/branchApi";
+import { useGetReceiptVouchersQuery } from "../../../store/slices/receiptVoucherApiSlice";
+import { useGetPaymentVouchersQuery } from "../../../store/slices/paymentVoucherApiSlice";
+import { useAuth } from "../../../hook/Auth";
 
 interface CurrentAccountStatementReportProps {
   title: string;
   companyInfo: CompanyInfo;
-  receiptVouchers: Voucher[];
-  paymentVouchers: Voucher[];
+  receiptVouchers?: Voucher[];
+  paymentVouchers?: Voucher[];
   currentUser: User | null;
 }
 
 const CurrentAccountStatementReport: React.FC<
   CurrentAccountStatementReportProps
-> = ({ title, companyInfo, receiptVouchers, paymentVouchers, currentUser }) => {
-  // API hooks
+> = ({ title, companyInfo, receiptVouchers: propReceiptVouchers, paymentVouchers: propPaymentVouchers, currentUser }) => {
+  const { isAuthed } = useAuth();
+  
+  // Only fetch if user is authenticated
+  const skip = !isAuthed;
+  
+  // API hooks - fetch vouchers directly from API
   const { data: apiCurrentAccounts = [], isLoading: currentAccountsLoading } =
     useGetCurrentAccountsQuery(undefined);
+  const { data: apiBranches = [], isLoading: branchesLoading } =
+    useGetBranchesQuery(undefined);
+  const { 
+    data: apiReceiptVouchers = [], 
+    isLoading: receiptVouchersLoading,
+    refetch: refetchReceiptVouchers,
+  } = useGetReceiptVouchersQuery(undefined, { skip });
+  const { 
+    data: apiPaymentVouchers = [], 
+    isLoading: paymentVouchersLoading,
+    refetch: refetchPaymentVouchers,
+  } = useGetPaymentVouchersQuery(undefined, { skip });
+  
+  // Use API vouchers if authenticated and API is being used, otherwise fall back to props
+  const receiptVouchers = isAuthed ? apiReceiptVouchers : (propReceiptVouchers || []);
+  const paymentVouchers = isAuthed ? apiPaymentVouchers : (propPaymentVouchers || []);
+  
+  // Refetch function
+  const handleRefetch = () => {
+    refetchReceiptVouchers();
+    refetchPaymentVouchers();
+  };
+
+  // Transform branches
+  const branches = useMemo(() => {
+    return (apiBranches as any[]).map((branch) => ({
+      ...branch,
+    }));
+  }, [apiBranches]);
+
+  // Helper function to normalize date to YYYY-MM-DD format
+  const normalizeDate = useMemo(() => {
+    return (date: any): string => {
+      if (!date) return "";
+      if (typeof date === "string") {
+        // If it's already in YYYY-MM-DD format, return as is
+        if (/^\d{4}-\d{2}-\d{2}$/.test(date)) return date;
+        // If it's an ISO string, extract the date part
+        return date.substring(0, 10);
+      }
+      if (date instanceof Date) {
+        return date.toISOString().split("T")[0];
+      }
+      // Try to parse as Date if it's a string that looks like a date
+      try {
+        const parsed = new Date(date);
+        if (!isNaN(parsed.getTime())) {
+          return parsed.toISOString().split("T")[0];
+        }
+      } catch (e) {
+        // Ignore parsing errors
+      }
+      return "";
+    };
+  }, []);
+
+  // Helper to get local date in YYYY-MM-DD format
+  const getLocalDateString = (date: Date = new Date()): string => {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
 
   // Transform API data to match expected format
   const currentAccounts = useMemo(() => {
@@ -33,13 +105,77 @@ const CurrentAccountStatementReport: React.FC<
     }));
   }, [apiCurrentAccounts]);
 
-  const isLoading = currentAccountsLoading;
+  // Transform vouchers to include branch information and normalize entity structure
+  const transformedReceiptVouchers = useMemo(() => {
+    return receiptVouchers.map((voucher: any) => {
+      const branchName = voucher.branchName || 
+        (voucher.branch?.name) ||
+        branches.find((b) => b.id === voucher.branchId)?.name || 
+        "غير محدد";
+      
+      // Transform to match expected structure
+      // If voucher already has entity structure (from props), use it
+      // Otherwise, build it from API structure
+      const entity = voucher.entity || {
+        type: voucher.entityType,
+        id: voucher.customerId || voucher.supplierId || voucher.currentAccountId || "",
+        name: voucher.entityName,
+      };
+      
+      return {
+        id: voucher.id,
+        code: voucher.code,
+        date: normalizeDate(voucher.date),
+        entity: entity,
+        amount: voucher.amount,
+        description: voucher.description || "",
+        paymentMethod: voucher.paymentMethod,
+        safeOrBankId: voucher.safeId || voucher.bankId,
+        branchId: voucher.branchId,
+        branchName: branchName,
+      };
+    });
+  }, [receiptVouchers, branches, normalizeDate]);
+
+  const transformedPaymentVouchers = useMemo(() => {
+    return paymentVouchers.map((voucher: any) => {
+      const branchName = voucher.branchName || 
+        (voucher.branch?.name) ||
+        branches.find((b) => b.id === voucher.branchId)?.name || 
+        "غير محدد";
+      
+      // Transform to match expected structure
+      // If voucher already has entity structure (from props), use it
+      // Otherwise, build it from API structure
+      const entity = voucher.entity || {
+        type: voucher.entityType,
+        id: voucher.customerId || voucher.supplierId || voucher.currentAccountId || "",
+        name: voucher.entityName,
+      };
+      
+      return {
+        id: voucher.id,
+        code: voucher.code,
+        date: normalizeDate(voucher.date),
+        entity: entity,
+        amount: voucher.amount,
+        description: voucher.description || "",
+        paymentMethod: voucher.paymentMethod,
+        safeOrBankId: voucher.safeId || voucher.bankId,
+        branchId: voucher.branchId,
+        branchName: branchName,
+      };
+    });
+  }, [paymentVouchers, branches, normalizeDate]);
+
+  const isLoading = currentAccountsLoading || branchesLoading || receiptVouchersLoading || paymentVouchersLoading;
   const currentYear = new Date().getFullYear();
   const [startDate, setStartDate] = useState(`${currentYear}-01-01`);
-  const [endDate, setEndDate] = useState(`${currentYear}-12-31`);
+  const [endDate, setEndDate] = useState(getLocalDateString());
   const [selectedAccountId, setSelectedAccountId] = useState<string | null>(
     null,
   );
+  const [selectedBranch, setSelectedBranch] = useState("all");
 
   // Set initial selected account when data loads
   useEffect(() => {
@@ -56,70 +192,107 @@ const CurrentAccountStatementReport: React.FC<
 
   const openingBalance = useMemo(() => {
     if (!selectedAccount) return 0;
-    const accountId = selectedAccount.id;
-    const receiptsBefore = receiptVouchers
+    const accountId = selectedAccount.id.toString(); // Keep as string for comparison
+    const normalizedStartDate = normalizeDate(startDate);
+    
+    const receiptsBefore = transformedReceiptVouchers
       .filter(
-        (v) =>
-          v.entity.type === "current_account" &&
-          v.entity.id === accountId &&
-          v.date < startDate,
+        (v) => {
+          const voucherDate = normalizeDate(v.date);
+          const voucherEntityId = v.entity?.id ? String(v.entity.id) : null;
+          return (
+            v.entity?.type === "current_account" &&
+            voucherEntityId === accountId &&
+            voucherDate < normalizedStartDate
+          );
+        }
       )
       .reduce((sum, v) => sum + v.amount, 0);
-    const paymentsBefore = paymentVouchers
+    const paymentsBefore = transformedPaymentVouchers
       .filter(
-        (v) =>
-          v.entity.type === "current_account" &&
-          v.entity.id === accountId &&
-          v.date < startDate,
+        (v) => {
+          const voucherDate = normalizeDate(v.date);
+          const voucherEntityId = v.entity?.id ? String(v.entity.id) : null;
+          return (
+            v.entity?.type === "current_account" &&
+            voucherEntityId === accountId &&
+            voucherDate < normalizedStartDate
+          );
+        }
       )
       .reduce((sum, v) => sum + v.amount, 0);
     // Assuming debit (payment) increases balance for liability accounts (partners) and credit (receipt) decreases it.
     // Let's stick to Debit increases, Credit decreases for simplicity.
     return selectedAccount.openingBalance + paymentsBefore - receiptsBefore;
-  }, [selectedAccount, receiptVouchers, paymentVouchers, startDate]);
+  }, [selectedAccount, transformedReceiptVouchers, transformedPaymentVouchers, startDate, normalizeDate]);
 
   const reportData = useMemo(() => {
     if (!selectedAccountId) return [];
-    const accountId = parseInt(selectedAccountId);
+    const accountId = selectedAccountId.toString(); // Keep as string for comparison
+    const normalizedStartDate = normalizeDate(startDate);
+    const normalizedEndDate = normalizeDate(endDate);
 
     const transactions: {
       date: string;
       description: string;
       ref: string;
+      voucherId: string;
+      voucherType: "receipt" | "payment";
+      branchName: string;
       debit: number;
       credit: number;
     }[] = [];
 
-    paymentVouchers.forEach((v) => {
+    transformedPaymentVouchers.forEach((v) => {
+      const voucherDate = normalizeDate(v.date);
+      // Convert entity.id to string for comparison
+      const voucherEntityId = v.entity?.id ? String(v.entity.id) : null;
+      
       if (
-        v.entity.type === "current_account" &&
-        v.entity.id === accountId &&
-        v.date >= startDate &&
-        v.date <= endDate
+        v.entity?.type === "current_account" &&
+        voucherEntityId === accountId &&
+        voucherDate >= normalizedStartDate &&
+        voucherDate <= normalizedEndDate
       ) {
-        transactions.push({
-          date: v.date,
-          description: "سند صرف",
-          ref: v.id,
-          debit: v.amount,
-          credit: 0,
-        });
+        const branchMatch = selectedBranch === "all" || v.branchName === selectedBranch;
+        if (branchMatch) {
+          transactions.push({
+            date: v.date,
+            description: "سند صرف",
+            ref: v.code || v.id,
+            voucherId: v.id,
+            voucherType: "payment",
+            branchName: v.branchName,
+            debit: v.amount,
+            credit: 0,
+          });
+        }
       }
     });
-    receiptVouchers.forEach((v) => {
+    transformedReceiptVouchers.forEach((v) => {
+      const voucherDate = normalizeDate(v.date);
+      // Convert entity.id to string for comparison
+      const voucherEntityId = v.entity?.id ? String(v.entity.id) : null;
+      
       if (
-        v.entity.type === "current_account" &&
-        v.entity.id === accountId &&
-        v.date >= startDate &&
-        v.date <= endDate
+        v.entity?.type === "current_account" &&
+        voucherEntityId === accountId &&
+        voucherDate >= normalizedStartDate &&
+        voucherDate <= normalizedEndDate
       ) {
-        transactions.push({
-          date: v.date,
-          description: "سند قبض",
-          ref: v.id,
-          debit: 0,
-          credit: v.amount,
-        });
+        const branchMatch = selectedBranch === "all" || v.branchName === selectedBranch;
+        if (branchMatch) {
+          transactions.push({
+            date: v.date,
+            description: "سند قبض",
+            ref: v.code || v.id,
+            voucherId: v.id,
+            voucherType: "receipt",
+            branchName: v.branchName,
+            debit: 0,
+            credit: v.amount,
+          });
+        }
       }
     });
 
@@ -134,11 +307,13 @@ const CurrentAccountStatementReport: React.FC<
     });
   }, [
     selectedAccountId,
-    receiptVouchers,
-    paymentVouchers,
+    transformedReceiptVouchers,
+    transformedPaymentVouchers,
     startDate,
     endDate,
     openingBalance,
+    selectedBranch,
+    normalizeDate,
   ]);
 
   const totalDebit = reportData.reduce((sum, item) => sum + item.debit, 0);
@@ -223,6 +398,9 @@ const CurrentAccountStatementReport: React.FC<
                 <span className="font-semibold text-gray-800">الفترة من:</span> {startDate} 
                 <span className="font-semibold text-gray-800 mr-2">إلى:</span> {endDate}
               </p>
+              <p className="text-base text-gray-700">
+                <span className="font-semibold text-gray-800">الفرع:</span> {selectedBranch === "all" ? "جميع الفروع" : selectedBranch}
+              </p>
             </div>
             <div className="space-y-2 text-right">
               <p className="text-base text-gray-700">
@@ -239,7 +417,7 @@ const CurrentAccountStatementReport: React.FC<
         </div>
 
         <div className="flex justify-between items-center my-4 bg-gray-50 p-3 rounded-md border-2 border-gray-200 no-print">
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-4 flex-wrap">
             <select
               className={inputStyle}
               value={selectedAccountId || ""}
@@ -249,6 +427,19 @@ const CurrentAccountStatementReport: React.FC<
               {currentAccounts.map((acc) => (
                 <option key={acc.id} value={acc.id}>
                   {acc.name}
+                </option>
+              ))}
+            </select>
+            <label className="font-semibold">الفرع:</label>
+            <select
+              className={inputStyle}
+              value={selectedBranch}
+              onChange={(e) => setSelectedBranch(e.target.value)}
+            >
+              <option value="all">جميع الفروع</option>
+              {branches.map((branch) => (
+                <option key={branch.id} value={branch.name}>
+                  {branch.name}
                 </option>
               ))}
             </select>
@@ -266,7 +457,10 @@ const CurrentAccountStatementReport: React.FC<
               value={endDate}
               onChange={(e) => setEndDate(e.target.value)}
             />
-            <button className="px-6 py-2 bg-brand-blue text-white rounded-md hover:bg-blue-800 font-semibold flex items-center gap-2">
+            <button 
+              onClick={handleRefetch}
+              className="px-6 py-2 bg-brand-blue text-white rounded-md hover:bg-blue-800 font-semibold flex items-center gap-2"
+            >
               <SearchIcon className="w-5 h-5" />
               <span>عرض التقرير</span>
             </button>
@@ -302,7 +496,13 @@ const CurrentAccountStatementReport: React.FC<
                   التاريخ
                 </th>
                 <th className="px-6 py-3 text-right text-sm font-semibold text-white uppercase">
+                  الفرع
+                </th>
+                <th className="px-6 py-3 text-right text-sm font-semibold text-white uppercase">
                   البيان
+                </th>
+                <th className="px-6 py-3 text-right text-sm font-semibold text-white uppercase">
+                  المرجع
                 </th>
                 <th className="px-6 py-3 text-right text-sm font-semibold text-white uppercase">
                   مدين
@@ -317,7 +517,7 @@ const CurrentAccountStatementReport: React.FC<
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
               <tr className="bg-gray-50">
-                <td colSpan={4} className="px-6 py-3">
+                <td colSpan={6} className="px-6 py-3">
                   رصيد أول المدة
                 </td>
                 <td className={`px-6 py-3 ${getNegativeNumberClass(openingBalance)}`}>
@@ -327,8 +527,32 @@ const CurrentAccountStatementReport: React.FC<
               {reportData.map((item, index) => (
                 <tr key={index} className="hover:bg-brand-blue-bg">
                   <td className="px-6 py-4 w-36">{item.date.substring(0, 10)}</td>
+                  <td className="px-6 py-4">{item.branchName}</td>
                   <td className="px-6 py-4 font-medium text-brand-dark">
-                    {item.description} ({item.ref})
+                    {item.description}
+                  </td>
+                  <td className="px-6 py-4">
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        if (item.voucherId) {
+                          const url = item.voucherType === "receipt"
+                            ? `/financials/receipt-voucher?voucherId=${encodeURIComponent(item.voucherId)}`
+                            : `/financials/payment-voucher?voucherId=${encodeURIComponent(item.voucherId)}`;
+                          // Use window.location to ensure URL updates
+                          window.location.href = url;
+                        } else {
+                          console.error("Voucher ID is missing:", item);
+                        }
+                      }}
+                      className="text-brand-blue hover:underline font-semibold no-print cursor-pointer"
+                      title={item.voucherType === "receipt" ? "فتح سند القبض" : "فتح سند الصرف"}
+                    >
+                      {item.ref}
+                    </button>
+                    <span className="print:inline hidden">{item.ref}</span>
                   </td>
                   <td className={`px-6 py-4 text-red-600 ${getNegativeNumberClass(item.debit)}`}>
                     {formatNumber(item.debit)}
@@ -344,7 +568,7 @@ const CurrentAccountStatementReport: React.FC<
             </tbody>
             <tfoot className="bg-brand-blue">
               <tr className="font-bold text-white">
-                <td colSpan={2} className="px-6 py-3 text-right">
+                <td colSpan={4} className="px-6 py-3 text-right">
                   الإجمالي
                 </td>
                 <td className={`px-6 py-3 text-right ${getNegativeNumberClass(totalDebit)}`}>
