@@ -444,7 +444,7 @@ const InventoryValuationReport: React.FC<InventoryValuationReportProps> = ({
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-brand-blue">
               <tr>
-                <th className="px-4 py-3 text-right text-sm font-semibold text-white uppercase w-24">
+                <th className="px-4 py-3 text-right text-sm font-semibold text-white uppercase w-28">
                   كود الصنف
                 </th>
                 <th className="px-6 py-3 text-right text-sm font-semibold text-white uppercase w-80">
@@ -467,7 +467,7 @@ const InventoryValuationReport: React.FC<InventoryValuationReportProps> = ({
             <tbody className="bg-white divide-y divide-gray-200">
               {reportData.map((item) => (
                 <tr key={item.id} className="hover:bg-brand-blue-bg">
-                  <td className="px-4 py-4 w-24">{item.code}</td>
+                  <td className="px-4 py-4 w-28">{item.code}</td>
                   <td className="px-6 py-4 font-medium text-brand-dark w-80">
                     {item.name}
                   </td>

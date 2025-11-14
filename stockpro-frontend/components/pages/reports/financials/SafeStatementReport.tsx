@@ -336,7 +336,7 @@ const SafeStatementReport: React.FC<SafeStatementReportProps> = ({
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-brand-blue">
               <tr>
-                <th className="px-6 py-3 text-right text-sm font-semibold text-white uppercase">
+                <th className="px-6 py-3 text-right text-sm font-semibold text-white uppercase w-36">
                   التاريخ
                 </th>
                 <th className="px-6 py-3 text-right text-sm font-semibold text-white uppercase">
@@ -367,7 +367,7 @@ const SafeStatementReport: React.FC<SafeStatementReportProps> = ({
               </tr>
               {reportData.map((item, index) => (
                 <tr key={index} className="hover:bg-brand-blue-bg">
-                  <td className="px-6 py-4">{item.date.substring(0, 10)}</td>
+                  <td className="px-6 py-4 w-36">{item.date.substring(0, 10)}</td>
                   <td className="px-6 py-4 font-medium text-brand-dark">
                     {item.description}
                   </td>

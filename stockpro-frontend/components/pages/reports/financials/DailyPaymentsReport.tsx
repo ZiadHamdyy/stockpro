@@ -227,7 +227,7 @@ const DailyPaymentsReport: React.FC<DailyPaymentsReportProps> = ({
                 <th className="px-6 py-3 text-right text-sm font-semibold text-white uppercase">
                   م
                 </th>
-                <th className="px-6 py-3 text-right text-sm font-semibold text-white uppercase">
+                <th className="px-6 py-3 text-right text-sm font-semibold text-white uppercase w-36">
                   التاريخ
                 </th>
                 <th className="px-6 py-3 text-right text-sm font-semibold text-white uppercase">
@@ -251,7 +251,7 @@ const DailyPaymentsReport: React.FC<DailyPaymentsReportProps> = ({
               {filteredVouchers.map((voucher, index) => (
                 <tr key={voucher.id} className="hover:bg-brand-blue-bg">
                   <td className="px-6 py-4">{index + 1}</td>
-                  <td className="px-6 py-4">{voucher.date.substring(0, 10)}</td>
+                  <td className="px-6 py-4 w-36">{voucher.date.substring(0, 10)}</td>
                   <td className="px-6 py-4 font-medium text-brand-dark">
                     {voucher.id}
                   </td>

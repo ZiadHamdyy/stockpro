@@ -221,10 +221,10 @@ const TotalCurrentAccountsReport: React.FC<TotalCurrentAccountsReportProps> = ({
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-brand-blue">
               <tr>
-                <th className="px-6 py-3 text-right text-sm font-semibold text-white uppercase">
+                <th className="px-6 py-3 text-right text-sm font-semibold text-white uppercase w-28">
                   كود الحساب
                 </th>
-                <th className="px-6 py-3 text-right text-sm font-semibold text-white uppercase">
+                <th className="px-6 py-3 text-right text-sm font-semibold text-white uppercase w-64">
                   اسم الحساب
                 </th>
                 <th className="px-6 py-3 text-right text-sm font-semibold text-white uppercase">
@@ -244,8 +244,8 @@ const TotalCurrentAccountsReport: React.FC<TotalCurrentAccountsReportProps> = ({
             <tbody className="bg-white divide-y divide-gray-200">
               {accountsSummary.map((item) => (
                 <tr key={item.id} className="hover:bg-brand-blue-bg">
-                  <td className="px-6 py-4">{item.code}</td>
-                  <td className="px-6 py-4 font-medium text-brand-dark">
+                  <td className="px-6 py-4 w-28">{item.code}</td>
+                  <td className="px-6 py-4 font-medium text-brand-dark w-64">
                     {item.name}
                   </td>
                   <td className={`px-6 py-4 ${getNegativeNumberClass(item.opening)}`}>{formatNumber(item.opening)}</td>

@@ -90,6 +90,7 @@ const CustomerBalanceReport: React.FC<CustomerBalanceReportProps> = ({
     new Date().toISOString().substring(0, 10),
   );
   const [reportData, setReportData] = useState<any[]>([]);
+  const [hideZeroBalance, setHideZeroBalance] = useState(false);
 
   const handleViewReport = useCallback(() => {
     const customerBalanceData = customers.map((customer) => {
@@ -160,7 +161,14 @@ const CustomerBalanceReport: React.FC<CustomerBalanceReportProps> = ({
     handleViewReport();
   }, [handleViewReport]);
 
-  const totals = reportData.reduce(
+  const filteredReportData = useMemo(() => {
+    if (hideZeroBalance) {
+      return reportData.filter((item) => Math.abs(item.balance) > 0.01);
+    }
+    return reportData;
+  }, [reportData, hideZeroBalance]);
+
+  const totals = filteredReportData.reduce(
     (acc, item) => {
       acc.opening += item.opening;
       acc.debit += item.debit;
@@ -279,7 +287,17 @@ const CustomerBalanceReport: React.FC<CustomerBalanceReportProps> = ({
               <SearchIcon className="w-5 h-5" />
               <span>عرض التقرير</span>
             </button>
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={hideZeroBalance}
+                onChange={(e) => setHideZeroBalance(e.target.checked)}
+                className="w-4 h-4 text-brand-blue border-2 border-gray-300 rounded focus:ring-2 focus:ring-brand-blue"
+              />
+              <span className="font-semibold text-gray-700">إخفاء العملاء برصيد صفر</span>
+            </label>
           </div>
+          
           <div className="flex items-center gap-2">
             <button
               title="تصدير Excel"
@@ -307,7 +325,7 @@ const CustomerBalanceReport: React.FC<CustomerBalanceReportProps> = ({
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-brand-blue">
               <tr>
-                <th className="px-6 py-3 text-right text-sm font-semibold text-white uppercase">
+                <th className="px-6 py-3 text-right text-sm font-semibold text-white uppercase w-28">
                   كود العميل
                 </th>
                 <th className="px-6 py-3 text-right text-sm font-semibold text-white uppercase">
@@ -325,10 +343,10 @@ const CustomerBalanceReport: React.FC<CustomerBalanceReportProps> = ({
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {reportData.map((item) => (
+              {filteredReportData.map((item) => (
                 <tr key={item.id} className="hover:bg-brand-blue-bg">
-                  <td className="px-6 py-4">{item.code}</td>
-                  <td className="px-6 py-4 font-medium text-brand-dark">
+                  <td className="px-6 py-4 w-28">{item.code}</td>
+                  <td className="px-6 py-4 font-medium text-brand-dark w-64">
                     {item.name}
                   </td>
                   <td className="px-6 py-4 text-green-600">
