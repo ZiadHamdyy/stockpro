@@ -26,25 +26,41 @@ export class ReceiptVoucherService {
     const entityName = await this.fetchEntityName(data.entityType, entityId);
 
     const result = await this.prisma.$transaction(async (tx) => {
-      // Always debit cash/bank account (new rule)
+      // Increment safe/bank (money received)
       if (data.paymentMethod === 'safe') {
         const acct = await tx.safe.findUnique({ where: { id: data.safeId! } });
         if (!acct) throw new NotFoundException('Safe not found');
-        await tx.safe.update({ where: { id: data.safeId! }, data: { currentBalance: { decrement: data.amount } } as any });
+        await tx.safe.update({ where: { id: data.safeId! }, data: { currentBalance: { increment: data.amount } } as any });
       } else if (data.paymentMethod === 'bank') {
         const acct = await tx.bank.findUnique({ where: { id: data.bankId! } });
         if (!acct) throw new NotFoundException('Bank not found');
-        await tx.bank.update({ where: { id: data.bankId! }, data: { currentBalance: { decrement: data.amount } } as any });
+        await tx.bank.update({ where: { id: data.bankId! }, data: { currentBalance: { increment: data.amount } } as any });
       }
 
-      // Apply entity-side effect (decrement per new rule)
-      await this.applyEntityBalanceEffect(tx, data.entityType, {
-        currentAccountId: data.currentAccountId,
-        receivableAccountId: (data as any).receivableAccountId,
-        payableAccountId: (data as any).payableAccountId,
-        amount: data.amount,
-        direction: 'decrement',
-      });
+      // Apply entity balance effects
+      if (data.entityType === 'customer' && data.customerId) {
+        // Customer: decrement (customer paid us)
+        await tx.customer.update({
+          where: { id: data.customerId },
+          data: { currentBalance: { decrement: data.amount } },
+        });
+      } else if (data.entityType === 'supplier' && data.supplierId) {
+        // Supplier: increment (we received from supplier)
+        await tx.supplier.update({
+          where: { id: data.supplierId },
+          data: { currentBalance: { increment: data.amount } },
+        });
+      } else {
+        // Apply entity-side effect for other account types
+        const direction = data.entityType === 'receivable_account' ? 'decrement' : 'increment';
+        await this.applyEntityBalanceEffect(tx, data.entityType, {
+          currentAccountId: data.currentAccountId,
+          receivableAccountId: (data as any).receivableAccountId,
+          payableAccountId: (data as any).payableAccountId,
+          amount: data.amount,
+          direction,
+        });
+      }
 
       const receiptVoucher = await tx.receiptVoucher.create({
         data: {
@@ -123,21 +139,34 @@ export class ReceiptVoucherService {
         const existing = await tx.receiptVoucher.findUnique({ where: { id } });
         if (!existing) throw new NotFoundException('Receipt voucher not found');
 
-        // Reverse previous effect on cash/bank (increment back)
+        // Reverse previous effect on cash/bank (decrement back)
         if (existing.paymentMethod === 'safe' && existing.safeId) {
-          await tx.safe.update({ where: { id: existing.safeId }, data: { currentBalance: { increment: existing.amount } } as any });
+          await tx.safe.update({ where: { id: existing.safeId }, data: { currentBalance: { decrement: existing.amount } } as any });
         } else if (existing.paymentMethod === 'bank' && existing.bankId) {
-          await tx.bank.update({ where: { id: existing.bankId }, data: { currentBalance: { increment: existing.amount } } as any });
+          await tx.bank.update({ where: { id: existing.bankId }, data: { currentBalance: { decrement: existing.amount } } as any });
         }
 
-        // Reverse previous entity effect (increment back)
-        await this.applyEntityBalanceEffect(tx, existing.entityType, {
-          currentAccountId: existing.currentAccountId,
-          receivableAccountId: (existing as any).receivableAccountId,
-          payableAccountId: (existing as any).payableAccountId,
-          amount: existing.amount,
-          direction: 'increment',
-        });
+        // Reverse previous entity effect
+        if (existing.entityType === 'customer' && existing.customerId) {
+          await tx.customer.update({
+            where: { id: existing.customerId },
+            data: { currentBalance: { increment: existing.amount } },
+          });
+        } else if (existing.entityType === 'supplier' && existing.supplierId) {
+          await tx.supplier.update({
+            where: { id: existing.supplierId },
+            data: { currentBalance: { decrement: existing.amount } },
+          });
+        } else {
+          const reverseDirection = existing.entityType === 'receivable_account' ? 'increment' : 'decrement';
+          await this.applyEntityBalanceEffect(tx, existing.entityType, {
+            currentAccountId: existing.currentAccountId,
+            receivableAccountId: (existing as any).receivableAccountId,
+            payableAccountId: (existing as any).payableAccountId,
+            amount: existing.amount,
+            direction: reverseDirection,
+          });
+        }
 
         // Determine new target and apply
         const newPaymentMethod = data.paymentMethod || existing.paymentMethod;
@@ -148,25 +177,41 @@ export class ReceiptVoucherService {
         if (newPaymentMethod === 'safe') {
           const acct = await tx.safe.findUnique({ where: { id: newSafeId! } });
           if (!acct) throw new NotFoundException('Safe not found');
-          await tx.safe.update({ where: { id: newSafeId! }, data: { currentBalance: { decrement: newAmount } } as any });
+          await tx.safe.update({ where: { id: newSafeId! }, data: { currentBalance: { increment: newAmount } } as any });
         } else if (newPaymentMethod === 'bank') {
           const acct = await tx.bank.findUnique({ where: { id: newBankId! } });
           if (!acct) throw new NotFoundException('Bank not found');
-          await tx.bank.update({ where: { id: newBankId! }, data: { currentBalance: { decrement: newAmount } } as any });
+          await tx.bank.update({ where: { id: newBankId! }, data: { currentBalance: { increment: newAmount } } as any });
         }
 
-        // Apply new entity effect (decrement)
+        // Apply new entity effect
         const newEntityType = data.entityType || existing.entityType;
-        const newEntityIds: any = {
-          currentAccountId: data.currentAccountId ?? existing.currentAccountId,
-          receivableAccountId: (data as any).receivableAccountId ?? (existing as any).receivableAccountId,
-          payableAccountId: (data as any).payableAccountId ?? (existing as any).payableAccountId,
-        };
-        await this.applyEntityBalanceEffect(tx, newEntityType, {
-          ...newEntityIds,
-          amount: newAmount,
-          direction: 'decrement',
-        });
+        const newCustomerId = data.customerId ?? existing.customerId;
+        const newSupplierId = data.supplierId ?? existing.supplierId;
+        
+        if (newEntityType === 'customer' && newCustomerId) {
+          await tx.customer.update({
+            where: { id: newCustomerId },
+            data: { currentBalance: { decrement: newAmount } },
+          });
+        } else if (newEntityType === 'supplier' && newSupplierId) {
+          await tx.supplier.update({
+            where: { id: newSupplierId },
+            data: { currentBalance: { increment: newAmount } },
+          });
+        } else {
+          const newEntityIds: any = {
+            currentAccountId: data.currentAccountId ?? existing.currentAccountId,
+            receivableAccountId: (data as any).receivableAccountId ?? (existing as any).receivableAccountId,
+            payableAccountId: (data as any).payableAccountId ?? (existing as any).payableAccountId,
+          };
+          const direction = newEntityType === 'receivable_account' ? 'decrement' : 'increment';
+          await this.applyEntityBalanceEffect(tx, newEntityType, {
+            ...newEntityIds,
+            amount: newAmount,
+            direction,
+          });
+        }
 
         const updateData: any = {
           ...data,
@@ -215,21 +260,34 @@ export class ReceiptVoucherService {
         const existing = await tx.receiptVoucher.findUnique({ where: { id } });
         if (!existing) throw new NotFoundException('Receipt voucher not found');
 
-        // Reverse effect on cash/bank (increment back)
+        // Reverse effect on cash/bank (decrement back)
         if (existing.paymentMethod === 'safe' && existing.safeId) {
-          await tx.safe.update({ where: { id: existing.safeId }, data: { currentBalance: { increment: existing.amount } } as any });
+          await tx.safe.update({ where: { id: existing.safeId }, data: { currentBalance: { decrement: existing.amount } } as any });
         } else if (existing.paymentMethod === 'bank' && existing.bankId) {
-          await tx.bank.update({ where: { id: existing.bankId }, data: { currentBalance: { increment: existing.amount } } as any });
+          await tx.bank.update({ where: { id: existing.bankId }, data: { currentBalance: { decrement: existing.amount } } as any });
         }
 
-        // Reverse entity effect (increment back)
-        await this.applyEntityBalanceEffect(tx, existing.entityType, {
-          currentAccountId: existing.currentAccountId,
-          receivableAccountId: (existing as any).receivableAccountId,
-          payableAccountId: (existing as any).payableAccountId,
-          amount: existing.amount,
-          direction: 'increment',
-        });
+        // Reverse entity effect
+        if (existing.entityType === 'customer' && existing.customerId) {
+          await tx.customer.update({
+            where: { id: existing.customerId },
+            data: { currentBalance: { increment: existing.amount } },
+          });
+        } else if (existing.entityType === 'supplier' && existing.supplierId) {
+          await tx.supplier.update({
+            where: { id: existing.supplierId },
+            data: { currentBalance: { decrement: existing.amount } },
+          });
+        } else {
+          const reverseDirection = existing.entityType === 'receivable_account' ? 'increment' : 'decrement';
+          await this.applyEntityBalanceEffect(tx, existing.entityType, {
+            currentAccountId: existing.currentAccountId,
+            receivableAccountId: (existing as any).receivableAccountId,
+            payableAccountId: (existing as any).payableAccountId,
+            amount: existing.amount,
+            direction: reverseDirection,
+          });
+        }
 
         await tx.receiptVoucher.delete({ where: { id } });
       });
@@ -311,18 +369,13 @@ export class ReceiptVoucherService {
   ): Promise<void> {
     const op = params.direction;
     if (entityType === 'current_account' && params.currentAccountId) {
-      if (op === 'decrement') {
-        const acc = await (tx as any).currentAccount.findUnique({ where: { id: params.currentAccountId } });
-        if (!acc) throw new NotFoundException('Current account not found');
-        if ((acc as any).currentBalance < params.amount) {
-          throw new ConflictException('الرصيد غير كافي في الحساب الجاري');
-        }
-      }
+      // Current account: increment for receipt (no balance check needed)
       await (tx as any).currentAccount.update({
         where: { id: params.currentAccountId },
         data: { currentBalance: { [op]: params.amount } } as any,
       });
     } else if (entityType === 'receivable_account' && params.receivableAccountId) {
+      // Receivable account: decrement for receipt (check balance)
       if (op === 'decrement') {
         const acc = await (tx as any).receivableAccount.findUnique({ where: { id: params.receivableAccountId } });
         if (!acc) throw new NotFoundException('Receivable account not found');
@@ -335,13 +388,7 @@ export class ReceiptVoucherService {
         data: { currentBalance: { [op]: params.amount } } as any,
       });
     } else if (entityType === 'payable_account' && params.payableAccountId) {
-      if (op === 'decrement') {
-        const acc = await (tx as any).payableAccount.findUnique({ where: { id: params.payableAccountId } });
-        if (!acc) throw new NotFoundException('Payable account not found');
-        if ((acc as any).currentBalance < params.amount) {
-          throw new ConflictException('الرصيد غير كافي في حساب الموردين');
-        }
-      }
+      // Payable account: increment for receipt (no balance check needed)
       await (tx as any).payableAccount.update({
         where: { id: params.payableAccountId },
         data: { currentBalance: { [op]: params.amount } } as any,

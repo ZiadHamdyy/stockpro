@@ -44,14 +44,33 @@ export class PaymentVoucherService {
         await tx.bank.update({ where: { id: data.bankId! }, data: { currentBalance: { decrement: data.amount } } as any });
       }
 
-      // Apply entity-side effect (increment per new rules)
-      await this.applyEntityBalanceEffect(tx, data.entityType, {
-        currentAccountId: data.currentAccountId,
-        receivableAccountId: data.receivableAccountId as any,
-        payableAccountId: data.payableAccountId as any,
-        amount: data.amount,
-        direction: 'increment',
-      });
+      // Apply entity balance effects
+      if (data.entityType === 'supplier' && data.supplierId) {
+        // Supplier: decrement (we paid supplier)
+        await tx.supplier.update({
+          where: { id: data.supplierId },
+          data: { currentBalance: { decrement: data.amount } },
+        });
+      } else if (data.entityType === 'customer' && data.customerId) {
+        // Customer: increment (we refunded customer)
+        await tx.customer.update({
+          where: { id: data.customerId },
+          data: { currentBalance: { increment: data.amount } },
+        });
+      } else if ((data.entityType === 'expense' || data.entityType === 'expense-Type') && data.expenseCodeId) {
+        // Expense-Type: Note - ExpenseCode doesn't have currentBalance field
+        // If tracking is needed, add currentBalance field to ExpenseCode model
+      } else {
+        // Apply entity-side effect for other account types
+        const direction = data.entityType === 'payable_account' ? 'decrement' : 'increment';
+        await this.applyEntityBalanceEffect(tx, data.entityType, {
+          currentAccountId: data.currentAccountId,
+          receivableAccountId: data.receivableAccountId as any,
+          payableAccountId: data.payableAccountId as any,
+          amount: data.amount,
+          direction,
+        });
+      }
 
       const paymentVoucher = await tx.paymentVoucher.create({
         data: ({
@@ -156,14 +175,30 @@ export class PaymentVoucherService {
           await tx.bank.update({ where: { id: existing.bankId }, data: { currentBalance: { increment: existing.amount } } as any });
         }
 
-        // Reverse previous entity effect (decrement back)
-        await this.applyEntityBalanceEffect(tx, existing.entityType, {
-          currentAccountId: existing.currentAccountId,
-          receivableAccountId: (existing as any).receivableAccountId,
-          payableAccountId: (existing as any).payableAccountId,
-          amount: existing.amount,
-          direction: 'decrement',
-        });
+        // Reverse previous entity effect
+        if (existing.entityType === 'supplier' && existing.supplierId) {
+          await tx.supplier.update({
+            where: { id: existing.supplierId },
+            data: { currentBalance: { increment: existing.amount } },
+          });
+        } else if (existing.entityType === 'customer' && existing.customerId) {
+          await tx.customer.update({
+            where: { id: existing.customerId },
+            data: { currentBalance: { decrement: existing.amount } },
+          });
+        } else if ((existing.entityType === 'expense' || existing.entityType === 'expense-Type') && existing.expenseCodeId) {
+          // Expense-Type: Note - ExpenseCode doesn't have currentBalance field
+          // If tracking is needed, add currentBalance field to ExpenseCode model
+        } else {
+          const reverseDirection = existing.entityType === 'payable_account' ? 'increment' : 'decrement';
+          await this.applyEntityBalanceEffect(tx, existing.entityType, {
+            currentAccountId: existing.currentAccountId,
+            receivableAccountId: (existing as any).receivableAccountId,
+            payableAccountId: (existing as any).payableAccountId,
+            amount: existing.amount,
+            direction: reverseDirection,
+          });
+        }
 
         // Determine new source and amount, then validate and apply debit
         const newPaymentMethod = data.paymentMethod || existing.paymentMethod;
@@ -183,18 +218,38 @@ export class PaymentVoucherService {
           await tx.bank.update({ where: { id: newBankId! }, data: { currentBalance: { decrement: newAmount } } as any });
         }
 
-        // Apply new entity effect (increment)
+        // Apply new entity effect
         const newEntityType = data.entityType || existing.entityType;
-        const newEntityIds: any = {
-          currentAccountId: data.currentAccountId ?? existing.currentAccountId,
-          receivableAccountId: (data as any).receivableAccountId ?? (existing as any).receivableAccountId,
-          payableAccountId: (data as any).payableAccountId ?? (existing as any).payableAccountId,
-        };
-        await this.applyEntityBalanceEffect(tx, newEntityType, {
-          ...newEntityIds,
-          amount: newAmount,
-          direction: 'increment',
-        });
+        const newSupplierId = data.supplierId ?? existing.supplierId;
+        const newCustomerId = data.customerId ?? existing.customerId;
+        const newExpenseCodeId = data.expenseCodeId ?? existing.expenseCodeId;
+        
+        if (newEntityType === 'supplier' && newSupplierId) {
+          await tx.supplier.update({
+            where: { id: newSupplierId },
+            data: { currentBalance: { decrement: newAmount } },
+          });
+        } else if (newEntityType === 'customer' && newCustomerId) {
+          await tx.customer.update({
+            where: { id: newCustomerId },
+            data: { currentBalance: { increment: newAmount } },
+          });
+        } else if ((newEntityType === 'expense' || newEntityType === 'expense-Type') && newExpenseCodeId) {
+          // Expense-Type: Note - ExpenseCode doesn't have currentBalance field
+          // If tracking is needed, add currentBalance field to ExpenseCode model
+        } else {
+          const newEntityIds: any = {
+            currentAccountId: data.currentAccountId ?? existing.currentAccountId,
+            receivableAccountId: (data as any).receivableAccountId ?? (existing as any).receivableAccountId,
+            payableAccountId: (data as any).payableAccountId ?? (existing as any).payableAccountId,
+          };
+          const direction = newEntityType === 'payable_account' ? 'decrement' : 'increment';
+          await this.applyEntityBalanceEffect(tx, newEntityType, {
+            ...newEntityIds,
+            amount: newAmount,
+            direction,
+          });
+        }
 
         const updateData: any = {
           ...data,
@@ -252,14 +307,30 @@ export class PaymentVoucherService {
           await tx.bank.update({ where: { id: existing.bankId }, data: { currentBalance: { increment: existing.amount } } as any });
         }
 
-        // Reverse entity effect (decrement back)
-        await this.applyEntityBalanceEffect(tx, existing.entityType, {
-          currentAccountId: existing.currentAccountId,
-          receivableAccountId: (existing as any).receivableAccountId,
-          payableAccountId: (existing as any).payableAccountId,
-          amount: existing.amount,
-          direction: 'decrement',
-        });
+        // Reverse entity effect
+        if (existing.entityType === 'supplier' && existing.supplierId) {
+          await tx.supplier.update({
+            where: { id: existing.supplierId },
+            data: { currentBalance: { increment: existing.amount } },
+          });
+        } else if (existing.entityType === 'customer' && existing.customerId) {
+          await tx.customer.update({
+            where: { id: existing.customerId },
+            data: { currentBalance: { decrement: existing.amount } },
+          });
+        } else if ((existing.entityType === 'expense' || existing.entityType === 'expense-Type') && existing.expenseCodeId) {
+          // Expense-Type: Note - ExpenseCode doesn't have currentBalance field
+          // If tracking is needed, add currentBalance field to ExpenseCode model
+        } else {
+          const reverseDirection = existing.entityType === 'payable_account' ? 'increment' : 'decrement';
+          await this.applyEntityBalanceEffect(tx, existing.entityType, {
+            currentAccountId: existing.currentAccountId,
+            receivableAccountId: (existing as any).receivableAccountId,
+            payableAccountId: (existing as any).payableAccountId,
+            amount: existing.amount,
+            direction: reverseDirection,
+          });
+        }
 
         await tx.paymentVoucher.delete({ where: { id } });
       });
@@ -348,6 +419,7 @@ export class PaymentVoucherService {
   ): Promise<void> {
     const deltaOp = params.direction;
     if (entityType === 'current_account' && params.currentAccountId) {
+      // Current account: decrement for payment (check balance)
       if (deltaOp === 'decrement') {
         const acc = await (tx as any).currentAccount.findUnique({ where: { id: params.currentAccountId } });
         if (!acc) throw new NotFoundException('Current account not found');
@@ -360,18 +432,13 @@ export class PaymentVoucherService {
         data: { currentBalance: { [deltaOp]: params.amount } } as any,
       });
     } else if (entityType === 'receivable_account' && params.receivableAccountId) {
-      if (deltaOp === 'decrement') {
-        const acc = await (tx as any).receivableAccount.findUnique({ where: { id: params.receivableAccountId } });
-        if (!acc) throw new NotFoundException('Receivable account not found');
-        if ((acc as any).currentBalance < params.amount) {
-          throw new ConflictException('الرصيد غير كافي في حساب العملاء');
-        }
-      }
+      // Receivable account: increment for payment (no balance check needed)
       await (tx as any).receivableAccount.update({
         where: { id: params.receivableAccountId },
         data: { currentBalance: { [deltaOp]: params.amount } } as any,
       });
     } else if (entityType === 'payable_account' && params.payableAccountId) {
+      // Payable account: decrement for payment (check balance)
       if (deltaOp === 'decrement') {
         const acc = await (tx as any).payableAccount.findUnique({ where: { id: params.payableAccountId } });
         if (!acc) throw new NotFoundException('Payable account not found');
