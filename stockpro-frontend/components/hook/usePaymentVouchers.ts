@@ -17,6 +17,7 @@ import { useToast } from "../common/ToastProvider";
 import { useModal } from "../common/ModalProvider";
 import { VoucherEntity } from "../../types";
 import { showApiErrorToast } from "../../utils/errorToast";
+import { useAuth } from "./Auth";
 
 export const usePaymentVouchers = () => {
   const [currentIndex, setCurrentIndex] = useState(-1);
@@ -34,6 +35,7 @@ export const usePaymentVouchers = () => {
 
   const { showToast } = useToast();
   const { showModal } = useModal();
+  const { User } = useAuth();
 
   // Fetch payment vouchers
   const {
@@ -170,6 +172,10 @@ export const usePaymentVouchers = () => {
       paymentFields.safeId = undefined;
     }
 
+    // Get branchId from User
+    const branchId = User?.branchId || 
+      (typeof User?.branch === 'string' ? User.branch : (User?.branch as any)?.id);
+
     const payload: CreatePaymentVoucherRequest = {
       date: voucherData.date,
       entityType: voucherData.entity.type,
@@ -178,6 +184,7 @@ export const usePaymentVouchers = () => {
       paymentMethod: voucherData.paymentMethod,
       ...paymentFields,
       ...entityFields,
+      ...(branchId ? { branchId } : {}),
     };
 
     try {
@@ -210,6 +217,7 @@ export const usePaymentVouchers = () => {
     createPaymentVoucher,
     updatePaymentVoucher,
     showToast,
+    User,
   ]);
 
   const handleEdit = useCallback(() => {
