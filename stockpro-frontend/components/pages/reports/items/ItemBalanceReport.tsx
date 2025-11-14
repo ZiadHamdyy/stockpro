@@ -191,42 +191,46 @@ const ItemBalanceReport: React.FC<ItemBalanceReportProps> = ({
     if (isLoading) return;
 
     const balanceData = items.map((item) => {
-      let balance = item.stock; // Opening balance
+      const openingBalance = item.stock; // Opening balance
+      let totalIncoming = 0;
+      let totalOutgoing = 0;
 
       const filterByBranch = (tx: any) =>
         selectedBranch === "all" ||
         tx.branch === selectedBranch ||
         tx.branchName === selectedBranch;
 
+      // Calculate total incoming
       transformedPurchaseInvoices.filter(filterByBranch).forEach((inv) =>
         inv.items.forEach((i) => {
-          if (i.id === item.code) balance += i.qty;
+          if (i.id === item.code) totalIncoming += i.qty;
         }),
       );
       transformedSalesReturns.filter(filterByBranch).forEach((inv) =>
         inv.items.forEach((i) => {
-          if (i.id === item.code) balance += i.qty;
+          if (i.id === item.code) totalIncoming += i.qty;
         }),
       );
       transformedStoreReceiptVouchers.filter(filterByBranch).forEach((v) =>
         v.items.forEach((i) => {
-          if (i.id === item.code) balance += i.qty;
+          if (i.id === item.code) totalIncoming += i.qty;
         }),
       );
 
+      // Calculate total outgoing
       transformedSalesInvoices.filter(filterByBranch).forEach((inv) =>
         inv.items.forEach((i) => {
-          if (i.id === item.code) balance -= i.qty;
+          if (i.id === item.code) totalOutgoing += i.qty;
         }),
       );
       transformedPurchaseReturns.filter(filterByBranch).forEach((inv) =>
         inv.items.forEach((i) => {
-          if (i.id === item.code) balance -= i.qty;
+          if (i.id === item.code) totalOutgoing += i.qty;
         }),
       );
       transformedStoreIssueVouchers.filter(filterByBranch).forEach((v) =>
         v.items.forEach((i) => {
-          if (i.id === item.code) balance -= i.qty;
+          if (i.id === item.code) totalOutgoing += i.qty;
         }),
       );
 
@@ -237,16 +241,21 @@ const ItemBalanceReport: React.FC<ItemBalanceReportProps> = ({
           const toStore = stores.find((s) => s.name === v.toStore);
           v.items.forEach((i) => {
             if (i.id === item.code) {
-              if (fromStore?.branch?.name === selectedBranch) balance -= i.qty;
-              if (toStore?.branch?.name === selectedBranch) balance += i.qty;
+              if (fromStore?.branch?.name === selectedBranch) totalOutgoing += i.qty;
+              if (toStore?.branch?.name === selectedBranch) totalIncoming += i.qty;
             }
           });
         });
       }
 
+      const currentBalance = openingBalance + totalIncoming - totalOutgoing;
+
       return {
         ...item,
-        balance: balance,
+        openingBalance,
+        totalIncoming,
+        totalOutgoing,
+        balance: currentBalance,
       };
     });
     setReportData(balanceData);
@@ -396,6 +405,15 @@ const ItemBalanceReport: React.FC<ItemBalanceReportProps> = ({
                   الوحدة
                 </th>
                 <th className="px-6 py-3 text-right text-sm font-semibold text-white uppercase">
+                  رصيد أول المدة
+                </th>
+                <th className="px-6 py-3 text-right text-sm font-semibold text-white uppercase">
+                  إجمالي وارد
+                </th>
+                <th className="px-6 py-3 text-right text-sm font-semibold text-white uppercase">
+                  إجمالي صادر
+                </th>
+                <th className="px-6 py-3 text-right text-sm font-semibold text-white uppercase">
                   الرصيد الحالي
                 </th>
               </tr>
@@ -408,6 +426,15 @@ const ItemBalanceReport: React.FC<ItemBalanceReportProps> = ({
                     {item.name}
                   </td>
                   <td className="px-6 py-4">{item.unit}</td>
+                  <td className={`px-6 py-4 font-bold ${getNegativeNumberClass(item.openingBalance)}`}>
+                    {formatNumber(item.openingBalance)}
+                  </td>
+                  <td className={`px-6 py-4 font-bold ${getNegativeNumberClass(item.totalIncoming)}`}>
+                    {formatNumber(item.totalIncoming)}
+                  </td>
+                  <td className={`px-6 py-4 font-bold ${getNegativeNumberClass(item.totalOutgoing)}`}>
+                    {formatNumber(item.totalOutgoing)}
+                  </td>
                   <td className={`px-6 py-4 font-bold ${getNegativeNumberClass(item.balance)}`}>
                     {formatNumber(item.balance)}
                   </td>
