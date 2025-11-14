@@ -4,6 +4,7 @@ import { ExcelIcon, PdfIcon, PrintIcon, SearchIcon, XIcon } from "../../../icons
 import InvoiceHeader from "../../../common/InvoiceHeader";
 import { formatNumber, getNegativeNumberClass } from "../../../../utils/formatting";
 import { useGetExpensePaymentVouchersQuery } from "../../../store/slices/paymentVoucherApiSlice";
+import { useGetBranchesQuery } from "../../../store/slices/branch/branchApi";
 import { useAuth } from "../../../hook/Auth";
 
 interface TotalExpensesReportProps {
@@ -36,30 +37,74 @@ const TotalExpensesReport: React.FC<TotalExpensesReportProps> = ({
   
   // Only fetch if user is authenticated
   const skip = !isAuthed;
-  const { data: apiExpenseVouchers = [], isLoading } =
+  const { data: apiExpenseVouchers = [], isLoading: vouchersLoading } =
     useGetExpensePaymentVouchersQuery(undefined, { skip });
+  const { data: apiBranches = [], isLoading: branchesLoading } =
+    useGetBranchesQuery(undefined);
+
+  // Transform branches
+  const branches = useMemo(() => {
+    return (apiBranches as any[]).map((branch) => ({
+      ...branch,
+    }));
+  }, [apiBranches]);
+
+  // Helper function to normalize date to YYYY-MM-DD format
+  const normalizeDate = useMemo(() => {
+    return (date: any): string => {
+      if (!date) return "";
+      if (typeof date === "string") {
+        // If it's already in YYYY-MM-DD format, return as is
+        if (/^\d{4}-\d{2}-\d{2}$/.test(date)) return date;
+        // If it's an ISO string, extract the date part
+        return date.substring(0, 10);
+      }
+      if (date instanceof Date) {
+        return date.toISOString().split("T")[0];
+      }
+      // Try to parse as Date if it's a string that looks like a date
+      try {
+        const parsed = new Date(date);
+        if (!isNaN(parsed.getTime())) {
+          return parsed.toISOString().split("T")[0];
+        }
+      } catch (e) {
+        // Ignore parsing errors
+      }
+      return "";
+    };
+  }, []);
 
   // Transform API data to match expected format
   const expenseVouchers = useMemo(() => {
-    return (apiExpenseVouchers as any[]).map((voucher) => ({
-      id: voucher.code,
-      date: typeof voucher.date === "string" 
-        ? voucher.date 
-        : voucher.date?.toISOString().split("T")[0] || "",
-      entity: {
-        type: voucher.entityType,
-        name: voucher.entityName,
-      },
-      expenseCode: voucher.expenseCode?.name || voucher.entityName,
-      amount: voucher.amount,
-    }));
-  }, [apiExpenseVouchers]);
+    return (apiExpenseVouchers as any[]).map((voucher) => {
+      const branchName = voucher.branch?.name || 
+        branches.find((b) => b.id === voucher.branchId)?.name || 
+        "غير محدد";
+      
+      return {
+        id: voucher.id,
+        code: voucher.code,
+        date: normalizeDate(voucher.date),
+        entity: {
+          type: voucher.entityType,
+          name: voucher.entityName,
+        },
+        expenseCode: voucher.expenseCode?.name || voucher.entityName,
+        amount: voucher.amount,
+        branchId: voucher.branchId,
+        branchName: branchName,
+      };
+    });
+  }, [apiExpenseVouchers, branches, normalizeDate]);
 
   const currentYear = new Date().getFullYear();
   const [year, setYear] = useState(currentYear);
   const [yearQuery, setYearQuery] = useState<string | null>(null);
   const [isYearDropdownOpen, setIsYearDropdownOpen] = useState(false);
+  const [selectedBranch, setSelectedBranch] = useState("all");
   const yearRef = useRef<HTMLDivElement>(null);
+  const isLoading = vouchersLoading || branchesLoading;
 
   // Generate years list (from current year going backwards to 2000)
   const years = useMemo(() => {
@@ -111,9 +156,12 @@ const TotalExpensesReport: React.FC<TotalExpensesReportProps> = ({
   const reportData = useMemo(() => {
     const summary: Record<string, { name: string; monthly: number[] }> = {};
 
-    const filteredExpenseVouchers = expenseVouchers.filter(
-      (v) => new Date(v.date).getFullYear() === year,
-    );
+    const filteredExpenseVouchers = expenseVouchers.filter((v) => {
+      const voucherYear = new Date(v.date).getFullYear();
+      const yearMatch = voucherYear === year;
+      const branchMatch = selectedBranch === "all" || v.branchName === selectedBranch;
+      return yearMatch && branchMatch;
+    });
 
     filteredExpenseVouchers.forEach((voucher) => {
       const monthIndex = new Date(voucher.date).getMonth();
@@ -129,7 +177,7 @@ const TotalExpensesReport: React.FC<TotalExpensesReportProps> = ({
     });
 
     return Object.values(summary);
-  }, [expenseVouchers, year]);
+  }, [expenseVouchers, year, selectedBranch]);
 
   const monthlyTotals = months.map((_, monthIndex) =>
     reportData.reduce((sum, item) => sum + (item.monthly[monthIndex] || 0), 0),
@@ -204,21 +252,44 @@ const TotalExpensesReport: React.FC<TotalExpensesReportProps> = ({
           />
         </div>
         <div className="px-6 py-4 text-base print:block hidden border-t-2 border-b-2 mt-2 mb-4 bg-gray-50">
-          <div className="space-y-2 text-right">
-            <p className="text-base text-gray-700">
-              <span className="font-semibold text-gray-800">فرع الطباعة:</span> {typeof currentUser?.branch === 'string' ? currentUser.branch : (currentUser?.branch as any)?.name}
-            </p>
-            <p className="text-base text-gray-700">
-              <span className="font-semibold text-gray-800">المستخدم:</span> {currentUser?.fullName || currentUser?.name}
-            </p>
-            <p className="text-base text-gray-700">
-              <span className="font-semibold text-gray-800">التاريخ:</span> {new Date().toLocaleDateString('ar-EG', { year: 'numeric', month: 'long', day: 'numeric' })}
-            </p>
+          <div className="flex justify-between items-start">
+            <div className="space-y-2 text-right">
+              <p className="text-base text-gray-700">
+                <span className="font-semibold text-gray-800">السنة:</span> {year}
+              </p>
+              <p className="text-base text-gray-700">
+                <span className="font-semibold text-gray-800">الفرع:</span> {selectedBranch === "all" ? "جميع الفروع" : selectedBranch}
+              </p>
+            </div>
+            <div className="space-y-2 text-right">
+              <p className="text-base text-gray-700">
+                <span className="font-semibold text-gray-800">فرع الطباعة:</span> {typeof currentUser?.branch === 'string' ? currentUser.branch : (currentUser?.branch as any)?.name}
+              </p>
+              <p className="text-base text-gray-700">
+                <span className="font-semibold text-gray-800">المستخدم:</span> {currentUser?.fullName || currentUser?.name}
+              </p>
+              <p className="text-base text-gray-700">
+                <span className="font-semibold text-gray-800">التاريخ:</span> {new Date().toLocaleDateString('ar-EG', { year: 'numeric', month: 'long', day: 'numeric' })}
+              </p>
+            </div>
           </div>
         </div>
 
-        <div className="flex justify-between items-center my-4 no-print">
-          <div className="flex items-center gap-4">
+        <div className="flex justify-between items-center my-4 bg-gray-50 p-3 rounded-md border-2 border-gray-200 no-print">
+          <div className="flex items-center gap-4 flex-wrap">
+            <label className="font-semibold">الفرع:</label>
+            <select
+              className="p-2 border-2 border-brand-blue rounded-md focus:outline-none focus:ring-2 focus:ring-brand-blue bg-brand-blue-bg"
+              value={selectedBranch}
+              onChange={(e) => setSelectedBranch(e.target.value)}
+            >
+              <option value="all">جميع الفروع</option>
+              {branches.map((branch) => (
+                <option key={branch.id} value={branch.name}>
+                  {branch.name}
+                </option>
+              ))}
+            </select>
             <label className="font-semibold">للسنة:</label>
             <div className="relative" ref={yearRef}>
               <input
