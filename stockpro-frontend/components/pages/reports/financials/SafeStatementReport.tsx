@@ -5,6 +5,10 @@ import InvoiceHeader from "../../../common/InvoiceHeader";
 import { formatNumber, getNegativeNumberClass } from "../../../../utils/formatting";
 import { useGetSafesQuery } from "../../../store/slices/safe/safeApiSlice";
 import { useGetInternalTransfersQuery } from "../../../store/slices/internalTransferApiSlice";
+import { useGetSalesInvoicesQuery } from "../../../store/slices/salesInvoice/salesInvoiceApiSlice";
+import { useGetPurchaseInvoicesQuery } from "../../../store/slices/purchaseInvoice/purchaseInvoiceApiSlice";
+import { useGetSalesReturnsQuery } from "../../../store/slices/salesReturn/salesReturnApiSlice";
+import { useGetPurchaseReturnsQuery } from "../../../store/slices/purchaseReturn/purchaseReturnApiSlice";
 
 interface SafeStatementReportProps {
   title: string;
@@ -25,6 +29,10 @@ const SafeStatementReport: React.FC<SafeStatementReportProps> = ({
   const { data: apiSafes = [], isLoading: safesLoading } =
     useGetSafesQuery(undefined);
   const { data: apiInternalTransfers = [] } = useGetInternalTransfersQuery();
+  const { data: apiSalesInvoices = [] } = useGetSalesInvoicesQuery(undefined);
+  const { data: apiPurchaseInvoices = [] } = useGetPurchaseInvoicesQuery(undefined);
+  const { data: apiSalesReturns = [] } = useGetSalesReturnsQuery(undefined);
+  const { data: apiPurchaseReturns = [] } = useGetPurchaseReturnsQuery(undefined);
 
   // Transform API data to match expected format
   const safes = useMemo(() => {
@@ -56,6 +64,8 @@ const SafeStatementReport: React.FC<SafeStatementReportProps> = ({
   const openingBalance = useMemo(() => {
     if (!selectedSafe) return 0;
     const safeId = selectedSafe.id.toString();
+    
+    // Receipt vouchers (incoming)
     const receiptsBefore = receiptVouchers
       .filter(
         (v) =>
@@ -64,6 +74,8 @@ const SafeStatementReport: React.FC<SafeStatementReportProps> = ({
           v.date < startDate,
       )
       .reduce((sum, v) => sum + v.amount, 0);
+    
+    // Payment vouchers (outgoing)
     const paymentsBefore = paymentVouchers
       .filter(
         (v) =>
@@ -73,7 +85,51 @@ const SafeStatementReport: React.FC<SafeStatementReportProps> = ({
       )
       .reduce((sum, v) => sum + v.amount, 0);
     
-    // Include internal transfers before startDate
+    // Sales invoices (cash payments to safe) - incoming
+    const salesInvoicesBefore = (apiSalesInvoices as any[])
+      .filter(
+        (inv) =>
+          inv.paymentMethod === "cash" &&
+          inv.paymentTargetType === "safe" &&
+          inv.paymentTargetId === safeId &&
+          new Date(inv.date).toISOString().substring(0, 10) < startDate,
+      )
+      .reduce((sum, inv) => sum + (inv.total || 0), 0);
+    
+    // Purchase invoices (cash payments from safe) - outgoing
+    const purchaseInvoicesBefore = (apiPurchaseInvoices as any[])
+      .filter(
+        (inv) =>
+          inv.paymentMethod === "cash" &&
+          inv.paymentTargetType === "safe" &&
+          inv.paymentTargetId === safeId &&
+          new Date(inv.date).toISOString().substring(0, 10) < startDate,
+      )
+      .reduce((sum, inv) => sum + (inv.total || 0), 0);
+    
+    // Sales returns (cash payments from safe) - outgoing
+    const salesReturnsBefore = (apiSalesReturns as any[])
+      .filter(
+        (ret) =>
+          ret.paymentMethod === "cash" &&
+          ret.paymentTargetType === "safe" &&
+          ret.paymentTargetId === safeId &&
+          new Date(ret.date).toISOString().substring(0, 10) < startDate,
+      )
+      .reduce((sum, ret) => sum + (ret.total || 0), 0);
+    
+    // Purchase returns (cash payments to safe) - incoming
+    const purchaseReturnsBefore = (apiPurchaseReturns as any[])
+      .filter(
+        (ret) =>
+          ret.paymentMethod === "cash" &&
+          ret.paymentTargetType === "safe" &&
+          ret.paymentTargetId === safeId &&
+          new Date(ret.date).toISOString().substring(0, 10) < startDate,
+      )
+      .reduce((sum, ret) => sum + (ret.total || 0), 0);
+    
+    // Internal transfers before startDate
     const outgoingBefore = (apiInternalTransfers as any[])
       .filter(
         (t) =>
@@ -91,12 +147,21 @@ const SafeStatementReport: React.FC<SafeStatementReportProps> = ({
       )
       .reduce((sum, t) => sum + t.amount, 0);
     
-    return selectedSafe.openingBalance + receiptsBefore - paymentsBefore - outgoingBefore + incomingBefore;
-  }, [selectedSafe, receiptVouchers, paymentVouchers, apiInternalTransfers, startDate]);
+    // Opening balance = initial + incoming - outgoing
+    return selectedSafe.openingBalance 
+      + receiptsBefore 
+      + salesInvoicesBefore 
+      + purchaseReturnsBefore 
+      + incomingBefore
+      - paymentsBefore 
+      - purchaseInvoicesBefore 
+      - salesReturnsBefore 
+      - outgoingBefore;
+  }, [selectedSafe, receiptVouchers, paymentVouchers, apiInternalTransfers, apiSalesInvoices, apiPurchaseInvoices, apiSalesReturns, apiPurchaseReturns, startDate]);
 
   const reportData = useMemo(() => {
     if (!selectedSafeId) return [];
-    const safeId = parseInt(selectedSafeId);
+    const safeId = selectedSafeId.toString();
 
     const transactions: {
       date: string;
@@ -106,66 +171,70 @@ const SafeStatementReport: React.FC<SafeStatementReportProps> = ({
       credit: number;
     }[] = [];
 
-    receiptVouchers.forEach((v) => {
+    // Receipt Vouchers (incoming) - Debit
+    receiptVouchers.forEach((v: any) => {
       if (
         v.paymentMethod === "safe" &&
-        v.safeOrBankId === safeId &&
+        v.safeOrBankId?.toString() === safeId &&
         v.date >= startDate &&
         v.date <= endDate
       ) {
         transactions.push({
           date: v.date,
           description: `سند قبض من ${v.entity.name}`,
-          ref: v.id,
+          ref: v.code || v.id,
           debit: v.amount,
           credit: 0,
         });
       }
     });
-    paymentVouchers.forEach((v) => {
+
+    // Sales Invoices (cash payments to safe) - Debit (incoming)
+    (apiSalesInvoices as any[]).forEach((inv) => {
+      const invoiceDate = new Date(inv.date).toISOString().substring(0, 10);
       if (
-        v.paymentMethod === "safe" &&
-        v.safeOrBankId === safeId &&
-        v.date >= startDate &&
-        v.date <= endDate
+        inv.paymentMethod === "cash" &&
+        inv.paymentTargetType === "safe" &&
+        inv.paymentTargetId === safeId &&
+        invoiceDate >= startDate &&
+        invoiceDate <= endDate
       ) {
         transactions.push({
-          date: v.date,
-          description: `سند صرف إلى ${v.entity.name}`,
-          ref: v.id,
-          debit: 0,
-          credit: v.amount,
+          date: invoiceDate,
+          description: `فاتورة مبيعات - ${inv.customerOrSupplier?.name || "عميل"}`,
+          ref: inv.code || inv.id,
+          debit: inv.total || 0,
+          credit: 0,
         });
       }
     });
 
-    // Add outgoing internal transfers (money going out)
-    (apiInternalTransfers as any[]).forEach((t) => {
-      const transferDate = new Date(t.date).toISOString().substring(0, 10);
+    // Purchase Returns (cash payments to safe) - Debit (incoming)
+    (apiPurchaseReturns as any[]).forEach((ret) => {
+      const returnDate = new Date(ret.date).toISOString().substring(0, 10);
       if (
-        t.fromType === "safe" &&
-        t.fromSafeId === safeId.toString() &&
-        transferDate >= startDate &&
-        transferDate <= endDate
+        ret.paymentMethod === "cash" &&
+        ret.paymentTargetType === "safe" &&
+        ret.paymentTargetId === safeId &&
+        returnDate >= startDate &&
+        returnDate <= endDate
       ) {
-        const toAccountName =
-          t.toType === "safe" ? t.toSafe?.name : t.toBank?.name || "حساب";
         transactions.push({
-          date: transferDate,
-          description: `تحويل إلى ${toAccountName}`,
-          ref: t.code,
-          debit: 0,
-          credit: t.amount,
+          date: returnDate,
+          description: `مرتجع مشتريات - ${ret.customerOrSupplier?.name || "مورد"}`,
+          ref: ret.code || ret.id,
+          debit: ret.total || 0,
+          credit: 0,
         });
       }
     });
 
-    // Add incoming internal transfers (money coming in)
+    // Transfer to Cashier (incoming) - Debit
     (apiInternalTransfers as any[]).forEach((t) => {
       const transferDate = new Date(t.date).toISOString().substring(0, 10);
       if (
         t.toType === "safe" &&
-        t.toSafeId === safeId.toString() &&
+        t.toSafeId === safeId &&
         transferDate >= startDate &&
         transferDate <= endDate
       ) {
@@ -173,13 +242,93 @@ const SafeStatementReport: React.FC<SafeStatementReportProps> = ({
           t.fromType === "safe" ? t.fromSafe?.name : t.fromBank?.name || "حساب";
         transactions.push({
           date: transferDate,
-          description: `تحويل من ${fromAccountName}`,
+          description: `تحويل إلى الخزينة من ${fromAccountName}`,
           ref: t.code,
           debit: t.amount,
           credit: 0,
         });
       }
     });
+
+    // Purchase Invoices (cash payments from safe) - Credit (outgoing)
+    (apiPurchaseInvoices as any[]).forEach((inv) => {
+      const invoiceDate = new Date(inv.date).toISOString().substring(0, 10);
+      if (
+        inv.paymentMethod === "cash" &&
+        inv.paymentTargetType === "safe" &&
+        inv.paymentTargetId === safeId &&
+        invoiceDate >= startDate &&
+        invoiceDate <= endDate
+      ) {
+        transactions.push({
+          date: invoiceDate,
+          description: `فاتورة مشتريات - ${inv.customerOrSupplier?.name || "مورد"}`,
+          ref: inv.code || inv.id,
+          debit: 0,
+          credit: inv.total || 0,
+        });
+      }
+    });
+
+    // Sales Returns (cash payments from safe) - Credit (outgoing)
+    (apiSalesReturns as any[]).forEach((ret) => {
+      const returnDate = new Date(ret.date).toISOString().substring(0, 10);
+      if (
+        ret.paymentMethod === "cash" &&
+        ret.paymentTargetType === "safe" &&
+        ret.paymentTargetId === safeId &&
+        returnDate >= startDate &&
+        returnDate <= endDate
+      ) {
+        transactions.push({
+          date: returnDate,
+          description: `مرتجع مبيعات - ${ret.customerOrSupplier?.name || "عميل"}`,
+          ref: ret.code || ret.id,
+          debit: 0,
+          credit: ret.total || 0,
+        });
+      }
+    });
+
+    // Payment Vouchers (outgoing) - Credit
+    paymentVouchers.forEach((v: any) => {
+      if (
+        v.paymentMethod === "safe" &&
+        v.safeOrBankId?.toString() === safeId &&
+        v.date >= startDate &&
+        v.date <= endDate
+      ) {
+        transactions.push({
+          date: v.date,
+          description: `سند صرف إلى ${v.entity.name}`,
+          ref: v.code || v.id,
+          debit: 0,
+          credit: v.amount,
+        });
+      }
+    });
+
+    // Transfer from Cashier (outgoing) - Credit
+    (apiInternalTransfers as any[]).forEach((t) => {
+      const transferDate = new Date(t.date).toISOString().substring(0, 10);
+      if (
+        t.fromType === "safe" &&
+        t.fromSafeId === safeId &&
+        transferDate >= startDate &&
+        transferDate <= endDate
+      ) {
+        const toAccountName =
+          t.toType === "safe" ? t.toSafe?.name : t.toBank?.name || "حساب";
+        transactions.push({
+          date: transferDate,
+          description: `تحويل من الخزينة إلى ${toAccountName}`,
+          ref: t.code,
+          debit: 0,
+          credit: t.amount,
+        });
+      }
+    });
+
 
     transactions.sort(
       (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime(),
@@ -195,6 +344,10 @@ const SafeStatementReport: React.FC<SafeStatementReportProps> = ({
     receiptVouchers,
     paymentVouchers,
     apiInternalTransfers,
+    apiSalesInvoices,
+    apiPurchaseInvoices,
+    apiSalesReturns,
+    apiPurchaseReturns,
     startDate,
     endDate,
     openingBalance,

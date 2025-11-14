@@ -5,6 +5,10 @@ import InvoiceHeader from "../../../common/InvoiceHeader";
 import { formatNumber, getNegativeNumberClass } from "../../../../utils/formatting";
 import { useGetBanksQuery } from "../../../store/slices/bank/bankApiSlice";
 import { useGetInternalTransfersQuery } from "../../../store/slices/internalTransferApiSlice";
+import { useGetSalesInvoicesQuery } from "../../../store/slices/salesInvoice/salesInvoiceApiSlice";
+import { useGetPurchaseInvoicesQuery } from "../../../store/slices/purchaseInvoice/purchaseInvoiceApiSlice";
+import { useGetSalesReturnsQuery } from "../../../store/slices/salesReturn/salesReturnApiSlice";
+import { useGetPurchaseReturnsQuery } from "../../../store/slices/purchaseReturn/purchaseReturnApiSlice";
 
 interface BankStatementReportProps {
   title: string;
@@ -25,6 +29,10 @@ const BankStatementReport: React.FC<BankStatementReportProps> = ({
   const { data: apiBanks = [], isLoading: banksLoading } =
     useGetBanksQuery(undefined);
   const { data: apiInternalTransfers = [] } = useGetInternalTransfersQuery();
+  const { data: apiSalesInvoices = [] } = useGetSalesInvoicesQuery(undefined);
+  const { data: apiPurchaseInvoices = [] } = useGetPurchaseInvoicesQuery(undefined);
+  const { data: apiSalesReturns = [] } = useGetSalesReturnsQuery(undefined);
+  const { data: apiPurchaseReturns = [] } = useGetPurchaseReturnsQuery(undefined);
 
   // Transform API data to match expected format
   const banks = useMemo(() => {
@@ -56,6 +64,8 @@ const BankStatementReport: React.FC<BankStatementReportProps> = ({
   const openingBalance = useMemo(() => {
     if (!selectedBank) return 0;
     const bankId = selectedBank.id.toString();
+    
+    // Receipt vouchers (incoming)
     const receiptsBefore = receiptVouchers
       .filter(
         (v) =>
@@ -64,6 +74,8 @@ const BankStatementReport: React.FC<BankStatementReportProps> = ({
           v.date < startDate,
       )
       .reduce((sum, v) => sum + v.amount, 0);
+    
+    // Payment vouchers (outgoing)
     const paymentsBefore = paymentVouchers
       .filter(
         (v) =>
@@ -73,7 +85,51 @@ const BankStatementReport: React.FC<BankStatementReportProps> = ({
       )
       .reduce((sum, v) => sum + v.amount, 0);
     
-    // Include internal transfers before startDate
+    // Sales invoices (cash payments to bank) - incoming
+    const salesInvoicesBefore = (apiSalesInvoices as any[])
+      .filter(
+        (inv) =>
+          inv.paymentMethod === "cash" &&
+          inv.paymentTargetType === "bank" &&
+          inv.paymentTargetId === bankId &&
+          new Date(inv.date).toISOString().substring(0, 10) < startDate,
+      )
+      .reduce((sum, inv) => sum + (inv.total || 0), 0);
+    
+    // Purchase invoices (cash payments from bank) - outgoing
+    const purchaseInvoicesBefore = (apiPurchaseInvoices as any[])
+      .filter(
+        (inv) =>
+          inv.paymentMethod === "cash" &&
+          inv.paymentTargetType === "bank" &&
+          inv.paymentTargetId === bankId &&
+          new Date(inv.date).toISOString().substring(0, 10) < startDate,
+      )
+      .reduce((sum, inv) => sum + (inv.total || 0), 0);
+    
+    // Sales returns (cash payments from bank) - outgoing
+    const salesReturnsBefore = (apiSalesReturns as any[])
+      .filter(
+        (ret) =>
+          ret.paymentMethod === "cash" &&
+          ret.paymentTargetType === "bank" &&
+          ret.paymentTargetId === bankId &&
+          new Date(ret.date).toISOString().substring(0, 10) < startDate,
+      )
+      .reduce((sum, ret) => sum + (ret.total || 0), 0);
+    
+    // Purchase returns (cash payments to bank) - incoming
+    const purchaseReturnsBefore = (apiPurchaseReturns as any[])
+      .filter(
+        (ret) =>
+          ret.paymentMethod === "cash" &&
+          ret.paymentTargetType === "bank" &&
+          ret.paymentTargetId === bankId &&
+          new Date(ret.date).toISOString().substring(0, 10) < startDate,
+      )
+      .reduce((sum, ret) => sum + (ret.total || 0), 0);
+    
+    // Internal transfers before startDate
     const outgoingBefore = (apiInternalTransfers as any[])
       .filter(
         (t) =>
@@ -91,12 +147,21 @@ const BankStatementReport: React.FC<BankStatementReportProps> = ({
       )
       .reduce((sum, t) => sum + t.amount, 0);
     
-    return selectedBank.openingBalance + receiptsBefore - paymentsBefore - outgoingBefore + incomingBefore;
-  }, [selectedBank, receiptVouchers, paymentVouchers, apiInternalTransfers, startDate]);
+    // Opening balance = initial + incoming - outgoing
+    return selectedBank.openingBalance 
+      + receiptsBefore 
+      + salesInvoicesBefore 
+      + purchaseReturnsBefore 
+      + incomingBefore
+      - paymentsBefore 
+      - purchaseInvoicesBefore 
+      - salesReturnsBefore 
+      - outgoingBefore;
+  }, [selectedBank, receiptVouchers, paymentVouchers, apiInternalTransfers, apiSalesInvoices, apiPurchaseInvoices, apiSalesReturns, apiPurchaseReturns, startDate]);
 
   const reportData = useMemo(() => {
     if (!selectedBankId) return [];
-    const bankId = parseInt(selectedBankId);
+    const bankId = selectedBankId.toString();
 
     const transactions: {
       date: string;
@@ -106,66 +171,70 @@ const BankStatementReport: React.FC<BankStatementReportProps> = ({
       credit: number;
     }[] = [];
 
-    receiptVouchers.forEach((v) => {
+    // Receipt Vouchers (incoming) - Debit
+    receiptVouchers.forEach((v: any) => {
       if (
         v.paymentMethod === "bank" &&
-        v.safeOrBankId === bankId &&
+        v.safeOrBankId?.toString() === bankId &&
         v.date >= startDate &&
         v.date <= endDate
       ) {
         transactions.push({
           date: v.date,
           description: `سند قبض من ${v.entity.name}`,
-          ref: v.id,
+          ref: v.code || v.id,
           debit: v.amount,
           credit: 0,
         });
       }
     });
-    paymentVouchers.forEach((v) => {
+
+    // Sales Invoices (cash payments to bank) - Debit (incoming)
+    (apiSalesInvoices as any[]).forEach((inv) => {
+      const invoiceDate = new Date(inv.date).toISOString().substring(0, 10);
       if (
-        v.paymentMethod === "bank" &&
-        v.safeOrBankId === bankId &&
-        v.date >= startDate &&
-        v.date <= endDate
+        inv.paymentMethod === "cash" &&
+        inv.paymentTargetType === "bank" &&
+        inv.paymentTargetId === bankId &&
+        invoiceDate >= startDate &&
+        invoiceDate <= endDate
       ) {
         transactions.push({
-          date: v.date,
-          description: `سند صرف إلى ${v.entity.name}`,
-          ref: v.id,
-          debit: 0,
-          credit: v.amount,
+          date: invoiceDate,
+          description: `فاتورة مبيعات - ${inv.customerOrSupplier?.name || "عميل"}`,
+          ref: inv.code || inv.id,
+          debit: inv.total || 0,
+          credit: 0,
         });
       }
     });
 
-    // Add outgoing internal transfers (money going out)
-    (apiInternalTransfers as any[]).forEach((t) => {
-      const transferDate = new Date(t.date).toISOString().substring(0, 10);
+    // Purchase Returns (cash payments to bank) - Debit (incoming)
+    (apiPurchaseReturns as any[]).forEach((ret) => {
+      const returnDate = new Date(ret.date).toISOString().substring(0, 10);
       if (
-        t.fromType === "bank" &&
-        t.fromBankId === bankId.toString() &&
-        transferDate >= startDate &&
-        transferDate <= endDate
+        ret.paymentMethod === "cash" &&
+        ret.paymentTargetType === "bank" &&
+        ret.paymentTargetId === bankId &&
+        returnDate >= startDate &&
+        returnDate <= endDate
       ) {
-        const toAccountName =
-          t.toType === "safe" ? t.toSafe?.name : t.toBank?.name || "حساب";
         transactions.push({
-          date: transferDate,
-          description: `تحويل إلى ${toAccountName}`,
-          ref: t.code,
-          debit: 0,
-          credit: t.amount,
+          date: returnDate,
+          description: `مرتجع مشتريات - ${ret.customerOrSupplier?.name || "مورد"}`,
+          ref: ret.code || ret.id,
+          debit: ret.total || 0,
+          credit: 0,
         });
       }
     });
 
-    // Add incoming internal transfers (money coming in)
+    // Bank Transfer (incoming) - Debit
     (apiInternalTransfers as any[]).forEach((t) => {
       const transferDate = new Date(t.date).toISOString().substring(0, 10);
       if (
         t.toType === "bank" &&
-        t.toBankId === bankId.toString() &&
+        t.toBankId === bankId &&
         transferDate >= startDate &&
         transferDate <= endDate
       ) {
@@ -173,10 +242,89 @@ const BankStatementReport: React.FC<BankStatementReportProps> = ({
           t.fromType === "safe" ? t.fromSafe?.name : t.fromBank?.name || "حساب";
         transactions.push({
           date: transferDate,
-          description: `تحويل من ${fromAccountName}`,
+          description: `تحويل إلى البنك من ${fromAccountName}`,
           ref: t.code,
           debit: t.amount,
           credit: 0,
+        });
+      }
+    });
+
+    // Purchase Invoices (cash payments from bank) - Credit (outgoing)
+    (apiPurchaseInvoices as any[]).forEach((inv) => {
+      const invoiceDate = new Date(inv.date).toISOString().substring(0, 10);
+      if (
+        inv.paymentMethod === "cash" &&
+        inv.paymentTargetType === "bank" &&
+        inv.paymentTargetId === bankId &&
+        invoiceDate >= startDate &&
+        invoiceDate <= endDate
+      ) {
+        transactions.push({
+          date: invoiceDate,
+          description: `فاتورة مشتريات - ${inv.customerOrSupplier?.name || "مورد"}`,
+          ref: inv.code || inv.id,
+          debit: 0,
+          credit: inv.total || 0,
+        });
+      }
+    });
+
+    // Sales Returns (cash payments from bank) - Credit (outgoing)
+    (apiSalesReturns as any[]).forEach((ret) => {
+      const returnDate = new Date(ret.date).toISOString().substring(0, 10);
+      if (
+        ret.paymentMethod === "cash" &&
+        ret.paymentTargetType === "bank" &&
+        ret.paymentTargetId === bankId &&
+        returnDate >= startDate &&
+        returnDate <= endDate
+      ) {
+        transactions.push({
+          date: returnDate,
+          description: `مرتجع مبيعات - ${ret.customerOrSupplier?.name || "عميل"}`,
+          ref: ret.code || ret.id,
+          debit: 0,
+          credit: ret.total || 0,
+        });
+      }
+    });
+
+    // Payment Vouchers (outgoing) - Credit
+    paymentVouchers.forEach((v: any) => {
+      if (
+        v.paymentMethod === "bank" &&
+        v.safeOrBankId?.toString() === bankId &&
+        v.date >= startDate &&
+        v.date <= endDate
+      ) {
+        transactions.push({
+          date: v.date,
+          description: `سند صرف إلى ${v.entity.name}`,
+          ref: v.code || v.id,
+          debit: 0,
+          credit: v.amount,
+        });
+      }
+    });
+
+    // Bank Transfer (outgoing) - Credit
+    (apiInternalTransfers as any[]).forEach((t) => {
+      const transferDate = new Date(t.date).toISOString().substring(0, 10);
+      if (
+        t.fromType === "bank" &&
+        t.fromBankId === bankId &&
+        transferDate >= startDate &&
+        transferDate <= endDate
+      ) {
+        const toAccountName =
+          t.toType === "safe" ? t.toSafe?.name : t.toBank?.name || "حساب";
+        transactions.push({
+          date: transferDate,
+          description: `تحويل من البنك إلى ${toAccountName}`,
+          ref: t.code,
+          debit: 0,
+          credit: t.amount,
         });
       }
     });
@@ -195,6 +343,10 @@ const BankStatementReport: React.FC<BankStatementReportProps> = ({
     receiptVouchers,
     paymentVouchers,
     apiInternalTransfers,
+    apiSalesInvoices,
+    apiPurchaseInvoices,
+    apiSalesReturns,
+    apiPurchaseReturns,
     startDate,
     endDate,
     openingBalance,

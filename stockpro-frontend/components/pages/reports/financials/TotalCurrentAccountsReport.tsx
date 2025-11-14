@@ -42,7 +42,25 @@ const TotalCurrentAccountsReport: React.FC<TotalCurrentAccountsReportProps> = ({
     return currentAccounts.map((account) => {
       const accountId = account.id;
 
-      // Calculate receipts (credits) for this account
+      // Count receipt vouchers (credits) for this account
+      const receiptCount = receiptVouchers.filter(
+        (v) =>
+          v.entity.type === "current_account" &&
+          v.entity.id === accountId &&
+          v.date >= startDate &&
+          v.date <= endDate,
+      ).length;
+
+      // Count payment vouchers (debits) for this account
+      const paymentCount = paymentVouchers.filter(
+        (v) =>
+          v.entity.type === "current_account" &&
+          v.entity.id === accountId &&
+          v.date >= startDate &&
+          v.date <= endDate,
+      ).length;
+
+      // Calculate amounts for balance calculation
       const receipts = receiptVouchers
         .filter(
           (v) =>
@@ -53,7 +71,6 @@ const TotalCurrentAccountsReport: React.FC<TotalCurrentAccountsReportProps> = ({
         )
         .reduce((sum, v) => sum + v.amount, 0);
 
-      // Calculate payments (debits) for this account
       const payments = paymentVouchers
         .filter(
           (v) =>
@@ -72,8 +89,8 @@ const TotalCurrentAccountsReport: React.FC<TotalCurrentAccountsReportProps> = ({
         code: account.code,
         name: account.name,
         opening: opening,
-        debit: payments,
-        credit: receipts,
+        debit: paymentCount, // Count of payment vouchers
+        credit: receiptCount, // Count of receipt vouchers
         balance: balance,
       };
     });
@@ -82,8 +99,8 @@ const TotalCurrentAccountsReport: React.FC<TotalCurrentAccountsReportProps> = ({
   const totals = accountsSummary.reduce(
     (acc, item) => {
       acc.opening += item.opening;
-      acc.debit += item.debit;
-      acc.credit += item.credit;
+      acc.debit += item.debit; // Total count of payment vouchers
+      acc.credit += item.credit; // Total count of receipt vouchers
       acc.balance += item.balance;
       return acc;
     },
@@ -160,16 +177,24 @@ const TotalCurrentAccountsReport: React.FC<TotalCurrentAccountsReportProps> = ({
           />
         </div>
         <div className="px-6 py-4 text-base print:block hidden border-t-2 border-b-2 mt-2 mb-4 bg-gray-50">
-          <div className="space-y-2 text-right">
-            <p className="text-base text-gray-700">
-              <span className="font-semibold text-gray-800">فرع الطباعة:</span> {typeof currentUser?.branch === 'string' ? currentUser.branch : (currentUser?.branch as any)?.name}
-            </p>
-            <p className="text-base text-gray-700">
-              <span className="font-semibold text-gray-800">المستخدم:</span> {currentUser?.fullName || currentUser?.name}
-            </p>
-            <p className="text-base text-gray-700">
-              <span className="font-semibold text-gray-800">التاريخ:</span> {new Date().toLocaleDateString('ar-EG', { year: 'numeric', month: 'long', day: 'numeric' })}
-            </p>
+          <div className="flex justify-between items-start">
+            <div className="space-y-2 text-right">
+              <p className="text-base text-gray-700">
+                <span className="font-semibold text-gray-800">الفترة من:</span> {startDate} 
+                <span className="font-semibold text-gray-800 mr-2">إلى:</span> {endDate}
+              </p>
+            </div>
+            <div className="space-y-2 text-right">
+              <p className="text-base text-gray-700">
+                <span className="font-semibold text-gray-800">فرع الطباعة:</span> {typeof currentUser?.branch === 'string' ? currentUser.branch : (currentUser?.branch as any)?.name}
+              </p>
+              <p className="text-base text-gray-700">
+                <span className="font-semibold text-gray-800">المستخدم:</span> {currentUser?.fullName || currentUser?.name}
+              </p>
+              <p className="text-base text-gray-700">
+                <span className="font-semibold text-gray-800">التاريخ:</span> {new Date().toLocaleDateString('ar-EG', { year: 'numeric', month: 'long', day: 'numeric' })}
+              </p>
+            </div>
           </div>
         </div>
 
@@ -231,10 +256,10 @@ const TotalCurrentAccountsReport: React.FC<TotalCurrentAccountsReportProps> = ({
                   رصيد أول المدة
                 </th>
                 <th className="px-6 py-3 text-right text-sm font-semibold text-white uppercase">
-                  إجمالي مدين
+                  عدد سندات الصرف
                 </th>
                 <th className="px-6 py-3 text-right text-sm font-semibold text-white uppercase">
-                  إجمالي دائن
+                  عدد سندات القبض
                 </th>
                 <th className="px-6 py-3 text-right text-sm font-semibold text-white uppercase">
                   الرصيد الحالي
