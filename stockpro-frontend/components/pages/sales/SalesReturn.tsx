@@ -100,6 +100,7 @@ const SalesReturn: React.FC<SalesReturnProps> = ({
     nationalAddress: customer.nationalAddress,
     phone: customer.phone,
     openingBalance: customer.openingBalance,
+    currentBalance: customer.currentBalance,
   }));
 
   const companyInfo: CompanyInfo = company || {

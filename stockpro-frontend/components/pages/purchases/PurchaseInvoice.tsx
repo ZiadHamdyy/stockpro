@@ -98,6 +98,7 @@ const PurchaseInvoice: React.FC<PurchaseInvoiceProps> = ({
     nationalAddress: supplier.nationalAddress,
     phone: supplier.phone,
     openingBalance: supplier.openingBalance,
+    currentBalance: supplier.currentBalance,
   }));
 
   const companyInfo: CompanyInfo = company || {

@@ -27,7 +27,7 @@ const UserModal: React.FC<UserModalProps> = ({
   const { data: branches = [], isLoading: isLoadingBranches } =
     useGetBranchesQuery();
   const { showToast } = useToast();
-  const { data: roles = [], isLoading: isLoadingRoles } = useGetRolesQuery();
+  const { data: roles = [], isLoading: isLoadingRoles } = useGetRolesQuery(undefined);
   const [userData, setUserData] = useState({
     name: "",
     email: "",

@@ -99,18 +99,21 @@ const PurchaseReturn: React.FC<PurchaseReturnProps> = ({
     nationalAddress: supplier.nationalAddress,
     phone: supplier.phone,
     openingBalance: supplier.openingBalance,
+    currentBalance: supplier.currentBalance,
   }));
 
   const companyInfo: CompanyInfo = company || {
     name: "",
+    activity: "",
     address: "",
     phone: "",
-    email: "",
     commercialReg: "",
     taxNumber: "",
+    currency: "",
+    logo: null,
+    capital: 0,
     vatRate: 15,
     isVatEnabled: false,
-    logoPath: "",
   };
 
   const vatRate = company?.vatRate || 15;

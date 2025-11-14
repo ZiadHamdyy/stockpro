@@ -16,8 +16,8 @@ interface InternalTransferPrintPreviewProps {
     toAccount: string;
     toType: string;
     description: string;
-    userName: string;
-    branchName: string;
+    userName: string | { name?: string };
+    branchName: string | { name?: string };
   };
 }
 
@@ -230,7 +230,7 @@ const InternalTransferPrintPreview: React.FC<InternalTransferPrintPreviewProps> 
                 <div>
                   <p className="font-bold">المحاسب</p>
                   <p className="mt-8 border-t-2 border-dotted border-gray-500 w-40 mx-auto pt-1">
-                    {userName}
+                    {typeof userName === "string" ? userName : userName?.name || "غير محدد"}
                   </p>
                 </div>
                 <div>

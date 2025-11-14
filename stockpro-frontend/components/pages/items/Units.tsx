@@ -212,7 +212,7 @@ const Units: React.FC<UnitsProps> = ({ title }) => {
               ) : (
                 filteredUnits.map((unit) => (
                   <tr key={unit.id} className="hover:bg-brand-blue-bg">
-                    <td className="px-6 py-4 whitespace-nowrap">{unit.code}</td>
+                    <td className="px-6 py-4 whitespace-nowrap">{unit.id}</td>
                     <td className="px-6 py-4 whitespace-nowrap font-medium text-brand-dark">
                       {unit.name}
                     </td>

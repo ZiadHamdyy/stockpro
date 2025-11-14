@@ -4,9 +4,9 @@ import {
   useCreateSafeMutation,
   useUpdateSafeMutation,
   useDeleteSafeMutation,
-  type Safe,
   type CreateSafeRequest,
 } from "../store/slices/safe/safeApiSlice";
+import type { Safe } from "../../types";
 import { useToast } from "../common/ToastProvider";
 import { useModal } from "../common/ModalProvider";
 

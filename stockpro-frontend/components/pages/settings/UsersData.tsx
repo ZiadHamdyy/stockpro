@@ -112,8 +112,8 @@ const UsersData: React.FC<UsersDataProps> = ({ title }) => {
   );
 
   const handleExcelExport = () => {
-    const dataToExport = filteredUsers.map(({ code, name, email, role }) => ({
-      "كود المستخدم": code,
+    const dataToExport = filteredUsers.map(({ id, name, email, role }) => ({
+      "كود المستخدم": id,
       "الاسم الكامل": name || "",
       "البريد الإلكتروني": email || "",
       "مجموعة الصلاحيات":
@@ -154,7 +154,7 @@ const UsersData: React.FC<UsersDataProps> = ({ title }) => {
               : user.role?.name || "مستخدم",
       user.email || "",
       user.name || "",
-      user.code.toString(),
+      user.id.toString(),
     ]);
 
     exportToPdf("قائمة المستخدمين", head, body, "قائمة-المستخدمين");
@@ -260,7 +260,7 @@ const UsersData: React.FC<UsersDataProps> = ({ title }) => {
               <tbody className="bg-white divide-y divide-gray-200">
                 {filteredUsers.map((user) => (
                   <tr key={user.id} className="hover:bg-brand-blue-bg">
-                    <td className="px-6 py-4 whitespace-nowrap">{user?.code}</td>
+                    <td className="px-6 py-4 whitespace-nowrap">{user?.id}</td>
                     <td className="px-6 py-4 whitespace-nowrap font-medium text-brand-dark">
                       {user.name || ""}
                     </td>

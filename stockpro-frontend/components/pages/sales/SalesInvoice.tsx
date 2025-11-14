@@ -109,6 +109,7 @@ const SalesInvoice: React.FC<SalesInvoiceProps> = ({
     nationalAddress: customer.nationalAddress,
     phone: customer.phone,
     openingBalance: customer.openingBalance,
+    currentBalance: customer.currentBalance,
   }));
 
   const companyInfo: CompanyInfo = company || {

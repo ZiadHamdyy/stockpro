@@ -138,7 +138,7 @@ export const initialItems: Item[] = [
 
 export const initialCustomers: Customer[] = [
   {
-    id: 1,
+    id: "1",
     code: "C001",
     name: "العميل الأول",
     commercialReg: "1010000001",
@@ -146,9 +146,10 @@ export const initialCustomers: Customer[] = [
     nationalAddress: "address 1",
     phone: "0501234567",
     openingBalance: 5000,
+    currentBalance: 5000,
   },
   {
-    id: 2,
+    id: "2",
     code: "C002",
     name: "شركة الأمل للتجارة",
     commercialReg: "1010000002",
@@ -156,9 +157,10 @@ export const initialCustomers: Customer[] = [
     nationalAddress: "address 2",
     phone: "0557654321",
     openingBalance: 10000,
+    currentBalance: 10000,
   },
   {
-    id: 3,
+    id: "3",
     code: "C003",
     name: "مؤسسة النجاح",
     commercialReg: "1010000003",
@@ -166,12 +168,13 @@ export const initialCustomers: Customer[] = [
     nationalAddress: "address 3",
     phone: "0539876543",
     openingBalance: 0,
+    currentBalance: 0,
   },
 ];
 
 export const initialSuppliers: Supplier[] = [
   {
-    id: 1,
+    id: "1",
     code: "S001",
     name: "المورد الأول",
     commercialReg: "2010000001",
@@ -179,9 +182,10 @@ export const initialSuppliers: Supplier[] = [
     nationalAddress: "address 4",
     phone: "0501112222",
     openingBalance: -8000,
+    currentBalance: -8000,
   },
   {
-    id: 2,
+    id: "2",
     code: "S002",
     name: "شركة التوريدات الحديثة",
     commercialReg: "2010000002",
@@ -189,9 +193,10 @@ export const initialSuppliers: Supplier[] = [
     nationalAddress: "address 5",
     phone: "0553334444",
     openingBalance: -15000,
+    currentBalance: -15000,
   },
   {
-    id: 3,
+    id: "3",
     code: "S003",
     name: "مؤسسة الإمداد",
     commercialReg: "2010000003",
@@ -199,6 +204,7 @@ export const initialSuppliers: Supplier[] = [
     nationalAddress: "address 6",
     phone: "0535556666",
     openingBalance: 0,
+    currentBalance: 0,
   },
 ];
 
@@ -272,18 +278,24 @@ export const initialCurrentAccounts: CurrentAccount[] = [
 
 export const initialSafes: Safe[] = [
   {
-    id: 1,
+    id: "1",
     code: "SF-001",
     name: "الخزنة الرئيسية",
-    branch: "الفرع الرئيسي",
+    branchId: "1",
+    branchName: "الفرع الرئيسي",
     openingBalance: 100000,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
   },
   {
-    id: 2,
+    id: "2",
     code: "SF-002",
     name: "خزنة فرع جدة",
-    branch: "فرع جدة",
+    branchId: "2",
+    branchName: "فرع جدة",
     openingBalance: 50000,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
   },
 ];
 
@@ -448,15 +460,15 @@ export const initialStoreReceiptVouchers: StoreReceiptVoucher[] = [
     date: "2024-07-25",
     branch: "الفرع الرئيسي",
     items: [
-      { id: "101", name: "لابتوب ديل", unit: "حبة", qty: 10 },
-      { id: "102", name: "شاشة سامسونج", unit: "حبة", qty: 20 },
+      { id: "101", name: "لابتوب ديل", unit: "حبة", qty: 10, code: "101" },
+      { id: "102", name: "شاشة سامسونج", unit: "حبة", qty: 20, code: "102" },
     ],
   },
   {
     id: "SRV-00002",
     date: "2024-07-26",
     branch: "فرع جدة",
-    items: [{ id: "201", name: "طاولة مكتب", unit: "قطعة", qty: 15 }],
+    items: [{ id: "201", name: "طاولة مكتب", unit: "قطعة", qty: 15, code: "201" }],
   },
 ];
 
@@ -465,7 +477,7 @@ export const initialStoreIssueVouchers: StoreIssueVoucher[] = [
     id: "SIV-00001",
     date: "2024-07-28",
     branch: "الفرع الرئيسي",
-    items: [{ id: "103", name: "ماوس لاسلكي", unit: "حبة", qty: 5 }],
+    items: [{ id: "103", name: "ماوس لاسلكي", unit: "حبة", qty: 5, code: "103" }],
   },
 ];
 
@@ -475,6 +487,6 @@ export const initialStoreTransferVouchers: StoreTransferVoucher[] = [
     date: "2024-07-29",
     fromStore: "المخزن المركزي",
     toStore: "مخزن جدة",
-    items: [{ id: "301", name: "ورق طباعة A4", unit: "رزمه", qty: 50 }],
+    items: [{ id: "301", name: "ورق طباعة A4", unit: "رزمه", qty: 50, code: "301" }],
   },
 ];

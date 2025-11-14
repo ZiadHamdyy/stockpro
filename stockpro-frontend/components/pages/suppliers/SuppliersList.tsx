@@ -20,6 +20,7 @@ import {
 interface SuppliersListProps {
   title: string;
   onNavigate: (key: string, label: string, id?: string | null) => void;
+  companyInfo?: any;
 }
 
 const StatCard: React.FC<{
