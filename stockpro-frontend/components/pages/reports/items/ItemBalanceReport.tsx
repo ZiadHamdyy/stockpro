@@ -229,6 +229,7 @@ const ItemBalanceReport: React.FC<ItemBalanceReportProps> = ({
       };
 
       // Calculate opening balance (transactions before start date)
+      // Includes: Purchase Invoices, Sales Returns, Add Warehouse (Store Receipt), Transfer to Outstanding Warehouse
       transformedPurchaseInvoices.filter(filterByBranch).filter(isBeforeStartDate).forEach((inv) =>
         inv.items.forEach((i) => {
           if (i.id === item.code) openingBalance += i.qty;
@@ -244,6 +245,8 @@ const ItemBalanceReport: React.FC<ItemBalanceReportProps> = ({
           if (i.id === item.code) openingBalance += i.qty;
         }),
       );
+      // Outgoing transactions before start date (reduce opening balance)
+      // Includes: Sales Invoices, Purchase Returns, Warehouse Issue (Store Issue), Branch Warehouse Transfer
       transformedSalesInvoices.filter(filterByBranch).filter(isBeforeStartDate).forEach((inv) =>
         inv.items.forEach((i) => {
           if (i.id === item.code) openingBalance -= i.qty;
@@ -261,6 +264,10 @@ const ItemBalanceReport: React.FC<ItemBalanceReportProps> = ({
       );
 
       // Store transfers before start date
+      // Only process transfers when reporting for a single branch (not "all branches")
+      // When all branches are selected, transfers are ignored as they don't affect total inventory
+      // Branch Warehouse Transfer: counts as outgoing when transfer is FROM the selected branch
+      // Transfer to Outstanding Warehouse: counts as incoming when transfer is TO the selected branch
       if (selectedBranch !== "all") {
         transformedStoreTransferVouchers.filter(isBeforeStartDate).forEach((v) => {
           const fromStore = stores.find((s) => s.name === v.fromStore);
@@ -275,6 +282,7 @@ const ItemBalanceReport: React.FC<ItemBalanceReportProps> = ({
       }
 
       // Calculate total incoming (within date range)
+      // Includes: Purchase Invoices, Sales Returns, Add Warehouse (Store Receipt), Transfer to Outstanding Warehouse
       transformedPurchaseInvoices.filter(filterByBranch).filter(filterByDate).forEach((inv) =>
         inv.items.forEach((i) => {
           if (i.id === item.code) totalIncoming += i.qty;
@@ -292,6 +300,7 @@ const ItemBalanceReport: React.FC<ItemBalanceReportProps> = ({
       );
 
       // Calculate total outgoing (within date range)
+      // Includes: Sales Invoices, Purchase Returns, Warehouse Issue (Store Issue), Branch Warehouse Transfer
       transformedSalesInvoices.filter(filterByBranch).filter(filterByDate).forEach((inv) =>
         inv.items.forEach((i) => {
           if (i.id === item.code) totalOutgoing += i.qty;
@@ -309,6 +318,10 @@ const ItemBalanceReport: React.FC<ItemBalanceReportProps> = ({
       );
 
       // Store transfers within date range
+      // Only process transfers when reporting for a single branch (not "all branches")
+      // When all branches are selected, transfers are ignored as they don't affect total inventory
+      // Branch Warehouse Transfer: counts as outgoing when transfer is FROM the selected branch
+      // Transfer to Outstanding Warehouse: counts as incoming when transfer is TO the selected branch
       if (selectedBranch !== "all") {
         transformedStoreTransferVouchers.filter(filterByDate).forEach((v) => {
           const fromStore = stores.find((s) => s.name === v.fromStore);
