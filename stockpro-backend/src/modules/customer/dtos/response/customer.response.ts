@@ -7,6 +7,7 @@ export class CustomerResponse {
   nationalAddress: string;
   phone: string;
   openingBalance: number;
+  currentBalance: number;
   createdAt: Date;
   updatedAt: Date;
 }

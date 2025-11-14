@@ -9,6 +9,7 @@ export interface Supplier {
   nationalAddress: string;
   phone: string;
   openingBalance: number;
+  currentBalance: number;
   createdAt: string;
   updatedAt: string;
 }

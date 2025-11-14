@@ -145,6 +145,7 @@ export interface Customer {
   nationalAddress: string;
   phone: string;
   openingBalance: number;
+  currentBalance: number;
 }
 
 export interface Supplier {
@@ -156,6 +157,7 @@ export interface Supplier {
   nationalAddress: string;
   phone: string;
   openingBalance: number;
+  currentBalance: number;
 }
 
 export interface ExpenseCode {

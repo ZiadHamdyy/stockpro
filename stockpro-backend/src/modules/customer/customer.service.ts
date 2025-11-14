@@ -169,6 +169,7 @@ export class CustomerService {
       nationalAddress: customer.nationalAddress,
       phone: customer.phone,
       openingBalance: customer.openingBalance,
+      currentBalance: customer.currentBalance,
       createdAt: customer.createdAt,
       updatedAt: customer.updatedAt,
     };

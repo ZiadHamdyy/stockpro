@@ -9,6 +9,7 @@ export interface Customer {
   nationalAddress: string;
   phone: string;
   openingBalance: number;
+  currentBalance: number;
   createdAt: string;
   updatedAt: string;
 }

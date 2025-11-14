@@ -63,11 +63,11 @@ const CustomersList: React.FC<CustomersListProps> = ({
   const stats = useMemo(() => {
     const totalCustomers = customers.length;
     const totalDebt = customers.reduce(
-      (sum, c) => (c.openingBalance > 0 ? sum + c.openingBalance : sum),
+      (sum, c) => (c.currentBalance > 0 ? sum + c.currentBalance : sum),
       0,
     );
     const totalCredit = customers.reduce(
-      (sum, c) => (c.openingBalance < 0 ? sum + c.openingBalance : sum),
+      (sum, c) => (c.currentBalance < 0 ? sum + c.currentBalance : sum),
       0,
     );
     return { totalCustomers, totalDebt, totalCredit };
@@ -83,9 +83,9 @@ const CustomersList: React.FC<CustomersListProps> = ({
       .sort((a, b) => {
         switch (sortBy) {
           case "balance_high":
-            return b.openingBalance - a.openingBalance;
+            return b.currentBalance - a.currentBalance;
           case "balance_low":
-            return a.openingBalance - b.openingBalance;
+            return a.currentBalance - b.currentBalance;
           case "name":
           default:
             return a.name.localeCompare(b.name);
@@ -285,11 +285,11 @@ const CustomersList: React.FC<CustomersListProps> = ({
               </div>
             </div>
             <div
-              className={`mt-4 p-3 rounded-md text-center ${customer.openingBalance >= 0 ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"}`}
+              className={`mt-4 p-3 rounded-md text-center ${customer.currentBalance >= 0 ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"}`}
             >
               <span className="text-sm font-semibold">الرصيد الحالي</span>
               <p className="text-2xl font-bold">
-                {formatNumber(Math.abs(customer.openingBalance))}
+                {formatNumber(Math.abs(customer.currentBalance))}
               </p>
             </div>
           </div>
@@ -316,7 +316,7 @@ const CustomersList: React.FC<CustomersListProps> = ({
         data={customers.map((c, i) => ({
           ...c,
           sn: i + 1,
-          balance: c.openingBalance,
+          balance: c.currentBalance,
         }))}
         onSelectRow={(row) => {
           onNavigate("add_customer", `تعديل عميل #${row.id}`, row.id);

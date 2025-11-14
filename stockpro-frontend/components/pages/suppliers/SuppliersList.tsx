@@ -63,12 +63,12 @@ const SuppliersList: React.FC<SuppliersListProps> = ({
     const totalSuppliers = suppliers.length;
     // Assuming positive balance means we owe the supplier (liability)
     const totalLiability = suppliers.reduce(
-      (sum, s) => (s.openingBalance > 0 ? sum + s.openingBalance : sum),
+      (sum, s) => (s.currentBalance > 0 ? sum + s.currentBalance : sum),
       0,
     );
     // Assuming negative balance means supplier owes us (asset)
     const totalAsset = suppliers.reduce(
-      (sum, s) => (s.openingBalance < 0 ? sum + s.openingBalance : sum),
+      (sum, s) => (s.currentBalance < 0 ? sum + s.currentBalance : sum),
       0,
     );
     return { totalSuppliers, totalLiability, totalAsset };
@@ -84,9 +84,9 @@ const SuppliersList: React.FC<SuppliersListProps> = ({
       .sort((a, b) => {
         switch (sortBy) {
           case "balance_high":
-            return b.openingBalance - a.openingBalance;
+            return b.currentBalance - a.currentBalance;
           case "balance_low":
-            return a.openingBalance - b.openingBalance;
+            return a.currentBalance - b.currentBalance;
           case "name":
           default:
             return a.name.localeCompare(b.name);
@@ -286,11 +286,11 @@ const SuppliersList: React.FC<SuppliersListProps> = ({
               </div>
             </div>
             <div
-              className={`mt-4 p-3 rounded-md text-center ${supplier.openingBalance >= 0 ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700" }`}
+              className={`mt-4 p-3 rounded-md text-center ${supplier.currentBalance >= 0 ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700" }`}
             >
               <span className="text-sm font-semibold">الرصيد الحالي</span>
               <p className="text-2xl font-bold">
-                {formatNumber(Math.abs(supplier.openingBalance))}
+                {formatNumber(Math.abs(supplier.currentBalance))}
               </p>
             </div>
           </div>
@@ -318,7 +318,7 @@ const SuppliersList: React.FC<SuppliersListProps> = ({
         data={suppliers.map((s, i) => ({
           ...s,
           sn: i + 1,
-          balance: s.openingBalance,
+          balance: s.currentBalance,
         }))}
         onSelectRow={(row) => {
           onNavigate("add_supplier", `تعديل مورد #${row.id}`, row.id);

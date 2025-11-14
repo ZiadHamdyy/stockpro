@@ -169,6 +169,7 @@ export class SupplierService {
       nationalAddress: supplier.nationalAddress,
       phone: supplier.phone,
       openingBalance: supplier.openingBalance,
+      currentBalance: supplier.currentBalance,
       createdAt: supplier.createdAt,
       updatedAt: supplier.updatedAt,
     };
