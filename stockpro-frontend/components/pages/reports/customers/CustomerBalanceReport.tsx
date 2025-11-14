@@ -120,7 +120,7 @@ const CustomerBalanceReport: React.FC<CustomerBalanceReportProps> = ({
         )
         .reduce((sum, v) => sum + v.amount, 0);
 
-      const payments = paymentVouchers // Refunds to customer are a debit
+      const payments = paymentVouchers // Payments to customer (credit)
         .filter(
           (v) =>
             v.entity.type === "customer" &&
@@ -130,12 +130,12 @@ const CustomerBalanceReport: React.FC<CustomerBalanceReportProps> = ({
         .reduce((sum, v) => sum + v.amount, 0);
 
       const opening = customer.openingBalance;
-      // Split opening balance: positive goes to debit, negative goes to credit
-      const openingDebit = opening > 0 ? opening : 0;
-      const openingCredit = opening < 0 ? Math.abs(opening) : 0;
-      const totalDebit = sales + payments + openingDebit;
-      const totalCredit = returns + receipts + openingCredit;
-      const balance = opening + (sales + payments) - (returns + receipts);
+      // Total Debit: sales invoices, receipt vouchers (increases what they owe us)
+      const totalDebit = sales + receipts;
+      // Total Credit: sales returns, payment vouchers (decreases what they owe us)
+      const totalCredit = returns + payments;
+      // Balance = Beginning Balance + Total Debit - Total Credit
+      const balance = opening + totalDebit - totalCredit;
 
       return {
         id: customer.id,

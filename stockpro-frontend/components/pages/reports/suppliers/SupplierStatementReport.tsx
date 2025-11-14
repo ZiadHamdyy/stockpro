@@ -135,14 +135,14 @@ const SupplierStatementReport: React.FC<SupplierStatementReportProps> = ({
           v.entity.id == supplierId &&
           v.date < startDate,
       )
-      .reduce((sum, v) => sum + v.amount, 0); // Credit
+      .reduce((sum, v) => sum + v.amount, 0); // Debit
 
     const currentOpeningBalance =
       selectedSupplier.openingBalance +
       paymentsBefore +
-      returnsBefore -
-      purchasesBefore -
-      receiptsBefore;
+      returnsBefore +
+      receiptsBefore -
+      purchasesBefore;
     setOpeningBalance(currentOpeningBalance);
 
     const transactions: {
@@ -173,8 +173,10 @@ const SupplierStatementReport: React.FC<SupplierStatementReportProps> = ({
         });
       }
     });
+
+    // Debit (Decreases what we owe)
     receiptVouchers.forEach((v) => {
-      // Refund from supplier we cashed
+      // Receipt from supplier (refund)
       if (
         v.entity.type === "supplier" &&
         v.entity.id == supplierId &&
@@ -186,14 +188,12 @@ const SupplierStatementReport: React.FC<SupplierStatementReportProps> = ({
           description: "سند قبض (رد مبلغ)",
           ref: v.id,
           voucherCode: (v as any).code || v.id,
-          debit: 0,
-          credit: v.amount,
+          debit: v.amount,
+          credit: 0,
           link: { page: "receipt_voucher", label: "سند قبض" },
         });
       }
     });
-
-    // Debit (Decreases what we owe)
     purchaseReturns.forEach((inv) => {
       if (
         inv.customerOrSupplier?.id === supplierIdStr &&
