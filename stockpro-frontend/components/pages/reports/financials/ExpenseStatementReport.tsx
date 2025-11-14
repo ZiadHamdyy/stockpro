@@ -143,6 +143,12 @@ const ExpenseStatementReport: React.FC<ExpenseStatementReportProps> = ({
                     table { width: 100%; border-collapse: collapse; }
                     .bg-brand-blue { background-color: #1E40AF !important; }
                     .text-white { color: white !important; }
+                    .bg-gray-50 { background-color: #F9FAFB !important; }
+                    .text-brand-blue { color: #1E40AF !important; }
+                    .text-gray-700 { color: #374151 !important; }
+                    .text-gray-800 { color: #1F2937 !important; }
+                    .flex { display: flex !important; }
+                    .justify-between { justify-content: space-between !important; }
                 }
             </style>
         `);
@@ -179,20 +185,29 @@ const ExpenseStatementReport: React.FC<ExpenseStatementReportProps> = ({
             userName={currentUser?.fullName || currentUser?.name}
           />
         </div>
-        <div className="px-6 py-2 text-sm print:block hidden border-t-2 mt-2 space-y-1">
-          <p>
-            <strong>بند المصروف:</strong> {selectedExpenseCodeName}
-          </p>
-          <p>
-            <strong>الفترة من:</strong> {startDate} <strong>إلى:</strong>{" "}
-            {endDate}
-          </p>
-          <p>
-            <strong>فرع الطباعة:</strong> {typeof currentUser?.branch === 'string' ? currentUser.branch : (currentUser?.branch as any)?.name}
-          </p>
-          <p>
-            <strong>المستخدم:</strong> {currentUser?.fullName || currentUser?.name}
-          </p>
+        <div className="px-6 py-4 text-base print:block hidden border-t-2 border-b-2 mt-2 mb-4 bg-gray-50">
+          <div className="flex justify-between items-start">
+            <div className="space-y-2 text-right">
+              <p className="text-lg font-bold text-gray-800">
+                <span className="text-brand-blue">بند المصروف:</span> {selectedExpenseCodeName}
+              </p>
+              <p className="text-base text-gray-700">
+                <span className="font-semibold text-gray-800">الفترة من:</span> {startDate} 
+                <span className="font-semibold text-gray-800 mr-2">إلى:</span> {endDate}
+              </p>
+            </div>
+            <div className="space-y-2 text-right">
+              <p className="text-base text-gray-700">
+                <span className="font-semibold text-gray-800">فرع الطباعة:</span> {typeof currentUser?.branch === 'string' ? currentUser.branch : (currentUser?.branch as any)?.name}
+              </p>
+              <p className="text-base text-gray-700">
+                <span className="font-semibold text-gray-800">المستخدم:</span> {currentUser?.fullName || currentUser?.name}
+              </p>
+              <p className="text-base text-gray-700">
+                <span className="font-semibold text-gray-800">التاريخ:</span> {new Date().toLocaleDateString('ar-EG', { year: 'numeric', month: 'long', day: 'numeric' })}
+              </p>
+            </div>
+          </div>
         </div>
 
         <div className="flex justify-between items-center my-4 bg-gray-50 p-3 rounded-md border-2 border-gray-200 no-print">
