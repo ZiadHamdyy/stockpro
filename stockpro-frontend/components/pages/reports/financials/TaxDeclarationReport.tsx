@@ -8,6 +8,7 @@ import { useGetSalesReturnsQuery } from "../../../store/slices/salesReturn/sales
 import { useGetPurchaseInvoicesQuery } from "../../../store/slices/purchaseInvoice/purchaseInvoiceApiSlice";
 import { useGetPurchaseReturnsQuery } from "../../../store/slices/purchaseReturn/purchaseReturnApiSlice";
 import { useGetBranchesQuery } from "../../../store/slices/branch/branchApi";
+import { useGetPaymentVouchersQuery } from "../../../store/slices/paymentVoucherApiSlice";
 
 interface TaxDeclarationReportProps {
   title: string;
@@ -31,6 +32,8 @@ const TaxDeclarationReport: React.FC<TaxDeclarationReportProps> = ({
     useGetPurchaseReturnsQuery(undefined);
   const { data: apiBranches = [], isLoading: branchesLoading } =
     useGetBranchesQuery(undefined);
+  const { data: apiPaymentVouchers = [], isLoading: paymentVouchersLoading } =
+    useGetPaymentVouchersQuery(undefined);
 
   // Transform API data to match expected format
   const salesInvoices = useMemo(() => {
@@ -97,7 +100,8 @@ const TaxDeclarationReport: React.FC<TaxDeclarationReportProps> = ({
     salesReturnsLoading ||
     purchaseInvoicesLoading ||
     purchaseReturnsLoading ||
-    branchesLoading;
+    branchesLoading ||
+    paymentVouchersLoading;
   const currentYear = new Date().getFullYear();
   const [startDate, setStartDate] = useState(`${currentYear}-01-01`);
   const [endDate, setEndDate] = useState(
@@ -137,41 +141,61 @@ const TaxDeclarationReport: React.FC<TaxDeclarationReportProps> = ({
       .filter(filterByDate)
       .filter(filterByBranch);
 
+    // Filter payment vouchers (expenses) by date and branch
+    const filteredExpenses = (apiPaymentVouchers as any[])
+      .filter((v) => {
+        const voucherDate = new Date(v.date).toISOString().substring(0, 10);
+        const dateMatch = voucherDate >= startDate && voucherDate <= endDate;
+        const branchMatch = selectedBranch === "all" || 
+          (v.branch?.name === selectedBranch) ||
+          (branches.find((b) => b.id === v.branchId)?.name === selectedBranch);
+        // Only include payment vouchers with expense codes (expenses)
+        return dateMatch && branchMatch && v.expenseCodeId;
+      });
+
+    // Get VAT rate from company info (default to 15% if not available)
+    const vatRate = (companyInfo.vatRate || 15) / 100;
+
     const salesSubtotal = filteredSales.reduce(
       (sum, inv) => sum + (inv.subtotal || 0),
       0,
     );
-    const salesTax = filteredSales.reduce(
-      (sum, inv) => sum + (inv.tax || 0),
-      0,
-    );
+    // Calculate tax as: VAT rate * sales subtotal
+    const salesTax = salesSubtotal * vatRate;
 
     const returnsSubtotal = filteredReturns.reduce(
       (sum, inv) => sum + (inv.subtotal || 0),
       0,
     );
-    const returnsTax = filteredReturns.reduce(
-      (sum, inv) => sum + (inv.tax || 0),
-      0,
-    );
+    // Calculate tax as: VAT rate * returns subtotal
+    const returnsTax = returnsSubtotal * vatRate;
 
+    // 1. Purchase invoices subtotal (before tax) from search date
     const purchasesSubtotal = filteredPurchases.reduce(
       (sum, inv) => sum + (inv.subtotal || 0),
       0,
     );
-    const purchasesTax = filteredPurchases.reduce(
-      (sum, inv) => sum + (inv.tax || 0),
+
+    // 2. Expenses subtotal (payment vouchers with expense codes) from search date
+    const expensesSubtotal = filteredExpenses.reduce(
+      (sum, v) => sum + (v.amount || 0),
       0,
     );
 
+    // 3. Total purchases + expenses (before tax)
+    const totalPurchasesAndExpenses = purchasesSubtotal + expensesSubtotal;
+    
+    // 4. Calculate purchase tax as: VAT rate * (purchases subtotal + expenses subtotal)
+    const purchasesTax = totalPurchasesAndExpenses * vatRate;
+
+    // 5. Purchase returns subtotal (before tax) from search date
     const purchaseReturnsSubtotal = filteredPurchaseReturns.reduce(
       (sum, inv) => sum + (inv.subtotal || 0),
       0,
     );
-    const purchaseReturnsTax = filteredPurchaseReturns.reduce(
-      (sum, inv) => sum + (inv.tax || 0),
-      0,
-    );
+    
+    // 6. Calculate purchase returns tax as: VAT rate * purchase returns subtotal
+    const purchaseReturnsTax = purchaseReturnsSubtotal * vatRate;
 
     const outputVat = salesTax - returnsTax;
     const inputVat = purchasesTax - purchaseReturnsTax;
@@ -198,6 +222,8 @@ const TaxDeclarationReport: React.FC<TaxDeclarationReportProps> = ({
     salesReturns,
     purchaseInvoices,
     purchaseReturns,
+    apiPaymentVouchers,
+    branches,
   ]);
 
   useEffect(() => {
