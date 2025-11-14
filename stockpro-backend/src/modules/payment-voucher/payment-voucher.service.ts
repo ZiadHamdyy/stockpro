@@ -473,6 +473,7 @@ export class PaymentVoucherService {
       payableAccountId: (voucher as any).payableAccountId || null,
       userId: voucher.userId,
       branchId: voucher.branchId,
+      branch: voucher.branch || null,
       expenseCode: voucher.expenseCode,
       safe: voucher.safe,
       bank: voucher.bank,

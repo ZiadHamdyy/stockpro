@@ -16,6 +16,7 @@ import { CreatePaymentVoucherRequest } from './dtos/request/create-payment-vouch
 import { UpdatePaymentVoucherRequest } from './dtos/request/update-payment-voucher.request';
 import { PaymentVoucherResponse } from './dtos/response/payment-voucher.response';
 import { Auth } from '../../common/decorators/auth.decorator';
+import { Serialize } from '../../common/interceptors/serialize.interceptor';
 
 @Controller('payment-vouchers')
 export class PaymentVoucherController {
@@ -28,14 +29,17 @@ export class PaymentVoucherController {
     @Body() createDto: CreatePaymentVoucherRequest,
     @Request() req: any,
   ): Promise<PaymentVoucherResponse> {
+    // Use user's branchId as default if not provided
+    const branchId = createDto.branchId || req.user.branchId || null;
     return this.paymentVoucherService.createPaymentVoucher(
-      createDto,
+      { ...createDto, branchId },
       req.user.id,
     );
   }
 
   @Get()
   @Auth({ permissions: ['payment_voucher:read'] })
+  @Serialize(PaymentVoucherResponse, PaymentVoucherResponse)
   async findAllPaymentVouchers(
     @Query('search') search?: string,
   ): Promise<PaymentVoucherResponse[]> {

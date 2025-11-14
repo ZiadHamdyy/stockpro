@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import { PrintIcon } from "../../icons";
 import { tafqeet } from "../../../utils/tafqeet";
 import InvoiceHeader from "../../common/InvoiceHeader";
@@ -35,6 +36,7 @@ const PaymentVoucher: React.FC<PaymentVoucherProps> = ({ title }) => {
   const { User } = useAuth();
   const { data: receivableAccounts = [] } = useGetReceivableAccountsQuery();
   const { data: payableAccounts = [] } = useGetPayableAccountsQuery();
+  const [searchParams, setSearchParams] = useSearchParams();
   const {
     vouchers,
     customers,
@@ -53,16 +55,41 @@ const PaymentVoucher: React.FC<PaymentVoucherProps> = ({ title }) => {
     handleDelete,
     navigate,
     currentIndex,
+    setCurrentIndex,
   } = usePaymentVouchers();
 
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [isSearchModalOpen, setIsSearchModalOpen] = useState(false);
   const [shouldResetOnClose, setShouldResetOnClose] = useState(false);
+  const [hasInitialized, setHasInitialized] = useState(false);
 
   useEffect(() => {
-    // Initialize with a new voucher on mount
-    handleNew();
-  }, []);
+    const voucherId = searchParams.get("voucherId");
+    if (voucherId) {
+      if (vouchers.length > 0 && !isLoading) {
+        const index = vouchers.findIndex(
+          (v) => v.id === voucherId || v.code === voucherId
+        );
+        if (index !== -1) {
+          if (index !== currentIndex) {
+            setCurrentIndex(index);
+            setHasInitialized(true);
+          }
+          searchParams.delete("voucherId");
+          setSearchParams(searchParams, { replace: true });
+        } else {
+          console.warn(`Voucher with ID/code "${voucherId}" not found. Available vouchers:`, vouchers.map(v => ({ id: v.id, code: v.code })));
+          setHasInitialized(true);
+        }
+      }
+      return;
+    }
+    
+    if (!hasInitialized && !isLoading && vouchers.length >= 0 && currentIndex === -1) {
+      handleNew();
+      setHasInitialized(true);
+    }
+  }, [vouchers, isLoading, searchParams, setSearchParams, currentIndex, setCurrentIndex, hasInitialized, handleNew]);
 
   const handleEntityChange = (field: "type" | "id", value: any) => {
     setVoucherData((prev) => {

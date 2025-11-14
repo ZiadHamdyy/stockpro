@@ -27,6 +27,14 @@ class Bank {
   name: string;
 }
 
+class Branch {
+  @Expose()
+  id: string;
+
+  @Expose()
+  name: string;
+}
+
 export class PaymentVoucherResponse {
   @Expose()
   id: string;
@@ -81,6 +89,10 @@ export class PaymentVoucherResponse {
 
   @Expose()
   branchId?: string | null;
+
+  @Expose()
+  @Type(() => Branch)
+  branch?: Branch | null;
 
   @Expose()
   @Type(() => ExpenseCode)
