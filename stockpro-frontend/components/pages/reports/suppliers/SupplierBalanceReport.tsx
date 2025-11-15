@@ -196,20 +196,30 @@ const SupplierBalanceReport: React.FC<SupplierBalanceReportProps> = ({
     );
     printWindow?.document.write(`
             <style>
-                body { font-family: "Cairo", sans-serif; direction: rtl; }
+                body { font-family: "Cairo", sans-serif; direction: rtl; font-size: 14px; }
                 .no-print, .no-print * { display: none !important; visibility: hidden !important; margin: 0 !important; padding: 0 !important; }
+                table { font-size: 13px; }
+                th { font-size: 13px; font-weight: bold; }
+                td { font-size: 13px; }
                 @media print {
-                    body { -webkit-print-color-adjust: exact !important; color-adjust: exact !important; }
+                    body { -webkit-print-color-adjust: exact !important; color-adjust: exact !important; font-size: 14px !important; }
                     .no-print, .no-print * { display: none !important; visibility: hidden !important; }
                     thead { display: table-header-group; }
                     tfoot { display: table-footer-group; }
-                    table { width: 100%; border-collapse: collapse; }
+                    table { width: 100%; border-collapse: collapse; font-size: 13px !important; }
+                    th { font-size: 13px !important; font-weight: bold !important; }
+                    td { font-size: 13px !important; }
                     .bg-brand-blue { background-color: #1E40AF !important; }
                     .text-white { color: white !important; }
                     .bg-gray-50 { background-color: #F9FAFB !important; }
+                    .bg-gray-100 { background-color: #F3F4F6 !important; }
+                    .bg-green-100 { background-color: #D1FAE5 !important; }
+                    .bg-red-100 { background-color: #FEE2E2 !important; }
                     .text-brand-blue { color: #1E40AF !important; }
                     .text-gray-700 { color: #374151 !important; }
                     .text-gray-800 { color: #1F2937 !important; }
+                    .text-green-600 { color: #059669 !important; }
+                    .text-red-600 { color: #DC2626 !important; }
                     .flex { display: flex !important; }
                     .justify-between { justify-content: space-between !important; }
                     .justify-end { justify-content: flex-end !important; }
