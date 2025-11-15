@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useCallback, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import type {
   CompanyInfo,
   Supplier,
@@ -12,6 +13,9 @@ import { formatNumber, getNegativeNumberClass } from "../../../../utils/formatti
 import { useGetSuppliersQuery } from "../../../store/slices/supplier/supplierApiSlice";
 import { useGetPurchaseInvoicesQuery } from "../../../store/slices/purchaseInvoice/purchaseInvoiceApiSlice";
 import { useGetPurchaseReturnsQuery } from "../../../store/slices/purchaseReturn/purchaseReturnApiSlice";
+import { useGetReceiptVouchersQuery } from "../../../store/slices/receiptVoucherApiSlice";
+import { useGetPaymentVouchersQuery } from "../../../store/slices/paymentVoucherApiSlice";
+import { useAuth } from "../../../hook/Auth";
 
 interface SupplierStatementReportProps {
   title: string;
@@ -31,9 +35,15 @@ const SupplierStatementReport: React.FC<SupplierStatementReportProps> = ({
   companyInfo,
   onNavigate,
   currentUser,
-  receiptVouchers,
-  paymentVouchers,
+  receiptVouchers: propReceiptVouchers,
+  paymentVouchers: propPaymentVouchers,
 }) => {
+  const navigate = useNavigate();
+  const { isAuthed } = useAuth();
+  
+  // Only fetch if user is authenticated
+  const skip = !isAuthed;
+
   // API hooks
   const { data: apiSuppliers = [], isLoading: suppliersLoading } =
     useGetSuppliersQuery(undefined);
@@ -41,6 +51,18 @@ const SupplierStatementReport: React.FC<SupplierStatementReportProps> = ({
     useGetPurchaseInvoicesQuery(undefined);
   const { data: apiPurchaseReturns = [], isLoading: purchaseReturnsLoading } =
     useGetPurchaseReturnsQuery(undefined);
+  const { 
+    data: apiReceiptVouchers = [], 
+    isLoading: receiptVouchersLoading,
+  } = useGetReceiptVouchersQuery(undefined, { skip });
+  const { 
+    data: apiPaymentVouchers = [], 
+    isLoading: paymentVouchersLoading,
+  } = useGetPaymentVouchersQuery(undefined, { skip });
+  
+  // Use API vouchers if authenticated and API is being used, otherwise fall back to props
+  const rawReceiptVouchers = isAuthed ? apiReceiptVouchers : (propReceiptVouchers || []);
+  const rawPaymentVouchers = isAuthed ? apiPaymentVouchers : (propPaymentVouchers || []);
 
   // Transform API data to match expected format
   const suppliers = useMemo(() => {
@@ -53,39 +75,136 @@ const SupplierStatementReport: React.FC<SupplierStatementReportProps> = ({
   const purchaseInvoices = useMemo(() => {
     return (apiPurchaseInvoices as any[]).map((invoice) => ({
       ...invoice,
-      // Transform nested supplier data
-      customerOrSupplier: invoice.customerOrSupplier
+      // Transform nested supplier data - API uses 'supplier' field
+      customerOrSupplier: invoice.supplier
+        ? {
+            id: invoice.supplier.id.toString(),
+            name: invoice.supplier.name,
+          }
+        : invoice.customerOrSupplier
         ? {
             id: invoice.customerOrSupplier.id.toString(),
             name: invoice.customerOrSupplier.name,
           }
         : null,
+      // Transform totals structure - API uses direct fields, not nested totals object
+      totals: invoice.totals || {
+        subtotal: invoice.subtotal || 0,
+        discount: invoice.discount || 0,
+        tax: invoice.tax || 0,
+        net: invoice.net || 0,
+      },
     }));
   }, [apiPurchaseInvoices]);
 
   const purchaseReturns = useMemo(() => {
     return (apiPurchaseReturns as any[]).map((returnInvoice) => ({
       ...returnInvoice,
-      // Transform nested supplier data
-      customerOrSupplier: returnInvoice.customerOrSupplier
+      // Transform nested supplier data - API uses 'supplier' field
+      customerOrSupplier: returnInvoice.supplier
+        ? {
+            id: returnInvoice.supplier.id.toString(),
+            name: returnInvoice.supplier.name,
+          }
+        : returnInvoice.customerOrSupplier
         ? {
             id: returnInvoice.customerOrSupplier.id.toString(),
             name: returnInvoice.customerOrSupplier.name,
           }
         : null,
+      // Transform totals structure - API uses direct fields, not nested totals object
+      totals: returnInvoice.totals || {
+        subtotal: returnInvoice.subtotal || 0,
+        discount: returnInvoice.discount || 0,
+        tax: returnInvoice.tax || 0,
+        net: returnInvoice.net || 0,
+      },
     }));
   }, [apiPurchaseReturns]);
 
+  // Helper function to normalize dates to YYYY-MM-DD format
+  const normalizeDate = useMemo(() => {
+    return (date: any): string => {
+      if (!date) return "";
+      if (typeof date === "string") {
+        // If it's already in YYYY-MM-DD format, return as is
+        if (/^\d{4}-\d{2}-\d{2}$/.test(date)) return date;
+        // If it's an ISO string, extract the date part
+        return date.substring(0, 10);
+      }
+      if (date instanceof Date) {
+        return date.toISOString().split("T")[0];
+      }
+      // Try to parse as Date if it's a string that looks like a date
+      try {
+        const parsed = new Date(date);
+        if (!isNaN(parsed.getTime())) {
+          return parsed.toISOString().split("T")[0];
+        }
+      } catch (e) {
+        // Ignore parsing errors
+      }
+      return "";
+    };
+  }, []);
+
+  // Transform vouchers to match expected structure
+  const receiptVouchers = useMemo(() => {
+    return rawReceiptVouchers.map((voucher: any) => {
+      // Transform to match expected structure
+      // If voucher already has entity structure (from props), use it
+      // Otherwise, build it from API structure
+      const entity = voucher.entity || {
+        type: voucher.entityType,
+        id: voucher.customerId || voucher.supplierId || voucher.currentAccountId || "",
+        name: voucher.entityName || "",
+      };
+      
+      return {
+        id: voucher.id,
+        code: voucher.code || voucher.id,
+        date: normalizeDate(voucher.date),
+        entity: entity,
+        amount: voucher.amount,
+        description: voucher.description || "",
+        paymentMethod: voucher.paymentMethod,
+        safeOrBankId: voucher.safeId || voucher.bankId,
+      };
+    });
+  }, [rawReceiptVouchers, normalizeDate]);
+
+  const paymentVouchers = useMemo(() => {
+    return rawPaymentVouchers.map((voucher: any) => {
+      // Transform to match expected structure
+      // If voucher already has entity structure (from props), use it
+      // Otherwise, build it from API structure
+      const entity = voucher.entity || {
+        type: voucher.entityType,
+        id: voucher.customerId || voucher.supplierId || voucher.currentAccountId || "",
+        name: voucher.entityName || "",
+      };
+      
+      return {
+        id: voucher.id,
+        code: voucher.code || voucher.id,
+        date: normalizeDate(voucher.date),
+        entity: entity,
+        amount: voucher.amount,
+        description: voucher.description || "",
+        paymentMethod: voucher.paymentMethod,
+        safeOrBankId: voucher.safeId || voucher.bankId,
+      };
+    });
+  }, [rawPaymentVouchers, normalizeDate]);
+
   const isLoading =
-    suppliersLoading || purchaseInvoicesLoading || purchaseReturnsLoading;
+    suppliersLoading || purchaseInvoicesLoading || purchaseReturnsLoading || receiptVouchersLoading || paymentVouchersLoading;
   const currentYear = new Date().getFullYear();
   const currentDate = new Date().toISOString().substring(0, 10);
   const [startDate, setStartDate] = useState(`${currentYear}-01-01`);
   const [endDate, setEndDate] = useState(currentDate);
   const [supplierSearchTerm, setSupplierSearchTerm] = useState("");
-  const [selectedSupplierId, setSelectedSupplierId] = useState<string | null>(
-    suppliers.length > 0 ? suppliers[0].id.toString() : null,
-  );
+  const [selectedSupplierId, setSelectedSupplierId] = useState<string | null>(null);
 
   const [reportData, setReportData] = useState<any[]>([]);
   const [openingBalance, setOpeningBalance] = useState(0);
@@ -93,6 +212,13 @@ const SupplierStatementReport: React.FC<SupplierStatementReportProps> = ({
   const filteredSuppliers = suppliers.filter((s) =>
     s.name.toLowerCase().includes(supplierSearchTerm.toLowerCase()),
   );
+
+  // Set initial supplier when suppliers load
+  useEffect(() => {
+    if (suppliers.length > 0 && !selectedSupplierId) {
+      setSelectedSupplierId(suppliers[0].id.toString());
+    }
+  }, [suppliers, selectedSupplierId]);
 
   const selectedSupplier = useMemo(
     () => suppliers.find((s) => s.id.toString() === selectedSupplierId),
@@ -107,18 +233,6 @@ const SupplierStatementReport: React.FC<SupplierStatementReportProps> = ({
       return;
     }
 
-    // Helper function to normalize dates to YYYY-MM-DD format
-    const normalizeDate = (date: any): string => {
-      if (!date) return "";
-      if (typeof date === "string") {
-        return date.substring(0, 10);
-      }
-      if (date instanceof Date) {
-        return date.toISOString().substring(0, 10);
-      }
-      return "";
-    };
-
     const normalizedStartDate = normalizeDate(startDate);
     const normalizedEndDate = normalizeDate(endDate);
 
@@ -129,24 +243,31 @@ const SupplierStatementReport: React.FC<SupplierStatementReportProps> = ({
       .filter(
         (i) => {
           const invDate = normalizeDate(i.date);
-          return i.customerOrSupplier?.id === supplierIdStr && invDate < normalizedStartDate;
+          const invSupplierId = i.customerOrSupplier?.id?.toString() || 
+                               i.supplierId?.toString() || 
+                               (i.supplier?.id?.toString());
+          return (invSupplierId === supplierIdStr || invSupplierId == supplierId) && invDate < normalizedStartDate;
         }
       )
-      .reduce((sum, i) => sum + i.totals.net, 0); // Credit
+      .reduce((sum, i) => sum + (i.totals?.net || i.net || 0), 0); // Credit
     const returnsBefore = purchaseReturns
       .filter(
         (i) => {
           const invDate = normalizeDate(i.date);
-          return i.customerOrSupplier?.id === supplierIdStr && invDate < normalizedStartDate;
+          const invSupplierId = i.customerOrSupplier?.id?.toString() || 
+                               i.supplierId?.toString() || 
+                               (i.supplier?.id?.toString());
+          return (invSupplierId === supplierIdStr || invSupplierId == supplierId) && invDate < normalizedStartDate;
         }
       )
-      .reduce((sum, i) => sum + i.totals.net, 0); // Debit
+      .reduce((sum, i) => sum + (i.totals?.net || i.net || 0), 0); // Debit
     const paymentsBefore = paymentVouchers
       .filter(
         (v) => {
           const vDate = normalizeDate(v.date);
-          return v.entity.type === "supplier" &&
-            v.entity.id == supplierId &&
+          const voucherSupplierId = v.entity?.id?.toString() || v.entity?.id;
+          return v.entity?.type === "supplier" &&
+            (voucherSupplierId === supplierIdStr || voucherSupplierId == supplierId) &&
             vDate < normalizedStartDate;
         }
       )
@@ -155,8 +276,9 @@ const SupplierStatementReport: React.FC<SupplierStatementReportProps> = ({
       .filter(
         (v) => {
           const vDate = normalizeDate(v.date);
-          return v.entity.type === "supplier" &&
-            v.entity.id == supplierId &&
+          const voucherSupplierId = v.entity?.id?.toString() || v.entity?.id;
+          return v.entity?.type === "supplier" &&
+            (voucherSupplierId === supplierIdStr || voucherSupplierId == supplierId) &&
             vDate < normalizedStartDate;
         }
       )
@@ -183,8 +305,11 @@ const SupplierStatementReport: React.FC<SupplierStatementReportProps> = ({
     // Credit (Increases what we owe)
     purchaseInvoices.forEach((inv) => {
       const invDate = normalizeDate(inv.date);
+      const invSupplierId = inv.customerOrSupplier?.id?.toString() || 
+                           inv.supplierId?.toString() || 
+                           (inv.supplier?.id?.toString());
       if (
-        inv.customerOrSupplier?.id === supplierIdStr &&
+        (invSupplierId === supplierIdStr || invSupplierId == supplierId) &&
         invDate >= normalizedStartDate &&
         invDate <= normalizedEndDate
       ) {
@@ -194,7 +319,7 @@ const SupplierStatementReport: React.FC<SupplierStatementReportProps> = ({
           ref: inv.id,
           voucherCode: inv.code || inv.id,
           debit: 0,
-          credit: inv.totals.net,
+          credit: inv.totals?.net || inv.net || 0,
           link: { page: "purchase_invoice", label: "فاتورة مشتريات" },
         });
       }
@@ -204,9 +329,10 @@ const SupplierStatementReport: React.FC<SupplierStatementReportProps> = ({
     receiptVouchers.forEach((v) => {
       // Receipt from supplier (refund)
       const vDate = normalizeDate(v.date);
+      const voucherSupplierId = v.entity?.id?.toString() || v.entity?.id;
       if (
-        v.entity.type === "supplier" &&
-        v.entity.id == supplierId &&
+        v.entity?.type === "supplier" &&
+        (voucherSupplierId === supplierIdStr || voucherSupplierId == supplierId) &&
         vDate >= normalizedStartDate &&
         vDate <= normalizedEndDate
       ) {
@@ -214,7 +340,7 @@ const SupplierStatementReport: React.FC<SupplierStatementReportProps> = ({
           date: v.date,
           description: "سند قبض (رد مبلغ)",
           ref: v.id,
-          voucherCode: (v as any).code || v.id,
+          voucherCode: v.code || v.id,
           debit: v.amount,
           credit: 0,
           link: { page: "receipt_voucher", label: "سند قبض" },
@@ -223,8 +349,11 @@ const SupplierStatementReport: React.FC<SupplierStatementReportProps> = ({
     });
     purchaseReturns.forEach((inv) => {
       const invDate = normalizeDate(inv.date);
+      const invSupplierId = inv.customerOrSupplier?.id?.toString() || 
+                           inv.supplierId?.toString() || 
+                           (inv.supplier?.id?.toString());
       if (
-        inv.customerOrSupplier?.id === supplierIdStr &&
+        (invSupplierId === supplierIdStr || invSupplierId == supplierId) &&
         invDate >= normalizedStartDate &&
         invDate <= normalizedEndDate
       ) {
@@ -233,7 +362,7 @@ const SupplierStatementReport: React.FC<SupplierStatementReportProps> = ({
           description: "مرتجع مشتريات",
           ref: inv.id,
           voucherCode: inv.code || inv.id,
-          debit: inv.totals.net,
+          debit: inv.totals?.net || inv.net || 0,
           credit: 0,
           link: { page: "purchase_return", label: "مرتجع مشتريات" },
         });
@@ -241,9 +370,10 @@ const SupplierStatementReport: React.FC<SupplierStatementReportProps> = ({
     });
     paymentVouchers.forEach((v) => {
       const vDate = normalizeDate(v.date);
+      const voucherSupplierId = v.entity?.id?.toString() || v.entity?.id;
       if (
-        v.entity.type === "supplier" &&
-        v.entity.id == supplierId &&
+        v.entity?.type === "supplier" &&
+        (voucherSupplierId === supplierIdStr || voucherSupplierId == supplierId) &&
         vDate >= normalizedStartDate &&
         vDate <= normalizedEndDate
       ) {
@@ -251,7 +381,7 @@ const SupplierStatementReport: React.FC<SupplierStatementReportProps> = ({
           date: v.date,
           description: "سند صرف",
           ref: v.id,
-          voucherCode: (v as any).code || v.id,
+          voucherCode: v.code || v.id,
           debit: v.amount,
           credit: 0,
           link: { page: "payment_voucher", label: "سند صرف" },
@@ -278,6 +408,7 @@ const SupplierStatementReport: React.FC<SupplierStatementReportProps> = ({
     receiptVouchers,
     startDate,
     endDate,
+    normalizeDate,
   ]);
 
   useEffect(() => {
@@ -482,27 +613,67 @@ const SupplierStatementReport: React.FC<SupplierStatementReportProps> = ({
                 <tr key={index} className="hover:bg-brand-blue-bg">
                   <td className="px-6 py-4 w-36">{item.date.substring(0, 10)}</td>
                   <td className="px-6 py-4 font-medium text-brand-dark">
-                    {item.description}{" "}
-                    {item.link ? (
-                      <button
-                        onClick={() =>
-                          onNavigate(
-                            item.link.page,
-                            `${item.link.label} #${item.ref}`,
-                            item.ref,
-                          )
-                        }
-                        className="text-brand-blue hover:underline font-semibold no-print"
-                      >
-                        ({item.ref})
-                      </button>
-                    ) : (
-                      `(${item.ref})`
-                    )}
-                    <span className="print:inline hidden">({item.ref})</span>
+                    {item.description}
                   </td>
                   <td className="px-6 py-4 font-medium text-brand-dark">
-                    {item.voucherCode}
+                    {item.link ? (
+                      <>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            const page = item.link.page;
+                            const id = item.ref;
+                            
+                            console.log("=== Voucher Navigation Debug ===");
+                            console.log("Page:", page);
+                            console.log("ID:", id);
+                            console.log("ID type:", typeof id);
+                            console.log("Item:", item);
+                            console.log("Item.ref:", item.ref);
+                            console.log("Item.voucherCode:", item.voucherCode);
+                            
+                            // For vouchers, always use window.location.href to force full page reload
+                            // For invoices/returns, use onNavigate if available, otherwise navigate()
+                            if (page === "receipt_voucher" || page === "payment_voucher") {
+                              if (id) {
+                                const url = page === "receipt_voucher" 
+                                  ? `/financials/receipt-voucher?voucherId=${encodeURIComponent(id)}`
+                                  : `/financials/payment-voucher?voucherId=${encodeURIComponent(id)}`;
+                                console.log(`Navigating to ${page} URL:`, url);
+                                console.log("Encoded ID:", encodeURIComponent(id));
+                                // Use window.location to ensure URL updates and full page reload
+                                window.location.href = url;
+                              } else {
+                                console.error("Voucher ID is missing:", item);
+                              }
+                            } else if (onNavigate && typeof onNavigate === "function") {
+                              console.log("Using onNavigate prop for:", page);
+                              onNavigate(
+                                page,
+                                `${item.link.label} #${id}`,
+                                id,
+                              );
+                            } else {
+                              // Handle navigation directly for invoices/returns
+                              if (page === "purchase_invoice" && id) {
+                                navigate(`/purchases/invoice?invoiceId=${id}`);
+                              } else if (page === "purchase_return" && id) {
+                                navigate(`/purchases/return?returnId=${id}`);
+                              }
+                            }
+                          }}
+                          className="text-brand-blue hover:underline font-semibold no-print cursor-pointer"
+                          title={`فتح ${item.link.label}`}
+                        >
+                          {item.voucherCode}
+                        </button>
+                        <span className="print:inline hidden">{item.voucherCode}</span>
+                      </>
+                    ) : (
+                      item.voucherCode
+                    )}
                   </td>
                   <td className={`px-6 py-4 text-green-600 ${getNegativeNumberClass(item.debit)}`}>
                     {formatNumber(item.debit)}

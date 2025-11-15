@@ -232,8 +232,11 @@ const PurchaseReturn: React.FC<PurchaseReturnProps> = ({
   };
 
   useEffect(() => {
-    if (viewingId) {
-      const index = (invoices || []).findIndex((inv) => inv.id === viewingId);
+    if (viewingId && invoices.length > 0) {
+      // Use flexible comparison to handle both string and number IDs
+      const index = (invoices || []).findIndex((inv) => 
+        String(inv.id) === String(viewingId) || inv.id === viewingId
+      );
       if (index !== -1) {
         setCurrentIndex(index);
       } else {

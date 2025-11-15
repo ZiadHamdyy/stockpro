@@ -72,7 +72,10 @@ export const useReceiptVouchers = () => {
 
   // Sync voucher data when currentIndex changes
   useEffect(() => {
-    if (currentIndex >= 0 && vouchers[currentIndex]) {
+    // Wait for vouchers to load before syncing
+    if (isLoadingVouchers) return;
+    
+    if (currentIndex >= 0 && vouchers.length > 0 && vouchers[currentIndex]) {
       const v = vouchers[currentIndex];
       setVoucherData({
         number: v.code,
@@ -99,7 +102,7 @@ export const useReceiptVouchers = () => {
       // Ensure new mode is editable
       setIsReadOnly(false);
     }
-  }, [currentIndex, vouchers]);
+  }, [currentIndex, vouchers, isLoadingVouchers]);
 
   const handleNew = useCallback(() => {
     setCurrentIndex(-1);

@@ -65,13 +65,29 @@ const PaymentVoucher: React.FC<PaymentVoucherProps> = ({ title }) => {
 
   useEffect(() => {
     const voucherId = searchParams.get("voucherId");
+    console.log("=== PaymentVoucher Component Debug ===");
+    console.log("voucherId from URL:", voucherId);
+    console.log("voucherId type:", typeof voucherId);
+    console.log("vouchers.length:", vouchers.length);
+    console.log("isLoading:", isLoading);
+    console.log("currentIndex:", currentIndex);
+    
     if (voucherId) {
       if (vouchers.length > 0 && !isLoading) {
+        console.log("Vouchers loaded, searching for voucher...");
+        console.log("Available voucher IDs:", vouchers.map(v => ({ id: v.id, idType: typeof v.id, code: v.code, codeType: typeof v.code })));
+        // Use flexible comparison to handle both string and number IDs
         const index = vouchers.findIndex(
-          (v) => v.id === voucherId || v.code === voucherId
+          (v) => 
+            String(v.id) === String(voucherId) || 
+            v.id === voucherId ||
+            String(v.code) === String(voucherId) || 
+            v.code === voucherId
         );
+        console.log("Found index:", index);
         if (index !== -1) {
           if (index !== currentIndex) {
+            console.log("Setting currentIndex to:", index);
             setCurrentIndex(index);
             setHasInitialized(true);
           }
@@ -81,6 +97,13 @@ const PaymentVoucher: React.FC<PaymentVoucherProps> = ({ title }) => {
           console.warn(`Voucher with ID/code "${voucherId}" not found. Available vouchers:`, vouchers.map(v => ({ id: v.id, code: v.code })));
           setHasInitialized(true);
         }
+      } else {
+        console.log("Waiting for vouchers to load...");
+      }
+      // If vouchers haven't loaded yet, wait - don't initialize with "new"
+      // Set hasInitialized to true to prevent "new" initialization while waiting
+      if (!hasInitialized && vouchers.length === 0) {
+        setHasInitialized(true);
       }
       return;
     }

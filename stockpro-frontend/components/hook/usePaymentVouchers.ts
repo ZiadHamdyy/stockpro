@@ -74,7 +74,10 @@ export const usePaymentVouchers = () => {
 
   // Sync voucher data when currentIndex changes
   useEffect(() => {
-    if (currentIndex >= 0 && vouchers[currentIndex]) {
+    // Wait for vouchers to load before syncing
+    if (isLoadingVouchers) return;
+    
+    if (currentIndex >= 0 && vouchers.length > 0 && vouchers[currentIndex]) {
       const v = vouchers[currentIndex];
       // Use entityType as-is from the backend (now supports "expense-Type")
       let entityType = v.entityType as any;
@@ -105,7 +108,7 @@ export const usePaymentVouchers = () => {
       // Ensure new mode is editable
       setIsReadOnly(false);
     }
-  }, [currentIndex, vouchers]);
+  }, [currentIndex, vouchers, isLoadingVouchers]);
 
   const handleNew = useCallback(() => {
     setCurrentIndex(-1);

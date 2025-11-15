@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useCallback, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import type {
   CompanyInfo,
   Customer,
@@ -12,6 +13,9 @@ import { formatNumber, getNegativeNumberClass } from "../../../../utils/formatti
 import { useGetCustomersQuery } from "../../../store/slices/customer/customerApiSlice";
 import { useGetSalesInvoicesQuery } from "../../../store/slices/salesInvoice/salesInvoiceApiSlice";
 import { useGetSalesReturnsQuery } from "../../../store/slices/salesReturn/salesReturnApiSlice";
+import { useGetReceiptVouchersQuery } from "../../../store/slices/receiptVoucherApiSlice";
+import { useGetPaymentVouchersQuery } from "../../../store/slices/paymentVoucherApiSlice";
+import { useAuth } from "../../../hook/Auth";
 
 interface CustomerStatementReportProps {
   title: string;
@@ -31,9 +35,15 @@ const CustomerStatementReport: React.FC<CustomerStatementReportProps> = ({
   companyInfo,
   onNavigate,
   currentUser,
-  receiptVouchers,
-  paymentVouchers,
+  receiptVouchers: propReceiptVouchers,
+  paymentVouchers: propPaymentVouchers,
 }) => {
+  const navigate = useNavigate();
+  const { isAuthed } = useAuth();
+  
+  // Only fetch if user is authenticated
+  const skip = !isAuthed;
+
   // API hooks
   const { data: apiCustomers = [], isLoading: customersLoading } =
     useGetCustomersQuery(undefined);
@@ -41,6 +51,18 @@ const CustomerStatementReport: React.FC<CustomerStatementReportProps> = ({
     useGetSalesInvoicesQuery(undefined);
   const { data: apiSalesReturns = [], isLoading: salesReturnsLoading } =
     useGetSalesReturnsQuery(undefined);
+  const { 
+    data: apiReceiptVouchers = [], 
+    isLoading: receiptVouchersLoading,
+  } = useGetReceiptVouchersQuery(undefined, { skip });
+  const { 
+    data: apiPaymentVouchers = [], 
+    isLoading: paymentVouchersLoading,
+  } = useGetPaymentVouchersQuery(undefined, { skip });
+  
+  // Use API vouchers if authenticated and API is being used, otherwise fall back to props
+  const rawReceiptVouchers = isAuthed ? apiReceiptVouchers : (propReceiptVouchers || []);
+  const rawPaymentVouchers = isAuthed ? apiPaymentVouchers : (propPaymentVouchers || []);
 
   // Transform API data to match expected format
   const customers = useMemo(() => {
@@ -53,39 +75,136 @@ const CustomerStatementReport: React.FC<CustomerStatementReportProps> = ({
   const salesInvoices = useMemo(() => {
     return (apiSalesInvoices as any[]).map((invoice) => ({
       ...invoice,
-      // Transform nested customer data
-      customerOrSupplier: invoice.customerOrSupplier
+      // Transform nested customer data - API uses 'customer' field
+      customerOrSupplier: invoice.customer
+        ? {
+            id: invoice.customer.id.toString(),
+            name: invoice.customer.name,
+          }
+        : invoice.customerOrSupplier
         ? {
             id: invoice.customerOrSupplier.id.toString(),
             name: invoice.customerOrSupplier.name,
           }
         : null,
+      // Transform totals structure - API uses direct fields, not nested totals object
+      totals: invoice.totals || {
+        subtotal: invoice.subtotal || 0,
+        discount: invoice.discount || 0,
+        tax: invoice.tax || 0,
+        net: invoice.net || 0,
+      },
     }));
   }, [apiSalesInvoices]);
 
   const salesReturns = useMemo(() => {
     return (apiSalesReturns as any[]).map((returnInvoice) => ({
       ...returnInvoice,
-      // Transform nested customer data
-      customerOrSupplier: returnInvoice.customerOrSupplier
+      // Transform nested customer data - API uses 'customer' field
+      customerOrSupplier: returnInvoice.customer
+        ? {
+            id: returnInvoice.customer.id.toString(),
+            name: returnInvoice.customer.name,
+          }
+        : returnInvoice.customerOrSupplier
         ? {
             id: returnInvoice.customerOrSupplier.id.toString(),
             name: returnInvoice.customerOrSupplier.name,
           }
         : null,
+      // Transform totals structure - API uses direct fields, not nested totals object
+      totals: returnInvoice.totals || {
+        subtotal: returnInvoice.subtotal || 0,
+        discount: returnInvoice.discount || 0,
+        tax: returnInvoice.tax || 0,
+        net: returnInvoice.net || 0,
+      },
     }));
   }, [apiSalesReturns]);
 
+  // Helper function to normalize dates to YYYY-MM-DD format
+  const normalizeDate = useMemo(() => {
+    return (date: any): string => {
+      if (!date) return "";
+      if (typeof date === "string") {
+        // If it's already in YYYY-MM-DD format, return as is
+        if (/^\d{4}-\d{2}-\d{2}$/.test(date)) return date;
+        // If it's an ISO string, extract the date part
+        return date.substring(0, 10);
+      }
+      if (date instanceof Date) {
+        return date.toISOString().split("T")[0];
+      }
+      // Try to parse as Date if it's a string that looks like a date
+      try {
+        const parsed = new Date(date);
+        if (!isNaN(parsed.getTime())) {
+          return parsed.toISOString().split("T")[0];
+        }
+      } catch (e) {
+        // Ignore parsing errors
+      }
+      return "";
+    };
+  }, []);
+
+  // Transform vouchers to match expected structure
+  const receiptVouchers = useMemo(() => {
+    return rawReceiptVouchers.map((voucher: any) => {
+      // Transform to match expected structure
+      // If voucher already has entity structure (from props), use it
+      // Otherwise, build it from API structure
+      const entity = voucher.entity || {
+        type: voucher.entityType,
+        id: voucher.customerId || voucher.supplierId || voucher.currentAccountId || "",
+        name: voucher.entityName || "",
+      };
+      
+      return {
+        id: voucher.id,
+        code: voucher.code || voucher.id,
+        date: normalizeDate(voucher.date),
+        entity: entity,
+        amount: voucher.amount,
+        description: voucher.description || "",
+        paymentMethod: voucher.paymentMethod,
+        safeOrBankId: voucher.safeId || voucher.bankId,
+      };
+    });
+  }, [rawReceiptVouchers, normalizeDate]);
+
+  const paymentVouchers = useMemo(() => {
+    return rawPaymentVouchers.map((voucher: any) => {
+      // Transform to match expected structure
+      // If voucher already has entity structure (from props), use it
+      // Otherwise, build it from API structure
+      const entity = voucher.entity || {
+        type: voucher.entityType,
+        id: voucher.customerId || voucher.supplierId || voucher.currentAccountId || "",
+        name: voucher.entityName || "",
+      };
+      
+      return {
+        id: voucher.id,
+        code: voucher.code || voucher.id,
+        date: normalizeDate(voucher.date),
+        entity: entity,
+        amount: voucher.amount,
+        description: voucher.description || "",
+        paymentMethod: voucher.paymentMethod,
+        safeOrBankId: voucher.safeId || voucher.bankId,
+      };
+    });
+  }, [rawPaymentVouchers, normalizeDate]);
+
   const isLoading =
-    customersLoading || salesInvoicesLoading || salesReturnsLoading;
+    customersLoading || salesInvoicesLoading || salesReturnsLoading || receiptVouchersLoading || paymentVouchersLoading;
   const currentYear = new Date().getFullYear();
   const currentDate = new Date().toISOString().substring(0, 10);
   const [startDate, setStartDate] = useState(`${currentYear}-01-01`);
   const [endDate, setEndDate] = useState(currentDate);
   const [customerSearchTerm, setCustomerSearchTerm] = useState("");
-  const [selectedCustomerId, setSelectedCustomerId] = useState<string | null>(
-    customers.length > 0 ? customers[0].id.toString() : null,
-  );
+  const [selectedCustomerId, setSelectedCustomerId] = useState<string | null>(null);
 
   const [reportData, setReportData] = useState<any[]>([]);
   const [openingBalance, setOpeningBalance] = useState(0);
@@ -93,6 +212,13 @@ const CustomerStatementReport: React.FC<CustomerStatementReportProps> = ({
   const filteredCustomers = customers.filter((c) =>
     c.name.toLowerCase().includes(customerSearchTerm.toLowerCase()),
   );
+
+  // Set initial customer when customers load
+  useEffect(() => {
+    if (customers.length > 0 && !selectedCustomerId) {
+      setSelectedCustomerId(customers[0].id.toString());
+    }
+  }, [customers, selectedCustomerId]);
 
   const selectedCustomer = useMemo(
     () => customers.find((c) => c.id.toString() === selectedCustomerId),
@@ -107,18 +233,6 @@ const CustomerStatementReport: React.FC<CustomerStatementReportProps> = ({
       return;
     }
 
-    // Helper function to normalize dates to YYYY-MM-DD format
-    const normalizeDate = (date: any): string => {
-      if (!date) return "";
-      if (typeof date === "string") {
-        return date.substring(0, 10);
-      }
-      if (date instanceof Date) {
-        return date.toISOString().substring(0, 10);
-      }
-      return "";
-    };
-
     const normalizedStartDate = normalizeDate(startDate);
     const normalizedEndDate = normalizeDate(endDate);
 
@@ -129,26 +243,33 @@ const CustomerStatementReport: React.FC<CustomerStatementReportProps> = ({
       .filter(
         (i) => {
           const invDate = normalizeDate(i.date);
-          return i.customerOrSupplier?.id === customerIdStr && invDate < normalizedStartDate;
+          const invCustomerId = i.customerOrSupplier?.id?.toString() || 
+                               i.customerId?.toString() || 
+                               (i.customer?.id?.toString());
+          return (invCustomerId === customerIdStr || invCustomerId == customerId) && invDate < normalizedStartDate;
         }
       )
-      .reduce((sum, i) => sum + i.totals.net, 0);
+      .reduce((sum, i) => sum + (i.totals?.net || i.net || 0), 0);
 
     const returnsBefore = salesReturns
       .filter(
         (i) => {
           const invDate = normalizeDate(i.date);
-          return i.customerOrSupplier?.id === customerIdStr && invDate < normalizedStartDate;
+          const invCustomerId = i.customerOrSupplier?.id?.toString() || 
+                               i.customerId?.toString() || 
+                               (i.customer?.id?.toString());
+          return (invCustomerId === customerIdStr || invCustomerId == customerId) && invDate < normalizedStartDate;
         }
       )
-      .reduce((sum, i) => sum + i.totals.net, 0);
+      .reduce((sum, i) => sum + (i.totals?.net || i.net || 0), 0);
 
     const receiptsBefore = receiptVouchers
       .filter(
         (v) => {
           const vDate = normalizeDate(v.date);
-          return v.entity.type === "customer" &&
-            v.entity.id == customerId &&
+          const voucherCustomerId = v.entity?.id?.toString() || v.entity?.id;
+          return v.entity?.type === "customer" &&
+            (voucherCustomerId === customerIdStr || voucherCustomerId == customerId) &&
             vDate < normalizedStartDate;
         }
       )
@@ -158,8 +279,9 @@ const CustomerStatementReport: React.FC<CustomerStatementReportProps> = ({
       .filter(
         (v) => {
           const vDate = normalizeDate(v.date);
-          return v.entity.type === "customer" &&
-            v.entity.id == customerId &&
+          const voucherCustomerId = v.entity?.id?.toString() || v.entity?.id;
+          return v.entity?.type === "customer" &&
+            (voucherCustomerId === customerIdStr || voucherCustomerId == customerId) &&
             vDate < normalizedStartDate;
         }
       )
@@ -190,8 +312,11 @@ const CustomerStatementReport: React.FC<CustomerStatementReportProps> = ({
     // Sales Invoices → Debit
     salesInvoices.forEach((inv) => {
       const invDate = normalizeDate(inv.date);
+      const invCustomerId = inv.customerOrSupplier?.id?.toString() || 
+                           inv.customerId?.toString() || 
+                           (inv.customer?.id?.toString());
       if (
-        inv.customerOrSupplier?.id === customerIdStr &&
+        (invCustomerId === customerIdStr || invCustomerId == customerId) &&
         invDate >= normalizedStartDate &&
         invDate <= normalizedEndDate
       ) {
@@ -200,7 +325,7 @@ const CustomerStatementReport: React.FC<CustomerStatementReportProps> = ({
           description: "فاتورة مبيعات",
           ref: inv.id,
           voucherCode: inv.code || inv.id,
-          debit: inv.totals.net,
+          debit: inv.totals?.net || inv.net || 0,
           credit: 0,
           link: { page: "sales_invoice", label: "فاتورة مبيعات" },
         });
@@ -209,8 +334,11 @@ const CustomerStatementReport: React.FC<CustomerStatementReportProps> = ({
     // Sales Returns → Credit
     salesReturns.forEach((inv) => {
       const invDate = normalizeDate(inv.date);
+      const invCustomerId = inv.customerOrSupplier?.id?.toString() || 
+                           inv.customerId?.toString() || 
+                           (inv.customer?.id?.toString());
       if (
-        inv.customerOrSupplier?.id === customerIdStr &&
+        (invCustomerId === customerIdStr || invCustomerId == customerId) &&
         invDate >= normalizedStartDate &&
         invDate <= normalizedEndDate
       ) {
@@ -220,7 +348,7 @@ const CustomerStatementReport: React.FC<CustomerStatementReportProps> = ({
           ref: inv.id,
           voucherCode: inv.code || inv.id,
           debit: 0,
-          credit: inv.totals.net,
+          credit: inv.totals?.net || inv.net || 0,
           link: { page: "sales_return", label: "مرتجع مبيعات" },
         });
       }
@@ -228,9 +356,10 @@ const CustomerStatementReport: React.FC<CustomerStatementReportProps> = ({
     // Receipt Vouchers → Credit
     receiptVouchers.forEach((v) => {
       const vDate = normalizeDate(v.date);
+      const voucherCustomerId = v.entity?.id?.toString() || v.entity?.id;
       if (
-        v.entity.type === "customer" &&
-        v.entity.id == customerId &&
+        v.entity?.type === "customer" &&
+        (voucherCustomerId === customerIdStr || voucherCustomerId == customerId) &&
         vDate >= normalizedStartDate &&
         vDate <= normalizedEndDate
       ) {
@@ -238,7 +367,7 @@ const CustomerStatementReport: React.FC<CustomerStatementReportProps> = ({
           date: v.date,
           description: "سند قبض",
           ref: v.id,
-          voucherCode: (v as any).code || v.id,
+          voucherCode: v.code || v.id,
           debit: 0,
           credit: v.amount,
           link: { page: "receipt_voucher", label: "سند قبض" },
@@ -248,9 +377,10 @@ const CustomerStatementReport: React.FC<CustomerStatementReportProps> = ({
     // Payment Vouchers → Debit (refund to customer)
     paymentVouchers.forEach((v) => {
       const vDate = normalizeDate(v.date);
+      const voucherCustomerId = v.entity?.id?.toString() || v.entity?.id;
       if (
-        v.entity.type === "customer" &&
-        v.entity.id == customerId &&
+        v.entity?.type === "customer" &&
+        (voucherCustomerId === customerIdStr || voucherCustomerId == customerId) &&
         vDate >= normalizedStartDate &&
         vDate <= normalizedEndDate
       ) {
@@ -258,7 +388,7 @@ const CustomerStatementReport: React.FC<CustomerStatementReportProps> = ({
           date: v.date,
           description: "سند صرف (رد مبلغ)",
           ref: v.id,
-          voucherCode: (v as any).code || v.id,
+          voucherCode: v.code || v.id,
           debit: v.amount,
           credit: 0,
           link: { page: "payment_voucher", label: "سند صرف" },
@@ -285,6 +415,7 @@ const CustomerStatementReport: React.FC<CustomerStatementReportProps> = ({
     paymentVouchers,
     startDate,
     endDate,
+    normalizeDate,
   ]);
 
   useEffect(() => {
@@ -464,7 +595,7 @@ const CustomerStatementReport: React.FC<CustomerStatementReportProps> = ({
                   البيان
                 </th>
                 <th className="px-6 py-3 text-right text-sm font-semibold text-white uppercase">
-                  رقم السند
+                المرجع
                 </th>
                 <th className="px-6 py-3 text-right text-sm font-semibold text-white uppercase">
                   مدين
@@ -490,27 +621,72 @@ const CustomerStatementReport: React.FC<CustomerStatementReportProps> = ({
                 <tr key={index} className="hover:bg-brand-blue-bg">
                   <td className="px-6 py-4 w-36">{item.date.substring(0, 10)}</td>
                   <td className="px-6 py-4 font-medium text-brand-dark">
-                    {item.description}{" "}
-                    {item.link ? (
-                      <button
-                        onClick={() =>
-                          onNavigate(
-                            item.link.page,
-                            `${item.link.label} #${item.ref}`,
-                            item.ref,
-                          )
-                        }
-                        className="text-brand-blue hover:underline font-semibold no-print"
-                      >
-                        ({item.ref})
-                      </button>
-                    ) : (
-                      `(${item.ref})`
-                    )}
-                    <span className="print:inline hidden">({item.ref})</span>
+                    {item.description}
+                    
                   </td>
                   <td className="px-6 py-4 font-medium text-brand-dark">
-                    {item.voucherCode}
+                    {item.link ? (
+                      <>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            const page = item.link.page;
+                            const id = item.ref;
+                            
+                            console.log("=== Voucher Navigation Debug ===");
+                            console.log("Page:", page);
+                            console.log("ID:", id);
+                            console.log("ID type:", typeof id);
+                            console.log("Item:", item);
+                            console.log("Item.ref:", item.ref);
+                            console.log("Item.voucherCode:", item.voucherCode);
+                            
+                            // For vouchers, always use window.location.href to force full page reload
+                            // For invoices/returns, use onNavigate if available, otherwise navigate()
+                            if (page === "receipt_voucher" || page === "payment_voucher") {
+                              if (id) {
+                                const url = page === "receipt_voucher" 
+                                  ? `/financials/receipt-voucher?voucherId=${encodeURIComponent(id)}`
+                                  : `/financials/payment-voucher?voucherId=${encodeURIComponent(id)}`;
+                                console.log(`Navigating to ${page} URL:`, url);
+                                console.log("Encoded ID:", encodeURIComponent(id));
+                                // Use window.location to ensure URL updates and full page reload
+                                window.location.href = url;
+                              } else {
+                                console.error("Voucher ID is missing:", item);
+                              }
+                            } else if (onNavigate && typeof onNavigate === "function") {
+                              console.log("Using onNavigate prop for:", page);
+                              onNavigate(
+                                page,
+                                `${item.link.label} #${id}`,
+                                id,
+                              );
+                            } else {
+                              // Handle navigation directly for invoices/returns
+                              if (page === "sales_invoice" && id) {
+                                navigate(`/sales/invoice?invoiceId=${id}`);
+                              } else if (page === "sales_return" && id) {
+                                navigate(`/sales/return?returnId=${id}`);
+                              } else if (page === "purchase_invoice" && id) {
+                                navigate(`/purchases/invoice?invoiceId=${id}`);
+                              } else if (page === "purchase_return" && id) {
+                                navigate(`/purchases/return?returnId=${id}`);
+                              }
+                            }
+                          }}
+                          className="text-brand-blue hover:underline font-semibold no-print cursor-pointer"
+                          title={`فتح ${item.link.label}`}
+                        >
+                          {item.voucherCode}
+                        </button>
+                        <span className="print:inline hidden">{item.voucherCode}</span>
+                      </>
+                    ) : (
+                      item.voucherCode
+                    )}
                   </td>
                   <td className={`px-6 py-4 text-red-600 ${getNegativeNumberClass(item.debit)}`}>
                     {formatNumber(item.debit)}

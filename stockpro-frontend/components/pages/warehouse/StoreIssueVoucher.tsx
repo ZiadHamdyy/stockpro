@@ -176,8 +176,13 @@ const StoreIssueVoucher: React.FC<StoreIssueVoucherProps> = ({ title }) => {
   useEffect(() => {
     const voucherId = searchParams.get("voucherId");
     if (voucherId && vouchers.length > 0 && !isLoadingVouchers) {
+      // Use flexible comparison to handle both string and number IDs
       const index = vouchers.findIndex(
-        (v) => v.id === voucherId || v.voucherNumber === voucherId
+        (v) => 
+          String(v.id) === String(voucherId) || 
+          v.id === voucherId ||
+          String(v.voucherNumber) === String(voucherId) || 
+          v.voucherNumber === voucherId
       );
       if (index !== -1 && index !== currentIndex) {
         setCurrentIndex(index);

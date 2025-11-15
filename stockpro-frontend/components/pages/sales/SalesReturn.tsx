@@ -232,8 +232,11 @@ const SalesReturn: React.FC<SalesReturnProps> = ({
   };
 
   useEffect(() => {
-    if (viewingId) {
-      const index = returns.findIndex((ret) => ret.id === viewingId);
+    if (viewingId && returns.length > 0) {
+      // Use flexible comparison to handle both string and number IDs
+      const index = returns.findIndex((ret) => 
+        String(ret.id) === String(viewingId) || ret.id === viewingId
+      );
       if (index !== -1) {
         setCurrentIndex(index);
       } else {

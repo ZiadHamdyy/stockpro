@@ -1211,7 +1211,17 @@ const AppContent = () => {
                   <CustomerStatementReport
                     title={currentPageTitle}
                     companyInfo={companyInfo}
-                    onNavigate={() => {}}
+                    onNavigate={(key, label, id) => {
+                      if (key === "sales_invoice" && id) {
+                        navigate(`/sales/invoice?invoiceId=${id}`);
+                      } else if (key === "sales_return" && id) {
+                        navigate(`/sales/return?returnId=${id}`);
+                      } else if (key === "receipt_voucher" && id) {
+                        navigate(`/financials/receipt-voucher?voucherId=${id}`);
+                      } else if (key === "payment_voucher" && id) {
+                        navigate(`/financials/payment-voucher?voucherId=${id}`);
+                      }
+                    }}
                     currentUser={currentUser}
                     receiptVouchers={receiptVouchers}
                     paymentVouchers={paymentVouchers}
@@ -1240,7 +1250,17 @@ const AppContent = () => {
                   <SupplierStatementReport
                     title={currentPageTitle}
                     companyInfo={companyInfo}
-                    onNavigate={() => {}}
+                    onNavigate={(key, label, id) => {
+                      if (key === "purchase_invoice" && id) {
+                        navigate(`/purchases/invoice?invoiceId=${id}`);
+                      } else if (key === "purchase_return" && id) {
+                        navigate(`/purchases/return?returnId=${id}`);
+                      } else if (key === "receipt_voucher" && id) {
+                        navigate(`/financials/receipt-voucher?voucherId=${id}`);
+                      } else if (key === "payment_voucher" && id) {
+                        navigate(`/financials/payment-voucher?voucherId=${id}`);
+                      }
+                    }}
                     currentUser={currentUser}
                     receiptVouchers={receiptVouchers}
                     paymentVouchers={paymentVouchers}
