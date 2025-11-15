@@ -181,6 +181,16 @@ const MENU_ITEMS: MenuItem[] = [
             key: 'total_current_accounts_report',
             label: 'إجمالي الحسابات الجارية',
           },
+          { key: 'receivable_account_statement_report', label: 'كشف حساب مدينة' },
+          {
+            key: 'total_receivable_accounts_report',
+            label: 'إجمالي الأرصدة المدينة',
+          },
+          { key: 'payable_account_statement_report', label: 'كشف حساب دائنة' },
+          {
+            key: 'total_payable_accounts_report',
+            label: 'إجمالي الأرصدة الدائنة',
+          },
           { key: 'safe_statement_report', label: 'كشف حساب خزينة' },
           { key: 'bank_statement_report', label: 'كشف حساب بنك' },
           { key: 'tax_declaration_report', label: 'الإقرار الضريبي' },
@@ -379,6 +389,10 @@ async function main() {
         p.resource === 'total_expenses_report' ||
         p.resource === 'current_account_statement_report' ||
         p.resource === 'total_current_accounts_report' ||
+        p.resource === 'receivable_account_statement_report' ||
+        p.resource === 'total_receivable_accounts_report' ||
+        p.resource === 'payable_account_statement_report' ||
+        p.resource === 'total_payable_accounts_report' ||
         p.resource === 'safe_statement_report' ||
         p.resource === 'bank_statement_report' ||
         p.resource === 'tax_declaration_report' ||

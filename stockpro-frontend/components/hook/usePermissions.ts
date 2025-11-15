@@ -113,6 +113,7 @@ export const usePermissions = () => {
     data: roles = [],
     isLoading: rolesLoading,
     error: rolesError,
+    refetch: refetchRoles,
   } = useGetRolesQuery(undefined);
   const {
     data: allPermissions = [],
@@ -319,6 +320,22 @@ export const usePermissions = () => {
         roleId: role.id,
         permissions: { permissionIds },
       }).unwrap();
+
+      // Update permissions state with the saved data from backend
+      if (result?.permissions) {
+        const savedPermissions = new Set<string>();
+        result.permissions.forEach((permission: any) => {
+          const permissionKey = `${permission.resource}-${permission.action}`;
+          savedPermissions.add(permissionKey);
+        });
+        setPermissions((prev) => ({
+          ...prev,
+          [selectedRole]: savedPermissions,
+        }));
+      }
+
+      // Refetch roles to ensure we have the latest data
+      await refetchRoles();
 
       showToast("تم حفظ الصلاحيات بنجاح");
     } catch (err) {

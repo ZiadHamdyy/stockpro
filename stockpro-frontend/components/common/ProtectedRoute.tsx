@@ -27,11 +27,14 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
     return <Navigate to="/login" replace />;
   }
 
+  // Managers (مدير) have all permissions - always allow access
+  const isManager = currentUser?.role?.name === "مدير";
+
   // Get user permissions from role
   const userPermissions: Permission[] = currentUser.role?.permissions || [];
 
   // Check if user has the required permission
-  const hasAccess = hasPermission(userPermissions, requiredPermission);
+  const hasAccess = isManager || hasPermission(userPermissions, requiredPermission);
 
   if (!hasAccess) {
     return <AccessDenied />;

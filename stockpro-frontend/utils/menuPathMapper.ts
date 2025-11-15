@@ -92,6 +92,14 @@ export const getPathFromMenuKey = (key: string): string => {
     current_account_statement_report:
       "/reports/financials/current-account-statement",
     total_current_accounts_report: "/reports/financials/total-current-accounts",
+    receivable_account_statement_report:
+      "/reports/financials/receivable-account-statement",
+    total_receivable_accounts_report:
+      "/reports/financials/total-receivable-accounts",
+    payable_account_statement_report:
+      "/reports/financials/payable-account-statement",
+    total_payable_accounts_report:
+      "/reports/financials/total-payable-accounts",
     safe_statement_report: "/reports/financials/safe-statement",
     bank_statement_report: "/reports/financials/bank-statement",
     tax_declaration_report: "/reports/financials/tax-declaration",
@@ -163,6 +171,14 @@ export const getMenuKeyFromPath = (path: string): string => {
       "current_account_statement_report",
     "/reports/financials/total-current-accounts":
       "total_current_accounts_report",
+    "/reports/financials/receivable-account-statement":
+      "receivable_account_statement_report",
+    "/reports/financials/total-receivable-accounts":
+      "total_receivable_accounts_report",
+    "/reports/financials/payable-account-statement":
+      "payable_account_statement_report",
+    "/reports/financials/total-payable-accounts":
+      "total_payable_accounts_report",
     "/reports/financials/safe-statement": "safe_statement_report",
     "/reports/financials/bank-statement": "bank_statement_report",
     "/reports/financials/tax-declaration": "tax_declaration_report",

@@ -51,6 +51,10 @@ import ExpenseStatementReport from "../components/pages/reports/financials/Expen
 import TotalExpensesReport from "../components/pages/reports/financials/TotalExpensesReport";
 import CurrentAccountStatementReport from "../components/pages/reports/financials/CurrentAccountStatementReport";
 import TotalCurrentAccountsReport from "../components/pages/reports/financials/TotalCurrentAccountsReport";
+import ReceivableAccountStatementReport from "../components/pages/reports/financials/ReceivableAccountStatementReport";
+import TotalReceivableAccountsReport from "../components/pages/reports/financials/TotalReceivableAccountsReport";
+import PayableAccountStatementReport from "../components/pages/reports/financials/PayableAccountStatementReport";
+import TotalPayableAccountsReport from "../components/pages/reports/financials/TotalPayableAccountsReport";
 import SafeStatementReport from "../components/pages/reports/financials/SafeStatementReport";
 import BankStatementReport from "../components/pages/reports/financials/BankStatementReport";
 import TaxDeclarationReport from "../components/pages/reports/financials/TaxDeclarationReport";
@@ -455,6 +459,30 @@ export const routeConfig = [
     component: TotalCurrentAccountsReport,
     requiredPermission: "total_current_accounts_report-read",
     label: "إجمالي الحسابات الجارية",
+  },
+  {
+    path: "/reports/financials/receivable-account-statement",
+    component: ReceivableAccountStatementReport,
+    requiredPermission: "receivable_account_statement_report-read",
+    label: "كشف حساب مدينة",
+  },
+  {
+    path: "/reports/financials/total-receivable-accounts",
+    component: TotalReceivableAccountsReport,
+    requiredPermission: "total_receivable_accounts_report-read",
+    label: "إجمالي الأرصدة المدينة",
+  },
+  {
+    path: "/reports/financials/payable-account-statement",
+    component: PayableAccountStatementReport,
+    requiredPermission: "payable_account_statement_report-read",
+    label: "كشف حساب دائنة",
+  },
+  {
+    path: "/reports/financials/total-payable-accounts",
+    component: TotalPayableAccountsReport,
+    requiredPermission: "total_payable_accounts_report-read",
+    label: "إجمالي الأرصدة الدائنة",
   },
   {
     path: "/reports/financials/safe-statement",

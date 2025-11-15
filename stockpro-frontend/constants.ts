@@ -310,6 +310,26 @@ export const MENU_ITEMS: MenuItem[] = [
             icon: BarChartIcon,
           },
           {
+            key: "receivable_account_statement_report",
+            label: "كشف حساب مدينة",
+            icon: BarChartIcon,
+          },
+          {
+            key: "total_receivable_accounts_report",
+            label: "إجمالي الأرصدة المدينة",
+            icon: BarChartIcon,
+          },
+          {
+            key: "payable_account_statement_report",
+            label: "كشف حساب دائنة",
+            icon: BarChartIcon,
+          },
+          {
+            key: "total_payable_accounts_report",
+            label: "إجمالي الأرصدة الدائنة",
+            icon: BarChartIcon,
+          },
+          {
             key: "safe_statement_report",
             label: "كشف حساب خزينة",
             icon: BarChartIcon,

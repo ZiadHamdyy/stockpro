@@ -73,6 +73,10 @@ import ExpenseStatementReport from "./components/pages/reports/financials/Expens
 import TotalExpensesReport from "./components/pages/reports/financials/TotalExpensesReport";
 import CurrentAccountStatementReport from "./components/pages/reports/financials/CurrentAccountStatementReport";
 import TotalCurrentAccountsReport from "./components/pages/reports/financials/TotalCurrentAccountsReport";
+import ReceivableAccountStatementReport from "./components/pages/reports/financials/ReceivableAccountStatementReport";
+import TotalReceivableAccountsReport from "./components/pages/reports/financials/TotalReceivableAccountsReport";
+import PayableAccountStatementReport from "./components/pages/reports/financials/PayableAccountStatementReport";
+import TotalPayableAccountsReport from "./components/pages/reports/financials/TotalPayableAccountsReport";
 import SafeStatementReport from "./components/pages/reports/financials/SafeStatementReport";
 import BankStatementReport from "./components/pages/reports/financials/BankStatementReport";
 import TaxDeclarationReport from "./components/pages/reports/financials/TaxDeclarationReport";
@@ -1349,6 +1353,62 @@ const AppContent = () => {
               element={
                 <ProtectedRoute requiredPermission="total_current_accounts_report-read">
                   <TotalCurrentAccountsReport
+                    title={currentPageTitle}
+                    companyInfo={companyInfo}
+                    currentUser={currentUser}
+                    receiptVouchers={receiptVouchers}
+                    paymentVouchers={paymentVouchers}
+                  />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/reports/financials/receivable-account-statement"
+              element={
+                <ProtectedRoute requiredPermission="receivable_account_statement_report-read">
+                  <ReceivableAccountStatementReport
+                    title={currentPageTitle}
+                    companyInfo={companyInfo}
+                    receiptVouchers={receiptVouchers}
+                    paymentVouchers={paymentVouchers}
+                    currentUser={currentUser}
+                  />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/reports/financials/total-receivable-accounts"
+              element={
+                <ProtectedRoute requiredPermission="total_receivable_accounts_report-read">
+                  <TotalReceivableAccountsReport
+                    title={currentPageTitle}
+                    companyInfo={companyInfo}
+                    currentUser={currentUser}
+                    receiptVouchers={receiptVouchers}
+                    paymentVouchers={paymentVouchers}
+                  />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/reports/financials/payable-account-statement"
+              element={
+                <ProtectedRoute requiredPermission="payable_account_statement_report-read">
+                  <PayableAccountStatementReport
+                    title={currentPageTitle}
+                    companyInfo={companyInfo}
+                    receiptVouchers={receiptVouchers}
+                    paymentVouchers={paymentVouchers}
+                    currentUser={currentUser}
+                  />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/reports/financials/total-payable-accounts"
+              element={
+                <ProtectedRoute requiredPermission="total_payable_accounts_report-read">
+                  <TotalPayableAccountsReport
                     title={currentPageTitle}
                     companyInfo={companyInfo}
                     currentUser={currentUser}
