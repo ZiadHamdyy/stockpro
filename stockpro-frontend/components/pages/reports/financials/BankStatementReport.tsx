@@ -44,8 +44,9 @@ const BankStatementReport: React.FC<BankStatementReportProps> = ({
 
   const isLoading = banksLoading;
   const currentYear = new Date().getFullYear();
+  const currentDate = new Date().toISOString().substring(0, 10);
   const [startDate, setStartDate] = useState(`${currentYear}-01-01`);
-  const [endDate, setEndDate] = useState(`${currentYear}-12-31`);
+  const [endDate, setEndDate] = useState(currentDate);
   const [selectedBankId, setSelectedBankId] = useState<string | null>(null);
 
   // Set initial selected bank when data loads
@@ -65,85 +66,115 @@ const BankStatementReport: React.FC<BankStatementReportProps> = ({
     if (!selectedBank) return 0;
     const bankId = selectedBank.id.toString();
     
+    // Helper function to normalize dates to YYYY-MM-DD format
+    const normalizeDate = (date: any): string => {
+      if (!date) return "";
+      if (typeof date === "string") {
+        return date.substring(0, 10);
+      }
+      if (date instanceof Date) {
+        return date.toISOString().substring(0, 10);
+      }
+      return "";
+    };
+
+    const normalizedStartDate = normalizeDate(startDate);
+
     // Receipt vouchers (incoming)
     const receiptsBefore = receiptVouchers
       .filter(
-        (v) =>
-          v.paymentMethod === "bank" &&
-          v.safeOrBankId === selectedBank.id &&
-          v.date < startDate,
+        (v) => {
+          const vDate = normalizeDate(v.date);
+          return v.paymentMethod === "bank" &&
+            v.safeOrBankId === selectedBank.id &&
+            vDate < normalizedStartDate;
+        }
       )
       .reduce((sum, v) => sum + v.amount, 0);
     
     // Payment vouchers (outgoing)
     const paymentsBefore = paymentVouchers
       .filter(
-        (v) =>
-          v.paymentMethod === "bank" &&
-          v.safeOrBankId === selectedBank.id &&
-          v.date < startDate,
+        (v) => {
+          const vDate = normalizeDate(v.date);
+          return v.paymentMethod === "bank" &&
+            v.safeOrBankId === selectedBank.id &&
+            vDate < normalizedStartDate;
+        }
       )
       .reduce((sum, v) => sum + v.amount, 0);
     
     // Sales invoices (cash payments to bank) - incoming
     const salesInvoicesBefore = (apiSalesInvoices as any[])
       .filter(
-        (inv) =>
-          inv.paymentMethod === "cash" &&
-          inv.paymentTargetType === "bank" &&
-          inv.paymentTargetId === bankId &&
-          new Date(inv.date).toISOString().substring(0, 10) < startDate,
+        (inv) => {
+          const invDate = normalizeDate(inv.date);
+          return inv.paymentMethod === "cash" &&
+            inv.paymentTargetType === "bank" &&
+            inv.paymentTargetId === bankId &&
+            invDate < normalizedStartDate;
+        }
       )
       .reduce((sum, inv) => sum + (inv.total || 0), 0);
     
     // Purchase invoices (cash payments from bank) - outgoing
     const purchaseInvoicesBefore = (apiPurchaseInvoices as any[])
       .filter(
-        (inv) =>
-          inv.paymentMethod === "cash" &&
-          inv.paymentTargetType === "bank" &&
-          inv.paymentTargetId === bankId &&
-          new Date(inv.date).toISOString().substring(0, 10) < startDate,
+        (inv) => {
+          const invDate = normalizeDate(inv.date);
+          return inv.paymentMethod === "cash" &&
+            inv.paymentTargetType === "bank" &&
+            inv.paymentTargetId === bankId &&
+            invDate < normalizedStartDate;
+        }
       )
       .reduce((sum, inv) => sum + (inv.total || 0), 0);
     
     // Sales returns (cash payments from bank) - outgoing
     const salesReturnsBefore = (apiSalesReturns as any[])
       .filter(
-        (ret) =>
-          ret.paymentMethod === "cash" &&
-          ret.paymentTargetType === "bank" &&
-          ret.paymentTargetId === bankId &&
-          new Date(ret.date).toISOString().substring(0, 10) < startDate,
+        (ret) => {
+          const retDate = normalizeDate(ret.date);
+          return ret.paymentMethod === "cash" &&
+            ret.paymentTargetType === "bank" &&
+            ret.paymentTargetId === bankId &&
+            retDate < normalizedStartDate;
+        }
       )
       .reduce((sum, ret) => sum + (ret.total || 0), 0);
     
     // Purchase returns (cash payments to bank) - incoming
     const purchaseReturnsBefore = (apiPurchaseReturns as any[])
       .filter(
-        (ret) =>
-          ret.paymentMethod === "cash" &&
-          ret.paymentTargetType === "bank" &&
-          ret.paymentTargetId === bankId &&
-          new Date(ret.date).toISOString().substring(0, 10) < startDate,
+        (ret) => {
+          const retDate = normalizeDate(ret.date);
+          return ret.paymentMethod === "cash" &&
+            ret.paymentTargetType === "bank" &&
+            ret.paymentTargetId === bankId &&
+            retDate < normalizedStartDate;
+        }
       )
       .reduce((sum, ret) => sum + (ret.total || 0), 0);
     
     // Internal transfers before startDate
     const outgoingBefore = (apiInternalTransfers as any[])
       .filter(
-        (t) =>
-          t.fromType === "bank" &&
-          t.fromBankId === bankId &&
-          new Date(t.date).toISOString().substring(0, 10) < startDate,
+        (t) => {
+          const tDate = normalizeDate(t.date);
+          return t.fromType === "bank" &&
+            t.fromBankId === bankId &&
+            tDate < normalizedStartDate;
+        }
       )
       .reduce((sum, t) => sum + t.amount, 0);
     const incomingBefore = (apiInternalTransfers as any[])
       .filter(
-        (t) =>
-          t.toType === "bank" &&
-          t.toBankId === bankId &&
-          new Date(t.date).toISOString().substring(0, 10) < startDate,
+        (t) => {
+          const tDate = normalizeDate(t.date);
+          return t.toType === "bank" &&
+            t.toBankId === bankId &&
+            tDate < normalizedStartDate;
+        }
       )
       .reduce((sum, t) => sum + t.amount, 0);
     
@@ -157,11 +188,26 @@ const BankStatementReport: React.FC<BankStatementReportProps> = ({
       - purchaseInvoicesBefore 
       - salesReturnsBefore 
       - outgoingBefore;
-  }, [selectedBank, receiptVouchers, paymentVouchers, apiInternalTransfers, apiSalesInvoices, apiPurchaseInvoices, apiSalesReturns, apiPurchaseReturns, startDate]);
+  }, [selectedBank, receiptVouchers, paymentVouchers, apiInternalTransfers, apiSalesInvoices, apiPurchaseInvoices, apiSalesReturns, apiPurchaseReturns, startDate, endDate]);
 
   const reportData = useMemo(() => {
     if (!selectedBankId) return [];
     const bankId = selectedBankId.toString();
+
+    // Helper function to normalize dates to YYYY-MM-DD format
+    const normalizeDate = (date: any): string => {
+      if (!date) return "";
+      if (typeof date === "string") {
+        return date.substring(0, 10);
+      }
+      if (date instanceof Date) {
+        return date.toISOString().substring(0, 10);
+      }
+      return "";
+    };
+
+    const normalizedStartDate = normalizeDate(startDate);
+    const normalizedEndDate = normalizeDate(endDate);
 
     const transactions: {
       date: string;
@@ -173,11 +219,12 @@ const BankStatementReport: React.FC<BankStatementReportProps> = ({
 
     // Receipt Vouchers (incoming) - Debit
     receiptVouchers.forEach((v: any) => {
+      const vDate = normalizeDate(v.date);
       if (
         v.paymentMethod === "bank" &&
         v.safeOrBankId?.toString() === bankId &&
-        v.date >= startDate &&
-        v.date <= endDate
+        vDate >= normalizedStartDate &&
+        vDate <= normalizedEndDate
       ) {
         transactions.push({
           date: v.date,
@@ -191,13 +238,13 @@ const BankStatementReport: React.FC<BankStatementReportProps> = ({
 
     // Sales Invoices (cash payments to bank) - Debit (incoming)
     (apiSalesInvoices as any[]).forEach((inv) => {
-      const invoiceDate = new Date(inv.date).toISOString().substring(0, 10);
+      const invoiceDate = normalizeDate(inv.date);
       if (
         inv.paymentMethod === "cash" &&
         inv.paymentTargetType === "bank" &&
         inv.paymentTargetId === bankId &&
-        invoiceDate >= startDate &&
-        invoiceDate <= endDate
+        invoiceDate >= normalizedStartDate &&
+        invoiceDate <= normalizedEndDate
       ) {
         transactions.push({
           date: invoiceDate,
@@ -211,13 +258,13 @@ const BankStatementReport: React.FC<BankStatementReportProps> = ({
 
     // Purchase Returns (cash payments to bank) - Debit (incoming)
     (apiPurchaseReturns as any[]).forEach((ret) => {
-      const returnDate = new Date(ret.date).toISOString().substring(0, 10);
+      const returnDate = normalizeDate(ret.date);
       if (
         ret.paymentMethod === "cash" &&
         ret.paymentTargetType === "bank" &&
         ret.paymentTargetId === bankId &&
-        returnDate >= startDate &&
-        returnDate <= endDate
+        returnDate >= normalizedStartDate &&
+        returnDate <= normalizedEndDate
       ) {
         transactions.push({
           date: returnDate,
@@ -231,12 +278,12 @@ const BankStatementReport: React.FC<BankStatementReportProps> = ({
 
     // Bank Transfer (incoming) - Debit
     (apiInternalTransfers as any[]).forEach((t) => {
-      const transferDate = new Date(t.date).toISOString().substring(0, 10);
+      const transferDate = normalizeDate(t.date);
       if (
         t.toType === "bank" &&
         t.toBankId === bankId &&
-        transferDate >= startDate &&
-        transferDate <= endDate
+        transferDate >= normalizedStartDate &&
+        transferDate <= normalizedEndDate
       ) {
         const fromAccountName =
           t.fromType === "safe" ? t.fromSafe?.name : t.fromBank?.name || "حساب";
@@ -252,13 +299,13 @@ const BankStatementReport: React.FC<BankStatementReportProps> = ({
 
     // Purchase Invoices (cash payments from bank) - Credit (outgoing)
     (apiPurchaseInvoices as any[]).forEach((inv) => {
-      const invoiceDate = new Date(inv.date).toISOString().substring(0, 10);
+      const invoiceDate = normalizeDate(inv.date);
       if (
         inv.paymentMethod === "cash" &&
         inv.paymentTargetType === "bank" &&
         inv.paymentTargetId === bankId &&
-        invoiceDate >= startDate &&
-        invoiceDate <= endDate
+        invoiceDate >= normalizedStartDate &&
+        invoiceDate <= normalizedEndDate
       ) {
         transactions.push({
           date: invoiceDate,
@@ -272,13 +319,13 @@ const BankStatementReport: React.FC<BankStatementReportProps> = ({
 
     // Sales Returns (cash payments from bank) - Credit (outgoing)
     (apiSalesReturns as any[]).forEach((ret) => {
-      const returnDate = new Date(ret.date).toISOString().substring(0, 10);
+      const returnDate = normalizeDate(ret.date);
       if (
         ret.paymentMethod === "cash" &&
         ret.paymentTargetType === "bank" &&
         ret.paymentTargetId === bankId &&
-        returnDate >= startDate &&
-        returnDate <= endDate
+        returnDate >= normalizedStartDate &&
+        returnDate <= normalizedEndDate
       ) {
         transactions.push({
           date: returnDate,
@@ -292,11 +339,12 @@ const BankStatementReport: React.FC<BankStatementReportProps> = ({
 
     // Payment Vouchers (outgoing) - Credit
     paymentVouchers.forEach((v: any) => {
+      const vDate = normalizeDate(v.date);
       if (
         v.paymentMethod === "bank" &&
         v.safeOrBankId?.toString() === bankId &&
-        v.date >= startDate &&
-        v.date <= endDate
+        vDate >= normalizedStartDate &&
+        vDate <= normalizedEndDate
       ) {
         transactions.push({
           date: v.date,
@@ -310,12 +358,12 @@ const BankStatementReport: React.FC<BankStatementReportProps> = ({
 
     // Bank Transfer (outgoing) - Credit
     (apiInternalTransfers as any[]).forEach((t) => {
-      const transferDate = new Date(t.date).toISOString().substring(0, 10);
+      const transferDate = normalizeDate(t.date);
       if (
         t.fromType === "bank" &&
         t.fromBankId === bankId &&
-        transferDate >= startDate &&
-        transferDate <= endDate
+        transferDate >= normalizedStartDate &&
+        transferDate <= normalizedEndDate
       ) {
         const toAccountName =
           t.toType === "safe" ? t.toSafe?.name : t.toBank?.name || "حساب";

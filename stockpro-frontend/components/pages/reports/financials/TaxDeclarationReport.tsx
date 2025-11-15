@@ -103,10 +103,9 @@ const TaxDeclarationReport: React.FC<TaxDeclarationReportProps> = ({
     branchesLoading ||
     paymentVouchersLoading;
   const currentYear = new Date().getFullYear();
+  const currentDate = new Date().toISOString().substring(0, 10);
   const [startDate, setStartDate] = useState(`${currentYear}-01-01`);
-  const [endDate, setEndDate] = useState(
-    new Date().toISOString().substring(0, 10),
-  );
+  const [endDate, setEndDate] = useState(currentDate);
   const [selectedBranch, setSelectedBranch] = useState("all");
   const [reportData, setReportData] = useState({
     salesSubtotal: 0,
@@ -123,10 +122,27 @@ const TaxDeclarationReport: React.FC<TaxDeclarationReportProps> = ({
   });
 
   const handleViewReport = useCallback(() => {
+    // Helper function to normalize dates to YYYY-MM-DD format
+    const normalizeDate = (date: any): string => {
+      if (!date) return "";
+      if (typeof date === "string") {
+        return date.substring(0, 10);
+      }
+      if (date instanceof Date) {
+        return date.toISOString().substring(0, 10);
+      }
+      return "";
+    };
+
+    const normalizedStartDate = normalizeDate(startDate);
+    const normalizedEndDate = normalizeDate(endDate);
+
     const filterByBranch = (inv: Invoice) =>
       selectedBranch === "all" || inv.branchName === selectedBranch;
-    const filterByDate = (inv: Invoice) =>
-      inv.date >= startDate && inv.date <= endDate;
+    const filterByDate = (inv: Invoice) => {
+      const invDate = normalizeDate(inv.date);
+      return invDate >= normalizedStartDate && invDate <= normalizedEndDate;
+    };
 
     const filteredSales = salesInvoices
       .filter(filterByDate)

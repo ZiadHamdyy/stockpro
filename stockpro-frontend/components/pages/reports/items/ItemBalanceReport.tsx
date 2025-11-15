@@ -187,10 +187,9 @@ const ItemBalanceReport: React.FC<ItemBalanceReportProps> = ({
   const [reportData, setReportData] = useState<any[]>([]);
   const [selectedBranch, setSelectedBranch] = useState("all");
   const currentYear = new Date().getFullYear();
+  const currentDate = new Date().toISOString().substring(0, 10);
   const [startDate, setStartDate] = useState(`${currentYear}-01-01`);
-  const [endDate, setEndDate] = useState(
-    new Date().toISOString().substring(0, 10),
-  );
+  const [endDate, setEndDate] = useState(currentDate);
 
   const handleViewReport = useCallback(() => {
     if (isLoading) return;

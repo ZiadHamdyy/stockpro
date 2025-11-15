@@ -79,10 +79,9 @@ const CustomerStatementReport: React.FC<CustomerStatementReportProps> = ({
   const isLoading =
     customersLoading || salesInvoicesLoading || salesReturnsLoading;
   const currentYear = new Date().getFullYear();
+  const currentDate = new Date().toISOString().substring(0, 10);
   const [startDate, setStartDate] = useState(`${currentYear}-01-01`);
-  const [endDate, setEndDate] = useState(
-    new Date().toISOString().substring(0, 10),
-  );
+  const [endDate, setEndDate] = useState(currentDate);
   const [customerSearchTerm, setCustomerSearchTerm] = useState("");
   const [selectedCustomerId, setSelectedCustomerId] = useState<string | null>(
     customers.length > 0 ? customers[0].id.toString() : null,
@@ -108,36 +107,61 @@ const CustomerStatementReport: React.FC<CustomerStatementReportProps> = ({
       return;
     }
 
+    // Helper function to normalize dates to YYYY-MM-DD format
+    const normalizeDate = (date: any): string => {
+      if (!date) return "";
+      if (typeof date === "string") {
+        return date.substring(0, 10);
+      }
+      if (date instanceof Date) {
+        return date.toISOString().substring(0, 10);
+      }
+      return "";
+    };
+
+    const normalizedStartDate = normalizeDate(startDate);
+    const normalizedEndDate = normalizeDate(endDate);
+
     const customerId = selectedCustomer.id;
     const customerIdStr = customerId.toString();
 
     const salesBefore = salesInvoices
       .filter(
-        (i) => i.customerOrSupplier?.id === customerIdStr && i.date < startDate,
+        (i) => {
+          const invDate = normalizeDate(i.date);
+          return i.customerOrSupplier?.id === customerIdStr && invDate < normalizedStartDate;
+        }
       )
       .reduce((sum, i) => sum + i.totals.net, 0);
 
     const returnsBefore = salesReturns
       .filter(
-        (i) => i.customerOrSupplier?.id === customerIdStr && i.date < startDate,
+        (i) => {
+          const invDate = normalizeDate(i.date);
+          return i.customerOrSupplier?.id === customerIdStr && invDate < normalizedStartDate;
+        }
       )
       .reduce((sum, i) => sum + i.totals.net, 0);
 
     const receiptsBefore = receiptVouchers
       .filter(
-        (v) =>
-          v.entity.type === "customer" &&
-          v.entity.id == customerId &&
-          v.date < startDate,
+        (v) => {
+          const vDate = normalizeDate(v.date);
+          return v.entity.type === "customer" &&
+            v.entity.id == customerId &&
+            vDate < normalizedStartDate;
+        }
       )
       .reduce((sum, v) => sum + v.amount, 0);
 
     const paymentsBefore = paymentVouchers // Refunds to customer
       .filter(
-        (v) =>
-          v.entity.type === "customer" &&
-          v.entity.id == customerId &&
-          v.date < startDate,
+        (v) => {
+          const vDate = normalizeDate(v.date);
+          return v.entity.type === "customer" &&
+            v.entity.id == customerId &&
+            vDate < normalizedStartDate;
+        }
       )
       .reduce((sum, v) => sum + v.amount, 0);
 
@@ -165,10 +189,11 @@ const CustomerStatementReport: React.FC<CustomerStatementReportProps> = ({
 
     // Sales Invoices → Debit
     salesInvoices.forEach((inv) => {
+      const invDate = normalizeDate(inv.date);
       if (
         inv.customerOrSupplier?.id === customerIdStr &&
-        inv.date >= startDate &&
-        inv.date <= endDate
+        invDate >= normalizedStartDate &&
+        invDate <= normalizedEndDate
       ) {
         transactions.push({
           date: inv.date,
@@ -183,10 +208,11 @@ const CustomerStatementReport: React.FC<CustomerStatementReportProps> = ({
     });
     // Sales Returns → Credit
     salesReturns.forEach((inv) => {
+      const invDate = normalizeDate(inv.date);
       if (
         inv.customerOrSupplier?.id === customerIdStr &&
-        inv.date >= startDate &&
-        inv.date <= endDate
+        invDate >= normalizedStartDate &&
+        invDate <= normalizedEndDate
       ) {
         transactions.push({
           date: inv.date,
@@ -201,11 +227,12 @@ const CustomerStatementReport: React.FC<CustomerStatementReportProps> = ({
     });
     // Receipt Vouchers → Credit
     receiptVouchers.forEach((v) => {
+      const vDate = normalizeDate(v.date);
       if (
         v.entity.type === "customer" &&
         v.entity.id == customerId &&
-        v.date >= startDate &&
-        v.date <= endDate
+        vDate >= normalizedStartDate &&
+        vDate <= normalizedEndDate
       ) {
         transactions.push({
           date: v.date,
@@ -220,11 +247,12 @@ const CustomerStatementReport: React.FC<CustomerStatementReportProps> = ({
     });
     // Payment Vouchers → Debit (refund to customer)
     paymentVouchers.forEach((v) => {
+      const vDate = normalizeDate(v.date);
       if (
         v.entity.type === "customer" &&
         v.entity.id == customerId &&
-        v.date >= startDate &&
-        v.date <= endDate
+        vDate >= normalizedStartDate &&
+        vDate <= normalizedEndDate
       ) {
         transactions.push({
           date: v.date,

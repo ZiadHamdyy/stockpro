@@ -79,10 +79,9 @@ const SupplierStatementReport: React.FC<SupplierStatementReportProps> = ({
   const isLoading =
     suppliersLoading || purchaseInvoicesLoading || purchaseReturnsLoading;
   const currentYear = new Date().getFullYear();
+  const currentDate = new Date().toISOString().substring(0, 10);
   const [startDate, setStartDate] = useState(`${currentYear}-01-01`);
-  const [endDate, setEndDate] = useState(
-    new Date().toISOString().substring(0, 10),
-  );
+  const [endDate, setEndDate] = useState(currentDate);
   const [supplierSearchTerm, setSupplierSearchTerm] = useState("");
   const [selectedSupplierId, setSelectedSupplierId] = useState<string | null>(
     suppliers.length > 0 ? suppliers[0].id.toString() : null,
@@ -107,33 +106,59 @@ const SupplierStatementReport: React.FC<SupplierStatementReportProps> = ({
       setOpeningBalance(0);
       return;
     }
+
+    // Helper function to normalize dates to YYYY-MM-DD format
+    const normalizeDate = (date: any): string => {
+      if (!date) return "";
+      if (typeof date === "string") {
+        return date.substring(0, 10);
+      }
+      if (date instanceof Date) {
+        return date.toISOString().substring(0, 10);
+      }
+      return "";
+    };
+
+    const normalizedStartDate = normalizeDate(startDate);
+    const normalizedEndDate = normalizeDate(endDate);
+
     const supplierId = selectedSupplier.id;
     const supplierIdStr = supplierId.toString();
 
     const purchasesBefore = purchaseInvoices
       .filter(
-        (i) => i.customerOrSupplier?.id === supplierIdStr && i.date < startDate,
+        (i) => {
+          const invDate = normalizeDate(i.date);
+          return i.customerOrSupplier?.id === supplierIdStr && invDate < normalizedStartDate;
+        }
       )
       .reduce((sum, i) => sum + i.totals.net, 0); // Credit
     const returnsBefore = purchaseReturns
       .filter(
-        (i) => i.customerOrSupplier?.id === supplierIdStr && i.date < startDate,
+        (i) => {
+          const invDate = normalizeDate(i.date);
+          return i.customerOrSupplier?.id === supplierIdStr && invDate < normalizedStartDate;
+        }
       )
       .reduce((sum, i) => sum + i.totals.net, 0); // Debit
     const paymentsBefore = paymentVouchers
       .filter(
-        (v) =>
-          v.entity.type === "supplier" &&
-          v.entity.id == supplierId &&
-          v.date < startDate,
+        (v) => {
+          const vDate = normalizeDate(v.date);
+          return v.entity.type === "supplier" &&
+            v.entity.id == supplierId &&
+            vDate < normalizedStartDate;
+        }
       )
       .reduce((sum, v) => sum + v.amount, 0); // Debit
     const receiptsBefore = receiptVouchers
       .filter(
-        (v) =>
-          v.entity.type === "supplier" &&
-          v.entity.id == supplierId &&
-          v.date < startDate,
+        (v) => {
+          const vDate = normalizeDate(v.date);
+          return v.entity.type === "supplier" &&
+            v.entity.id == supplierId &&
+            vDate < normalizedStartDate;
+        }
       )
       .reduce((sum, v) => sum + v.amount, 0); // Debit
 
@@ -157,10 +182,11 @@ const SupplierStatementReport: React.FC<SupplierStatementReportProps> = ({
 
     // Credit (Increases what we owe)
     purchaseInvoices.forEach((inv) => {
+      const invDate = normalizeDate(inv.date);
       if (
         inv.customerOrSupplier?.id === supplierIdStr &&
-        inv.date >= startDate &&
-        inv.date <= endDate
+        invDate >= normalizedStartDate &&
+        invDate <= normalizedEndDate
       ) {
         transactions.push({
           date: inv.date,
@@ -177,11 +203,12 @@ const SupplierStatementReport: React.FC<SupplierStatementReportProps> = ({
     // Debit (Decreases what we owe)
     receiptVouchers.forEach((v) => {
       // Receipt from supplier (refund)
+      const vDate = normalizeDate(v.date);
       if (
         v.entity.type === "supplier" &&
         v.entity.id == supplierId &&
-        v.date >= startDate &&
-        v.date <= endDate
+        vDate >= normalizedStartDate &&
+        vDate <= normalizedEndDate
       ) {
         transactions.push({
           date: v.date,
@@ -195,10 +222,11 @@ const SupplierStatementReport: React.FC<SupplierStatementReportProps> = ({
       }
     });
     purchaseReturns.forEach((inv) => {
+      const invDate = normalizeDate(inv.date);
       if (
         inv.customerOrSupplier?.id === supplierIdStr &&
-        inv.date >= startDate &&
-        inv.date <= endDate
+        invDate >= normalizedStartDate &&
+        invDate <= normalizedEndDate
       ) {
         transactions.push({
           date: inv.date,
@@ -212,11 +240,12 @@ const SupplierStatementReport: React.FC<SupplierStatementReportProps> = ({
       }
     });
     paymentVouchers.forEach((v) => {
+      const vDate = normalizeDate(v.date);
       if (
         v.entity.type === "supplier" &&
         v.entity.id == supplierId &&
-        v.date >= startDate &&
-        v.date <= endDate
+        vDate >= normalizedStartDate &&
+        vDate <= normalizedEndDate
       ) {
         transactions.push({
           date: v.date,

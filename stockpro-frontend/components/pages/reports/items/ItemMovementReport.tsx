@@ -191,10 +191,9 @@ const ItemMovementReport: React.FC<ItemMovementReportProps> = ({
     storeIssueVouchersLoading ||
     storeTransferVouchersLoading;
   const currentYear = new Date().getFullYear();
+  const currentDate = new Date().toISOString().substring(0, 10);
   const [startDate, setStartDate] = useState(`${currentYear}-01-01`);
-  const [endDate, setEndDate] = useState(
-    new Date().toISOString().substring(0, 10),
-  );
+  const [endDate, setEndDate] = useState(currentDate);
   const [selectedItemId, setSelectedItemId] = useState<string | null>(
     items.length > 0 ? items[0].id.toString() : null,
   );
@@ -223,11 +222,28 @@ const ItemMovementReport: React.FC<ItemMovementReportProps> = ({
       return;
     }
 
+    // Helper function to normalize dates to YYYY-MM-DD format
+    const normalizeDate = (date: any): string => {
+      if (!date) return "";
+      if (typeof date === "string") {
+        // Extract just the date part (first 10 characters)
+        return date.substring(0, 10);
+      }
+      if (date instanceof Date) {
+        return date.toISOString().substring(0, 10);
+      }
+      return "";
+    };
+
     const itemCode = selectedItem.code;
     const filterByBranch = (tx: any) =>
       selectedBranch === "all" ||
       tx.branch === selectedBranch ||
       tx.branchName === selectedBranch;
+
+    // Normalize filter dates
+    const normalizedStartDate = normalizeDate(startDate);
+    const normalizedEndDate = normalizeDate(endDate);
 
     // --- Correct Opening Balance Calculation ---
     let opening = selectedItem.stock;
@@ -243,7 +259,8 @@ const ItemMovementReport: React.FC<ItemMovementReportProps> = ({
           (isInvoice
             ? tx.branchName === selectedBranch
             : tx.branch === selectedBranch);
-        if (branchMatches && tx.date < startDate) {
+        const txDate = normalizeDate(tx.date);
+        if (branchMatches && txDate < normalizedStartDate) {
           tx.items.forEach((item: any) => {
             if (item.id === itemCode) {
               opening += item.qty * factor;
@@ -261,7 +278,8 @@ const ItemMovementReport: React.FC<ItemMovementReportProps> = ({
     adjustBalance(transformedStoreIssueVouchers, -1, false);
 
     transformedStoreTransferVouchers.forEach((v) => {
-      if (v.date < startDate) {
+      const vDate = normalizeDate(v.date);
+      if (vDate < normalizedStartDate) {
         const fromStore = stores.find((s) => s.name === v.fromStore);
         const toStore = stores.find((s) => s.name === v.toStore);
         v.items.forEach((i) => {
@@ -304,7 +322,8 @@ const ItemMovementReport: React.FC<ItemMovementReportProps> = ({
         (isInvoice
           ? tx.branchName === selectedBranch
           : tx.branch === selectedBranch);
-      if (branchMatches && tx.date >= startDate && tx.date <= endDate) {
+      const txDate = normalizeDate(tx.date);
+      if (branchMatches && txDate >= normalizedStartDate && txDate <= normalizedEndDate) {
         const branchName = isInvoice ? tx.branchName : tx.branch;
         // For sales/purchase invoices and returns, use 'code' field
         // For warehouse vouchers, use 'voucherNumber' field
@@ -383,7 +402,8 @@ const ItemMovementReport: React.FC<ItemMovementReportProps> = ({
     );
 
     transformedStoreTransferVouchers.forEach((v) => {
-      if (v.date >= startDate && v.date <= endDate) {
+      const vDate = normalizeDate(v.date);
+      if (vDate >= normalizedStartDate && vDate <= normalizedEndDate) {
         const fromStore = stores.find((s) => s.name === v.fromStore);
         const toStore = stores.find((s) => s.name === v.toStore);
         const displayCode = v.voucherNumber || v.id;

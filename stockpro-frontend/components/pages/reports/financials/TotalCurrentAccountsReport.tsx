@@ -34,8 +34,9 @@ const TotalCurrentAccountsReport: React.FC<TotalCurrentAccountsReportProps> = ({
 
   const isLoading = currentAccountsLoading;
   const currentYear = new Date().getFullYear();
+  const currentDate = new Date().toISOString().substring(0, 10);
   const [startDate, setStartDate] = useState(`${currentYear}-01-01`);
-  const [endDate, setEndDate] = useState(`${currentYear}-12-31`);
+  const [endDate, setEndDate] = useState(currentDate);
 
   // Calculate account balances from vouchers
   const accountsSummary = useMemo(() => {

@@ -44,8 +44,9 @@ const SafeStatementReport: React.FC<SafeStatementReportProps> = ({
 
   const isLoading = safesLoading;
   const currentYear = new Date().getFullYear();
+  const currentDate = new Date().toISOString().substring(0, 10);
   const [startDate, setStartDate] = useState(`${currentYear}-01-01`);
-  const [endDate, setEndDate] = useState(`${currentYear}-12-31`);
+  const [endDate, setEndDate] = useState(currentDate);
   const [selectedSafeId, setSelectedSafeId] = useState<string | null>(null);
 
   // Set initial selected safe when data loads
@@ -65,85 +66,115 @@ const SafeStatementReport: React.FC<SafeStatementReportProps> = ({
     if (!selectedSafe) return 0;
     const safeId = selectedSafe.id.toString();
     
+    // Helper function to normalize dates to YYYY-MM-DD format
+    const normalizeDate = (date: any): string => {
+      if (!date) return "";
+      if (typeof date === "string") {
+        return date.substring(0, 10);
+      }
+      if (date instanceof Date) {
+        return date.toISOString().substring(0, 10);
+      }
+      return "";
+    };
+
+    const normalizedStartDate = normalizeDate(startDate);
+
     // Receipt vouchers (incoming)
     const receiptsBefore = receiptVouchers
       .filter(
-        (v) =>
-          v.paymentMethod === "safe" &&
-          v.safeOrBankId === selectedSafe.id &&
-          v.date < startDate,
+        (v) => {
+          const vDate = normalizeDate(v.date);
+          return v.paymentMethod === "safe" &&
+            v.safeOrBankId === selectedSafe.id &&
+            vDate < normalizedStartDate;
+        }
       )
       .reduce((sum, v) => sum + v.amount, 0);
     
     // Payment vouchers (outgoing)
     const paymentsBefore = paymentVouchers
       .filter(
-        (v) =>
-          v.paymentMethod === "safe" &&
-          v.safeOrBankId === selectedSafe.id &&
-          v.date < startDate,
+        (v) => {
+          const vDate = normalizeDate(v.date);
+          return v.paymentMethod === "safe" &&
+            v.safeOrBankId === selectedSafe.id &&
+            vDate < normalizedStartDate;
+        }
       )
       .reduce((sum, v) => sum + v.amount, 0);
     
     // Sales invoices (cash payments to safe) - incoming
     const salesInvoicesBefore = (apiSalesInvoices as any[])
       .filter(
-        (inv) =>
-          inv.paymentMethod === "cash" &&
-          inv.paymentTargetType === "safe" &&
-          inv.paymentTargetId === safeId &&
-          new Date(inv.date).toISOString().substring(0, 10) < startDate,
+        (inv) => {
+          const invDate = normalizeDate(inv.date);
+          return inv.paymentMethod === "cash" &&
+            inv.paymentTargetType === "safe" &&
+            inv.paymentTargetId === safeId &&
+            invDate < normalizedStartDate;
+        }
       )
       .reduce((sum, inv) => sum + (inv.total || 0), 0);
     
     // Purchase invoices (cash payments from safe) - outgoing
     const purchaseInvoicesBefore = (apiPurchaseInvoices as any[])
       .filter(
-        (inv) =>
-          inv.paymentMethod === "cash" &&
-          inv.paymentTargetType === "safe" &&
-          inv.paymentTargetId === safeId &&
-          new Date(inv.date).toISOString().substring(0, 10) < startDate,
+        (inv) => {
+          const invDate = normalizeDate(inv.date);
+          return inv.paymentMethod === "cash" &&
+            inv.paymentTargetType === "safe" &&
+            inv.paymentTargetId === safeId &&
+            invDate < normalizedStartDate;
+        }
       )
       .reduce((sum, inv) => sum + (inv.total || 0), 0);
     
     // Sales returns (cash payments from safe) - outgoing
     const salesReturnsBefore = (apiSalesReturns as any[])
       .filter(
-        (ret) =>
-          ret.paymentMethod === "cash" &&
-          ret.paymentTargetType === "safe" &&
-          ret.paymentTargetId === safeId &&
-          new Date(ret.date).toISOString().substring(0, 10) < startDate,
+        (ret) => {
+          const retDate = normalizeDate(ret.date);
+          return ret.paymentMethod === "cash" &&
+            ret.paymentTargetType === "safe" &&
+            ret.paymentTargetId === safeId &&
+            retDate < normalizedStartDate;
+        }
       )
       .reduce((sum, ret) => sum + (ret.total || 0), 0);
     
     // Purchase returns (cash payments to safe) - incoming
     const purchaseReturnsBefore = (apiPurchaseReturns as any[])
       .filter(
-        (ret) =>
-          ret.paymentMethod === "cash" &&
-          ret.paymentTargetType === "safe" &&
-          ret.paymentTargetId === safeId &&
-          new Date(ret.date).toISOString().substring(0, 10) < startDate,
+        (ret) => {
+          const retDate = normalizeDate(ret.date);
+          return ret.paymentMethod === "cash" &&
+            ret.paymentTargetType === "safe" &&
+            ret.paymentTargetId === safeId &&
+            retDate < normalizedStartDate;
+        }
       )
       .reduce((sum, ret) => sum + (ret.total || 0), 0);
     
     // Internal transfers before startDate
     const outgoingBefore = (apiInternalTransfers as any[])
       .filter(
-        (t) =>
-          t.fromType === "safe" &&
-          t.fromSafeId === safeId &&
-          new Date(t.date).toISOString().substring(0, 10) < startDate,
+        (t) => {
+          const tDate = normalizeDate(t.date);
+          return t.fromType === "safe" &&
+            t.fromSafeId === safeId &&
+            tDate < normalizedStartDate;
+        }
       )
       .reduce((sum, t) => sum + t.amount, 0);
     const incomingBefore = (apiInternalTransfers as any[])
       .filter(
-        (t) =>
-          t.toType === "safe" &&
-          t.toSafeId === safeId &&
-          new Date(t.date).toISOString().substring(0, 10) < startDate,
+        (t) => {
+          const tDate = normalizeDate(t.date);
+          return t.toType === "safe" &&
+            t.toSafeId === safeId &&
+            tDate < normalizedStartDate;
+        }
       )
       .reduce((sum, t) => sum + t.amount, 0);
     
@@ -157,11 +188,26 @@ const SafeStatementReport: React.FC<SafeStatementReportProps> = ({
       - purchaseInvoicesBefore 
       - salesReturnsBefore 
       - outgoingBefore;
-  }, [selectedSafe, receiptVouchers, paymentVouchers, apiInternalTransfers, apiSalesInvoices, apiPurchaseInvoices, apiSalesReturns, apiPurchaseReturns, startDate]);
+  }, [selectedSafe, receiptVouchers, paymentVouchers, apiInternalTransfers, apiSalesInvoices, apiPurchaseInvoices, apiSalesReturns, apiPurchaseReturns, startDate, endDate]);
 
   const reportData = useMemo(() => {
     if (!selectedSafeId) return [];
     const safeId = selectedSafeId.toString();
+
+    // Helper function to normalize dates to YYYY-MM-DD format
+    const normalizeDate = (date: any): string => {
+      if (!date) return "";
+      if (typeof date === "string") {
+        return date.substring(0, 10);
+      }
+      if (date instanceof Date) {
+        return date.toISOString().substring(0, 10);
+      }
+      return "";
+    };
+
+    const normalizedStartDate = normalizeDate(startDate);
+    const normalizedEndDate = normalizeDate(endDate);
 
     const transactions: {
       date: string;
@@ -173,11 +219,12 @@ const SafeStatementReport: React.FC<SafeStatementReportProps> = ({
 
     // Receipt Vouchers (incoming) - Debit
     receiptVouchers.forEach((v: any) => {
+      const vDate = normalizeDate(v.date);
       if (
         v.paymentMethod === "safe" &&
         v.safeOrBankId?.toString() === safeId &&
-        v.date >= startDate &&
-        v.date <= endDate
+        vDate >= normalizedStartDate &&
+        vDate <= normalizedEndDate
       ) {
         transactions.push({
           date: v.date,
@@ -191,13 +238,13 @@ const SafeStatementReport: React.FC<SafeStatementReportProps> = ({
 
     // Sales Invoices (cash payments to safe) - Debit (incoming)
     (apiSalesInvoices as any[]).forEach((inv) => {
-      const invoiceDate = new Date(inv.date).toISOString().substring(0, 10);
+      const invoiceDate = normalizeDate(inv.date);
       if (
         inv.paymentMethod === "cash" &&
         inv.paymentTargetType === "safe" &&
         inv.paymentTargetId === safeId &&
-        invoiceDate >= startDate &&
-        invoiceDate <= endDate
+        invoiceDate >= normalizedStartDate &&
+        invoiceDate <= normalizedEndDate
       ) {
         transactions.push({
           date: invoiceDate,
@@ -211,13 +258,13 @@ const SafeStatementReport: React.FC<SafeStatementReportProps> = ({
 
     // Purchase Returns (cash payments to safe) - Debit (incoming)
     (apiPurchaseReturns as any[]).forEach((ret) => {
-      const returnDate = new Date(ret.date).toISOString().substring(0, 10);
+      const returnDate = normalizeDate(ret.date);
       if (
         ret.paymentMethod === "cash" &&
         ret.paymentTargetType === "safe" &&
         ret.paymentTargetId === safeId &&
-        returnDate >= startDate &&
-        returnDate <= endDate
+        returnDate >= normalizedStartDate &&
+        returnDate <= normalizedEndDate
       ) {
         transactions.push({
           date: returnDate,
@@ -231,12 +278,12 @@ const SafeStatementReport: React.FC<SafeStatementReportProps> = ({
 
     // Transfer to Cashier (incoming) - Debit
     (apiInternalTransfers as any[]).forEach((t) => {
-      const transferDate = new Date(t.date).toISOString().substring(0, 10);
+      const transferDate = normalizeDate(t.date);
       if (
         t.toType === "safe" &&
         t.toSafeId === safeId &&
-        transferDate >= startDate &&
-        transferDate <= endDate
+        transferDate >= normalizedStartDate &&
+        transferDate <= normalizedEndDate
       ) {
         const fromAccountName =
           t.fromType === "safe" ? t.fromSafe?.name : t.fromBank?.name || "حساب";
@@ -252,13 +299,13 @@ const SafeStatementReport: React.FC<SafeStatementReportProps> = ({
 
     // Purchase Invoices (cash payments from safe) - Credit (outgoing)
     (apiPurchaseInvoices as any[]).forEach((inv) => {
-      const invoiceDate = new Date(inv.date).toISOString().substring(0, 10);
+      const invoiceDate = normalizeDate(inv.date);
       if (
         inv.paymentMethod === "cash" &&
         inv.paymentTargetType === "safe" &&
         inv.paymentTargetId === safeId &&
-        invoiceDate >= startDate &&
-        invoiceDate <= endDate
+        invoiceDate >= normalizedStartDate &&
+        invoiceDate <= normalizedEndDate
       ) {
         transactions.push({
           date: invoiceDate,
@@ -272,13 +319,13 @@ const SafeStatementReport: React.FC<SafeStatementReportProps> = ({
 
     // Sales Returns (cash payments from safe) - Credit (outgoing)
     (apiSalesReturns as any[]).forEach((ret) => {
-      const returnDate = new Date(ret.date).toISOString().substring(0, 10);
+      const returnDate = normalizeDate(ret.date);
       if (
         ret.paymentMethod === "cash" &&
         ret.paymentTargetType === "safe" &&
         ret.paymentTargetId === safeId &&
-        returnDate >= startDate &&
-        returnDate <= endDate
+        returnDate >= normalizedStartDate &&
+        returnDate <= normalizedEndDate
       ) {
         transactions.push({
           date: returnDate,
@@ -292,11 +339,12 @@ const SafeStatementReport: React.FC<SafeStatementReportProps> = ({
 
     // Payment Vouchers (outgoing) - Credit
     paymentVouchers.forEach((v: any) => {
+      const vDate = normalizeDate(v.date);
       if (
         v.paymentMethod === "safe" &&
         v.safeOrBankId?.toString() === safeId &&
-        v.date >= startDate &&
-        v.date <= endDate
+        vDate >= normalizedStartDate &&
+        vDate <= normalizedEndDate
       ) {
         transactions.push({
           date: v.date,
@@ -310,12 +358,12 @@ const SafeStatementReport: React.FC<SafeStatementReportProps> = ({
 
     // Transfer from Cashier (outgoing) - Credit
     (apiInternalTransfers as any[]).forEach((t) => {
-      const transferDate = new Date(t.date).toISOString().substring(0, 10);
+      const transferDate = normalizeDate(t.date);
       if (
         t.fromType === "safe" &&
         t.fromSafeId === safeId &&
-        transferDate >= startDate &&
-        transferDate <= endDate
+        transferDate >= normalizedStartDate &&
+        transferDate <= normalizedEndDate
       ) {
         const toAccountName =
           t.toType === "safe" ? t.toSafe?.name : t.toBank?.name || "حساب";

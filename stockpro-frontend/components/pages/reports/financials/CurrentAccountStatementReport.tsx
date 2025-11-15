@@ -170,8 +170,9 @@ const CurrentAccountStatementReport: React.FC<
 
   const isLoading = currentAccountsLoading || branchesLoading || receiptVouchersLoading || paymentVouchersLoading;
   const currentYear = new Date().getFullYear();
+  const currentDate = getLocalDateString();
   const [startDate, setStartDate] = useState(`${currentYear}-01-01`);
-  const [endDate, setEndDate] = useState(getLocalDateString());
+  const [endDate, setEndDate] = useState(currentDate);
   const [selectedAccountId, setSelectedAccountId] = useState<string | null>(
     null,
   );

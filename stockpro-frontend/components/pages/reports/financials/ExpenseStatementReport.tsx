@@ -109,8 +109,9 @@ const ExpenseStatementReport: React.FC<ExpenseStatementReportProps> = ({
 
   const isLoading = expenseCodesLoading || vouchersLoading || branchesLoading;
   const currentYear = new Date().getFullYear();
+  const currentDate = getLocalDateString();
   const [startDate, setStartDate] = useState(`${currentYear}-01-01`);
-  const [endDate, setEndDate] = useState(getLocalDateString());
+  const [endDate, setEndDate] = useState(currentDate);
   const [selectedExpenseCodeId, setSelectedExpenseCodeId] = useState<
     string | null
   >(null);
