@@ -626,14 +626,6 @@ const SupplierStatementReport: React.FC<SupplierStatementReportProps> = ({
                             const page = item.link.page;
                             const id = item.ref;
                             
-                            console.log("=== Voucher Navigation Debug ===");
-                            console.log("Page:", page);
-                            console.log("ID:", id);
-                            console.log("ID type:", typeof id);
-                            console.log("Item:", item);
-                            console.log("Item.ref:", item.ref);
-                            console.log("Item.voucherCode:", item.voucherCode);
-                            
                             // For vouchers, always use window.location.href to force full page reload
                             // For invoices/returns, use onNavigate if available, otherwise navigate()
                             if (page === "receipt_voucher" || page === "payment_voucher") {
@@ -641,15 +633,12 @@ const SupplierStatementReport: React.FC<SupplierStatementReportProps> = ({
                                 const url = page === "receipt_voucher" 
                                   ? `/financials/receipt-voucher?voucherId=${encodeURIComponent(id)}`
                                   : `/financials/payment-voucher?voucherId=${encodeURIComponent(id)}`;
-                                console.log(`Navigating to ${page} URL:`, url);
-                                console.log("Encoded ID:", encodeURIComponent(id));
                                 // Use window.location to ensure URL updates and full page reload
                                 window.location.href = url;
                               } else {
                                 console.error("Voucher ID is missing:", item);
                               }
                             } else if (onNavigate && typeof onNavigate === "function") {
-                              console.log("Using onNavigate prop for:", page);
                               onNavigate(
                                 page,
                                 `${item.link.label} #${id}`,
