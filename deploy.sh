@@ -179,8 +179,8 @@ configure_nginx() {
 run_migrations() {
     print_info "Running database migrations..."
     
-    # Use db push instead of migrate deploy for simplicity
-    docker exec stockpro-backend-prod pnpm prisma db push --force-reset || true
+    # Use migrate deploy to apply migrations without resetting the database
+    docker exec stockpro-backend-prod pnpm prisma migrate deploy || true
     
     print_success "Database migrations completed"
 }
