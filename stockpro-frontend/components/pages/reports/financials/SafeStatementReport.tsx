@@ -618,14 +618,6 @@ const SafeStatementReport: React.FC<SafeStatementReportProps> = ({
                             const page = item.link.page;
                             const id = item.refId;
                             
-                            console.log("=== SafeStatementReport Navigation Debug ===");
-                            console.log("Page:", page);
-                            console.log("ID:", id);
-                            console.log("ID type:", typeof id);
-                            console.log("Item:", item);
-                            console.log("Item.ref:", item.ref);
-                            console.log("Item.refId:", item.refId);
-                            
                             // Use window.location.href for all navigation to force full page reload
                             // This ensures components properly initialize with query parameters
                             if (page === "receipt_voucher" || page === "payment_voucher") {
@@ -633,39 +625,25 @@ const SafeStatementReport: React.FC<SafeStatementReportProps> = ({
                                 const url = page === "receipt_voucher" 
                                   ? `/financials/receipt-voucher?voucherId=${encodeURIComponent(id)}`
                                   : `/financials/payment-voucher?voucherId=${encodeURIComponent(id)}`;
-                                console.log(`Navigating to ${page} URL:`, url);
-                                console.log("Encoded ID:", encodeURIComponent(id));
                                 window.location.href = url;
                               } else {
                                 console.error("Voucher ID is missing:", item);
                               }
                             } else if (page === "sales_invoice" && id) {
                               const url = `/sales/invoice?invoiceId=${encodeURIComponent(id)}`;
-                              console.log("Navigating to sales_invoice URL:", url);
-                              console.log("Encoded ID:", encodeURIComponent(id));
                               window.location.href = url;
                             } else if (page === "sales_return" && id) {
                               const url = `/sales/return?returnId=${encodeURIComponent(id)}`;
-                              console.log("Navigating to sales_return URL:", url);
-                              console.log("Encoded ID:", encodeURIComponent(id));
                               window.location.href = url;
                             } else if (page === "purchase_invoice" && id) {
                               const url = `/purchases/invoice?invoiceId=${encodeURIComponent(id)}`;
-                              console.log("Navigating to purchase_invoice URL:", url);
-                              console.log("Encoded ID:", encodeURIComponent(id));
                               window.location.href = url;
                             } else if (page === "purchase_return" && id) {
                               const url = `/purchases/return?returnId=${encodeURIComponent(id)}`;
-                              console.log("Navigating to purchase_return URL:", url);
-                              console.log("Encoded ID:", encodeURIComponent(id));
                               window.location.href = url;
                             } else if (page === "internal_transfer" && id) {
                               const url = `/financials/internal-transfers?transferId=${encodeURIComponent(id)}`;
-                              console.log("Navigating to internal_transfer URL:", url);
-                              console.log("Encoded ID:", encodeURIComponent(id));
                               window.location.href = url;
-                            } else {
-                              console.warn("No navigation handler for page:", page, "with ID:", id);
                             }
                           }}
                           className="text-brand-blue hover:underline font-semibold no-print cursor-pointer"

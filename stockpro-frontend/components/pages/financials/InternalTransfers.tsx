@@ -53,18 +53,9 @@ const InternalTransfers: React.FC<InternalTransfersProps> = ({ title }) => {
   // Handle transferId from URL query params
   useEffect(() => {
     const transferId = searchParams.get("transferId");
-    console.log("=== InternalTransfers Component Debug ===");
-    console.log("transferId from URL:", transferId);
-    console.log("transferId type:", typeof transferId);
-    console.log("vouchers.length:", vouchers.length);
-    console.log("isLoading:", isLoading);
-    console.log("currentIndex:", currentIndex);
-    
     if (transferId) {
       // Wait for vouchers to load before processing
       if (vouchers.length > 0 && !isLoading) {
-        console.log("Vouchers loaded, searching for transfer...");
-        console.log("Available transfer IDs:", vouchers.map(v => ({ id: v.id, idType: typeof v.id, code: v.code, codeType: typeof v.code })));
         // Use flexible comparison to handle both string and number IDs
         const index = vouchers.findIndex(
           (v) => 
@@ -73,10 +64,8 @@ const InternalTransfers: React.FC<InternalTransfersProps> = ({ title }) => {
             String(v.code) === String(transferId) || 
             v.code === transferId
         );
-        console.log("Found index:", index);
         if (index !== -1) {
           if (index !== currentIndex) {
-            console.log("Setting currentIndex to:", index);
             setCurrentIndex(index);
             setHasInitialized(true);
           }
@@ -87,8 +76,6 @@ const InternalTransfers: React.FC<InternalTransfersProps> = ({ title }) => {
           console.warn(`Transfer with ID/code "${transferId}" not found. Available transfers:`, vouchers.map(v => ({ id: v.id, code: v.code })));
           setHasInitialized(true);
         }
-      } else {
-        console.log("Waiting for vouchers to load...");
       }
       // If vouchers haven't loaded yet, wait - don't initialize with "new"
       // Set hasInitialized to true to prevent "new" initialization while waiting

@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import type { CompanyInfo, Bank, User, Voucher } from "../../../../types";
 import { ExcelIcon, PdfIcon, PrintIcon, SearchIcon } from "../../../icons";
 import InvoiceHeader from "../../../common/InvoiceHeader";
@@ -25,6 +26,7 @@ const BankStatementReport: React.FC<BankStatementReportProps> = ({
   paymentVouchers,
   currentUser,
 }) => {
+  const navigate = useNavigate();
   // API hooks
   const { data: apiBanks = [], isLoading: banksLoading } =
     useGetBanksQuery(undefined);
@@ -213,8 +215,10 @@ const BankStatementReport: React.FC<BankStatementReportProps> = ({
       date: string;
       description: string;
       ref: string;
+      refId: string;
       debit: number;
       credit: number;
+      link: { page: string; label: string } | null;
     }[] = [];
 
     // Receipt Vouchers (incoming) - Debit
@@ -230,8 +234,10 @@ const BankStatementReport: React.FC<BankStatementReportProps> = ({
           date: v.date,
           description: `سند قبض من ${v.entity.name}`,
           ref: v.code || v.id,
+          refId: v.id,
           debit: v.amount,
           credit: 0,
+          link: { page: "receipt_voucher", label: "سند قبض" },
         });
       }
     });
@@ -250,8 +256,10 @@ const BankStatementReport: React.FC<BankStatementReportProps> = ({
           date: invoiceDate,
           description: `فاتورة مبيعات - ${inv.customerOrSupplier?.name || "عميل"}`,
           ref: inv.code || inv.id,
+          refId: inv.id,
           debit: inv.total || 0,
           credit: 0,
+          link: { page: "sales_invoice", label: "فاتورة مبيعات" },
         });
       }
     });
@@ -270,8 +278,10 @@ const BankStatementReport: React.FC<BankStatementReportProps> = ({
           date: returnDate,
           description: `مرتجع مشتريات - ${ret.customerOrSupplier?.name || "مورد"}`,
           ref: ret.code || ret.id,
+          refId: ret.id,
           debit: ret.total || 0,
           credit: 0,
+          link: { page: "purchase_return", label: "مرتجع مشتريات" },
         });
       }
     });
@@ -291,8 +301,10 @@ const BankStatementReport: React.FC<BankStatementReportProps> = ({
           date: transferDate,
           description: `تحويل إلى البنك من ${fromAccountName}`,
           ref: t.code,
+          refId: t.id,
           debit: t.amount,
           credit: 0,
+          link: { page: "internal_transfer", label: "تحويل داخلي" },
         });
       }
     });
@@ -311,8 +323,10 @@ const BankStatementReport: React.FC<BankStatementReportProps> = ({
           date: invoiceDate,
           description: `فاتورة مشتريات - ${inv.customerOrSupplier?.name || "مورد"}`,
           ref: inv.code || inv.id,
+          refId: inv.id,
           debit: 0,
           credit: inv.total || 0,
+          link: { page: "purchase_invoice", label: "فاتورة مشتريات" },
         });
       }
     });
@@ -331,8 +345,10 @@ const BankStatementReport: React.FC<BankStatementReportProps> = ({
           date: returnDate,
           description: `مرتجع مبيعات - ${ret.customerOrSupplier?.name || "عميل"}`,
           ref: ret.code || ret.id,
+          refId: ret.id,
           debit: 0,
           credit: ret.total || 0,
+          link: { page: "sales_return", label: "مرتجع مبيعات" },
         });
       }
     });
@@ -350,8 +366,10 @@ const BankStatementReport: React.FC<BankStatementReportProps> = ({
           date: v.date,
           description: `سند صرف إلى ${v.entity.name}`,
           ref: v.code || v.id,
+          refId: v.id,
           debit: 0,
           credit: v.amount,
+          link: { page: "payment_voucher", label: "سند صرف" },
         });
       }
     });
@@ -371,8 +389,10 @@ const BankStatementReport: React.FC<BankStatementReportProps> = ({
           date: transferDate,
           description: `تحويل من البنك إلى ${toAccountName}`,
           ref: t.code,
+          refId: t.id,
           debit: 0,
           credit: t.amount,
+          link: { page: "internal_transfer", label: "تحويل داخلي" },
         });
       }
     });
@@ -586,7 +606,56 @@ const BankStatementReport: React.FC<BankStatementReportProps> = ({
                   <td className="px-6 py-4 font-medium text-brand-dark">
                     {item.description}
                   </td>
-                  <td className="px-6 py-4">{item.ref}</td>
+                  <td className="px-6 py-4 font-medium text-brand-dark">
+                    {item.link ? (
+                      <>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            const page = item.link.page;
+                            const id = item.refId;
+                            
+                            // Use window.location.href for all navigation to force full page reload
+                            // This ensures components properly initialize with query parameters
+                            if (page === "receipt_voucher" || page === "payment_voucher") {
+                              if (id) {
+                                const url = page === "receipt_voucher" 
+                                  ? `/financials/receipt-voucher?voucherId=${encodeURIComponent(id)}`
+                                  : `/financials/payment-voucher?voucherId=${encodeURIComponent(id)}`;
+                                window.location.href = url;
+                              } else {
+                                console.error("Voucher ID is missing:", item);
+                              }
+                            } else if (page === "sales_invoice" && id) {
+                              const url = `/sales/invoice?invoiceId=${encodeURIComponent(id)}`;
+                              window.location.href = url;
+                            } else if (page === "sales_return" && id) {
+                              const url = `/sales/return?returnId=${encodeURIComponent(id)}`;
+                              window.location.href = url;
+                            } else if (page === "purchase_invoice" && id) {
+                              const url = `/purchases/invoice?invoiceId=${encodeURIComponent(id)}`;
+                              window.location.href = url;
+                            } else if (page === "purchase_return" && id) {
+                              const url = `/purchases/return?returnId=${encodeURIComponent(id)}`;
+                              window.location.href = url;
+                            } else if (page === "internal_transfer" && id) {
+                              const url = `/financials/internal-transfers?transferId=${encodeURIComponent(id)}`;
+                              window.location.href = url;
+                            }
+                          }}
+                          className="text-brand-blue hover:underline font-semibold no-print cursor-pointer"
+                          title={`فتح ${item.link.label}`}
+                        >
+                          {item.ref}
+                        </button>
+                        <span className="print:inline hidden">{item.ref}</span>
+                      </>
+                    ) : (
+                      item.ref
+                    )}
+                  </td>
                   <td className={`px-6 py-4 text-green-600 ${getNegativeNumberClass(item.debit)}`}>
                     {formatNumber(item.debit)}
                   </td>
