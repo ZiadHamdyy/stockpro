@@ -48,10 +48,23 @@ export function showApiErrorToast(error: unknown) {
   const effectiveCode = code || deriveCodeFromMessage(message) || "";
   let text = CODE_MESSAGES[effectiveCode];
   if (!text) {
-    if (err.status === 409) text = message || "لا يمكن إتمام العملية لوجود تعارض.";
-    else if (err.status === 422) text = "بعض البيانات غير صحيحة.";
-    else if (err.status === 404) text = "العنصر المطلوب غير موجود.";
-    else text = message || "حدث خطأ أثناء العملية.";
+    if (err.status === 409) {
+      text = "لا يمكن إتمام العملية لوجود تعارض.";
+    } else if (err.status === 422) {
+      text = "بعض البيانات غير صحيحة.";
+    } else if (err.status === 404) {
+      text = "العنصر المطلوب غير موجود.";
+    } else if (err.status === 403) {
+      text = "غير مصرح لك بهذا الإجراء.";
+    } else if (err.status === 401) {
+      text = "غير مصرح لك. يرجى تسجيل الدخول مرة أخرى.";
+    } else if (err.status === 400) {
+      text = "البيانات المدخلة غير صحيحة.";
+    } else if (err.status >= 500) {
+      text = "خطأ في الخادم، يرجى المحاولة لاحقاً.";
+    } else {
+      text = "حدث خطأ أثناء العملية.";
+    }
   }
   showToastExternal(text, 'error');
 }

@@ -215,7 +215,7 @@ const StoresData: React.FC<StoresDataProps> = ({ title }) => {
             <tbody className="bg-white divide-y divide-gray-200">
               {filteredStores.map((store) => (
                 <tr key={store.id} className="hover:bg-brand-blue-bg">
-                  <td className="px-6 py-4 whitespace-nowrap">{store.id}</td>
+                  <td className="px-6 py-4 whitespace-nowrap">{store.code}</td>
                   <td className="px-6 py-4 whitespace-nowrap font-medium text-brand-dark">
                     {store.name}
                   </td>

@@ -243,7 +243,7 @@ const AddItem: React.FC<AddItemProps> = ({ title, editingId, onNavigate }) => {
         navigate("/items/list");
       }
     } catch (error: any) {
-      showToast(error?.data?.message || "حدث خطأ أثناء حفظ الصنف", 'error');
+      showToast("حدث خطأ أثناء حفظ الصنف", 'error');
     }
   };
 

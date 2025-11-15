@@ -464,8 +464,7 @@ const StoreIssueVoucher: React.FC<StoreIssueVoucherProps> = ({ title }) => {
           id: voucherId,
           data: voucherData,
         }).unwrap().catch((error: any) => {
-          const errorMessage = error?.data?.message || error?.message || 'حدث خطأ أثناء التحديث';
-          showToast(errorMessage, 'error');
+          showToast('حدث خطأ أثناء التحديث', 'error');
           throw error;
         });
         
@@ -491,8 +490,7 @@ const StoreIssueVoucher: React.FC<StoreIssueVoucherProps> = ({ title }) => {
       } else {
         // Create new voucher
         const newVoucher = await createVoucher(voucherData).unwrap().catch((error: any) => {
-          const errorMessage = error?.data?.message || error?.message || 'حدث خطأ أثناء الحفظ';
-          showToast(errorMessage, 'error');
+          showToast('حدث خطأ أثناء الحفظ', 'error');
           throw error;
         });
         

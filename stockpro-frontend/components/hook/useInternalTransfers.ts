@@ -63,7 +63,10 @@ export const useInternalTransfers = () => {
 
   // Sync transfer data when currentIndex changes
   useEffect(() => {
-    if (currentIndex >= 0 && vouchers[currentIndex]) {
+    // Wait for vouchers to load before syncing
+    if (isLoadingVouchers) return;
+    
+    if (currentIndex >= 0 && vouchers.length > 0 && vouchers[currentIndex]) {
       const v = vouchers[currentIndex];
       setTransferData({
         number: v.code,
@@ -163,18 +166,13 @@ export const useInternalTransfers = () => {
     } catch (error: any) {
       // Handle insufficient balance error (409 Conflict)
       if (error?.status === 409 || error?.data?.statusCode === 409) {
-        const errorMessage =
-          error?.data?.message ||
-          "الرصيد غير كافي في الحساب المرسل";
-        showToast(errorMessage, "error");
+        showToast("الرصيد غير كافي في الحساب المرسل", "error");
         console.error("Insufficient balance error:", error);
         return null;
       }
       
       // Handle other errors
-      const errorMessage =
-        error?.data?.message || "حدث خطأ أثناء حفظ السند";
-      showToast(errorMessage, "error");
+      showToast("حدث خطأ أثناء حفظ السند", "error");
       console.error("Error saving internal transfer:", error);
       return null;
     }

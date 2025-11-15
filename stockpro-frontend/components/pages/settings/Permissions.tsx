@@ -208,16 +208,10 @@ const Permissions: React.FC<{ title: string }> = ({ title }) => {
         return;
       }
       if (status === 409) {
-        // Extract error message from response
-        const errorMessage =
-          err?.data?.message ||
-          err?.message ||
-          "لا يمكن إنشاء دور باسم مدير";
-        showToast(errorMessage, 'error');
+        showToast("لا يمكن إنشاء دور باسم مدير", 'error');
         return;
       }
-      const message = err instanceof Error ? err.message : "فشل إنشاء الدور";
-      showToast(`خطأ: ${message}`, 'error');
+      showToast("فشل إنشاء الدور", 'error');
     }
   };
 
@@ -300,20 +294,14 @@ const Permissions: React.FC<{ title: string }> = ({ title }) => {
             return;
           }
           if (status === 409) {
-            // Extract error message from response
-            const errorMessage =
-              err?.data?.message ||
-              err?.message ||
-              "لا يمكن حذف الدور لوجود مستخدمين مرتبطين به";
-            showToast(errorMessage, 'error');
+            showToast("لا يمكن حذف الدور لوجود مستخدمين مرتبطين به", 'error');
             return;
           }
           if (status === 400) {
             showToast("لا يمكن حذف الأدوار النظامية", 'error');
             return;
           }
-          const message = err instanceof Error ? err.message : "فشل حذف الدور";
-          showToast(`خطأ: ${message}`, 'error');
+          showToast("فشل حذف الدور", 'error');
         }
       },
       type: "delete",

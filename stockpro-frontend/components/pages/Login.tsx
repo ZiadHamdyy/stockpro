@@ -68,9 +68,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
       onLogin(email, password, (result as any)?.data?.user);
     } catch (error: any) {
       console.error("Login error:", error);
-      setError(
-        error?.data?.message || error?.message || "حدث خطأ أثناء تسجيل الدخول",
-      );
+      setError("حدث خطأ أثناء تسجيل الدخول");
     }
   };
 

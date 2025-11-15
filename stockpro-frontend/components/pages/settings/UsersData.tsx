@@ -97,11 +97,7 @@ const UsersData: React.FC<UsersDataProps> = ({ title }) => {
       );
     } catch (error: any) {
       console.error("Error toggling user status:", error);
-      showToast(
-        error?.data?.message ||
-          "حدث خطأ أثناء تحديث حالة المستخدم",
-        'error',
-      );
+      showToast("حدث خطأ أثناء تحديث حالة المستخدم", 'error');
     }
   };
 
@@ -260,7 +256,7 @@ const UsersData: React.FC<UsersDataProps> = ({ title }) => {
               <tbody className="bg-white divide-y divide-gray-200">
                 {filteredUsers.map((user) => (
                   <tr key={user.id} className="hover:bg-brand-blue-bg">
-                    <td className="px-6 py-4 whitespace-nowrap">{user?.id}</td>
+                    <td className="px-6 py-4 whitespace-nowrap">{user?.code}</td>
                     <td className="px-6 py-4 whitespace-nowrap font-medium text-brand-dark">
                       {user.name || ""}
                     </td>

@@ -1,4 +1,5 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import { PrintIcon } from "../../icons";
 import { tafqeet } from "../../../utils/tafqeet";
 import InvoiceHeader from "../../common/InvoiceHeader";
@@ -21,6 +22,7 @@ interface InternalTransfersProps {
 const InternalTransfers: React.FC<InternalTransfersProps> = ({ title }) => {
   const { data: companyInfo } = useGetCompanyQuery();
   const { User } = useAuth();
+  const [searchParams, setSearchParams] = useSearchParams();
   
   const {
     vouchers,
@@ -40,11 +42,68 @@ const InternalTransfers: React.FC<InternalTransfersProps> = ({ title }) => {
     isCreating,
     isUpdating,
     isDeleting,
+    setCurrentIndex,
   } = useInternalTransfers();
 
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [isSearchModalOpen, setIsSearchModalOpen] = useState(false);
   const [shouldResetOnClose, setShouldResetOnClose] = useState(false);
+  const [hasInitialized, setHasInitialized] = useState(false);
+
+  // Handle transferId from URL query params
+  useEffect(() => {
+    const transferId = searchParams.get("transferId");
+    console.log("=== InternalTransfers Component Debug ===");
+    console.log("transferId from URL:", transferId);
+    console.log("transferId type:", typeof transferId);
+    console.log("vouchers.length:", vouchers.length);
+    console.log("isLoading:", isLoading);
+    console.log("currentIndex:", currentIndex);
+    
+    if (transferId) {
+      // Wait for vouchers to load before processing
+      if (vouchers.length > 0 && !isLoading) {
+        console.log("Vouchers loaded, searching for transfer...");
+        console.log("Available transfer IDs:", vouchers.map(v => ({ id: v.id, idType: typeof v.id, code: v.code, codeType: typeof v.code })));
+        // Use flexible comparison to handle both string and number IDs
+        const index = vouchers.findIndex(
+          (v) => 
+            String(v.id) === String(transferId) || 
+            v.id === transferId ||
+            String(v.code) === String(transferId) || 
+            v.code === transferId
+        );
+        console.log("Found index:", index);
+        if (index !== -1) {
+          if (index !== currentIndex) {
+            console.log("Setting currentIndex to:", index);
+            setCurrentIndex(index);
+            setHasInitialized(true);
+          }
+          // Remove the query param after setting the index
+          searchParams.delete("transferId");
+          setSearchParams(searchParams, { replace: true });
+        } else {
+          console.warn(`Transfer with ID/code "${transferId}" not found. Available transfers:`, vouchers.map(v => ({ id: v.id, code: v.code })));
+          setHasInitialized(true);
+        }
+      } else {
+        console.log("Waiting for vouchers to load...");
+      }
+      // If vouchers haven't loaded yet, wait - don't initialize with "new"
+      // Set hasInitialized to true to prevent "new" initialization while waiting
+      if (!hasInitialized && vouchers.length === 0) {
+        setHasInitialized(true);
+      }
+      return;
+    }
+    
+    // Only initialize with new transfer if no transferId in URL and not already initialized
+    if (!hasInitialized && !isLoading && vouchers.length >= 0 && currentIndex === -1) {
+      handleNew();
+      setHasInitialized(true);
+    }
+  }, [vouchers, isLoading, searchParams, setSearchParams, currentIndex, setCurrentIndex, hasInitialized, handleNew]);
   const [previewVoucherData, setPreviewVoucherData] = useState<{
     number: string;
     date: string;

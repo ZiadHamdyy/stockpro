@@ -323,8 +323,7 @@ export const usePermissions = () => {
       showToast("تم حفظ الصلاحيات بنجاح");
     } catch (err) {
       console.error("Error saving permissions:", err);
-      const errorMessage =
-        err instanceof Error ? err.message : "حدث خطأ أثناء حفظ الصلاحيات";
+      const errorMessage = "حدث خطأ أثناء حفظ الصلاحيات";
       setError(errorMessage);
       showToast(`خطأ: ${errorMessage}`, 'error');
     } finally {
