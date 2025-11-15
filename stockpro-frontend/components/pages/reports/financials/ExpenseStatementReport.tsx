@@ -411,15 +411,15 @@ const ExpenseStatementReport: React.FC<ExpenseStatementReportProps> = ({
                 </tr>
               ))}
             </tbody>
-            <tfoot className="bg-brand-blue">
+            <tfoot className="bg-brand-blue text-white">
               <tr className="font-bold text-white">
-                <td colSpan={4} className="px-6 py-3 text-right">
+                <td colSpan={4} className="px-6 py-3 text-right text-white">
                   الإجمالي
                 </td>
-                <td className={`px-6 py-3 text-right ${getNegativeNumberClass(totalAmount)}`}>
+                <td className={`px-6 py-3 text-right text-white ${getNegativeNumberClass(totalAmount)}`}>
                   {formatNumber(totalAmount)}
                 </td>
-                <td className={`px-6 py-3 text-right ${getNegativeNumberClass(totalAmount)}`}>
+                <td className={`px-6 py-3 text-right text-white ${getNegativeNumberClass(totalAmount)}`}>
                   {formatNumber(totalAmount)}
                 </td>
               </tr>

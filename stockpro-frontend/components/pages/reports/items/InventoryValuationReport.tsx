@@ -478,10 +478,10 @@ const InventoryValuationReport: React.FC<InventoryValuationReportProps> = ({
             </tbody>
             <tfoot className="bg-brand-blue text-white">
               <tr className="font-bold">
-                <td colSpan={5} className="px-6 py-3 text-right">
+                <td colSpan={5} className="px-6 py-3 text-right text-white">
                   إجمالي قيمة المخزون
                 </td>
-                <td className={`px-6 py-3 text-right ${getNegativeNumberClass(totalValue)}`}>
+                <td className={`px-6 py-3 text-right text-white ${getNegativeNumberClass(totalValue)}`}>
                   {formatNumber(totalValue)}
                 </td>
               </tr>

@@ -12,6 +12,7 @@ interface UserState {
 
 export interface User {
   id: string;
+  code?: string;
   name: string;
   email: string;
   image?: string;

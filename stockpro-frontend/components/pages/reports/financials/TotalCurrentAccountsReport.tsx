@@ -284,19 +284,19 @@ const TotalCurrentAccountsReport: React.FC<TotalCurrentAccountsReportProps> = ({
             </tbody>
             <tfoot className="bg-brand-blue text-white">
               <tr className="font-bold">
-                <td colSpan={2} className="px-6 py-3 text-right">
+                <td colSpan={2} className="px-6 py-3 text-right text-white">
                   الإجمالي
                 </td>
-                <td className={`px-6 py-3 text-right ${getNegativeNumberClass(totals.opening)}`}>
+                <td className={`px-6 py-3 text-right text-white ${getNegativeNumberClass(totals.opening)}`}>
                   {formatNumber(totals.opening)}
                 </td>
-                <td className={`px-6 py-3 text-right ${getNegativeNumberClass(totals.debit)}`}>
+                <td className={`px-6 py-3 text-right text-white ${getNegativeNumberClass(totals.debit)}`}>
                   {formatNumber(totals.debit)}
                 </td>
-                <td className={`px-6 py-3 text-right ${getNegativeNumberClass(totals.credit)}`}>
+                <td className={`px-6 py-3 text-right text-white ${getNegativeNumberClass(totals.credit)}`}>
                   {formatNumber(totals.credit)}
                 </td>
-                <td className={`px-6 py-3 text-right ${getNegativeNumberClass(totals.balance)}`}>
+                <td className={`px-6 py-3 text-right text-white ${getNegativeNumberClass(totals.balance)}`}>
                   {formatNumber(totals.balance)}
                 </td>
               </tr>

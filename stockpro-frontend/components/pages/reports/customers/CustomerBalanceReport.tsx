@@ -327,6 +327,9 @@ const CustomerBalanceReport: React.FC<CustomerBalanceReportProps> = ({
                   اسم العميل
                 </th>
                 <th className="px-6 py-3 text-right text-sm font-semibold text-white uppercase">
+                  رصيد أول المدة
+                </th>
+                <th className="px-6 py-3 text-right text-sm font-semibold text-white uppercase">
                   إجمالي مدين
                 </th>
                 <th className="px-6 py-3 text-right text-sm font-semibold text-white uppercase">
@@ -344,6 +347,9 @@ const CustomerBalanceReport: React.FC<CustomerBalanceReportProps> = ({
                   <td className="px-6 py-4 font-medium text-brand-dark w-64">
                     {item.name}
                   </td>
+                  <td className={`px-6 py-4 ${getNegativeNumberClass(item.opening)}`}>
+                    {formatNumber(item.opening)}
+                  </td>
                   <td className="px-6 py-4 text-green-600">
                     {formatNumber(item.debit)}
                   </td>
@@ -358,16 +364,19 @@ const CustomerBalanceReport: React.FC<CustomerBalanceReportProps> = ({
             </tbody>
             <tfoot className="bg-brand-blue text-white">
               <tr className="font-bold">
-                <td colSpan={2} className="px-6 py-3 text-right">
+                <td colSpan={2} className="px-6 py-3 text-right text-white">
                   الإجمالي
                 </td>
-                <td className="px-6 py-3 text-right text-green-600">
+                <td className={`px-6 py-3 text-right text-white ${getNegativeNumberClass(totals.opening)}`}>
+                  {formatNumber(totals.opening)}
+                </td>
+                <td className="px-6 py-3 text-right text-white">
                   {formatNumber(totals.debit)}
                 </td>
-                <td className="px-6 py-3 text-right text-red-600">
+                <td className="px-6 py-3 text-right text-white">
                   {formatNumber(totals.credit)}
                 </td>
-                <td className={`px-6 py-3 text-right ${getNegativeNumberClass(totals.balance)}`}>
+                <td className={`px-6 py-3 text-right text-white ${getNegativeNumberClass(totals.balance)}`}>
                   {formatNumber(totals.balance)}
                 </td>
               </tr>

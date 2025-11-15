@@ -368,15 +368,15 @@ const DailyPaymentsReport: React.FC<DailyPaymentsReportProps> = ({
                 </tr>
               ))}
             </tbody>
-            <tfoot className="bg-brand-blue">
+            <tfoot className="bg-brand-blue text-white">
               <tr className="font-bold text-white">
-                <td colSpan={6} className="px-6 py-3 text-right">
+                <td colSpan={6} className="px-6 py-3 text-right text-white">
                   الإجمالي
                 </td>
-                <td className={`px-6 py-3 text-right ${getNegativeNumberClass(totals.amount)}`}>
+                <td className={`px-6 py-3 text-right text-white ${getNegativeNumberClass(totals.amount)}`}>
                   {formatNumber(totals.amount)}
                 </td>
-                <td></td>
+                <td className="text-white"></td>
               </tr>
             </tfoot>
           </table>

@@ -419,18 +419,18 @@ const TotalExpensesReport: React.FC<TotalExpensesReportProps> = ({
             </tbody>
             <tfoot className="bg-brand-blue text-white">
               <tr className="font-bold">
-                <td className="px-4 py-3 text-right sticky right-0 bg-brand-blue z-10">
+                <td className="px-4 py-3 text-right text-white sticky right-0 bg-brand-blue z-10">
                   الإجمالي الشهري
                 </td>
                 {monthlyTotals.map((total, index) => (
                   <td
                     key={index}
-                    className={`px-4 py-3 text-center whitespace-nowrap ${getNegativeNumberClass(total)}`}
+                    className={`px-4 py-3 text-center text-white whitespace-nowrap ${getNegativeNumberClass(total)}`}
                   >
                     {formatNumber(total)}
                   </td>
                 ))}
-                <td className={`px-4 py-3 text-center whitespace-nowrap ${getNegativeNumberClass(grandTotal)}`}>
+                <td className={`px-4 py-3 text-center text-white whitespace-nowrap ${getNegativeNumberClass(grandTotal)}`}>
                   {formatNumber(grandTotal)}
                 </td>
               </tr>

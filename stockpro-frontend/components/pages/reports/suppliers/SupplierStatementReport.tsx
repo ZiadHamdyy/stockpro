@@ -676,18 +676,18 @@ const SupplierStatementReport: React.FC<SupplierStatementReportProps> = ({
                 </tr>
               ))}
             </tbody>
-            <tfoot className="bg-brand-blue">
+            <tfoot className="bg-brand-blue text-white">
               <tr className="font-bold text-white">
-                <td colSpan={3} className="px-6 py-3 text-right">
+                <td colSpan={3} className="px-6 py-3 text-right text-white">
                   الإجمالي
                 </td>
-                <td className={`px-6 py-3 text-right ${getNegativeNumberClass(totalDebit)}`}>
+                <td className={`px-6 py-3 text-right text-white ${getNegativeNumberClass(totalDebit)}`}>
                   {formatNumber(totalDebit)}
                 </td>
-                <td className={`px-6 py-3 text-right ${getNegativeNumberClass(totalCredit)}`}>
+                <td className={`px-6 py-3 text-right text-white ${getNegativeNumberClass(totalCredit)}`}>
                   {formatNumber(totalCredit)}
                 </td>
-                <td className={`px-6 py-3 text-right ${getNegativeNumberClass(finalBalance)}`}>
+                <td className={`px-6 py-3 text-right text-white ${getNegativeNumberClass(finalBalance)}`}>
                   {formatNumber(finalBalance)}
                 </td>
               </tr>
