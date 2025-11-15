@@ -25,13 +25,24 @@ const ItemBalanceReport: React.FC<ItemBalanceReportProps> = ({
   companyInfo,
   currentUser,
 }) => {
-  // API hooks
-  const { data: apiItems = [], isLoading: itemsLoading } =
-    useGetItemsQuery(undefined);
+  // Branch filter state - default to current user's branch or "all"
+  const [selectedBranchId, setSelectedBranchId] = useState<string>(
+    currentUser?.branchId || "all"
+  );
+  
+  // Get store for selected branch
   const { data: branches = [], isLoading: branchesLoading } =
     useGetBranchesQuery(undefined);
   const { data: stores = [], isLoading: storesLoading } =
     useGetStoresQuery(undefined);
+  
+  const selectedStore = selectedBranchId === "all" 
+    ? stores.find((store) => store.branchId === currentUser?.branchId)
+    : stores.find((store) => store.branchId === selectedBranchId);
+  
+  // API hooks - get items with store-specific balances
+  const { data: apiItems = [], isLoading: itemsLoading } =
+    useGetItemsQuery(selectedStore ? { storeId: selectedStore.id } : undefined);
   const { data: salesInvoices = [], isLoading: salesInvoicesLoading } =
     useGetSalesInvoicesQuery(undefined);
   const { data: salesReturns = [], isLoading: salesReturnsLoading } =
@@ -185,7 +196,6 @@ const ItemBalanceReport: React.FC<ItemBalanceReportProps> = ({
     storeIssueVouchersLoading ||
     storeTransferVouchersLoading;
   const [reportData, setReportData] = useState<any[]>([]);
-  const [selectedBranch, setSelectedBranch] = useState("all");
   const currentYear = new Date().getFullYear();
   const currentDate = new Date().toISOString().substring(0, 10);
   const [startDate, setStartDate] = useState(`${currentYear}-01-01`);
@@ -195,14 +205,20 @@ const ItemBalanceReport: React.FC<ItemBalanceReportProps> = ({
     if (isLoading) return;
 
     const balanceData = items.map((item) => {
-      let openingBalance = item.stock; // Starting stock
+      // Use StoreItem's openingBalance as base, or 0 if not available
+      let openingBalance = (item as any).openingBalance ?? 0;
       let totalIncoming = 0;
       let totalOutgoing = 0;
 
+      const selectedBranchName = selectedBranchId === "all" 
+        ? "all"
+        : branches.find(b => b.id === selectedBranchId)?.name || "";
+      
       const filterByBranch = (tx: any) =>
-        selectedBranch === "all" ||
-        tx.branch === selectedBranch ||
-        tx.branchName === selectedBranch;
+        selectedBranchId === "all" ||
+        tx.branch === selectedBranchName ||
+        tx.branchName === selectedBranchName ||
+        tx.branchId === selectedBranchId;
 
       const getDateString = (date: any): string => {
         if (!date) return "";
@@ -267,14 +283,14 @@ const ItemBalanceReport: React.FC<ItemBalanceReportProps> = ({
       // When all branches are selected, transfers are ignored as they don't affect total inventory
       // Branch Warehouse Transfer: counts as outgoing when transfer is FROM the selected branch
       // Transfer to Outstanding Warehouse: counts as incoming when transfer is TO the selected branch
-      if (selectedBranch !== "all") {
+      if (selectedBranchId !== "all") {
         transformedStoreTransferVouchers.filter(isBeforeStartDate).forEach((v) => {
           const fromStore = stores.find((s) => s.name === v.fromStore);
           const toStore = stores.find((s) => s.name === v.toStore);
           v.items.forEach((i) => {
             if (i.id === item.code) {
-              if (fromStore?.branch?.name === selectedBranch) openingBalance -= i.qty;
-              if (toStore?.branch?.name === selectedBranch) openingBalance += i.qty;
+              if (fromStore?.branchId === selectedBranchId) openingBalance -= i.qty;
+              if (toStore?.branchId === selectedBranchId) openingBalance += i.qty;
             }
           });
         });
@@ -321,14 +337,14 @@ const ItemBalanceReport: React.FC<ItemBalanceReportProps> = ({
       // When all branches are selected, transfers are ignored as they don't affect total inventory
       // Branch Warehouse Transfer: counts as outgoing when transfer is FROM the selected branch
       // Transfer to Outstanding Warehouse: counts as incoming when transfer is TO the selected branch
-      if (selectedBranch !== "all") {
+      if (selectedBranchId !== "all") {
         transformedStoreTransferVouchers.filter(filterByDate).forEach((v) => {
           const fromStore = stores.find((s) => s.name === v.fromStore);
           const toStore = stores.find((s) => s.name === v.toStore);
           v.items.forEach((i) => {
             if (i.id === item.code) {
-              if (fromStore?.branch?.name === selectedBranch) totalOutgoing += i.qty;
-              if (toStore?.branch?.name === selectedBranch) totalIncoming += i.qty;
+              if (fromStore?.branchId === selectedBranchId) totalOutgoing += i.qty;
+              if (toStore?.branchId === selectedBranchId) totalIncoming += i.qty;
             }
           });
         });
@@ -347,7 +363,7 @@ const ItemBalanceReport: React.FC<ItemBalanceReportProps> = ({
     setReportData(balanceData);
   }, [
     items,
-    selectedBranch,
+    selectedBranchId,
     startDate,
     endDate,
     transformedSalesInvoices,
@@ -446,7 +462,7 @@ const ItemBalanceReport: React.FC<ItemBalanceReportProps> = ({
           <div className="flex justify-between items-start">
             <div className="space-y-2 text-right">
               <p className="text-base text-gray-700">
-                <span className="font-semibold text-gray-800">الفرع:</span> {selectedBranch === "all" ? "جميع الفروع" : selectedBranch}
+                <span className="font-semibold text-gray-800">الفرع:</span> {selectedBranchId === "all" ? "جميع الفروع" : branches.find(b => b.id === selectedBranchId)?.name || ""}
               </p>
               <p className="text-base text-gray-700">
                 <span className="font-semibold text-gray-800">الفترة من:</span> {startDate} 
@@ -466,12 +482,12 @@ const ItemBalanceReport: React.FC<ItemBalanceReportProps> = ({
             <label className="font-semibold">الفرع:</label>
             <select
               className="p-2 border-2 border-brand-blue rounded-md bg-brand-blue-bg"
-              value={selectedBranch}
-              onChange={(e) => setSelectedBranch(e.target.value)}
+              value={selectedBranchId}
+              onChange={(e) => setSelectedBranchId(e.target.value)}
             >
               <option value="all">جميع الفروع</option>
               {branches.map((branch) => (
-                <option key={branch.id} value={branch.name}>
+                <option key={branch.id} value={branch.id}>
                   {branch.name}
                 </option>
               ))}

@@ -6,10 +6,16 @@ import { SalesReturnResponse } from './dtos/response/sales-return.response';
 import { throwHttp } from '../../common/utils/http-error';
 import { ERROR_CODES } from '../../common/constants/error-codes';
 import { AccountingService } from '../../common/services/accounting.service';
+import { StoreService } from '../store/store.service';
+import { StockService } from '../store/services/stock.service';
 
 @Injectable()
 export class SalesReturnService {
-  constructor(private readonly prisma: DatabaseService) {}
+  constructor(
+    private readonly prisma: DatabaseService,
+    private readonly storeService: StoreService,
+    private readonly stockService: StockService,
+  ) {}
 
   async create(
     data: CreateSalesReturnRequest,
@@ -64,7 +70,24 @@ export class SalesReturnService {
       total: item.qty * item.price,
     }));
 
+    // Get store from branch
+    let store: any = null;
+    if (branchId) {
+      try {
+        store = await this.storeService.findByBranchId(branchId);
+      } catch (error) {
+        // Store not found, will use fallback
+      }
+    }
+
     const created = await this.prisma.$transaction(async (tx) => {
+      // Get store in transaction
+      if (branchId && !store) {
+        store = await tx.store.findFirst({
+          where: { branchId },
+        });
+      }
+
       const ret = await tx.salesReturn.create({
         data: {
           code,
@@ -89,11 +112,43 @@ export class SalesReturnService {
         },
       });
 
-      for (const item of data.items) {
-        await tx.item.update({
-          where: { code: item.id },
-          data: { stock: { increment: item.qty } },
-        });
+      // Add stock back using StoreReceiptVoucher pattern (only for STOCKED items)
+      if (store) {
+        // Filter STOCKED items and get item records
+        const stockedItemsWithRecords = await Promise.all(
+          data.items.map(async (item) => {
+            const itemRecord = await tx.item.findUnique({ 
+              where: { code: item.id }
+            });
+            if (itemRecord && (itemRecord as any).type === 'STOCKED') {
+              return { item, itemRecord };
+            }
+            return null;
+          })
+        );
+        const stockedItems = stockedItemsWithRecords.filter(Boolean) as Array<{
+          item: any;
+          itemRecord: any;
+        }>;
+
+        // Ensure StoreItem exists for each item (with openingBalance = 0)
+        // Stock will be tracked via SalesReturn items in StockService
+        for (const { itemRecord } of stockedItems) {
+          await this.stockService.ensureStoreItemExists(store.id, itemRecord.id, tx);
+        }
+      } else {
+        // Fallback: Update global stock if store not found (backward compatibility)
+        for (const item of data.items) {
+          const itemRecord = await tx.item.findUnique({ 
+            where: { code: item.id }
+          });
+          if (itemRecord && (itemRecord as any).type === 'STOCKED') {
+            await tx.item.update({
+              where: { code: item.id },
+              data: { stock: { increment: item.qty } },
+            });
+          }
+        }
       }
 
       // Apply cash impact if applicable (sales return decreases balance)
@@ -108,13 +163,13 @@ export class SalesReturnService {
         });
       }
 
-      // Apply credit impact if applicable (decrease customer balance)
-      if (data.paymentMethod === 'credit' && data.customerId) {
-        await tx.customer.update({
-          where: { id: data.customerId },
-          data: { currentBalance: { decrement: net } },
-        });
-      }
+      // Customer balance updates are disabled
+      // if (data.paymentMethod === 'credit' && data.customerId) {
+      //   await tx.customer.update({
+      //     where: { id: data.customerId },
+      //     data: { currentBalance: { decrement: net } },
+      //   });
+      // }
 
       return ret;
     });
@@ -290,13 +345,13 @@ export class SalesReturnService {
             tx,
           });
         }
-        // Reverse previous credit impact if needed
-        if (existingReturn && (existingReturn as any).paymentMethod === 'credit' && (existingReturn as any).customerId) {
-          await tx.customer.update({
-            where: { id: (existingReturn as any).customerId },
-            data: { currentBalance: { increment: (existingReturn as any).net } },
-          });
-        }
+        // Customer balance updates are disabled
+        // if (existingReturn && (existingReturn as any).paymentMethod === 'credit' && (existingReturn as any).customerId) {
+        //   await tx.customer.update({
+        //     where: { id: (existingReturn as any).customerId },
+        //     data: { currentBalance: { increment: (existingReturn as any).net } },
+        //   });
+        // }
         // Apply new cash impact if applicable
         const targetType = (ret as any).paymentMethod === 'cash' ? (ret as any).paymentTargetType : null;
         if (targetType) {
@@ -309,13 +364,13 @@ export class SalesReturnService {
             tx,
           });
         }
-        // Apply new credit impact if applicable (decrease customer balance)
-        if ((ret as any).paymentMethod === 'credit' && (ret as any).customerId) {
-          await tx.customer.update({
-            where: { id: (ret as any).customerId },
-            data: { currentBalance: { decrement: (ret as any).net } },
-          });
-        }
+        // Customer balance updates are disabled
+        // if ((ret as any).paymentMethod === 'credit' && (ret as any).customerId) {
+        //   await tx.customer.update({
+        //     where: { id: (ret as any).customerId },
+        //     data: { currentBalance: { decrement: (ret as any).net } },
+        //   });
+        // }
 
         return ret;
       });
@@ -337,13 +392,13 @@ export class SalesReturnService {
         // Decrease stock (reverse the return)
         await this.updateStockForItems(return_.items as any[], 'decrease');
         
-        // Reverse credit impact if applicable (increase customer balance)
-        if ((return_ as any).paymentMethod === 'credit' && (return_ as any).customerId) {
-          await this.prisma.customer.update({
-            where: { id: (return_ as any).customerId },
-            data: { currentBalance: { increment: (return_ as any).net } },
-          });
-        }
+        // Customer balance updates are disabled
+        // if ((return_ as any).paymentMethod === 'credit' && (return_ as any).customerId) {
+        //   await this.prisma.customer.update({
+        //     where: { id: (return_ as any).customerId },
+        //     data: { currentBalance: { increment: (return_ as any).net } },
+        //   });
+        // }
       }
 
       await this.prisma.salesReturn.delete({

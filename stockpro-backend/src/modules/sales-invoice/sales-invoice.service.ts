@@ -6,10 +6,16 @@ import { CreateSalesInvoiceRequest } from './dtos/request/create-sales-invoice.r
 import { UpdateSalesInvoiceRequest } from './dtos/request/update-sales-invoice.request';
 import { SalesInvoiceResponse } from './dtos/response/sales-invoice.response';
 import { AccountingService } from '../../common/services/accounting.service';
+import { StoreService } from '../store/store.service';
+import { StockService } from '../store/services/stock.service';
 
 @Injectable()
 export class SalesInvoiceService {
-  constructor(private readonly prisma: DatabaseService) {}
+  constructor(
+    private readonly prisma: DatabaseService,
+    private readonly storeService: StoreService,
+    private readonly stockService: StockService,
+  ) {}
 
   async create(
     data: CreateSalesInvoiceRequest,
@@ -66,10 +72,34 @@ export class SalesInvoiceService {
       total: item.qty * item.price,
     }));
 
+    // Get store from branch
+    let storeId: string | null = null;
+    if (branchId) {
+      try {
+        const store = await this.storeService.findByBranchId(branchId);
+        storeId = store.id;
+      } catch (error) {
+        // If store not found, continue without store-specific stock tracking
+        // This maintains backward compatibility
+      }
+    }
+
     const result = await this.prisma.$transaction(async (tx) => {
+      // Get store for stock validation and operations
+      let store: any = null;
+      if (branchId) {
+        try {
+          store = await tx.store.findFirst({
+            where: { branchId },
+          });
+        } catch (error) {
+          // Store not found, skip store-specific operations
+        }
+      }
+
       // Validate stock availability for STOCKED items only (skip SERVICE items)
       // Skip validation if allowInsufficientStock is true
-      if (!data.allowInsufficientStock) {
+      if (!data.allowInsufficientStock && store) {
         for (const item of data.items) {
           const itemRecord = await tx.item.findUnique({ 
             where: { code: item.id }
@@ -78,12 +108,19 @@ export class SalesInvoiceService {
             throwHttp(404, ERROR_CODES.INV_ITEM_NOT_FOUND, `Item ${item.id} not found`);
           }
           // Only validate stock for STOCKED items, SERVICE items don't have stock
-          if ((itemRecord as any).type === 'STOCKED' && itemRecord.stock < item.qty) {
-            throwHttp(
-              409,
-              ERROR_CODES.INV_STOCK_INSUFFICIENT,
-              `Insufficient stock for item ${itemRecord.name}`,
+          if ((itemRecord as any).type === 'STOCKED') {
+            const balance = await this.stockService.getStoreItemBalance(
+              store.id,
+              itemRecord.id,
+              tx,
             );
+            if (balance < item.qty) {
+              throwHttp(
+                409,
+                ERROR_CODES.INV_STOCK_INSUFFICIENT,
+                `Insufficient stock for item ${itemRecord.name}. Available: ${balance}, Requested: ${item.qty}`,
+              );
+            }
           }
         }
       }
@@ -114,16 +151,46 @@ export class SalesInvoiceService {
         },
       });
 
-      // Decrease stock (only for STOCKED items, SERVICE items don't have stock)
-      for (const item of data.items) {
-        const itemRecord = await tx.item.findUnique({ 
-          where: { code: item.id }
-        });
-        if (itemRecord && (itemRecord as any).type === 'STOCKED') {
-          await tx.item.update({
-            where: { code: item.id },
-            data: { stock: { decrement: item.qty } },
+      // Validate and track stock directly (only for STOCKED items)
+      if (store) {
+        // Filter STOCKED items and get item records
+        const stockedItemsWithRecords = await Promise.all(
+          data.items.map(async (item) => {
+            const itemRecord = await tx.item.findUnique({ 
+              where: { code: item.id }
+            });
+            if (itemRecord && (itemRecord as any).type === 'STOCKED') {
+              return { item, itemRecord };
+            }
+            return null;
+          })
+        );
+        const stockedItems = stockedItemsWithRecords.filter(Boolean) as Array<{
+          item: any;
+          itemRecord: any;
+        }>;
+
+        // Validate stock for STOCKED items (stock will be tracked via SalesInvoice items in StockService)
+        for (const { item, itemRecord } of stockedItems) {
+          await this.stockService.validateAndDecreaseStock(
+            store.id,
+            itemRecord.id,
+            item.qty,
+            tx,
+          );
+        }
+      } else {
+        // Fallback: Update global stock if store not found (backward compatibility)
+        for (const item of data.items) {
+          const itemRecord = await tx.item.findUnique({ 
+            where: { code: item.id }
           });
+          if (itemRecord && (itemRecord as any).type === 'STOCKED') {
+            await tx.item.update({
+              where: { code: item.id },
+              data: { stock: { decrement: item.qty } },
+            });
+          }
         }
       }
 
@@ -139,13 +206,13 @@ export class SalesInvoiceService {
         });
       }
 
-      // Apply credit impact if applicable (increase customer balance)
-      if (data.paymentMethod === 'credit' && data.customerId) {
-        await tx.customer.update({
-          where: { id: data.customerId },
-          data: { currentBalance: { increment: net } },
-        });
-      }
+      // Customer balance updates are disabled
+      // if (data.paymentMethod === 'credit' && data.customerId) {
+      //   await tx.customer.update({
+      //     where: { id: data.customerId },
+      //     data: { currentBalance: { increment: net } },
+      //   });
+      // }
 
       return created;
     });
@@ -379,13 +446,13 @@ export class SalesInvoiceService {
             tx,
           });
         }
-        // Reverse previous credit impact if needed
-        if (existingInvoice?.paymentMethod === 'credit' && existingInvoice.customerId) {
-          await tx.customer.update({
-            where: { id: existingInvoice.customerId },
-            data: { currentBalance: { decrement: (existingInvoice as any).net } },
-          });
-        }
+        // Customer balance updates are disabled
+        // if (existingInvoice?.paymentMethod === 'credit' && existingInvoice.customerId) {
+        //   await tx.customer.update({
+        //     where: { id: existingInvoice.customerId },
+        //     data: { currentBalance: { decrement: (existingInvoice as any).net } },
+        //   });
+        // }
         // Apply new cash impact if applicable
         const targetType = (inv as any).paymentMethod === 'cash' ? (inv as any).paymentTargetType : null;
         if (targetType) {
@@ -398,13 +465,13 @@ export class SalesInvoiceService {
             tx,
           });
         }
-        // Apply new credit impact if applicable (increase customer balance)
-        if ((inv as any).paymentMethod === 'credit' && (inv as any).customerId) {
-          await tx.customer.update({
-            where: { id: (inv as any).customerId },
-            data: { currentBalance: { increment: (inv as any).net } },
-          });
-        }
+        // Customer balance updates are disabled
+        // if ((inv as any).paymentMethod === 'credit' && (inv as any).customerId) {
+        //   await tx.customer.update({
+        //     where: { id: (inv as any).customerId },
+        //     data: { currentBalance: { increment: (inv as any).net } },
+        //   });
+        // }
 
         return inv;
       });
@@ -439,13 +506,13 @@ export class SalesInvoiceService {
             });
           });
         }
-        // Reverse credit impact if applicable (decrease customer balance)
-        if ((invoice as any).paymentMethod === 'credit' && (invoice as any).customerId) {
-          await this.prisma.customer.update({
-            where: { id: (invoice as any).customerId },
-            data: { currentBalance: { decrement: (invoice as any).net } },
-          });
-        }
+        // Customer balance updates are disabled
+        // if ((invoice as any).paymentMethod === 'credit' && (invoice as any).customerId) {
+        //   await this.prisma.customer.update({
+        //     where: { id: (invoice as any).customerId },
+        //     data: { currentBalance: { decrement: (invoice as any).net } },
+        //   });
+        // }
       }
 
       await this.prisma.salesInvoice.delete({

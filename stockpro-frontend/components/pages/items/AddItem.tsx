@@ -487,7 +487,7 @@ const AddItem: React.FC<AddItemProps> = ({ title, editingId, onNavigate }) => {
               htmlFor="stock"
               className="block text-sm font-medium text-gray-700"
             >
-              الرصيد الافتتاحي
+              الرصيد الافتتاحي (للمخزن الحالي)
             </label>
             <input
               type="text"
@@ -504,6 +504,7 @@ const AddItem: React.FC<AddItemProps> = ({ title, editingId, onNavigate }) => {
               className={inputStyle}
               disabled={isReadOnly || itemType === 'SERVICE'}
               inputMode="numeric"
+              placeholder="سيتم تعيين الرصيد لمخزن الفرع الحالي"
             />
           </div>
           <div>

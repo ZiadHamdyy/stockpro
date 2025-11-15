@@ -7,10 +7,16 @@ import { bufferToDataUri } from '../../common/utils/image-converter';
 import { throwHttp } from '../../common/utils/http-error';
 import { ERROR_CODES } from '../../common/constants/error-codes';
 import { AccountingService } from '../../common/services/accounting.service';
+import { StoreService } from '../store/store.service';
+import { StockService } from '../store/services/stock.service';
 
 @Injectable()
 export class PurchaseReturnService {
-  constructor(private readonly prisma: DatabaseService) {}
+  constructor(
+    private readonly prisma: DatabaseService,
+    private readonly storeService: StoreService,
+    private readonly stockService: StockService,
+  ) {}
 
   /**
    * Converts user data from database format to response format
@@ -64,15 +70,51 @@ export class PurchaseReturnService {
     const tax = subtotal * 0.15; // 15% VAT
     const net = subtotal - discount + tax;
 
+    // Get store from branch
+    let store: any = null;
+    if (branchId) {
+      try {
+        store = await this.storeService.findByBranchId(branchId);
+      } catch (error) {
+        // Store not found, will use fallback
+      }
+    }
+
     const created = await this.prisma.$transaction(async (tx) => {
+      // Get store in transaction
+      if (branchId && !store) {
+        store = await tx.store.findFirst({
+          where: { branchId },
+        });
+      }
+
       // Validate stock for all items prior to decrement
       for (const item of data.items) {
         const itemRecord = await tx.item.findUnique({ where: { code: item.id } });
         if (!itemRecord) {
           throwHttp(404, ERROR_CODES.INV_ITEM_NOT_FOUND, `Item ${item.id} not found`);
         }
-        if (itemRecord.stock < item.qty) {
-          throwHttp(409, ERROR_CODES.INV_STOCK_INSUFFICIENT, `Insufficient stock for item ${itemRecord.name}`);
+        // Only validate stock for STOCKED items, SERVICE items don't have stock
+        if ((itemRecord as any).type === 'STOCKED') {
+          if (store) {
+            const balance = await this.stockService.getStoreItemBalance(
+              store.id,
+              itemRecord.id,
+              tx,
+            );
+            if (balance < item.qty) {
+              throwHttp(
+                409,
+                ERROR_CODES.INV_STOCK_INSUFFICIENT,
+                `Insufficient stock for item ${itemRecord.name}. Available: ${balance}, Requested: ${item.qty}`,
+              );
+            }
+          } else {
+            // Fallback: use global stock
+            if (itemRecord.stock < item.qty) {
+              throwHttp(409, ERROR_CODES.INV_STOCK_INSUFFICIENT, `Insufficient stock for item ${itemRecord.name}`);
+            }
+          }
         }
       }
 
@@ -100,11 +142,47 @@ export class PurchaseReturnService {
         },
       });
 
-      for (const item of data.items) {
-        await tx.item.update({
-          where: { code: item.id },
-          data: { stock: { decrement: item.qty } },
-        });
+      // Remove stock using StoreIssueVoucher pattern (only for STOCKED items)
+      if (store) {
+        // Filter STOCKED items and get item records
+        const stockedItemsWithRecords = await Promise.all(
+          data.items.map(async (item) => {
+            const itemRecord = await tx.item.findUnique({ 
+              where: { code: item.id }
+            });
+            if (itemRecord && (itemRecord as any).type === 'STOCKED') {
+              return { item, itemRecord };
+            }
+            return null;
+          })
+        );
+        const stockedItems = stockedItemsWithRecords.filter(Boolean) as Array<{
+          item: any;
+          itemRecord: any;
+        }>;
+
+        // Validate stock for STOCKED items (stock will be tracked via PurchaseReturn items in StockService)
+        for (const { item, itemRecord } of stockedItems) {
+          await this.stockService.validateAndDecreaseStock(
+            store.id,
+            itemRecord.id,
+            item.qty,
+            tx,
+          );
+        }
+      } else {
+        // Fallback: Update global stock if store not found (backward compatibility)
+        for (const item of data.items) {
+          const itemRecord = await tx.item.findUnique({ 
+            where: { code: item.id }
+          });
+          if (itemRecord && (itemRecord as any).type === 'STOCKED') {
+            await tx.item.update({
+              where: { code: item.id },
+              data: { stock: { decrement: item.qty } },
+            });
+          }
+        }
       }
 
       // Apply cash impact if applicable (purchase return increases balance)
@@ -119,7 +197,7 @@ export class PurchaseReturnService {
         });
       }
 
-      // Apply credit impact if applicable (decrease supplier balance)
+      // Update supplier balance for credit purchase returns (we owe them less)
       if (data.paymentMethod === 'credit' && data.supplierId) {
         await tx.supplier.update({
           where: { id: data.supplierId },
@@ -277,7 +355,7 @@ export class PurchaseReturnService {
           tx,
         });
       }
-      // Reverse previous credit impact if needed
+      // Reverse previous supplier balance update if needed
       if (existingReturn.paymentMethod === 'credit' && existingReturn.supplierId) {
         await tx.supplier.update({
           where: { id: existingReturn.supplierId },
@@ -296,7 +374,7 @@ export class PurchaseReturnService {
           tx,
         });
       }
-      // Apply new credit impact if applicable (decrease supplier balance)
+      // Apply new supplier balance update if applicable
       if ((ret as any).paymentMethod === 'credit' && (ret as any).supplierId) {
         await tx.supplier.update({
           where: { id: (ret as any).supplierId },
@@ -341,7 +419,7 @@ export class PurchaseReturnService {
           tx,
         });
       }
-      // Reverse credit impact if applicable (increase supplier balance)
+      // Reverse supplier balance update if applicable
       if ((returnRecord as any).paymentMethod === 'credit' && (returnRecord as any).supplierId) {
         await tx.supplier.update({
           where: { id: (returnRecord as any).supplierId },

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from "react";
+import React, { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import { useSearchParams } from "react-router-dom";
 import DataTableModal from "../../common/DataTableModal";
@@ -82,7 +82,6 @@ const StoreTransfer: React.FC<StoreTransferProps> = ({ title }) => {
   const { data: companyInfo } = useGetCompanyQuery();
   const { data: branches = [] } = useGetBranchesQuery();
   const { data: stores = [] } = useGetStoresQuery();
-  const { data: itemsData = [] } = useGetItemsQuery({});
   const { data: vouchers = [], isLoading: isLoadingVouchers, refetch: refetchVouchers } =
     useGetStoreTransferVouchersQuery();
   const [createVoucher, { isLoading: isCreating }] =
@@ -96,16 +95,6 @@ const StoreTransfer: React.FC<StoreTransferProps> = ({ title }) => {
   // Get current user from auth state
   const currentUser = useSelector((state: RootState) => state.auth.user);
 
-  // Transform items to match the expected format
-  const allItems: SelectableItem[] = Array.isArray(itemsData)
-    ? itemsData.map((item: any) => ({
-        id: item.id,
-        name: item.name,
-        unit: item.unit?.name || "",
-        stock: item.stock || 0,
-        code: item.code || "",
-      }))
-    : [];
   const getEmptyItems = (count: number = 5): StoreVoucherItem[] =>
     Array.from({ length: count }, () => ({
       id: "",
@@ -122,6 +111,26 @@ const StoreTransfer: React.FC<StoreTransferProps> = ({ title }) => {
     fromStore: stores.length > 0 ? stores[0].name : "",
     toStore: stores.length > 1 ? stores[1].name : "",
   });
+  
+  // Get store from selected fromStore
+  const fromStore = useMemo(() => 
+    stores.find(s => s.name === voucherDetails.fromStore),
+    [stores, voucherDetails.fromStore]
+  );
+  
+  const { data: itemsData = [] } = useGetItemsQuery(fromStore ? { storeId: fromStore.id } : undefined);
+
+  // Transform items to match the expected format
+  const allItems: SelectableItem[] = Array.isArray(itemsData)
+    ? itemsData.map((item: any) => ({
+        id: item.id,
+        name: item.name,
+        unit: item.unit?.name || "",
+        stock: item.stock || 0,
+        code: item.code || "",
+      }))
+    : [];
+  
   const [isReadOnly, setIsReadOnly] = useState(true);
   const { showModal } = useModal();
   const { showToast } = useToast();

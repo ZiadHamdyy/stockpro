@@ -33,6 +33,7 @@ import { useGetItemsQuery } from "../../store/slices/items/itemsApi";
 import { useGetBanksQuery } from "../../store/slices/bank/bankApiSlice";
 import { useGetSafesQuery } from "../../store/slices/safe/safeApiSlice";
 import { useGetCompanyQuery } from "../../store/slices/companyApiSlice";
+import { useGetStoresQuery } from "../../store/slices/store/storeApi";
 import { showApiErrorToast } from "../../../utils/errorToast";
 import { formatMoney } from "../../../utils/formatting";
 
@@ -71,13 +72,19 @@ const SalesInvoice: React.FC<SalesInvoiceProps> = ({
     useDeleteSalesInvoiceMutation();
 
   const { data: customers = [] } = useGetCustomersQuery();
-  const { data: items = [] } = useGetItemsQuery(undefined);
   const { data: banks = [] } = useGetBanksQuery();
   const { data: safes = [] } = useGetSafesQuery();
   const { data: company } = useGetCompanyQuery();
+  const { data: stores = [] } = useGetStoresQuery();
+  
+  // Get store for current user's branch
+  const userBranchId = currentUser?.branchId || currentUser?.branch;
+  const userStore = stores.find((store) => store.branchId === userBranchId);
+  
+  // Get items with store-specific balances
+  const { data: items = [] } = useGetItemsQuery(userStore ? { storeId: userStore.id } : undefined);
 
   // Filter safes by current user's branch
-  const userBranchId = currentUser?.branchId || currentUser?.branch;
   const filteredSafes = userBranchId
     ? safes.filter((safe) => safe.branchId === userBranchId)
     : safes;

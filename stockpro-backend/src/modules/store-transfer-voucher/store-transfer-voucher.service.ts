@@ -41,6 +41,12 @@ export class StoreTransferVoucherService {
         );
       }
 
+      // Ensure StoreItem exists in destination store for each item (with openingBalance = 0)
+      const toStoreId = createStoreTransferVoucherDto.toStoreId;
+      for (const item of items) {
+        await this.stockService.ensureStoreItemExists(toStoreId, item.itemId, tx);
+      }
+
       // Create voucher (stock validation passed)
       return tx.storeTransferVoucher.create({
         data: {
@@ -232,6 +238,16 @@ export class StoreTransferVoucherService {
               );
             }
           }
+        }
+      }
+
+      // Get destination store ID
+      const actualToStoreId = updateStoreTransferVoucherDto.toStoreId || oldVoucher.toStoreId;
+
+      // Ensure StoreItem exists in destination store for each item (with openingBalance = 0)
+      if (items) {
+        for (const item of items) {
+          await this.stockService.ensureStoreItemExists(actualToStoreId, item.itemId, tx);
         }
       }
 

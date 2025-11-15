@@ -95,4 +95,22 @@ export class StoreService {
       where: { id },
     });
   }
+
+  async findByBranchId(branchId: string) {
+    const store = await this.prisma.store.findFirst({
+      where: { branchId },
+      include: {
+        branch: true,
+        user: true,
+      },
+    });
+
+    if (!store) {
+      throw new NotFoundException(
+        `Store not found for branch with id: ${branchId}`,
+      );
+    }
+
+    return store;
+  }
 }

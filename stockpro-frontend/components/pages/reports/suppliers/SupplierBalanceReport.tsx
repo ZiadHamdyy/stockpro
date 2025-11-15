@@ -14,6 +14,9 @@ import { useGetSuppliersQuery } from "../../../store/slices/supplier/supplierApi
 import { useGetPurchaseInvoicesQuery } from "../../../store/slices/purchaseInvoice/purchaseInvoiceApiSlice";
 import { useGetPurchaseReturnsQuery } from "../../../store/slices/purchaseReturn/purchaseReturnApiSlice";
 import { useGetBranchesQuery } from "../../../store/slices/branch/branchApi";
+import { useGetReceiptVouchersQuery } from "../../../store/slices/receiptVoucherApiSlice";
+import { useGetPaymentVouchersQuery } from "../../../store/slices/paymentVoucherApiSlice";
+import { useAuth } from "../../../hook/Auth";
 
 interface SupplierBalanceReportProps {
   title: string;
@@ -26,10 +29,15 @@ interface SupplierBalanceReportProps {
 const SupplierBalanceReport: React.FC<SupplierBalanceReportProps> = ({
   title,
   companyInfo,
-  receiptVouchers,
-  paymentVouchers,
+  receiptVouchers: propReceiptVouchers,
+  paymentVouchers: propPaymentVouchers,
   currentUser,
 }) => {
+  const { isAuthed } = useAuth();
+  
+  // Only fetch if user is authenticated
+  const skip = !isAuthed;
+
   // API hooks
   const { data: apiSuppliers = [], isLoading: suppliersLoading } =
     useGetSuppliersQuery(undefined);
@@ -39,6 +47,18 @@ const SupplierBalanceReport: React.FC<SupplierBalanceReportProps> = ({
     useGetPurchaseReturnsQuery(undefined);
   const { data: apiBranches = [], isLoading: branchesLoading } =
     useGetBranchesQuery(undefined);
+  const { 
+    data: apiReceiptVouchers = [], 
+    isLoading: receiptVouchersLoading,
+  } = useGetReceiptVouchersQuery(undefined, { skip });
+  const { 
+    data: apiPaymentVouchers = [], 
+    isLoading: paymentVouchersLoading,
+  } = useGetPaymentVouchersQuery(undefined, { skip });
+  
+  // Use API vouchers if authenticated and API is being used, otherwise fall back to props
+  const rawReceiptVouchers = isAuthed ? apiReceiptVouchers : (propReceiptVouchers || []);
+  const rawPaymentVouchers = isAuthed ? apiPaymentVouchers : (propPaymentVouchers || []);
 
   // Transform API data to match expected format
   const suppliers = useMemo(() => {
@@ -51,28 +71,127 @@ const SupplierBalanceReport: React.FC<SupplierBalanceReportProps> = ({
   const purchaseInvoices = useMemo(() => {
     return (apiPurchaseInvoices as any[]).map((invoice) => ({
       ...invoice,
-      // Transform nested supplier data
-      customerOrSupplier: invoice.customerOrSupplier
+      // Transform nested supplier data - API uses 'supplier' field
+      customerOrSupplier: invoice.supplier
+        ? {
+            id: invoice.supplier.id.toString(),
+            name: invoice.supplier.name,
+          }
+        : invoice.customerOrSupplier
         ? {
             id: invoice.customerOrSupplier.id.toString(),
             name: invoice.customerOrSupplier.name,
           }
         : null,
+      // Transform totals structure - API uses direct fields, not nested totals object
+      totals: invoice.totals || {
+        subtotal: invoice.subtotal || 0,
+        discount: invoice.discount || 0,
+        tax: invoice.tax || 0,
+        net: invoice.net || 0,
+      },
     }));
   }, [apiPurchaseInvoices]);
 
   const purchaseReturns = useMemo(() => {
     return (apiPurchaseReturns as any[]).map((returnInvoice) => ({
       ...returnInvoice,
-      // Transform nested supplier data
-      customerOrSupplier: returnInvoice.customerOrSupplier
+      // Transform nested supplier data - API uses 'supplier' field
+      customerOrSupplier: returnInvoice.supplier
+        ? {
+            id: returnInvoice.supplier.id.toString(),
+            name: returnInvoice.supplier.name,
+          }
+        : returnInvoice.customerOrSupplier
         ? {
             id: returnInvoice.customerOrSupplier.id.toString(),
             name: returnInvoice.customerOrSupplier.name,
           }
         : null,
+      // Transform totals structure - API uses direct fields, not nested totals object
+      totals: returnInvoice.totals || {
+        subtotal: returnInvoice.subtotal || 0,
+        discount: returnInvoice.discount || 0,
+        tax: returnInvoice.tax || 0,
+        net: returnInvoice.net || 0,
+      },
     }));
   }, [apiPurchaseReturns]);
+
+  // Helper function to normalize dates to YYYY-MM-DD format
+  const normalizeDate = useMemo(() => {
+    return (date: any): string => {
+      if (!date) return "";
+      if (typeof date === "string") {
+        // If it's already in YYYY-MM-DD format, return as is
+        if (/^\d{4}-\d{2}-\d{2}$/.test(date)) return date;
+        // If it's an ISO string, extract the date part
+        return date.substring(0, 10);
+      }
+      if (date instanceof Date) {
+        return date.toISOString().split("T")[0];
+      }
+      // Try to parse as Date if it's a string that looks like a date
+      try {
+        const parsed = new Date(date);
+        if (!isNaN(parsed.getTime())) {
+          return parsed.toISOString().split("T")[0];
+        }
+      } catch (e) {
+        // Ignore parsing errors
+      }
+      return "";
+    };
+  }, []);
+
+  // Transform vouchers to match expected structure
+  const receiptVouchers = useMemo(() => {
+    return rawReceiptVouchers.map((voucher: any) => {
+      // Transform to match expected structure
+      // If voucher already has entity structure (from props), use it
+      // Otherwise, build it from API structure
+      const entity = voucher.entity || {
+        type: voucher.entityType,
+        id: voucher.customerId || voucher.supplierId || voucher.currentAccountId || "",
+        name: voucher.entityName || "",
+      };
+      
+      return {
+        id: voucher.id,
+        code: voucher.code || voucher.id,
+        date: normalizeDate(voucher.date),
+        entity: entity,
+        amount: voucher.amount,
+        description: voucher.description || "",
+        paymentMethod: voucher.paymentMethod,
+        safeOrBankId: voucher.safeId || voucher.bankId,
+      };
+    });
+  }, [rawReceiptVouchers, normalizeDate]);
+
+  const paymentVouchers = useMemo(() => {
+    return rawPaymentVouchers.map((voucher: any) => {
+      // Transform to match expected structure
+      // If voucher already has entity structure (from props), use it
+      // Otherwise, build it from API structure
+      const entity = voucher.entity || {
+        type: voucher.entityType,
+        id: voucher.customerId || voucher.supplierId || voucher.currentAccountId || "",
+        name: voucher.entityName || "",
+      };
+      
+      return {
+        id: voucher.id,
+        code: voucher.code || voucher.id,
+        date: normalizeDate(voucher.date),
+        entity: entity,
+        amount: voucher.amount,
+        description: voucher.description || "",
+        paymentMethod: voucher.paymentMethod,
+        safeOrBankId: voucher.safeId || voucher.bankId,
+      };
+    });
+  }, [rawPaymentVouchers, normalizeDate]);
 
   const branches = useMemo(() => {
     return (apiBranches as any[]).map((branch) => ({
@@ -85,7 +204,9 @@ const SupplierBalanceReport: React.FC<SupplierBalanceReportProps> = ({
     suppliersLoading ||
     purchaseInvoicesLoading ||
     purchaseReturnsLoading ||
-    branchesLoading;
+    branchesLoading ||
+    receiptVouchersLoading ||
+    paymentVouchersLoading;
   const [endDate, setEndDate] = useState(
     new Date().toISOString().substring(0, 10),
   );
@@ -93,43 +214,63 @@ const SupplierBalanceReport: React.FC<SupplierBalanceReportProps> = ({
   const [hideZeroBalance, setHideZeroBalance] = useState(false);
 
   const handleViewReport = useCallback(() => {
+    const normalizedEndDate = normalizeDate(endDate);
+    
     const supplierBalanceData = suppliers.map((supplier) => {
       const supplierIdStr = supplier.id.toString();
       const supplierId = supplier.id;
 
       const totalPurchases = purchaseInvoices
         .filter(
-          (inv) =>
-            inv.customerOrSupplier?.id === supplierIdStr && inv.date <= endDate,
+          (inv) => {
+            const invDate = normalizeDate(inv.date);
+            const invSupplierId = inv.customerOrSupplier?.id?.toString() || 
+                                 inv.supplierId?.toString() || 
+                                 (inv.supplier?.id?.toString());
+            return (invSupplierId === supplierIdStr || invSupplierId == supplierId) && 
+                   invDate <= normalizedEndDate;
+          }
         )
-        .reduce((sum, inv) => sum + inv.totals.net, 0);
+        .reduce((sum, inv) => sum + (inv.totals?.net || inv.net || 0), 0);
 
       const totalReturns = purchaseReturns
         .filter(
-          (inv) =>
-            inv.customerOrSupplier?.id === supplierIdStr && inv.date <= endDate,
+          (inv) => {
+            const invDate = normalizeDate(inv.date);
+            const invSupplierId = inv.customerOrSupplier?.id?.toString() || 
+                                 inv.supplierId?.toString() || 
+                                 (inv.supplier?.id?.toString());
+            return (invSupplierId === supplierIdStr || invSupplierId == supplierId) && 
+                   invDate <= normalizedEndDate;
+          }
         )
-        .reduce((sum, inv) => sum + inv.totals.net, 0);
+        .reduce((sum, inv) => sum + (inv.totals?.net || inv.net || 0), 0);
 
       const totalPayments = paymentVouchers
         .filter(
-          (v) =>
-            v.entity.type === "supplier" &&
-            v.entity.id == supplierId &&
-            v.date <= endDate,
+          (v) => {
+            const vDate = normalizeDate(v.date);
+            const voucherSupplierId = v.entity?.id?.toString() || v.entity?.id;
+            return v.entity?.type === "supplier" &&
+                   (voucherSupplierId === supplierIdStr || voucherSupplierId == supplierId) &&
+                   vDate <= normalizedEndDate;
+          }
         )
         .reduce((sum, v) => sum + v.amount, 0);
 
       const totalReceipts = receiptVouchers // Receipts from supplier (debit)
         .filter(
-          (v) =>
-            v.entity.type === "supplier" &&
-            v.entity.id == supplierId &&
-            v.date <= endDate,
+          (v) => {
+            const vDate = normalizeDate(v.date);
+            const voucherSupplierId = v.entity?.id?.toString() || v.entity?.id;
+            return v.entity?.type === "supplier" &&
+                   (voucherSupplierId === supplierIdStr || voucherSupplierId == supplierId) &&
+                   vDate <= normalizedEndDate;
+          }
         )
         .reduce((sum, v) => sum + v.amount, 0);
 
-      const opening = supplier.openingBalance;
+      const opening = supplier.openingBalance || 0;
       // Total Debit: purchase returns, payment vouchers, receipt vouchers (all decrease what we owe)
       const totalDebit = totalReturns + totalPayments + totalReceipts;
       // Total Credit: purchase invoices (increases what we owe)
@@ -155,6 +296,7 @@ const SupplierBalanceReport: React.FC<SupplierBalanceReportProps> = ({
     paymentVouchers,
     receiptVouchers,
     endDate,
+    normalizeDate,
   ]);
 
   useEffect(() => {

@@ -30,6 +30,7 @@ import {
 } from "../../store/slices/salesReturn/salesReturnApiSlice";
 import { useGetCustomersQuery } from "../../store/slices/customer/customerApiSlice";
 import { useGetItemsQuery } from "../../store/slices/items/itemsApi";
+import { useGetStoresQuery } from "../../store/slices/store/storeApi";
 import { useGetBanksQuery } from "../../store/slices/bank/bankApiSlice";
 import { useGetSafesQuery } from "../../store/slices/safe/safeApiSlice";
 import { useGetCompanyQuery } from "../../store/slices/companyApiSlice";
@@ -68,17 +69,23 @@ const SalesReturn: React.FC<SalesReturnProps> = ({
     useDeleteSalesReturnMutation();
 
   const { data: customers = [] } = useGetCustomersQuery();
-  const { data: items = [] } = useGetItemsQuery(undefined);
   const { data: banks = [] } = useGetBanksQuery();
   const { data: safes = [] } = useGetSafesQuery();
   const { data: company } = useGetCompanyQuery();
   const { data: salesInvoices = [] } = useGetSalesInvoicesQuery();
+  const { data: stores = [] } = useGetStoresQuery();
 
   // Filter safes by current user's branch
   const userBranchId = currentUser?.branchId || currentUser?.branch;
   const filteredSafes = userBranchId
     ? safes.filter((safe) => safe.branchId === userBranchId)
     : safes;
+  
+  // Get store for current user's branch
+  const userStore = stores.find((store) => store.branchId === userBranchId);
+  
+  // Get items with store-specific balances
+  const { data: items = [] } = useGetItemsQuery(userStore ? { storeId: userStore.id } : undefined);
 
   // Transform data for component
   const allItems: SelectableItem[] = (items as any[]).map((item) => ({

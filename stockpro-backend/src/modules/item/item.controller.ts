@@ -17,25 +17,46 @@ import { UpdateItemRequest } from './dtos/request/update-item.request';
 import { ItemResponse } from './dtos/response/item.response';
 import { JwtAuthenticationGuard } from '../../common/guards/strategy.guards/jwt.guard';
 import { Auth } from '../../common/decorators/auth.decorator';
+import { currentUser } from '../../common/decorators/currentUser.decorator';
+import type { currentUserType } from '../../common/types/current-user.type';
+import { StoreService } from '../store/store.service';
 
 @Controller('items')
 @UseGuards(JwtAuthenticationGuard)
 export class ItemController {
-  constructor(private readonly itemService: ItemService) {}
+  constructor(
+    private readonly itemService: ItemService,
+    private readonly storeService: StoreService,
+  ) {}
 
   @Post()
   @HttpCode(HttpStatus.CREATED)
   @Auth({ permissions: ['add_item:create'] })
   async create(
     @Body() createItemDto: CreateItemRequest,
+    @currentUser() user: currentUserType,
   ): Promise<ItemResponse> {
-    return this.itemService.create(createItemDto);
+    return this.itemService.create(createItemDto, user);
   }
 
   @Get()
   @Auth({ permissions: ['items_list:read'] })
-  async findAll(): Promise<ItemResponse[]> {
-    return this.itemService.findAll();
+  async findAll(
+    @Query('storeId') storeId?: string,
+    @currentUser() user?: currentUserType,
+  ): Promise<ItemResponse[]> {
+    // If storeId not provided, get from current user's branch
+    let finalStoreId = storeId;
+    if (!finalStoreId && user?.branchId) {
+      try {
+        const store = await this.storeService.findByBranchId(user.branchId);
+        finalStoreId = store.id;
+      } catch (error) {
+        // If store not found for branch, continue without storeId
+        // This will return items with global stock (0 for new items)
+      }
+    }
+    return this.itemService.findAll(finalStoreId);
   }
 
   @Get('code/:code')

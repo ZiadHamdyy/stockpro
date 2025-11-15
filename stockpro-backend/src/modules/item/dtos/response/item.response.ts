@@ -9,6 +9,7 @@ export class ItemResponse {
   purchasePrice: number;
   salePrice: number;
   stock: number;
+  openingBalance?: number; // StoreItem openingBalance when storeId is provided
   reorderLimit: number;
   type: 'STOCKED' | 'SERVICE';
   group: ItemGroupResponse;

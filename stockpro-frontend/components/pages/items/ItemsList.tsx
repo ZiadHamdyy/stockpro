@@ -23,6 +23,10 @@ import {
   type Item,
 } from "../../store/slices/items/itemsApi";
 import { setItems, removeItem } from "../../store/slices/items/items";
+import { useGetStoresQuery } from "../../store/slices/store/storeApi";
+import { useGetBranchesQuery } from "../../store/slices/branch/branchApi";
+import { useSelector } from "react-redux";
+import { RootState } from "../../store/store";
 
 interface ItemsListProps {
   title: string;
@@ -50,16 +54,33 @@ const ItemsList: React.FC<ItemsListProps> = ({ title, onNavigate }) => {
   const { showToast } = (useToast() as any) || {};
   const dispatch = useAppDispatch();
 
+  // Get current user from auth state
+  const currentUser = useSelector((state: RootState) => state.auth.user);
+  
+  // Get branches and stores
+  const { data: branches = [] } = useGetBranchesQuery();
+  const { data: stores = [] } = useGetStoresQuery();
+  
+  // Branch filter state - default to current user's branch or "all"
+  const [selectedBranchId, setSelectedBranchId] = useState<string>(
+    currentUser?.branchId || "all"
+  );
+  
+  // Find store for selected branch (or current user's branch if "all")
+  const selectedStore = selectedBranchId === "all" 
+    ? stores.find((store) => store.branchId === currentUser?.branchId)
+    : stores.find((store) => store.branchId === selectedBranchId);
+
   // Get data from Redux state
   const items = useAppSelector((state) => state.items.items);
   const isLoading = useAppSelector((state) => state.items.isLoading);
 
-  // API hooks
+  // API hooks - pass storeId to get store-specific balances
   const {
     data: apiItems = [],
     isLoading: apiLoading,
     error,
-  } = useGetItemsQuery(undefined);
+  } = useGetItemsQuery(selectedStore ? { storeId: selectedStore.id } : undefined);
   const [deleteItem] = useDeleteItemMutation();
 
   // Update Redux state when API data changes
@@ -182,6 +203,20 @@ const ItemsList: React.FC<ItemsListProps> = ({ title, onNavigate }) => {
       </div>
       <div className="flex justify-between items-center mb-4 no-print">
         <div className="flex items-center gap-4">
+          <div className="relative">
+            <select
+              value={selectedBranchId}
+              onChange={(e) => setSelectedBranchId(e.target.value)}
+              className={inputStyle}
+            >
+              <option value="all">جميع الفروع</option>
+              {branches.map((branch) => (
+                <option key={branch.id} value={branch.id}>
+                  {branch.name}
+                </option>
+              ))}
+            </select>
+          </div>
           <div className="relative">
             <SearchIcon className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 w-6 h-6" />
             <input

@@ -143,7 +143,14 @@ export const itemsApiSlice = apiSlice.injectEndpoints({
 
     // Items
     getItems: builder.query({
-      query: () => "items",
+      query: (params?: { storeId?: string }) => {
+        const queryParams = new URLSearchParams();
+        if (params?.storeId) {
+          queryParams.append('storeId', params.storeId);
+        }
+        const queryString = queryParams.toString();
+        return `items${queryString ? `?${queryString}` : ''}`;
+      },
       transformResponse: (response: any) => response.data || [],
       providesTags: ["Item"],
     }),

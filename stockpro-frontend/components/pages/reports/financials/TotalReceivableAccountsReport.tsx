@@ -4,6 +4,9 @@ import { ExcelIcon, PdfIcon, PrintIcon, SearchIcon } from "../../../icons";
 import InvoiceHeader from "../../../common/InvoiceHeader";
 import { formatNumber, getNegativeNumberClass } from "../../../../utils/formatting";
 import { useGetReceivableAccountsQuery } from "../../../store/slices/receivableAccounts/receivableAccountsApi";
+import { useGetReceiptVouchersQuery } from "../../../store/slices/receiptVoucherApiSlice";
+import { useGetPaymentVouchersQuery } from "../../../store/slices/paymentVoucherApiSlice";
+import { useAuth } from "../../../hook/Auth";
 
 interface TotalReceivableAccountsReportProps {
   title: string;
@@ -17,12 +20,55 @@ const TotalReceivableAccountsReport: React.FC<TotalReceivableAccountsReportProps
   title,
   companyInfo,
   currentUser,
-  receiptVouchers,
-  paymentVouchers,
+  receiptVouchers: propReceiptVouchers,
+  paymentVouchers: propPaymentVouchers,
 }) => {
+  const { isAuthed } = useAuth();
+  
+  // Only fetch if user is authenticated
+  const skip = !isAuthed;
+
   // API hooks
   const { data: apiReceivableAccounts = [], isLoading: receivableAccountsLoading } =
     useGetReceivableAccountsQuery(undefined);
+  const { 
+    data: apiReceiptVouchers = [], 
+    isLoading: receiptVouchersLoading,
+  } = useGetReceiptVouchersQuery(undefined, { skip });
+  const { 
+    data: apiPaymentVouchers = [], 
+    isLoading: paymentVouchersLoading,
+  } = useGetPaymentVouchersQuery(undefined, { skip });
+  
+  // Use API vouchers if authenticated and API is being used, otherwise fall back to props
+  const rawReceiptVouchers = isAuthed ? apiReceiptVouchers : (propReceiptVouchers || []);
+  const rawPaymentVouchers = isAuthed ? apiPaymentVouchers : (propPaymentVouchers || []);
+
+  // Helper function to normalize dates to YYYY-MM-DD format
+  const normalizeDate = useMemo(() => {
+    return (date: any): string => {
+      if (!date) return "";
+      if (typeof date === "string") {
+        // If it's already in YYYY-MM-DD format, return as is
+        if (/^\d{4}-\d{2}-\d{2}$/.test(date)) return date;
+        // If it's an ISO string, extract the date part
+        return date.substring(0, 10);
+      }
+      if (date instanceof Date) {
+        return date.toISOString().split("T")[0];
+      }
+      // Try to parse as Date if it's a string that looks like a date
+      try {
+        const parsed = new Date(date);
+        if (!isNaN(parsed.getTime())) {
+          return parsed.toISOString().split("T")[0];
+        }
+      } catch (e) {
+        // Ignore parsing errors
+      }
+      return "";
+    };
+  }, []);
 
   // Transform API data to match expected format
   const receivableAccounts = useMemo(() => {
@@ -32,7 +78,56 @@ const TotalReceivableAccountsReport: React.FC<TotalReceivableAccountsReportProps
     }));
   }, [apiReceivableAccounts]);
 
-  const isLoading = receivableAccountsLoading;
+  // Transform vouchers to match expected structure
+  const receiptVouchers = useMemo(() => {
+    return rawReceiptVouchers.map((voucher: any) => {
+      // Transform to match expected structure
+      // If voucher already has entity structure (from props), use it
+      // Otherwise, build it from API structure
+      const entity = voucher.entity || {
+        type: voucher.entityType,
+        id: voucher.customerId || voucher.supplierId || voucher.currentAccountId || voucher.receivableAccountId || "",
+        name: voucher.entityName || "",
+      };
+      
+      return {
+        id: voucher.id,
+        code: voucher.code || voucher.id,
+        date: normalizeDate(voucher.date),
+        entity: entity,
+        amount: voucher.amount,
+        description: voucher.description || "",
+        paymentMethod: voucher.paymentMethod,
+        safeOrBankId: voucher.safeId || voucher.bankId,
+      };
+    });
+  }, [rawReceiptVouchers, normalizeDate]);
+
+  const paymentVouchers = useMemo(() => {
+    return rawPaymentVouchers.map((voucher: any) => {
+      // Transform to match expected structure
+      // If voucher already has entity structure (from props), use it
+      // Otherwise, build it from API structure
+      const entity = voucher.entity || {
+        type: voucher.entityType,
+        id: voucher.customerId || voucher.supplierId || voucher.currentAccountId || voucher.receivableAccountId || "",
+        name: voucher.entityName || "",
+      };
+      
+      return {
+        id: voucher.id,
+        code: voucher.code || voucher.id,
+        date: normalizeDate(voucher.date),
+        entity: entity,
+        amount: voucher.amount,
+        description: voucher.description || "",
+        paymentMethod: voucher.paymentMethod,
+        safeOrBankId: voucher.safeId || voucher.bankId,
+      };
+    });
+  }, [rawPaymentVouchers, normalizeDate]);
+
+  const isLoading = receivableAccountsLoading || receiptVouchersLoading || paymentVouchersLoading;
   const currentYear = new Date().getFullYear();
   const currentDate = new Date().toISOString().substring(0, 10);
   const [startDate, setStartDate] = useState(`${currentYear}-01-01`);
@@ -40,45 +135,61 @@ const TotalReceivableAccountsReport: React.FC<TotalReceivableAccountsReportProps
 
   // Calculate account balances from vouchers
   const accountsSummary = useMemo(() => {
+    const normalizedStartDate = normalizeDate(startDate);
+    const normalizedEndDate = normalizeDate(endDate);
+    
     return receivableAccounts.map((account) => {
       const accountId = account.id;
+      const accountIdStr = accountId.toString();
 
       // Count receipt vouchers (credits) for this account
       const receiptCount = receiptVouchers.filter(
-        (v) =>
-          v.entity.type === "receivable_account" &&
-          v.entity.id === accountId &&
-          v.date >= startDate &&
-          v.date <= endDate,
+        (v) => {
+          const vDate = normalizeDate(v.date);
+          const voucherAccountId = v.entity?.id?.toString() || v.entity?.id;
+          return v.entity?.type === "receivable_account" &&
+                 (voucherAccountId === accountIdStr || voucherAccountId == accountId) &&
+                 vDate >= normalizedStartDate &&
+                 vDate <= normalizedEndDate;
+        }
       ).length;
 
       // Count payment vouchers (debits) for this account
       const paymentCount = paymentVouchers.filter(
-        (v) =>
-          v.entity.type === "receivable_account" &&
-          v.entity.id === accountId &&
-          v.date >= startDate &&
-          v.date <= endDate,
+        (v) => {
+          const vDate = normalizeDate(v.date);
+          const voucherAccountId = v.entity?.id?.toString() || v.entity?.id;
+          return v.entity?.type === "receivable_account" &&
+                 (voucherAccountId === accountIdStr || voucherAccountId == accountId) &&
+                 vDate >= normalizedStartDate &&
+                 vDate <= normalizedEndDate;
+        }
       ).length;
 
       // Calculate amounts for balance calculation
       const receipts = receiptVouchers
         .filter(
-          (v) =>
-            v.entity.type === "receivable_account" &&
-            v.entity.id === accountId &&
-            v.date >= startDate &&
-            v.date <= endDate,
+          (v) => {
+            const vDate = normalizeDate(v.date);
+            const voucherAccountId = v.entity?.id?.toString() || v.entity?.id;
+            return v.entity?.type === "receivable_account" &&
+                   (voucherAccountId === accountIdStr || voucherAccountId == accountId) &&
+                   vDate >= normalizedStartDate &&
+                   vDate <= normalizedEndDate;
+          }
         )
         .reduce((sum, v) => sum + v.amount, 0);
 
       const payments = paymentVouchers
         .filter(
-          (v) =>
-            v.entity.type === "receivable_account" &&
-            v.entity.id === accountId &&
-            v.date >= startDate &&
-            v.date <= endDate,
+          (v) => {
+            const vDate = normalizeDate(v.date);
+            const voucherAccountId = v.entity?.id?.toString() || v.entity?.id;
+            return v.entity?.type === "receivable_account" &&
+                   (voucherAccountId === accountIdStr || voucherAccountId == accountId) &&
+                   vDate >= normalizedStartDate &&
+                   vDate <= normalizedEndDate;
+          }
         )
         .reduce((sum, v) => sum + v.amount, 0);
 
@@ -95,7 +206,7 @@ const TotalReceivableAccountsReport: React.FC<TotalReceivableAccountsReportProps
         balance: balance,
       };
     });
-  }, [receivableAccounts, receiptVouchers, paymentVouchers, startDate, endDate]);
+  }, [receivableAccounts, receiptVouchers, paymentVouchers, startDate, endDate, normalizeDate]);
 
   const totals = accountsSummary.reduce(
     (acc, item) => {

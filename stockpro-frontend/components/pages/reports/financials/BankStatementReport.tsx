@@ -10,6 +10,9 @@ import { useGetSalesInvoicesQuery } from "../../../store/slices/salesInvoice/sal
 import { useGetPurchaseInvoicesQuery } from "../../../store/slices/purchaseInvoice/purchaseInvoiceApiSlice";
 import { useGetSalesReturnsQuery } from "../../../store/slices/salesReturn/salesReturnApiSlice";
 import { useGetPurchaseReturnsQuery } from "../../../store/slices/purchaseReturn/purchaseReturnApiSlice";
+import { useGetReceiptVouchersQuery } from "../../../store/slices/receiptVoucherApiSlice";
+import { useGetPaymentVouchersQuery } from "../../../store/slices/paymentVoucherApiSlice";
+import { useAuth } from "../../../hook/Auth";
 
 interface BankStatementReportProps {
   title: string;
@@ -22,11 +25,16 @@ interface BankStatementReportProps {
 const BankStatementReport: React.FC<BankStatementReportProps> = ({
   title,
   companyInfo,
-  receiptVouchers,
-  paymentVouchers,
+  receiptVouchers: propReceiptVouchers,
+  paymentVouchers: propPaymentVouchers,
   currentUser,
 }) => {
   const navigate = useNavigate();
+  const { isAuthed } = useAuth();
+  
+  // Only fetch if user is authenticated
+  const skip = !isAuthed;
+
   // API hooks
   const { data: apiBanks = [], isLoading: banksLoading } =
     useGetBanksQuery(undefined);
@@ -35,6 +43,44 @@ const BankStatementReport: React.FC<BankStatementReportProps> = ({
   const { data: apiPurchaseInvoices = [] } = useGetPurchaseInvoicesQuery(undefined);
   const { data: apiSalesReturns = [] } = useGetSalesReturnsQuery(undefined);
   const { data: apiPurchaseReturns = [] } = useGetPurchaseReturnsQuery(undefined);
+  const { 
+    data: apiReceiptVouchers = [], 
+    isLoading: receiptVouchersLoading,
+  } = useGetReceiptVouchersQuery(undefined, { skip });
+  const { 
+    data: apiPaymentVouchers = [], 
+    isLoading: paymentVouchersLoading,
+  } = useGetPaymentVouchersQuery(undefined, { skip });
+  
+  // Use API vouchers if authenticated and API is being used, otherwise fall back to props
+  const rawReceiptVouchers = isAuthed ? apiReceiptVouchers : (propReceiptVouchers || []);
+  const rawPaymentVouchers = isAuthed ? apiPaymentVouchers : (propPaymentVouchers || []);
+
+  // Helper function to normalize dates to YYYY-MM-DD format
+  const normalizeDate = useMemo(() => {
+    return (date: any): string => {
+      if (!date) return "";
+      if (typeof date === "string") {
+        // If it's already in YYYY-MM-DD format, return as is
+        if (/^\d{4}-\d{2}-\d{2}$/.test(date)) return date;
+        // If it's an ISO string, extract the date part
+        return date.substring(0, 10);
+      }
+      if (date instanceof Date) {
+        return date.toISOString().split("T")[0];
+      }
+      // Try to parse as Date if it's a string that looks like a date
+      try {
+        const parsed = new Date(date);
+        if (!isNaN(parsed.getTime())) {
+          return parsed.toISOString().split("T")[0];
+        }
+      } catch (e) {
+        // Ignore parsing errors
+      }
+      return "";
+    };
+  }, []);
 
   // Transform API data to match expected format
   const banks = useMemo(() => {
@@ -44,7 +90,56 @@ const BankStatementReport: React.FC<BankStatementReportProps> = ({
     }));
   }, [apiBanks]);
 
-  const isLoading = banksLoading;
+  // Transform vouchers to match expected structure
+  const receiptVouchers = useMemo(() => {
+    return rawReceiptVouchers.map((voucher: any) => {
+      // Transform to match expected structure
+      // If voucher already has entity structure (from props), use it
+      // Otherwise, build it from API structure
+      const entity = voucher.entity || {
+        type: voucher.entityType,
+        id: voucher.customerId || voucher.supplierId || voucher.currentAccountId || "",
+        name: voucher.entityName || "",
+      };
+      
+      return {
+        id: voucher.id,
+        code: voucher.code || voucher.id,
+        date: normalizeDate(voucher.date),
+        entity: entity,
+        amount: voucher.amount,
+        description: voucher.description || "",
+        paymentMethod: voucher.paymentMethod,
+        safeOrBankId: voucher.safeId || voucher.bankId,
+      };
+    });
+  }, [rawReceiptVouchers, normalizeDate]);
+
+  const paymentVouchers = useMemo(() => {
+    return rawPaymentVouchers.map((voucher: any) => {
+      // Transform to match expected structure
+      // If voucher already has entity structure (from props), use it
+      // Otherwise, build it from API structure
+      const entity = voucher.entity || {
+        type: voucher.entityType,
+        id: voucher.customerId || voucher.supplierId || voucher.currentAccountId || "",
+        name: voucher.entityName || "",
+      };
+      
+      return {
+        id: voucher.id,
+        code: voucher.code || voucher.id,
+        date: normalizeDate(voucher.date),
+        entity: entity,
+        amount: voucher.amount,
+        description: voucher.description || "",
+        paymentMethod: voucher.paymentMethod,
+        safeOrBankId: voucher.safeId || voucher.bankId,
+      };
+    });
+  }, [rawPaymentVouchers, normalizeDate]);
+
+  const isLoading = banksLoading || receiptVouchersLoading || paymentVouchersLoading;
   const currentYear = new Date().getFullYear();
   const currentDate = new Date().toISOString().substring(0, 10);
   const [startDate, setStartDate] = useState(`${currentYear}-01-01`);

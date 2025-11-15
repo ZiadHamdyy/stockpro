@@ -4,6 +4,9 @@ import { ExcelIcon, PdfIcon, PrintIcon, SearchIcon } from "../../../icons";
 import InvoiceHeader from "../../../common/InvoiceHeader";
 import { formatNumber, getNegativeNumberClass } from "../../../../utils/formatting";
 import { useGetCurrentAccountsQuery } from "../../../store/slices/currentAccounts/currentAccountsApi";
+import { useGetReceiptVouchersQuery } from "../../../store/slices/receiptVoucherApiSlice";
+import { useGetPaymentVouchersQuery } from "../../../store/slices/paymentVoucherApiSlice";
+import { useAuth } from "../../../hook/Auth";
 
 interface TotalCurrentAccountsReportProps {
   title: string;
@@ -17,12 +20,55 @@ const TotalCurrentAccountsReport: React.FC<TotalCurrentAccountsReportProps> = ({
   title,
   companyInfo,
   currentUser,
-  receiptVouchers,
-  paymentVouchers,
+  receiptVouchers: propReceiptVouchers,
+  paymentVouchers: propPaymentVouchers,
 }) => {
+  const { isAuthed } = useAuth();
+  
+  // Only fetch if user is authenticated
+  const skip = !isAuthed;
+
   // API hooks
   const { data: apiCurrentAccounts = [], isLoading: currentAccountsLoading } =
     useGetCurrentAccountsQuery(undefined);
+  const { 
+    data: apiReceiptVouchers = [], 
+    isLoading: receiptVouchersLoading,
+  } = useGetReceiptVouchersQuery(undefined, { skip });
+  const { 
+    data: apiPaymentVouchers = [], 
+    isLoading: paymentVouchersLoading,
+  } = useGetPaymentVouchersQuery(undefined, { skip });
+  
+  // Use API vouchers if authenticated and API is being used, otherwise fall back to props
+  const rawReceiptVouchers = isAuthed ? apiReceiptVouchers : (propReceiptVouchers || []);
+  const rawPaymentVouchers = isAuthed ? apiPaymentVouchers : (propPaymentVouchers || []);
+
+  // Helper function to normalize dates to YYYY-MM-DD format
+  const normalizeDate = useMemo(() => {
+    return (date: any): string => {
+      if (!date) return "";
+      if (typeof date === "string") {
+        // If it's already in YYYY-MM-DD format, return as is
+        if (/^\d{4}-\d{2}-\d{2}$/.test(date)) return date;
+        // If it's an ISO string, extract the date part
+        return date.substring(0, 10);
+      }
+      if (date instanceof Date) {
+        return date.toISOString().split("T")[0];
+      }
+      // Try to parse as Date if it's a string that looks like a date
+      try {
+        const parsed = new Date(date);
+        if (!isNaN(parsed.getTime())) {
+          return parsed.toISOString().split("T")[0];
+        }
+      } catch (e) {
+        // Ignore parsing errors
+      }
+      return "";
+    };
+  }, []);
 
   // Transform API data to match expected format
   const currentAccounts = useMemo(() => {
@@ -32,7 +78,56 @@ const TotalCurrentAccountsReport: React.FC<TotalCurrentAccountsReportProps> = ({
     }));
   }, [apiCurrentAccounts]);
 
-  const isLoading = currentAccountsLoading;
+  // Transform vouchers to match expected structure
+  const receiptVouchers = useMemo(() => {
+    return rawReceiptVouchers.map((voucher: any) => {
+      // Transform to match expected structure
+      // If voucher already has entity structure (from props), use it
+      // Otherwise, build it from API structure
+      const entity = voucher.entity || {
+        type: voucher.entityType,
+        id: voucher.customerId || voucher.supplierId || voucher.currentAccountId || "",
+        name: voucher.entityName || "",
+      };
+      
+      return {
+        id: voucher.id,
+        code: voucher.code || voucher.id,
+        date: normalizeDate(voucher.date),
+        entity: entity,
+        amount: voucher.amount,
+        description: voucher.description || "",
+        paymentMethod: voucher.paymentMethod,
+        safeOrBankId: voucher.safeId || voucher.bankId,
+      };
+    });
+  }, [rawReceiptVouchers, normalizeDate]);
+
+  const paymentVouchers = useMemo(() => {
+    return rawPaymentVouchers.map((voucher: any) => {
+      // Transform to match expected structure
+      // If voucher already has entity structure (from props), use it
+      // Otherwise, build it from API structure
+      const entity = voucher.entity || {
+        type: voucher.entityType,
+        id: voucher.customerId || voucher.supplierId || voucher.currentAccountId || "",
+        name: voucher.entityName || "",
+      };
+      
+      return {
+        id: voucher.id,
+        code: voucher.code || voucher.id,
+        date: normalizeDate(voucher.date),
+        entity: entity,
+        amount: voucher.amount,
+        description: voucher.description || "",
+        paymentMethod: voucher.paymentMethod,
+        safeOrBankId: voucher.safeId || voucher.bankId,
+      };
+    });
+  }, [rawPaymentVouchers, normalizeDate]);
+
+  const isLoading = currentAccountsLoading || receiptVouchersLoading || paymentVouchersLoading;
   const currentYear = new Date().getFullYear();
   const currentDate = new Date().toISOString().substring(0, 10);
   const [startDate, setStartDate] = useState(`${currentYear}-01-01`);
@@ -40,45 +135,61 @@ const TotalCurrentAccountsReport: React.FC<TotalCurrentAccountsReportProps> = ({
 
   // Calculate account balances from vouchers
   const accountsSummary = useMemo(() => {
+    const normalizedStartDate = normalizeDate(startDate);
+    const normalizedEndDate = normalizeDate(endDate);
+    
     return currentAccounts.map((account) => {
       const accountId = account.id;
+      const accountIdStr = accountId.toString();
 
       // Count receipt vouchers (credits) for this account
       const receiptCount = receiptVouchers.filter(
-        (v) =>
-          v.entity.type === "current_account" &&
-          v.entity.id === accountId &&
-          v.date >= startDate &&
-          v.date <= endDate,
+        (v) => {
+          const vDate = normalizeDate(v.date);
+          const voucherAccountId = v.entity?.id?.toString() || v.entity?.id;
+          return v.entity?.type === "current_account" &&
+                 (voucherAccountId === accountIdStr || voucherAccountId == accountId) &&
+                 vDate >= normalizedStartDate &&
+                 vDate <= normalizedEndDate;
+        }
       ).length;
 
       // Count payment vouchers (debits) for this account
       const paymentCount = paymentVouchers.filter(
-        (v) =>
-          v.entity.type === "current_account" &&
-          v.entity.id === accountId &&
-          v.date >= startDate &&
-          v.date <= endDate,
+        (v) => {
+          const vDate = normalizeDate(v.date);
+          const voucherAccountId = v.entity?.id?.toString() || v.entity?.id;
+          return v.entity?.type === "current_account" &&
+                 (voucherAccountId === accountIdStr || voucherAccountId == accountId) &&
+                 vDate >= normalizedStartDate &&
+                 vDate <= normalizedEndDate;
+        }
       ).length;
 
       // Calculate amounts for balance calculation
       const receipts = receiptVouchers
         .filter(
-          (v) =>
-            v.entity.type === "current_account" &&
-            v.entity.id === accountId &&
-            v.date >= startDate &&
-            v.date <= endDate,
+          (v) => {
+            const vDate = normalizeDate(v.date);
+            const voucherAccountId = v.entity?.id?.toString() || v.entity?.id;
+            return v.entity?.type === "current_account" &&
+                   (voucherAccountId === accountIdStr || voucherAccountId == accountId) &&
+                   vDate >= normalizedStartDate &&
+                   vDate <= normalizedEndDate;
+          }
         )
         .reduce((sum, v) => sum + v.amount, 0);
 
       const payments = paymentVouchers
         .filter(
-          (v) =>
-            v.entity.type === "current_account" &&
-            v.entity.id === accountId &&
-            v.date >= startDate &&
-            v.date <= endDate,
+          (v) => {
+            const vDate = normalizeDate(v.date);
+            const voucherAccountId = v.entity?.id?.toString() || v.entity?.id;
+            return v.entity?.type === "current_account" &&
+                   (voucherAccountId === accountIdStr || voucherAccountId == accountId) &&
+                   vDate >= normalizedStartDate &&
+                   vDate <= normalizedEndDate;
+          }
         )
         .reduce((sum, v) => sum + v.amount, 0);
 
@@ -95,7 +206,7 @@ const TotalCurrentAccountsReport: React.FC<TotalCurrentAccountsReportProps> = ({
         balance: balance,
       };
     });
-  }, [currentAccounts, receiptVouchers, paymentVouchers, startDate, endDate]);
+  }, [currentAccounts, receiptVouchers, paymentVouchers, startDate, endDate, normalizeDate]);
 
   const totals = accountsSummary.reduce(
     (acc, item) => {
@@ -265,7 +376,7 @@ const TotalCurrentAccountsReport: React.FC<TotalCurrentAccountsReportProps> = ({
                 إجمالي مدين	
                 </th>
                 <th className="px-6 py-3 text-right text-sm font-semibold text-white uppercase">
-                إجمالي مدين	
+                إجمالي دائن	
                 </th>
                 <th className="px-6 py-3 text-right text-sm font-semibold text-white uppercase">
                   الرصيد الحالي

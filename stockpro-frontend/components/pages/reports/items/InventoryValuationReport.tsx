@@ -25,13 +25,24 @@ const InventoryValuationReport: React.FC<InventoryValuationReportProps> = ({
   companyInfo,
   currentUser,
 }) => {
-  // API hooks
-  const { data: apiItems = [], isLoading: itemsLoading } =
-    useGetItemsQuery(undefined);
+  // Branch filter state - default to current user's branch or "all"
+  const [selectedBranchId, setSelectedBranchId] = useState<string>(
+    currentUser?.branchId || "all"
+  );
+  
+  // Get store for selected branch
   const { data: branches = [], isLoading: branchesLoading } =
     useGetBranchesQuery(undefined);
   const { data: stores = [], isLoading: storesLoading } =
     useGetStoresQuery(undefined);
+  
+  const selectedStore = selectedBranchId === "all" 
+    ? stores.find((store) => store.branchId === currentUser?.branchId)
+    : stores.find((store) => store.branchId === selectedBranchId);
+  
+  // API hooks - get items with store-specific balances
+  const { data: apiItems = [], isLoading: itemsLoading } =
+    useGetItemsQuery(selectedStore ? { storeId: selectedStore.id } : undefined);
   const { data: salesInvoices = [], isLoading: salesInvoicesLoading } =
     useGetSalesInvoicesQuery(undefined);
   const { data: salesReturns = [], isLoading: salesReturnsLoading } =
@@ -185,7 +196,6 @@ const InventoryValuationReport: React.FC<InventoryValuationReportProps> = ({
     storeIssueVouchersLoading ||
     storeTransferVouchersLoading;
   const [reportData, setReportData] = useState<any[]>([]);
-  const [selectedBranch, setSelectedBranch] = useState("all");
   const [valuationMethod, setValuationMethod] = useState<
     "purchasePrice" | "salePrice" | "averageCost"
   >("purchasePrice");
@@ -194,12 +204,18 @@ const InventoryValuationReport: React.FC<InventoryValuationReportProps> = ({
     if (isLoading) return;
 
     const valuationData = items.map((item) => {
-      let balance = item.stock; // Opening balance
+      // Use StoreItem's openingBalance as base, or 0 if not available
+      let balance = (item as any).openingBalance ?? 0;
 
+      const selectedBranchName = selectedBranchId === "all" 
+        ? "all"
+        : branches.find(b => b.id === selectedBranchId)?.name || "";
+      
       const filterByBranch = (tx: any) =>
-        selectedBranch === "all" ||
-        tx.branch === selectedBranch ||
-        tx.branchName === selectedBranch;
+        selectedBranchId === "all" ||
+        tx.branch === selectedBranchName ||
+        tx.branchName === selectedBranchName ||
+        tx.branchId === selectedBranchId;
 
       transformedPurchaseInvoices.filter(filterByBranch).forEach((inv) =>
         inv.items.forEach((i) => {
@@ -233,14 +249,14 @@ const InventoryValuationReport: React.FC<InventoryValuationReportProps> = ({
         }),
       );
 
-      if (selectedBranch !== "all") {
+      if (selectedBranchId !== "all") {
         transformedStoreTransferVouchers.forEach((v) => {
           const fromStore = stores.find((s) => s.name === v.fromStore);
           const toStore = stores.find((s) => s.name === v.toStore);
           v.items.forEach((i) => {
             if (i.id === item.code) {
-              if (fromStore?.branch?.name === selectedBranch) balance -= i.qty;
-              if (toStore?.branch?.name === selectedBranch) balance += i.qty;
+              if (fromStore?.branchId === selectedBranchId) balance -= i.qty;
+              if (toStore?.branchId === selectedBranchId) balance += i.qty;
             }
           });
         });
@@ -274,7 +290,7 @@ const InventoryValuationReport: React.FC<InventoryValuationReportProps> = ({
     setReportData(valuationData);
   }, [
     items,
-    selectedBranch,
+    selectedBranchId,
     valuationMethod,
     transformedSalesInvoices,
     transformedSalesReturns,
@@ -381,7 +397,7 @@ const InventoryValuationReport: React.FC<InventoryValuationReportProps> = ({
                   'آخر شراء'
                 }
               </p>
-              <span className="font-semibold text-gray-800">الفرع:</span> {selectedBranch === "all" ? "جميع الفروع" : selectedBranch}
+              <span className="font-semibold text-gray-800">الفرع:</span> {selectedBranchId === "all" ? "جميع الفروع" : branches.find(b => b.id === selectedBranchId)?.name || ""}
             </div>
             <div className="space-y-2 text-right">
               <p className="text-base text-gray-700">
@@ -396,12 +412,12 @@ const InventoryValuationReport: React.FC<InventoryValuationReportProps> = ({
             <label className="font-semibold">الفرع:</label>
             <select
               className="p-2 border-2 border-brand-blue rounded-md bg-brand-blue-bg"
-              value={selectedBranch}
-              onChange={(e) => setSelectedBranch(e.target.value)}
+              value={selectedBranchId}
+              onChange={(e) => setSelectedBranchId(e.target.value)}
             >
               <option value="all">جميع الفروع</option>
               {branches.map((branch) => (
-                <option key={branch.id} value={branch.name}>
+                <option key={branch.id} value={branch.id}>
                   {branch.name}
                 </option>
               ))}

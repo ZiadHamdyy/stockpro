@@ -1,38 +1,67 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { DatabaseService } from '../../configs/database/database.service';
 import { CreateItemRequest } from './dtos/request/create-item.request';
 import { UpdateItemRequest } from './dtos/request/update-item.request';
 import { ItemResponse } from './dtos/response/item.response';
+import { StoreService } from '../store/store.service';
+import { StockService } from '../store/services/stock.service';
+import type { currentUserType } from '../../common/types/current-user.type';
 
 @Injectable()
 export class ItemService {
-  constructor(private readonly prisma: DatabaseService) {}
+  constructor(
+    private readonly prisma: DatabaseService,
+    private readonly storeService: StoreService,
+    private readonly stockService: StockService,
+  ) {}
 
-  async create(data: CreateItemRequest): Promise<ItemResponse> {
+  async create(
+    data: CreateItemRequest,
+    currentUser: currentUserType,
+  ): Promise<ItemResponse> {
     // Generate next code automatically
     const nextCode = await this.generateNextCode();
+
+    // Get user's store from their branch
+    const store = await this.storeService.findByBranchId(currentUser.branchId);
+
+    const openingStock = data.type === 'SERVICE' ? 0 : (data.stock || 0);
 
     const payload: any = {
       ...data,
       code: nextCode, // Use auto-generated code
       salePrice: (data as any).salePrice ?? 0,
-      stock: data.type === 'SERVICE' ? 0 : (data.stock || 0),
+      stock: 0, // Set global stock to 0, use StoreItem for store-specific stock
       reorderLimit: data.reorderLimit || 0,
       type: (data as any).type ?? 'STOCKED',
     };
 
-    const item = await this.prisma.item.create({
-      data: payload,
-      include: {
-        group: true,
-        unit: true,
-      },
+    // Create item and StoreItem in a transaction
+    const result = await this.prisma.$transaction(async (tx) => {
+      const item = await tx.item.create({
+        data: payload,
+        include: {
+          group: true,
+          unit: true,
+        },
+      });
+
+      // Create StoreItem entry for the user's store with opening stock
+      await tx.storeItem.create({
+        data: {
+          storeId: store.id,
+          itemId: item.id,
+          openingBalance: openingStock,
+        },
+      });
+
+      return item;
     });
 
-    return this.mapToResponse(item);
+    return this.mapToResponse(result);
   }
 
-  async findAll(): Promise<ItemResponse[]> {
+  async findAll(storeId?: string): Promise<ItemResponse[]> {
     const items = await this.prisma.item.findMany({
       include: {
         group: true,
@@ -41,6 +70,25 @@ export class ItemService {
       orderBy: { createdAt: 'asc' },
     });
 
+    // If storeId provided, calculate store-specific balances and include openingBalance
+    if (storeId) {
+      const itemsWithBalances = await Promise.all(
+        items.map(async (item) => {
+          const balance = await this.stockService.getStoreItemBalance(
+            storeId,
+            item.id,
+          );
+          const openingBalance = await this.stockService.getStoreItemOpeningBalance(
+            storeId,
+            item.id,
+          );
+          return this.mapToResponse({ ...item, stock: balance, openingBalance });
+        }),
+      );
+      return itemsWithBalances;
+    }
+
+    // If no storeId, return with global stock (0 for new items)
     return items.map((item) => this.mapToResponse(item));
   }
 
@@ -145,6 +193,7 @@ export class ItemService {
       purchasePrice: item.purchasePrice,
       salePrice: item.salePrice,
       stock: item.stock,
+      openingBalance: (item as any).openingBalance,
       reorderLimit: item.reorderLimit,
       type: item.type,
       group: {

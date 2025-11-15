@@ -14,6 +14,9 @@ import { useGetCustomersQuery } from "../../../store/slices/customer/customerApi
 import { useGetSalesInvoicesQuery } from "../../../store/slices/salesInvoice/salesInvoiceApiSlice";
 import { useGetSalesReturnsQuery } from "../../../store/slices/salesReturn/salesReturnApiSlice";
 import { useGetBranchesQuery } from "../../../store/slices/branch/branchApi";
+import { useGetReceiptVouchersQuery } from "../../../store/slices/receiptVoucherApiSlice";
+import { useGetPaymentVouchersQuery } from "../../../store/slices/paymentVoucherApiSlice";
+import { useAuth } from "../../../hook/Auth";
 
 interface CustomerBalanceReportProps {
   title: string;
@@ -26,10 +29,13 @@ interface CustomerBalanceReportProps {
 const CustomerBalanceReport: React.FC<CustomerBalanceReportProps> = ({
   title,
   companyInfo,
-  receiptVouchers,
-  paymentVouchers,
+  receiptVouchers: propReceiptVouchers,
+  paymentVouchers: propPaymentVouchers,
   currentUser,
 }) => {
+  const { isAuthed } = useAuth();
+  const skip = !isAuthed;
+
   // API hooks
   const { data: apiCustomers = [], isLoading: customersLoading } =
     useGetCustomersQuery(undefined);
@@ -39,6 +45,18 @@ const CustomerBalanceReport: React.FC<CustomerBalanceReportProps> = ({
     useGetSalesReturnsQuery(undefined);
   const { data: apiBranches = [], isLoading: branchesLoading } =
     useGetBranchesQuery(undefined);
+  const { 
+    data: apiReceiptVouchers = [], 
+    isLoading: receiptVouchersLoading,
+  } = useGetReceiptVouchersQuery(undefined, { skip });
+  const { 
+    data: apiPaymentVouchers = [], 
+    isLoading: paymentVouchersLoading,
+  } = useGetPaymentVouchersQuery(undefined, { skip });
+
+  // Use API vouchers if authenticated and API is being used, otherwise fall back to props
+  const rawReceiptVouchers = isAuthed ? apiReceiptVouchers : (propReceiptVouchers || []);
+  const rawPaymentVouchers = isAuthed ? apiPaymentVouchers : (propPaymentVouchers || []);
 
   // Transform API data to match expected format
   const customers = useMemo(() => {
@@ -52,12 +70,24 @@ const CustomerBalanceReport: React.FC<CustomerBalanceReportProps> = ({
     return (apiSalesInvoices as any[]).map((invoice) => ({
       ...invoice,
       // Transform nested customer data
-      customerOrSupplier: invoice.customerOrSupplier
+      customerOrSupplier: invoice.customer
+        ? {
+            id: invoice.customer.id.toString(),
+            name: invoice.customer.name,
+          }
+        : invoice.customerOrSupplier
         ? {
             id: invoice.customerOrSupplier.id.toString(),
             name: invoice.customerOrSupplier.name,
           }
         : null,
+      // Transform totals structure
+      totals: invoice.totals || {
+        subtotal: invoice.subtotal || 0,
+        discount: invoice.discount || 0,
+        tax: invoice.tax || 0,
+        net: invoice.net || 0,
+      },
     }));
   }, [apiSalesInvoices]);
 
@@ -65,12 +95,24 @@ const CustomerBalanceReport: React.FC<CustomerBalanceReportProps> = ({
     return (apiSalesReturns as any[]).map((returnInvoice) => ({
       ...returnInvoice,
       // Transform nested customer data
-      customerOrSupplier: returnInvoice.customerOrSupplier
+      customerOrSupplier: returnInvoice.customer
+        ? {
+            id: returnInvoice.customer.id.toString(),
+            name: returnInvoice.customer.name,
+          }
+        : returnInvoice.customerOrSupplier
         ? {
             id: returnInvoice.customerOrSupplier.id.toString(),
             name: returnInvoice.customerOrSupplier.name,
           }
         : null,
+      // Transform totals structure
+      totals: returnInvoice.totals || {
+        subtotal: returnInvoice.subtotal || 0,
+        discount: returnInvoice.discount || 0,
+        tax: returnInvoice.tax || 0,
+        net: returnInvoice.net || 0,
+      },
     }));
   }, [apiSalesReturns]);
 
@@ -81,11 +123,79 @@ const CustomerBalanceReport: React.FC<CustomerBalanceReportProps> = ({
     }));
   }, [apiBranches]);
 
+  // Helper function to normalize dates to YYYY-MM-DD format
+  const normalizeDate = useMemo(() => {
+    return (date: any): string => {
+      if (!date) return "";
+      if (typeof date === "string") {
+        if (/^\d{4}-\d{2}-\d{2}$/.test(date)) return date;
+        return date.substring(0, 10);
+      }
+      if (date instanceof Date) {
+        return date.toISOString().split("T")[0];
+      }
+      try {
+        const parsed = new Date(date);
+        if (!isNaN(parsed.getTime())) {
+          return parsed.toISOString().split("T")[0];
+        }
+      } catch (e) {
+        // Ignore parsing errors
+      }
+      return "";
+    };
+  }, []);
+
+  // Transform vouchers to match expected structure
+  const receiptVouchers = useMemo(() => {
+    return rawReceiptVouchers.map((voucher: any) => {
+      const entity = voucher.entity || {
+        type: voucher.entityType,
+        id: voucher.customerId || voucher.supplierId || voucher.currentAccountId || "",
+        name: voucher.entityName || "",
+      };
+      
+      return {
+        id: voucher.id,
+        code: voucher.code || voucher.id,
+        date: normalizeDate(voucher.date),
+        entity: entity,
+        amount: voucher.amount,
+        description: voucher.description || "",
+        paymentMethod: voucher.paymentMethod,
+        safeOrBankId: voucher.safeId || voucher.bankId,
+      };
+    });
+  }, [rawReceiptVouchers, normalizeDate]);
+
+  const paymentVouchers = useMemo(() => {
+    return rawPaymentVouchers.map((voucher: any) => {
+      const entity = voucher.entity || {
+        type: voucher.entityType,
+        id: voucher.customerId || voucher.supplierId || voucher.currentAccountId || "",
+        name: voucher.entityName || "",
+      };
+      
+      return {
+        id: voucher.id,
+        code: voucher.code || voucher.id,
+        date: normalizeDate(voucher.date),
+        entity: entity,
+        amount: voucher.amount,
+        description: voucher.description || "",
+        paymentMethod: voucher.paymentMethod,
+        safeOrBankId: voucher.safeId || voucher.bankId,
+      };
+    });
+  }, [rawPaymentVouchers, normalizeDate]);
+
   const isLoading =
     customersLoading ||
     salesInvoicesLoading ||
     salesReturnsLoading ||
-    branchesLoading;
+    branchesLoading ||
+    receiptVouchersLoading ||
+    paymentVouchersLoading;
   const [endDate, setEndDate] = useState(
     new Date().toISOString().substring(0, 10),
   );
@@ -97,43 +207,55 @@ const CustomerBalanceReport: React.FC<CustomerBalanceReportProps> = ({
       const customerIdStr = customer.id.toString();
       const customerId = customer.id;
 
-      const sales = salesInvoices
+      const totalSales = salesInvoices
         .filter(
-          (inv) =>
-            inv.customerOrSupplier?.id === customerIdStr && inv.date <= endDate,
+          (inv) => {
+            const invDate = normalizeDate(inv.date);
+            const invCustomerId = inv.customerOrSupplier?.id || inv.customerId?.toString() || (inv.customer?.id?.toString());
+            return (invCustomerId === customerIdStr || invCustomerId == customerId) && invDate <= endDate;
+          }
         )
-        .reduce((sum, inv) => sum + inv.totals.net, 0);
+        .reduce((sum, inv) => sum + (inv.totals?.net || inv.net || 0), 0);
 
-      const returns = salesReturns
+      const totalReturns = salesReturns
         .filter(
-          (inv) =>
-            inv.customerOrSupplier?.id === customerIdStr && inv.date <= endDate,
+          (inv) => {
+            const invDate = normalizeDate(inv.date);
+            const invCustomerId = inv.customerOrSupplier?.id || inv.customerId?.toString() || (inv.customer?.id?.toString());
+            return (invCustomerId === customerIdStr || invCustomerId == customerId) && invDate <= endDate;
+          }
         )
-        .reduce((sum, inv) => sum + inv.totals.net, 0);
+        .reduce((sum, inv) => sum + (inv.totals?.net || inv.net || 0), 0);
 
-      const receipts = receiptVouchers
+      const totalReceipts = receiptVouchers
         .filter(
-          (v) =>
-            v.entity.type === "customer" &&
-            v.entity.id == customerId &&
-            v.date <= endDate,
+          (v) => {
+            const vDate = normalizeDate(v.date);
+            const voucherCustomerId = v.entity?.id?.toString() || v.entity?.id;
+            return v.entity?.type === "customer" &&
+              (voucherCustomerId === customerIdStr || voucherCustomerId == customerId) &&
+              vDate <= endDate;
+          }
         )
         .reduce((sum, v) => sum + v.amount, 0);
 
-      const payments = paymentVouchers // Payments to customer (credit)
+      const totalPayments = paymentVouchers // Refunds to customer
         .filter(
-          (v) =>
-            v.entity.type === "customer" &&
-            v.entity.id == customerId &&
-            v.date <= endDate,
+          (v) => {
+            const vDate = normalizeDate(v.date);
+            const voucherCustomerId = v.entity?.id?.toString() || v.entity?.id;
+            return v.entity?.type === "customer" &&
+              (voucherCustomerId === customerIdStr || voucherCustomerId == customerId) &&
+              vDate <= endDate;
+          }
         )
         .reduce((sum, v) => sum + v.amount, 0);
 
       const opening = customer.openingBalance;
-      // Total Debit: sales invoices, receipt vouchers (increases what they owe us)
-      const totalDebit = sales + receipts;
-      // Total Credit: sales returns, payment vouchers (decreases what they owe us)
-      const totalCredit = returns + payments;
+      // Total Debit: sales invoices, payment vouchers (all increase what customer owes)
+      const totalDebit = totalSales + totalPayments;
+      // Total Credit: sales returns, receipt vouchers (all decrease what customer owes)
+      const totalCredit = totalReturns + totalReceipts;
       // Balance = Beginning Balance + Total Debit - Total Credit
       const balance = opening + totalDebit - totalCredit;
 
@@ -141,10 +263,10 @@ const CustomerBalanceReport: React.FC<CustomerBalanceReportProps> = ({
         id: customer.id,
         code: customer.code,
         name: customer.name,
-        opening: opening,
+        opening,
         debit: totalDebit,
         credit: totalCredit,
-        balance: balance,
+        balance,
       };
     });
     setReportData(customerBalanceData);
@@ -155,6 +277,7 @@ const CustomerBalanceReport: React.FC<CustomerBalanceReportProps> = ({
     receiptVouchers,
     paymentVouchers,
     endDate,
+    normalizeDate,
   ]);
 
   useEffect(() => {
@@ -302,7 +425,6 @@ const CustomerBalanceReport: React.FC<CustomerBalanceReportProps> = ({
               <span className="font-semibold text-gray-700">إخفاء العملاء برصيد صفر</span>
             </label>
           </div>
-          
           <div className="flex items-center gap-2">
             <button
               title="تصدير Excel"
@@ -333,7 +455,7 @@ const CustomerBalanceReport: React.FC<CustomerBalanceReportProps> = ({
                 <th className="px-6 py-3 text-right text-sm font-semibold text-white uppercase w-28">
                   كود العميل
                 </th>
-                <th className="px-6 py-3 text-right text-sm font-semibold text-white uppercase">
+                <th className="px-6 py-3 text-right text-sm font-semibold text-white uppercase w-64">
                   اسم العميل
                 </th>
                 <th className="px-6 py-3 text-right text-sm font-semibold text-white uppercase">
@@ -360,10 +482,10 @@ const CustomerBalanceReport: React.FC<CustomerBalanceReportProps> = ({
                   <td className={`px-6 py-4 ${getNegativeNumberClass(item.opening)}`}>
                     {formatNumber(item.opening)}
                   </td>
-                  <td className="px-6 py-4 text-green-600">
+                  <td className="px-6 py-4 text-red-600">
                     {formatNumber(item.debit)}
                   </td>
-                  <td className="px-6 py-4 text-red-600">
+                  <td className="px-6 py-4 text-green-600">
                     {item.credit > 0 ? formatNumber(item.credit) : "0.00"}
                   </td>
                   <td className={`px-6 py-4 font-bold ${getNegativeNumberClass(item.balance)}`}>
@@ -399,3 +521,4 @@ const CustomerBalanceReport: React.FC<CustomerBalanceReportProps> = ({
 };
 
 export default CustomerBalanceReport;
+

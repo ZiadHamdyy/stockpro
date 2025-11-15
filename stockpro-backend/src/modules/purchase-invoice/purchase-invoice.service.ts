@@ -7,10 +7,16 @@ import { bufferToDataUri } from '../../common/utils/image-converter';
 import { throwHttp } from '../../common/utils/http-error';
 import { ERROR_CODES } from '../../common/constants/error-codes';
 import { AccountingService } from '../../common/services/accounting.service';
+import { StoreService } from '../store/store.service';
+import { StockService } from '../store/services/stock.service';
 
 @Injectable()
 export class PurchaseInvoiceService {
-  constructor(private readonly prisma: DatabaseService) {}
+  constructor(
+    private readonly prisma: DatabaseService,
+    private readonly storeService: StoreService,
+    private readonly stockService: StockService,
+  ) {}
 
   /**
    * Converts user data from database format to response format
@@ -66,7 +72,24 @@ export class PurchaseInvoiceService {
     const tax = subtotal * 0.15; // 15% VAT
     const net = subtotal - discount + tax;
 
+    // Get store from branch
+    let store: any = null;
+    if (branchId) {
+      try {
+        store = await this.storeService.findByBranchId(branchId);
+      } catch (error) {
+        // Store not found, will use fallback
+      }
+    }
+
     const created = await this.prisma.$transaction(async (tx) => {
+      // Get store in transaction
+      if (branchId && !store) {
+        store = await tx.store.findFirst({
+          where: { branchId },
+        });
+      }
+
       const inv = await tx.purchaseInvoice.create({
         data: {
           code,
@@ -93,11 +116,62 @@ export class PurchaseInvoiceService {
         },
       });
 
-      for (const item of data.items) {
-        await tx.item.update({
-          where: { code: item.id },
-          data: { stock: { increment: item.qty }, purchasePrice: item.price },
-        });
+      // Track stock directly (only for STOCKED items)
+      if (store) {
+        // Filter STOCKED items and get item records
+        const stockedItemsWithRecords = await Promise.all(
+          data.items.map(async (item) => {
+            const itemRecord = await tx.item.findUnique({ 
+              where: { code: item.id }
+            });
+            if (itemRecord && (itemRecord as any).type === 'STOCKED') {
+              return { item, itemRecord };
+            }
+            return null;
+          })
+        );
+        const stockedItems = stockedItemsWithRecords.filter(Boolean) as Array<{
+          item: any;
+          itemRecord: any;
+        }>;
+
+        // Ensure StoreItem exists for each item (with openingBalance = 0)
+        // Stock will be tracked via PurchaseInvoice items in StockService
+        for (const { itemRecord } of stockedItems) {
+          await this.stockService.ensureStoreItemExists(store.id, itemRecord.id, tx);
+        }
+
+        // Update purchase price for all items (including SERVICE items)
+        for (const item of data.items) {
+          const itemRecord = await tx.item.findUnique({ 
+            where: { code: item.id }
+          });
+          if (itemRecord) {
+            await tx.item.update({
+              where: { code: item.id },
+              data: { purchasePrice: item.price },
+            });
+          }
+        }
+      } else {
+        // Fallback: Update global stock if store not found (backward compatibility)
+        for (const item of data.items) {
+          const itemRecord = await tx.item.findUnique({ 
+            where: { code: item.id }
+          });
+          if (itemRecord && (itemRecord as any).type === 'STOCKED') {
+            await tx.item.update({
+              where: { code: item.id },
+              data: { stock: { increment: item.qty }, purchasePrice: item.price },
+            });
+          } else if (itemRecord) {
+            // Update purchase price even for SERVICE items
+            await tx.item.update({
+              where: { code: item.id },
+              data: { purchasePrice: item.price },
+            });
+          }
+        }
       }
 
       // Apply cash impact if applicable (purchase invoice decreases balance)
@@ -112,7 +186,7 @@ export class PurchaseInvoiceService {
         });
       }
 
-      // Apply credit impact if applicable (increase supplier balance)
+      // Update supplier balance for credit purchases (we owe them more)
       if (data.paymentMethod === 'credit' && data.supplierId) {
         await tx.supplier.update({
           where: { id: data.supplierId },
@@ -268,7 +342,7 @@ export class PurchaseInvoiceService {
           tx,
         });
       }
-      // Reverse previous credit impact if needed
+      // Reverse previous supplier balance update if needed
       if (existingInvoice.paymentMethod === 'credit' && existingInvoice.supplierId) {
         await tx.supplier.update({
           where: { id: existingInvoice.supplierId },
@@ -287,7 +361,7 @@ export class PurchaseInvoiceService {
           tx,
         });
       }
-      // Apply new credit impact if applicable (increase supplier balance)
+      // Apply new supplier balance update if applicable
       if ((inv as any).paymentMethod === 'credit' && (inv as any).supplierId) {
         await tx.supplier.update({
           where: { id: (inv as any).supplierId },
@@ -333,7 +407,7 @@ export class PurchaseInvoiceService {
           tx,
         });
       }
-      // Reverse credit impact if applicable (decrease supplier balance)
+      // Reverse supplier balance update if applicable
       if ((invoice as any).paymentMethod === 'credit' && (invoice as any).supplierId) {
         await tx.supplier.update({
           where: { id: (invoice as any).supplierId },

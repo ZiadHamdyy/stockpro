@@ -31,13 +31,24 @@ const ItemMovementReport: React.FC<ItemMovementReportProps> = ({
   onNavigate,
   currentUser,
 }) => {
-  // API hooks
-  const { data: apiItems = [], isLoading: itemsLoading } =
-    useGetItemsQuery(undefined);
+  // Branch filter state - default to current user's branch or "all"
+  const [selectedBranchId, setSelectedBranchId] = useState<string>(
+    currentUser?.branchId || "all"
+  );
+  
+  // Get store for selected branch
   const { data: branches = [], isLoading: branchesLoading } =
     useGetBranchesQuery(undefined);
   const { data: stores = [], isLoading: storesLoading } =
     useGetStoresQuery(undefined);
+  
+  const selectedStore = selectedBranchId === "all" 
+    ? stores.find((store) => store.branchId === currentUser?.branchId)
+    : stores.find((store) => store.branchId === selectedBranchId);
+  
+  // API hooks - get items with store-specific balances
+  const { data: apiItems = [], isLoading: itemsLoading } =
+    useGetItemsQuery(selectedStore ? { storeId: selectedStore.id } : undefined);
   const { data: salesInvoices = [], isLoading: salesInvoicesLoading } =
     useGetSalesInvoicesQuery(undefined);
   const { data: salesReturns = [], isLoading: salesReturnsLoading } =
@@ -137,31 +148,43 @@ const ItemMovementReport: React.FC<ItemMovementReportProps> = ({
   }, [purchaseReturns]);
 
   const transformedStoreReceiptVouchers = useMemo(() => {
-    return (storeReceiptVouchers as any[]).map((voucher) => ({
-      ...voucher,
-      branch: voucher.store?.branch?.name || "",
-      items: voucher.items.map((item) => ({
-        ...item,
-        id: item.item?.code || item.itemId,
-        name: item.item?.name || "",
-        unit: item.item?.unit?.name || "",
-        qty: item.quantity,
-      })),
-    }));
+    // Filter out system-generated vouchers (marked with [نظام] in notes)
+    return (storeReceiptVouchers as any[])
+      .filter((v) => {
+        const notes = v.notes || "";
+        return !notes.includes("[نظام]");
+      })
+      .map((voucher) => ({
+        ...voucher,
+        branch: voucher.store?.branch?.name || "",
+        items: voucher.items.map((item) => ({
+          ...item,
+          id: item.item?.code || item.itemId,
+          name: item.item?.name || "",
+          unit: item.item?.unit?.name || "",
+          qty: item.quantity,
+        })),
+      }));
   }, [storeReceiptVouchers]);
 
   const transformedStoreIssueVouchers = useMemo(() => {
-    return (storeIssueVouchers as any[]).map((voucher) => ({
-      ...voucher,
-      branch: voucher.store?.branch?.name || "",
-      items: voucher.items.map((item) => ({
-        ...item,
-        id: item.item?.code || item.itemId,
-        name: item.item?.name || "",
-        unit: item.item?.unit?.name || "",
-        qty: item.quantity,
-      })),
-    }));
+    // Filter out system-generated vouchers (marked with [نظام] in notes)
+    return (storeIssueVouchers as any[])
+      .filter((v) => {
+        const notes = v.notes || "";
+        return !notes.includes("[نظام]");
+      })
+      .map((voucher) => ({
+        ...voucher,
+        branch: voucher.store?.branch?.name || "",
+        items: voucher.items.map((item) => ({
+          ...item,
+          id: item.item?.code || item.itemId,
+          name: item.item?.name || "",
+          unit: item.item?.unit?.name || "",
+          qty: item.quantity,
+        })),
+      }));
   }, [storeIssueVouchers]);
 
   const transformedStoreTransferVouchers = useMemo(() => {
@@ -198,7 +221,6 @@ const ItemMovementReport: React.FC<ItemMovementReportProps> = ({
     items.length > 0 ? items[0].id.toString() : null,
   );
   const [itemSearchTerm, setItemSearchTerm] = useState("");
-  const [selectedBranch, setSelectedBranch] = useState("all");
 
   const [reportData, setReportData] = useState<any[]>([]);
   const [openingBalance, setOpeningBalance] = useState(0);
@@ -236,17 +258,23 @@ const ItemMovementReport: React.FC<ItemMovementReportProps> = ({
     };
 
     const itemCode = selectedItem.code;
+    const selectedBranchName = selectedBranchId === "all" 
+      ? "all"
+      : branches.find(b => b.id === selectedBranchId)?.name || "";
+    
     const filterByBranch = (tx: any) =>
-      selectedBranch === "all" ||
-      tx.branch === selectedBranch ||
-      tx.branchName === selectedBranch;
+      selectedBranchId === "all" ||
+      tx.branch === selectedBranchName ||
+      tx.branchName === selectedBranchName ||
+      tx.branchId === selectedBranchId;
 
     // Normalize filter dates
     const normalizedStartDate = normalizeDate(startDate);
     const normalizedEndDate = normalizeDate(endDate);
 
     // --- Correct Opening Balance Calculation ---
-    let opening = selectedItem.stock;
+    // Use StoreItem's openingBalance as base, or 0 if not available
+    let opening = (selectedItem as any).openingBalance ?? 0;
 
     const adjustBalance = (
       txList: any[],
@@ -255,10 +283,10 @@ const ItemMovementReport: React.FC<ItemMovementReportProps> = ({
     ) => {
       txList.forEach((tx: any) => {
         const branchMatches =
-          selectedBranch === "all" ||
+          selectedBranchId === "all" ||
           (isInvoice
-            ? tx.branchName === selectedBranch
-            : tx.branch === selectedBranch);
+            ? tx.branchName === selectedBranchName || tx.branchId === selectedBranchId
+            : tx.branch === selectedBranchName || tx.branchId === selectedBranchId);
         const txDate = normalizeDate(tx.date);
         if (branchMatches && txDate < normalizedStartDate) {
           tx.items.forEach((item: any) => {
@@ -284,11 +312,11 @@ const ItemMovementReport: React.FC<ItemMovementReportProps> = ({
         const toStore = stores.find((s) => s.name === v.toStore);
         v.items.forEach((i) => {
           if (i.id === itemCode) {
-            if (selectedBranch === "all") {
+            if (selectedBranchId === "all") {
               // Transfers are neutral for total stock
             } else {
-              if (fromStore?.branch?.name === selectedBranch) opening -= i.qty;
-              if (toStore?.branch?.name === selectedBranch) opening += i.qty;
+              if (fromStore?.branchId === selectedBranchId) opening -= i.qty;
+              if (toStore?.branchId === selectedBranchId) opening += i.qty;
             }
           }
         });
@@ -300,6 +328,7 @@ const ItemMovementReport: React.FC<ItemMovementReportProps> = ({
     // --- Report Data Calculation for the period ---
     type Transaction = {
       date: string;
+      createdAt: string; // Add createdAt for sorting
       branch: string;
       type: string;
       ref: string;
@@ -318,20 +347,23 @@ const ItemMovementReport: React.FC<ItemMovementReportProps> = ({
       isInvoice: boolean,
     ) => {
       const branchMatches =
-        selectedBranch === "all" ||
+        selectedBranchId === "all" ||
         (isInvoice
-          ? tx.branchName === selectedBranch
-          : tx.branch === selectedBranch);
+          ? tx.branchName === selectedBranchName || tx.branchId === selectedBranchId
+          : tx.branch === selectedBranchName || tx.branchId === selectedBranchId);
       const txDate = normalizeDate(tx.date);
       if (branchMatches && txDate >= normalizedStartDate && txDate <= normalizedEndDate) {
         const branchName = isInvoice ? tx.branchName : tx.branch;
         // For sales/purchase invoices and returns, use 'code' field
         // For warehouse vouchers, use 'voucherNumber' field
         const displayCode = tx.code || tx.voucherNumber || tx.id;
+        // Use createdAt for sorting, fallback to date if not available
+        const createdAt = tx.createdAt || tx.date;
         tx.items.forEach((item: any) => {
           if (item.id === itemCode) {
             transactions.push({
               date: tx.date,
+              createdAt: createdAt,
               branch: branchName || "",
               type: type,
               ref: tx.id,
@@ -345,6 +377,7 @@ const ItemMovementReport: React.FC<ItemMovementReportProps> = ({
       }
     };
 
+    // Collect all transactions first
     transformedPurchaseInvoices.forEach((inv) =>
       processTx(
         inv,
@@ -373,6 +406,7 @@ const ItemMovementReport: React.FC<ItemMovementReportProps> = ({
       ),
     );
 
+    // Sales invoices directly affect stock (no vouchers created)
     transformedSalesInvoices.forEach((inv) =>
       processTx(
         inv,
@@ -407,14 +441,17 @@ const ItemMovementReport: React.FC<ItemMovementReportProps> = ({
         const fromStore = stores.find((s) => s.name === v.fromStore);
         const toStore = stores.find((s) => s.name === v.toStore);
         const displayCode = v.voucherNumber || v.id;
+        // Use createdAt for sorting, fallback to date if not available
+        const createdAt = v.createdAt || v.date;
         v.items.forEach((item: any) => {
           if (item.id === itemCode) {
             if (
-              selectedBranch === "all" ||
-              fromStore?.branch?.name === selectedBranch
+              selectedBranchId === "all" ||
+              fromStore?.branchId === selectedBranchId
             ) {
               transactions.push({
                 date: v.date,
+                createdAt: createdAt,
                 branch: fromStore?.branch?.name || "",
                 type: `تحويل من ${v.fromStore}`,
                 ref: v.id,
@@ -425,11 +462,12 @@ const ItemMovementReport: React.FC<ItemMovementReportProps> = ({
               });
             }
             if (
-              selectedBranch === "all" ||
-              toStore?.branch?.name === selectedBranch
+              selectedBranchId === "all" ||
+              toStore?.branchId === selectedBranchId
             ) {
               transactions.push({
                 date: v.date,
+                createdAt: createdAt,
                 branch: toStore?.branch?.name || "",
                 type: `تحويل إلى ${v.toStore}`,
                 ref: v.id,
@@ -444,9 +482,12 @@ const ItemMovementReport: React.FC<ItemMovementReportProps> = ({
       }
     });
 
-    transactions.sort(
-      (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime(),
-    );
+    // Sort all transactions by createdAt (or date as fallback)
+    transactions.sort((a, b) => {
+      const dateA = new Date(a.createdAt || a.date).getTime();
+      const dateB = new Date(b.createdAt || b.date).getTime();
+      return dateA - dateB;
+    });
 
     let balance = opening;
     const finalData = transactions.map((t) => {
@@ -458,7 +499,7 @@ const ItemMovementReport: React.FC<ItemMovementReportProps> = ({
     selectedItem,
     startDate,
     endDate,
-    selectedBranch,
+    selectedBranchId,
     transformedSalesInvoices,
     transformedPurchaseInvoices,
     transformedSalesReturns,
@@ -571,7 +612,7 @@ const ItemMovementReport: React.FC<ItemMovementReportProps> = ({
                 <span className="text-brand-blue">الصنف:</span> {selectedItemName}
               </p>
               <p className="text-base text-gray-700">
-                <span className="font-semibold text-gray-800">الفرع:</span> {selectedBranch === "all" ? "جميع الفروع" : selectedBranch}
+                <span className="font-semibold text-gray-800">الفرع:</span> {selectedBranchId === "all" ? "جميع الفروع" : branches.find(b => b.id === selectedBranchId)?.name || ""}
               </p>
               <p className="text-base text-gray-700">
                 <span className="font-semibold text-gray-800">الفترة من:</span> {startDate} 
@@ -613,12 +654,12 @@ const ItemMovementReport: React.FC<ItemMovementReportProps> = ({
             </select>
             <select
               className={inputStyle}
-              value={selectedBranch}
-              onChange={(e) => setSelectedBranch(e.target.value)}
+              value={selectedBranchId}
+              onChange={(e) => setSelectedBranchId(e.target.value)}
             >
               <option value="all">جميع الفروع</option>
               {branches.map((b) => (
-                <option key={b.id} value={b.name}>
+                <option key={b.id} value={b.id}>
                   {b.name}
                 </option>
               ))}

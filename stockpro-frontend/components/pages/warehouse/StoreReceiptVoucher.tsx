@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from "react";
+import React, { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import { useSearchParams } from "react-router-dom";
 import DataTableModal from "../../common/DataTableModal";
@@ -20,6 +20,7 @@ import { useToast } from "../../common/ToastProvider.tsx";
 import { RootState } from "../../store/store";
 import { useGetCompanyQuery } from "../../store/slices/companyApiSlice";
 import { useGetBranchesQuery } from "../../store/slices/branch/branchApi";
+import { useGetStoresQuery } from "../../store/slices/store/storeApi";
 import { useGetItemsQuery } from "../../store/slices/items/itemsApi";
 import {
   useGetStoreReceiptVouchersQuery,
@@ -79,9 +80,17 @@ const StoreReceiptVoucher: React.FC<StoreReceiptVoucherProps> = ({ title }) => {
   // Redux API hooks
   const { data: companyInfo } = useGetCompanyQuery();
   const { data: branches = [] } = useGetBranchesQuery();
-  const { data: itemsData = [] } = useGetItemsQuery({});
-  const { data: vouchers = [], isLoading: isLoadingVouchers, refetch: refetchVouchers } =
+  const { data: stores = [] } = useGetStoresQuery();
+  const { data: allVouchers = [], isLoading: isLoadingVouchers, refetch: refetchVouchers } =
     useGetStoreReceiptVouchersQuery();
+  
+  // Filter out system-generated vouchers (marked with [نظام] in notes)
+  const vouchers = useMemo(() => {
+    return allVouchers.filter((v: any) => {
+      const notes = v.notes || "";
+      return !notes.includes("[نظام]");
+    });
+  }, [allVouchers]);
   const [createVoucher, { isLoading: isCreating }] =
     useCreateStoreReceiptVoucherMutation();
   const [updateVoucher, { isLoading: isUpdating }] =
@@ -92,16 +101,6 @@ const StoreReceiptVoucher: React.FC<StoreReceiptVoucherProps> = ({ title }) => {
   // Get current user from auth state
   const currentUser = useSelector((state: RootState) => state.auth.user);
 
-  // Transform items to match the expected format
-  const allItems: SelectableItem[] = Array.isArray(itemsData)
-    ? itemsData.map((item: any) => ({
-        id: item.id,
-        name: item.name,
-        unit: item.unit?.name || "",
-        stock: item.stock || 0,
-        code: item.code || "",
-      }))
-    : [];
   const getEmptyItems = (count: number = 5): StoreVoucherItem[] =>
     Array.from({ length: count }, () => ({
       id: "",
@@ -117,6 +116,30 @@ const StoreReceiptVoucher: React.FC<StoreReceiptVoucherProps> = ({ title }) => {
     date: new Date().toISOString().substring(0, 10),
     branch: branches.length > 0 ? branches[0].name : "",
   });
+  
+  // Get store from selected branch
+  const selectedBranch = useMemo(() => 
+    branches.find(b => b.name === voucherDetails.branch),
+    [branches, voucherDetails.branch]
+  );
+  const selectedStore = useMemo(() => 
+    stores.find(s => s.branchId === selectedBranch?.id),
+    [stores, selectedBranch?.id]
+  );
+  
+  const { data: itemsData = [] } = useGetItemsQuery(selectedStore ? { storeId: selectedStore.id } : undefined);
+
+  // Transform items to match the expected format
+  const allItems: SelectableItem[] = Array.isArray(itemsData)
+    ? itemsData.map((item: any) => ({
+        id: item.id,
+        name: item.name,
+        unit: item.unit?.name || "",
+        stock: item.stock || 0,
+        code: item.code || "",
+      }))
+    : [];
+  
   const [isReadOnly, setIsReadOnly] = useState(true);
   const { showModal } = useModal();
   const { showToast } = useToast();

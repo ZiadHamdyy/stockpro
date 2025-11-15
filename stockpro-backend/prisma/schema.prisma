@@ -197,6 +197,7 @@ model Item {
   storeReceiptVoucherItems  StoreReceiptVoucherItem[]
   storeIssueVoucherItems    StoreIssueVoucherItem[]
   storeTransferVoucherItems StoreTransferVoucherItem[]
+  storeItems                StoreItem[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -368,6 +369,7 @@ model Store {
   storeIssueVouchers   StoreIssueVoucher[]
   fromTransfers        StoreTransferVoucher[] @relation("FromStore")
   toTransfers          StoreTransferVoucher[] @relation("ToStore")
+  storeItems           StoreItem[]
 
   @@unique([branchId])
   @@index([branchId])
@@ -508,6 +510,26 @@ model StoreTransferVoucherItem {
   updatedAt DateTime @updatedAt
 
   @@index([voucherId])
+  @@index([itemId])
+}
+
+model StoreItem {
+  id             String @id @default(uuid())
+  openingBalance Float  @default(0)
+
+  // Foreign keys
+  storeId String
+  itemId  String
+
+  // Relationships
+  store Store @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  item  Item  @relation(fields: [itemId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([storeId, itemId])
+  @@index([storeId])
   @@index([itemId])
 }
 

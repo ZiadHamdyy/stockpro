@@ -2,10 +2,14 @@ import { Injectable, NotFoundException, BadRequestException } from '@nestjs/comm
 import { DatabaseService } from '../../configs/database/database.service';
 import { CreateStoreReceiptVoucherDto } from './dtos/create-store-receipt-voucher.dto';
 import { UpdateStoreReceiptVoucherDto } from './dtos/update-store-receipt-voucher.dto';
+import { StockService } from '../store/services/stock.service';
 
 @Injectable()
 export class StoreReceiptVoucherService {
-  constructor(private readonly prisma: DatabaseService) {}
+  constructor(
+    private readonly prisma: DatabaseService,
+    private readonly stockService: StockService,
+  ) {}
 
   async create(createStoreReceiptVoucherDto: CreateStoreReceiptVoucherDto) {
     const { items, ...voucherData } = createStoreReceiptVoucherDto;
@@ -26,34 +30,46 @@ export class StoreReceiptVoucherService {
     const totalAmount = items.reduce((sum, item) => sum + item.totalPrice, 0);
 
     // Receipt operations don't need stock validation - can add any item, any quantity
-    return this.prisma.storeReceiptVoucher.create({
-      data: {
-        ...voucherData,
-        voucherNumber,
-        totalAmount,
-        items: {
-          create: items.map((item) => ({
-            quantity: item.quantity,
-            unitPrice: item.unitPrice,
-            totalPrice: item.totalPrice,
-            itemId: item.itemId,
-          })),
+    return this.prisma.$transaction(async (tx) => {
+      // Ensure StoreItem exists for each item (with openingBalance = 0)
+      for (const item of items) {
+        await this.stockService.ensureStoreItemExists(
+          createStoreReceiptVoucherDto.storeId,
+          item.itemId,
+          tx,
+        );
+      }
+
+      // Create voucher
+      return tx.storeReceiptVoucher.create({
+        data: {
+          ...voucherData,
+          voucherNumber,
+          totalAmount,
+          items: {
+            create: items.map((item) => ({
+              quantity: item.quantity,
+              unitPrice: item.unitPrice,
+              totalPrice: item.totalPrice,
+              itemId: item.itemId,
+            })),
+          },
         },
-      },
-      include: {
-        store: true,
-        user: true,
-        items: {
-          include: {
-            item: {
-              include: {
-                group: true,
-                unit: true,
+        include: {
+          store: true,
+          user: true,
+          items: {
+            include: {
+              item: {
+                include: {
+                  group: true,
+                  unit: true,
+                },
               },
             },
           },
         },
-      },
+      });
     });
   }
 
@@ -139,41 +155,63 @@ export class StoreReceiptVoucherService {
       : undefined;
 
     // Receipt operations don't need stock validation
-    return this.prisma.storeReceiptVoucher.update({
-      where: { id },
-      data: {
-        ...voucherData,
-        ...(totalAmount !== undefined && { totalAmount }),
-        ...(items && {
-          items: {
-            deleteMany: {},
-            create: items.map((item) => ({
-              quantity: item.quantity,
-              unitPrice: item.unitPrice,
-              totalPrice: item.totalPrice,
-              itemId: item.itemId,
-            })),
-          },
-        }),
-      },
-      include: {
-        store: {
-          include: {
-            branch: true,
-          },
+    return this.prisma.$transaction(async (tx) => {
+      // Get existing voucher to know the storeId
+      const existingVoucher = await tx.storeReceiptVoucher.findUnique({
+        where: { id },
+        select: { storeId: true },
+      });
+
+      if (!existingVoucher) {
+        throw new NotFoundException('Store receipt voucher not found');
+      }
+
+      const storeId = updateStoreReceiptVoucherDto.storeId || existingVoucher.storeId;
+
+      // Ensure StoreItem exists for each new item (with openingBalance = 0)
+      if (items) {
+        for (const item of items) {
+          await this.stockService.ensureStoreItemExists(storeId, item.itemId, tx);
+        }
+      }
+
+      // Update voucher
+      return tx.storeReceiptVoucher.update({
+        where: { id },
+        data: {
+          ...voucherData,
+          ...(totalAmount !== undefined && { totalAmount }),
+          ...(items && {
+            items: {
+              deleteMany: {},
+              create: items.map((item) => ({
+                quantity: item.quantity,
+                unitPrice: item.unitPrice,
+                totalPrice: item.totalPrice,
+                itemId: item.itemId,
+              })),
+            },
+          }),
         },
-        user: true,
-        items: {
-          include: {
-            item: {
-              include: {
-                group: true,
-                unit: true,
+        include: {
+          store: {
+            include: {
+              branch: true,
+            },
+          },
+          user: true,
+          items: {
+            include: {
+              item: {
+                include: {
+                  group: true,
+                  unit: true,
+                },
               },
             },
           },
         },
-      },
+      });
     });
   }
 
