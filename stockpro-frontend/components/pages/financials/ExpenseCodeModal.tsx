@@ -30,6 +30,7 @@ const ExpenseCodeModal: React.FC<ExpenseCodeModalProps> = ({
     expenseTypeId: "",
     description: "",
   });
+  const [isDescriptionDirty, setIsDescriptionDirty] = useState(false);
 
   useEffect(() => {
     if (codeToEdit) {
@@ -38,9 +39,11 @@ const ExpenseCodeModal: React.FC<ExpenseCodeModalProps> = ({
         expenseTypeId: codeToEdit.expenseTypeId,
         description: codeToEdit.description || "",
       });
+      setIsDescriptionDirty(true);
     } else {
       const defaultTypeId = expenseTypes.length > 0 ? expenseTypes[0].id : "";
       setCodeData({ name: "", expenseTypeId: defaultTypeId, description: "" });
+      setIsDescriptionDirty(false);
     }
   }, [codeToEdit, isOpen, expenseTypes, codes]);
 
@@ -50,6 +53,23 @@ const ExpenseCodeModal: React.FC<ExpenseCodeModalProps> = ({
     >,
   ) => {
     const { name, value } = e.target;
+    if (name === "description") {
+      setIsDescriptionDirty(true);
+      setCodeData((prev) => ({ ...prev, description: value }));
+      return;
+    }
+
+    if (name === "name") {
+      setCodeData((prev) => {
+        const nextState = { ...prev, name: value };
+        if (!codeToEdit && !isDescriptionDirty) {
+          nextState.description = value;
+        }
+        return nextState;
+      });
+      return;
+    }
+
     setCodeData((prev) => ({ ...prev, [name]: value }));
   };
 

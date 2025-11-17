@@ -139,13 +139,13 @@ const SuppliersList: React.FC<SuppliersListProps> = ({
           />
         </div>
         <StatCard
-          title="إجمالي الارصدة (دائن)"
+          title="إجمالي الارصدة (مدين)"
           value={`${formatNumber(stats.totalLiability)}`}
           icon={<DollarSignIcon className="w-8 h-8 text-green-500" />}
           color="border-green-500"
         />
         <StatCard
-          title="إجمالي الارصدة (مدين)"
+          title="إجمالي الارصدة (دائن)"
           value={`${formatNumber(stats.totalAsset)}`}
           icon={<DollarSignIcon className="w-8 h-8 text-red-500" />}
           color="border-red-500"

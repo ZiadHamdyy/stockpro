@@ -1,4 +1,5 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { DatabaseService } from '../../configs/database/database.service';
 import { CreateExpenseTypeRequest } from './dtos/request/create-expense-type.request';
 import { UpdateExpenseTypeRequest } from './dtos/request/update-expense-type.request';
@@ -90,19 +91,35 @@ export class ExpenseService {
   async createExpenseCode(
     data: CreateExpenseCodeRequest,
   ): Promise<ExpenseCodeResponse> {
-    const code = await this.generateNextExpenseCode();
+    const fallbackDescription = data.description?.trim() || data.name;
 
-    const expenseCode = await this.prisma.expenseCode.create({
-      data: {
-        ...data,
-        code,
-      },
-      include: {
-        expenseType: true,
-      },
+    return this.prisma.$transaction(async (tx) => {
+      const code = await this.generateNextExpenseCode(tx);
+
+      const expenseCode = await tx.expenseCode.create({
+        data: {
+          ...data,
+          description: fallbackDescription,
+          code,
+        },
+        include: {
+          expenseType: true,
+        },
+      });
+
+      const expenseNumber = await this.generateNextExpense(tx);
+
+      await tx.expense.create({
+        data: {
+          code: expenseNumber,
+          description: expenseCode.name,
+          expenseCodeId: expenseCode.id,
+          date: new Date(),
+        },
+      });
+
+      return this.mapExpenseCodeToResponse(expenseCode);
     });
-
-    return this.mapExpenseCodeToResponse(expenseCode);
   }
 
   async findAllExpenseCodes(search?: string): Promise<ExpenseCodeResponse[]> {
@@ -283,8 +300,10 @@ export class ExpenseService {
 
   // ==================== Private Helper Methods ====================
 
-  private async generateNextExpenseCode(): Promise<string> {
-    const lastCode = await this.prisma.expenseCode.findFirst({
+  private async generateNextExpenseCode(
+    prisma: DatabaseService | Prisma.TransactionClient = this.prisma,
+  ): Promise<string> {
+    const lastCode = await prisma.expenseCode.findFirst({
       orderBy: { code: 'desc' },
     });
 
@@ -301,8 +320,10 @@ export class ExpenseService {
     return `EC-${String(nextNumber).padStart(3, '0')}`;
   }
 
-  private async generateNextExpense(): Promise<string> {
-    const lastExpense = await this.prisma.expense.findFirst({
+  private async generateNextExpense(
+    prisma: DatabaseService | Prisma.TransactionClient = this.prisma,
+  ): Promise<string> {
+    const lastExpense = await prisma.expense.findFirst({
       orderBy: { code: 'desc' },
     });
 

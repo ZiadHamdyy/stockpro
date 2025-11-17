@@ -13,6 +13,30 @@ import {
 
 interface Props { title: string; onNavigate?: (key: string, label: string, id?: string | null) => void; }
 
+const parseOpeningBalance = (
+  value: number | string | null | undefined,
+): number | null => {
+  if (value === "" || value === null || value === undefined) {
+    return null;
+  }
+  const numeric =
+    typeof value === "number" ? value : parseFloat(value as string);
+  return Number.isNaN(numeric) ? null : numeric;
+};
+
+const formatOpeningBalance = (
+  value: number | string | null | undefined,
+): string => {
+  const numericValue = parseOpeningBalance(value);
+  if (numericValue === null) {
+    return "-";
+  }
+  return numericValue.toLocaleString("en-US", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+};
+
 const ReceivableAccountsList: React.FC<Props> = ({ title, onNavigate }) => {
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState("");
@@ -49,8 +73,12 @@ const ReceivableAccountsList: React.FC<Props> = ({ title, onNavigate }) => {
   };
 
   const handlePdfExport = () => {
-    const head = [["اسم الحساب", "الكود"]];
-    const body = filtered.map((acc) => [acc.name, acc.code]);
+    const head = [["اسم الحساب", "الكود", "الرصيد الافتتاحي"]];
+    const body = filtered.map((acc) => [
+      acc.name,
+      acc.code,
+      formatOpeningBalance(acc.openingBalance),
+    ]);
     exportToPdf("قائمة الأرصدة المدينة", head, body, "قائمة-الأرصدة-المدينة");
   };
 
@@ -86,24 +114,41 @@ const ReceivableAccountsList: React.FC<Props> = ({ title, onNavigate }) => {
             <tr>
               <th className="px-6 py-3 text-right text-sm font-semibold text-white uppercase">الكود</th>
               <th className="px-6 py-3 text-right text-sm font-semibold text-white uppercase">اسم الحساب</th>
+              <th className="px-6 py-3 text-right text-sm font-semibold text-white uppercase">
+                الرصيد الافتتاحي
+              </th>
               <th className="px-6 py-3 text-right text-sm font-semibold text-white uppercase no-print">اجراءات</th>
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
-            {filtered.map((account) => (
-              <tr key={account.id} className="hover:bg-brand-blue-bg">
-                <td className="px-6 py-4">{account.code}</td>
-                <td className="px-6 py-4 font-medium text-brand-dark">{account.name}</td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium no-print">
+            {filtered.map((account) => {
+              const openingBalanceValue = parseOpeningBalance(
+                account.openingBalance,
+              );
+              const isNegative =
+                openingBalanceValue !== null && openingBalanceValue < 0;
+              return (
+                <tr key={account.id} className="hover:bg-brand-blue-bg">
+                  <td className="px-6 py-4">{account.code}</td>
+                  <td className="px-6 py-4 font-medium text-brand-dark">{account.name}</td>
+                  <td
+                    className={`px-6 py-4 font-medium ${
+                      isNegative ? "text-red-600" : "text-brand-dark"
+                    }`}
+                  >
+                    {formatOpeningBalance(account.openingBalance)}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium no-print">
                   <PermissionWrapper requiredPermission={buildPermission(Resources.RECEIVABLE_ACCOUNTS, Actions.UPDATE)} fallback={<button disabled className="text-gray-400 cursor-not-allowed font-semibold ml-4">تعديل</button>}>
                     <button onClick={() => onNavigate ? onNavigate("add_receivable_account", `تعديل حساب #${account.code}`, account.id) : navigate(`/financials/receivable-accounts/add/${account.id}`)} className="text-brand-blue hover:text-blue-800 font-semibold ml-4">تعديل</button>
                   </PermissionWrapper>
                   <PermissionWrapper requiredPermission={buildPermission(Resources.RECEIVABLE_ACCOUNTS, Actions.DELETE)} fallback={<button disabled className="text-gray-400 cursor-not-allowed font-semibold">حذف</button>}>
                     <button onClick={() => handleDeleteClick(account.id, account.name)} className="text-red-600 hover:text-red-900 font-semibold">حذف</button>
                   </PermissionWrapper>
-                </td>
-              </tr>
-            ))}
+                  </td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>

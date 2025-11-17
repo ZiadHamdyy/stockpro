@@ -21,6 +21,30 @@ interface CurrentAccountsListProps {
   onNavigate?: (key: string, label: string, id?: string | null) => void;
 }
 
+const parseOpeningBalance = (
+  value: number | string | null | undefined,
+): number | null => {
+  if (value === "" || value === null || value === undefined) {
+    return null;
+  }
+  const numeric =
+    typeof value === "number" ? value : parseFloat(value as string);
+  return Number.isNaN(numeric) ? null : numeric;
+};
+
+const formatOpeningBalance = (
+  value: number | string | null | undefined,
+): string => {
+  const numericValue = parseOpeningBalance(value);
+  if (numericValue === null) {
+    return "-";
+  }
+  return numericValue.toLocaleString("en-US", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+};
+
 const CurrentAccountsList: React.FC<CurrentAccountsListProps> = ({
   title,
   onNavigate,
@@ -192,19 +216,35 @@ const CurrentAccountsList: React.FC<CurrentAccountsListProps> = ({
               <th className="px-6 py-3 text-right text-sm font-semibold text-white uppercase">
                 اسم الحساب
               </th>
+              <th className="px-6 py-3 text-right text-sm font-semibold text-white uppercase">
+                الرصيد الافتتاحي
+              </th>
               <th className="px-6 py-3 text-right text-sm font-semibold text-white uppercase no-print">
                 اجراءات
               </th>
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
-            {filteredAccounts.map((account) => (
-              <tr key={account.id} className="hover:bg-brand-blue-bg">
-                <td className="px-6 py-4">{account.code}</td>
-                <td className="px-6 py-4 font-medium text-brand-dark">
-                  {account.name}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium no-print">
+            {filteredAccounts.map((account) => {
+              const openingBalanceValue = parseOpeningBalance(
+                account.openingBalance,
+              );
+              const isNegative =
+                openingBalanceValue !== null && openingBalanceValue < 0;
+              return (
+                <tr key={account.id} className="hover:bg-brand-blue-bg">
+                  <td className="px-6 py-4">{account.code}</td>
+                  <td className="px-6 py-4 font-medium text-brand-dark">
+                    {account.name}
+                  </td>
+                  <td
+                    className={`px-6 py-4 font-medium ${
+                      isNegative ? "text-red-600" : "text-brand-dark"
+                    }`}
+                  >
+                    {formatOpeningBalance(account.openingBalance)}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium no-print">
                   <PermissionWrapper
                     requiredPermission={buildPermission(
                       Resources.CURRENT_ACCOUNTS,
@@ -259,9 +299,10 @@ const CurrentAccountsList: React.FC<CurrentAccountsListProps> = ({
                       حذف
                     </button>
                   </PermissionWrapper>
-                </td>
-              </tr>
-            ))}
+                  </td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>
