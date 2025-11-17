@@ -593,6 +593,7 @@ async function main() {
   const existingAdmin = await prisma.user.findFirst({
     where: { email: 'admin@stockpro.com' },
   });
+  let adminUser = existingAdmin;
   
   if (!existingAdmin && existingBranch && managerRole) {
     // Hash the password using bcryptjs with 12 rounds (matching TOKEN_CONSTANTS)
@@ -604,7 +605,7 @@ async function main() {
     });
     const nextUserCode = (lastUserWithCode?.code ?? 0) + 1;
     
-    await prisma.user.create({
+    adminUser = await prisma.user.create({
       data: {
         code: nextUserCode,
         email: 'admin@stockpro.com',
@@ -621,7 +622,7 @@ async function main() {
     console.log('   🔑 Password: Password#1');
   } else if (existingAdmin && managerRole) {
     // Ensure admin user has correct branch and role
-    await prisma.user.update({
+    adminUser = await prisma.user.update({
       where: { email: 'admin@stockpro.com' },
       data: {
         branchId: existingBranch.id,
@@ -634,6 +635,78 @@ async function main() {
     console.log('   🔑 Password: Password#1');
   } else {
     console.log('✅ Admin user already exists');
+  }
+
+  // Create default store for the default branch
+  console.log('🏬 Creating default store...');
+  if (existingBranch && adminUser) {
+    let existingStore = await prisma.store.findFirst({
+      where: { branchId: existingBranch.id },
+    });
+
+    if (!existingStore) {
+      const lastStoreWithCode = await prisma.store.findFirst({
+        select: { code: true },
+        orderBy: { code: 'desc' },
+      });
+      const nextStoreCode = (lastStoreWithCode?.code ?? 0) + 1;
+
+      existingStore = await prisma.store.create({
+        data: {
+          code: nextStoreCode,
+          name: 'المخزن الرئيسي',
+          address: existingBranch.address,
+          phone: existingBranch.phone,
+          description: 'المخزن الرئيسي للشركة',
+          branchId: existingBranch.id,
+          userId: adminUser.id,
+        },
+      });
+      console.log('✅ Created default store');
+    } else {
+      console.log('✅ Store already exists for the default branch');
+    }
+  } else {
+    console.log('⚠️ Skipped store creation (branch or admin missing)');
+  }
+
+  // Create default safe for the default branch
+  console.log('💼 Creating default safe...');
+  if (existingBranch) {
+    let existingSafe = await prisma.safe.findFirst({
+      where: { branchId: existingBranch.id },
+    });
+
+    if (!existingSafe) {
+      const lastSafeWithCode = await prisma.safe.findFirst({
+        select: { code: true },
+        orderBy: { code: 'desc' },
+      });
+
+      let nextSafeCode = 'SF-001';
+      if (lastSafeWithCode?.code) {
+        const match = lastSafeWithCode.code.match(/SF-(\d+)/);
+        if (match) {
+          const nextNumber = parseInt(match[1], 10) + 1;
+          nextSafeCode = `SF-${String(nextNumber).padStart(3, '0')}`;
+        }
+      }
+
+      existingSafe = await prisma.safe.create({
+        data: {
+          code: nextSafeCode,
+          name: 'الخزنة الرئيسية',
+          branchId: existingBranch.id,
+          openingBalance: 0,
+          currentBalance: 0,
+        },
+      });
+      console.log('✅ Created default safe');
+    } else {
+      console.log('✅ Safe already exists for the default branch');
+    }
+  } else {
+    console.log('⚠️ Skipped safe creation (branch missing)');
   }
 
   console.log('🎉 Seed process completed successfully!');
