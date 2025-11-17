@@ -1350,6 +1350,7 @@ const SalesReturn: React.FC<SalesReturnProps> = ({
               name: selectedCustomer.name,
               address: fullCustomer?.nationalAddress || fullCustomer?.address || undefined,
               taxNumber: fullCustomer?.taxNumber || undefined,
+              commercialReg: fullCustomer?.commercialReg || undefined,
             }
           : null;
         return (
