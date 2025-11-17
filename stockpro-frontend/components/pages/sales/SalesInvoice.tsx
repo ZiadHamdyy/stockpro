@@ -50,6 +50,10 @@ type SelectableItem = {
   salePriceIncludesTax?: boolean;
 };
 
+type InvoiceRow = InvoiceItem & {
+  salePriceIncludesTax?: boolean;
+};
+
 interface SalesInvoiceProps {
   title: string;
   currentUser: User | null;
@@ -138,7 +142,7 @@ const SalesInvoice: React.FC<SalesInvoiceProps> = ({
 
   const vatRate = company?.vatRate || 15;
   const isVatEnabled = company?.isVatEnabled || false;
-  const createEmptyItem = (): InvoiceItem => ({
+  const createEmptyItem = (): InvoiceRow => ({
     id: "",
     name: "",
     unit: "",
@@ -149,7 +153,7 @@ const SalesInvoice: React.FC<SalesInvoiceProps> = ({
     salePriceIncludesTax: false,
   });
 
-  const [invoiceItems, setInvoiceItems] = useState<InvoiceItem[]>(
+  const [invoiceItems, setInvoiceItems] = useState<InvoiceRow[]>(
     Array(6).fill(null).map(createEmptyItem),
   );
   const [totals, setTotals] = useState({
@@ -297,7 +301,7 @@ const SalesInvoice: React.FC<SalesInvoiceProps> = ({
       );
       // Show "عميل نقدي" when editing cash invoice without customer
       setCustomerQuery(inv.customer?.name || (inv.paymentMethod === "cash" && !inv.customer ? "عميل نقدي" : ""));
-      const normalizedItems = (inv.items as InvoiceItem[]).map((item) => ({
+      const normalizedItems = (inv.items as InvoiceRow[]).map((item) => ({
         ...item,
         salePriceIncludesTax: Boolean(item.salePriceIncludesTax),
       }));
@@ -310,8 +314,8 @@ const SalesInvoice: React.FC<SalesInvoiceProps> = ({
       });
       // Determine original VAT status from invoice data
       // If invoice has tax > 0 or any items have taxAmount > 0, VAT was enabled
-      const invoiceItems = inv.items as InvoiceItem[];
-      const originalVatEnabled = inv.tax > 0 || invoiceItems.some((item: InvoiceItem) => (item.taxAmount || 0) > 0);
+      const invoiceItems = inv.items as InvoiceRow[];
+      const originalVatEnabled = inv.tax > 0 || invoiceItems.some((item: InvoiceRow) => (item.taxAmount || 0) > 0);
       setOriginalInvoiceVatEnabled(originalVatEnabled);
       setPaymentMethod(inv.paymentMethod);
       setPaymentTargetType(inv.paymentTargetType || "safe");
@@ -423,7 +427,7 @@ const SalesInvoice: React.FC<SalesInvoiceProps> = ({
 
   const handleItemChange = (
     index: number,
-    field: keyof InvoiceItem,
+    field: keyof InvoiceRow,
     value: any,
   ) => {
     const newItems = [...invoiceItems];
