@@ -10,5 +10,3 @@ import { ReceivableAccountController } from './receivable-account.controller';
   exports: [ReceivableAccountService],
 })
 export class ReceivableAccountModule {}
-
-

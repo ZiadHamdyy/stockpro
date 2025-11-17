@@ -11,7 +11,13 @@ export class CreateReceiptVoucherRequest {
   @IsDateString()
   date: string;
 
-  @IsEnum(['customer', 'supplier', 'current_account', 'receivable_account', 'payable_account'])
+  @IsEnum([
+    'customer',
+    'supplier',
+    'current_account',
+    'receivable_account',
+    'payable_account',
+  ])
   entityType: string;
 
   @IsNumber()

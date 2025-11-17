@@ -11,7 +11,15 @@ export class CreatePaymentVoucherRequest {
   @IsDateString()
   date: string;
 
-  @IsEnum(['customer', 'supplier', 'current_account', 'receivable_account', 'payable_account', 'expense', 'expense-Type'])
+  @IsEnum([
+    'customer',
+    'supplier',
+    'current_account',
+    'receivable_account',
+    'payable_account',
+    'expense',
+    'expense-Type',
+  ])
   entityType: string;
 
   @IsNumber()

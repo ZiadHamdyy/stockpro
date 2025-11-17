@@ -31,7 +31,11 @@ export class SalesInvoiceController {
     @Body() createSalesInvoiceDto: CreateSalesInvoiceRequest,
     @currentUser() user: any,
   ): Promise<SalesInvoiceResponse> {
-    return this.salesInvoiceService.create(createSalesInvoiceDto, user.id, user.branchId);
+    return this.salesInvoiceService.create(
+      createSalesInvoiceDto,
+      user.id,
+      user.branchId,
+    );
   }
 
   @Get()

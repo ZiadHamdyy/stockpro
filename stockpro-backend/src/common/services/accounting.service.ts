@@ -1,9 +1,18 @@
 import { Prisma, PrismaClient } from '@prisma/client';
 
-type TxClient = Omit<PrismaClient, '$connect' | '$disconnect' | '$on' | '$transaction' | '$use' | '$extends'> | Prisma.TransactionClient;
+type TxClient =
+  | Omit<
+      PrismaClient,
+      '$connect' | '$disconnect' | '$on' | '$transaction' | '$use' | '$extends'
+    >
+  | Prisma.TransactionClient;
 
 export type PaymentTargetType = 'safe' | 'bank';
-type Kind = 'sales-invoice' | 'sales-return' | 'purchase-invoice' | 'purchase-return';
+type Kind =
+  | 'sales-invoice'
+  | 'sales-return'
+  | 'purchase-invoice'
+  | 'purchase-return';
 
 export class AccountingService {
   static async applyImpact(options: {
@@ -79,5 +88,3 @@ export class AccountingService {
     }
   }
 }
-
-

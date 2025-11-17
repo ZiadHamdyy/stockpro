@@ -15,9 +15,7 @@ export function base64ToBuffer(base64: string): Buffer | null {
   }
 
   // Remove data URI prefix if present
-  const base64Data = base64.includes(',') 
-    ? base64.split(',')[1] 
-    : base64;
+  const base64Data = base64.includes(',') ? base64.split(',')[1] : base64;
 
   // Convert base64 to buffer
   return Buffer.from(base64Data, 'base64');
@@ -44,30 +42,50 @@ export function bufferToBase64(buffer: Buffer | null): string | null {
 function detectMimeType(buffer: Buffer): string {
   // Check for common image file signatures
   const bytes = buffer.subarray(0, 4);
-  
+
   // PNG signature: 89 50 4E 47
-  if (bytes[0] === 0x89 && bytes[1] === 0x50 && bytes[2] === 0x4E && bytes[3] === 0x47) {
+  if (
+    bytes[0] === 0x89 &&
+    bytes[1] === 0x50 &&
+    bytes[2] === 0x4e &&
+    bytes[3] === 0x47
+  ) {
     return 'image/png';
   }
-  
+
   // JPEG signature: FF D8 FF
-  if (bytes[0] === 0xFF && bytes[1] === 0xD8 && bytes[2] === 0xFF) {
+  if (bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff) {
     return 'image/jpeg';
   }
-  
+
   // GIF signature: 47 49 46 38
-  if (bytes[0] === 0x47 && bytes[1] === 0x49 && bytes[2] === 0x46 && bytes[3] === 0x38) {
+  if (
+    bytes[0] === 0x47 &&
+    bytes[1] === 0x49 &&
+    bytes[2] === 0x46 &&
+    bytes[3] === 0x38
+  ) {
     return 'image/gif';
   }
-  
+
   // WebP signature: 52 49 46 46 (RIFF) followed by 57 45 42 50 (WEBP)
-  if (bytes[0] === 0x52 && bytes[1] === 0x49 && bytes[2] === 0x46 && bytes[3] === 0x46) {
+  if (
+    bytes[0] === 0x52 &&
+    bytes[1] === 0x49 &&
+    bytes[2] === 0x46 &&
+    bytes[3] === 0x46
+  ) {
     const webpBytes = buffer.subarray(8, 12);
-    if (webpBytes[0] === 0x57 && webpBytes[1] === 0x45 && webpBytes[2] === 0x42 && webpBytes[3] === 0x50) {
+    if (
+      webpBytes[0] === 0x57 &&
+      webpBytes[1] === 0x45 &&
+      webpBytes[2] === 0x42 &&
+      webpBytes[3] === 0x50
+    ) {
       return 'image/webp';
     }
   }
-  
+
   // Default to PNG if we can't detect
   return 'image/png';
 }
@@ -78,7 +96,10 @@ function detectMimeType(buffer: Buffer): string {
  * @param mimeType - MIME type of the image (optional, will auto-detect if not provided)
  * @returns Data URI string (data:image/png;base64,...), or null if buffer is empty
  */
-export function bufferToDataUri(buffer: Buffer | null | any, mimeType?: string): string | null {
+export function bufferToDataUri(
+  buffer: Buffer | null | any,
+  mimeType?: string,
+): string | null {
   if (!buffer) {
     return null;
   }
@@ -89,7 +110,7 @@ export function bufferToDataUri(buffer: Buffer | null | any, mimeType?: string):
     hasType: buffer.type,
     isArray: Array.isArray(buffer),
     length: buffer.length || 'no length',
-    firstFew: Array.isArray(buffer) ? buffer.slice(0, 5) : 'not array'
+    firstFew: Array.isArray(buffer) ? buffer.slice(0, 5) : 'not array',
   });
 
   let bufferData: Buffer;
@@ -99,7 +120,10 @@ export function bufferToDataUri(buffer: Buffer | null | any, mimeType?: string):
     bufferData = buffer;
   } else if (buffer.type === 'Buffer' && Array.isArray(buffer.data)) {
     // Handle JSON serialized Buffer: { type: 'Buffer', data: [137, 80, 78, 71, ...] }
-    console.log('🔍 Converting JSON serialized Buffer, data length:', buffer.data.length);
+    console.log(
+      '🔍 Converting JSON serialized Buffer, data length:',
+      buffer.data.length,
+    );
     bufferData = Buffer.from(buffer.data);
   } else if (Array.isArray(buffer)) {
     // Handle direct array of bytes
@@ -118,10 +142,10 @@ export function bufferToDataUri(buffer: Buffer | null | any, mimeType?: string):
   const detectedMimeType = mimeType || detectMimeType(bufferData);
   const base64 = bufferData.toString('base64');
   const result = `data:${detectedMimeType};base64,${base64}`;
-  
+
   console.log('🔍 Generated data URI length:', result.length);
   console.log('🔍 Generated data URI preview:', result.substring(0, 50));
-  
+
   return result;
 }
 
@@ -132,12 +156,12 @@ export function bufferToDataUri(buffer: Buffer | null | any, mimeType?: string):
  */
 export function isValidBase64Image(str: string): boolean {
   if (!str) return false;
-  
+
   // Check if it's a data URI
   if (str.startsWith('data:image/')) {
     return str.includes('base64,');
   }
-  
+
   // Check if it's plain base64 (basic validation)
   const base64Regex = /^[A-Za-z0-9+/]*={0,2}$/;
   return base64Regex.test(str) && str.length > 0;

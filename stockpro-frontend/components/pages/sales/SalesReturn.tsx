@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useMemo } from "react";
 import DataTableModal from "../../common/DataTableModal";
 import InvoiceHeader from "../../common/InvoiceHeader";
 import {
@@ -35,6 +35,7 @@ import { useGetBanksQuery } from "../../store/slices/bank/bankApiSlice";
 import { useGetSafesQuery } from "../../store/slices/safe/safeApiSlice";
 import { useGetCompanyQuery } from "../../store/slices/companyApiSlice";
 import { useGetSalesInvoicesQuery } from "../../store/slices/salesInvoice/salesInvoiceApiSlice";
+import { guardPrint } from "../../utils/printGuard";
 
 type SelectableItem = {
   id: string;
@@ -190,6 +191,32 @@ const SalesReturn: React.FC<SalesReturnProps> = ({
   const invoiceRef = useRef<HTMLDivElement>(null);
   const [sourceInvoiceQtyById, setSourceInvoiceQtyById] = useState<Record<string, number>>({});
   const [focusIndex, setFocusIndex] = useState<number | null>(null);
+
+  const hasPrintableItems = useMemo(
+    () =>
+      returnItems.some(
+        (item) => item.id && item.name && Number(item.qty) > 0,
+      ),
+    [returnItems],
+  );
+
+  const canPrintExistingReturn = useMemo(
+    () => currentIndex >= 0 && isReadOnly,
+    [currentIndex, isReadOnly],
+  );
+
+  const handleOpenPreview = () => {
+    if (!canPrintExistingReturn) {
+      showToast("لا يمكن الطباعة إلا بعد تحميل مستند محفوظ.", "error");
+      return;
+    }
+
+    guardPrint({
+      hasData: hasPrintableItems,
+      showToast,
+      onAllowed: () => setIsPreviewOpen(true),
+    });
+  };
 
   const filteredCustomers = customerQuery
     ? allCustomers.filter((c) =>
@@ -1229,7 +1256,7 @@ const SalesReturn: React.FC<SalesReturnProps> = ({
                 بحث
               </button>
               <button
-                onClick={() => setIsPreviewOpen(true)}
+                onClick={handleOpenPreview}
                 className="px-4 py-2 bg-gray-200 text-brand-dark rounded-md hover:bg-gray-300 font-semibold flex items-center"
               >
                 <PrintIcon className="mr-2 w-5 h-5" /> معاينة وطباعة

@@ -241,6 +241,20 @@ const ItemsList: React.FC<ItemsListProps> = ({ title, onNavigate }) => {
             >
               السماح ببيع الصنف مع عدم وجود رصيد كافي
             </label>
+
+            <input
+              type="checkbox"
+              id="allowSellingLessThanStock"
+              checked={allowSellingLessThanStock}
+              onChange={(e) => setAllowSellingLessThanStock(e.target.checked)}
+              className="h-5 w-5 rounded border-gray-300 text-brand-blue focus:ring-brand-blue"
+            />
+            <label
+              htmlFor="allowSellingLessThanStock"
+              className="text-sm font-medium text-gray-700"
+            >
+               سعر البيع يشمل الضريبة
+            </label>
           </div>
         </div>
         <div className="flex items-center gap-2">

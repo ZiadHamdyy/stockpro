@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  ConflictException,
+} from '@nestjs/common';
 import { DatabaseService } from '../../configs/database/database.service';
 import { CreateSupplierRequest } from './dtos/request/create-supplier.request';
 import { UpdateSupplierRequest } from './dtos/request/update-supplier.request';
@@ -78,9 +82,10 @@ export class SupplierService {
         const existingSupplier = await this.prisma.supplier.findUnique({
           where: { id },
         });
-        
+
         if (existingSupplier) {
-          const openingBalanceDiff = data.openingBalance - existingSupplier.openingBalance;
+          const openingBalanceDiff =
+            data.openingBalance - existingSupplier.openingBalance;
           const supplier = await this.prisma.supplier.update({
             where: { id },
             data: {
@@ -108,13 +113,17 @@ export class SupplierService {
 
   async remove(id: string): Promise<void> {
     // Prevent deletion if there are related transactions
-    const [purchaseInvoicesCount, purchaseReturnsCount, paymentVouchersCount, receiptVouchersCount] =
-      await Promise.all([
-        this.prisma.purchaseInvoice.count({ where: { supplierId: id } }),
-        this.prisma.purchaseReturn.count({ where: { supplierId: id } }),
-        this.prisma.paymentVoucher.count({ where: { supplierId: id } }),
-        this.prisma.receiptVoucher.count({ where: { supplierId: id } }),
-      ]);
+    const [
+      purchaseInvoicesCount,
+      purchaseReturnsCount,
+      paymentVouchersCount,
+      receiptVouchersCount,
+    ] = await Promise.all([
+      this.prisma.purchaseInvoice.count({ where: { supplierId: id } }),
+      this.prisma.purchaseReturn.count({ where: { supplierId: id } }),
+      this.prisma.paymentVoucher.count({ where: { supplierId: id } }),
+      this.prisma.receiptVoucher.count({ where: { supplierId: id } }),
+    ]);
 
     if (
       purchaseInvoicesCount +

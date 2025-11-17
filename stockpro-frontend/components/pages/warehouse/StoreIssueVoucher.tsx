@@ -17,6 +17,7 @@ import type {
 } from "../../../types";
 import { useModal } from "../../common/ModalProvider.tsx";
 import { useToast } from "../../common/ToastProvider.tsx";
+import { guardPrint } from "../../utils/printGuard";
 import { RootState } from "../../store/store";
 import { useGetCompanyQuery } from "../../store/slices/companyApiSlice";
 import { useGetBranchesQuery } from "../../store/slices/branch/branchApi";
@@ -36,6 +37,7 @@ type SelectableItem = {
   unit: string;
   stock: number;
   code: string;
+  purchasePrice: number;
 };
 
 interface StoreIssueVoucherProps {
@@ -110,6 +112,7 @@ const StoreIssueVoucher: React.FC<StoreIssueVoucherProps> = ({ title }) => {
       unit: "",
       qty: 1,
       code: "",
+      price: 0,
     }));
 
   const [items, setItems] = useState<StoreVoucherItem[]>(getEmptyItems());
@@ -139,6 +142,10 @@ const StoreIssueVoucher: React.FC<StoreIssueVoucherProps> = ({ title }) => {
         unit: item.unit?.name || "",
         stock: item.stock || 0,
         code: item.code || "",
+        purchasePrice:
+          typeof item.lastPurchasePrice === "number"
+            ? item.lastPurchasePrice
+            : item.purchasePrice || 0,
       }))
     : [];
   
@@ -162,6 +169,29 @@ const StoreIssueVoucher: React.FC<StoreIssueVoucherProps> = ({ title }) => {
   const [isSearchModalOpen, setIsSearchModalOpen] = useState(false);
   const [currentIndex, setCurrentIndex] = useState(-1);
   const [focusIndex, setFocusIndex] = useState<number | null>(null);
+
+  const hasPrintableItems = useMemo(
+    () => items.some((item) => item.id || item.name),
+    [items],
+  );
+
+  const canPrintExistingVoucher = useMemo(
+    () => currentIndex >= 0 && isReadOnly,
+    [currentIndex, isReadOnly],
+  );
+
+  const handlePrint = useCallback(() => {
+    if (!canPrintExistingVoucher) {
+      showToast("لا يمكن الطباعة إلا بعد تحميل مستند محفوظ.", "error");
+      return;
+    }
+
+    guardPrint({
+      hasData: hasPrintableItems,
+      showToast,
+      onAllowed: () => window.print(),
+    });
+  }, [canPrintExistingVoucher, hasPrintableItems, showToast]);
 
   const filteredItems =
     activeItemSearch && typeof activeItemSearch.query === "string"
@@ -233,6 +263,12 @@ const StoreIssueVoucher: React.FC<StoreIssueVoucherProps> = ({ title }) => {
         unit: item.item?.unit?.name || "",
         qty: item.quantity || 1,
         code: item.item?.code || "",
+        price:
+          typeof item.unitPrice === "number"
+            ? item.unitPrice
+            : typeof item.price === "number"
+            ? item.price
+            : 0,
       }));
       setItems(transformedItems);
       setIsReadOnly(true);
@@ -287,7 +323,10 @@ const StoreIssueVoucher: React.FC<StoreIssueVoucherProps> = ({ title }) => {
 
   const handleAddItem = () => {
     const newIndex = items.length;
-    setItems((prevItems) => [...prevItems, { id: "", name: "", unit: "", qty: 1, code: "" }]);
+    setItems((prevItems) => [
+      ...prevItems,
+      { id: "", name: "", unit: "", qty: 1, code: "", price: 0 },
+    ]);
     setFocusIndex(newIndex);
   };
 
@@ -300,7 +339,14 @@ const StoreIssueVoucher: React.FC<StoreIssueVoucherProps> = ({ title }) => {
     let item = { ...newItems[index], [field]: value };
 
     if (field === "name") setActiveItemSearch({ index, query: value });
-    if (field === "qty") item.qty = parseInt(value) || 1;
+    if (field === "qty") {
+      const parsedQty = parseFloat(value);
+      item.qty = !Number.isNaN(parsedQty) && parsedQty >= 0 ? parsedQty : 1;
+    }
+    if (field === "price") {
+      const parsedPrice = parseFloat(value);
+      item.price = !Number.isNaN(parsedPrice) && parsedPrice >= 0 ? parsedPrice : 0;
+    }
 
     newItems[index] = item;
     setItems(newItems);
@@ -309,11 +355,16 @@ const StoreIssueVoucher: React.FC<StoreIssueVoucherProps> = ({ title }) => {
   const handleSelectItem = (index: number, selectedItem: SelectableItem) => {
     const newItems = [...items];
     const currentItem = newItems[index];
+    const defaultPrice =
+      typeof selectedItem.purchasePrice === "number"
+        ? selectedItem.purchasePrice
+        : currentItem.price || 0;
     const item = {
       ...currentItem,
       ...selectedItem,
       qty: currentItem.qty || 1,
       code: selectedItem.code || "",
+      price: defaultPrice,
     };
     newItems[index] = item;
     setItems(newItems);
@@ -419,10 +470,12 @@ const StoreIssueVoucher: React.FC<StoreIssueVoucherProps> = ({ title }) => {
 
       // Transform items to API format with proper pricing, use filledItems
       const apiItems = filledItems.map((item) => {
-        // Find the item data to get pricing
         const itemData = allItems.find((i) => i.id === item.id);
-        const unitPrice = itemData ? 0 : 0; // You might want to get this from item data
-        const quantity = item.qty || 1;
+        const unitPrice =
+          typeof item.price === "number"
+            ? item.price
+            : itemData?.purchasePrice || 0;
+        const quantity = Number(item.qty) || 0;
         const totalPrice = unitPrice * quantity;
 
         return {
@@ -621,6 +674,25 @@ const StoreIssueVoucher: React.FC<StoreIssueVoucherProps> = ({ title }) => {
     "block w-full bg-brand-green-bg border-2 border-brand-green rounded-md shadow-sm text-black placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-brand-green focus:border-brand-green py-3 px-4 disabled:bg-gray-200 disabled:cursor-not-allowed";
   const tableInputStyle =
     "text-center bg-transparent focus:outline-none focus:ring-1 focus:ring-brand-green rounded p-1 w-full disabled:bg-transparent";
+  const formatCurrency = useCallback(
+    (value: number) =>
+      value.toLocaleString(undefined, {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      }),
+    [],
+  );
+
+  const grandTotal = useMemo(
+    () =>
+      items.reduce(
+        (sum, item) =>
+          sum +
+          (Number(item.qty) || 0) * (Number(item.price) || 0),
+        0,
+      ),
+    [items],
+  );
 
   if (!companyInfo || isLoadingVouchers) {
     return (
@@ -737,12 +809,20 @@ const StoreIssueVoucher: React.FC<StoreIssueVoucherProps> = ({ title }) => {
                 <th className="px-2 py-3 w-32 text-center text-sm font-semibold text-white uppercase">
                   الكمية
                 </th>
+                <th className="px-2 py-3 w-32 text-center text-sm font-semibold text-white uppercase">
+                  السعر
+                </th>
+                <th className="px-2 py-3 w-32 text-center text-sm font-semibold text-white uppercase">
+                  الإجمالي
+                </th>
                 <th className="px-2 py-3 w-16 text-center no-print-delete-col"></th>
               </tr>
             </thead>
             <tbody ref={itemSearchRef}>
               {items.map((item, index) => {
                 const isEmptyRow = !item.id && !item.name;
+                const rowTotal =
+                  (Number(item.qty) || 0) * (Number(item.price) || 0);
                 return (
                 <tr
                   key={index}
@@ -832,6 +912,22 @@ const StoreIssueVoucher: React.FC<StoreIssueVoucherProps> = ({ title }) => {
                       disabled={isReadOnly}
                     />
                   </td>
+                  <td className="p-2 align-middle">
+                    <input
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      value={item.price ?? 0}
+                      onChange={(e) =>
+                        handleItemChange(index, "price", e.target.value)
+                      }
+                      className={tableInputStyle}
+                      disabled={isReadOnly}
+                    />
+                  </td>
+                  <td className="p-2 align-middle text-center font-semibold text-brand-dark">
+                    {isEmptyRow ? "" : formatCurrency(rowTotal)}
+                  </td>
                   <td className="p-2 align-middle text-center no-print-delete-col">
                     <button
                       onClick={() => handleRemoveItem(index)}
@@ -845,6 +941,13 @@ const StoreIssueVoucher: React.FC<StoreIssueVoucherProps> = ({ title }) => {
                 );
               })}
             </tbody>
+            <tfoot>
+              <tr className="bg-brand-green-bg border-t border-brand-green text-brand-dark font-semibold">
+                <td colSpan={8} className="px-4 py-3 text-left">
+                  إجمالي القيمة: {formatCurrency(grandTotal)}
+                </td>
+              </tr>
+            </tfoot>
           </table>
         </div>
         <PermissionWrapper
@@ -1015,7 +1118,7 @@ const StoreIssueVoucher: React.FC<StoreIssueVoucherProps> = ({ title }) => {
                 }
               >
                 <button
-                  onClick={() => window.print()}
+                  onClick={handlePrint}
                   className="px-4 py-2 bg-gray-200 text-brand-dark rounded-md hover:bg-gray-300 font-semibold flex items-center"
                 >
                   <PrintIcon className="mr-2 w-5 h-5" /> طباعة

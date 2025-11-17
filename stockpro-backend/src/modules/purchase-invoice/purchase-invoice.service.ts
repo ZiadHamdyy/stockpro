@@ -121,14 +121,14 @@ export class PurchaseInvoiceService {
         // Filter STOCKED items and get item records
         const stockedItemsWithRecords = await Promise.all(
           data.items.map(async (item) => {
-            const itemRecord = await tx.item.findUnique({ 
-              where: { code: item.id }
+            const itemRecord = await tx.item.findUnique({
+              where: { code: item.id },
             });
             if (itemRecord && (itemRecord as any).type === 'STOCKED') {
               return { item, itemRecord };
             }
             return null;
-          })
+          }),
         );
         const stockedItems = stockedItemsWithRecords.filter(Boolean) as Array<{
           item: any;
@@ -138,13 +138,17 @@ export class PurchaseInvoiceService {
         // Ensure StoreItem exists for each item (with openingBalance = 0)
         // Stock will be tracked via PurchaseInvoice items in StockService
         for (const { itemRecord } of stockedItems) {
-          await this.stockService.ensureStoreItemExists(store.id, itemRecord.id, tx);
+          await this.stockService.ensureStoreItemExists(
+            store.id,
+            itemRecord.id,
+            tx,
+          );
         }
 
         // Update purchase price for all items (including SERVICE items)
         for (const item of data.items) {
-          const itemRecord = await tx.item.findUnique({ 
-            where: { code: item.id }
+          const itemRecord = await tx.item.findUnique({
+            where: { code: item.id },
           });
           if (itemRecord) {
             await tx.item.update({
@@ -156,13 +160,16 @@ export class PurchaseInvoiceService {
       } else {
         // Fallback: Update global stock if store not found (backward compatibility)
         for (const item of data.items) {
-          const itemRecord = await tx.item.findUnique({ 
-            where: { code: item.id }
+          const itemRecord = await tx.item.findUnique({
+            where: { code: item.id },
           });
           if (itemRecord && (itemRecord as any).type === 'STOCKED') {
             await tx.item.update({
               where: { code: item.id },
-              data: { stock: { increment: item.qty }, purchasePrice: item.price },
+              data: {
+                stock: { increment: item.qty },
+                purchasePrice: item.price,
+              },
             });
           } else if (itemRecord) {
             // Update purchase price even for SERVICE items
@@ -181,7 +188,10 @@ export class PurchaseInvoiceService {
           amount: net,
           paymentTargetType: data.paymentTargetType as any,
           branchId,
-          bankId: data.paymentTargetType === 'bank' ? data.paymentTargetId || null : null,
+          bankId:
+            data.paymentTargetType === 'bank'
+              ? data.paymentTargetId || null
+              : null,
           tx,
         });
       }
@@ -228,7 +238,7 @@ export class PurchaseInvoiceService {
       orderBy: { createdAt: 'asc' },
     });
 
-    return invoices.map(invoice => ({
+    return invoices.map((invoice) => ({
       ...invoice,
       user: this.convertUserForResponse(invoice.user),
     })) as PurchaseInvoiceResponse[];
@@ -277,7 +287,11 @@ export class PurchaseInvoiceService {
     // If payment method is credit (or being changed to credit), supplier must be provided
     const paymentMethod = data.paymentMethod || existingInvoice.paymentMethod;
     if (paymentMethod === 'credit' && data.supplierId === null) {
-      throwHttp(422, ERROR_CODES.INV_SUPPLIER_REQUIRED, 'Supplier is required for credit payments');
+      throwHttp(
+        422,
+        ERROR_CODES.INV_SUPPLIER_REQUIRED,
+        'Supplier is required for credit payments',
+      );
     }
 
     // Get old items to restore stock
@@ -332,30 +346,42 @@ export class PurchaseInvoiceService {
       }
 
       // Reverse previous cash impact if needed
-      if (existingInvoice.paymentMethod === 'cash' && (existingInvoice as any).paymentTargetType) {
+      if (
+        existingInvoice.paymentMethod === 'cash' &&
+        (existingInvoice as any).paymentTargetType
+      ) {
         await AccountingService.reverseImpact({
           kind: 'purchase-invoice',
           amount: (existingInvoice as any).net,
-          paymentTargetType: (existingInvoice as any).paymentTargetType as any,
+          paymentTargetType: (existingInvoice as any).paymentTargetType,
           branchId: (existingInvoice as any).branchId,
-          bankId: (existingInvoice as any).paymentTargetType === 'bank' ? (existingInvoice as any).paymentTargetId : null,
+          bankId:
+            (existingInvoice as any).paymentTargetType === 'bank'
+              ? (existingInvoice as any).paymentTargetId
+              : null,
           tx,
         });
       }
       // Reverse previous supplier balance update if needed
-      if (existingInvoice.paymentMethod === 'credit' && existingInvoice.supplierId) {
+      if (
+        existingInvoice.paymentMethod === 'credit' &&
+        existingInvoice.supplierId
+      ) {
         await tx.supplier.update({
           where: { id: existingInvoice.supplierId },
           data: { currentBalance: { decrement: (existingInvoice as any).net } },
         });
       }
       // Apply new cash impact if applicable
-      const targetType = (inv as any).paymentMethod === 'cash' ? (inv as any).paymentTargetType : null;
+      const targetType =
+        (inv as any).paymentMethod === 'cash'
+          ? (inv as any).paymentTargetType
+          : null;
       if (targetType) {
         await AccountingService.applyImpact({
           kind: 'purchase-invoice',
           amount: (inv as any).net,
-          paymentTargetType: targetType as any,
+          paymentTargetType: targetType,
           branchId: (inv as any).branchId,
           bankId: targetType === 'bank' ? (inv as any).paymentTargetId : null,
           tx,
@@ -397,18 +423,27 @@ export class PurchaseInvoiceService {
       }
 
       // Reverse cash impact if applicable
-      if ((invoice as any).paymentMethod === 'cash' && (invoice as any).paymentTargetType) {
+      if (
+        (invoice as any).paymentMethod === 'cash' &&
+        (invoice as any).paymentTargetType
+      ) {
         await AccountingService.reverseImpact({
           kind: 'purchase-invoice',
           amount: (invoice as any).net,
-          paymentTargetType: (invoice as any).paymentTargetType as any,
+          paymentTargetType: (invoice as any).paymentTargetType,
           branchId: (invoice as any).branchId,
-          bankId: (invoice as any).paymentTargetType === 'bank' ? (invoice as any).paymentTargetId : null,
+          bankId:
+            (invoice as any).paymentTargetType === 'bank'
+              ? (invoice as any).paymentTargetId
+              : null,
           tx,
         });
       }
       // Reverse supplier balance update if applicable
-      if ((invoice as any).paymentMethod === 'credit' && (invoice as any).supplierId) {
+      if (
+        (invoice as any).paymentMethod === 'credit' &&
+        (invoice as any).supplierId
+      ) {
         await tx.supplier.update({
           where: { id: (invoice as any).supplierId },
           data: { currentBalance: { decrement: (invoice as any).net } },

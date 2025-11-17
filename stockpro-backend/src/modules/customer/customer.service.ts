@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  ConflictException,
+} from '@nestjs/common';
 import { DatabaseService } from '../../configs/database/database.service';
 import { CreateCustomerRequest } from './dtos/request/create-customer.request';
 import { UpdateCustomerRequest } from './dtos/request/update-customer.request';
@@ -78,9 +82,10 @@ export class CustomerService {
         const existingCustomer = await this.prisma.customer.findUnique({
           where: { id },
         });
-        
+
         if (existingCustomer) {
-          const openingBalanceDiff = data.openingBalance - existingCustomer.openingBalance;
+          const openingBalanceDiff =
+            data.openingBalance - existingCustomer.openingBalance;
           const customer = await this.prisma.customer.update({
             where: { id },
             data: {
@@ -108,19 +113,20 @@ export class CustomerService {
 
   async remove(id: string): Promise<void> {
     // Prevent deletion if there are related transactions
-    const [salesCount, returnsCount, paymentVouchersCount, receiptVouchersCount] =
-      await Promise.all([
-        this.prisma.salesInvoice.count({ where: { customerId: id } }),
-        this.prisma.salesReturn.count({ where: { customerId: id } }),
-        this.prisma.paymentVoucher.count({ where: { customerId: id } }),
-        this.prisma.receiptVoucher.count({ where: { customerId: id } }),
-      ]);
+    const [
+      salesCount,
+      returnsCount,
+      paymentVouchersCount,
+      receiptVouchersCount,
+    ] = await Promise.all([
+      this.prisma.salesInvoice.count({ where: { customerId: id } }),
+      this.prisma.salesReturn.count({ where: { customerId: id } }),
+      this.prisma.paymentVoucher.count({ where: { customerId: id } }),
+      this.prisma.receiptVoucher.count({ where: { customerId: id } }),
+    ]);
 
     if (
-      salesCount +
-        returnsCount +
-        paymentVouchersCount +
-        receiptVouchersCount >
+      salesCount + returnsCount + paymentVouchersCount + receiptVouchersCount >
       0
     ) {
       throw new ConflictException('لا يمكن الحذف لوجود بيانات مرتبطة.');

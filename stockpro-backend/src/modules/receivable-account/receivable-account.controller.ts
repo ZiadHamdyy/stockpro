@@ -39,7 +39,9 @@ export class ReceivableAccountController {
 
   @Get('code/:code')
   @Auth({ permissions: ['receivable_accounts:read'] })
-  async findByCode(@Param('code') code: string): Promise<ReceivableAccountResponse> {
+  async findByCode(
+    @Param('code') code: string,
+  ): Promise<ReceivableAccountResponse> {
     return this.service.findByCode(code);
   }
 
@@ -65,5 +67,3 @@ export class ReceivableAccountController {
     return this.service.remove(id);
   }
 }
-
-

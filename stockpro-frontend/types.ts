@@ -117,6 +117,7 @@ export interface StoreVoucherItem {
   unit: string;
   qty: number;
   code: string; // item code
+  price?: number;
 }
 
 export interface StoreReceiptVoucher {

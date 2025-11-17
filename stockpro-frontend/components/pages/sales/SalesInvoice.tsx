@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useMemo } from "react";
 import DataTableModal from "../../common/DataTableModal";
 import InvoiceHeader from "../../common/InvoiceHeader";
 import {
@@ -36,6 +36,7 @@ import { useGetCompanyQuery } from "../../store/slices/companyApiSlice";
 import { useGetStoresQuery } from "../../store/slices/store/storeApi";
 import { showApiErrorToast } from "../../../utils/errorToast";
 import { formatMoney } from "../../../utils/formatting";
+import { guardPrint } from "../../utils/printGuard";
 
 type SelectableItem = {
   id: string;
@@ -46,6 +47,7 @@ type SelectableItem = {
   stock: number;
   type: 'STOCKED' | 'SERVICE';
   barcode?: string;
+  salePriceIncludesTax?: boolean;
 };
 
 interface SalesInvoiceProps {
@@ -105,6 +107,7 @@ const SalesInvoice: React.FC<SalesInvoiceProps> = ({
     stock: item.stock,
     type: item.type || 'STOCKED',
     barcode: item.barcode,
+    salePriceIncludesTax: item.salePriceIncludesTax ?? false,
   }));
 
   const allCustomers: Customer[] = customers.map((customer) => ({
@@ -143,6 +146,7 @@ const SalesInvoice: React.FC<SalesInvoiceProps> = ({
     price: 0,
     taxAmount: 0,
     total: 0,
+    salePriceIncludesTax: false,
   });
 
   const [invoiceItems, setInvoiceItems] = useState<InvoiceItem[]>(
@@ -196,6 +200,32 @@ const SalesInvoice: React.FC<SalesInvoiceProps> = ({
   const justSavedRef = useRef(false); // Flag to prevent resetting state after save
 
   const [focusIndex, setFocusIndex] = useState<number | null>(null);
+
+  const hasPrintableItems = useMemo(
+    () =>
+      invoiceItems.some(
+        (item) => item.id && item.name && Number(item.qty) > 0,
+      ),
+    [invoiceItems],
+  );
+
+  const canPrintExistingInvoice = useMemo(
+    () => currentIndex >= 0 && isReadOnly,
+    [currentIndex, isReadOnly],
+  );
+
+  const handleOpenPreview = () => {
+    if (!canPrintExistingInvoice) {
+      showToast("لا يمكن الطباعة إلا بعد تحميل مستند محفوظ.", "error");
+      return;
+    }
+
+    guardPrint({
+      hasData: hasPrintableItems,
+      showToast,
+      onAllowed: () => setIsPreviewOpen(true),
+    });
+  };
   const [originalInvoiceVatEnabled, setOriginalInvoiceVatEnabled] = useState<boolean>(false);
 
   // Use original invoice VAT status if editing existing invoice, otherwise use current company setting
@@ -267,7 +297,11 @@ const SalesInvoice: React.FC<SalesInvoiceProps> = ({
       );
       // Show "عميل نقدي" when editing cash invoice without customer
       setCustomerQuery(inv.customer?.name || (inv.paymentMethod === "cash" && !inv.customer ? "عميل نقدي" : ""));
-      setInvoiceItems(inv.items as InvoiceItem[]);
+      const normalizedItems = (inv.items as InvoiceItem[]).map((item) => ({
+        ...item,
+        salePriceIncludesTax: Boolean(item.salePriceIncludesTax),
+      }));
+      setInvoiceItems(normalizedItems);
       setTotals({
         subtotal: inv.subtotal,
         discount: inv.discount,
@@ -333,7 +367,10 @@ const SalesInvoice: React.FC<SalesInvoiceProps> = ({
       0,
     );
     const taxTotal = effectiveVatEnabled
-      ? invoiceItems.reduce((acc, item) => acc + item.taxAmount, 0)
+      ? invoiceItems.reduce(
+          (acc, item) => acc + (item.taxAmount || 0),
+          0,
+        )
       : 0;
     setTotals((prev) => {
       const net = subtotal + taxTotal - prev.discount;
@@ -399,7 +436,8 @@ const SalesInvoice: React.FC<SalesInvoiceProps> = ({
       const price = parseFloat(item.price as any) || 0;
       const total = qty * price;
       item.total = total;
-      item.taxAmount = effectiveVatEnabled ? total * (vatRate / 100) : 0;
+      const appliesTax = effectiveVatEnabled && item.salePriceIncludesTax;
+      item.taxAmount = appliesTax ? total * (vatRate / 100) : 0;
     }
     newItems[index] = item;
     setInvoiceItems(newItems);
@@ -415,10 +453,12 @@ const SalesInvoice: React.FC<SalesInvoiceProps> = ({
       unit: selectedItem.unit,
       qty: currentItem.qty || 1,
       price: selectedItem.salePrice,
+      salePriceIncludesTax: Boolean(selectedItem.salePriceIncludesTax),
     };
     const total = item.qty * (item.price || 0);
     item.total = total;
-    item.taxAmount = effectiveVatEnabled ? total * (vatRate / 100) : 0;
+    const appliesTax = effectiveVatEnabled && item.salePriceIncludesTax;
+    item.taxAmount = appliesTax ? total * (vatRate / 100) : 0;
     newItems[index] = item;
     setInvoiceItems(newItems);
     setActiveItemSearch(null);
@@ -529,10 +569,12 @@ const SalesInvoice: React.FC<SalesInvoiceProps> = ({
         unit: foundItem.unit,
         qty: 1,
         price: foundItem.salePrice,
+        salePriceIncludesTax: Boolean(foundItem.salePriceIncludesTax),
       };
       const total = item.qty * (item.price || 0);
       item.total = total;
-      item.taxAmount = effectiveVatEnabled ? total * (vatRate / 100) : 0;
+      const appliesTax = effectiveVatEnabled && item.salePriceIncludesTax;
+      item.taxAmount = appliesTax ? total * (vatRate / 100) : 0;
       newItems[indexToFill] = item;
 
       setInvoiceItems(newItems);
@@ -588,6 +630,7 @@ const SalesInvoice: React.FC<SalesInvoiceProps> = ({
           price: item.price,
           taxAmount: item.taxAmount || 0,
           total: item.total || 0,
+          salePriceIncludesTax: Boolean(item.salePriceIncludesTax),
         })),
         discount: totals.discount,
         paymentMethod,
@@ -1172,7 +1215,7 @@ const SalesInvoice: React.FC<SalesInvoiceProps> = ({
                 بحث
               </button>
               <button
-                onClick={() => setIsPreviewOpen(true)}
+                onClick={handleOpenPreview}
                 className="px-4 py-2 bg-gray-200 text-brand-dark rounded-md hover:bg-gray-300 font-semibold flex items-center"
               >
                 <PrintIcon className="mr-2 w-5 h-5" /> معاينة وطباعة

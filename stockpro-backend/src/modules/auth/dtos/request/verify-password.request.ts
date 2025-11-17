@@ -7,5 +7,3 @@ export class VerifyPasswordRequest {
   @IsString({ message: ERROR_MESSAGES.PASSWORD_SHOULD_BE_STRING })
   password: string;
 }
-
-

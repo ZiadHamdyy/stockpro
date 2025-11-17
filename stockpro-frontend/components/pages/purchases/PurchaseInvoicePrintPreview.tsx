@@ -4,6 +4,8 @@ import { tafqeet } from "../../../utils/tafqeet";
 import { PrintIcon, XIcon } from "../../icons";
 import { useGetCompanyQuery } from "../../store/slices/companyApiSlice";
 import { formatMoney } from "../../../utils/formatting";
+import { useToast } from "../../common/ToastProvider";
+import { guardPrint } from "../../utils/printGuard";
 
 interface PurchaseInvoicePrintPreviewProps {
   isOpen: boolean;
@@ -29,6 +31,7 @@ const PurchaseInvoicePrintPreview: React.FC<
   PurchaseInvoicePrintPreviewProps
 > = ({ isOpen, onClose, isReturn = false, invoiceData }) => {
   const { data: companyInfo, isLoading, error } = useGetCompanyQuery();
+  const { showToast } = useToast();
 
   if (!isOpen) return null;
 
@@ -68,7 +71,7 @@ const PurchaseInvoicePrintPreview: React.FC<
     );
   }
 
-  const handlePrint = () => {
+  const printInvoice = () => {
     const printContents = document.getElementById("printable-invoice")?.innerHTML;
     if (printContents) {
       const printWindow = window.open("", "", "height=800,width=800");
@@ -148,6 +151,14 @@ const PurchaseInvoicePrintPreview: React.FC<
         onClose();
       }, 250);
     }
+  };
+
+  const handlePrint = () => {
+    guardPrint({
+      hasData: items.length > 0,
+      showToast,
+      onAllowed: printInvoice,
+    });
   };
 
   

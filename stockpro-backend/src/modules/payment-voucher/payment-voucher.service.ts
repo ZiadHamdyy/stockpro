@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  ConflictException,
+} from '@nestjs/common';
 import { DatabaseService } from '../../configs/database/database.service';
 import { CreatePaymentVoucherRequest } from './dtos/request/create-payment-voucher.request';
 import { UpdatePaymentVoucherRequest } from './dtos/request/update-payment-voucher.request';
@@ -17,31 +21,42 @@ export class PaymentVoucherService {
     const code = await this.generateNextCode();
 
     // Fetch entity name based on type
-    const entityId = data.customerId || 
-                     data.supplierId || 
-                     data.currentAccountId || 
-                     data.expenseCodeId || 
-                     data.receivableAccountId || 
-                     data.payableAccountId || 
-                     '';
+    const entityId =
+      data.customerId ||
+      data.supplierId ||
+      data.currentAccountId ||
+      data.expenseCodeId ||
+      data.receivableAccountId ||
+      data.payableAccountId ||
+      '';
     const entityName = await this.fetchEntityName(data.entityType, entityId);
 
     const result = await this.prisma.$transaction(async (tx) => {
       // Validate and debit from source
       if (data.paymentMethod === 'safe') {
-        const sender = await tx.safe.findUnique({ where: { id: data.safeId! } });
+        const sender = await tx.safe.findUnique({
+          where: { id: data.safeId! },
+        });
         if (!sender) throw new NotFoundException('Safe not found');
         if ((sender as any).currentBalance < data.amount) {
           throw new ConflictException(`الرصيد غير كافي في ${sender.name}`);
         }
-        await tx.safe.update({ where: { id: data.safeId! }, data: { currentBalance: { decrement: data.amount } } as any });
+        await tx.safe.update({
+          where: { id: data.safeId! },
+          data: { currentBalance: { decrement: data.amount } } as any,
+        });
       } else if (data.paymentMethod === 'bank') {
-        const sender = await tx.bank.findUnique({ where: { id: data.bankId! } });
+        const sender = await tx.bank.findUnique({
+          where: { id: data.bankId! },
+        });
         if (!sender) throw new NotFoundException('Bank not found');
-        if ( (sender as any).currentBalance < data.amount) {
+        if ((sender as any).currentBalance < data.amount) {
           throw new ConflictException(`الرصيد غير كافي في ${sender.name}`);
         }
-        await tx.bank.update({ where: { id: data.bankId! }, data: { currentBalance: { decrement: data.amount } } as any });
+        await tx.bank.update({
+          where: { id: data.bankId! },
+          data: { currentBalance: { decrement: data.amount } } as any,
+        });
       }
 
       // Apply entity balance effects
@@ -57,12 +72,16 @@ export class PaymentVoucherService {
           where: { id: data.customerId },
           data: { currentBalance: { increment: data.amount } },
         });
-      } else if ((data.entityType === 'expense' || data.entityType === 'expense-Type') && data.expenseCodeId) {
+      } else if (
+        (data.entityType === 'expense' || data.entityType === 'expense-Type') &&
+        data.expenseCodeId
+      ) {
         // Expense-Type: Note - ExpenseCode doesn't have currentBalance field
         // If tracking is needed, add currentBalance field to ExpenseCode model
       } else {
         // Apply entity-side effect for other account types
-        const direction = data.entityType === 'payable_account' ? 'decrement' : 'increment';
+        const direction =
+          data.entityType === 'payable_account' ? 'decrement' : 'increment';
         await this.applyEntityBalanceEffect(tx, data.entityType, {
           currentAccountId: data.currentAccountId,
           receivableAccountId: data.receivableAccountId as any,
@@ -73,7 +92,7 @@ export class PaymentVoucherService {
       }
 
       const paymentVoucher = await tx.paymentVoucher.create({
-        data: ({
+        data: {
           code,
           date: new Date(data.date),
           entityType: data.entityType,
@@ -91,7 +110,7 @@ export class PaymentVoucherService {
           payableAccountId: (data as any).payableAccountId,
           userId,
           branchId: data.branchId,
-        } as any),
+        } as any,
         include: { user: true, branch: true },
       });
       return paymentVoucher;
@@ -170,9 +189,15 @@ export class PaymentVoucherService {
 
         // Reverse previous debit on safe/bank
         if (existing.paymentMethod === 'safe' && existing.safeId) {
-          await tx.safe.update({ where: { id: existing.safeId }, data: { currentBalance: { increment: existing.amount } } as any });
+          await tx.safe.update({
+            where: { id: existing.safeId },
+            data: { currentBalance: { increment: existing.amount } } as any,
+          });
         } else if (existing.paymentMethod === 'bank' && existing.bankId) {
-          await tx.bank.update({ where: { id: existing.bankId }, data: { currentBalance: { increment: existing.amount } } as any });
+          await tx.bank.update({
+            where: { id: existing.bankId },
+            data: { currentBalance: { increment: existing.amount } } as any,
+          });
         }
 
         // Reverse previous entity effect
@@ -186,11 +211,18 @@ export class PaymentVoucherService {
             where: { id: existing.customerId },
             data: { currentBalance: { decrement: existing.amount } },
           });
-        } else if ((existing.entityType === 'expense' || existing.entityType === 'expense-Type') && existing.expenseCodeId) {
+        } else if (
+          (existing.entityType === 'expense' ||
+            existing.entityType === 'expense-Type') &&
+          existing.expenseCodeId
+        ) {
           // Expense-Type: Note - ExpenseCode doesn't have currentBalance field
           // If tracking is needed, add currentBalance field to ExpenseCode model
         } else {
-          const reverseDirection = existing.entityType === 'payable_account' ? 'increment' : 'decrement';
+          const reverseDirection =
+            existing.entityType === 'payable_account'
+              ? 'increment'
+              : 'decrement';
           await this.applyEntityBalanceEffect(tx, existing.entityType, {
             currentAccountId: existing.currentAccountId,
             receivableAccountId: (existing as any).receivableAccountId,
@@ -202,20 +234,35 @@ export class PaymentVoucherService {
 
         // Determine new source and amount, then validate and apply debit
         const newPaymentMethod = data.paymentMethod || existing.paymentMethod;
-        const newAmount = data.amount !== undefined ? data.amount : existing.amount;
-        const newSafeId = newPaymentMethod === 'safe' ? (data.safeId || existing.safeId) : null;
-        const newBankId = newPaymentMethod === 'bank' ? (data.bankId || existing.bankId) : null;
+        const newAmount =
+          data.amount !== undefined ? data.amount : existing.amount;
+        const newSafeId =
+          newPaymentMethod === 'safe' ? data.safeId || existing.safeId : null;
+        const newBankId =
+          newPaymentMethod === 'bank' ? data.bankId || existing.bankId : null;
 
         if (newPaymentMethod === 'safe') {
-          const sender = await tx.safe.findUnique({ where: { id: newSafeId! } });
+          const sender = await tx.safe.findUnique({
+            where: { id: newSafeId! },
+          });
           if (!sender) throw new NotFoundException('Safe not found');
-          if ((sender as any).currentBalance < newAmount) throw new ConflictException(`الرصيد غير كافي في ${sender.name}`);
-          await tx.safe.update({ where: { id: newSafeId! }, data: { currentBalance: { decrement: newAmount } } as any });
+          if ((sender as any).currentBalance < newAmount)
+            throw new ConflictException(`الرصيد غير كافي في ${sender.name}`);
+          await tx.safe.update({
+            where: { id: newSafeId! },
+            data: { currentBalance: { decrement: newAmount } } as any,
+          });
         } else if (newPaymentMethod === 'bank') {
-          const sender = await tx.bank.findUnique({ where: { id: newBankId! } });
+          const sender = await tx.bank.findUnique({
+            where: { id: newBankId! },
+          });
           if (!sender) throw new NotFoundException('Bank not found');
-          if ((sender as any).currentBalance < newAmount) throw new ConflictException(`الرصيد غير كافي في ${sender.name}`);
-          await tx.bank.update({ where: { id: newBankId! }, data: { currentBalance: { decrement: newAmount } } as any });
+          if ((sender as any).currentBalance < newAmount)
+            throw new ConflictException(`الرصيد غير كافي في ${sender.name}`);
+          await tx.bank.update({
+            where: { id: newBankId! },
+            data: { currentBalance: { decrement: newAmount } } as any,
+          });
         }
 
         // Apply new entity effect
@@ -223,7 +270,7 @@ export class PaymentVoucherService {
         const newSupplierId = data.supplierId ?? existing.supplierId;
         const newCustomerId = data.customerId ?? existing.customerId;
         const newExpenseCodeId = data.expenseCodeId ?? existing.expenseCodeId;
-        
+
         if (newEntityType === 'supplier' && newSupplierId) {
           await tx.supplier.update({
             where: { id: newSupplierId },
@@ -234,16 +281,25 @@ export class PaymentVoucherService {
             where: { id: newCustomerId },
             data: { currentBalance: { increment: newAmount } },
           });
-        } else if ((newEntityType === 'expense' || newEntityType === 'expense-Type') && newExpenseCodeId) {
+        } else if (
+          (newEntityType === 'expense' || newEntityType === 'expense-Type') &&
+          newExpenseCodeId
+        ) {
           // Expense-Type: Note - ExpenseCode doesn't have currentBalance field
           // If tracking is needed, add currentBalance field to ExpenseCode model
         } else {
           const newEntityIds: any = {
-            currentAccountId: data.currentAccountId ?? existing.currentAccountId,
-            receivableAccountId: (data as any).receivableAccountId ?? (existing as any).receivableAccountId,
-            payableAccountId: (data as any).payableAccountId ?? (existing as any).payableAccountId,
+            currentAccountId:
+              data.currentAccountId ?? existing.currentAccountId,
+            receivableAccountId:
+              (data as any).receivableAccountId ??
+              (existing as any).receivableAccountId,
+            payableAccountId:
+              (data as any).payableAccountId ??
+              (existing as any).payableAccountId,
           };
-          const direction = newEntityType === 'payable_account' ? 'decrement' : 'increment';
+          const direction =
+            newEntityType === 'payable_account' ? 'decrement' : 'increment';
           await this.applyEntityBalanceEffect(tx, newEntityType, {
             ...newEntityIds,
             amount: newAmount,
@@ -261,28 +317,33 @@ export class PaymentVoucherService {
         };
 
         // If entity type or ID changed, fetch new entity name
-        const newEntityId = data.customerId ?? 
-                           data.supplierId ?? 
-                           data.currentAccountId ?? 
-                           data.expenseCodeId ?? 
-                           data.receivableAccountId ?? 
-                           data.payableAccountId ?? 
-                           null;
+        const newEntityId =
+          data.customerId ??
+          data.supplierId ??
+          data.currentAccountId ??
+          data.expenseCodeId ??
+          data.receivableAccountId ??
+          data.payableAccountId ??
+          null;
         if (newEntityType !== existing.entityType || newEntityId !== null) {
-          const entityIdToUse = newEntityId || 
-                                existing.customerId || 
-                                existing.supplierId || 
-                                existing.currentAccountId || 
-                                existing.expenseCodeId || 
-                                (existing as any).receivableAccountId || 
-                                (existing as any).payableAccountId || 
-                                '';
-          updateData.entityName = await this.fetchEntityName(newEntityType, entityIdToUse);
+          const entityIdToUse =
+            newEntityId ||
+            existing.customerId ||
+            existing.supplierId ||
+            existing.currentAccountId ||
+            existing.expenseCodeId ||
+            (existing as any).receivableAccountId ||
+            (existing as any).payableAccountId ||
+            '';
+          updateData.entityName = await this.fetchEntityName(
+            newEntityType,
+            entityIdToUse,
+          );
         }
 
         const updated = await tx.paymentVoucher.update({
           where: { id },
-          data: updateData as any,
+          data: updateData,
           include: { user: true, branch: true },
         });
         return updated;
@@ -302,9 +363,15 @@ export class PaymentVoucherService {
 
         // Reverse debit on safe/bank
         if (existing.paymentMethod === 'safe' && existing.safeId) {
-          await tx.safe.update({ where: { id: existing.safeId }, data: { currentBalance: { increment: existing.amount } } as any });
+          await tx.safe.update({
+            where: { id: existing.safeId },
+            data: { currentBalance: { increment: existing.amount } } as any,
+          });
         } else if (existing.paymentMethod === 'bank' && existing.bankId) {
-          await tx.bank.update({ where: { id: existing.bankId }, data: { currentBalance: { increment: existing.amount } } as any });
+          await tx.bank.update({
+            where: { id: existing.bankId },
+            data: { currentBalance: { increment: existing.amount } } as any,
+          });
         }
 
         // Reverse entity effect
@@ -318,11 +385,18 @@ export class PaymentVoucherService {
             where: { id: existing.customerId },
             data: { currentBalance: { decrement: existing.amount } },
           });
-        } else if ((existing.entityType === 'expense' || existing.entityType === 'expense-Type') && existing.expenseCodeId) {
+        } else if (
+          (existing.entityType === 'expense' ||
+            existing.entityType === 'expense-Type') &&
+          existing.expenseCodeId
+        ) {
           // Expense-Type: Note - ExpenseCode doesn't have currentBalance field
           // If tracking is needed, add currentBalance field to ExpenseCode model
         } else {
-          const reverseDirection = existing.entityType === 'payable_account' ? 'increment' : 'decrement';
+          const reverseDirection =
+            existing.entityType === 'payable_account'
+              ? 'increment'
+              : 'decrement';
           await this.applyEntityBalanceEffect(tx, existing.entityType, {
             currentAccountId: existing.currentAccountId,
             receivableAccountId: (existing as any).receivableAccountId,
@@ -383,7 +457,9 @@ export class PaymentVoucherService {
         return currentAccount?.name || '';
 
       case 'receivable_account':
-        const receivable = await (this.prisma as any).receivableAccount.findUnique({
+        const receivable = await (
+          this.prisma as any
+        ).receivableAccount.findUnique({
           where: { id: entityId },
         });
         return receivable?.name || '';
@@ -421,32 +497,39 @@ export class PaymentVoucherService {
     if (entityType === 'current_account' && params.currentAccountId) {
       // Current account: decrement for payment (check balance)
       if (deltaOp === 'decrement') {
-        const acc = await (tx as any).currentAccount.findUnique({ where: { id: params.currentAccountId } });
+        const acc = await tx.currentAccount.findUnique({
+          where: { id: params.currentAccountId },
+        });
         if (!acc) throw new NotFoundException('Current account not found');
-        if ((acc as any).currentBalance < params.amount) {
+        if (acc.currentBalance < params.amount) {
           throw new ConflictException('الرصيد غير كافي في الحساب الجاري');
         }
       }
-      await (tx as any).currentAccount.update({
+      await tx.currentAccount.update({
         where: { id: params.currentAccountId },
         data: { currentBalance: { [deltaOp]: params.amount } } as any,
       });
-    } else if (entityType === 'receivable_account' && params.receivableAccountId) {
+    } else if (
+      entityType === 'receivable_account' &&
+      params.receivableAccountId
+    ) {
       // Receivable account: increment for payment (no balance check needed)
-      await (tx as any).receivableAccount.update({
+      await tx.receivableAccount.update({
         where: { id: params.receivableAccountId },
         data: { currentBalance: { [deltaOp]: params.amount } } as any,
       });
     } else if (entityType === 'payable_account' && params.payableAccountId) {
       // Payable account: decrement for payment (check balance)
       if (deltaOp === 'decrement') {
-        const acc = await (tx as any).payableAccount.findUnique({ where: { id: params.payableAccountId } });
+        const acc = await tx.payableAccount.findUnique({
+          where: { id: params.payableAccountId },
+        });
         if (!acc) throw new NotFoundException('Payable account not found');
-        if ((acc as any).currentBalance < params.amount) {
+        if (acc.currentBalance < params.amount) {
           throw new ConflictException('الرصيد غير كافي في حساب الموردين');
         }
       }
-      await (tx as any).payableAccount.update({
+      await tx.payableAccount.update({
         where: { id: params.payableAccountId },
         data: { currentBalance: { [deltaOp]: params.amount } } as any,
       });
@@ -469,8 +552,8 @@ export class PaymentVoucherService {
       supplierId: voucher.supplierId,
       currentAccountId: voucher.currentAccountId,
       expenseCodeId: voucher.expenseCodeId,
-      receivableAccountId: (voucher as any).receivableAccountId || null,
-      payableAccountId: (voucher as any).payableAccountId || null,
+      receivableAccountId: voucher.receivableAccountId || null,
+      payableAccountId: voucher.payableAccountId || null,
       userId: voucher.userId,
       branchId: voucher.branchId,
       branch: voucher.branch || null,

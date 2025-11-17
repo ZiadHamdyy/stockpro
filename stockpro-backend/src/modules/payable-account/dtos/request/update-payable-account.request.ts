@@ -9,5 +9,3 @@ export class UpdatePayableAccountRequest {
   @IsOptional()
   openingBalance?: number;
 }
-
-

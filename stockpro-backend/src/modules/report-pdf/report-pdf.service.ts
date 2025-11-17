@@ -7,7 +7,8 @@ import * as path from 'path';
 @Injectable()
 export class ReportPdfService {
   private buildHtml(dto: ExportPdfDto): string {
-    const fontCdn = 'https://cdn.jsdelivr.net/gh/googlefonts/noto-fonts/hinted/ttf/NotoNaskhArabic/NotoNaskhArabic-Regular.ttf';
+    const fontCdn =
+      'https://cdn.jsdelivr.net/gh/googlefonts/noto-fonts/hinted/ttf/NotoNaskhArabic/NotoNaskhArabic-Regular.ttf';
     const fontUrl = fontCdn;
 
     const head = dto.columns?.[0] || [];
@@ -16,7 +17,10 @@ export class ReportPdfService {
       .map(
         (row: any[]) =>
           `<tr>${row
-            .map((cell) => `<td style="padding:8px;border:1px solid #e5e7eb;">${this.escapeHtml(cell?.content ?? cell ?? '')}</td>`)
+            .map(
+              (cell) =>
+                `<td style="padding:8px;border:1px solid #e5e7eb;">${this.escapeHtml(cell?.content ?? cell ?? '')}</td>`,
+            )
             .join('')}</tr>`,
       )
       .join('');
@@ -26,7 +30,10 @@ export class ReportPdfService {
         (row: any[]) =>
           `<tr>${row
             .map((cell) => {
-              const content = (cell && typeof cell === 'object' && 'content' in cell) ? (cell as any).content : cell;
+              const content =
+                cell && typeof cell === 'object' && 'content' in cell
+                  ? cell.content
+                  : cell;
               return `<td style="padding:8px;border:1px solid #e5e7eb;font-weight:bold;background:#f3f4f6;">${this.escapeHtml(content ?? '')}</td>`;
             })
             .join('')}</tr>`,
@@ -35,17 +42,22 @@ export class ReportPdfService {
 
     // Get header color based on theme
     const headerColor =
-      dto.colorTheme === "green"
-        ? "#16A34A" // green-600
-        : dto.colorTheme === "amber"
-        ? "#F59E0B" // amber-500
-        : "#1E40AF"; // blue-700 (default)
+      dto.colorTheme === 'green'
+        ? '#16A34A' // green-600
+        : dto.colorTheme === 'amber'
+          ? '#F59E0B' // amber-500
+          : '#1E40AF'; // blue-700 (default)
 
     const thead = `<thead><tr>${head
-      .map((h: any) => `<th style="padding:8px;border:1px solid #e5e7eb;background:${headerColor};color:#fff;">${this.escapeHtml(h?.content ?? h ?? '')}</th>`)
+      .map(
+        (h: any) =>
+          `<th style="padding:8px;border:1px solid #e5e7eb;background:${headerColor};color:#fff;">${this.escapeHtml(h?.content ?? h ?? '')}</th>`,
+      )
       .join('')}</tr></thead>`;
 
-    const companyName = dto.companyInfo?.name ? `<div class="company">${this.escapeHtml(dto.companyInfo.name)}</div>` : '';
+    const companyName = dto.companyInfo?.name
+      ? `<div class="company">${this.escapeHtml(dto.companyInfo.name)}</div>`
+      : '';
 
     return `<!doctype html>
 <html lang="ar" dir="rtl">
@@ -95,7 +107,8 @@ export class ReportPdfService {
 
   async renderTableReport(dto: ExportPdfDto): Promise<Buffer> {
     const html = this.buildHtml(dto);
-    const executablePath = process.env.PUPPETEER_EXECUTABLE_PATH || '/usr/bin/chromium';
+    const executablePath =
+      process.env.PUPPETEER_EXECUTABLE_PATH || '/usr/bin/chromium';
     const browser = await puppeteer.launch({
       headless: true,
       protocolTimeout: 60000,
@@ -125,5 +138,3 @@ export class ReportPdfService {
     }
   }
 }
-
-

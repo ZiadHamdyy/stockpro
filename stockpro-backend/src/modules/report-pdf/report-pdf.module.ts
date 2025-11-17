@@ -7,6 +7,3 @@ import { ReportPdfService } from './report-pdf.service.js';
   providers: [ReportPdfService],
 })
 export class ReportPdfModule {}
-
-
-

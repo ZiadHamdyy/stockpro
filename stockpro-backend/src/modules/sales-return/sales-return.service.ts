@@ -117,14 +117,14 @@ export class SalesReturnService {
         // Filter STOCKED items and get item records
         const stockedItemsWithRecords = await Promise.all(
           data.items.map(async (item) => {
-            const itemRecord = await tx.item.findUnique({ 
-              where: { code: item.id }
+            const itemRecord = await tx.item.findUnique({
+              where: { code: item.id },
             });
             if (itemRecord && (itemRecord as any).type === 'STOCKED') {
               return { item, itemRecord };
             }
             return null;
-          })
+          }),
         );
         const stockedItems = stockedItemsWithRecords.filter(Boolean) as Array<{
           item: any;
@@ -134,13 +134,17 @@ export class SalesReturnService {
         // Ensure StoreItem exists for each item (with openingBalance = 0)
         // Stock will be tracked via SalesReturn items in StockService
         for (const { itemRecord } of stockedItems) {
-          await this.stockService.ensureStoreItemExists(store.id, itemRecord.id, tx);
+          await this.stockService.ensureStoreItemExists(
+            store.id,
+            itemRecord.id,
+            tx,
+          );
         }
       } else {
         // Fallback: Update global stock if store not found (backward compatibility)
         for (const item of data.items) {
-          const itemRecord = await tx.item.findUnique({ 
-            where: { code: item.id }
+          const itemRecord = await tx.item.findUnique({
+            where: { code: item.id },
           });
           if (itemRecord && (itemRecord as any).type === 'STOCKED') {
             await tx.item.update({
@@ -158,7 +162,10 @@ export class SalesReturnService {
           amount: net,
           paymentTargetType: data.paymentTargetType as any,
           branchId,
-          bankId: data.paymentTargetType === 'bank' ? data.paymentTargetId || null : null,
+          bankId:
+            data.paymentTargetType === 'bank'
+              ? data.paymentTargetId || null
+              : null,
           tx,
         });
       }
@@ -335,13 +342,20 @@ export class SalesReturnService {
         }
 
         // Reverse previous cash impact if needed
-        if (existingReturn && (existingReturn as any).paymentMethod === 'cash' && (existingReturn as any).paymentTargetType) {
+        if (
+          existingReturn &&
+          (existingReturn as any).paymentMethod === 'cash' &&
+          (existingReturn as any).paymentTargetType
+        ) {
           await AccountingService.reverseImpact({
             kind: 'sales-return',
             amount: (existingReturn as any).net,
-            paymentTargetType: (existingReturn as any).paymentTargetType as any,
+            paymentTargetType: (existingReturn as any).paymentTargetType,
             branchId: (existingReturn as any).branchId,
-            bankId: (existingReturn as any).paymentTargetType === 'bank' ? (existingReturn as any).paymentTargetId : null,
+            bankId:
+              (existingReturn as any).paymentTargetType === 'bank'
+                ? (existingReturn as any).paymentTargetId
+                : null,
             tx,
           });
         }
@@ -353,12 +367,15 @@ export class SalesReturnService {
         //   });
         // }
         // Apply new cash impact if applicable
-        const targetType = (ret as any).paymentMethod === 'cash' ? (ret as any).paymentTargetType : null;
+        const targetType =
+          (ret as any).paymentMethod === 'cash'
+            ? (ret as any).paymentTargetType
+            : null;
         if (targetType) {
           await AccountingService.applyImpact({
             kind: 'sales-return',
             amount: (ret as any).net,
-            paymentTargetType: targetType as any,
+            paymentTargetType: targetType,
             branchId: (ret as any).branchId,
             bankId: targetType === 'bank' ? (ret as any).paymentTargetId : null,
             tx,
@@ -391,7 +408,7 @@ export class SalesReturnService {
       if (return_) {
         // Decrease stock (reverse the return)
         await this.updateStockForItems(return_.items as any[], 'decrease');
-        
+
         // Customer balance updates are disabled
         // if ((return_ as any).paymentMethod === 'credit' && (return_ as any).customerId) {
         //   await this.prisma.customer.update({

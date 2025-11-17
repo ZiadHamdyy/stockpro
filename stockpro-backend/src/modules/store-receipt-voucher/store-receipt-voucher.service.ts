@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
 import { DatabaseService } from '../../configs/database/database.service';
 import { CreateStoreReceiptVoucherDto } from './dtos/create-store-receipt-voucher.dto';
 import { UpdateStoreReceiptVoucherDto } from './dtos/update-store-receipt-voucher.dto';
@@ -166,12 +170,17 @@ export class StoreReceiptVoucherService {
         throw new NotFoundException('Store receipt voucher not found');
       }
 
-      const storeId = updateStoreReceiptVoucherDto.storeId || existingVoucher.storeId;
+      const storeId =
+        updateStoreReceiptVoucherDto.storeId || existingVoucher.storeId;
 
       // Ensure StoreItem exists for each new item (with openingBalance = 0)
       if (items) {
         for (const item of items) {
-          await this.stockService.ensureStoreItemExists(storeId, item.itemId, tx);
+          await this.stockService.ensureStoreItemExists(
+            storeId,
+            item.itemId,
+            tx,
+          );
         }
       }
 

@@ -46,4 +46,3 @@ export class CreateInternalTransferRequest {
   @IsString()
   branchId?: string;
 }
-

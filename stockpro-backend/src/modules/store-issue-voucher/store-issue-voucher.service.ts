@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
 import { DatabaseService } from '../../configs/database/database.service';
 import { StockService } from '../store/services/stock.service';
 import { CreateStoreIssueVoucherDto } from './dtos/create-store-issue-voucher.dto';
@@ -183,12 +187,11 @@ export class StoreIssueVoucherService {
           if (netChange > 0) {
             // Need to check if we have enough stock for the additional quantity
             // Current stock includes old items, so we need: current stock >= netChange
-            const currentBalance =
-              await this.stockService.getStoreItemBalance(
-                actualStoreId,
-                itemId,
-                tx,
-              );
+            const currentBalance = await this.stockService.getStoreItemBalance(
+              actualStoreId,
+              itemId,
+              tx,
+            );
             if (currentBalance < netChange) {
               throw new BadRequestException(
                 `Insufficient stock for item ${itemId}. Available: ${currentBalance}, Additional needed: ${netChange}`,

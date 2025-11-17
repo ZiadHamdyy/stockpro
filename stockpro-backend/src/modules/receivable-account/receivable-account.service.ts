@@ -36,13 +36,17 @@ export class ReceivableAccountService {
   }
 
   async findOne(id: string): Promise<ReceivableAccountResponse> {
-    const entity = await this.prisma.receivableAccount.findUnique({ where: { id } });
+    const entity = await this.prisma.receivableAccount.findUnique({
+      where: { id },
+    });
     if (!entity) throw new NotFoundException('Receivable account not found');
     return this.map(entity);
   }
 
   async findByCode(code: string): Promise<ReceivableAccountResponse> {
-    const entity = await this.prisma.receivableAccount.findUnique({ where: { code } });
+    const entity = await this.prisma.receivableAccount.findUnique({
+      where: { code },
+    });
     if (!entity) throw new NotFoundException('Receivable account not found');
     return this.map(entity);
   }
@@ -51,14 +55,21 @@ export class ReceivableAccountService {
     id: string,
     dto: UpdateReceivableAccountRequest,
   ): Promise<ReceivableAccountResponse> {
-    const exists = await this.prisma.receivableAccount.findUnique({ where: { id } });
+    const exists = await this.prisma.receivableAccount.findUnique({
+      where: { id },
+    });
     if (!exists) throw new NotFoundException('Receivable account not found');
-    const entity = await this.prisma.receivableAccount.update({ where: { id }, data: dto });
+    const entity = await this.prisma.receivableAccount.update({
+      where: { id },
+      data: dto,
+    });
     return this.map(entity);
   }
 
   async remove(id: string): Promise<void> {
-    const exists = await this.prisma.receivableAccount.findUnique({ where: { id } });
+    const exists = await this.prisma.receivableAccount.findUnique({
+      where: { id },
+    });
     if (!exists) throw new NotFoundException('Receivable account not found');
     await this.prisma.receivableAccount.delete({ where: { id } });
   }
@@ -73,5 +84,3 @@ export class ReceivableAccountService {
     updatedAt: entity.updatedAt,
   });
 }
-
-

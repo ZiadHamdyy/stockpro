@@ -43,5 +43,3 @@ export class UpdateUserRequest {
   @IsUUID(4, { message: 'Role ID should be a valid UUID' })
   roleId?: string;
 }
-
-

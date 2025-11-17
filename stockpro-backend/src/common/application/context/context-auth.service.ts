@@ -73,17 +73,17 @@ export class ContextAuthService implements IContextAuthService {
       type: typeof user.image,
       isBuffer: Buffer.isBuffer(user.image),
       hasImage: !!user.image,
-      length: user.image?.length || 'no length'
+      length: user.image?.length || 'no length',
     });
-    
+
     const convertedImage = user.image ? bufferToDataUri(user.image) : null;
-    
+
     console.log('🔍 ContextAuth - User image after conversion:', {
       type: typeof convertedImage,
       length: convertedImage?.length || 'no length',
-      preview: convertedImage?.substring(0, 50) || 'null'
+      preview: convertedImage?.substring(0, 50) || 'null',
     });
-    
+
     return {
       ...user,
       image: convertedImage,

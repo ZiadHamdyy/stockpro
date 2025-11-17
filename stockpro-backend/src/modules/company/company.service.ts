@@ -2,7 +2,10 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { DatabaseService } from '../../configs/database/database.service';
 import { UpsertCompanyRequest } from './dtos/request/upsert-company.request';
 import { CompanyResponse } from './dtos/response/company.response';
-import { base64ToBuffer, bufferToDataUri } from '../../common/utils/image-converter';
+import {
+  base64ToBuffer,
+  bufferToDataUri,
+} from '../../common/utils/image-converter';
 
 @Injectable()
 export class CompanyService {

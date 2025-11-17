@@ -7,7 +7,10 @@ import { UpdateUserRequest } from './dtos/request/update-user.request.js';
 import { UserListFilterInput } from './dtos/request/user-filter.input';
 import { HelperService } from '../../common/utils/helper/helper.service';
 import { ERROR_MESSAGES } from '../../common/constants/error-messages.constant';
-import { base64ToBuffer, bufferToDataUri } from '../../common/utils/image-converter';
+import {
+  base64ToBuffer,
+  bufferToDataUri,
+} from '../../common/utils/image-converter';
 
 @Injectable()
 export class UserService {
@@ -61,7 +64,7 @@ export class UserService {
     });
 
     return {
-      data: users.map(user => this.convertUserForResponse(user)),
+      data: users.map((user) => this.convertUserForResponse(user)),
       meta: {
         page,
         limit,

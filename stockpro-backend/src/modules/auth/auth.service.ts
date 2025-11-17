@@ -16,7 +16,10 @@ import { ResetPasswordRequest } from './dtos/request/reset-password.request';
 import { UpdatePasswordRequest } from './dtos/request/update-password.request';
 import { VerifyPasswordRequest } from './dtos/request/verify-password.request';
 import type { Response } from 'express';
-import { base64ToBuffer, bufferToDataUri } from '../../common/utils/image-converter';
+import {
+  base64ToBuffer,
+  bufferToDataUri,
+} from '../../common/utils/image-converter';
 
 @Injectable()
 export class AuthService {

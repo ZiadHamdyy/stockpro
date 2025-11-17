@@ -50,4 +50,3 @@ export class UpdateInternalTransferRequest {
   @IsString()
   branchId?: string;
 }
-

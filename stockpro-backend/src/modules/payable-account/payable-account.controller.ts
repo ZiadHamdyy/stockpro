@@ -39,7 +39,9 @@ export class PayableAccountController {
 
   @Get('code/:code')
   @Auth({ permissions: ['payable_accounts:read'] })
-  async findByCode(@Param('code') code: string): Promise<PayableAccountResponse> {
+  async findByCode(
+    @Param('code') code: string,
+  ): Promise<PayableAccountResponse> {
     return this.service.findByCode(code);
   }
 
@@ -65,5 +67,3 @@ export class PayableAccountController {
     return this.service.remove(id);
   }
 }
-
-

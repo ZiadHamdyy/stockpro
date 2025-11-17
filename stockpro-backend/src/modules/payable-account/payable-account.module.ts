@@ -10,5 +10,3 @@ import { PayableAccountController } from './payable-account.controller';
   exports: [PayableAccountService],
 })
 export class PayableAccountModule {}
-
-

@@ -44,7 +44,11 @@ export class StockService {
     const client = tx || this.prisma;
 
     // Get opening balance from StoreItem
-    const openingBalance = await this.getStoreItemOpeningBalance(storeId, itemId, tx);
+    const openingBalance = await this.getStoreItemOpeningBalance(
+      storeId,
+      itemId,
+      tx,
+    );
 
     // Get store's branchId
     const store = await client.store.findUnique({
@@ -436,4 +440,3 @@ export class StockService {
     });
   }
 }
-

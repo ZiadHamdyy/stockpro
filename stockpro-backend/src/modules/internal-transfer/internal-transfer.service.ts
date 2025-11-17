@@ -27,14 +27,18 @@ export class InternalTransferService {
         (data.fromType === 'safe' && data.fromSafeId === data.toSafeId) ||
         (data.fromType === 'bank' && data.fromBankId === data.toBankId)
       ) {
-        throw new BadRequestException('Cannot transfer from and to the same account');
+        throw new BadRequestException(
+          'Cannot transfer from and to the same account',
+        );
       }
     }
 
     const result = await this.prisma.$transaction(async (tx) => {
       // Validate sender has sufficient current balance
       if (data.fromType === 'safe') {
-        const sender = await tx.safe.findUnique({ where: { id: data.fromSafeId! } });
+        const sender = await tx.safe.findUnique({
+          where: { id: data.fromSafeId! },
+        });
         if (!sender) throw new NotFoundException('Safe not found');
         if ((sender as any).currentBalance < data.amount) {
           throw new ConflictException(`الرصيد غير كافي في ${sender.name}`);
@@ -44,7 +48,9 @@ export class InternalTransferService {
           data: { currentBalance: { decrement: data.amount } } as any,
         });
       } else {
-        const sender = await tx.bank.findUnique({ where: { id: data.fromBankId! } });
+        const sender = await tx.bank.findUnique({
+          where: { id: data.fromBankId! },
+        });
         if (!sender) throw new NotFoundException('Bank not found');
         if ((sender as any).currentBalance < data.amount) {
           throw new ConflictException(`الرصيد غير كافي في ${sender.name}`);
@@ -155,7 +161,9 @@ export class InternalTransferService {
   ): Promise<InternalTransferResponse> {
     try {
       const result = await this.prisma.$transaction(async (tx) => {
-        const existing = await tx.internalTransfer.findUnique({ where: { id } });
+        const existing = await tx.internalTransfer.findUnique({
+          where: { id },
+        });
         if (!existing) {
           throw new NotFoundException('Internal transfer not found');
         }
@@ -187,11 +195,20 @@ export class InternalTransferService {
         // Determine new values
         const newFromType = data.fromType || existing.fromType;
         const newToType = data.toType || existing.toType;
-        const newAmount = data.amount !== undefined ? data.amount : existing.amount;
-        const newFromSafeId = newFromType === 'safe' ? (data.fromSafeId || existing.fromSafeId) : null;
-        const newFromBankId = newFromType === 'bank' ? (data.fromBankId || existing.fromBankId) : null;
-        const newToSafeId = newToType === 'safe' ? (data.toSafeId || existing.toSafeId) : null;
-        const newToBankId = newToType === 'bank' ? (data.toBankId || existing.toBankId) : null;
+        const newAmount =
+          data.amount !== undefined ? data.amount : existing.amount;
+        const newFromSafeId =
+          newFromType === 'safe'
+            ? data.fromSafeId || existing.fromSafeId
+            : null;
+        const newFromBankId =
+          newFromType === 'bank'
+            ? data.fromBankId || existing.fromBankId
+            : null;
+        const newToSafeId =
+          newToType === 'safe' ? data.toSafeId || existing.toSafeId : null;
+        const newToBankId =
+          newToType === 'bank' ? data.toBankId || existing.toBankId : null;
 
         // Validate from != to
         if (
@@ -199,31 +216,49 @@ export class InternalTransferService {
           ((newFromType === 'safe' && newFromSafeId === newToSafeId) ||
             (newFromType === 'bank' && newFromBankId === newToBankId))
         ) {
-          throw new BadRequestException('Cannot transfer from and to the same account');
+          throw new BadRequestException(
+            'Cannot transfer from and to the same account',
+          );
         }
 
         // Validate sender balance
         if (newFromType === 'safe') {
-          const sender = await tx.safe.findUnique({ where: { id: newFromSafeId! } });
+          const sender = await tx.safe.findUnique({
+            where: { id: newFromSafeId! },
+          });
           if (!sender) throw new NotFoundException('Safe not found');
           if ((sender as any).currentBalance < newAmount) {
             throw new ConflictException(`الرصيد غير كافي في ${sender.name}`);
           }
-          await tx.safe.update({ where: { id: newFromSafeId! }, data: { currentBalance: { decrement: newAmount } } as any });
+          await tx.safe.update({
+            where: { id: newFromSafeId! },
+            data: { currentBalance: { decrement: newAmount } } as any,
+          });
         } else {
-          const sender = await tx.bank.findUnique({ where: { id: newFromBankId! } });
+          const sender = await tx.bank.findUnique({
+            where: { id: newFromBankId! },
+          });
           if (!sender) throw new NotFoundException('Bank not found');
           if ((sender as any).currentBalance < newAmount) {
             throw new ConflictException(`الرصيد غير كافي في ${sender.name}`);
           }
-          await tx.bank.update({ where: { id: newFromBankId! }, data: { currentBalance: { decrement: newAmount } } as any });
+          await tx.bank.update({
+            where: { id: newFromBankId! },
+            data: { currentBalance: { decrement: newAmount } } as any,
+          });
         }
 
         // Credit receiver
         if (newToType === 'safe') {
-          await tx.safe.update({ where: { id: newToSafeId! }, data: { currentBalance: { increment: newAmount } } as any });
+          await tx.safe.update({
+            where: { id: newToSafeId! },
+            data: { currentBalance: { increment: newAmount } } as any,
+          });
         } else {
-          await tx.bank.update({ where: { id: newToBankId! }, data: { currentBalance: { increment: newAmount } } as any });
+          await tx.bank.update({
+            where: { id: newToBankId! },
+            data: { currentBalance: { increment: newAmount } } as any,
+          });
         }
 
         const updateData: any = {
@@ -241,7 +276,14 @@ export class InternalTransferService {
         const updated = await tx.internalTransfer.update({
           where: { id },
           data: updateData,
-          include: { user: true, branch: true, fromSafe: true, fromBank: true, toSafe: true, toBank: true },
+          include: {
+            user: true,
+            branch: true,
+            fromSafe: true,
+            fromBank: true,
+            toSafe: true,
+            toBank: true,
+          },
         });
 
         return updated;
@@ -249,7 +291,11 @@ export class InternalTransferService {
 
       return this.mapToResponse(result);
     } catch (error) {
-      if (error instanceof NotFoundException || error instanceof BadRequestException || error instanceof ConflictException) {
+      if (
+        error instanceof NotFoundException ||
+        error instanceof BadRequestException ||
+        error instanceof ConflictException
+      ) {
         throw error;
       }
       throw new NotFoundException('Internal transfer not found');
@@ -259,19 +305,34 @@ export class InternalTransferService {
   async removeInternalTransfer(id: string): Promise<void> {
     try {
       await this.prisma.$transaction(async (tx) => {
-        const existing = await tx.internalTransfer.findUnique({ where: { id } });
-        if (!existing) throw new NotFoundException('Internal transfer not found');
+        const existing = await tx.internalTransfer.findUnique({
+          where: { id },
+        });
+        if (!existing)
+          throw new NotFoundException('Internal transfer not found');
 
         // Reverse effect
         if (existing.fromType === 'safe' && existing.fromSafeId) {
-          await tx.safe.update({ where: { id: existing.fromSafeId }, data: { currentBalance: { increment: existing.amount } } as any });
+          await tx.safe.update({
+            where: { id: existing.fromSafeId },
+            data: { currentBalance: { increment: existing.amount } } as any,
+          });
         } else if (existing.fromType === 'bank' && existing.fromBankId) {
-          await tx.bank.update({ where: { id: existing.fromBankId }, data: { currentBalance: { increment: existing.amount } } as any });
+          await tx.bank.update({
+            where: { id: existing.fromBankId },
+            data: { currentBalance: { increment: existing.amount } } as any,
+          });
         }
         if (existing.toType === 'safe' && existing.toSafeId) {
-          await tx.safe.update({ where: { id: existing.toSafeId }, data: { currentBalance: { decrement: existing.amount } } as any });
+          await tx.safe.update({
+            where: { id: existing.toSafeId },
+            data: { currentBalance: { decrement: existing.amount } } as any,
+          });
         } else if (existing.toType === 'bank' && existing.toBankId) {
-          await tx.bank.update({ where: { id: existing.toBankId }, data: { currentBalance: { decrement: existing.amount } } as any });
+          await tx.bank.update({
+            where: { id: existing.toBankId },
+            data: { currentBalance: { decrement: existing.amount } } as any,
+          });
         }
 
         await tx.internalTransfer.delete({ where: { id } });
@@ -289,11 +350,15 @@ export class InternalTransferService {
     accountId: string,
   ): Promise<number> {
     if (accountType === 'safe') {
-      const safe = await this.prisma.safe.findUnique({ where: { id: accountId } });
+      const safe = await this.prisma.safe.findUnique({
+        where: { id: accountId },
+      });
       if (!safe) throw new NotFoundException('Safe not found');
       return (safe as any).currentBalance ?? 0;
     } else {
-      const bank = await this.prisma.bank.findUnique({ where: { id: accountId } });
+      const bank = await this.prisma.bank.findUnique({
+        where: { id: accountId },
+      });
       if (!bank) throw new NotFoundException('Bank not found');
       return (bank as any).currentBalance ?? 0;
     }
@@ -341,4 +406,3 @@ export class InternalTransferService {
     };
   }
 }
-

@@ -31,7 +31,11 @@ export class SalesReturnController {
     @Body() createSalesReturnDto: CreateSalesReturnRequest,
     @currentUser() user: any,
   ): Promise<SalesReturnResponse> {
-    return this.salesReturnService.create(createSalesReturnDto, user.id, user.branchId);
+    return this.salesReturnService.create(
+      createSalesReturnDto,
+      user.id,
+      user.branchId,
+    );
   }
 
   @Get()

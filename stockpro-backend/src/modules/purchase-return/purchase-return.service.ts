@@ -90,9 +90,15 @@ export class PurchaseReturnService {
 
       // Validate stock for all items prior to decrement
       for (const item of data.items) {
-        const itemRecord = await tx.item.findUnique({ where: { code: item.id } });
+        const itemRecord = await tx.item.findUnique({
+          where: { code: item.id },
+        });
         if (!itemRecord) {
-          throwHttp(404, ERROR_CODES.INV_ITEM_NOT_FOUND, `Item ${item.id} not found`);
+          throwHttp(
+            404,
+            ERROR_CODES.INV_ITEM_NOT_FOUND,
+            `Item ${item.id} not found`,
+          );
         }
         // Only validate stock for STOCKED items, SERVICE items don't have stock
         if ((itemRecord as any).type === 'STOCKED') {
@@ -112,7 +118,11 @@ export class PurchaseReturnService {
           } else {
             // Fallback: use global stock
             if (itemRecord.stock < item.qty) {
-              throwHttp(409, ERROR_CODES.INV_STOCK_INSUFFICIENT, `Insufficient stock for item ${itemRecord.name}`);
+              throwHttp(
+                409,
+                ERROR_CODES.INV_STOCK_INSUFFICIENT,
+                `Insufficient stock for item ${itemRecord.name}`,
+              );
             }
           }
         }
@@ -147,14 +157,14 @@ export class PurchaseReturnService {
         // Filter STOCKED items and get item records
         const stockedItemsWithRecords = await Promise.all(
           data.items.map(async (item) => {
-            const itemRecord = await tx.item.findUnique({ 
-              where: { code: item.id }
+            const itemRecord = await tx.item.findUnique({
+              where: { code: item.id },
             });
             if (itemRecord && (itemRecord as any).type === 'STOCKED') {
               return { item, itemRecord };
             }
             return null;
-          })
+          }),
         );
         const stockedItems = stockedItemsWithRecords.filter(Boolean) as Array<{
           item: any;
@@ -173,8 +183,8 @@ export class PurchaseReturnService {
       } else {
         // Fallback: Update global stock if store not found (backward compatibility)
         for (const item of data.items) {
-          const itemRecord = await tx.item.findUnique({ 
-            where: { code: item.id }
+          const itemRecord = await tx.item.findUnique({
+            where: { code: item.id },
           });
           if (itemRecord && (itemRecord as any).type === 'STOCKED') {
             await tx.item.update({
@@ -192,7 +202,10 @@ export class PurchaseReturnService {
           amount: net,
           paymentTargetType: data.paymentTargetType as any,
           branchId,
-          bankId: data.paymentTargetType === 'bank' ? data.paymentTargetId || null : null,
+          bankId:
+            data.paymentTargetType === 'bank'
+              ? data.paymentTargetId || null
+              : null,
           tx,
         });
       }
@@ -239,7 +252,7 @@ export class PurchaseReturnService {
       orderBy: { createdAt: 'asc' },
     });
 
-    return returns.map(returnInvoice => ({
+    return returns.map((returnInvoice) => ({
       ...returnInvoice,
       user: this.convertUserForResponse(returnInvoice.user),
     })) as PurchaseReturnResponse[];
@@ -310,12 +323,22 @@ export class PurchaseReturnService {
       }
 
       for (const item of items) {
-        const itemRecord = await tx.item.findUnique({ where: { code: item.id } });
+        const itemRecord = await tx.item.findUnique({
+          where: { code: item.id },
+        });
         if (!itemRecord) {
-          throwHttp(404, ERROR_CODES.INV_ITEM_NOT_FOUND, `Item ${item.id} not found`);
+          throwHttp(
+            404,
+            ERROR_CODES.INV_ITEM_NOT_FOUND,
+            `Item ${item.id} not found`,
+          );
         }
         if (itemRecord.stock < item.qty) {
-          throwHttp(409, ERROR_CODES.INV_STOCK_INSUFFICIENT, `Insufficient stock for item ${itemRecord.name}`);
+          throwHttp(
+            409,
+            ERROR_CODES.INV_STOCK_INSUFFICIENT,
+            `Insufficient stock for item ${itemRecord.name}`,
+          );
         }
       }
 
@@ -345,30 +368,42 @@ export class PurchaseReturnService {
       }
 
       // Reverse previous cash impact if needed
-      if (existingReturn.paymentMethod === 'cash' && (existingReturn as any).paymentTargetType) {
+      if (
+        existingReturn.paymentMethod === 'cash' &&
+        (existingReturn as any).paymentTargetType
+      ) {
         await AccountingService.reverseImpact({
           kind: 'purchase-return',
           amount: (existingReturn as any).net,
-          paymentTargetType: (existingReturn as any).paymentTargetType as any,
+          paymentTargetType: (existingReturn as any).paymentTargetType,
           branchId: (existingReturn as any).branchId,
-          bankId: (existingReturn as any).paymentTargetType === 'bank' ? (existingReturn as any).paymentTargetId : null,
+          bankId:
+            (existingReturn as any).paymentTargetType === 'bank'
+              ? (existingReturn as any).paymentTargetId
+              : null,
           tx,
         });
       }
       // Reverse previous supplier balance update if needed
-      if (existingReturn.paymentMethod === 'credit' && existingReturn.supplierId) {
+      if (
+        existingReturn.paymentMethod === 'credit' &&
+        existingReturn.supplierId
+      ) {
         await tx.supplier.update({
           where: { id: existingReturn.supplierId },
           data: { currentBalance: { increment: (existingReturn as any).net } },
         });
       }
       // Apply new cash impact if applicable
-      const targetType = (ret as any).paymentMethod === 'cash' ? (ret as any).paymentTargetType : null;
+      const targetType =
+        (ret as any).paymentMethod === 'cash'
+          ? (ret as any).paymentTargetType
+          : null;
       if (targetType) {
         await AccountingService.applyImpact({
           kind: 'purchase-return',
           amount: (ret as any).net,
-          paymentTargetType: targetType as any,
+          paymentTargetType: targetType,
           branchId: (ret as any).branchId,
           bankId: targetType === 'bank' ? (ret as any).paymentTargetId : null,
           tx,
@@ -409,18 +444,27 @@ export class PurchaseReturnService {
         });
       }
       // Reverse cash impact if applicable
-      if ((returnRecord as any).paymentMethod === 'cash' && (returnRecord as any).paymentTargetType) {
+      if (
+        (returnRecord as any).paymentMethod === 'cash' &&
+        (returnRecord as any).paymentTargetType
+      ) {
         await AccountingService.reverseImpact({
           kind: 'purchase-return',
           amount: (returnRecord as any).net,
-          paymentTargetType: (returnRecord as any).paymentTargetType as any,
+          paymentTargetType: (returnRecord as any).paymentTargetType,
           branchId: (returnRecord as any).branchId,
-          bankId: (returnRecord as any).paymentTargetType === 'bank' ? (returnRecord as any).paymentTargetId : null,
+          bankId:
+            (returnRecord as any).paymentTargetType === 'bank'
+              ? (returnRecord as any).paymentTargetId
+              : null,
           tx,
         });
       }
       // Reverse supplier balance update if applicable
-      if ((returnRecord as any).paymentMethod === 'credit' && (returnRecord as any).supplierId) {
+      if (
+        (returnRecord as any).paymentMethod === 'credit' &&
+        (returnRecord as any).supplierId
+      ) {
         await tx.supplier.update({
           where: { id: (returnRecord as any).supplierId },
           data: { currentBalance: { increment: (returnRecord as any).net } },

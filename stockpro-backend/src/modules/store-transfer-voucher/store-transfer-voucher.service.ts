@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
 import { DatabaseService } from '../../configs/database/database.service';
 import { StockService } from '../store/services/stock.service';
 import { CreateStoreTransferVoucherDto } from './dtos/create-store-transfer-voucher.dto';
@@ -12,7 +16,8 @@ export class StoreTransferVoucherService {
   ) {}
 
   async create(createStoreTransferVoucherDto: CreateStoreTransferVoucherDto) {
-    const { items, fromStoreId, ...voucherData } = createStoreTransferVoucherDto;
+    const { items, fromStoreId, ...voucherData } =
+      createStoreTransferVoucherDto;
 
     // Validate quantities are positive
     for (const item of items) {
@@ -44,7 +49,11 @@ export class StoreTransferVoucherService {
       // Ensure StoreItem exists in destination store for each item (with openingBalance = 0)
       const toStoreId = createStoreTransferVoucherDto.toStoreId;
       for (const item of items) {
-        await this.stockService.ensureStoreItemExists(toStoreId, item.itemId, tx);
+        await this.stockService.ensureStoreItemExists(
+          toStoreId,
+          item.itemId,
+          tx,
+        );
       }
 
       // Create voucher (stock validation passed)
@@ -160,7 +169,8 @@ export class StoreTransferVoucherService {
     id: string,
     updateStoreTransferVoucherDto: UpdateStoreTransferVoucherDto,
   ) {
-    const { items, fromStoreId, ...voucherData } = updateStoreTransferVoucherDto;
+    const { items, fromStoreId, ...voucherData } =
+      updateStoreTransferVoucherDto;
 
     // Check if voucher exists and get old data
     const oldVoucher = await this.findOne(id);
@@ -208,12 +218,11 @@ export class StoreTransferVoucherService {
 
           if (netChange > 0) {
             // Need to check if we have enough stock for the additional quantity
-            const currentBalance =
-              await this.stockService.getStoreItemBalance(
-                actualFromStoreId,
-                itemId,
-                tx,
-              );
+            const currentBalance = await this.stockService.getStoreItemBalance(
+              actualFromStoreId,
+              itemId,
+              tx,
+            );
             if (currentBalance < netChange) {
               throw new BadRequestException(
                 `Insufficient stock in source store for item ${itemId}. Available: ${currentBalance}, Additional needed: ${netChange}`,
@@ -242,12 +251,17 @@ export class StoreTransferVoucherService {
       }
 
       // Get destination store ID
-      const actualToStoreId = updateStoreTransferVoucherDto.toStoreId || oldVoucher.toStoreId;
+      const actualToStoreId =
+        updateStoreTransferVoucherDto.toStoreId || oldVoucher.toStoreId;
 
       // Ensure StoreItem exists in destination store for each item (with openingBalance = 0)
       if (items) {
         for (const item of items) {
-          await this.stockService.ensureStoreItemExists(actualToStoreId, item.itemId, tx);
+          await this.stockService.ensureStoreItemExists(
+            actualToStoreId,
+            item.itemId,
+            tx,
+          );
         }
       }
 

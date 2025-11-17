@@ -7,5 +7,3 @@ export class PayableAccountResponse {
   createdAt: Date;
   updatedAt: Date;
 }
-
-

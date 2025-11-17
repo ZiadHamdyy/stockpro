@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
 import { DatabaseService } from '../../configs/database/database.service';
 import { CreateSafeRequest } from './dtos/request/create-safe.request';
 import { UpdateSafeRequest } from './dtos/request/update-safe.request';
@@ -125,7 +129,9 @@ export class SafeService {
     });
     if (!includeId) return available;
 
-    const included = await this.prisma.branch.findUnique({ where: { id: includeId } });
+    const included = await this.prisma.branch.findUnique({
+      where: { id: includeId },
+    });
     if (!included) return available;
 
     const exists = available.some((b) => b.id === included.id);

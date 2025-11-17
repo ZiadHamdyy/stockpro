@@ -68,4 +68,3 @@ export class InternalTransferController {
     return this.internalTransferService.removeInternalTransfer(id);
   }
 }
-

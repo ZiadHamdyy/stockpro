@@ -7,5 +7,3 @@ export class ReceivableAccountResponse {
   createdAt: Date;
   updatedAt: Date;
 }
-
-

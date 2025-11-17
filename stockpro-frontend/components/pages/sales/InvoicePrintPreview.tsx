@@ -7,6 +7,8 @@ import { useGetCompanyQuery } from "../../store/slices/companyApiSlice";
 import { useSelector } from "react-redux";
 import type { RootState } from "../../store/store";
 import { formatMoney } from "../../../utils/formatting";
+import { useToast } from "../../common/ToastProvider";
+import { guardPrint } from "../../utils/printGuard";
 
 interface InvoicePrintPreviewProps {
   isOpen: boolean;
@@ -36,6 +38,7 @@ const InvoicePrintPreview: React.FC<InvoicePrintPreviewProps> = ({
 }) => {
   const { data: companyInfo, isLoading, error } = useGetCompanyQuery();
   const currentUser = useSelector((state: RootState) => state.auth.user);
+  const { showToast } = useToast();
 
   if (!isOpen) return null;
 
@@ -80,7 +83,7 @@ const InvoicePrintPreview: React.FC<InvoicePrintPreviewProps> = ({
     );
   }
 
-  const handlePrint = () => {
+  const printInvoice = () => {
     const printable = document.getElementById("printable-invoice");
     if (!printable) return;
 
@@ -179,6 +182,14 @@ const InvoicePrintPreview: React.FC<InvoicePrintPreviewProps> = ({
     } else {
       printWindow.addEventListener("load", () => setTimeout(waitForImages, 100));
     }
+  };
+
+  const handlePrint = () => {
+    guardPrint({
+      hasData: items.length > 0,
+      showToast,
+      onAllowed: printInvoice,
+    });
   };
 
   const qrData = generateZatcaBase64(
@@ -280,7 +291,7 @@ const InvoicePrintPreview: React.FC<InvoicePrintPreviewProps> = ({
                             </h1>
                             <p>
                               {isReturn && (
-                                <span className="text-sm text-gray-700">إشغار دائن</span>
+                                <span className="text-sm text-gray-700">إشغار مدين</span>
                               )} Tax Invoice
                             </p>
                           </div>
