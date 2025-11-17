@@ -10,6 +10,7 @@ import { useGetSalesInvoicesQuery } from "../../../store/slices/salesInvoice/sal
 import { useGetPurchaseInvoicesQuery } from "../../../store/slices/purchaseInvoice/purchaseInvoiceApiSlice";
 import { useGetSalesReturnsQuery } from "../../../store/slices/salesReturn/salesReturnApiSlice";
 import { useGetPurchaseReturnsQuery } from "../../../store/slices/purchaseReturn/purchaseReturnApiSlice";
+import { getCurrentYearRange } from "../dateUtils";
 
 interface SafeStatementReportProps {
   title: string;
@@ -45,10 +46,9 @@ const SafeStatementReport: React.FC<SafeStatementReportProps> = ({
   }, [apiSafes]);
 
   const isLoading = safesLoading;
-  const currentYear = new Date().getFullYear();
-  const currentDate = new Date().toISOString().substring(0, 10);
-  const [startDate, setStartDate] = useState(`${currentYear}-01-01`);
-  const [endDate, setEndDate] = useState(currentDate);
+  const { start: defaultStartDate, end: defaultEndDate } = getCurrentYearRange();
+  const [startDate, setStartDate] = useState(defaultStartDate);
+  const [endDate, setEndDate] = useState(defaultEndDate);
   const [selectedSafeId, setSelectedSafeId] = useState<string | null>(null);
 
   // Set initial selected safe when data loads

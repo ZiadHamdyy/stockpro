@@ -13,6 +13,7 @@ import { useGetPurchaseReturnsQuery } from "../../../store/slices/purchaseReturn
 import { useGetStoreReceiptVouchersQuery } from "../../../store/slices/storeReceiptVoucher/storeReceiptVoucherApi";
 import { useGetStoreIssueVouchersQuery } from "../../../store/slices/storeIssueVoucher/storeIssueVoucherApi";
 import { useGetStoreTransferVouchersQuery } from "../../../store/slices/storeTransferVoucher/storeTransferVoucherApi";
+import { getCurrentYearRange } from "../dateUtils";
 
 interface ItemMovementReportProps {
   title: string;
@@ -213,10 +214,9 @@ const ItemMovementReport: React.FC<ItemMovementReportProps> = ({
     storeReceiptVouchersLoading ||
     storeIssueVouchersLoading ||
     storeTransferVouchersLoading;
-  const currentYear = new Date().getFullYear();
-  const currentDate = new Date().toISOString().substring(0, 10);
-  const [startDate, setStartDate] = useState(`${currentYear}-01-01`);
-  const [endDate, setEndDate] = useState(currentDate);
+  const { start: defaultStartDate, end: defaultEndDate } = getCurrentYearRange();
+  const [startDate, setStartDate] = useState(defaultStartDate);
+  const [endDate, setEndDate] = useState(defaultEndDate);
   const [selectedItemId, setSelectedItemId] = useState<string | null>(
     items.length > 0 ? items[0].id.toString() : null,
   );

@@ -16,6 +16,7 @@ import { useGetSalesReturnsQuery } from "../../../store/slices/salesReturn/sales
 import { useGetReceiptVouchersQuery } from "../../../store/slices/receiptVoucherApiSlice";
 import { useGetPaymentVouchersQuery } from "../../../store/slices/paymentVoucherApiSlice";
 import { useAuth } from "../../../hook/Auth";
+import { getCurrentYearRange } from "../dateUtils";
 
 interface CustomerStatementReportProps {
   title: string;
@@ -199,10 +200,9 @@ const CustomerStatementReport: React.FC<CustomerStatementReportProps> = ({
 
   const isLoading =
     customersLoading || salesInvoicesLoading || salesReturnsLoading || receiptVouchersLoading || paymentVouchersLoading;
-  const currentYear = new Date().getFullYear();
-  const currentDate = new Date().toISOString().substring(0, 10);
-  const [startDate, setStartDate] = useState(`${currentYear}-01-01`);
-  const [endDate, setEndDate] = useState(currentDate);
+  const { start: defaultStartDate, end: defaultEndDate } = getCurrentYearRange();
+  const [startDate, setStartDate] = useState(defaultStartDate);
+  const [endDate, setEndDate] = useState(defaultEndDate);
   const [customerSearchTerm, setCustomerSearchTerm] = useState("");
   const [selectedCustomerId, setSelectedCustomerId] = useState<string | null>(null);
 

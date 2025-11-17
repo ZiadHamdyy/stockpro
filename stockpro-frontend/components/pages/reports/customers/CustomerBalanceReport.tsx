@@ -17,6 +17,7 @@ import { useGetBranchesQuery } from "../../../store/slices/branch/branchApi";
 import { useGetReceiptVouchersQuery } from "../../../store/slices/receiptVoucherApiSlice";
 import { useGetPaymentVouchersQuery } from "../../../store/slices/paymentVoucherApiSlice";
 import { useAuth } from "../../../hook/Auth";
+import { getCurrentYearRange } from "../dateUtils";
 
 interface CustomerBalanceReportProps {
   title: string;
@@ -196,9 +197,8 @@ const CustomerBalanceReport: React.FC<CustomerBalanceReportProps> = ({
     branchesLoading ||
     receiptVouchersLoading ||
     paymentVouchersLoading;
-  const [endDate, setEndDate] = useState(
-    new Date().toISOString().substring(0, 10),
-  );
+  const { end: defaultEndDate } = getCurrentYearRange();
+  const [endDate, setEndDate] = useState(defaultEndDate);
   const [reportData, setReportData] = useState<any[]>([]);
   const [hideZeroBalance, setHideZeroBalance] = useState(false);
 

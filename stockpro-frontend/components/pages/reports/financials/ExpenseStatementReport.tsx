@@ -10,6 +10,7 @@ import { useGetExpenseCodesQuery } from "../../../store/slices/expense/expenseAp
 import { useGetExpensePaymentVouchersQuery } from "../../../store/slices/paymentVoucherApiSlice";
 import { useGetBranchesQuery } from "../../../store/slices/branch/branchApi";
 import { useAuth } from "../../../hook/Auth";
+import { getCurrentYearRange } from "../dateUtils";
 
 interface ExpenseStatementReportProps {
   title: string;
@@ -67,14 +68,6 @@ const ExpenseStatementReport: React.FC<ExpenseStatementReportProps> = ({
     };
   }, []);
 
-  // Helper to get local date in YYYY-MM-DD format
-  const getLocalDateString = (date: Date = new Date()): string => {
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const day = String(date.getDate()).padStart(2, '0');
-    return `${year}-${month}-${day}`;
-  };
-
   // Transform API data to match expected format
   const expenseCodes = useMemo(() => {
     return (apiExpenseCodes as any[]).map((code) => ({
@@ -108,10 +101,9 @@ const ExpenseStatementReport: React.FC<ExpenseStatementReportProps> = ({
   }, [apiPaymentVouchers, branches, normalizeDate]);
 
   const isLoading = expenseCodesLoading || vouchersLoading || branchesLoading;
-  const currentYear = new Date().getFullYear();
-  const currentDate = getLocalDateString();
-  const [startDate, setStartDate] = useState(`${currentYear}-01-01`);
-  const [endDate, setEndDate] = useState(currentDate);
+  const { start: defaultStartDate, end: defaultEndDate } = getCurrentYearRange();
+  const [startDate, setStartDate] = useState(defaultStartDate);
+  const [endDate, setEndDate] = useState(defaultEndDate);
   const [selectedExpenseCodeId, setSelectedExpenseCodeId] = useState<
     string | null
   >(null);

@@ -6,6 +6,7 @@ import { formatNumber, getNegativeNumberClass } from "../../../../utils/formatti
 import { useGetPayableAccountsQuery } from "../../../store/slices/payableAccounts/payableAccountsApi";
 import { useGetReceiptVouchersQuery } from "../../../store/slices/receiptVoucherApiSlice";
 import { useGetPaymentVouchersQuery } from "../../../store/slices/paymentVoucherApiSlice";
+import { getCurrentYearRange } from "../dateUtils";
 import { useAuth } from "../../../hook/Auth";
 
 interface TotalPayableAccountsReportProps {
@@ -128,10 +129,9 @@ const TotalPayableAccountsReport: React.FC<TotalPayableAccountsReportProps> = ({
   }, [rawPaymentVouchers, normalizeDate]);
 
   const isLoading = payableAccountsLoading || receiptVouchersLoading || paymentVouchersLoading;
-  const currentYear = new Date().getFullYear();
-  const currentDate = new Date().toISOString().substring(0, 10);
-  const [startDate, setStartDate] = useState(`${currentYear}-01-01`);
-  const [endDate, setEndDate] = useState(currentDate);
+  const { start: defaultStartDate, end: defaultEndDate } = getCurrentYearRange();
+  const [startDate, setStartDate] = useState(defaultStartDate);
+  const [endDate, setEndDate] = useState(defaultEndDate);
 
   // Calculate account balances from vouchers
   const accountsSummary = useMemo(() => {

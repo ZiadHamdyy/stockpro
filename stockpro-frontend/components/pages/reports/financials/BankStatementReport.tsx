@@ -13,6 +13,7 @@ import { useGetPurchaseReturnsQuery } from "../../../store/slices/purchaseReturn
 import { useGetReceiptVouchersQuery } from "../../../store/slices/receiptVoucherApiSlice";
 import { useGetPaymentVouchersQuery } from "../../../store/slices/paymentVoucherApiSlice";
 import { useAuth } from "../../../hook/Auth";
+import { getCurrentYearRange } from "../dateUtils";
 
 interface BankStatementReportProps {
   title: string;
@@ -140,10 +141,9 @@ const BankStatementReport: React.FC<BankStatementReportProps> = ({
   }, [rawPaymentVouchers, normalizeDate]);
 
   const isLoading = banksLoading || receiptVouchersLoading || paymentVouchersLoading;
-  const currentYear = new Date().getFullYear();
-  const currentDate = new Date().toISOString().substring(0, 10);
-  const [startDate, setStartDate] = useState(`${currentYear}-01-01`);
-  const [endDate, setEndDate] = useState(currentDate);
+  const { start: defaultStartDate, end: defaultEndDate } = getCurrentYearRange();
+  const [startDate, setStartDate] = useState(defaultStartDate);
+  const [endDate, setEndDate] = useState(defaultEndDate);
   const [selectedBankId, setSelectedBankId] = useState<string | null>(null);
 
   // Set initial selected bank when data loads

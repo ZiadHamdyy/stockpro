@@ -12,6 +12,7 @@ import { useGetBranchesQuery } from "../../../store/slices/branch/branchApi";
 import { useGetReceiptVouchersQuery } from "../../../store/slices/receiptVoucherApiSlice";
 import { useGetPaymentVouchersQuery } from "../../../store/slices/paymentVoucherApiSlice";
 import { useAuth } from "../../../hook/Auth";
+import { getCurrentYearRange } from "../dateUtils";
 
 interface ReceivableAccountStatementReportProps {
   title: string;
@@ -88,14 +89,6 @@ const ReceivableAccountStatementReport: React.FC<
     };
   }, []);
 
-  // Helper to get local date in YYYY-MM-DD format
-  const getLocalDateString = (date: Date = new Date()): string => {
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const day = String(date.getDate()).padStart(2, '0');
-    return `${year}-${month}-${day}`;
-  };
-
   // Transform API data to match expected format
   const receivableAccounts = useMemo(() => {
     return (apiReceivableAccounts as any[]).map((account) => ({
@@ -168,10 +161,9 @@ const ReceivableAccountStatementReport: React.FC<
   }, [paymentVouchers, branches, normalizeDate]);
 
   const isLoading = receivableAccountsLoading || branchesLoading || receiptVouchersLoading || paymentVouchersLoading;
-  const currentYear = new Date().getFullYear();
-  const currentDate = getLocalDateString();
-  const [startDate, setStartDate] = useState(`${currentYear}-01-01`);
-  const [endDate, setEndDate] = useState(currentDate);
+  const { start: defaultStartDate, end: defaultEndDate } = getCurrentYearRange();
+  const [startDate, setStartDate] = useState(defaultStartDate);
+  const [endDate, setEndDate] = useState(defaultEndDate);
   const [selectedAccountId, setSelectedAccountId] = useState<string | null>(
     null,
   );

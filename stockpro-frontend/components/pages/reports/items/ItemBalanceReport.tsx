@@ -13,6 +13,7 @@ import { useGetPurchaseReturnsQuery } from "../../../store/slices/purchaseReturn
 import { useGetStoreReceiptVouchersQuery } from "../../../store/slices/storeReceiptVoucher/storeReceiptVoucherApi";
 import { useGetStoreIssueVouchersQuery } from "../../../store/slices/storeIssueVoucher/storeIssueVoucherApi";
 import { useGetStoreTransferVouchersQuery } from "../../../store/slices/storeTransferVoucher/storeTransferVoucherApi";
+import { getCurrentYearRange } from "../dateUtils";
 
 interface ItemBalanceReportProps {
   title: string;
@@ -196,10 +197,9 @@ const ItemBalanceReport: React.FC<ItemBalanceReportProps> = ({
     storeIssueVouchersLoading ||
     storeTransferVouchersLoading;
   const [reportData, setReportData] = useState<any[]>([]);
-  const currentYear = new Date().getFullYear();
-  const currentDate = new Date().toISOString().substring(0, 10);
-  const [startDate, setStartDate] = useState(`${currentYear}-01-01`);
-  const [endDate, setEndDate] = useState(currentDate);
+  const { start: defaultStartDate, end: defaultEndDate } = getCurrentYearRange();
+  const [startDate, setStartDate] = useState(defaultStartDate);
+  const [endDate, setEndDate] = useState(defaultEndDate);
 
   const handleViewReport = useCallback(() => {
     if (isLoading) return;

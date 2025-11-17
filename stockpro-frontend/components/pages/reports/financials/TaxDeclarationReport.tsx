@@ -9,6 +9,7 @@ import { useGetPurchaseInvoicesQuery } from "../../../store/slices/purchaseInvoi
 import { useGetPurchaseReturnsQuery } from "../../../store/slices/purchaseReturn/purchaseReturnApiSlice";
 import { useGetBranchesQuery } from "../../../store/slices/branch/branchApi";
 import { useGetPaymentVouchersQuery } from "../../../store/slices/paymentVoucherApiSlice";
+import { getCurrentYearRange } from "../dateUtils";
 
 interface TaxDeclarationReportProps {
   title: string;
@@ -102,10 +103,9 @@ const TaxDeclarationReport: React.FC<TaxDeclarationReportProps> = ({
     purchaseReturnsLoading ||
     branchesLoading ||
     paymentVouchersLoading;
-  const currentYear = new Date().getFullYear();
-  const currentDate = new Date().toISOString().substring(0, 10);
-  const [startDate, setStartDate] = useState(`${currentYear}-01-01`);
-  const [endDate, setEndDate] = useState(currentDate);
+  const { start: defaultStartDate, end: defaultEndDate } = getCurrentYearRange();
+  const [startDate, setStartDate] = useState(defaultStartDate);
+  const [endDate, setEndDate] = useState(defaultEndDate);
   const [selectedBranch, setSelectedBranch] = useState("all");
   const [reportData, setReportData] = useState({
     salesSubtotal: 0,

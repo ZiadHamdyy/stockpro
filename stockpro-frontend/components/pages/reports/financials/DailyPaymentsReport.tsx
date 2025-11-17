@@ -6,6 +6,7 @@ import { formatNumber, getNegativeNumberClass } from "../../../../utils/formatti
 import { useGetPaymentVouchersQuery } from "../../../store/slices/paymentVoucherApiSlice";
 import { useGetBranchesQuery } from "../../../store/slices/branch/branchApi";
 import { useAuth } from "../../../hook/Auth";
+import { getCurrentYearRange } from "../dateUtils";
 
 interface DailyPaymentsReportProps {
   title: string;
@@ -65,14 +66,6 @@ const DailyPaymentsReport: React.FC<DailyPaymentsReportProps> = ({
     };
   }, []);
 
-  // Helper to get local date in YYYY-MM-DD format
-  const getLocalDateString = (date: Date = new Date()): string => {
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const day = String(date.getDate()).padStart(2, '0');
-    return `${year}-${month}-${day}`;
-  };
-
   // Transform API data to match expected format
   const paymentVouchers = useMemo(() => {
     return (apiPaymentVouchers as any[]).map((voucher) => {
@@ -103,10 +96,9 @@ const DailyPaymentsReport: React.FC<DailyPaymentsReportProps> = ({
     });
   }, [apiPaymentVouchers, branches, normalizeDate]);
 
-  const currentYear = new Date().getFullYear();
-  const currentDate = getLocalDateString();
-  const [startDate, setStartDate] = useState(`${currentYear}-01-01`);
-  const [endDate, setEndDate] = useState(currentDate);
+  const { start: defaultStartDate, end: defaultEndDate } = getCurrentYearRange();
+  const [startDate, setStartDate] = useState(defaultStartDate);
+  const [endDate, setEndDate] = useState(defaultEndDate);
   const [selectedBranch, setSelectedBranch] = useState("all");
 
   // Filter vouchers by date range and branch
