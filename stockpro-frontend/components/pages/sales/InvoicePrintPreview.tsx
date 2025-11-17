@@ -52,10 +52,14 @@ const InvoicePrintPreview: React.FC<InvoicePrintPreviewProps> = ({
     details,
   } = invoiceData;
 
+  const paymentMethodLabel = paymentMethod === "cash" ? "نقدا" : "اجل";
+
   // Determine the original VAT status from invoice data (not current company settings)
   // If invoice has no tax (total tax is 0 and all items have 0 or no taxAmount), 
   // then VAT was disabled when invoice was created
-  const originalIsVatEnabled = totals.tax > 0 || items.some(item => (item.taxAmount || 0) > 0);
+  const originalIsVatEnabled =
+    totals.tax > 0 || items.some((item) => (item.taxAmount || 0) > 0);
+  const shouldDisplayTaxColumn = originalIsVatEnabled;
 
   if (isLoading) {
     return (
@@ -323,6 +327,10 @@ const InvoicePrintPreview: React.FC<InvoicePrintPreviewProps> = ({
                               {details.invoiceDate}
                             </p>
                             <p>
+                              <span className="font-semibold">نوع الفاتورة:</span>{" "}
+                              {paymentMethodLabel}
+                            </p>
+                            <p>
                               <span className="font-semibold">الفرع:</span>{" "}
                               {currentUser?.branch?.name || details.branchName}
                             </p>
@@ -351,8 +359,10 @@ const InvoicePrintPreview: React.FC<InvoicePrintPreviewProps> = ({
                           <th className="p-2 border border-blue-300">الوحدة</th>
                           <th className="p-2 border border-blue-300">الكمية</th>
                           <th className="p-2 border border-blue-300">السعر</th>
-                          {isVatEnabled && (
-                            <th className="p-2 border border-blue-300">الضريبة {isVatEnabled ? `(%${vatRate})` : '(%0)'}</th>
+                          {shouldDisplayTaxColumn && (
+                            <th className="p-2 border border-blue-300">
+                              الضريبة {originalIsVatEnabled ? `(%${vatRate})` : "(%0)"}
+                            </th>
                           )}
                           <th className="p-2 border border-blue-300">الاجمالي</th>
                         </tr>
@@ -373,7 +383,7 @@ const InvoicePrintPreview: React.FC<InvoicePrintPreviewProps> = ({
                             <td className="p-2 border border-gray-300 text-center">
                               {formatMoney(item.price)}
                             </td>
-                            {isVatEnabled && (
+                            {shouldDisplayTaxColumn && (
                               <td className="p-2 border border-gray-300 text-center">
                                 {formatMoney(item.taxAmount || 0)}
                               </td>
@@ -390,7 +400,7 @@ const InvoicePrintPreview: React.FC<InvoicePrintPreviewProps> = ({
                       <>
                         <section className="flex justify-between items-start mt-4 gap-4">
                           <div className="w-1/2">
-                            {isVatEnabled && qrData && (
+                            {shouldDisplayTaxColumn && qrData && (
                               <img src={qrCodeUrl} alt="QR Code" className="w-28 h-28" />
                             )}
                           </div>
@@ -413,7 +423,7 @@ const InvoicePrintPreview: React.FC<InvoicePrintPreviewProps> = ({
                                     {formatMoney(totals.discount)}
                                   </td>
                                 </tr>
-                                {isVatEnabled && (
+                                {shouldDisplayTaxColumn && (
                                   <tr>
                                     <td className="font-semibold p-2 border border-gray-300">
                                       إجمالي الضريبة ({vatRate}%)
