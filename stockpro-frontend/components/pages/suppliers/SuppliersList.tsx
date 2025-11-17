@@ -139,16 +139,16 @@ const SuppliersList: React.FC<SuppliersListProps> = ({
           />
         </div>
         <StatCard
-          title="إجمالي المستحقات"
-          value={`${formatNumber(Math.abs(stats.totalAsset))}`}
-          icon={<DollarSignIcon className="w-8 h-8 text-red-500" />}
-          color="border-red-500"
-        />
-        <StatCard
-          title="إجمالي السندات"
-          value={`${formatNumber(Math.abs(stats.totalLiability))}`}
+          title="إجمالي الارصدة (دائن)"
+          value={`${formatNumber(stats.totalLiability)}`}
           icon={<DollarSignIcon className="w-8 h-8 text-green-500" />}
           color="border-green-500"
+        />
+        <StatCard
+          title="إجمالي الارصدة (مدين)"
+          value={`${formatNumber(stats.totalAsset)}`}
+          icon={<DollarSignIcon className="w-8 h-8 text-red-500" />}
+          color="border-red-500"
         />
       </div>
 
@@ -291,7 +291,7 @@ const SuppliersList: React.FC<SuppliersListProps> = ({
             >
               <span className="text-sm font-semibold">الرصيد الحالي</span>
               <p className="text-2xl font-bold">
-                {formatNumber(Math.abs(supplier.currentBalance))}
+                {formatNumber(supplier.currentBalance)}
               </p>
             </div>
           </div>
