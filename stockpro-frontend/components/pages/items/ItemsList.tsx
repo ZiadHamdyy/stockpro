@@ -42,11 +42,21 @@ const ItemsList: React.FC<ItemsListProps> = ({ title, onNavigate }) => {
     const stored = localStorage.getItem('allowSellingLessThanStock');
     return stored ? JSON.parse(stored) : false;
   });
+
+  // Load salePriceIncludesTax flag from localStorage, default to false
+  const [salePriceIncludesTax, setSalePriceIncludesTax] = useState(() => {
+    const stored = localStorage.getItem('salePriceIncludesTax');
+    return stored ? JSON.parse(stored) : false;
+  });
   
   // Save to localStorage whenever it changes
   useEffect(() => {
     localStorage.setItem('allowSellingLessThanStock', JSON.stringify(allowSellingLessThanStock));
   }, [allowSellingLessThanStock]);
+
+  useEffect(() => {
+    localStorage.setItem('salePriceIncludesTax', JSON.stringify(salePriceIncludesTax));
+  }, [salePriceIncludesTax]);
   
   const inputStyle =
     "w-64 pr-10 pl-4 py-3 bg-brand-blue-bg border-2 border-brand-blue rounded-md text-black placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-brand-blue";
@@ -227,34 +237,38 @@ const ItemsList: React.FC<ItemsListProps> = ({ title, onNavigate }) => {
               onChange={(e) => setSearchTerm(e.target.value)}
             />
           </div>
-          <div className="flex items-center gap-2">
-            <input
-              type="checkbox"
-              id="allowSellingLessThanStock"
-              checked={allowSellingLessThanStock}
-              onChange={(e) => setAllowSellingLessThanStock(e.target.checked)}
-              className="h-5 w-5 rounded border-gray-300 text-brand-blue focus:ring-brand-blue"
-            />
-            <label
-              htmlFor="allowSellingLessThanStock"
-              className="text-sm font-medium text-gray-700"
-            >
-              السماح ببيع الصنف مع عدم وجود رصيد كافي
-            </label>
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                id="allowSellingLessThanStock"
+                checked={allowSellingLessThanStock}
+                onChange={(e) => setAllowSellingLessThanStock(e.target.checked)}
+                className="h-5 w-5 rounded border-gray-300 text-brand-blue focus:ring-brand-blue"
+              />
+              <label
+                htmlFor="allowSellingLessThanStock"
+                className="text-sm font-medium text-gray-700"
+              >
+                السماح ببيع الصنف مع عدم وجود رصيد كافي
+              </label>
+            </div>
 
-            <input
-              type="checkbox"
-              id="allowSellingLessThanStock"
-              checked={allowSellingLessThanStock}
-              onChange={(e) => setAllowSellingLessThanStock(e.target.checked)}
-              className="h-5 w-5 rounded border-gray-300 text-brand-blue focus:ring-brand-blue"
-            />
-            <label
-              htmlFor="allowSellingLessThanStock"
-              className="text-sm font-medium text-gray-700"
-            >
-               سعر البيع يشمل الضريبة
-            </label>
+            <div className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                id="salePriceIncludesTax"
+                checked={salePriceIncludesTax}
+                onChange={(e) => setSalePriceIncludesTax(e.target.checked)}
+                className="h-5 w-5 rounded border-gray-300 text-brand-blue focus:ring-brand-blue"
+              />
+              <label
+                htmlFor="salePriceIncludesTax"
+                className="text-sm font-medium text-gray-700"
+              >
+                سعر البيع يشمل الضريبة
+              </label>
+            </div>
           </div>
         </div>
         <div className="flex items-center gap-2">

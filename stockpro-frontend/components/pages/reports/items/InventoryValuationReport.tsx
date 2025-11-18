@@ -13,6 +13,7 @@ import { useGetPurchaseReturnsQuery } from "../../../store/slices/purchaseReturn
 import { useGetStoreReceiptVouchersQuery } from "../../../store/slices/storeReceiptVoucher/storeReceiptVoucherApi";
 import { useGetStoreIssueVouchersQuery } from "../../../store/slices/storeIssueVoucher/storeIssueVoucherApi";
 import { useGetStoreTransferVouchersQuery } from "../../../store/slices/storeTransferVoucher/storeTransferVoucherApi";
+import { getCurrentYearRange } from "../dateUtils";
 
 interface InventoryValuationReportProps {
   title: string;
@@ -64,13 +65,36 @@ const InventoryValuationReport: React.FC<InventoryValuationReportProps> = ({
     isLoading: storeTransferVouchersLoading,
   } = useGetStoreTransferVouchersQuery(undefined);
 
+  const normalizeDate = useMemo(
+    () => (date: any): string => {
+      if (!date) return "";
+      if (typeof date === "string") {
+        const parsed = new Date(date);
+        if (!Number.isNaN(parsed.getTime())) {
+          return parsed.toISOString().substring(0, 10);
+        }
+        return date.substring(0, 10);
+      }
+      if (date instanceof Date) {
+        return date.toISOString().substring(0, 10);
+      }
+      return "";
+    },
+    [],
+  );
+
   // Transform API data to match expected format
   const items = useMemo(() => {
-    return (apiItems as any[]).map((item) => ({
-      ...item,
-      unit: item.unit?.name || "",
-      group: item.group?.name || "",
-    }));
+    return (apiItems as any[])
+      .filter((item) => {
+        const itemType = (item.type || item.itemType || "").toUpperCase();
+        return itemType !== "SERVICE";
+      })
+      .map((item) => ({
+        ...item,
+        unit: item.unit?.name || "",
+        group: item.group?.name || "",
+      }));
   }, [apiItems]);
 
   const transformedSalesInvoices = useMemo(() => {
@@ -196,12 +220,18 @@ const InventoryValuationReport: React.FC<InventoryValuationReportProps> = ({
     storeIssueVouchersLoading ||
     storeTransferVouchersLoading;
   const [reportData, setReportData] = useState<any[]>([]);
+  const { start: defaultStartDate, end: defaultEndDate } = getCurrentYearRange();
+  const [startDate, setStartDate] = useState(defaultStartDate);
+  const [endDate, setEndDate] = useState(defaultEndDate);
   const [valuationMethod, setValuationMethod] = useState<
     "purchasePrice" | "salePrice" | "averageCost"
   >("purchasePrice");
 
   const handleViewReport = useCallback(() => {
     if (isLoading) return;
+
+    const normalizedStartDate = normalizeDate(startDate);
+    const normalizedEndDate = normalizeDate(endDate);
 
     const valuationData = items.map((item) => {
       // Use StoreItem's openingBalance as base, or 0 if not available
@@ -217,40 +247,51 @@ const InventoryValuationReport: React.FC<InventoryValuationReportProps> = ({
         tx.branchName === selectedBranchName ||
         tx.branchId === selectedBranchId;
 
-      transformedPurchaseInvoices.filter(filterByBranch).forEach((inv) =>
+      const filterByDateRange = (tx: any) => {
+        const txDate =
+          normalizeDate(tx.date) ||
+          normalizeDate(tx.invoiceDate) ||
+          normalizeDate(tx.transactionDate) ||
+          normalizeDate(tx.createdAt) ||
+          normalizeDate(tx.updatedAt);
+        if (!txDate || !normalizedStartDate || !normalizedEndDate) return false;
+        return txDate >= normalizedStartDate && txDate <= normalizedEndDate;
+      };
+
+      transformedPurchaseInvoices.filter(filterByBranch).filter(filterByDateRange).forEach((inv) =>
         inv.items.forEach((i) => {
           if (i.id === item.code) balance += i.qty;
         }),
       );
-      transformedSalesReturns.filter(filterByBranch).forEach((inv) =>
+      transformedSalesReturns.filter(filterByBranch).filter(filterByDateRange).forEach((inv) =>
         inv.items.forEach((i) => {
           if (i.id === item.code) balance += i.qty;
         }),
       );
-      transformedStoreReceiptVouchers.filter(filterByBranch).forEach((v) =>
+      transformedStoreReceiptVouchers.filter(filterByBranch).filter(filterByDateRange).forEach((v) =>
         v.items.forEach((i) => {
           if (i.id === item.code) balance += i.qty;
         }),
       );
 
-      transformedSalesInvoices.filter(filterByBranch).forEach((inv) =>
+      transformedSalesInvoices.filter(filterByBranch).filter(filterByDateRange).forEach((inv) =>
         inv.items.forEach((i) => {
           if (i.id === item.code) balance -= i.qty;
         }),
       );
-      transformedPurchaseReturns.filter(filterByBranch).forEach((inv) =>
+      transformedPurchaseReturns.filter(filterByBranch).filter(filterByDateRange).forEach((inv) =>
         inv.items.forEach((i) => {
           if (i.id === item.code) balance -= i.qty;
         }),
       );
-      transformedStoreIssueVouchers.filter(filterByBranch).forEach((v) =>
+      transformedStoreIssueVouchers.filter(filterByBranch).filter(filterByDateRange).forEach((v) =>
         v.items.forEach((i) => {
           if (i.id === item.code) balance -= i.qty;
         }),
       );
 
       if (selectedBranchId !== "all") {
-        transformedStoreTransferVouchers.forEach((v) => {
+        transformedStoreTransferVouchers.filter(filterByDateRange).forEach((v) => {
           const fromStore = stores.find((s) => s.name === v.fromStore);
           const toStore = stores.find((s) => s.name === v.toStore);
           v.items.forEach((i) => {
@@ -292,6 +333,8 @@ const InventoryValuationReport: React.FC<InventoryValuationReportProps> = ({
     items,
     selectedBranchId,
     valuationMethod,
+    startDate,
+    endDate,
     transformedSalesInvoices,
     transformedSalesReturns,
     transformedPurchaseInvoices,
@@ -300,6 +343,7 @@ const InventoryValuationReport: React.FC<InventoryValuationReportProps> = ({
     transformedStoreIssueVouchers,
     transformedStoreTransferVouchers,
     stores,
+    normalizeDate,
     isLoading,
   ]);
 
@@ -398,6 +442,9 @@ const InventoryValuationReport: React.FC<InventoryValuationReportProps> = ({
                 }
               </p>
               <span className="font-semibold text-gray-800">الفرع:</span> {selectedBranchId === "all" ? "جميع الفروع" : branches.find(b => b.id === selectedBranchId)?.name || ""}
+              <p className="text-base font-semibold text-gray-800">
+                <span className="text-brand-blue">الفترة:</span> من {startDate} إلى {endDate}
+              </p>
             </div>
             <div className="space-y-2 text-right">
               <p className="text-base text-gray-700">
@@ -432,6 +479,20 @@ const InventoryValuationReport: React.FC<InventoryValuationReportProps> = ({
               <option value="averageCost">متوسط التكلفة</option>
               <option value="salePrice">سعر البيع</option>
             </select>
+            <label className="font-semibold">من:</label>
+            <input
+              type="date"
+              className="p-2 border-2 border-brand-blue rounded-md bg-brand-blue-bg"
+              value={startDate}
+              onChange={(e) => setStartDate(e.target.value)}
+            />
+            <label className="font-semibold">إلى:</label>
+            <input
+              type="date"
+              className="p-2 border-2 border-brand-blue rounded-md bg-brand-blue-bg"
+              value={endDate}
+              onChange={(e) => setEndDate(e.target.value)}
+            />
             <button
               onClick={handleViewReport}
               className="px-6 py-2 bg-brand-blue text-white rounded-md hover:bg-blue-800 font-semibold flex items-center gap-2"

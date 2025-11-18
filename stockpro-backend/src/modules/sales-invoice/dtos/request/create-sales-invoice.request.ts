@@ -32,6 +32,10 @@ export class InvoiceItemDto {
   @IsNumber()
   @IsOptional()
   total?: number;
+
+  @IsBoolean()
+  @IsOptional()
+  salePriceIncludesTax?: boolean;
 }
 
 export class CreateSalesInvoiceRequest {

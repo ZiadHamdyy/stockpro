@@ -17,6 +17,31 @@ export class SalesReturnService {
     private readonly stockService: StockService,
   ) {}
 
+  private computeLineTotals(
+    item: { qty: number; price: number; salePriceIncludesTax?: boolean },
+    vatRate: number,
+    isVatEnabled: boolean,
+  ) {
+    const qty = Number(item.qty) || 0;
+    const price = Number(item.price) || 0;
+    const lineAmount = qty * price;
+
+    if (!isVatEnabled || vatRate <= 0) {
+      return { net: lineAmount, taxAmount: 0, total: lineAmount };
+    }
+
+    const taxAmount = lineAmount * (vatRate / 100);
+    const includesTax = Boolean(item.salePriceIncludesTax);
+
+    if (includesTax) {
+      const net = Math.max(lineAmount - taxAmount, 0);
+      return { net, taxAmount, total: lineAmount };
+    }
+
+    const total = lineAmount + taxAmount;
+    return { net: lineAmount, taxAmount, total };
+  }
+
   async create(
     data: CreateSalesReturnRequest,
     userId: string,
@@ -48,27 +73,31 @@ export class SalesReturnService {
     }
     const code = await this.generateNextCode();
 
-    // Calculate totals
-    const subtotal = data.items.reduce(
-      (sum, item) => sum + item.qty * item.price,
-      0,
-    );
-    const discount = data.discount || 0;
-
     // Get company VAT settings
     const company = await this.prisma.company.findFirst();
     const vatRate = company?.vatRate || 0;
     const isVatEnabled = company?.isVatEnabled || false;
 
-    const tax = isVatEnabled ? subtotal * (vatRate / 100) : 0;
-    const net = subtotal + tax - discount;
+    const discount = data.discount || 0;
+    let subtotal = 0;
+    let tax = 0;
+    const itemsWithTotals = data.items.map((item) => {
+      const { net: lineNet, taxAmount, total } = this.computeLineTotals(
+        item,
+        vatRate,
+        isVatEnabled,
+      );
+      subtotal += lineNet;
+      tax += taxAmount;
+      return {
+        ...item,
+        salePriceIncludesTax: item.salePriceIncludesTax ?? false,
+        taxAmount,
+        total,
+      };
+    });
 
-    // Update items with calculated values
-    const itemsWithTotals = data.items.map((item) => ({
-      ...item,
-      taxAmount: isVatEnabled ? item.qty * item.price * (vatRate / 100) : 0,
-      total: item.qty * item.price,
-    }));
+    const net = subtotal + tax - discount;
 
     // Get store from branch
     let store: any = null;
@@ -280,11 +309,7 @@ export class SalesReturnService {
       }
 
       // Calculate new totals
-      const items = data.items || (existingReturn?.items as any[]) || [];
-      const subtotal = items.reduce(
-        (sum, item) => sum + item.qty * item.price,
-        0,
-      );
+      const rawItems = data.items || (existingReturn?.items as any[]) || [];
       const discount =
         data.discount !== undefined
           ? data.discount
@@ -295,15 +320,25 @@ export class SalesReturnService {
       const vatRate = company?.vatRate || 0;
       const isVatEnabled = company?.isVatEnabled || false;
 
-      const tax = isVatEnabled ? subtotal * (vatRate / 100) : 0;
-      const net = subtotal + tax - discount;
+      let subtotal = 0;
+      let tax = 0;
+      const itemsWithTotals = rawItems.map((item) => {
+        const { net: lineNet, taxAmount, total } = this.computeLineTotals(
+          item,
+          vatRate,
+          isVatEnabled,
+        );
+        subtotal += lineNet;
+        tax += taxAmount;
+        return {
+          ...item,
+          salePriceIncludesTax: item.salePriceIncludesTax ?? false,
+          taxAmount,
+          total,
+        };
+      });
 
-      // Update items with calculated values
-      const itemsWithTotals = items.map((item) => ({
-        ...item,
-        taxAmount: isVatEnabled ? item.qty * item.price * (vatRate / 100) : 0,
-        total: item.qty * item.price,
-      }));
+      const net = subtotal + tax - discount;
 
       const updated = await this.prisma.$transaction(async (tx) => {
         // Reverse previous increase
@@ -334,7 +369,7 @@ export class SalesReturnService {
           },
         });
 
-        for (const item of items) {
+        for (const item of itemsWithTotals) {
           await tx.item.update({
             where: { code: item.id },
             data: { stock: { increment: item.qty } },

@@ -482,10 +482,10 @@ const CustomerBalanceReport: React.FC<CustomerBalanceReportProps> = ({
                   <td className={`px-6 py-4 ${getNegativeNumberClass(item.opening)}`}>
                     {formatNumber(item.opening)}
                   </td>
-                  <td className="px-6 py-4 text-red-600">
+                  <td className="px-6 py-4 text-green-600">
                     {formatNumber(item.debit)}
                   </td>
-                  <td className="px-6 py-4 text-green-600">
+                  <td className="px-6 py-4 text-red-600">
                     {item.credit > 0 ? formatNumber(item.credit) : "0.00"}
                   </td>
                   <td className={`px-6 py-4 font-bold ${getNegativeNumberClass(item.balance)}`}>

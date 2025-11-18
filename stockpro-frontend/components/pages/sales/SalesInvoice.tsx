@@ -54,6 +54,31 @@ type InvoiceRow = InvoiceItem & {
   salePriceIncludesTax?: boolean;
 };
 
+const computeLineAmounts = (
+  qty: number | string,
+  price: number | string,
+  includesTax: boolean,
+  vatEnabled: boolean,
+  vatRatePercent: number,
+) => {
+  const quantity = Number(qty) || 0;
+  const unitPrice = Number(price) || 0;
+  const baseAmount = quantity * unitPrice;
+
+  if (!vatEnabled || vatRatePercent <= 0) {
+    return { total: baseAmount, taxAmount: 0 };
+  }
+
+  const taxAmount = baseAmount * (vatRatePercent / 100);
+
+  if (includesTax) {
+    return { total: baseAmount, taxAmount };
+  }
+
+  const total = baseAmount + taxAmount;
+  return { total, taxAmount };
+};
+
 interface SalesInvoiceProps {
   title: string;
   currentUser: User | null;
@@ -101,6 +126,12 @@ const SalesInvoice: React.FC<SalesInvoiceProps> = ({
     return stored ? JSON.parse(stored) : false;
   })();
 
+  // Read salePriceIncludesTax setting from localStorage
+  const salePriceIncludesTaxSetting = (() => {
+    const stored = localStorage.getItem('salePriceIncludesTax');
+    return stored ? JSON.parse(stored) : false;
+  })();
+
   // Transform data for component
   const allItems: SelectableItem[] = (items as any[]).map((item) => ({
     id: item.code,
@@ -111,7 +142,10 @@ const SalesInvoice: React.FC<SalesInvoiceProps> = ({
     stock: item.stock,
     type: item.type || 'STOCKED',
     barcode: item.barcode,
-    salePriceIncludesTax: item.salePriceIncludesTax ?? false,
+    salePriceIncludesTax:
+      typeof item.salePriceIncludesTax === "boolean"
+        ? item.salePriceIncludesTax
+        : salePriceIncludesTaxSetting,
   }));
 
   const allCustomers: Customer[] = customers.map((customer) => ({
@@ -150,7 +184,7 @@ const SalesInvoice: React.FC<SalesInvoiceProps> = ({
     price: 0,
     taxAmount: 0,
     total: 0,
-    salePriceIncludesTax: false,
+    salePriceIncludesTax: salePriceIncludesTaxSetting,
   });
 
   const [invoiceItems, setInvoiceItems] = useState<InvoiceRow[]>(
@@ -234,6 +268,19 @@ const SalesInvoice: React.FC<SalesInvoiceProps> = ({
 
   // Use original invoice VAT status if editing existing invoice, otherwise use current company setting
   const effectiveVatEnabled = currentIndex >= 0 ? originalInvoiceVatEnabled : isVatEnabled;
+
+  const assignLineAmounts = (item: InvoiceRow) => {
+    const { total, taxAmount } = computeLineAmounts(
+      item.qty,
+      item.price,
+      Boolean(item.salePriceIncludesTax),
+      effectiveVatEnabled,
+      vatRate,
+    );
+    item.total = total;
+    item.taxAmount = taxAmount;
+    return item;
+  };
 
   const filteredCustomers = customerQuery
     ? allCustomers.filter((c) =>
@@ -336,6 +383,27 @@ const SalesInvoice: React.FC<SalesInvoiceProps> = ({
   }, [focusIndex]);
 
   useEffect(() => {
+    if (currentIndex >= 0) return;
+    setInvoiceItems((prev) =>
+      prev.map((item) => {
+        const { total, taxAmount } = computeLineAmounts(
+          item.qty,
+          item.price,
+          Boolean(item.salePriceIncludesTax),
+          effectiveVatEnabled,
+          vatRate,
+        );
+        const currentTotal = Number(item.total) || 0;
+        const currentTax = Number(item.taxAmount) || 0;
+        if (currentTotal === total && currentTax === taxAmount) {
+          return item;
+        }
+        return { ...item, total, taxAmount };
+      }),
+    );
+  }, [currentIndex, effectiveVatEnabled, vatRate]);
+
+  useEffect(() => {
     const sizer = document.createElement("span");
     sizer.style.position = "absolute";
     sizer.style.top = "-9999px";
@@ -366,16 +434,17 @@ const SalesInvoice: React.FC<SalesInvoiceProps> = ({
   }, [invoiceItems]);
 
   useEffect(() => {
-    const subtotal = invoiceItems.reduce(
-      (acc, item) => acc + item.qty * item.price,
-      0,
-    );
     const taxTotal = effectiveVatEnabled
       ? invoiceItems.reduce(
-          (acc, item) => acc + (item.taxAmount || 0),
+          (acc, item) => acc + (Number(item.taxAmount) || 0),
           0,
         )
       : 0;
+    const subtotal = invoiceItems.reduce((acc, item) => {
+      const lineTotal = Number(item.total) || 0;
+      const lineTax = effectiveVatEnabled ? Number(item.taxAmount) || 0 : 0;
+      return acc + (lineTotal - lineTax);
+    }, 0);
     setTotals((prev) => {
       const net = subtotal + taxTotal - prev.discount;
       return { ...prev, subtotal, tax: taxTotal, net };
@@ -436,12 +505,7 @@ const SalesInvoice: React.FC<SalesInvoiceProps> = ({
     if (field === "name") setActiveItemSearch({ index, query: value });
 
     if (field === "qty" || field === "price") {
-      const qty = parseFloat(item.qty as any) || 0;
-      const price = parseFloat(item.price as any) || 0;
-      const total = qty * price;
-      item.total = total;
-      const appliesTax = effectiveVatEnabled && item.salePriceIncludesTax;
-      item.taxAmount = appliesTax ? total * (vatRate / 100) : 0;
+      item = assignLineAmounts(item);
     }
     newItems[index] = item;
     setInvoiceItems(newItems);
@@ -450,6 +514,10 @@ const SalesInvoice: React.FC<SalesInvoiceProps> = ({
   const handleSelectItem = (index: number, selectedItem: SelectableItem) => {
     const newItems = [...invoiceItems];
     const currentItem = newItems[index];
+    const salePriceIncludesTaxValue =
+      typeof selectedItem.salePriceIncludesTax === "boolean"
+        ? selectedItem.salePriceIncludesTax
+        : salePriceIncludesTaxSetting;
     const item = {
       ...currentItem,
       id: selectedItem.id,
@@ -457,12 +525,9 @@ const SalesInvoice: React.FC<SalesInvoiceProps> = ({
       unit: selectedItem.unit,
       qty: currentItem.qty || 1,
       price: selectedItem.salePrice,
-      salePriceIncludesTax: Boolean(selectedItem.salePriceIncludesTax),
+      salePriceIncludesTax: Boolean(salePriceIncludesTaxValue),
     };
-    const total = item.qty * (item.price || 0);
-    item.total = total;
-    const appliesTax = effectiveVatEnabled && item.salePriceIncludesTax;
-    item.taxAmount = appliesTax ? total * (vatRate / 100) : 0;
+    assignLineAmounts(item);
     newItems[index] = item;
     setInvoiceItems(newItems);
     setActiveItemSearch(null);
@@ -566,6 +631,10 @@ const SalesInvoice: React.FC<SalesInvoiceProps> = ({
         newItems.push(createEmptyItem());
       }
 
+      const salePriceIncludesTaxValue =
+        typeof foundItem.salePriceIncludesTax === "boolean"
+          ? foundItem.salePriceIncludesTax
+          : salePriceIncludesTaxSetting;
       const item = {
         ...newItems[indexToFill],
         id: foundItem.id,
@@ -573,12 +642,9 @@ const SalesInvoice: React.FC<SalesInvoiceProps> = ({
         unit: foundItem.unit,
         qty: 1,
         price: foundItem.salePrice,
-        salePriceIncludesTax: Boolean(foundItem.salePriceIncludesTax),
+        salePriceIncludesTax: Boolean(salePriceIncludesTaxValue),
       };
-      const total = item.qty * (item.price || 0);
-      item.total = total;
-      const appliesTax = effectiveVatEnabled && item.salePriceIncludesTax;
-      item.taxAmount = appliesTax ? total * (vatRate / 100) : 0;
+      assignLineAmounts(item);
       newItems[indexToFill] = item;
 
       setInvoiceItems(newItems);

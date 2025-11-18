@@ -31,6 +31,9 @@ export class ReturnItemDto {
   @IsNumber()
   @IsOptional()
   total?: number;
+
+  @IsOptional()
+  salePriceIncludesTax?: boolean;
 }
 
 export class CreateSalesReturnRequest {

@@ -44,6 +44,11 @@ type SelectableItem = {
   salePrice: number;
   purchasePrice: number;
   stock: number;
+  salePriceIncludesTax?: boolean;
+};
+
+type ReturnRow = InvoiceItem & {
+  salePriceIncludesTax?: boolean;
 };
 
 interface SalesReturnProps {
@@ -88,6 +93,12 @@ const SalesReturn: React.FC<SalesReturnProps> = ({
   // Get items with store-specific balances
   const { data: items = [] } = useGetItemsQuery(userStore ? { storeId: userStore.id } : undefined);
 
+  // Company-level sale price includes tax setting
+  const salePriceIncludesTaxSetting = (() => {
+    const stored = localStorage.getItem('salePriceIncludesTax');
+    return stored ? JSON.parse(stored) : false;
+  })();
+
   // Transform data for component
   const allItems: SelectableItem[] = (items as any[]).map((item) => ({
     id: item.code,
@@ -97,6 +108,10 @@ const SalesReturn: React.FC<SalesReturnProps> = ({
     purchasePrice: item.purchasePrice,
     stock: item.stock,
     barcode: item.barcode,
+    salePriceIncludesTax:
+      typeof item.salePriceIncludesTax === "boolean"
+        ? item.salePriceIncludesTax
+        : salePriceIncludesTaxSetting,
   }));
 
   const allCustomers: Customer[] = customers.map((customer) => ({
@@ -127,7 +142,7 @@ const SalesReturn: React.FC<SalesReturnProps> = ({
 
   const vatRate = company?.vatRate || 15;
   const isVatEnabled = company?.isVatEnabled || false;
-  const createEmptyItem = (): InvoiceItem => ({
+  const createEmptyItem = (): ReturnRow => ({
     id: "",
     name: "",
     unit: "",
@@ -135,9 +150,10 @@ const SalesReturn: React.FC<SalesReturnProps> = ({
     price: 0,
     taxAmount: 0,
     total: 0,
+    salePriceIncludesTax: salePriceIncludesTaxSetting,
   });
 
-  const [returnItems, setReturnItems] = useState<InvoiceItem[]>(
+  const [returnItems, setReturnItems] = useState<ReturnRow[]>(
     Array(6).fill(null).map(createEmptyItem),
   );
   const [totals, setTotals] = useState({
@@ -185,12 +201,60 @@ const SalesReturn: React.FC<SalesReturnProps> = ({
   const [isSearchModalOpen, setIsSearchModalOpen] = useState(false);
   const [currentIndex, setCurrentIndex] = useState(-1);
   const justSavedRef = useRef(false); // Flag to prevent resetting state after save
+  const [originalReturnVatEnabled, setOriginalReturnVatEnabled] =
+    useState<boolean>(false);
   const [selectedInvoiceId, setSelectedInvoiceId] = useState<string | null>(null);
   const [invoiceQuery, setInvoiceQuery] = useState("");
   const [isInvoiceDropdownOpen, setIsInvoiceDropdownOpen] = useState(false);
   const invoiceRef = useRef<HTMLDivElement>(null);
   const [sourceInvoiceQtyById, setSourceInvoiceQtyById] = useState<Record<string, number>>({});
   const [focusIndex, setFocusIndex] = useState<number | null>(null);
+
+  const effectiveVatEnabled = currentIndex >= 0 ? originalReturnVatEnabled : isVatEnabled;
+
+  const computeLineAmounts = (
+    qty: number | string,
+    price: number | string,
+    includesTax: boolean,
+    vatEnabled: boolean,
+    vatRatePercent: number,
+  ) => {
+    const quantity = Number(qty) || 0;
+    const unitPrice = Number(price) || 0;
+    const baseAmount = quantity * unitPrice;
+
+    if (!vatEnabled || vatRatePercent <= 0) {
+      return { total: baseAmount, taxAmount: 0 };
+    }
+
+    const taxAmount = baseAmount * (vatRatePercent / 100);
+
+    if (includesTax) {
+      return { total: baseAmount, taxAmount };
+    }
+
+    const total = baseAmount + taxAmount;
+    return { total, taxAmount };
+  };
+
+  const assignLineAmounts = (item: ReturnRow) => {
+    const includesTax =
+      typeof item.salePriceIncludesTax === "boolean"
+        ? item.salePriceIncludesTax
+        : salePriceIncludesTaxSetting;
+    const { total, taxAmount } = computeLineAmounts(
+      item.qty,
+      item.price,
+      includesTax,
+      effectiveVatEnabled,
+      vatRate,
+    );
+    return {
+      ...item,
+      total,
+      taxAmount: effectiveVatEnabled ? taxAmount : 0,
+    };
+  };
 
   const hasPrintableItems = useMemo(
     () =>
@@ -263,6 +327,7 @@ const SalesReturn: React.FC<SalesReturnProps> = ({
     // For safes, we don't need paymentTargetId (we send branchId instead)
     setPaymentTargetId(null);
     setIsReadOnly(false);
+    setOriginalReturnVatEnabled(false);
   };
 
   useEffect(() => {
@@ -290,13 +355,22 @@ const SalesReturn: React.FC<SalesReturnProps> = ({
         ret.customer ? { id: ret.customer.id, name: ret.customer.name } : null,
       );
       setCustomerQuery(ret.customer?.name || "");
-      setReturnItems(ret.items as InvoiceItem[]);
+      const returnLineItems = ret.items as ReturnRow[];
+      const normalizedItems = returnLineItems.map((item) => ({
+        ...item,
+        salePriceIncludesTax: Boolean((item as any).salePriceIncludesTax),
+      }));
+      setReturnItems(normalizedItems);
       setTotals({
         subtotal: ret.subtotal,
         discount: ret.discount,
         tax: ret.tax,
         net: ret.net,
       });
+      const originalVatEnabled =
+        ret.tax > 0 ||
+        returnLineItems.some((item) => (item.taxAmount || 0) > 0);
+      setOriginalReturnVatEnabled(originalVatEnabled);
       setPaymentMethod(ret.paymentMethod);
       setPaymentTargetType(ret.paymentTargetType || "safe");
       setPaymentTargetId(ret.paymentTargetId || null);
@@ -339,6 +413,24 @@ const SalesReturn: React.FC<SalesReturnProps> = ({
   }, [focusIndex]);
 
   useEffect(() => {
+    if (currentIndex >= 0) return;
+    setReturnItems((prev) =>
+      prev.map((item) => {
+        const recalculated = assignLineAmounts(item);
+        const currentTotal = Number(item.total) || 0;
+        const currentTax = Number(item.taxAmount) || 0;
+        if (
+          currentTotal === recalculated.total &&
+          currentTax === recalculated.taxAmount
+        ) {
+          return item;
+        }
+        return recalculated;
+      }),
+    );
+  }, [currentIndex, effectiveVatEnabled, vatRate, salePriceIncludesTaxSetting]);
+
+  useEffect(() => {
     returnItems.forEach((_, index) => {
       autosizeInput(qtyInputRefs.current[index]);
       autosizeInput(priceInputRefs.current[index]);
@@ -346,16 +438,25 @@ const SalesReturn: React.FC<SalesReturnProps> = ({
   }, [returnItems]);
 
   useEffect(() => {
-    const subtotal = returnItems.reduce(
-      (acc, item) => acc + item.qty * item.price,
-      0,
-    );
-    const taxTotal = isVatEnabled
-      ? returnItems.reduce((acc, item) => acc + item.taxAmount, 0)
+    const taxTotal = effectiveVatEnabled
+      ? returnItems.reduce(
+          (acc, item) => acc + (Number(item.taxAmount) || 0),
+          0,
+        )
       : 0;
-    const net = subtotal + taxTotal - totals.discount;
-    setTotals((prev) => ({ ...prev, subtotal, tax: taxTotal, net }));
-  }, [returnItems, totals.discount, isVatEnabled]);
+    const subtotal = returnItems.reduce((acc, item) => {
+      const lineTotal = Number(item.total) || 0;
+      const lineTax = effectiveVatEnabled ? Number(item.taxAmount) || 0 : 0;
+      return acc + (lineTotal - lineTax);
+    }, 0);
+    const discount = totals.discount;
+    setTotals((prev) => ({
+      ...prev,
+      subtotal,
+      tax: taxTotal,
+      net: subtotal + taxTotal - discount,
+    }));
+  }, [returnItems, effectiveVatEnabled, totals.discount]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -447,9 +548,9 @@ const SalesReturn: React.FC<SalesReturnProps> = ({
           showToast("لا يمكن إرجاع كمية أكبر من الموجودة في الفاتورة.", 'error');
         }
       }
-      const total = qty * price;
-      item.total = total;
-      item.taxAmount = isVatEnabled ? total * (vatRate / 100) : 0;
+      item.qty = qty;
+      item.price = price;
+      item = assignLineAmounts(item);
     }
     newItems[index] = item;
     setReturnItems(newItems);
@@ -485,17 +586,20 @@ const SalesReturn: React.FC<SalesReturnProps> = ({
       }
     }
     
-    const item = {
+    const salePriceIncludesTaxValue =
+      typeof selectedItem.salePriceIncludesTax === "boolean"
+        ? selectedItem.salePriceIncludesTax
+        : salePriceIncludesTaxSetting;
+    let item: ReturnRow = {
       ...currentItem,
       id: selectedItem.id,
       name: selectedItem.name,
       unit: selectedItem.unit,
       qty: initialQty,
       price: selectedItem.salePrice,
+      salePriceIncludesTax: Boolean(salePriceIncludesTaxValue),
     };
-    const total = item.qty * (item.price || 0);
-    item.total = total;
-    item.taxAmount = isVatEnabled ? total * (vatRate / 100) : 0;
+    item = assignLineAmounts(item);
     newItems[index] = item;
     setReturnItems(newItems);
     setActiveItemSearch(null);
@@ -614,6 +718,7 @@ const SalesReturn: React.FC<SalesReturnProps> = ({
           price: item.price,
           taxAmount: item.taxAmount || 0,
           total: item.total || 0,
+          salePriceIncludesTax: Boolean(item.salePriceIncludesTax),
         })),
         discount: totals.discount,
         paymentMethod,
@@ -771,17 +876,24 @@ const SalesReturn: React.FC<SalesReturnProps> = ({
       setSelectedCustomer({ id: inv.customer.id, name: inv.customer.name });
       setCustomerQuery(inv.customer.name);
     }
-    setReturnItems(
-      (inv.items || []).map((it) => ({
+    const mappedItems = (inv.items || []).map((it) => {
+      const salePriceIncludesTax = Boolean(
+        (it as any).salePriceIncludesTax ?? salePriceIncludesTaxSetting,
+      );
+      const qty = Math.min(it.qty, qtyMap[it.id] ?? it.qty);
+      const baseItem: ReturnRow = {
         id: it.id,
         name: it.name,
         unit: it.unit,
-        qty: Math.min(it.qty, qtyMap[it.id] ?? it.qty),
+        qty,
         price: it.price,
-        taxAmount: isVatEnabled ? (it.qty * it.price) * (vatRate / 100) : 0,
-        total: it.qty * it.price,
-      }))
-    );
+        taxAmount: Number((it as any).taxAmount) || 0,
+        total: Number((it as any).total) || qty * it.price,
+        salePriceIncludesTax,
+      };
+      return assignLineAmounts(baseItem);
+    });
+    setReturnItems(mappedItems);
     setIsInvoiceDropdownOpen(false);
     setIsReadOnly(false);
   };
@@ -1010,7 +1122,7 @@ const SalesReturn: React.FC<SalesReturnProps> = ({
                   السعر
                 </th>
                 <th className="px-2 py-3 w-36 text-center text-sm font-semibold uppercase border border-blue-300">
-                  الضريبة {isVatEnabled ? `(%${vatRate})` : '(%0)'}
+                  الضريبة {effectiveVatEnabled ? `(%${vatRate})` : '(%0)'}
                 </th>
                 <th className="px-2 py-3 w-36 text-center text-sm font-semibold uppercase border border-blue-300">
                   الاجمالي
@@ -1137,7 +1249,7 @@ const SalesReturn: React.FC<SalesReturnProps> = ({
                     />
                   </td>
                   <td className="p-2 align-middle text-center border-x border-gray-300">
-                    {formatMoney(isVatEnabled ? item.taxAmount : 0)}
+                    {formatMoney(effectiveVatEnabled ? item.taxAmount : 0)}
                   </td>
                   <td className="p-2 align-middle text-center border-x border-gray-300">
                     {formatMoney(item.total)}
@@ -1196,7 +1308,7 @@ const SalesReturn: React.FC<SalesReturnProps> = ({
                     disabled={isReadOnly}
                   />
                 </div>
-                {isVatEnabled && (
+                {effectiveVatEnabled && (
                   <div className="flex justify-between p-3 border-t-2 border-dashed border-gray-200">
                     <span className="font-semibold text-gray-600">
                       إجمالي الضريبة ({vatRate}%)
@@ -1363,7 +1475,7 @@ const SalesReturn: React.FC<SalesReturnProps> = ({
             isReturn={true}
             invoiceData={{
               vatRate,
-              isVatEnabled,
+              isVatEnabled: effectiveVatEnabled,
               items: returnItems.filter((i) => i.id && i.name && i.qty > 0),
               totals,
               paymentMethod,
