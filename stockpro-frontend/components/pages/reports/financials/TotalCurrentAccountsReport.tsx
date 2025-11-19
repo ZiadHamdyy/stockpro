@@ -142,56 +142,34 @@ const TotalCurrentAccountsReport: React.FC<TotalCurrentAccountsReportProps> = ({
       const accountId = account.id;
       const accountIdStr = accountId.toString();
 
-      // Count receipt vouchers (credits) for this account
-      const receiptCount = receiptVouchers.filter(
+      const relevantReceipts = receiptVouchers.filter(
         (v) => {
           const vDate = normalizeDate(v.date);
           const voucherAccountId = v.entity?.id?.toString() || v.entity?.id;
-          return v.entity?.type === "current_account" &&
-                 (voucherAccountId === accountIdStr || voucherAccountId == accountId) &&
-                 vDate >= normalizedStartDate &&
-                 vDate <= normalizedEndDate;
-        }
-      ).length;
+          return (
+            v.entity?.type === "current_account" &&
+            (voucherAccountId === accountIdStr || voucherAccountId == accountId) &&
+            vDate >= normalizedStartDate &&
+            vDate <= normalizedEndDate
+          );
+        },
+      );
 
-      // Count payment vouchers (debits) for this account
-      const paymentCount = paymentVouchers.filter(
+      const relevantPayments = paymentVouchers.filter(
         (v) => {
           const vDate = normalizeDate(v.date);
           const voucherAccountId = v.entity?.id?.toString() || v.entity?.id;
-          return v.entity?.type === "current_account" &&
-                 (voucherAccountId === accountIdStr || voucherAccountId == accountId) &&
-                 vDate >= normalizedStartDate &&
-                 vDate <= normalizedEndDate;
-        }
-      ).length;
+          return (
+            v.entity?.type === "current_account" &&
+            (voucherAccountId === accountIdStr || voucherAccountId == accountId) &&
+            vDate >= normalizedStartDate &&
+            vDate <= normalizedEndDate
+          );
+        },
+      );
 
-      // Calculate amounts for balance calculation
-      const receipts = receiptVouchers
-        .filter(
-          (v) => {
-            const vDate = normalizeDate(v.date);
-            const voucherAccountId = v.entity?.id?.toString() || v.entity?.id;
-            return v.entity?.type === "current_account" &&
-                   (voucherAccountId === accountIdStr || voucherAccountId == accountId) &&
-                   vDate >= normalizedStartDate &&
-                   vDate <= normalizedEndDate;
-          }
-        )
-        .reduce((sum, v) => sum + v.amount, 0);
-
-      const payments = paymentVouchers
-        .filter(
-          (v) => {
-            const vDate = normalizeDate(v.date);
-            const voucherAccountId = v.entity?.id?.toString() || v.entity?.id;
-            return v.entity?.type === "current_account" &&
-                   (voucherAccountId === accountIdStr || voucherAccountId == accountId) &&
-                   vDate >= normalizedStartDate &&
-                   vDate <= normalizedEndDate;
-          }
-        )
-        .reduce((sum, v) => sum + v.amount, 0);
+      const receipts = relevantReceipts.reduce((sum, v) => sum + v.amount, 0);
+      const payments = relevantPayments.reduce((sum, v) => sum + v.amount, 0);
 
       const opening = account.openingBalance || 0;
       const balance = opening + payments - receipts;
@@ -200,10 +178,10 @@ const TotalCurrentAccountsReport: React.FC<TotalCurrentAccountsReportProps> = ({
         id: account.id,
         code: account.code,
         name: account.name,
-        opening: opening,
-        debit: paymentCount, // Count of payment vouchers
-        credit: receiptCount, // Count of receipt vouchers
-        balance: balance,
+        opening,
+        debit: payments,
+        credit: receipts,
+        balance,
       };
     });
   }, [currentAccounts, receiptVouchers, paymentVouchers, startDate, endDate, normalizeDate]);
@@ -372,11 +350,11 @@ const TotalCurrentAccountsReport: React.FC<TotalCurrentAccountsReportProps> = ({
                 <th className="px-6 py-3 text-right text-sm font-semibold text-white uppercase">
                   رصيد أول المدة
                 </th>
-                <th className="px-6 py-3 text-right text-sm font-semibold text-white uppercase">
-                إجمالي مدين	
+                <th className="px-6 py-3 text-right text-sm font-semibold text-green-200 uppercase">
+                  إجمالي مدين
                 </th>
-                <th className="px-6 py-3 text-right text-sm font-semibold text-white uppercase">
-                إجمالي دائن	
+                <th className="px-6 py-3 text-right text-sm font-semibold text-red-200 uppercase">
+                  إجمالي دائن
                 </th>
                 <th className="px-6 py-3 text-right text-sm font-semibold text-white uppercase">
                   الرصيد الحالي
@@ -391,10 +369,10 @@ const TotalCurrentAccountsReport: React.FC<TotalCurrentAccountsReportProps> = ({
                     {item.name}
                   </td>
                   <td className={`px-6 py-4 ${getNegativeNumberClass(item.opening)}`}>{formatNumber(item.opening)}</td>
-                  <td className={`px-6 py-4 text-red-600 ${getNegativeNumberClass(item.debit)}`}>
+                  <td className={`px-6 py-4 text-green-600 ${getNegativeNumberClass(item.debit)}`}>
                     {formatNumber(item.debit)}
                   </td>
-                  <td className={`px-6 py-4 text-green-600 ${getNegativeNumberClass(item.credit)}`}>
+                  <td className={`px-6 py-4 text-red-600 ${getNegativeNumberClass(item.credit)}`}>
                     {formatNumber(item.credit)}
                   </td>
                   <td className={`px-6 py-4 font-bold ${getNegativeNumberClass(item.balance)}`}>
@@ -411,10 +389,10 @@ const TotalCurrentAccountsReport: React.FC<TotalCurrentAccountsReportProps> = ({
                 <td className={`px-6 py-3 text-right text-white ${getNegativeNumberClass(totals.opening)}`}>
                   {formatNumber(totals.opening)}
                 </td>
-                <td className={`px-6 py-3 text-right text-white ${getNegativeNumberClass(totals.debit)}`}>
+                <td className={`px-6 py-3 text-right ${getNegativeNumberClass(totals.debit) || "text-green-200"}`}>
                   {formatNumber(totals.debit)}
                 </td>
-                <td className={`px-6 py-3 text-right text-white ${getNegativeNumberClass(totals.credit)}`}>
+                <td className={`px-6 py-3 text-right ${getNegativeNumberClass(totals.credit) || "text-red-200"}`}>
                   {formatNumber(totals.credit)}
                 </td>
                 <td className={`px-6 py-3 text-right text-white ${getNegativeNumberClass(totals.balance)}`}>

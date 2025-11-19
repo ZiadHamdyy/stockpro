@@ -461,10 +461,10 @@ const CustomerBalanceReport: React.FC<CustomerBalanceReportProps> = ({
                 <th className="px-6 py-3 text-right text-sm font-semibold text-white uppercase">
                   رصيد أول المدة
                 </th>
-                <th className="px-6 py-3 text-right text-sm font-semibold text-white uppercase">
+                <th className="px-6 py-3 text-right text-sm font-semibold text-green-200 uppercase">
                   إجمالي مدين
                 </th>
-                <th className="px-6 py-3 text-right text-sm font-semibold text-white uppercase">
+                <th className="px-6 py-3 text-right text-sm font-semibold text-red-200 uppercase">
                   إجمالي دائن
                 </th>
                 <th className="px-6 py-3 text-right text-sm font-semibold text-white uppercase">
@@ -502,10 +502,10 @@ const CustomerBalanceReport: React.FC<CustomerBalanceReportProps> = ({
                 <td className={`px-6 py-3 text-right text-white ${getNegativeNumberClass(totals.opening)}`}>
                   {formatNumber(totals.opening)}
                 </td>
-                <td className="px-6 py-3 text-right text-white">
+                <td className="px-6 py-3 text-right text-green-200">
                   {formatNumber(totals.debit)}
                 </td>
-                <td className="px-6 py-3 text-right text-white">
+                <td className="px-6 py-3 text-right text-red-200">
                   {formatNumber(totals.credit)}
                 </td>
                 <td className={`px-6 py-3 text-right text-white ${getNegativeNumberClass(totals.balance)}`}>

@@ -596,10 +596,10 @@ const SupplierStatementReport: React.FC<SupplierStatementReportProps> = ({
                 <th className="px-6 py-3 text-right text-sm font-semibold text-white uppercase">
                   المرجع
                 </th>
-                <th className="px-6 py-3 text-right text-sm font-semibold text-white uppercase">
+                <th className="px-6 py-3 text-right text-sm font-semibold text-green-200 uppercase">
                   مدين
                 </th>
-                <th className="px-6 py-3 text-right text-sm font-semibold text-white uppercase">
+                <th className="px-6 py-3 text-right text-sm font-semibold text-red-200 uppercase">
                   دائن
                 </th>
                 <th className="px-6 py-3 text-right text-sm font-semibold text-white uppercase">
@@ -688,10 +688,10 @@ const SupplierStatementReport: React.FC<SupplierStatementReportProps> = ({
                 <td colSpan={3} className="px-6 py-3 text-right text-white">
                   الإجمالي
                 </td>
-                <td className={`px-6 py-3 text-right text-white ${getNegativeNumberClass(totalDebit)}`}>
+                <td className={`px-6 py-3 text-right ${getNegativeNumberClass(totalDebit) || "text-green-200"}`}>
                   {formatNumber(totalDebit)}
                 </td>
-                <td className={`px-6 py-3 text-right text-white ${getNegativeNumberClass(totalCredit)}`}>
+                <td className={`px-6 py-3 text-right ${getNegativeNumberClass(totalCredit) || "text-red-200"}`}>
                   {formatNumber(totalCredit)}
                 </td>
                 <td className={`px-6 py-3 text-right text-white ${getNegativeNumberClass(finalBalance)}`}>
