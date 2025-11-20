@@ -1,10 +1,14 @@
 import { Injectable } from '@nestjs/common';
 import { DatabaseService } from '../../configs/database/database.service';
 import { BalanceSheetResponse } from './dtos/response/balance-sheet.response';
+import { IncomeStatementService } from '../income-statement/income-statement.service';
 
 @Injectable()
 export class BalanceSheetService {
-  constructor(private readonly prisma: DatabaseService) {}
+  constructor(
+    private readonly prisma: DatabaseService,
+    private readonly incomeStatementService: IncomeStatementService,
+  ) {}
 
   async getBalanceSheet(
     startDate: string,
@@ -27,7 +31,7 @@ export class BalanceSheetService {
 
     const capital = await this.getCapital();
     const partnersBalance = await this.calculatePartnersBalance(targetDate);
-    const retainedEarnings = await this.calculateNetProfit(endDate);
+    const retainedEarnings = await this.calculateNetProfit(startDate, endDate);
     const totalEquity = capital + partnersBalance + retainedEarnings;
 
     // Get company currency
@@ -941,8 +945,14 @@ export class BalanceSheetService {
     return totalBalance;
   }
 
-  private async calculateNetProfit(endDate: string): Promise<number> {
-    return 0;
+  private async calculateNetProfit(
+    startDate: string,
+    endDate: string,
+  ): Promise<number> {
+    // Get net profit from income statement for the period
+    const incomeStatement =
+      await this.incomeStatementService.getIncomeStatement(startDate, endDate);
+    return incomeStatement.netProfit || 0;
   }
 
   private async getCapital(): Promise<number> {

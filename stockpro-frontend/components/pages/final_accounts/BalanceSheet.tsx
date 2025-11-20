@@ -254,6 +254,12 @@ const BalanceSheet: React.FC = () => {
     );
   }
 
+  // Calculate balance discrepancy
+  const discrepancy = Math.abs(
+    balanceSheetData.totalAssets - balanceSheetData.totalLiabilitiesAndEquity,
+  );
+  const hasDiscrepancy = discrepancy > 0.01; // Allow for small rounding differences
+
   return (
     <div className="bg-white p-6 rounded-lg shadow">
       <div id="printable-area-balance-sheet">
@@ -312,6 +318,41 @@ const BalanceSheet: React.FC = () => {
           </div>
         </div>
 
+        {/* Balance Discrepancy Warning */}
+        {hasDiscrepancy && (
+          <div className="mb-4 p-4 bg-yellow-50 border-2 border-yellow-400 rounded-lg no-print">
+            <div className="flex items-center gap-2">
+              <svg
+                className="w-6 h-6 text-yellow-600"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+                />
+              </svg>
+              <div>
+                <p className="font-bold text-yellow-800">
+                  تحذير: عدم توازن في قائمة المركز المالي
+                </p>
+                <p className="text-sm text-yellow-700 mt-1">
+                  الفرق بين إجمالي الأصول وإجمالي الالتزامات وحقوق الملكية:{" "}
+                  {formatNumber(discrepancy)}
+                </p>
+                <p className="text-sm text-yellow-700">
+                  إجمالي الأصول: {formatNumber(balanceSheetData.totalAssets)} |{" "}
+                  إجمالي الالتزامات وحقوق الملكية:{" "}
+                  {formatNumber(balanceSheetData.totalLiabilitiesAndEquity)}
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
         <div className="overflow-x-auto border-2 border-gray-300 rounded-lg mt-4">
           <table className="min-w-full text-base">
             <tbody className="divide-y divide-gray-200">
@@ -351,7 +392,11 @@ const BalanceSheet: React.FC = () => {
                   {formatNumber(balanceSheetData.inventory)}
                 </Td>
               </tr>
-              <tr className="font-bold bg-blue-100 text-brand-dark">
+              <tr
+                className={`font-bold text-brand-dark ${
+                  hasDiscrepancy ? "bg-yellow-100" : "bg-blue-100"
+                }`}
+              >
                 <Td>إجمالي الأصول</Td>
                 <Td className="text-left font-mono text-lg">
                   {formatNumber(balanceSheetData.totalAssets)}
@@ -421,12 +466,27 @@ const BalanceSheet: React.FC = () => {
               </tr>
 
               {/* Total Liabilities & Equity */}
-              <tr className="font-bold bg-gray-700 text-white text-lg">
+              <tr
+                className={`font-bold text-white text-lg ${
+                  hasDiscrepancy ? "bg-yellow-600" : "bg-gray-700"
+                }`}
+              >
                 <Td>إجمالي الالتزامات وحقوق الملكية</Td>
                 <Td className="text-left font-mono">
                   {formatNumber(balanceSheetData.totalLiabilitiesAndEquity)}
                 </Td>
               </tr>
+              {/* Balance Check Row */}
+              {hasDiscrepancy && (
+                <tr className="bg-red-100">
+                  <Td className="text-red-800 font-bold">
+                    ⚠️ الفرق (عدم التوازن)
+                  </Td>
+                  <Td className="text-left font-mono text-red-800 font-bold">
+                    {formatNumber(discrepancy)}
+                  </Td>
+                </tr>
+              )}
             </tbody>
           </table>
         </div>

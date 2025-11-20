@@ -7,5 +7,6 @@ import { DatabaseModule } from '../../configs/database/database.module';
   imports: [DatabaseModule],
   controllers: [IncomeStatementController],
   providers: [IncomeStatementService],
+  exports: [IncomeStatementService],
 })
 export class IncomeStatementModule {}
