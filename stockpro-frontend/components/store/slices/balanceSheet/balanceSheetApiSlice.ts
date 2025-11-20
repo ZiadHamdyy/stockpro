@@ -17,15 +17,16 @@ export interface BalanceSheetData {
 }
 
 export interface BalanceSheetQuery {
+  startDate: string;
   endDate: string;
 }
 
 export const balanceSheetApiSlice = apiSlice.injectEndpoints({
   endpoints: (builder) => ({
     getBalanceSheet: builder.query<BalanceSheetData, BalanceSheetQuery>({
-      query: ({ endDate }) => ({
+      query: ({ startDate, endDate }) => ({
         url: "balance-sheet",
-        params: { endDate },
+        params: { startDate, endDate },
       }),
       transformResponse: (response: { data: BalanceSheetData }) =>
         response.data,

@@ -3,16 +3,16 @@ import { useGetBalanceSheetQuery } from "../store/slices/balanceSheet/balanceShe
 import { useGetCompanyQuery } from "../store/slices/companyApiSlice";
 import type { CompanyInfo } from "../../types";
 
-export const useBalanceSheet = (endDate: string) => {
+export const useBalanceSheet = (startDate: string, endDate: string) => {
   const {
     data: balanceSheetData,
     isLoading: isLoadingData,
     error: dataError,
     refetch,
   } = useGetBalanceSheetQuery(
-    { endDate },
+    { startDate, endDate },
     {
-      skip: !endDate,
+      skip: !startDate || !endDate,
     },
   );
 

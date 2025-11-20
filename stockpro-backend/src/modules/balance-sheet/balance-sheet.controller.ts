@@ -12,8 +12,9 @@ export class BalanceSheetController {
   @Get()
   @Auth({ permissions: ['balance_sheet:read'] })
   async getBalanceSheet(
+    @Query('startDate') startDate: string,
     @Query('endDate') endDate: string,
   ): Promise<BalanceSheetResponse> {
-    return this.balanceSheetService.getBalanceSheet(endDate);
+    return this.balanceSheetService.getBalanceSheet(startDate, endDate);
   }
 }

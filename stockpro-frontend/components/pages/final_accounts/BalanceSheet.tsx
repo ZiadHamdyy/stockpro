@@ -11,6 +11,8 @@ import PermissionWrapper from "../../common/PermissionWrapper";
 
 const BalanceSheet: React.FC = () => {
   const title = "قائمة المركز المالي";
+  const currentYear = new Date().getFullYear();
+  const [startDate, setStartDate] = useState(`${currentYear}-01-01`);
   const [endDate, setEndDate] = useState(
     new Date().toISOString().substring(0, 10),
   );
@@ -20,7 +22,7 @@ const BalanceSheet: React.FC = () => {
     companyInfo,
     isLoading,
     error,
-  } = useBalanceSheet(endDate);
+  } = useBalanceSheet(startDate, endDate);
 
   const handlePrint = () => {
     const reportContent = document.getElementById(
@@ -248,13 +250,20 @@ const BalanceSheet: React.FC = () => {
         <ReportHeader title={title} companyInfo={companyInfo} />
         <div className="px-6 py-2 text-sm print:block hidden border-t-2 mt-2 space-y-1">
           <p>
-            <strong>التقرير حتى تاريخ:</strong> {endDate}
+            <strong>التقرير من:</strong> {startDate} <strong>إلى:</strong> {endDate}
           </p>
         </div>
 
         <div className="flex justify-between items-center my-4 bg-gray-50 p-3 rounded-md border-2 border-gray-200 no-print">
           <div className="flex items-center gap-4 flex-wrap">
-            <label className="font-semibold">حتى تاريخ:</label>
+            <label className="font-semibold">من:</label>
+            <input
+              type="date"
+              className="p-2 border-2 border-brand-blue rounded-md bg-brand-blue-bg"
+              value={startDate}
+              onChange={(e) => setStartDate(e.target.value)}
+            />
+            <label className="font-semibold">إلى:</label>
             <input
               type="date"
               className="p-2 border-2 border-brand-blue rounded-md bg-brand-blue-bg"

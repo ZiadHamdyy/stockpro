@@ -6,7 +6,10 @@ import { BalanceSheetResponse } from './dtos/response/balance-sheet.response';
 export class BalanceSheetService {
   constructor(private readonly prisma: DatabaseService) {}
 
-  async getBalanceSheet(endDate: string): Promise<BalanceSheetResponse> {
+  async getBalanceSheet(
+    startDate: string,
+    endDate: string,
+  ): Promise<BalanceSheetResponse> {
     const targetDate = new Date(endDate);
     targetDate.setHours(23, 59, 59, 999);
 
