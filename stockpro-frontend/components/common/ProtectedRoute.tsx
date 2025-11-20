@@ -27,9 +27,6 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
     return <Navigate to="/login" replace />;
   }
 
-  // Managers (مدير) have all permissions - always allow access
-  const isManager = currentUser?.role?.name === "مدير";
-
   // Get user permissions from role - handle both structures (permissions array or rolePermissions)
   const userPermissions: Permission[] = useMemo(() => {
     const role: any = currentUser?.role;
@@ -48,8 +45,19 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   }, [currentUser?.role]);
 
   // Check if user has the required permission
-  const hasAccess = isManager || hasPermission(userPermissions, requiredPermission);
+  // All users (including managers) must have explicit permissions
+  // Default to denying access (secure by default)
+  let hasAccess = false;
 
+  if (userPermissions.length > 0) {
+    // Check if user has the specific required permission
+    // Only allow access if permission is explicitly found
+    hasAccess = hasPermission(userPermissions, requiredPermission);
+  }
+  // If userPermissions.length is 0, hasAccess remains false (deny access)
+
+  // If no access, show AccessDenied page
+  // This ensures users cannot access pages by typing URLs directly
   if (!hasAccess) {
     return <AccessDenied />;
   }

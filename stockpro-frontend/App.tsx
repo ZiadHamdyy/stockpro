@@ -724,7 +724,7 @@ const AppContent = () => {
             <Route
               path="/settings/permissions"
               element={
-                <ProtectedRoute requiredPermission="permissions-update">
+                <ProtectedRoute requiredPermission="permissions-read">
                   <Permissions title={currentPageTitle} />
                 </ProtectedRoute>
               }

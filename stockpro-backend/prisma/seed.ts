@@ -177,6 +177,12 @@ const MENU_ITEMS: MenuItem[] = [
           { key: 'daily_transfers_report', label: 'يومية التحويلات' },
           { key: 'expense_statement_report', label: 'كشف حساب مصروفات' },
           { key: 'total_expenses_report', label: 'إجمالي المصروفات' },
+        ],
+      },
+      {
+        key: 'general_accounts_reports',
+        label: 'تقارير حسابات عامة',
+        children: [
           { key: 'current_account_statement_report', label: 'كشف حساب جاري' },
           {
             key: 'total_current_accounts_report',
@@ -192,11 +198,17 @@ const MENU_ITEMS: MenuItem[] = [
             key: 'total_payable_accounts_report',
             label: 'إجمالي الأرصدة الدائنة',
           },
-          { key: 'safe_statement_report', label: 'كشف حساب خزينة' },
-          { key: 'bank_statement_report', label: 'كشف حساب بنك' },
-          { key: 'tax_declaration_report', label: 'الإقرار الضريبي' },
         ],
       },
+      {
+        key: 'cash_reports',
+        label: 'تقارير نقدية',
+        children: [
+          { key: 'safe_statement_report', label: 'كشف حساب خزينة' },
+          { key: 'bank_statement_report', label: 'كشف حساب بنك' },
+        ],
+      },
+      { key: 'tax_declaration_report', label: 'الإقرار الضريبي' },
     ],
   },
   {
@@ -389,12 +401,14 @@ async function main() {
         p.resource === 'daily_transfers_report' ||
         p.resource === 'expense_statement_report' ||
         p.resource === 'total_expenses_report' ||
+        p.resource === 'general_accounts_reports' ||
         p.resource === 'current_account_statement_report' ||
         p.resource === 'total_current_accounts_report' ||
         p.resource === 'receivable_account_statement_report' ||
         p.resource === 'total_receivable_accounts_report' ||
         p.resource === 'payable_account_statement_report' ||
         p.resource === 'total_payable_accounts_report' ||
+        p.resource === 'cash_reports' ||
         p.resource === 'safe_statement_report' ||
         p.resource === 'bank_statement_report' ||
         p.resource === 'tax_declaration_report' ||
