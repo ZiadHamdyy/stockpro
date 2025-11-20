@@ -12,6 +12,9 @@ export class BalanceSheetResponse {
   receivables: number;
 
   @Expose()
+  otherReceivables: number;
+
+  @Expose()
   inventory: number;
 
   @Expose()
@@ -20,6 +23,9 @@ export class BalanceSheetResponse {
   // Liabilities
   @Expose()
   payables: number;
+
+  @Expose()
+  otherPayables: number;
 
   @Expose()
   vatPayable: number;

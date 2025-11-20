@@ -4,9 +4,11 @@ export interface BalanceSheetData {
   cashInSafes: number;
   cashInBanks: number;
   receivables: number;
+  otherReceivables: number;
   inventory: number;
   totalAssets: number;
   payables: number;
+  otherPayables: number;
   vatPayable: number;
   totalLiabilities: number;
   capital: number;

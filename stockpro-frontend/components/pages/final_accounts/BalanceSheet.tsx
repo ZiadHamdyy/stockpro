@@ -69,6 +69,10 @@ const BalanceSheet: React.FC = () => {
         Item: "  الذمم المدينة (العملاء)",
         Value: balanceSheetData.receivables,
       },
+      {
+        Item: "  أرصدة مدينة اخري",
+        Value: balanceSheetData.otherReceivables,
+      },
       { Item: "  المخزون", Value: balanceSheetData.inventory },
       { Item: "إجمالي الأصول", Value: balanceSheetData.totalAssets },
       { Item: "", Value: "" }, // Spacer
@@ -76,6 +80,10 @@ const BalanceSheet: React.FC = () => {
       {
         Item: "  الموردون (ذمم دائنة)",
         Value: balanceSheetData.payables,
+      },
+      {
+        Item: "  أرصدة دائنة اخري",
+        Value: balanceSheetData.otherPayables,
       },
       {
         Item: "  ضريبة القيمة المضافة المستحقة",
@@ -118,6 +126,7 @@ const BalanceSheet: React.FC = () => {
       [formatNumber(balanceSheetData.cashInSafes), "النقدية بالخزن"],
       [formatNumber(balanceSheetData.cashInBanks), "النقدية بالبنوك"],
       [formatNumber(balanceSheetData.receivables), "الذمم المدينة (العملاء)"],
+      [formatNumber(balanceSheetData.otherReceivables), "أرصدة مدينة اخري"],
       [formatNumber(balanceSheetData.inventory), "المخزون"],
       [
         {
@@ -142,6 +151,7 @@ const BalanceSheet: React.FC = () => {
         },
       ],
       [formatNumber(balanceSheetData.payables), "الموردون (ذمم دائنة)"],
+      [formatNumber(balanceSheetData.otherPayables), "أرصدة دائنة اخري"],
       [
         formatNumber(balanceSheetData.vatPayable),
         "ضريبة القيمة المضافة المستحقة",
@@ -330,6 +340,12 @@ const BalanceSheet: React.FC = () => {
                 </Td>
               </tr>
               <tr>
+                <Td>أرصدة مدينة اخري</Td>
+                <Td className="text-left font-mono">
+                  {formatNumber(balanceSheetData.otherReceivables)}
+                </Td>
+              </tr>
+              <tr>
                 <Td>المخزون</Td>
                 <Td className="text-left font-mono">
                   {formatNumber(balanceSheetData.inventory)}
@@ -352,6 +368,12 @@ const BalanceSheet: React.FC = () => {
                 <Td>الموردون (ذمم دائنة)</Td>
                 <Td className="text-left font-mono">
                   {formatNumber(balanceSheetData.payables)}
+                </Td>
+              </tr>
+              <tr>
+                <Td>أرصدة دائنة اخري</Td>
+                <Td className="text-left font-mono">
+                  {formatNumber(balanceSheetData.otherPayables)}
                 </Td>
               </tr>
               <tr>
