@@ -418,10 +418,10 @@ const TaxDeclarationReport: React.FC<TaxDeclarationReportProps> = ({
                   البيان
                 </th>
                 <th className="px-4 py-3 text-right font-semibold uppercase">
-                  القيمة (SAR)
+                  القيمة
                 </th>
                 <th className="px-4 py-3 text-right font-semibold uppercase">
-                  ضريبة القيمة المضافة (SAR)
+                  ضريبة القيمة المضافة ({companyInfo.vatRate || 0}%)
                 </th>
               </tr>
             </thead>
