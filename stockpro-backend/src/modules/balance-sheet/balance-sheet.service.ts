@@ -30,6 +30,10 @@ export class BalanceSheetService {
     const retainedEarnings = await this.calculateNetProfit(endDate);
     const totalEquity = capital + partnersBalance + retainedEarnings;
 
+    // Get company currency
+    const company = await this.prisma.company.findFirst();
+    const currency = company?.currency || 'SAR';
+
     return {
       cashInSafes,
       cashInBanks,
@@ -46,6 +50,7 @@ export class BalanceSheetService {
       retainedEarnings,
       totalEquity,
       totalLiabilitiesAndEquity: totalLiabilities + totalEquity,
+      currency,
     };
   }
 
@@ -805,7 +810,7 @@ export class BalanceSheetService {
     const vatRate = company?.vatRate || 0;
 
     if (!isVatEnabled || vatRate <= 0) {
-      return 0;
+    return 0;
     }
 
     // Calculate Output VAT (VAT collected on sales)
@@ -892,7 +897,48 @@ export class BalanceSheetService {
   }
 
   private async calculatePartnersBalance(endDate: Date): Promise<number> {
-    return 0;
+    // Get all current accounts
+    const currentAccounts = await this.prisma.currentAccount.findMany();
+
+    let totalBalance = 0;
+
+    for (const account of currentAccounts) {
+      let balance = account.openingBalance || 0;
+
+      // Add PaymentVouchers (debit - increases balance)
+      const paymentVouchers = await this.prisma.paymentVoucher.aggregate({
+        where: {
+          entityType: 'current_account',
+          currentAccountId: account.id,
+          date: {
+            lte: endDate,
+          },
+        },
+        _sum: {
+          amount: true,
+        },
+      });
+      balance += paymentVouchers._sum.amount || 0;
+
+      // Subtract ReceiptVouchers (credit - decreases balance)
+      const receiptVouchers = await this.prisma.receiptVoucher.aggregate({
+        where: {
+          entityType: 'current_account',
+          currentAccountId: account.id,
+          date: {
+            lte: endDate,
+          },
+        },
+        _sum: {
+          amount: true,
+        },
+      });
+      balance -= receiptVouchers._sum.amount || 0;
+
+      totalBalance += balance;
+    }
+
+    return totalBalance;
   }
 
   private async calculateNetProfit(endDate: string): Promise<number> {

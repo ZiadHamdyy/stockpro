@@ -16,6 +16,7 @@ export interface BalanceSheetData {
   retainedEarnings: number;
   totalEquity: number;
   totalLiabilitiesAndEquity: number;
+  currency: string;
 }
 
 export interface BalanceSheetQuery {

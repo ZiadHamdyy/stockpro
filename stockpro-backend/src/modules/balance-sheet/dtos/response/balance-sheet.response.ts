@@ -49,4 +49,8 @@ export class BalanceSheetResponse {
   // Total
   @Expose()
   totalLiabilitiesAndEquity: number;
+
+  // Company Info
+  @Expose()
+  currency: string;
 }
