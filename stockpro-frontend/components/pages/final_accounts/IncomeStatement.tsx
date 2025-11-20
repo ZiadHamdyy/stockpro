@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from "react";
 import { ExcelIcon, PdfIcon, PrintIcon } from "../../icons";
 import ReportHeader from "../reports/ReportHeader";
-import { formatNumber } from "../../../utils/formatting";
+import { formatNumber, getNegativeNumberClass } from "../../../utils/formatting";
 import { useIncomeStatement } from "../../hook/useIncomeStatement";
 import PermissionWrapper from "../../common/PermissionWrapper";
 import { useGetExpenseTypesQuery } from "../../store/slices/expense/expenseApiSlice";
@@ -216,14 +216,14 @@ const IncomeStatement: React.FC = () => {
               </tr>
               <tr>
                 <Td>إجمالي المبيعات</Td>
-                <Td className="font-mono text-left">
+                <Td className={`font-mono text-left ${getNegativeNumberClass(financialData.totalSales)}`}>
                   {formatNumber(financialData.totalSales)}
                 </Td>
                 <Td></Td>
               </tr>
               <tr>
                 <Td className="text-red-600">(-) مرتجع المبيعات</Td>
-                <Td className="font-mono text-left text-red-600">
+                <Td className={`font-mono text-left text-red-600 ${getNegativeNumberClass(financialData.totalSalesReturns)}`}>
                   ({formatNumber(financialData.totalSalesReturns)})
                 </Td>
                 <Td></Td>
@@ -231,7 +231,7 @@ const IncomeStatement: React.FC = () => {
               <tr className="font-bold bg-gray-100">
                 <Td>صافي المبيعات</Td>
                 <Td></Td>
-                <Td className="font-mono text-left text-lg">
+                <Td className={`font-mono text-left text-lg ${getNegativeNumberClass(financialData.netSales)}`}>
                   {formatNumber(financialData.netSales)}
                 </Td>
               </tr>
@@ -243,21 +243,21 @@ const IncomeStatement: React.FC = () => {
               </tr>
               <tr>
                 <Td>رصيد مخزون أول المدة</Td>
-                <Td className="font-mono text-left">
+                <Td className={`font-mono text-left ${getNegativeNumberClass(financialData.beginningInventory)}`}>
                   {formatNumber(financialData.beginningInventory)}
                 </Td>
                 <Td></Td>
               </tr>
               <tr>
                 <Td>(+) صافي المشتريات</Td>
-                <Td className="font-mono text-left">
+                <Td className={`font-mono text-left ${getNegativeNumberClass(financialData.netPurchases)}`}>
                   {formatNumber(financialData.netPurchases)}
                 </Td>
                 <Td></Td>
               </tr>
               <tr>
                 <Td className="text-red-600">(-) رصيد مخزون آخر المدة</Td>
-                <Td className="font-mono text-left text-red-600">
+                <Td className={`font-mono text-left text-red-600 ${getNegativeNumberClass(financialData.endingInventory)}`}>
                   ({formatNumber(financialData.endingInventory)})
                 </Td>
                 <Td></Td>
@@ -265,7 +265,7 @@ const IncomeStatement: React.FC = () => {
               <tr className="font-bold bg-gray-100">
                 <Td>تكلفة البضاعة المباعة</Td>
                 <Td></Td>
-                <Td className="font-mono text-left text-lg text-red-600">
+                <Td className={`font-mono text-left text-lg text-red-600 ${getNegativeNumberClass(financialData.cogs)}`}>
                   ({formatNumber(financialData.cogs)})
                 </Td>
               </tr>
@@ -273,7 +273,7 @@ const IncomeStatement: React.FC = () => {
               <tr className="font-bold text-xl bg-green-100 text-green-800">
                 <Td>مجمل الربح</Td>
                 <Td></Td>
-                <Td className="font-mono text-left">
+                <Td className={`font-mono text-left ${getNegativeNumberClass(financialData.grossProfit)}`}>
                   {formatNumber(financialData.grossProfit)}
                 </Td>
               </tr>
@@ -289,7 +289,7 @@ const IncomeStatement: React.FC = () => {
                 return (
                   <tr key={expenseType.id}>
                     <Td>{expenseType.name}</Td>
-                    <Td className="font-mono text-left text-red-600">
+                    <Td className={`font-mono text-left text-red-600 ${getNegativeNumberClass(expenseAmount)}`}>
                       ({formatNumber(expenseAmount)})
                     </Td>
                     <Td></Td>
@@ -299,7 +299,7 @@ const IncomeStatement: React.FC = () => {
               <tr className="font-bold bg-gray-100">
                 <Td>إجمالي المصروفات</Td>
                 <Td></Td>
-                <Td className="font-mono text-left text-lg text-red-600">
+                <Td className={`font-mono text-left text-lg text-red-600 ${getNegativeNumberClass(financialData.totalExpenses)}`}>
                   ({formatNumber(financialData.totalExpenses)})
                 </Td>
               </tr>
@@ -309,7 +309,7 @@ const IncomeStatement: React.FC = () => {
               >
                 <Td>صافي الربح / (الخسارة)</Td>
                 <Td></Td>
-                <Td className="font-mono text-left">
+                <Td className={`font-mono text-left ${getNegativeNumberClass(financialData.netProfit)}`}>
                   {formatNumber(financialData.netProfit)}
                 </Td>
               </tr>

@@ -5,6 +5,7 @@ import {
   formatNumber,
   exportToExcel,
   exportToPdf,
+  getNegativeNumberClass,
 } from "../../../utils/formatting";
 import { useBalanceSheet } from "../../hook/useBalanceSheet";
 import PermissionWrapper from "../../common/PermissionWrapper";
@@ -123,15 +124,59 @@ const BalanceSheet: React.FC = () => {
           },
         },
       ],
-      [formatNumber(balanceSheetData.cashInSafes), "النقدية بالخزن"],
-      [formatNumber(balanceSheetData.cashInBanks), "النقدية بالبنوك"],
-      [formatNumber(balanceSheetData.receivables), "الذمم المدينة (العملاء)"],
-      [formatNumber(balanceSheetData.otherReceivables), "أرصدة مدينة اخري"],
-      [formatNumber(balanceSheetData.inventory), "المخزون"],
+      [
+        {
+          content: formatNumber(balanceSheetData.cashInSafes),
+          styles: {
+            textColor: balanceSheetData.cashInSafes < 0 ? "#DC2626" : "#000000",
+          },
+        },
+        "النقدية بالخزن",
+      ],
+      [
+        {
+          content: formatNumber(balanceSheetData.cashInBanks),
+          styles: {
+            textColor: balanceSheetData.cashInBanks < 0 ? "#DC2626" : "#000000",
+          },
+        },
+        "النقدية بالبنوك",
+      ],
+      [
+        {
+          content: formatNumber(balanceSheetData.receivables),
+          styles: {
+            textColor: balanceSheetData.receivables < 0 ? "#DC2626" : "#000000",
+          },
+        },
+        "الذمم المدينة (العملاء)",
+      ],
+      [
+        {
+          content: formatNumber(balanceSheetData.otherReceivables),
+          styles: {
+            textColor: balanceSheetData.otherReceivables < 0 ? "#DC2626" : "#000000",
+          },
+        },
+        "أرصدة مدينة اخري",
+      ],
+      [
+        {
+          content: formatNumber(balanceSheetData.inventory),
+          styles: {
+            textColor: balanceSheetData.inventory < 0 ? "#DC2626" : "#000000",
+          },
+        },
+        "المخزون",
+      ],
       [
         {
           content: formatNumber(balanceSheetData.totalAssets),
-          styles: { fontStyle: "bold", fillColor: "#DBEAFE" },
+          styles: {
+            fontStyle: "bold",
+            fillColor: "#DBEAFE",
+            textColor: balanceSheetData.totalAssets < 0 ? "#DC2626" : "#000000",
+          },
         },
         {
           content: "إجمالي الأصول",
@@ -150,16 +195,41 @@ const BalanceSheet: React.FC = () => {
           },
         },
       ],
-      [formatNumber(balanceSheetData.payables), "الموردون (ذمم دائنة)"],
-      [formatNumber(balanceSheetData.otherPayables), "أرصدة دائنة اخري"],
       [
-        formatNumber(balanceSheetData.vatPayable),
+        {
+          content: formatNumber(balanceSheetData.payables),
+          styles: {
+            textColor: balanceSheetData.payables < 0 ? "#DC2626" : "#000000",
+          },
+        },
+        "الموردون (ذمم دائنة)",
+      ],
+      [
+        {
+          content: formatNumber(balanceSheetData.otherPayables),
+          styles: {
+            textColor: balanceSheetData.otherPayables < 0 ? "#DC2626" : "#000000",
+          },
+        },
+        "أرصدة دائنة اخري",
+      ],
+      [
+        {
+          content: formatNumber(balanceSheetData.vatPayable),
+          styles: {
+            textColor: balanceSheetData.vatPayable < 0 ? "#DC2626" : "#000000",
+          },
+        },
         "ضريبة القيمة المضافة المستحقة",
       ],
       [
         {
           content: formatNumber(balanceSheetData.totalLiabilities),
-          styles: { fontStyle: "bold", fillColor: "#FEE2E2" },
+          styles: {
+            fontStyle: "bold",
+            fillColor: "#FEE2E2",
+            textColor: balanceSheetData.totalLiabilities < 0 ? "#DC2626" : "#000000",
+          },
         },
         {
           content: "إجمالي الالتزامات",
@@ -178,16 +248,41 @@ const BalanceSheet: React.FC = () => {
           },
         },
       ],
-      [formatNumber(balanceSheetData.capital), "رأس المال"],
-      [formatNumber(balanceSheetData.partnersBalance), "جاري الشركاء"],
       [
-        formatNumber(balanceSheetData.retainedEarnings),
+        {
+          content: formatNumber(balanceSheetData.capital),
+          styles: {
+            textColor: balanceSheetData.capital < 0 ? "#DC2626" : "#000000",
+          },
+        },
+        "رأس المال",
+      ],
+      [
+        {
+          content: formatNumber(balanceSheetData.partnersBalance),
+          styles: {
+            textColor: balanceSheetData.partnersBalance < 0 ? "#DC2626" : "#000000",
+          },
+        },
+        "جاري الشركاء",
+      ],
+      [
+        {
+          content: formatNumber(balanceSheetData.retainedEarnings),
+          styles: {
+            textColor: balanceSheetData.retainedEarnings < 0 ? "#DC2626" : "#000000",
+          },
+        },
         "الأرباح المحتجزة (أرباح الفترة)",
       ],
       [
         {
           content: formatNumber(balanceSheetData.totalEquity),
-          styles: { fontStyle: "bold", fillColor: "#D1FAE5" },
+          styles: {
+            fontStyle: "bold",
+            fillColor: "#D1FAE5",
+            textColor: balanceSheetData.totalEquity < 0 ? "#DC2626" : "#000000",
+          },
         },
         {
           content: "إجمالي حقوق الملكية",
@@ -201,7 +296,7 @@ const BalanceSheet: React.FC = () => {
           styles: {
             fontStyle: "bold",
             fillColor: "#4B5563",
-            textColor: "#FFFFFF",
+            textColor: balanceSheetData.totalLiabilitiesAndEquity < 0 ? "#FCA5A5" : "#FFFFFF",
           },
         },
         {
@@ -364,31 +459,31 @@ const BalanceSheet: React.FC = () => {
               </tr>
               <tr>
                 <Td>النقدية بالخزن</Td>
-                <Td className="text-left font-mono">
+                <Td className={`text-left font-mono ${getNegativeNumberClass(balanceSheetData.cashInSafes)}`}>
                   {formatNumber(balanceSheetData.cashInSafes)}
                 </Td>
               </tr>
               <tr>
                 <Td>النقدية بالبنوك</Td>
-                <Td className="text-left font-mono">
+                <Td className={`text-left font-mono ${getNegativeNumberClass(balanceSheetData.cashInBanks)}`}>
                   {formatNumber(balanceSheetData.cashInBanks)}
                 </Td>
               </tr>
               <tr>
                 <Td>الذمم المدينة (العملاء)</Td>
-                <Td className="text-left font-mono">
+                <Td className={`text-left font-mono ${getNegativeNumberClass(balanceSheetData.receivables)}`}>
                   {formatNumber(balanceSheetData.receivables)}
                 </Td>
               </tr>
               <tr>
                 <Td>أرصدة مدينة اخري</Td>
-                <Td className="text-left font-mono">
+                <Td className={`text-left font-mono ${getNegativeNumberClass(balanceSheetData.otherReceivables)}`}>
                   {formatNumber(balanceSheetData.otherReceivables)}
                 </Td>
               </tr>
               <tr>
                 <Td>المخزون</Td>
-                <Td className="text-left font-mono">
+                <Td className={`text-left font-mono ${getNegativeNumberClass(balanceSheetData.inventory)}`}>
                   {formatNumber(balanceSheetData.inventory)}
                 </Td>
               </tr>
@@ -398,7 +493,7 @@ const BalanceSheet: React.FC = () => {
                 }`}
               >
                 <Td>إجمالي الأصول</Td>
-                <Td className="text-left font-mono text-lg">
+                <Td className={`text-left font-mono text-lg ${getNegativeNumberClass(balanceSheetData.totalAssets)}`}>
                   {formatNumber(balanceSheetData.totalAssets)}
                 </Td>
               </tr>
@@ -411,25 +506,25 @@ const BalanceSheet: React.FC = () => {
               </tr>
               <tr>
                 <Td>الموردون (ذمم دائنة)</Td>
-                <Td className="text-left font-mono">
+                <Td className={`text-left font-mono ${getNegativeNumberClass(balanceSheetData.payables)}`}>
                   {formatNumber(balanceSheetData.payables)}
                 </Td>
               </tr>
               <tr>
                 <Td>أرصدة دائنة اخري</Td>
-                <Td className="text-left font-mono">
+                <Td className={`text-left font-mono ${getNegativeNumberClass(balanceSheetData.otherPayables)}`}>
                   {formatNumber(balanceSheetData.otherPayables)}
                 </Td>
               </tr>
               <tr>
                 <Td>ضريبة القيمة المضافة المستحقة</Td>
-                <Td className="text-left font-mono">
+                <Td className={`text-left font-mono ${getNegativeNumberClass(balanceSheetData.vatPayable)}`}>
                   {formatNumber(balanceSheetData.vatPayable)}
                 </Td>
               </tr>
               <tr className="font-bold bg-red-100 text-red-800">
                 <Td>إجمالي الالتزامات</Td>
-                <Td className="text-left font-mono text-lg">
+                <Td className={`text-left font-mono text-lg ${getNegativeNumberClass(balanceSheetData.totalLiabilities)}`}>
                   {formatNumber(balanceSheetData.totalLiabilities)}
                 </Td>
               </tr>
@@ -442,25 +537,25 @@ const BalanceSheet: React.FC = () => {
               </tr>
               <tr>
                 <Td>رأس المال</Td>
-                <Td className="text-left font-mono">
+                <Td className={`text-left font-mono ${getNegativeNumberClass(balanceSheetData.capital)}`}>
                   {formatNumber(balanceSheetData.capital)}
                 </Td>
               </tr>
               <tr>
                 <Td>جاري الشركاء</Td>
-                <Td className="text-left font-mono">
+                <Td className={`text-left font-mono ${getNegativeNumberClass(balanceSheetData.partnersBalance)}`}>
                   {formatNumber(balanceSheetData.partnersBalance)}
                 </Td>
               </tr>
               <tr>
                 <Td>الأرباح المحتجزة (أرباح الفترة)</Td>
-                <Td className="text-left font-mono">
+                <Td className={`text-left font-mono ${getNegativeNumberClass(balanceSheetData.retainedEarnings)}`}>
                   {formatNumber(balanceSheetData.retainedEarnings)}
                 </Td>
               </tr>
               <tr className="font-bold bg-green-100 text-green-800">
                 <Td>إجمالي حقوق الملكية</Td>
-                <Td className="text-left font-mono text-lg">
+                <Td className={`text-left font-mono text-lg ${getNegativeNumberClass(balanceSheetData.totalEquity)}`}>
                   {formatNumber(balanceSheetData.totalEquity)}
                 </Td>
               </tr>
@@ -472,7 +567,7 @@ const BalanceSheet: React.FC = () => {
                 }`}
               >
                 <Td>إجمالي الالتزامات وحقوق الملكية</Td>
-                <Td className="text-left font-mono">
+                <Td className={`text-left font-mono ${getNegativeNumberClass(balanceSheetData.totalLiabilitiesAndEquity)}`}>
                   {formatNumber(balanceSheetData.totalLiabilitiesAndEquity)}
                 </Td>
               </tr>
