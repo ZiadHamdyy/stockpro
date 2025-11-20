@@ -155,6 +155,17 @@ export class SalesInvoiceService {
         }
       }
 
+      const safeId =
+        branchId
+          ? (
+              await tx.safe.findFirst({
+                where: { branchId },
+              })
+            )?.id || null
+          : null;
+      const bankId =
+        data.paymentTargetType === 'bank' ? data.paymentTargetId || null : null;
+
       const created = await tx.salesInvoice.create({
         data: {
           code,
@@ -168,6 +179,8 @@ export class SalesInvoiceService {
           paymentMethod: data.paymentMethod,
           paymentTargetType: data.paymentTargetType,
           paymentTargetId: data.paymentTargetId,
+          safeId,
+          bankId,
           notes: data.notes,
           userId,
           branchId,
@@ -178,6 +191,8 @@ export class SalesInvoiceService {
           },
           user: { select: { id: true, name: true } },
           branch: { select: { id: true, name: true } },
+          safe: { select: { id: true, name: true } },
+          bank: { select: { id: true, name: true } },
         },
       });
 
@@ -286,6 +301,18 @@ export class SalesInvoiceService {
             name: true,
           },
         },
+        safe: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+        bank: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
       },
       orderBy: { createdAt: 'asc' },
     });
@@ -316,6 +343,8 @@ export class SalesInvoiceService {
             name: true,
           },
         },
+        safe: { select: { id: true, name: true } },
+        bank: { select: { id: true, name: true } },
       },
     });
 
@@ -332,6 +361,7 @@ export class SalesInvoiceService {
     userId: string,
   ): Promise<SalesInvoiceResponse> {
     try {
+      const { allowInsufficientStock, ...persistableData } = data as any;
       // Validate base fields
       const incomingItems = data.items;
       if (incomingItems && incomingItems.length === 0) {
@@ -425,7 +455,7 @@ export class SalesInvoiceService {
 
         // Validate stock for new items (only for STOCKED items, skip SERVICE items)
         // Skip validation if allowInsufficientStock is true
-        if (!data.allowInsufficientStock) {
+        if (!allowInsufficientStock) {
           for (const item of itemsWithTotals) {
             const itemRecord = await tx.item.findUnique({ 
               where: { code: item.id }
@@ -440,21 +470,40 @@ export class SalesInvoiceService {
           }
         }
 
+        const nextPaymentTargetType =
+          data.paymentTargetType !== undefined
+            ? data.paymentTargetType
+            : existingInvoice?.paymentTargetType ?? null;
+        const nextPaymentTargetId =
+          data.paymentTargetId !== undefined
+            ? data.paymentTargetId
+            : existingInvoice?.paymentTargetId ?? null;
+        const branchIdForInvoice = existingInvoice?.branchId ?? null;
+        const safeId = await this.findSafeId(branchIdForInvoice, tx);
+        const bankId =
+          nextPaymentTargetType === 'bank' ? nextPaymentTargetId ?? null : null;
+
         const inv = await tx.salesInvoice.update({
           where: { id },
           data: {
-            ...data,
+            ...persistableData,
             items: itemsWithTotals,
             subtotal,
             discount,
             tax,
             net,
             userId,
+            paymentTargetType: nextPaymentTargetType,
+            paymentTargetId: nextPaymentTargetType ? nextPaymentTargetId : null,
+            safeId,
+            bankId,
           },
           include: {
             customer: { select: { id: true, name: true, code: true } },
             user: { select: { id: true, name: true } },
             branch: { select: { id: true, name: true } },
+            safe: { select: { id: true, name: true } },
+            bank: { select: { id: true, name: true } },
           },
         });
 
@@ -600,6 +649,19 @@ export class SalesInvoiceService {
     }
   }
 
+  private async findSafeId(
+    branchId?: string | null,
+    tx: any = this.prisma,
+  ): Promise<string | null> {
+    if (!branchId) {
+      return null;
+    }
+    const safe = await tx.safe.findFirst({
+      where: { branchId },
+    });
+    return safe?.id ?? null;
+  }
+
   private mapToResponse(salesInvoice: any): SalesInvoiceResponse {
     return {
       id: salesInvoice.id,
@@ -615,6 +677,10 @@ export class SalesInvoiceService {
       paymentMethod: salesInvoice.paymentMethod,
       paymentTargetType: salesInvoice.paymentTargetType,
       paymentTargetId: salesInvoice.paymentTargetId,
+      safeId: salesInvoice.safeId,
+      safe: salesInvoice.safe,
+      bankId: salesInvoice.bankId,
+      bank: salesInvoice.bank,
       notes: salesInvoice.notes,
       userId: salesInvoice.userId,
       user: salesInvoice.user,

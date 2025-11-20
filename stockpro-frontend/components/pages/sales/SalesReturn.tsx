@@ -697,11 +697,6 @@ const SalesReturn: React.FC<SalesReturnProps> = ({
       showToast("الرجاء إضافة صنف واحد على الأقل للمرتجع.", 'error');
       return;
     }
-    if (paymentMethod === "credit" && !selectedCustomer) {
-      showToast("الرجاء اختيار العميل للمرتجعات الآجلة.", 'error');
-      return;
-    }
-
     try {
       // Get branch ID from current user - use it as paymentTargetId when payment target is "safe"
       const userBranchId = currentUser?.branchId || 

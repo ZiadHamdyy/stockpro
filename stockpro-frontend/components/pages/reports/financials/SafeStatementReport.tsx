@@ -10,7 +10,30 @@ import { useGetSalesInvoicesQuery } from "../../../store/slices/salesInvoice/sal
 import { useGetPurchaseInvoicesQuery } from "../../../store/slices/purchaseInvoice/purchaseInvoiceApiSlice";
 import { useGetSalesReturnsQuery } from "../../../store/slices/salesReturn/salesReturnApiSlice";
 import { useGetPurchaseReturnsQuery } from "../../../store/slices/purchaseReturn/purchaseReturnApiSlice";
+import { useGetReceiptVouchersQuery } from "../../../store/slices/receiptVoucherApiSlice";
+import { useGetPaymentVouchersQuery } from "../../../store/slices/paymentVoucherApiSlice";
+import { useAuth } from "../../../hook/Auth";
 import { getCurrentYearRange } from "../dateUtils";
+
+const resolveRecordAmount = (record: any): number => {
+  if (!record) return 0;
+  const totals = record.totals;
+  const rawAmount =
+    (totals &&
+      (totals.net ??
+        totals.total ??
+        totals.amount ??
+        totals.debit ??
+        totals.credit)) ??
+    record.net ??
+    record.total ??
+    record.amount ??
+    record.debit ??
+    record.credit ??
+    0;
+  const amountNumber = Number(rawAmount);
+  return Number.isFinite(amountNumber) ? amountNumber : 0;
+};
 
 interface SafeStatementReportProps {
   title: string;
@@ -23,11 +46,13 @@ interface SafeStatementReportProps {
 const SafeStatementReport: React.FC<SafeStatementReportProps> = ({
   title,
   companyInfo,
-  receiptVouchers,
-  paymentVouchers,
+  receiptVouchers: propReceiptVouchers,
+  paymentVouchers: propPaymentVouchers,
   currentUser,
 }) => {
   const navigate = useNavigate();
+  const { isAuthed } = useAuth();
+  const skip = !isAuthed;
   // API hooks
   const { data: apiSafes = [], isLoading: safesLoading } =
     useGetSafesQuery(undefined);
@@ -36,6 +61,93 @@ const SafeStatementReport: React.FC<SafeStatementReportProps> = ({
   const { data: apiPurchaseInvoices = [] } = useGetPurchaseInvoicesQuery(undefined);
   const { data: apiSalesReturns = [] } = useGetSalesReturnsQuery(undefined);
   const { data: apiPurchaseReturns = [] } = useGetPurchaseReturnsQuery(undefined);
+  const {
+    data: apiReceiptVouchers = [],
+    isLoading: receiptVouchersLoading,
+  } = useGetReceiptVouchersQuery(undefined, { skip });
+  const {
+    data: apiPaymentVouchers = [],
+    isLoading: paymentVouchersLoading,
+  } = useGetPaymentVouchersQuery(undefined, { skip });
+
+  const rawReceiptVouchers = isAuthed
+    ? apiReceiptVouchers
+    : (propReceiptVouchers || []);
+  const rawPaymentVouchers = isAuthed
+    ? apiPaymentVouchers
+    : (propPaymentVouchers || []);
+
+  const normalizeDate = useMemo(() => {
+    return (date: any): string => {
+      if (!date) return "";
+      if (typeof date === "string") {
+        if (/^\d{4}-\d{2}-\d{2}$/.test(date)) return date;
+        return date.substring(0, 10);
+      }
+      if (date instanceof Date) {
+        return date.toISOString().split("T")[0];
+      }
+      try {
+        const parsed = new Date(date);
+        if (!isNaN(parsed.getTime())) {
+          return parsed.toISOString().split("T")[0];
+        }
+      } catch (error) {
+        // Ignore parsing errors
+      }
+      return "";
+    };
+  }, []);
+
+  const receiptVouchers = useMemo(() => {
+    return rawReceiptVouchers.map((voucher: any) => {
+      const entity = voucher.entity || {
+        type: voucher.entityType,
+        id:
+          voucher.customerId ||
+          voucher.supplierId ||
+          voucher.currentAccountId ||
+          "",
+        name: voucher.entityName || "",
+      };
+
+      return {
+        id: voucher.id,
+        code: voucher.code || voucher.id,
+        date: normalizeDate(voucher.date),
+        entity,
+        amount: voucher.amount,
+        description: voucher.description || "",
+        paymentMethod: voucher.paymentMethod,
+        safeOrBankId: voucher.safeId || voucher.bankId,
+      };
+    });
+  }, [rawReceiptVouchers, normalizeDate]);
+
+  const paymentVouchers = useMemo(() => {
+    return rawPaymentVouchers.map((voucher: any) => {
+      const entity = voucher.entity || {
+        type: voucher.entityType,
+        id:
+          voucher.customerId ||
+          voucher.supplierId ||
+          voucher.currentAccountId ||
+          "",
+        name: voucher.entityName || "",
+      };
+
+      return {
+        id: voucher.id,
+        code: voucher.code || voucher.id,
+        date: normalizeDate(voucher.date),
+        entity,
+        amount: voucher.amount,
+        description: voucher.description || "",
+        paymentMethod: voucher.paymentMethod,
+        safeOrBankId: voucher.safeId || voucher.bankId,
+      };
+    });
+  }, [rawPaymentVouchers, normalizeDate]);
 
   // Transform API data to match expected format
   const safes = useMemo(() => {
@@ -45,7 +157,8 @@ const SafeStatementReport: React.FC<SafeStatementReportProps> = ({
     }));
   }, [apiSafes]);
 
-  const isLoading = safesLoading;
+  const isLoading =
+    safesLoading || receiptVouchersLoading || paymentVouchersLoading;
   const { start: defaultStartDate, end: defaultEndDate } = getCurrentYearRange();
   const [startDate, setStartDate] = useState(defaultStartDate);
   const [endDate, setEndDate] = useState(defaultEndDate);
@@ -66,7 +179,21 @@ const SafeStatementReport: React.FC<SafeStatementReportProps> = ({
 
   const openingBalance = useMemo(() => {
     if (!selectedSafe) return 0;
-    const safeId = selectedSafe.id.toString();
+    const safeId = selectedSafe.id?.toString() || "";
+    const matchesSafeValue = (value: any) => value?.toString() === safeId;
+    const branchId = selectedSafe.branchId?.toString() || "";
+    const matchesBranchValue = (value: any) =>
+      branchId && value?.toString() === branchId;
+    const matchesSafeRecord = (record: any) => {
+      if (!record) return false;
+      if (matchesSafeValue(record.safeId)) return true;
+      if (matchesBranchValue(record.branchId)) return true;
+      if (record.paymentTargetType === "safe") {
+        if (matchesSafeValue(record.paymentTargetId)) return true;
+        if (matchesBranchValue(record.paymentTargetId)) return true;
+      }
+      return false;
+    };
     
     // Helper function to normalize dates to YYYY-MM-DD format
     const normalizeDate = (date: any): string => {
@@ -88,7 +215,7 @@ const SafeStatementReport: React.FC<SafeStatementReportProps> = ({
         (v) => {
           const vDate = normalizeDate(v.date);
           return v.paymentMethod === "safe" &&
-            v.safeOrBankId === selectedSafe.id &&
+            matchesSafeValue(v.safeOrBankId) &&
             vDate < normalizedStartDate;
         }
       )
@@ -100,7 +227,7 @@ const SafeStatementReport: React.FC<SafeStatementReportProps> = ({
         (v) => {
           const vDate = normalizeDate(v.date);
           return v.paymentMethod === "safe" &&
-            v.safeOrBankId === selectedSafe.id &&
+            matchesSafeValue(v.safeOrBankId) &&
             vDate < normalizedStartDate;
         }
       )
@@ -111,52 +238,44 @@ const SafeStatementReport: React.FC<SafeStatementReportProps> = ({
       .filter(
         (inv) => {
           const invDate = normalizeDate(inv.date);
-          return inv.paymentMethod === "cash" &&
-            inv.paymentTargetType === "safe" &&
-            inv.paymentTargetId === safeId &&
+          return matchesSafeRecord(inv) &&
             invDate < normalizedStartDate;
         }
       )
-      .reduce((sum, inv) => sum + (inv.total || 0), 0);
+      .reduce((sum, inv) => sum + resolveRecordAmount(inv), 0);
     
     // Purchase invoices (cash payments from safe) - outgoing
     const purchaseInvoicesBefore = (apiPurchaseInvoices as any[])
       .filter(
         (inv) => {
           const invDate = normalizeDate(inv.date);
-          return inv.paymentMethod === "cash" &&
-            inv.paymentTargetType === "safe" &&
-            inv.paymentTargetId === safeId &&
+          return matchesSafeRecord(inv) &&
             invDate < normalizedStartDate;
         }
       )
-      .reduce((sum, inv) => sum + (inv.total || 0), 0);
+      .reduce((sum, inv) => sum + resolveRecordAmount(inv), 0);
     
     // Sales returns (cash payments from safe) - outgoing
     const salesReturnsBefore = (apiSalesReturns as any[])
       .filter(
         (ret) => {
           const retDate = normalizeDate(ret.date);
-          return ret.paymentMethod === "cash" &&
-            ret.paymentTargetType === "safe" &&
-            ret.paymentTargetId === safeId &&
+          return matchesSafeRecord(ret) &&
             retDate < normalizedStartDate;
         }
       )
-      .reduce((sum, ret) => sum + (ret.total || 0), 0);
+      .reduce((sum, ret) => sum + resolveRecordAmount(ret), 0);
     
     // Purchase returns (cash payments to safe) - incoming
     const purchaseReturnsBefore = (apiPurchaseReturns as any[])
       .filter(
         (ret) => {
           const retDate = normalizeDate(ret.date);
-          return ret.paymentMethod === "cash" &&
-            ret.paymentTargetType === "safe" &&
-            ret.paymentTargetId === safeId &&
+          return matchesSafeRecord(ret) &&
             retDate < normalizedStartDate;
         }
       )
-      .reduce((sum, ret) => sum + (ret.total || 0), 0);
+      .reduce((sum, ret) => sum + resolveRecordAmount(ret), 0);
     
     // Internal transfers before startDate
     const outgoingBefore = (apiInternalTransfers as any[])
@@ -164,7 +283,7 @@ const SafeStatementReport: React.FC<SafeStatementReportProps> = ({
         (t) => {
           const tDate = normalizeDate(t.date);
           return t.fromType === "safe" &&
-            t.fromSafeId === safeId &&
+            matchesSafeValue(t.fromSafeId) &&
             tDate < normalizedStartDate;
         }
       )
@@ -174,7 +293,7 @@ const SafeStatementReport: React.FC<SafeStatementReportProps> = ({
         (t) => {
           const tDate = normalizeDate(t.date);
           return t.toType === "safe" &&
-            t.toSafeId === safeId &&
+            matchesSafeValue(t.toSafeId) &&
             tDate < normalizedStartDate;
         }
       )
@@ -195,6 +314,20 @@ const SafeStatementReport: React.FC<SafeStatementReportProps> = ({
   const reportData = useMemo(() => {
     if (!selectedSafeId) return [];
     const safeId = selectedSafeId.toString();
+    const matchesSafeValue = (value: any) => value?.toString() === safeId;
+    const branchId = selectedSafe?.branchId?.toString() || "";
+    const matchesBranchValue = (value: any) =>
+      branchId && value?.toString() === branchId;
+    const matchesSafeRecord = (record: any) => {
+      if (!record) return false;
+      if (matchesSafeValue(record.safeId)) return true;
+      if (matchesBranchValue(record.branchId)) return true;
+      if (record.paymentTargetType === "safe") {
+        if (matchesSafeValue(record.paymentTargetId)) return true;
+        if (matchesBranchValue(record.paymentTargetId)) return true;
+      }
+      return false;
+    };
 
     // Helper function to normalize dates to YYYY-MM-DD format
     const normalizeDate = (date: any): string => {
@@ -226,7 +359,7 @@ const SafeStatementReport: React.FC<SafeStatementReportProps> = ({
       const vDate = normalizeDate(v.date);
       if (
         v.paymentMethod === "safe" &&
-        v.safeOrBankId?.toString() === safeId &&
+        matchesSafeValue(v.safeOrBankId) &&
         vDate >= normalizedStartDate &&
         vDate <= normalizedEndDate
       ) {
@@ -246,18 +379,17 @@ const SafeStatementReport: React.FC<SafeStatementReportProps> = ({
     (apiSalesInvoices as any[]).forEach((inv) => {
       const invoiceDate = normalizeDate(inv.date);
       if (
-        inv.paymentMethod === "cash" &&
-        inv.paymentTargetType === "safe" &&
-        inv.paymentTargetId === safeId &&
+        matchesSafeRecord(inv) &&
         invoiceDate >= normalizedStartDate &&
         invoiceDate <= normalizedEndDate
       ) {
+        const amount = resolveRecordAmount(inv);
         transactions.push({
           date: invoiceDate,
           description: `فاتورة مبيعات - ${inv.customerOrSupplier?.name || "عميل"}`,
           ref: inv.code || inv.id,
           refId: inv.id,
-          debit: inv.total || 0,
+          debit: amount,
           credit: 0,
           link: { page: "sales_invoice", label: "فاتورة مبيعات" },
         });
@@ -268,18 +400,17 @@ const SafeStatementReport: React.FC<SafeStatementReportProps> = ({
     (apiPurchaseReturns as any[]).forEach((ret) => {
       const returnDate = normalizeDate(ret.date);
       if (
-        ret.paymentMethod === "cash" &&
-        ret.paymentTargetType === "safe" &&
-        ret.paymentTargetId === safeId &&
+        matchesSafeRecord(ret) &&
         returnDate >= normalizedStartDate &&
         returnDate <= normalizedEndDate
       ) {
+        const amount = resolveRecordAmount(ret);
         transactions.push({
           date: returnDate,
           description: `مرتجع مشتريات - ${ret.customerOrSupplier?.name || "مورد"}`,
           ref: ret.code || ret.id,
           refId: ret.id,
-          debit: ret.total || 0,
+          debit: amount,
           credit: 0,
           link: { page: "purchase_return", label: "مرتجع مشتريات" },
         });
@@ -291,7 +422,7 @@ const SafeStatementReport: React.FC<SafeStatementReportProps> = ({
       const transferDate = normalizeDate(t.date);
       if (
         t.toType === "safe" &&
-        t.toSafeId === safeId &&
+        matchesSafeValue(t.toSafeId) &&
         transferDate >= normalizedStartDate &&
         transferDate <= normalizedEndDate
       ) {
@@ -313,19 +444,18 @@ const SafeStatementReport: React.FC<SafeStatementReportProps> = ({
     (apiPurchaseInvoices as any[]).forEach((inv) => {
       const invoiceDate = normalizeDate(inv.date);
       if (
-        inv.paymentMethod === "cash" &&
-        inv.paymentTargetType === "safe" &&
-        inv.paymentTargetId === safeId &&
+        matchesSafeRecord(inv) &&
         invoiceDate >= normalizedStartDate &&
         invoiceDate <= normalizedEndDate
       ) {
+        const amount = resolveRecordAmount(inv);
         transactions.push({
           date: invoiceDate,
           description: `فاتورة مشتريات - ${inv.customerOrSupplier?.name || "مورد"}`,
           ref: inv.code || inv.id,
           refId: inv.id,
           debit: 0,
-          credit: inv.total || 0,
+          credit: amount,
           link: { page: "purchase_invoice", label: "فاتورة مشتريات" },
         });
       }
@@ -335,19 +465,18 @@ const SafeStatementReport: React.FC<SafeStatementReportProps> = ({
     (apiSalesReturns as any[]).forEach((ret) => {
       const returnDate = normalizeDate(ret.date);
       if (
-        ret.paymentMethod === "cash" &&
-        ret.paymentTargetType === "safe" &&
-        ret.paymentTargetId === safeId &&
+        matchesSafeRecord(ret) &&
         returnDate >= normalizedStartDate &&
         returnDate <= normalizedEndDate
       ) {
+        const amount = resolveRecordAmount(ret);
         transactions.push({
           date: returnDate,
           description: `مرتجع مبيعات - ${ret.customerOrSupplier?.name || "عميل"}`,
           ref: ret.code || ret.id,
           refId: ret.id,
           debit: 0,
-          credit: ret.total || 0,
+          credit: amount,
           link: { page: "sales_return", label: "مرتجع مبيعات" },
         });
       }
@@ -358,7 +487,7 @@ const SafeStatementReport: React.FC<SafeStatementReportProps> = ({
       const vDate = normalizeDate(v.date);
       if (
         v.paymentMethod === "safe" &&
-        v.safeOrBankId?.toString() === safeId &&
+        matchesSafeValue(v.safeOrBankId) &&
         vDate >= normalizedStartDate &&
         vDate <= normalizedEndDate
       ) {
@@ -379,7 +508,7 @@ const SafeStatementReport: React.FC<SafeStatementReportProps> = ({
       const transferDate = normalizeDate(t.date);
       if (
         t.fromType === "safe" &&
-        t.fromSafeId === safeId &&
+        matchesSafeValue(t.fromSafeId) &&
         transferDate >= normalizedStartDate &&
         transferDate <= normalizedEndDate
       ) {
@@ -409,6 +538,7 @@ const SafeStatementReport: React.FC<SafeStatementReportProps> = ({
     });
   }, [
     selectedSafeId,
+    selectedSafe,
     receiptVouchers,
     paymentVouchers,
     apiInternalTransfers,
@@ -423,7 +553,11 @@ const SafeStatementReport: React.FC<SafeStatementReportProps> = ({
 
   const totalDebit = reportData.reduce((sum, item) => sum + item.debit, 0);
   const totalCredit = reportData.reduce((sum, item) => sum + item.credit, 0);
-  const finalBalance = openingBalance + totalDebit - totalCredit;
+  const finalBalance =
+    selectedSafe?.currentBalance !== undefined &&
+    selectedSafe?.currentBalance !== null
+      ? selectedSafe.currentBalance
+      : openingBalance + totalDebit - totalCredit;
 
   const inputStyle =
     "p-2 border-2 border-brand-blue rounded-md focus:outline-none focus:ring-2 focus:ring-brand-blue bg-brand-blue-bg";
@@ -480,6 +614,46 @@ const SafeStatementReport: React.FC<SafeStatementReportProps> = ({
       printWindow?.print();
       printWindow?.close();
     }, 500);
+  };
+
+  const handleLinkedNavigation = (
+    page: string,
+    id?: string | number | null,
+  ) => {
+    if (!id) {
+      console.error("Record ID is missing for navigation");
+      return;
+    }
+    const encodedId = encodeURIComponent(String(id));
+
+    if (page === "receipt_voucher" || page === "payment_voucher") {
+      const url =
+        page === "receipt_voucher"
+          ? `/financials/receipt-voucher?voucherId=${encodedId}`
+          : `/financials/payment-voucher?voucherId=${encodedId}`;
+      window.location.href = url;
+      return;
+    }
+
+    if (page === "sales_invoice") {
+      navigate(`/sales/invoice?invoiceId=${encodedId}`);
+      return;
+    }
+    if (page === "sales_return") {
+      navigate(`/sales/return?returnId=${encodedId}`);
+      return;
+    }
+    if (page === "purchase_invoice") {
+      navigate(`/purchases/invoice?invoiceId=${encodedId}`);
+      return;
+    }
+    if (page === "purchase_return") {
+      navigate(`/purchases/return?returnId=${encodedId}`);
+      return;
+    }
+    if (page === "internal_transfer") {
+      window.location.href = `/financials/internal-transfers?transferId=${encodedId}`;
+    }
   };
 
   if (isLoading) {
@@ -626,36 +800,7 @@ const SafeStatementReport: React.FC<SafeStatementReportProps> = ({
                           onClick={(e) => {
                             e.preventDefault();
                             e.stopPropagation();
-                            const page = item.link.page;
-                            const id = item.refId;
-                            
-                            // Use window.location.href for all navigation to force full page reload
-                            // This ensures components properly initialize with query parameters
-                            if (page === "receipt_voucher" || page === "payment_voucher") {
-                              if (id) {
-                                const url = page === "receipt_voucher" 
-                                  ? `/financials/receipt-voucher?voucherId=${encodeURIComponent(id)}`
-                                  : `/financials/payment-voucher?voucherId=${encodeURIComponent(id)}`;
-                                window.location.href = url;
-                              } else {
-                                console.error("Voucher ID is missing:", item);
-                              }
-                            } else if (page === "sales_invoice" && id) {
-                              const url = `/sales/invoice?invoiceId=${encodeURIComponent(id)}`;
-                              window.location.href = url;
-                            } else if (page === "sales_return" && id) {
-                              const url = `/sales/return?returnId=${encodeURIComponent(id)}`;
-                              window.location.href = url;
-                            } else if (page === "purchase_invoice" && id) {
-                              const url = `/purchases/invoice?invoiceId=${encodeURIComponent(id)}`;
-                              window.location.href = url;
-                            } else if (page === "purchase_return" && id) {
-                              const url = `/purchases/return?returnId=${encodeURIComponent(id)}`;
-                              window.location.href = url;
-                            } else if (page === "internal_transfer" && id) {
-                              const url = `/financials/internal-transfers?transferId=${encodeURIComponent(id)}`;
-                              window.location.href = url;
-                            }
+                            handleLinkedNavigation(item.link.page, item.refId);
                           }}
                           className="text-brand-blue hover:underline font-semibold no-print cursor-pointer"
                           title={`فتح ${item.link.label}`}

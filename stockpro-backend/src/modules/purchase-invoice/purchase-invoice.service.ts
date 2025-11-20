@@ -90,6 +90,17 @@ export class PurchaseInvoiceService {
         });
       }
 
+      const safeId =
+        branchId
+          ? (
+              await tx.safe.findFirst({
+                where: { branchId },
+              })
+            )?.id || null
+          : null;
+      const bankId =
+        data.paymentTargetType === 'bank' ? data.paymentTargetId || null : null;
+
       const inv = await tx.purchaseInvoice.create({
         data: {
           code,
@@ -103,6 +114,8 @@ export class PurchaseInvoiceService {
           paymentMethod: data.paymentMethod,
           paymentTargetType: data.paymentTargetType,
           paymentTargetId: data.paymentTargetId,
+          safeId,
+          bankId,
           notes: data.notes,
           userId,
           branchId,
@@ -113,6 +126,8 @@ export class PurchaseInvoiceService {
             select: { id: true, email: true, name: true, image: true },
           },
           branch: true,
+          safe: { select: { id: true, name: true } },
+          bank: { select: { id: true, name: true } },
         },
       });
 
@@ -234,6 +249,8 @@ export class PurchaseInvoiceService {
           },
         },
         branch: true,
+        safe: { select: { id: true, name: true } },
+        bank: { select: { id: true, name: true } },
       },
       orderBy: { createdAt: 'asc' },
     });
@@ -258,6 +275,8 @@ export class PurchaseInvoiceService {
           },
         },
         branch: true,
+        safe: { select: { id: true, name: true } },
+        bank: { select: { id: true, name: true } },
       },
     });
 
@@ -318,6 +337,18 @@ export class PurchaseInvoiceService {
         });
       }
 
+      const nextPaymentTargetType =
+        data.paymentTargetType !== undefined
+          ? data.paymentTargetType
+          : existingInvoice.paymentTargetType ?? null;
+      const nextPaymentTargetId =
+        data.paymentTargetId !== undefined
+          ? data.paymentTargetId
+          : existingInvoice.paymentTargetId ?? null;
+      const safeId = await this.findSafeId(existingInvoice.branchId, tx);
+      const bankId =
+        nextPaymentTargetType === 'bank' ? nextPaymentTargetId ?? null : null;
+
       const inv = await tx.purchaseInvoice.update({
         where: { id },
         data: {
@@ -328,6 +359,10 @@ export class PurchaseInvoiceService {
           tax,
           net,
           date: data.date ? new Date(data.date) : existingInvoice.date,
+          paymentTargetType: nextPaymentTargetType,
+          paymentTargetId: nextPaymentTargetType ? nextPaymentTargetId : null,
+          safeId,
+          bankId,
         },
         include: {
           supplier: true,
@@ -335,6 +370,8 @@ export class PurchaseInvoiceService {
             select: { id: true, email: true, name: true, image: true },
           },
           branch: true,
+          safe: { select: { id: true, name: true } },
+          bank: { select: { id: true, name: true } },
         },
       });
 
@@ -402,6 +439,17 @@ export class PurchaseInvoiceService {
       ...updated,
       user: this.convertUserForResponse(updated.user),
     } as PurchaseInvoiceResponse;
+  }
+
+  private async findSafeId(
+    branchId?: string | null,
+    tx: any = this.prisma,
+  ): Promise<string | null> {
+    if (!branchId) {
+      return null;
+    }
+    const safe = await tx.safe.findFirst({ where: { branchId } });
+    return safe?.id ?? null;
   }
 
   async remove(id: string): Promise<void> {

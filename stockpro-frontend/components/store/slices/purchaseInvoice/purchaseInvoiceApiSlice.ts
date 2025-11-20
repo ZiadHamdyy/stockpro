@@ -34,6 +34,16 @@ export interface PurchaseInvoice {
   paymentMethod: "cash" | "credit";
   paymentTargetType?: "safe" | "bank";
   paymentTargetId?: string;
+  safeId?: string;
+  safe?: {
+    id: string;
+    name: string;
+  } | null;
+  bankId?: string;
+  bank?: {
+    id: string;
+    name: string;
+  } | null;
   notes?: string;
   userId: string;
   user: {

@@ -593,11 +593,6 @@ const PurchaseReturn: React.FC<PurchaseReturnProps> = ({
       return;
     }
 
-    if (paymentMethod === "credit" && !selectedSupplier) {
-      showToast("الرجاء اختيار المورد للمرتجعات الآجلة.", 'error');
-      return;
-    }
-
     try {
       // Get branch ID from current user - use it as paymentTargetId when payment target is "safe"
       const userBranchId = currentUser?.branchId || 

@@ -48,9 +48,6 @@ export class SalesReturnService {
     branchId?: string,
   ): Promise<SalesReturnResponse> {
     // Validations
-    if (!data.customerId) {
-      throwHttp(422, ERROR_CODES.INV_CUSTOMER_REQUIRED, 'Customer is required');
-    }
     if (!data.items || data.items.length === 0) {
       throwHttp(422, ERROR_CODES.INV_ITEMS_REQUIRED, 'Items are required');
     }
@@ -117,6 +114,17 @@ export class SalesReturnService {
         });
       }
 
+      const safeId =
+        branchId
+          ? (
+              await tx.safe.findFirst({
+                where: { branchId },
+              })
+            )?.id || null
+          : null;
+      const bankId =
+        data.paymentTargetType === 'bank' ? data.paymentTargetId || null : null;
+
       const ret = await tx.salesReturn.create({
         data: {
           code,
@@ -130,6 +138,8 @@ export class SalesReturnService {
           paymentMethod: data.paymentMethod,
           paymentTargetType: data.paymentTargetType,
           paymentTargetId: data.paymentTargetId,
+          safeId,
+          bankId,
           notes: data.notes,
           userId,
           branchId,
@@ -138,6 +148,8 @@ export class SalesReturnService {
           customer: { select: { id: true, name: true, code: true } },
           user: { select: { id: true, name: true } },
           branch: { select: { id: true, name: true } },
+          safe: { select: { id: true, name: true } },
+          bank: { select: { id: true, name: true } },
         },
       });
 
@@ -249,6 +261,8 @@ export class SalesReturnService {
             name: true,
           },
         },
+        safe: { select: { id: true, name: true } },
+        bank: { select: { id: true, name: true } },
       },
       orderBy: { createdAt: 'asc' },
     });
@@ -279,6 +293,8 @@ export class SalesReturnService {
             name: true,
           },
         },
+        safe: { select: { id: true, name: true } },
+        bank: { select: { id: true, name: true } },
       },
     });
 
@@ -351,6 +367,19 @@ export class SalesReturnService {
           }
         }
 
+        const nextPaymentTargetType =
+          data.paymentTargetType !== undefined
+            ? data.paymentTargetType
+            : existingReturn?.paymentTargetType ?? null;
+        const nextPaymentTargetId =
+          data.paymentTargetId !== undefined
+            ? data.paymentTargetId
+            : existingReturn?.paymentTargetId ?? null;
+        const branchIdForReturn = existingReturn?.branchId ?? null;
+        const safeId = await this.findSafeId(branchIdForReturn, tx);
+        const bankId =
+          nextPaymentTargetType === 'bank' ? nextPaymentTargetId ?? null : null;
+
         const ret = await tx.salesReturn.update({
           where: { id },
           data: {
@@ -361,11 +390,17 @@ export class SalesReturnService {
             tax,
             net,
             userId,
+            paymentTargetType: nextPaymentTargetType,
+            paymentTargetId: nextPaymentTargetType ? nextPaymentTargetId : null,
+            safeId,
+            bankId,
           },
           include: {
             customer: { select: { id: true, name: true, code: true } },
             user: { select: { id: true, name: true } },
             branch: { select: { id: true, name: true } },
+            safe: { select: { id: true, name: true } },
+            bank: { select: { id: true, name: true } },
           },
         });
 
@@ -496,6 +531,17 @@ export class SalesReturnService {
     }
   }
 
+  private async findSafeId(
+    branchId?: string | null,
+    tx: any = this.prisma,
+  ): Promise<string | null> {
+    if (!branchId) {
+      return null;
+    }
+    const safe = await tx.safe.findFirst({ where: { branchId } });
+    return safe?.id ?? null;
+  }
+
   private mapToResponse(salesReturn: any): SalesReturnResponse {
     return {
       id: salesReturn.id,
@@ -511,6 +557,10 @@ export class SalesReturnService {
       paymentMethod: salesReturn.paymentMethod,
       paymentTargetType: salesReturn.paymentTargetType,
       paymentTargetId: salesReturn.paymentTargetId,
+      safeId: salesReturn.safeId,
+      safe: salesReturn.safe,
+      bankId: salesReturn.bankId,
+      bank: salesReturn.bank,
       notes: salesReturn.notes,
       userId: salesReturn.userId,
       user: salesReturn.user,

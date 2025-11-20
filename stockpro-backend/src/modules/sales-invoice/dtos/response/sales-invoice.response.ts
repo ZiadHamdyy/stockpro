@@ -16,6 +16,16 @@ export class SalesInvoiceResponse {
   paymentMethod: string;
   paymentTargetType?: string;
   paymentTargetId?: string;
+  safeId?: string;
+  safe?: {
+    id: string;
+    name: string;
+  } | null;
+  bankId?: string;
+  bank?: {
+    id: string;
+    name: string;
+  } | null;
   notes?: string;
   userId: string;
   user?: {

@@ -35,9 +35,6 @@ export class PurchaseReturnService {
     branchId?: string,
   ): Promise<PurchaseReturnResponse> {
     // Validations
-    if (!data.supplierId) {
-      throwHttp(422, ERROR_CODES.INV_SUPPLIER_REQUIRED, 'Supplier is required');
-    }
     if (!data.items || data.items.length === 0) {
       throwHttp(422, ERROR_CODES.INV_ITEMS_REQUIRED, 'Items are required');
     }
@@ -128,6 +125,17 @@ export class PurchaseReturnService {
         }
       }
 
+      const safeId =
+        branchId
+          ? (
+              await tx.safe.findFirst({
+                where: { branchId },
+              })
+            )?.id || null
+          : null;
+      const bankId =
+        data.paymentTargetType === 'bank' ? data.paymentTargetId || null : null;
+
       const ret = await tx.purchaseReturn.create({
         data: {
           code,
@@ -141,6 +149,8 @@ export class PurchaseReturnService {
           paymentMethod: data.paymentMethod,
           paymentTargetType: data.paymentTargetType,
           paymentTargetId: data.paymentTargetId,
+          safeId,
+          bankId,
           notes: data.notes,
           userId,
           branchId,
@@ -149,6 +159,8 @@ export class PurchaseReturnService {
           supplier: true,
           user: { select: { id: true, email: true, name: true, image: true } },
           branch: true,
+          safe: { select: { id: true, name: true } },
+          bank: { select: { id: true, name: true } },
         },
       });
 
@@ -248,6 +260,8 @@ export class PurchaseReturnService {
           },
         },
         branch: true,
+        safe: { select: { id: true, name: true } },
+        bank: { select: { id: true, name: true } },
       },
       orderBy: { createdAt: 'asc' },
     });
@@ -272,6 +286,8 @@ export class PurchaseReturnService {
           },
         },
         branch: true,
+        safe: { select: { id: true, name: true } },
+        bank: { select: { id: true, name: true } },
       },
     });
 
@@ -342,6 +358,18 @@ export class PurchaseReturnService {
         }
       }
 
+      const nextPaymentTargetType =
+        data.paymentTargetType !== undefined
+          ? data.paymentTargetType
+          : existingReturn.paymentTargetType ?? null;
+      const nextPaymentTargetId =
+        data.paymentTargetId !== undefined
+          ? data.paymentTargetId
+          : existingReturn.paymentTargetId ?? null;
+      const safeId = await this.findSafeId(existingReturn.branchId, tx);
+      const bankId =
+        nextPaymentTargetType === 'bank' ? nextPaymentTargetId ?? null : null;
+
       const ret = await tx.purchaseReturn.update({
         where: { id },
         data: {
@@ -352,11 +380,17 @@ export class PurchaseReturnService {
           tax,
           net,
           date: data.date ? new Date(data.date) : existingReturn.date,
+          paymentTargetType: nextPaymentTargetType,
+          paymentTargetId: nextPaymentTargetType ? nextPaymentTargetId : null,
+          safeId,
+          bankId,
         },
         include: {
           supplier: true,
           user: { select: { id: true, email: true, name: true, image: true } },
           branch: true,
+          safe: { select: { id: true, name: true } },
+          bank: { select: { id: true, name: true } },
         },
       });
 
@@ -424,6 +458,17 @@ export class PurchaseReturnService {
       ...updated,
       user: this.convertUserForResponse(updated.user),
     } as PurchaseReturnResponse;
+  }
+
+  private async findSafeId(
+    branchId?: string | null,
+    tx: any = this.prisma,
+  ): Promise<string | null> {
+    if (!branchId) {
+      return null;
+    }
+    const safe = await tx.safe.findFirst({ where: { branchId } });
+    return safe?.id ?? null;
   }
 
   async remove(id: string): Promise<void> {

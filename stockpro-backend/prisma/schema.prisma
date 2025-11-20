@@ -241,10 +241,14 @@ model Bank {
   currentBalance Float  @default(0)
 
   // Relationships
-  paymentVouchers PaymentVoucher[]
-  receiptVouchers ReceiptVoucher[]
-  fromTransfers   InternalTransfer[] @relation("FromBankTransfers")
-  toTransfers     InternalTransfer[] @relation("ToBankTransfers")
+  paymentVouchers  PaymentVoucher[]
+  receiptVouchers  ReceiptVoucher[]
+  fromTransfers    InternalTransfer[] @relation("FromBankTransfers")
+  toTransfers      InternalTransfer[] @relation("ToBankTransfers")
+  salesInvoices    SalesInvoice[]
+  salesReturns     SalesReturn[]
+  purchaseInvoices PurchaseInvoice[]
+  purchaseReturns  PurchaseReturn[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -266,6 +270,11 @@ model Safe {
   receiptVouchers ReceiptVoucher[]
   fromTransfers   InternalTransfer[] @relation("FromSafeTransfers")
   toTransfers     InternalTransfer[] @relation("ToSafeTransfers")
+  salesInvoices    SalesInvoice[]
+  salesReturns     SalesReturn[]
+  purchaseInvoices PurchaseInvoice[]
+  purchaseReturns  PurchaseReturn[]
+  
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -653,6 +662,8 @@ model SalesInvoice {
   paymentMethod     String // "cash" or "credit"
   paymentTargetType String? // "safe" or "bank"
   paymentTargetId   String?
+  safeId            String?
+  bankId            String?
   notes             String?
 
   // Foreign keys
@@ -663,6 +674,8 @@ model SalesInvoice {
   customer Customer? @relation(fields: [customerId], references: [id])
   user     User      @relation(fields: [userId], references: [id])
   branch   Branch?   @relation(fields: [branchId], references: [id])
+  safe     Safe?     @relation(fields: [safeId], references: [id])
+  bank     Bank?     @relation(fields: [bankId], references: [id])
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -671,6 +684,8 @@ model SalesInvoice {
   @@index([date])
   @@index([customerId])
   @@index([userId])
+  @@index([safeId])
+  @@index([bankId])
 }
 
 model SalesReturn {
@@ -686,6 +701,8 @@ model SalesReturn {
   paymentMethod     String // "cash" or "credit"
   paymentTargetType String? // "safe" or "bank"
   paymentTargetId   String?
+  safeId            String?
+  bankId            String?
   notes             String?
 
   // Foreign keys
@@ -696,6 +713,8 @@ model SalesReturn {
   customer Customer? @relation(fields: [customerId], references: [id])
   user     User      @relation(fields: [userId], references: [id])
   branch   Branch?   @relation(fields: [branchId], references: [id])
+  safe     Safe?     @relation(fields: [safeId], references: [id])
+  bank     Bank?     @relation(fields: [bankId], references: [id])
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -704,6 +723,8 @@ model SalesReturn {
   @@index([date])
   @@index([customerId])
   @@index([userId])
+  @@index([safeId])
+  @@index([bankId])
 }
 
 model PurchaseInvoice {
@@ -719,6 +740,8 @@ model PurchaseInvoice {
   paymentMethod     String // "cash" or "credit"
   paymentTargetType String? // "safe" or "bank"
   paymentTargetId   String?
+  safeId            String?
+  bankId            String?
   notes             String?
 
   // Foreign keys
@@ -729,6 +752,8 @@ model PurchaseInvoice {
   supplier Supplier? @relation(fields: [supplierId], references: [id])
   user     User      @relation(fields: [userId], references: [id])
   branch   Branch?   @relation(fields: [branchId], references: [id])
+  safe     Safe?     @relation(fields: [safeId], references: [id])
+  bank     Bank?     @relation(fields: [bankId], references: [id])
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -737,6 +762,8 @@ model PurchaseInvoice {
   @@index([date])
   @@index([supplierId])
   @@index([userId])
+  @@index([safeId])
+  @@index([bankId])
 }
 
 model PurchaseReturn {
@@ -752,6 +779,8 @@ model PurchaseReturn {
   paymentMethod     String // "cash" or "credit"
   paymentTargetType String? // "safe" or "bank"
   paymentTargetId   String?
+  safeId            String?
+  bankId            String?
   notes             String?
 
   // Foreign keys
@@ -762,6 +791,8 @@ model PurchaseReturn {
   supplier Supplier? @relation(fields: [supplierId], references: [id])
   user     User      @relation(fields: [userId], references: [id])
   branch   Branch?   @relation(fields: [branchId], references: [id])
+  safe     Safe?     @relation(fields: [safeId], references: [id])
+  bank     Bank?     @relation(fields: [bankId], references: [id])
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -770,6 +801,8 @@ model PurchaseReturn {
   @@index([date])
   @@index([supplierId])
   @@index([userId])
+  @@index([safeId])
+  @@index([bankId])
 }
 
 model PaymentVoucher {
