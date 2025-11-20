@@ -304,6 +304,13 @@ export const MENU_ITEMS: MenuItem[] = [
             label: "إجمالي المصروفات",
             icon: BarChartIcon,
           },
+        ],
+      },
+      {
+        key: "general_accounts_reports",
+        label: "تقارير حسابات عامة",
+        icon: BarChartIcon,
+        children: [
           {
             key: "current_account_statement_report",
             label: "كشف حساب جاري",
@@ -334,6 +341,13 @@ export const MENU_ITEMS: MenuItem[] = [
             label: "إجمالي الأرصدة الدائنة",
             icon: BarChartIcon,
           },
+        ],
+      },
+      {
+        key: "cash_reports",
+        label: "تقارير نقدية",
+        icon: BarChartIcon,
+        children: [
           {
             key: "safe_statement_report",
             label: "كشف حساب خزينة",
@@ -344,12 +358,12 @@ export const MENU_ITEMS: MenuItem[] = [
             label: "كشف حساب بنك",
             icon: BarChartIcon,
           },
-          {
-            key: "tax_declaration_report",
-            label: "الإقرار الضريبي",
-            icon: BarChartIcon,
-          },
         ],
+      },
+      {
+        key: "tax_declaration_report",
+        label: "الإقرار الضريبي",
+        icon: BarChartIcon,
       },
     ],
   },
