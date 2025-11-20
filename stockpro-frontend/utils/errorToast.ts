@@ -48,6 +48,12 @@ export function showApiErrorToast(error: unknown) {
   const effectiveCode = code || deriveCodeFromMessage(message) || "";
   let text = CODE_MESSAGES[effectiveCode];
   if (!text) {
+    if (typeof message === "string" && message.trim().length > 0) {
+      text = message.trim();
+    }
+  }
+
+  if (!text) {
     if (err.status === 409) {
       text = "لا يمكن إتمام العملية لوجود تعارض.";
     } else if (err.status === 422) {

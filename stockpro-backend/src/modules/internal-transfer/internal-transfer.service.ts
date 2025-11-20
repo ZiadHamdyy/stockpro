@@ -8,6 +8,7 @@ import { DatabaseService } from '../../configs/database/database.service';
 import { CreateInternalTransferRequest } from './dtos/request/create-internal-transfer.request';
 import { UpdateInternalTransferRequest } from './dtos/request/update-internal-transfer.request';
 import { InternalTransferResponse } from './dtos/response/internal-transfer.response';
+import { AccountingService } from '../../common/services/accounting.service';
 
 @Injectable()
 export class InternalTransferService {
@@ -34,43 +35,69 @@ export class InternalTransferService {
     }
 
     const result = await this.prisma.$transaction(async (tx) => {
-      // Validate sender has sufficient current balance
+      // Validate sender has sufficient current balance and apply outbound impact
       if (data.fromType === 'safe') {
+        if (!data.fromSafeId) throw new NotFoundException('Safe not found');
         const sender = await tx.safe.findUnique({
-          where: { id: data.fromSafeId! },
+          where: { id: data.fromSafeId },
         });
         if (!sender) throw new NotFoundException('Safe not found');
         if ((sender as any).currentBalance < data.amount) {
           throw new ConflictException(`الرصيد غير كافي في ${sender.name}`);
         }
-        await tx.safe.update({
-          where: { id: data.fromSafeId! },
-          data: { currentBalance: { decrement: data.amount } } as any,
+        await AccountingService.applyImpact({
+          kind: 'internal-transfer-out',
+          amount: data.amount,
+          paymentTargetType: 'safe',
+          branchId: sender.branchId,
+          safeId: sender.id,
+          tx,
         });
       } else {
+        if (!data.fromBankId) throw new NotFoundException('Bank not found');
         const sender = await tx.bank.findUnique({
-          where: { id: data.fromBankId! },
+          where: { id: data.fromBankId },
         });
         if (!sender) throw new NotFoundException('Bank not found');
         if ((sender as any).currentBalance < data.amount) {
           throw new ConflictException(`الرصيد غير كافي في ${sender.name}`);
         }
-        await tx.bank.update({
-          where: { id: data.fromBankId! },
-          data: { currentBalance: { decrement: data.amount } } as any,
+        await AccountingService.applyImpact({
+          kind: 'internal-transfer-out',
+          amount: data.amount,
+          paymentTargetType: 'bank',
+          bankId: sender.id,
+          tx,
         });
       }
 
       // Credit receiver
       if (data.toType === 'safe') {
-        await tx.safe.update({
-          where: { id: data.toSafeId! },
-          data: { currentBalance: { increment: data.amount } } as any,
+        if (!data.toSafeId) throw new NotFoundException('Safe not found');
+        const receiver = await tx.safe.findUnique({
+          where: { id: data.toSafeId },
+        });
+        if (!receiver) throw new NotFoundException('Safe not found');
+        await AccountingService.applyImpact({
+          kind: 'internal-transfer-in',
+          amount: data.amount,
+          paymentTargetType: 'safe',
+          branchId: receiver.branchId,
+          safeId: receiver.id,
+          tx,
         });
       } else {
-        await tx.bank.update({
-          where: { id: data.toBankId! },
-          data: { currentBalance: { increment: data.amount } } as any,
+        if (!data.toBankId) throw new NotFoundException('Bank not found');
+        const receiver = await tx.bank.findUnique({
+          where: { id: data.toBankId },
+        });
+        if (!receiver) throw new NotFoundException('Bank not found');
+        await AccountingService.applyImpact({
+          kind: 'internal-transfer-in',
+          amount: data.amount,
+          paymentTargetType: 'bank',
+          bankId: receiver.id,
+          tx,
         });
       }
 
@@ -170,25 +197,47 @@ export class InternalTransferService {
 
         // Reverse previous effect
         if (existing.fromType === 'safe' && existing.fromSafeId) {
-          await tx.safe.update({
+          const safe = await tx.safe.findUnique({
             where: { id: existing.fromSafeId },
-            data: { currentBalance: { increment: existing.amount } } as any,
+          });
+          if (!safe) throw new NotFoundException('Safe not found');
+          await AccountingService.reverseImpact({
+            kind: 'internal-transfer-out',
+            amount: existing.amount,
+            paymentTargetType: 'safe',
+            branchId: safe.branchId,
+            safeId: existing.fromSafeId,
+            tx,
           });
         } else if (existing.fromType === 'bank' && existing.fromBankId) {
-          await tx.bank.update({
-            where: { id: existing.fromBankId },
-            data: { currentBalance: { increment: existing.amount } } as any,
+          await AccountingService.reverseImpact({
+            kind: 'internal-transfer-out',
+            amount: existing.amount,
+            paymentTargetType: 'bank',
+            bankId: existing.fromBankId,
+            tx,
           });
         }
         if (existing.toType === 'safe' && existing.toSafeId) {
-          await tx.safe.update({
+          const safe = await tx.safe.findUnique({
             where: { id: existing.toSafeId },
-            data: { currentBalance: { decrement: existing.amount } } as any,
+          });
+          if (!safe) throw new NotFoundException('Safe not found');
+          await AccountingService.reverseImpact({
+            kind: 'internal-transfer-in',
+            amount: existing.amount,
+            paymentTargetType: 'safe',
+            branchId: safe.branchId,
+            safeId: existing.toSafeId,
+            tx,
           });
         } else if (existing.toType === 'bank' && existing.toBankId) {
-          await tx.bank.update({
-            where: { id: existing.toBankId },
-            data: { currentBalance: { decrement: existing.amount } } as any,
+          await AccountingService.reverseImpact({
+            kind: 'internal-transfer-in',
+            amount: existing.amount,
+            paymentTargetType: 'bank',
+            bankId: existing.toBankId,
+            tx,
           });
         }
 
@@ -221,43 +270,69 @@ export class InternalTransferService {
           );
         }
 
-        // Validate sender balance
+        // Validate sender balance and apply outbound impact
         if (newFromType === 'safe') {
+          if (!newFromSafeId) throw new NotFoundException('Safe not found');
           const sender = await tx.safe.findUnique({
-            where: { id: newFromSafeId! },
+            where: { id: newFromSafeId },
           });
           if (!sender) throw new NotFoundException('Safe not found');
           if ((sender as any).currentBalance < newAmount) {
             throw new ConflictException(`الرصيد غير كافي في ${sender.name}`);
           }
-          await tx.safe.update({
-            where: { id: newFromSafeId! },
-            data: { currentBalance: { decrement: newAmount } } as any,
+          await AccountingService.applyImpact({
+            kind: 'internal-transfer-out',
+            amount: newAmount,
+            paymentTargetType: 'safe',
+            branchId: sender.branchId,
+            safeId: newFromSafeId,
+            tx,
           });
         } else {
+          if (!newFromBankId) throw new NotFoundException('Bank not found');
           const sender = await tx.bank.findUnique({
-            where: { id: newFromBankId! },
+            where: { id: newFromBankId },
           });
           if (!sender) throw new NotFoundException('Bank not found');
           if ((sender as any).currentBalance < newAmount) {
             throw new ConflictException(`الرصيد غير كافي في ${sender.name}`);
           }
-          await tx.bank.update({
-            where: { id: newFromBankId! },
-            data: { currentBalance: { decrement: newAmount } } as any,
+          await AccountingService.applyImpact({
+            kind: 'internal-transfer-out',
+            amount: newAmount,
+            paymentTargetType: 'bank',
+            bankId: newFromBankId,
+            tx,
           });
         }
 
-        // Credit receiver
+        // Credit receiver with inbound impact
         if (newToType === 'safe') {
-          await tx.safe.update({
-            where: { id: newToSafeId! },
-            data: { currentBalance: { increment: newAmount } } as any,
+          if (!newToSafeId) throw new NotFoundException('Safe not found');
+          const receiver = await tx.safe.findUnique({
+            where: { id: newToSafeId },
+          });
+          if (!receiver) throw new NotFoundException('Safe not found');
+          await AccountingService.applyImpact({
+            kind: 'internal-transfer-in',
+            amount: newAmount,
+            paymentTargetType: 'safe',
+            branchId: receiver.branchId,
+            safeId: newToSafeId,
+            tx,
           });
         } else {
-          await tx.bank.update({
-            where: { id: newToBankId! },
-            data: { currentBalance: { increment: newAmount } } as any,
+          if (!newToBankId) throw new NotFoundException('Bank not found');
+          const receiver = await tx.bank.findUnique({
+            where: { id: newToBankId },
+          });
+          if (!receiver) throw new NotFoundException('Bank not found');
+          await AccountingService.applyImpact({
+            kind: 'internal-transfer-in',
+            amount: newAmount,
+            paymentTargetType: 'bank',
+            bankId: newToBankId,
+            tx,
           });
         }
 
@@ -313,25 +388,47 @@ export class InternalTransferService {
 
         // Reverse effect
         if (existing.fromType === 'safe' && existing.fromSafeId) {
-          await tx.safe.update({
+          const safe = await tx.safe.findUnique({
             where: { id: existing.fromSafeId },
-            data: { currentBalance: { increment: existing.amount } } as any,
+          });
+          if (!safe) throw new NotFoundException('Safe not found');
+          await AccountingService.reverseImpact({
+            kind: 'internal-transfer-out',
+            amount: existing.amount,
+            paymentTargetType: 'safe',
+            branchId: safe.branchId,
+            safeId: existing.fromSafeId,
+            tx,
           });
         } else if (existing.fromType === 'bank' && existing.fromBankId) {
-          await tx.bank.update({
-            where: { id: existing.fromBankId },
-            data: { currentBalance: { increment: existing.amount } } as any,
+          await AccountingService.reverseImpact({
+            kind: 'internal-transfer-out',
+            amount: existing.amount,
+            paymentTargetType: 'bank',
+            bankId: existing.fromBankId,
+            tx,
           });
         }
         if (existing.toType === 'safe' && existing.toSafeId) {
-          await tx.safe.update({
+          const safe = await tx.safe.findUnique({
             where: { id: existing.toSafeId },
-            data: { currentBalance: { decrement: existing.amount } } as any,
+          });
+          if (!safe) throw new NotFoundException('Safe not found');
+          await AccountingService.reverseImpact({
+            kind: 'internal-transfer-in',
+            amount: existing.amount,
+            paymentTargetType: 'safe',
+            branchId: safe.branchId,
+            safeId: existing.toSafeId,
+            tx,
           });
         } else if (existing.toType === 'bank' && existing.toBankId) {
-          await tx.bank.update({
-            where: { id: existing.toBankId },
-            data: { currentBalance: { decrement: existing.amount } } as any,
+          await AccountingService.reverseImpact({
+            kind: 'internal-transfer-in',
+            amount: existing.amount,
+            paymentTargetType: 'bank',
+            bankId: existing.toBankId,
+            tx,
           });
         }
 

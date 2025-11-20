@@ -7,6 +7,7 @@ import { DatabaseService } from '../../configs/database/database.service';
 import { CreatePaymentVoucherRequest } from './dtos/request/create-payment-voucher.request';
 import { UpdatePaymentVoucherRequest } from './dtos/request/update-payment-voucher.request';
 import { PaymentVoucherResponse } from './dtos/response/payment-voucher.response';
+import { AccountingService } from '../../common/services/accounting.service';
 
 @Injectable()
 export class PaymentVoucherService {
@@ -34,28 +35,37 @@ export class PaymentVoucherService {
     const result = await this.prisma.$transaction(async (tx) => {
       // Validate and debit from source
       if (data.paymentMethod === 'safe') {
+        if (!data.safeId) throw new NotFoundException('Safe not found');
         const sender = await tx.safe.findUnique({
-          where: { id: data.safeId! },
+          where: { id: data.safeId },
         });
         if (!sender) throw new NotFoundException('Safe not found');
         if ((sender as any).currentBalance < data.amount) {
           throw new ConflictException(`الرصيد غير كافي في ${sender.name}`);
         }
-        await tx.safe.update({
-          where: { id: data.safeId! },
-          data: { currentBalance: { decrement: data.amount } } as any,
+        await AccountingService.applyImpact({
+          kind: 'payment-voucher',
+          amount: data.amount,
+          paymentTargetType: 'safe',
+          branchId: sender.branchId ?? data.branchId ?? null,
+          safeId: sender.id,
+          tx,
         });
       } else if (data.paymentMethod === 'bank') {
+        if (!data.bankId) throw new NotFoundException('Bank not found');
         const sender = await tx.bank.findUnique({
-          where: { id: data.bankId! },
+          where: { id: data.bankId },
         });
         if (!sender) throw new NotFoundException('Bank not found');
         if ((sender as any).currentBalance < data.amount) {
           throw new ConflictException(`الرصيد غير كافي في ${sender.name}`);
         }
-        await tx.bank.update({
-          where: { id: data.bankId! },
-          data: { currentBalance: { decrement: data.amount } } as any,
+        await AccountingService.applyImpact({
+          kind: 'payment-voucher',
+          amount: data.amount,
+          paymentTargetType: 'bank',
+          bankId: sender.id,
+          tx,
         });
       }
 
@@ -189,14 +199,25 @@ export class PaymentVoucherService {
 
         // Reverse previous debit on safe/bank
         if (existing.paymentMethod === 'safe' && existing.safeId) {
-          await tx.safe.update({
+          const safe = await tx.safe.findUnique({
             where: { id: existing.safeId },
-            data: { currentBalance: { increment: existing.amount } } as any,
+          });
+          if (!safe) throw new NotFoundException('Safe not found');
+          await AccountingService.reverseImpact({
+            kind: 'payment-voucher',
+            amount: existing.amount,
+            paymentTargetType: 'safe',
+            branchId: safe.branchId,
+            safeId: existing.safeId,
+            tx,
           });
         } else if (existing.paymentMethod === 'bank' && existing.bankId) {
-          await tx.bank.update({
-            where: { id: existing.bankId },
-            data: { currentBalance: { increment: existing.amount } } as any,
+          await AccountingService.reverseImpact({
+            kind: 'payment-voucher',
+            amount: existing.amount,
+            paymentTargetType: 'bank',
+            bankId: existing.bankId,
+            tx,
           });
         }
 
@@ -242,26 +263,37 @@ export class PaymentVoucherService {
           newPaymentMethod === 'bank' ? data.bankId || existing.bankId : null;
 
         if (newPaymentMethod === 'safe') {
+          if (!newSafeId) throw new NotFoundException('Safe not found');
           const sender = await tx.safe.findUnique({
-            where: { id: newSafeId! },
+            where: { id: newSafeId },
           });
           if (!sender) throw new NotFoundException('Safe not found');
-          if ((sender as any).currentBalance < newAmount)
+          if ((sender as any).currentBalance < newAmount) {
             throw new ConflictException(`الرصيد غير كافي في ${sender.name}`);
-          await tx.safe.update({
-            where: { id: newSafeId! },
-            data: { currentBalance: { decrement: newAmount } } as any,
+          }
+          await AccountingService.applyImpact({
+            kind: 'payment-voucher',
+            amount: newAmount,
+            paymentTargetType: 'safe',
+            branchId: sender.branchId ?? data.branchId ?? null,
+            safeId: newSafeId,
+            tx,
           });
         } else if (newPaymentMethod === 'bank') {
+          if (!newBankId) throw new NotFoundException('Bank not found');
           const sender = await tx.bank.findUnique({
-            where: { id: newBankId! },
+            where: { id: newBankId },
           });
           if (!sender) throw new NotFoundException('Bank not found');
-          if ((sender as any).currentBalance < newAmount)
+          if ((sender as any).currentBalance < newAmount) {
             throw new ConflictException(`الرصيد غير كافي في ${sender.name}`);
-          await tx.bank.update({
-            where: { id: newBankId! },
-            data: { currentBalance: { decrement: newAmount } } as any,
+          }
+          await AccountingService.applyImpact({
+            kind: 'payment-voucher',
+            amount: newAmount,
+            paymentTargetType: 'bank',
+            bankId: newBankId,
+            tx,
           });
         }
 
@@ -363,14 +395,25 @@ export class PaymentVoucherService {
 
         // Reverse debit on safe/bank
         if (existing.paymentMethod === 'safe' && existing.safeId) {
-          await tx.safe.update({
+          const safe = await tx.safe.findUnique({
             where: { id: existing.safeId },
-            data: { currentBalance: { increment: existing.amount } } as any,
+          });
+          if (!safe) throw new NotFoundException('Safe not found');
+          await AccountingService.reverseImpact({
+            kind: 'payment-voucher',
+            amount: existing.amount,
+            paymentTargetType: 'safe',
+            branchId: safe.branchId,
+            safeId: existing.safeId,
+            tx,
           });
         } else if (existing.paymentMethod === 'bank' && existing.bankId) {
-          await tx.bank.update({
-            where: { id: existing.bankId },
-            data: { currentBalance: { increment: existing.amount } } as any,
+          await AccountingService.reverseImpact({
+            kind: 'payment-voucher',
+            amount: existing.amount,
+            paymentTargetType: 'bank',
+            bankId: existing.bankId,
+            tx,
           });
         }
 
