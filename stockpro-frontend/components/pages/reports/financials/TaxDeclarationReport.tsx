@@ -192,17 +192,20 @@ const TaxDeclarationReport: React.FC<TaxDeclarationReportProps> = ({
       0,
     );
 
-    // 2. Expenses subtotal (payment vouchers with expense codes) from search date
-    const expensesSubtotal = filteredExpenses.reduce(
-      (sum, v) => sum + (v.amount || 0),
+    // 2. Total tax from purchase invoices (actual recorded VAT)
+    const purchaseInvoicesTax = filteredPurchases.reduce(
+      (sum, inv) => sum + (inv.tax || 0),
       0,
     );
 
-    // 3. Total purchases + expenses (before tax)
-    const totalPurchasesAndExpenses = purchasesSubtotal + expensesSubtotal;
+    // 3. Total taxable expenses (payment vouchers tagged with expense codes)
+    const taxableExpensesTotal = filteredExpenses.reduce(
+      (sum, v) => sum + (v.amount || 0),
+      0,
+    );
     
-    // 4. Calculate purchase tax as: VAT rate * (purchases subtotal + expenses subtotal)
-    const purchasesTax = totalPurchasesAndExpenses * vatRate;
+    // 4. Purchase tax column = invoice VAT + taxable expense amounts
+    const purchasesTax = purchaseInvoicesTax + taxableExpensesTotal;
 
     // 5. Purchase returns subtotal (before tax) from search date
     const purchaseReturnsSubtotal = filteredPurchaseReturns.reduce(

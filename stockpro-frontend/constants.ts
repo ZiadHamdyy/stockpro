@@ -290,6 +290,11 @@ export const MENU_ITEMS: MenuItem[] = [
             icon: BarChartIcon,
           },
           {
+            key: "daily_transfers_report",
+            label: "يومية التحويلات",
+            icon: BarChartIcon,
+          },
+          {
             key: "expense_statement_report",
             label: "كشف حساب مصروفات",
             icon: BarChartIcon,

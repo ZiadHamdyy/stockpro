@@ -87,6 +87,7 @@ export const getPathFromMenuKey = (key: string): string => {
     // Reports - Financials
     daily_collections_report: "/reports/financials/daily-collections",
     daily_payments_report: "/reports/financials/daily-payments",
+    daily_transfers_report: "/reports/financials/daily-transfers",
     expense_statement_report: "/reports/financials/expense-statement",
     total_expenses_report: "/reports/financials/total-expenses",
     current_account_statement_report:
@@ -165,6 +166,7 @@ export const getMenuKeyFromPath = (path: string): string => {
     "/reports/suppliers/balance": "supplier_balance_report",
     "/reports/financials/daily-collections": "daily_collections_report",
     "/reports/financials/daily-payments": "daily_payments_report",
+    "/reports/financials/daily-transfers": "daily_transfers_report",
     "/reports/financials/expense-statement": "expense_statement_report",
     "/reports/financials/total-expenses": "total_expenses_report",
     "/reports/financials/current-account-statement":

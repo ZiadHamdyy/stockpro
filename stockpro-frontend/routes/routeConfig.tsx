@@ -47,6 +47,7 @@ import SupplierStatementReport from "../components/pages/reports/suppliers/Suppl
 import SupplierBalanceReport from "../components/pages/reports/suppliers/SupplierBalanceReport";
 import DailyCollectionsReport from "../components/pages/reports/financials/DailyCollectionsReport";
 import DailyPaymentsReport from "../components/pages/reports/financials/DailyPaymentsReport";
+import DailyTransfersReport from "../components/pages/reports/financials/DailyTransfersReport";
 import ExpenseStatementReport from "../components/pages/reports/financials/ExpenseStatementReport";
 import TotalExpensesReport from "../components/pages/reports/financials/TotalExpensesReport";
 import CurrentAccountStatementReport from "../components/pages/reports/financials/CurrentAccountStatementReport";
@@ -435,6 +436,12 @@ export const routeConfig = [
     component: DailyPaymentsReport,
     requiredPermission: "daily_payments_report-read",
     label: "يومية الصرف",
+  },
+  {
+    path: "/reports/financials/daily-transfers",
+    component: DailyTransfersReport,
+    requiredPermission: "daily_transfers_report-read",
+    label: "يومية التحويلات",
   },
   {
     path: "/reports/financials/expense-statement",

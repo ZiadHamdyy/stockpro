@@ -174,6 +174,7 @@ const MENU_ITEMS: MenuItem[] = [
         children: [
           { key: 'daily_collections_report', label: 'يومية التحصيلات' },
           { key: 'daily_payments_report', label: 'يومية الصرف' },
+          { key: 'daily_transfers_report', label: 'يومية التحويلات' },
           { key: 'expense_statement_report', label: 'كشف حساب مصروفات' },
           { key: 'total_expenses_report', label: 'إجمالي المصروفات' },
           { key: 'current_account_statement_report', label: 'كشف حساب جاري' },
@@ -385,6 +386,7 @@ async function main() {
         p.resource === 'financial_reports' ||
         p.resource === 'daily_collections_report' ||
         p.resource === 'daily_payments_report' ||
+        p.resource === 'daily_transfers_report' ||
         p.resource === 'expense_statement_report' ||
         p.resource === 'total_expenses_report' ||
         p.resource === 'current_account_statement_report' ||

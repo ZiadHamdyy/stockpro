@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useMemo } from "react";
 import { Navigate } from "react-router-dom";
 import { useSelector } from "react-redux";
 import { selectCurrentUser } from "../store/slices/auth/auth";
@@ -30,8 +30,22 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   // Managers (مدير) have all permissions - always allow access
   const isManager = currentUser?.role?.name === "مدير";
 
-  // Get user permissions from role
-  const userPermissions: Permission[] = currentUser.role?.permissions || [];
+  // Get user permissions from role - handle both structures (permissions array or rolePermissions)
+  const userPermissions: Permission[] = useMemo(() => {
+    const role: any = currentUser?.role;
+    if (!role) return [];
+    // Check if permissions are directly in role.permissions
+    if (Array.isArray(role.permissions)) {
+      return role.permissions as Permission[];
+    }
+    // Check if permissions are in role.rolePermissions[].permission
+    if (Array.isArray(role.rolePermissions)) {
+      return role.rolePermissions
+        .map((rp: any) => rp?.permission)
+        .filter(Boolean) as Permission[];
+    }
+    return [];
+  }, [currentUser?.role]);
 
   // Check if user has the required permission
   const hasAccess = isManager || hasPermission(userPermissions, requiredPermission);

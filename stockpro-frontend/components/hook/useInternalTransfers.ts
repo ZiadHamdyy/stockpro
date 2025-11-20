@@ -11,6 +11,7 @@ import { useGetSafesQuery } from "../store/slices/safe/safeApiSlice";
 import { useGetBanksQuery } from "../store/slices/bank/bankApiSlice";
 import { useToast } from "../common/ToastProvider";
 import { useModal } from "../common/ModalProvider";
+import { useAuth } from "./Auth";
 
 export const useInternalTransfers = () => {
   const [currentIndex, setCurrentIndex] = useState(-1);
@@ -29,6 +30,7 @@ export const useInternalTransfers = () => {
 
   const { showToast } = useToast();
   const { showModal } = useModal();
+  const { User } = useAuth();
 
   // Fetch internal transfers
   const {
@@ -136,6 +138,10 @@ export const useInternalTransfers = () => {
       return null;
     }
 
+    // Get branchId from User
+    const branchId = User?.branchId || 
+      (typeof User?.branch === 'string' ? User.branch : (User?.branch as any)?.id);
+
     const payload: CreateInternalTransferRequest = {
       date: transferData.date,
       fromType: transferData.fromType,
@@ -146,6 +152,7 @@ export const useInternalTransfers = () => {
       toBankId: transferData.toType === "bank" ? transferData.toId : undefined,
       amount: amountValue,
       description: transferData.description || undefined,
+      ...(branchId ? { branchId } : {}),
     };
 
     try {
@@ -183,6 +190,7 @@ export const useInternalTransfers = () => {
     createInternalTransfer,
     updateInternalTransfer,
     showToast,
+    User,
   ]);
 
   const handleEdit = useCallback(() => {

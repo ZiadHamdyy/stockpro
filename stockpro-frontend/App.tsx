@@ -69,6 +69,7 @@ import SupplierStatementReport from "./components/pages/reports/suppliers/Suppli
 import SupplierBalanceReport from "./components/pages/reports/suppliers/SupplierBalanceReport";
 import DailyCollectionsReport from "./components/pages/reports/financials/DailyCollectionsReport";
 import DailyPaymentsReport from "./components/pages/reports/financials/DailyPaymentsReport";
+import DailyTransfersReport from "./components/pages/reports/financials/DailyTransfersReport";
 import ExpenseStatementReport from "./components/pages/reports/financials/ExpenseStatementReport";
 import TotalExpensesReport from "./components/pages/reports/financials/TotalExpensesReport";
 import CurrentAccountStatementReport from "./components/pages/reports/financials/CurrentAccountStatementReport";
@@ -1303,6 +1304,18 @@ const AppContent = () => {
               element={
                 <ProtectedRoute requiredPermission="daily_payments_report-read">
                   <DailyPaymentsReport
+                    title={currentPageTitle}
+                    companyInfo={companyInfo}
+                    currentUser={currentUser}
+                  />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/reports/financials/daily-transfers"
+              element={
+                <ProtectedRoute requiredPermission="daily_transfers_report-read">
+                  <DailyTransfersReport
                     title={currentPageTitle}
                     companyInfo={companyInfo}
                     currentUser={currentUser}
