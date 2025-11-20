@@ -352,7 +352,18 @@ const SafeStatementReport: React.FC<SafeStatementReportProps> = ({
       debit: number;
       credit: number;
       link: { page: string; label: string } | null;
+      sortKey: number;
     }[] = [];
+
+    const buildSortKey = (record: any, fallbackDate: string) => {
+      const base =
+        record?.createdAt ||
+        record?.created_at ||
+        record?.date ||
+        fallbackDate;
+      const time = new Date(base || fallbackDate).getTime();
+      return Number.isFinite(time) ? time : 0;
+    };
 
     // Receipt Vouchers (incoming) - Debit
     receiptVouchers.forEach((v: any) => {
@@ -371,6 +382,7 @@ const SafeStatementReport: React.FC<SafeStatementReportProps> = ({
           debit: v.amount,
           credit: 0,
           link: { page: "receipt_voucher", label: "سند قبض" },
+          sortKey: buildSortKey(v, v.date),
         });
       }
     });
@@ -392,6 +404,7 @@ const SafeStatementReport: React.FC<SafeStatementReportProps> = ({
           debit: amount,
           credit: 0,
           link: { page: "sales_invoice", label: "فاتورة مبيعات" },
+          sortKey: buildSortKey(inv, invoiceDate),
         });
       }
     });
@@ -413,6 +426,7 @@ const SafeStatementReport: React.FC<SafeStatementReportProps> = ({
           debit: amount,
           credit: 0,
           link: { page: "purchase_return", label: "مرتجع مشتريات" },
+          sortKey: buildSortKey(ret, returnDate),
         });
       }
     });
@@ -436,6 +450,7 @@ const SafeStatementReport: React.FC<SafeStatementReportProps> = ({
           debit: t.amount,
           credit: 0,
           link: { page: "internal_transfer", label: "تحويل داخلي" },
+          sortKey: buildSortKey(t, transferDate),
         });
       }
     });
@@ -457,6 +472,7 @@ const SafeStatementReport: React.FC<SafeStatementReportProps> = ({
           debit: 0,
           credit: amount,
           link: { page: "purchase_invoice", label: "فاتورة مشتريات" },
+          sortKey: buildSortKey(inv, invoiceDate),
         });
       }
     });
@@ -478,6 +494,7 @@ const SafeStatementReport: React.FC<SafeStatementReportProps> = ({
           debit: 0,
           credit: amount,
           link: { page: "sales_return", label: "مرتجع مبيعات" },
+          sortKey: buildSortKey(ret, returnDate),
         });
       }
     });
@@ -499,6 +516,7 @@ const SafeStatementReport: React.FC<SafeStatementReportProps> = ({
           debit: 0,
           credit: v.amount,
           link: { page: "payment_voucher", label: "سند صرف" },
+          sortKey: buildSortKey(v, v.date),
         });
       }
     });
@@ -522,20 +540,23 @@ const SafeStatementReport: React.FC<SafeStatementReportProps> = ({
           debit: 0,
           credit: t.amount,
           link: { page: "internal_transfer", label: "تحويل داخلي" },
+          sortKey: buildSortKey(t, transferDate),
         });
       }
     });
 
 
-    transactions.sort(
-      (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime(),
-    );
+    // Sort ascending to compute running balance correctly
+    transactions.sort((a, b) => (a.sortKey || 0) - (b.sortKey || 0));
 
     let balance = openingBalance;
-    return transactions.map((t) => {
+    const withBalance = transactions.map((t) => {
       balance = balance + t.debit - t.credit;
       return { ...t, balance };
     });
+
+    // Return data in ascending order (oldest first) without the helper sort key
+    return withBalance.map(({ sortKey, ...rest }) => rest);
   }, [
     selectedSafeId,
     selectedSafe,

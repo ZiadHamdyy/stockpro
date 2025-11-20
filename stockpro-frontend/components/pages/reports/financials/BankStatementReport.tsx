@@ -15,6 +15,26 @@ import { useGetPaymentVouchersQuery } from "../../../store/slices/paymentVoucher
 import { useAuth } from "../../../hook/Auth";
 import { getCurrentYearRange } from "../dateUtils";
 
+const resolveRecordAmount = (record: any): number => {
+  if (!record) return 0;
+  const totals = record.totals;
+  const rawAmount =
+    (totals &&
+      (totals.net ??
+        totals.total ??
+        totals.amount ??
+        totals.debit ??
+        totals.credit)) ??
+    record.net ??
+    record.total ??
+    record.amount ??
+    record.debit ??
+    record.credit ??
+    0;
+  const amountNumber = Number(rawAmount);
+  return Number.isFinite(amountNumber) ? amountNumber : 0;
+};
+
 interface BankStatementReportProps {
   title: string;
   companyInfo: CompanyInfo;
@@ -212,7 +232,7 @@ const BankStatementReport: React.FC<BankStatementReportProps> = ({
             invDate < normalizedStartDate;
         }
       )
-      .reduce((sum, inv) => sum + (inv.total || 0), 0);
+      .reduce((sum, inv) => sum + resolveRecordAmount(inv), 0);
     
     // Purchase invoices (cash payments from bank) - outgoing
     const purchaseInvoicesBefore = (apiPurchaseInvoices as any[])
@@ -225,7 +245,7 @@ const BankStatementReport: React.FC<BankStatementReportProps> = ({
             invDate < normalizedStartDate;
         }
       )
-      .reduce((sum, inv) => sum + (inv.total || 0), 0);
+      .reduce((sum, inv) => sum + resolveRecordAmount(inv), 0);
     
     // Sales returns (cash payments from bank) - outgoing
     const salesReturnsBefore = (apiSalesReturns as any[])
@@ -238,7 +258,7 @@ const BankStatementReport: React.FC<BankStatementReportProps> = ({
             retDate < normalizedStartDate;
         }
       )
-      .reduce((sum, ret) => sum + (ret.total || 0), 0);
+      .reduce((sum, ret) => sum + resolveRecordAmount(ret), 0);
     
     // Purchase returns (cash payments to bank) - incoming
     const purchaseReturnsBefore = (apiPurchaseReturns as any[])
@@ -251,7 +271,7 @@ const BankStatementReport: React.FC<BankStatementReportProps> = ({
             retDate < normalizedStartDate;
         }
       )
-      .reduce((sum, ret) => sum + (ret.total || 0), 0);
+      .reduce((sum, ret) => sum + resolveRecordAmount(ret), 0);
     
     // Internal transfers before startDate
     const outgoingBefore = (apiInternalTransfers as any[])
@@ -314,7 +334,18 @@ const BankStatementReport: React.FC<BankStatementReportProps> = ({
       debit: number;
       credit: number;
       link: { page: string; label: string } | null;
+      sortKey: number;
     }[] = [];
+
+    const buildSortKey = (record: any, fallbackDate: string) => {
+      const base =
+        record?.createdAt ||
+        record?.created_at ||
+        record?.date ||
+        fallbackDate;
+      const time = new Date(base || fallbackDate).getTime();
+      return Number.isFinite(time) ? time : 0;
+    };
 
     // Receipt Vouchers (incoming) - Debit
     receiptVouchers.forEach((v: any) => {
@@ -333,6 +364,7 @@ const BankStatementReport: React.FC<BankStatementReportProps> = ({
           debit: v.amount,
           credit: 0,
           link: { page: "receipt_voucher", label: "سند قبض" },
+          sortKey: buildSortKey(v, v.date),
         });
       }
     });
@@ -347,14 +379,16 @@ const BankStatementReport: React.FC<BankStatementReportProps> = ({
         invoiceDate >= normalizedStartDate &&
         invoiceDate <= normalizedEndDate
       ) {
+        const amount = resolveRecordAmount(inv);
         transactions.push({
           date: invoiceDate,
           description: `فاتورة مبيعات - ${inv.customerOrSupplier?.name || "عميل"}`,
           ref: inv.code || inv.id,
           refId: inv.id,
-          debit: inv.total || 0,
+          debit: amount,
           credit: 0,
           link: { page: "sales_invoice", label: "فاتورة مبيعات" },
+          sortKey: buildSortKey(inv, invoiceDate),
         });
       }
     });
@@ -369,14 +403,16 @@ const BankStatementReport: React.FC<BankStatementReportProps> = ({
         returnDate >= normalizedStartDate &&
         returnDate <= normalizedEndDate
       ) {
+        const amount = resolveRecordAmount(ret);
         transactions.push({
           date: returnDate,
           description: `مرتجع مشتريات - ${ret.customerOrSupplier?.name || "مورد"}`,
           ref: ret.code || ret.id,
           refId: ret.id,
-          debit: ret.total || 0,
+          debit: amount,
           credit: 0,
           link: { page: "purchase_return", label: "مرتجع مشتريات" },
+          sortKey: buildSortKey(ret, returnDate),
         });
       }
     });
@@ -400,6 +436,7 @@ const BankStatementReport: React.FC<BankStatementReportProps> = ({
           debit: t.amount,
           credit: 0,
           link: { page: "internal_transfer", label: "تحويل داخلي" },
+          sortKey: buildSortKey(t, transferDate),
         });
       }
     });
@@ -414,14 +451,16 @@ const BankStatementReport: React.FC<BankStatementReportProps> = ({
         invoiceDate >= normalizedStartDate &&
         invoiceDate <= normalizedEndDate
       ) {
+        const amount = resolveRecordAmount(inv);
         transactions.push({
           date: invoiceDate,
           description: `فاتورة مشتريات - ${inv.customerOrSupplier?.name || "مورد"}`,
           ref: inv.code || inv.id,
           refId: inv.id,
           debit: 0,
-          credit: inv.total || 0,
+          credit: amount,
           link: { page: "purchase_invoice", label: "فاتورة مشتريات" },
+          sortKey: buildSortKey(inv, invoiceDate),
         });
       }
     });
@@ -436,14 +475,16 @@ const BankStatementReport: React.FC<BankStatementReportProps> = ({
         returnDate >= normalizedStartDate &&
         returnDate <= normalizedEndDate
       ) {
+        const amount = resolveRecordAmount(ret);
         transactions.push({
           date: returnDate,
           description: `مرتجع مبيعات - ${ret.customerOrSupplier?.name || "عميل"}`,
           ref: ret.code || ret.id,
           refId: ret.id,
           debit: 0,
-          credit: ret.total || 0,
+          credit: amount,
           link: { page: "sales_return", label: "مرتجع مبيعات" },
+          sortKey: buildSortKey(ret, returnDate),
         });
       }
     });
@@ -465,6 +506,7 @@ const BankStatementReport: React.FC<BankStatementReportProps> = ({
           debit: 0,
           credit: v.amount,
           link: { page: "payment_voucher", label: "سند صرف" },
+          sortKey: buildSortKey(v, v.date),
         });
       }
     });
@@ -488,19 +530,22 @@ const BankStatementReport: React.FC<BankStatementReportProps> = ({
           debit: 0,
           credit: t.amount,
           link: { page: "internal_transfer", label: "تحويل داخلي" },
+          sortKey: buildSortKey(t, transferDate),
         });
       }
     });
 
-    transactions.sort(
-      (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime(),
-    );
+    // Sort ascending to compute running balance correctly
+    transactions.sort((a, b) => (a.sortKey || 0) - (b.sortKey || 0));
 
     let balance = openingBalance;
-    return transactions.map((t) => {
+    const withBalance = transactions.map((t) => {
       balance = balance + t.debit - t.credit;
       return { ...t, balance };
     });
+
+    // Return data in ascending order (oldest first) without the helper sort key
+    return withBalance.map(({ sortKey, ...rest }) => rest);
   }, [
     selectedBankId,
     receiptVouchers,
@@ -517,7 +562,11 @@ const BankStatementReport: React.FC<BankStatementReportProps> = ({
 
   const totalDebit = reportData.reduce((sum, item) => sum + item.debit, 0);
   const totalCredit = reportData.reduce((sum, item) => sum + item.credit, 0);
-  const finalBalance = openingBalance + totalDebit - totalCredit;
+  const finalBalance =
+    selectedBank?.currentBalance !== undefined &&
+    selectedBank?.currentBalance !== null
+      ? selectedBank.currentBalance
+      : openingBalance + totalDebit - totalCredit;
 
   const inputStyle =
     "p-2 border-2 border-brand-blue rounded-md focus:outline-none focus:ring-2 focus:ring-brand-blue bg-brand-blue-bg";
@@ -574,6 +623,46 @@ const BankStatementReport: React.FC<BankStatementReportProps> = ({
       printWindow?.print();
       printWindow?.close();
     }, 500);
+  };
+
+  const handleLinkedNavigation = (
+    page: string,
+    id?: string | number | null,
+  ) => {
+    if (!id) {
+      console.error("Record ID is missing for navigation");
+      return;
+    }
+    const encodedId = encodeURIComponent(String(id));
+
+    if (page === "receipt_voucher" || page === "payment_voucher") {
+      const url =
+        page === "receipt_voucher"
+          ? `/financials/receipt-voucher?voucherId=${encodedId}`
+          : `/financials/payment-voucher?voucherId=${encodedId}`;
+      window.location.href = url;
+      return;
+    }
+
+    if (page === "sales_invoice") {
+      navigate(`/sales/invoice?invoiceId=${encodedId}`);
+      return;
+    }
+    if (page === "sales_return") {
+      navigate(`/sales/return?returnId=${encodedId}`);
+      return;
+    }
+    if (page === "purchase_invoice") {
+      navigate(`/purchases/invoice?invoiceId=${encodedId}`);
+      return;
+    }
+    if (page === "purchase_return") {
+      navigate(`/purchases/return?returnId=${encodedId}`);
+      return;
+    }
+    if (page === "internal_transfer") {
+      window.location.href = `/financials/internal-transfers?transferId=${encodedId}`;
+    }
   };
 
   if (isLoading) {
@@ -720,36 +809,7 @@ const BankStatementReport: React.FC<BankStatementReportProps> = ({
                           onClick={(e) => {
                             e.preventDefault();
                             e.stopPropagation();
-                            const page = item.link.page;
-                            const id = item.refId;
-                            
-                            // Use window.location.href for all navigation to force full page reload
-                            // This ensures components properly initialize with query parameters
-                            if (page === "receipt_voucher" || page === "payment_voucher") {
-                              if (id) {
-                                const url = page === "receipt_voucher" 
-                                  ? `/financials/receipt-voucher?voucherId=${encodeURIComponent(id)}`
-                                  : `/financials/payment-voucher?voucherId=${encodeURIComponent(id)}`;
-                                window.location.href = url;
-                              } else {
-                                console.error("Voucher ID is missing:", item);
-                              }
-                            } else if (page === "sales_invoice" && id) {
-                              const url = `/sales/invoice?invoiceId=${encodeURIComponent(id)}`;
-                              window.location.href = url;
-                            } else if (page === "sales_return" && id) {
-                              const url = `/sales/return?returnId=${encodeURIComponent(id)}`;
-                              window.location.href = url;
-                            } else if (page === "purchase_invoice" && id) {
-                              const url = `/purchases/invoice?invoiceId=${encodeURIComponent(id)}`;
-                              window.location.href = url;
-                            } else if (page === "purchase_return" && id) {
-                              const url = `/purchases/return?returnId=${encodeURIComponent(id)}`;
-                              window.location.href = url;
-                            } else if (page === "internal_transfer" && id) {
-                              const url = `/financials/internal-transfers?transferId=${encodeURIComponent(id)}`;
-                              window.location.href = url;
-                            }
+                            handleLinkedNavigation(item.link.page, item.refId);
                           }}
                           className="text-brand-blue hover:underline font-semibold no-print cursor-pointer"
                           title={`فتح ${item.link.label}`}
