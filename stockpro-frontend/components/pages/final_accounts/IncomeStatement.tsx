@@ -1,9 +1,10 @@
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import { ExcelIcon, PdfIcon, PrintIcon } from "../../icons";
 import ReportHeader from "../reports/ReportHeader";
 import { formatNumber } from "../../../utils/formatting";
 import { useIncomeStatement } from "../../hook/useIncomeStatement";
 import PermissionWrapper from "../../common/PermissionWrapper";
+import { useGetExpenseTypesQuery } from "../../store/slices/expense/expenseApiSlice";
 
 const IncomeStatement: React.FC = () => {
   const title = "قائمة الدخل";
@@ -19,6 +20,65 @@ const IncomeStatement: React.FC = () => {
     isLoading,
     error,
   } = useIncomeStatement(startDate, endDate);
+
+  // Fetch expense types to display dynamically
+  const { data: expenseTypes = [] } = useGetExpenseTypesQuery();
+
+  // Define the original order of expense types as they were hardcoded
+  const expenseTypeOrder = [
+    'مصروفات تشغيلية',
+    'مصروفات تسويقية',
+    'مصروفات إدارية',
+    'مصروفات ادارية', // Handle both spellings (إ vs ا)
+    'مصروفات عمومية',
+    'مصروفات أخري',
+    'مصروفات اخري', // Handle both spellings
+  ];
+
+  // Get expense types in the same order as they were originally displayed
+  const sortedExpenseTypes = useMemo(() => {
+    return [...expenseTypes].sort((a, b) => {
+      const getOrderIndex = (name: string): number => {
+        // Normalize name for comparison (handle both spellings)
+        const normalizedName = name
+          .replace(/[إا]دارية/g, 'ادارية')
+          .replace(/[أا]خري/g, 'اخري');
+        
+        // Try exact match first
+        for (let i = 0; i < expenseTypeOrder.length; i++) {
+          const normalizedOrder = expenseTypeOrder[i]
+            .replace(/[إا]دارية/g, 'ادارية')
+            .replace(/[أا]خري/g, 'اخري');
+          if (normalizedName === normalizedOrder || name === expenseTypeOrder[i]) {
+            return i;
+          }
+        }
+        
+        // Try partial match (includes check)
+        for (let i = 0; i < expenseTypeOrder.length; i++) {
+          const normalizedOrder = expenseTypeOrder[i]
+            .replace(/[إا]دارية/g, 'ادارية')
+            .replace(/[أا]خري/g, 'اخري');
+          if (normalizedName.includes(normalizedOrder) || normalizedOrder.includes(normalizedName)) {
+            return i;
+          }
+        }
+        
+        return 999; // Not found in order list, put at end
+      };
+      
+      const indexA = getOrderIndex(a.name);
+      const indexB = getOrderIndex(b.name);
+      
+      // Sort by their position in the order list
+      if (indexA !== indexB) {
+        return indexA - indexB;
+      }
+      
+      // If same order position, sort alphabetically
+      return a.name.localeCompare(b.name);
+    });
+  }, [expenseTypes]);
 
   const handlePrint = () => {
     const reportContent = document.getElementById("printable-area-income");
@@ -223,27 +283,19 @@ const IncomeStatement: React.FC = () => {
                   المصروفات
                 </Td>
               </tr>
-              <tr>
-                <Td>مصروفات تشغيلية</Td>
-                <Td className="font-mono text-left text-red-600">
-                  ({formatNumber(financialData.operatingExpenses)})
-                </Td>
-                <Td></Td>
-              </tr>
-              <tr>
-                <Td>مصروفات تسويقية</Td>
-                <Td className="font-mono text-left text-red-600">
-                  ({formatNumber(financialData.marketingExpenses)})
-                </Td>
-                <Td></Td>
-              </tr>
-              <tr>
-                <Td>مصروفات إدارية وعمومية</Td>
-                <Td className="font-mono text-left text-red-600">
-                  ({formatNumber(financialData.adminAndGeneralExpenses)})
-                </Td>
-                <Td></Td>
-              </tr>
+              {sortedExpenseTypes.map((expenseType) => {
+                const expenseAmount =
+                  financialData?.expensesByType?.[expenseType.name] || 0;
+                return (
+                  <tr key={expenseType.id}>
+                    <Td>{expenseType.name}</Td>
+                    <Td className="font-mono text-left text-red-600">
+                      ({formatNumber(expenseAmount)})
+                    </Td>
+                    <Td></Td>
+                  </tr>
+                );
+              })}
               <tr className="font-bold bg-gray-100">
                 <Td>إجمالي المصروفات</Td>
                 <Td></Td>

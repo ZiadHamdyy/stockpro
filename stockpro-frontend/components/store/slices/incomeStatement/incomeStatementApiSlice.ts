@@ -13,9 +13,7 @@ export interface IncomeStatementData {
   endingInventory: number;
   cogs: number;
   grossProfit: number;
-  operatingExpenses: number;
-  marketingExpenses: number;
-  adminAndGeneralExpenses: number;
+  expensesByType: Record<string, number>;
   totalExpenses: number;
   netProfit: number;
 }

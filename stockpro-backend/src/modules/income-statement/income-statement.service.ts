@@ -55,15 +55,23 @@ export class IncomeStatementService {
     // Calculate expenses by type
     const expensesByType = await this.calculateExpensesByType(start, end);
 
-    // Extract expense amounts by type
-    const operatingExpenses = expensesByType['مصاريف تشغيلية'] || 0;
-    const marketingExpenses = expensesByType['مصاريف تسويقية'] || 0;
-    const adminAndGeneralExpenses =
-      (expensesByType['مصاريف إدارية'] || 0) +
-      (expensesByType['مصاريف عمومية'] || 0);
+    // Get all expense types from database to ensure all types are included
+    const allExpenseTypes = await this.prisma.expenseType.findMany({
+      orderBy: { name: 'asc' },
+    });
 
-    const totalExpenses =
-      operatingExpenses + marketingExpenses + adminAndGeneralExpenses;
+    // Initialize all expense types with 0 if they don't have expenses
+    const expensesByTypeComplete: Record<string, number> = {};
+    for (const expenseType of allExpenseTypes) {
+      expensesByTypeComplete[expenseType.name] =
+        expensesByType[expenseType.name] || 0;
+    }
+
+    // Calculate total expenses by summing all expense type values
+    const totalExpenses = Object.values(expensesByTypeComplete).reduce(
+      (sum, amount) => sum + amount,
+      0,
+    );
 
     // Calculate net profit
     const netProfit = grossProfit - totalExpenses;
@@ -79,9 +87,7 @@ export class IncomeStatementService {
       endingInventory,
       cogs,
       grossProfit,
-      operatingExpenses,
-      marketingExpenses,
-      adminAndGeneralExpenses,
+      expensesByType: expensesByTypeComplete,
       totalExpenses,
       netProfit,
     };

@@ -32,13 +32,7 @@ export class IncomeStatementResponse {
   grossProfit: number;
 
   @Expose()
-  operatingExpenses: number;
-
-  @Expose()
-  marketingExpenses: number;
-
-  @Expose()
-  adminAndGeneralExpenses: number;
+  expensesByType: Record<string, number>;
 
   @Expose()
   totalExpenses: number;
