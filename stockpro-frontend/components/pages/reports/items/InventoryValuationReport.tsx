@@ -227,10 +227,130 @@ const InventoryValuationReport: React.FC<InventoryValuationReportProps> = ({
     "purchasePrice" | "salePrice" | "averageCost"
   >("purchasePrice");
 
+  // Helper function to get last purchase price before or on endDate
+  const getLastPurchasePriceBeforeDate = useCallback((itemCode: string, endDate: string): number | null => {
+    const normalizedEndDate = normalizeDate(endDate);
+    if (!normalizedEndDate) return null;
+
+    // Filter purchase invoices by branch and date
+    const selectedBranchName = selectedBranchId === "all" 
+      ? "all"
+      : branches.find(b => b.id === selectedBranchId)?.name || "";
+    
+    const filterByBranch = (tx: any) =>
+      selectedBranchId === "all" ||
+      tx.branch === selectedBranchName ||
+      tx.branchName === selectedBranchName ||
+      tx.branchId === selectedBranchId;
+
+    // Get all purchase invoices up to endDate, sorted by date descending
+    const relevantInvoices = transformedPurchaseInvoices
+      .filter(filterByBranch)
+      .filter((inv) => {
+        const txDate = normalizeDate(inv.date) || normalizeDate(inv.invoiceDate);
+        return txDate && txDate <= normalizedEndDate;
+      })
+      .sort((a, b) => {
+        const dateA = normalizeDate(a.date) || normalizeDate(a.invoiceDate) || "";
+        const dateB = normalizeDate(b.date) || normalizeDate(b.invoiceDate) || "";
+        return dateB.localeCompare(dateA); // Descending order
+      });
+
+    // Find the most recent purchase price for this item
+    for (const inv of relevantInvoices) {
+      for (const invItem of inv.items) {
+        if (invItem.id === itemCode && invItem.price) {
+          return invItem.price;
+        }
+      }
+    }
+
+    return null;
+  }, [transformedPurchaseInvoices, selectedBranchId, branches, normalizeDate]);
+
+  // Helper function to get last sale price before or on endDate
+  const getLastSalePriceBeforeDate = useCallback((itemCode: string, endDate: string): number | null => {
+    const normalizedEndDate = normalizeDate(endDate);
+    if (!normalizedEndDate) return null;
+
+    const selectedBranchName = selectedBranchId === "all" 
+      ? "all"
+      : branches.find(b => b.id === selectedBranchId)?.name || "";
+    
+    const filterByBranch = (tx: any) =>
+      selectedBranchId === "all" ||
+      tx.branch === selectedBranchName ||
+      tx.branchName === selectedBranchName ||
+      tx.branchId === selectedBranchId;
+
+    // Get all sales invoices up to endDate, sorted by date descending
+    const relevantInvoices = transformedSalesInvoices
+      .filter(filterByBranch)
+      .filter((inv) => {
+        const txDate = normalizeDate(inv.date) || normalizeDate(inv.invoiceDate);
+        return txDate && txDate <= normalizedEndDate;
+      })
+      .sort((a, b) => {
+        const dateA = normalizeDate(a.date) || normalizeDate(a.invoiceDate) || "";
+        const dateB = normalizeDate(b.date) || normalizeDate(b.invoiceDate) || "";
+        return dateB.localeCompare(dateA); // Descending order
+      });
+
+    // Find the most recent sale price for this item
+    for (const inv of relevantInvoices) {
+      for (const invItem of inv.items) {
+        if (invItem.id === itemCode && invItem.price) {
+          return invItem.price;
+        }
+      }
+    }
+
+    return null;
+  }, [transformedSalesInvoices, selectedBranchId, branches, normalizeDate]);
+
+  // Helper function to calculate weighted average cost up to endDate
+  const calculateWeightedAverageCost = useCallback((itemCode: string, endDate: string): number | null => {
+    const normalizedEndDate = normalizeDate(endDate);
+    if (!normalizedEndDate) return null;
+
+    const selectedBranchName = selectedBranchId === "all" 
+      ? "all"
+      : branches.find(b => b.id === selectedBranchId)?.name || "";
+    
+    const filterByBranch = (tx: any) =>
+      selectedBranchId === "all" ||
+      tx.branch === selectedBranchName ||
+      tx.branchName === selectedBranchName ||
+      tx.branchId === selectedBranchId;
+
+    // Get all purchase invoices up to endDate
+    const relevantInvoices = transformedPurchaseInvoices
+      .filter(filterByBranch)
+      .filter((inv) => {
+        const txDate = normalizeDate(inv.date) || normalizeDate(inv.invoiceDate);
+        return txDate && txDate <= normalizedEndDate;
+      });
+
+    let totalCost = 0;
+    let totalQty = 0;
+
+    // Calculate weighted average: sum(qty * price) / sum(qty)
+    for (const inv of relevantInvoices) {
+      for (const invItem of inv.items) {
+        if (invItem.id === itemCode && invItem.price && invItem.qty) {
+          totalCost += invItem.qty * invItem.price;
+          totalQty += invItem.qty;
+        }
+      }
+    }
+
+    if (totalQty === 0) return null;
+    return totalCost / totalQty;
+  }, [transformedPurchaseInvoices, selectedBranchId, branches, normalizeDate]);
+
   const handleViewReport = useCallback(() => {
     if (isLoading) return;
 
-    const normalizedStartDate = normalizeDate(startDate);
     const normalizedEndDate = normalizeDate(endDate);
 
     const valuationData = items.map((item) => {
@@ -247,51 +367,54 @@ const InventoryValuationReport: React.FC<InventoryValuationReportProps> = ({
         tx.branchName === selectedBranchName ||
         tx.branchId === selectedBranchId;
 
-      const filterByDateRange = (tx: any) => {
+      // Filter transactions up to and including endDate (not within the range)
+      const filterByDate = (tx: any) => {
+        if (!normalizedEndDate) return false;
         const txDate =
           normalizeDate(tx.date) ||
           normalizeDate(tx.invoiceDate) ||
           normalizeDate(tx.transactionDate) ||
           normalizeDate(tx.createdAt) ||
           normalizeDate(tx.updatedAt);
-        if (!txDate || !normalizedStartDate || !normalizedEndDate) return false;
-        return txDate >= normalizedStartDate && txDate <= normalizedEndDate;
+        if (!txDate) return false;
+        return txDate <= normalizedEndDate;
       };
 
-      transformedPurchaseInvoices.filter(filterByBranch).filter(filterByDateRange).forEach((inv) =>
+      // Calculate balance as of endDate by including all transactions up to endDate
+      transformedPurchaseInvoices.filter(filterByBranch).filter(filterByDate).forEach((inv) =>
         inv.items.forEach((i) => {
           if (i.id === item.code) balance += i.qty;
         }),
       );
-      transformedSalesReturns.filter(filterByBranch).filter(filterByDateRange).forEach((inv) =>
+      transformedSalesReturns.filter(filterByBranch).filter(filterByDate).forEach((inv) =>
         inv.items.forEach((i) => {
           if (i.id === item.code) balance += i.qty;
         }),
       );
-      transformedStoreReceiptVouchers.filter(filterByBranch).filter(filterByDateRange).forEach((v) =>
+      transformedStoreReceiptVouchers.filter(filterByBranch).filter(filterByDate).forEach((v) =>
         v.items.forEach((i) => {
           if (i.id === item.code) balance += i.qty;
         }),
       );
 
-      transformedSalesInvoices.filter(filterByBranch).filter(filterByDateRange).forEach((inv) =>
+      transformedSalesInvoices.filter(filterByBranch).filter(filterByDate).forEach((inv) =>
         inv.items.forEach((i) => {
           if (i.id === item.code) balance -= i.qty;
         }),
       );
-      transformedPurchaseReturns.filter(filterByBranch).filter(filterByDateRange).forEach((inv) =>
+      transformedPurchaseReturns.filter(filterByBranch).filter(filterByDate).forEach((inv) =>
         inv.items.forEach((i) => {
           if (i.id === item.code) balance -= i.qty;
         }),
       );
-      transformedStoreIssueVouchers.filter(filterByBranch).filter(filterByDateRange).forEach((v) =>
+      transformedStoreIssueVouchers.filter(filterByBranch).filter(filterByDate).forEach((v) =>
         v.items.forEach((i) => {
           if (i.id === item.code) balance -= i.qty;
         }),
       );
 
       if (selectedBranchId !== "all") {
-        transformedStoreTransferVouchers.filter(filterByDateRange).forEach((v) => {
+        transformedStoreTransferVouchers.filter(filterByDate).forEach((v) => {
           const fromStore = stores.find((s) => s.name === v.fromStore);
           const toStore = stores.find((s) => s.name === v.toStore);
           v.items.forEach((i) => {
@@ -303,19 +426,32 @@ const InventoryValuationReport: React.FC<InventoryValuationReportProps> = ({
         });
       }
 
+      // Calculate cost based on valuation method and endDate
       let cost = 0;
       switch (valuationMethod) {
-        case "salePrice":
-          cost = item.salePrice;
+        case "purchasePrice": {
+          const lastPurchasePrice = getLastPurchasePriceBeforeDate(item.code, endDate);
+          cost = lastPurchasePrice ?? item.purchasePrice ?? 0;
           break;
-        case "averageCost":
-          // NOTE: True weighted average cost requires tracking purchase history.
-          // Using last purchase price as a proxy.
-          cost = item.purchasePrice;
+        }
+        case "salePrice": {
+          const lastSalePrice = getLastSalePriceBeforeDate(item.code, endDate);
+          cost = lastSalePrice ?? item.salePrice ?? 0;
           break;
-        case "purchasePrice":
+        }
+        case "averageCost": {
+          const avgCost = calculateWeightedAverageCost(item.code, endDate);
+          // Fallback to last purchase price if no purchases found
+          if (avgCost === null) {
+            const lastPurchasePrice = getLastPurchasePriceBeforeDate(item.code, endDate);
+            cost = lastPurchasePrice ?? item.purchasePrice ?? 0;
+          } else {
+            cost = avgCost;
+          }
+          break;
+        }
         default:
-          cost = item.purchasePrice;
+          cost = item.purchasePrice ?? 0;
           break;
       }
 
@@ -333,7 +469,6 @@ const InventoryValuationReport: React.FC<InventoryValuationReportProps> = ({
     items,
     selectedBranchId,
     valuationMethod,
-    startDate,
     endDate,
     transformedSalesInvoices,
     transformedSalesReturns,
@@ -345,6 +480,10 @@ const InventoryValuationReport: React.FC<InventoryValuationReportProps> = ({
     stores,
     normalizeDate,
     isLoading,
+    branches,
+    getLastPurchasePriceBeforeDate,
+    getLastSalePriceBeforeDate,
+    calculateWeightedAverageCost,
   ]);
 
   useEffect(() => {
