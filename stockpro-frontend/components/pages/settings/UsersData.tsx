@@ -106,9 +106,10 @@ const UsersData: React.FC<UsersDataProps> = ({ title }) => {
   );
 
   const handleExcelExport = () => {
-    const dataToExport = filteredUsers.map(({ id, name, email, role }) => ({
+    const dataToExport = filteredUsers.map(({ id, name, email, role, branch }) => ({
       "كود المستخدم": id,
       "الاسم الكامل": name || "",
+      "الفرع": branch?.name || "",
       "البريد الإلكتروني": email || "",
       "مجموعة الصلاحيات":
         role?.name === "manager"
@@ -131,6 +132,7 @@ const UsersData: React.FC<UsersDataProps> = ({ title }) => {
         "الحالة",
         "مجموعة الصلاحيات",
         "البريد الإلكتروني",
+        "الفرع",
         "الاسم الكامل",
         "كود المستخدم",
       ],
@@ -147,6 +149,7 @@ const UsersData: React.FC<UsersDataProps> = ({ title }) => {
               ? "مدخل البيانات"
               : user.role?.name || "مستخدم",
       user.email || "",
+      user.branch?.name || "",
       user.name || "",
       user.id.toString(),
     ]);
@@ -260,6 +263,9 @@ const UsersData: React.FC<UsersDataProps> = ({ title }) => {
                     <td className="px-6 py-4 whitespace-nowrap">{user?.code}</td>
                     <td className="px-6 py-4 whitespace-nowrap font-medium text-brand-dark">
                       {user.name || ""}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      {user.branch?.name || ""}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       {user.email || ""}
