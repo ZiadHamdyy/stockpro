@@ -239,6 +239,26 @@ const SalesInvoice: React.FC<SalesInvoiceProps> = ({
   const [isScannerOpen, setIsScannerOpen] = useState(false);
   const [currentIndex, setCurrentIndex] = useState(-1);
   const justSavedRef = useRef(false); // Flag to prevent resetting state after save
+  const previewDataRef = useRef<{
+    vatRate: number;
+    isVatEnabled: boolean;
+    items: InvoiceRow[];
+    totals: { subtotal: number; discount: number; tax: number; net: number };
+    paymentMethod: "cash" | "credit";
+    customer: {
+      id: string;
+      name: string;
+      address?: string;
+      taxNumber?: string;
+      commercialReg?: string;
+    } | null;
+    details: {
+      invoiceNumber: string;
+      invoiceDate: string;
+      userName: string;
+      branchName: string;
+    };
+  } | null>(null);
 
   const [focusIndex, setFocusIndex] = useState<number | null>(null);
 
@@ -323,6 +343,7 @@ const SalesInvoice: React.FC<SalesInvoiceProps> = ({
     setPaymentTargetId(null);
     setOriginalInvoiceVatEnabled(false); // Reset for new invoices
     setIsReadOnly(false);
+    previewDataRef.current = null; // Clear preview data ref
   };
 
   useEffect(() => {
@@ -721,6 +742,20 @@ const SalesInvoice: React.FC<SalesInvoiceProps> = ({
         allowInsufficientStock: allowSellingLessThanStock,
       };
 
+      // Prepare customer data for preview
+      const fullCustomer = selectedCustomer
+        ? (customers as any[]).find((c) => c.id === selectedCustomer.id)
+        : null;
+      const printCustomer = selectedCustomer
+        ? {
+            id: selectedCustomer.id,
+            name: selectedCustomer.name,
+            address: fullCustomer?.nationalAddress || fullCustomer?.address || undefined,
+            taxNumber: fullCustomer?.taxNumber || undefined,
+            commercialReg: fullCustomer?.commercialReg || undefined,
+          }
+        : null;
+
       if (currentIndex >= 0 && invoices[currentIndex]) {
         // Update existing invoice
         await updateSalesInvoice({
@@ -729,6 +764,25 @@ const SalesInvoice: React.FC<SalesInvoiceProps> = ({
         }).unwrap();
         showToast("تم تحديث الفاتورة بنجاح!");
         setIsReadOnly(true);
+        
+        // Store preview data in ref before opening preview
+        previewDataRef.current = {
+          vatRate,
+          isVatEnabled: effectiveVatEnabled,
+          items: finalItems.map((item) => ({
+            ...item,
+            salePriceIncludesTax: Boolean(item.salePriceIncludesTax),
+          })),
+          totals,
+          paymentMethod,
+          customer: printCustomer,
+          details: {
+            ...invoiceDetails,
+            userName: currentUser?.fullName || "غير محدد",
+            branchName: currentUser?.branch || "غير محدد",
+          },
+        };
+        
         // Automatically open print preview after successful save
         setIsPreviewOpen(true);
       } else {
@@ -742,18 +796,34 @@ const SalesInvoice: React.FC<SalesInvoiceProps> = ({
         // Update invoice details with the saved invoice data (especially invoice number)
         // Convert date to yyyy-MM-dd format for date input
         const formattedDate = savedInvoice.date ? new Date(savedInvoice.date).toISOString().split('T')[0] : new Date().toISOString().split('T')[0];
-        setInvoiceDetails({
+        const updatedInvoiceDetails = {
           invoiceNumber: savedInvoice.code,
           invoiceDate: formattedDate,
-        });
+        };
+        setInvoiceDetails(updatedInvoiceDetails);
         
-        // Keep the invoice items and totals in state for the preview
-        // The state already has the correct data from the form that was just saved
+        // Store preview data in ref before opening preview
+        // This ensures the preview has data even if state is reset by useEffect
+        previewDataRef.current = {
+          vatRate,
+          isVatEnabled: effectiveVatEnabled,
+          items: finalItems.map((item) => ({
+            ...item,
+            salePriceIncludesTax: Boolean(item.salePriceIncludesTax),
+          })),
+          totals,
+          paymentMethod,
+          customer: printCustomer,
+          details: {
+            ...updatedInvoiceDetails,
+            userName: currentUser?.fullName || "غير محدد",
+            branchName: currentUser?.branch || "غير محدد",
+          },
+        };
         
         setIsReadOnly(true);
         
-        // Automatically open print preview immediately with current state
-        // The current state already has the correct saved data
+        // Automatically open print preview immediately with stored data
         setIsPreviewOpen(true);
         
         // Wait for invoice list to refresh, then find and load the saved invoice
@@ -765,7 +835,7 @@ const SalesInvoice: React.FC<SalesInvoiceProps> = ({
           if (savedIndex >= 0) {
             setCurrentIndex(savedIndex);
           } else {
-            // If invoice not found, clear flag (preview already open with current state)
+            // If invoice not found, clear flag (preview already open with stored data)
             justSavedRef.current = false;
           }
         }, 300);
@@ -1373,38 +1443,43 @@ const SalesInvoice: React.FC<SalesInvoiceProps> = ({
         colorTheme="blue"
       />
       {(() => {
-        const fullCustomer = selectedCustomer
-          ? (customers as any[]).find((c) => c.id === selectedCustomer.id)
-          : null;
-        const printCustomer = selectedCustomer
-          ? {
-              id: selectedCustomer.id,
-              name: selectedCustomer.name,
-              address: fullCustomer?.nationalAddress || fullCustomer?.address || undefined,
-              taxNumber: fullCustomer?.taxNumber || undefined,
-              commercialReg: fullCustomer?.commercialReg || undefined,
-            }
-          : null;
+        // Use preview data from ref if available, otherwise use current state
+        const previewData = previewDataRef.current || (() => {
+          const fullCustomer = selectedCustomer
+            ? (customers as any[]).find((c) => c.id === selectedCustomer.id)
+            : null;
+          const printCustomer = selectedCustomer
+            ? {
+                id: selectedCustomer.id,
+                name: selectedCustomer.name,
+                address: fullCustomer?.nationalAddress || fullCustomer?.address || undefined,
+                taxNumber: fullCustomer?.taxNumber || undefined,
+                commercialReg: fullCustomer?.commercialReg || undefined,
+              }
+            : null;
+          return {
+            vatRate,
+            isVatEnabled: effectiveVatEnabled,
+            items: invoiceItems.filter((i) => i.id && i.name && i.qty > 0),
+            totals,
+            paymentMethod,
+            customer: printCustomer,
+            details: {
+              ...invoiceDetails,
+              userName: currentUser?.fullName || "غير محدد",
+              branchName: currentUser?.branch || "غير محدد",
+            },
+          };
+        })();
         return (
       <InvoicePrintPreview
         isOpen={isPreviewOpen}
         onClose={() => {
           setIsPreviewOpen(false);
+          previewDataRef.current = null; // Clear preview data ref when closing
           handleNew();
         }}
-        invoiceData={{
-          vatRate,
-          isVatEnabled: effectiveVatEnabled,
-          items: invoiceItems.filter((i) => i.id && i.name && i.qty > 0),
-          totals,
-          paymentMethod,
-          customer: printCustomer,
-          details: {
-            ...invoiceDetails,
-            userName: currentUser?.fullName || "غير محدد",
-            branchName: currentUser?.branch || "غير محدد",
-          },
-        }}
+        invoiceData={previewData}
       />);
       })()}
       <BarcodeScannerModal

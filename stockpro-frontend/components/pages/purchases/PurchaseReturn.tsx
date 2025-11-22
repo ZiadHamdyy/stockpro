@@ -185,6 +185,25 @@ const PurchaseReturn: React.FC<PurchaseReturnProps> = ({
   const [isSearchModalOpen, setIsSearchModalOpen] = useState(false);
   const [currentIndex, setCurrentIndex] = useState(-1);
   const justSavedRef = useRef(false); // Flag to prevent resetting state after save
+  const previewDataRef = useRef<{
+    vatRate: number;
+    isVatEnabled: boolean;
+    items: InvoiceItem[];
+    totals: { subtotal: number; discount: number; tax: number; net: number };
+    paymentMethod: "cash" | "credit";
+    supplier: {
+      id: string;
+      name: string;
+      address?: string;
+      taxNumber?: string;
+    } | null;
+    details: {
+      invoiceNumber: string;
+      invoiceDate: string;
+      userName: string | { name: string };
+      branchName: string | { name: string };
+    };
+  } | null>(null);
   const [selectedInvoiceId, setSelectedInvoiceId] = useState<string | null>(null);
   const [invoiceQuery, setInvoiceQuery] = useState("");
   const [isInvoiceDropdownOpen, setIsInvoiceDropdownOpen] = useState(false);
@@ -262,6 +281,7 @@ const PurchaseReturn: React.FC<PurchaseReturnProps> = ({
     setPaymentTargetType("safe");
     // For safes, we don't need paymentTargetId (we send branchId instead)
     setPaymentTargetId(null);
+    previewDataRef.current = null; // Clear preview data ref
     setIsReadOnly(false);
   };
 
@@ -625,6 +645,19 @@ const PurchaseReturn: React.FC<PurchaseReturnProps> = ({
         notes: "",
       };
 
+      // Prepare supplier data for preview
+      const fullSupplier = selectedSupplier
+        ? (suppliers as any[]).find((s) => s.id === selectedSupplier.id)
+        : null;
+      const printSupplier = selectedSupplier
+        ? {
+            id: selectedSupplier.id,
+            name: selectedSupplier.name,
+            address: fullSupplier?.nationalAddress || fullSupplier?.address || undefined,
+            taxNumber: fullSupplier?.taxNumber || undefined,
+          }
+        : null;
+
       if (currentIndex >= 0 && (invoices || [])[currentIndex]) {
         // Update existing return
         await updatePurchaseReturn({
@@ -633,6 +666,22 @@ const PurchaseReturn: React.FC<PurchaseReturnProps> = ({
         }).unwrap();
         showToast("تم تحديث المرتجع بنجاح!");
         setIsReadOnly(true);
+        
+        // Store preview data in ref before opening preview
+        previewDataRef.current = {
+          vatRate,
+          isVatEnabled,
+          items: finalItems,
+          totals,
+          paymentMethod,
+          supplier: printSupplier,
+          details: {
+            ...invoiceDetails,
+            userName: currentUser?.fullName || "غير محدد",
+            branchName: currentUser?.branch || "غير محدد",
+          },
+        };
+        
         // Automatically open print preview after successful save
         setIsPreviewOpen(true);
       } else {
@@ -646,18 +695,31 @@ const PurchaseReturn: React.FC<PurchaseReturnProps> = ({
         // Update invoice details with the saved return data (especially return number)
         // Convert date to yyyy-MM-dd format for date input
         const formattedDate = savedReturn.date ? new Date(savedReturn.date).toISOString().split('T')[0] : new Date().toISOString().split('T')[0];
-        setInvoiceDetails({
+        const updatedInvoiceDetails = {
           invoiceNumber: savedReturn.code,
           invoiceDate: formattedDate,
-        });
+        };
+        setInvoiceDetails(updatedInvoiceDetails);
         
-        // Keep the return items and totals in state for the preview
-        // The state already has the correct data from the form that was just saved
+        // Store preview data in ref before opening preview
+        // This ensures the preview has data even if state is reset by useEffect
+        previewDataRef.current = {
+          vatRate,
+          isVatEnabled,
+          items: finalItems,
+          totals,
+          paymentMethod,
+          supplier: printSupplier,
+          details: {
+            ...updatedInvoiceDetails,
+            userName: currentUser?.fullName || "غير محدد",
+            branchName: currentUser?.branch || "غير محدد",
+          },
+        };
         
         setIsReadOnly(true);
         
-        // Automatically open print preview immediately with current state
-        // The current state already has the correct saved data
+        // Automatically open print preview immediately with stored data
         setIsPreviewOpen(true);
         
         // Wait for return list to refresh, then find and load the saved return
@@ -669,7 +731,7 @@ const PurchaseReturn: React.FC<PurchaseReturnProps> = ({
           if (savedIndex >= 0) {
             setCurrentIndex(savedIndex);
           } else {
-            // If return not found, clear flag (preview already open with current state)
+            // If return not found, clear flag (preview already open with stored data)
             justSavedRef.current = false;
           }
         }, 300);
@@ -1341,38 +1403,43 @@ const PurchaseReturn: React.FC<PurchaseReturnProps> = ({
         colorTheme="green"
       />
       {(() => {
-        const fullSupplier = selectedSupplier
-          ? (suppliers as any[]).find((s) => s.id === selectedSupplier.id)
-          : null;
-        const printSupplier = selectedSupplier
-          ? {
-              id: selectedSupplier.id,
-              name: selectedSupplier.name,
-              address: fullSupplier?.nationalAddress || fullSupplier?.address || undefined,
-              taxNumber: fullSupplier?.taxNumber || undefined,
-            }
-          : null;
+        // Use preview data from ref if available, otherwise use current state
+        const previewData = previewDataRef.current || (() => {
+          const fullSupplier = selectedSupplier
+            ? (suppliers as any[]).find((s) => s.id === selectedSupplier.id)
+            : null;
+          const printSupplier = selectedSupplier
+            ? {
+                id: selectedSupplier.id,
+                name: selectedSupplier.name,
+                address: fullSupplier?.nationalAddress || fullSupplier?.address || undefined,
+                taxNumber: fullSupplier?.taxNumber || undefined,
+              }
+            : null;
+          return {
+            vatRate,
+            isVatEnabled,
+            items: returnItems.filter((i) => i.id && i.name && i.qty > 0),
+            totals,
+            paymentMethod,
+            supplier: printSupplier,
+            details: {
+              ...invoiceDetails,
+              userName: currentUser?.fullName || "غير محدد",
+              branchName: currentUser?.branch || "غير محدد",
+            },
+          };
+        })();
         return (
           <PurchaseInvoicePrintPreview
             isOpen={isPreviewOpen}
             onClose={() => {
               setIsPreviewOpen(false);
+              previewDataRef.current = null; // Clear preview data ref when closing
               handleNew();
             }}
             isReturn={true}
-            invoiceData={{
-              vatRate,
-              isVatEnabled,
-              items: returnItems.filter((i) => i.id && i.name && i.qty > 0),
-              totals,
-              paymentMethod,
-              supplier: printSupplier,
-              details: {
-                ...invoiceDetails,
-                userName: currentUser?.fullName || "غير محدد",
-                branchName: currentUser?.branch || "غير محدد",
-              },
-            }}
+            invoiceData={previewData}
           />
         );
       })()}
