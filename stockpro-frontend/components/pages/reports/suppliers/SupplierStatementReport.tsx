@@ -344,14 +344,16 @@ const SupplierStatementReport: React.FC<SupplierStatementReportProps> = ({
         invDate >= normalizedStartDate &&
         invDate <= normalizedEndDate
       ) {
+        const netAmount = inv.totals?.net || inv.net || 0;
+        const isCash = inv.paymentMethod === "cash";
         transactions.push({
           date: inv.date,
           createdAt: inv.createdAt || inv.date,
           description: "فاتورة مشتريات",
           ref: inv.id,
           voucherCode: inv.code || inv.id,
-          debit: 0,
-          credit: inv.totals?.net || inv.net || 0,
+          debit: isCash ? netAmount : 0,
+          credit: isCash ? netAmount : netAmount,
           link: { page: "purchase_invoice", label: "فاتورة مشتريات" },
         });
       }
@@ -390,14 +392,16 @@ const SupplierStatementReport: React.FC<SupplierStatementReportProps> = ({
         invDate >= normalizedStartDate &&
         invDate <= normalizedEndDate
       ) {
+        const netAmount = inv.totals?.net || inv.net || 0;
+        const isCash = inv.paymentMethod === "cash";
         transactions.push({
           date: inv.date,
           createdAt: inv.createdAt || inv.date,
           description: "مرتجع مشتريات",
           ref: inv.id,
           voucherCode: inv.code || inv.id,
-          debit: inv.totals?.net || inv.net || 0,
-          credit: 0,
+          debit: netAmount,
+          credit: isCash ? netAmount : 0,
           link: { page: "purchase_return", label: "مرتجع مشتريات" },
         });
       }

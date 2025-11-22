@@ -351,14 +351,16 @@ const CustomerStatementReport: React.FC<CustomerStatementReportProps> = ({
         invDate >= normalizedStartDate &&
         invDate <= normalizedEndDate
       ) {
+        const netAmount = inv.totals?.net || inv.net || 0;
+        const isCash = inv.paymentMethod === "cash";
         transactions.push({
           date: inv.date,
           createdAt: inv.createdAt || inv.date,
           description: "فاتورة مبيعات",
           ref: inv.id,
           voucherCode: inv.code || inv.id,
-          debit: inv.totals?.net || inv.net || 0,
-          credit: 0,
+          debit: netAmount,
+          credit: isCash ? netAmount : 0,
           link: { page: "sales_invoice", label: "فاتورة مبيعات" },
         });
       }
@@ -374,14 +376,16 @@ const CustomerStatementReport: React.FC<CustomerStatementReportProps> = ({
         invDate >= normalizedStartDate &&
         invDate <= normalizedEndDate
       ) {
+        const netAmount = inv.totals?.net || inv.net || 0;
+        const isCash = inv.paymentMethod === "cash";
         transactions.push({
           date: inv.date,
           createdAt: inv.createdAt || inv.date,
           description: "مرتجع مبيعات",
           ref: inv.id,
           voucherCode: inv.code || inv.id,
-          debit: 0,
-          credit: inv.totals?.net || inv.net || 0,
+          debit: isCash ? netAmount : 0,
+          credit: isCash ? netAmount : netAmount,
           link: { page: "sales_return", label: "مرتجع مبيعات" },
         });
       }
