@@ -69,12 +69,15 @@ const computeLineAmounts = (
     return { total: baseAmount, taxAmount: 0 };
   }
 
-  const taxAmount = baseAmount * (vatRatePercent / 100);
-
   if (includesTax) {
+    // When price includes tax: net = total / (1 + taxRate), tax = total - net
+    const net = baseAmount / (1 + vatRatePercent / 100);
+    const taxAmount = baseAmount - net;
     return { total: baseAmount, taxAmount };
   }
 
+  // When price excludes tax: tax = base * taxRate, total = base + tax
+  const taxAmount = baseAmount * (vatRatePercent / 100);
   const total = baseAmount + taxAmount;
   return { total, taxAmount };
 };

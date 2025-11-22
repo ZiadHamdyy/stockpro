@@ -30,14 +30,17 @@ export class SalesReturnService {
       return { net: lineAmount, taxAmount: 0, total: lineAmount };
     }
 
-    const taxAmount = lineAmount * (vatRate / 100);
     const includesTax = Boolean(item.salePriceIncludesTax);
 
     if (includesTax) {
-      const net = Math.max(lineAmount - taxAmount, 0);
+      // When price includes tax: net = total / (1 + taxRate)
+      const net = lineAmount / (1 + vatRate / 100);
+      const taxAmount = lineAmount - net;
       return { net, taxAmount, total: lineAmount };
     }
 
+    // When price excludes tax: tax = base * taxRate, total = base + tax
+    const taxAmount = lineAmount * (vatRate / 100);
     const total = lineAmount + taxAmount;
     return { net: lineAmount, taxAmount, total };
   }
