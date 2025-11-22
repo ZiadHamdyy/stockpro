@@ -188,6 +188,22 @@ const Sidebar: React.FC<SidebarProps> = ({
     }
   };
 
+  const handleContextMenu = (e: React.MouseEvent, item: MenuItem) => {
+    e.preventDefault();
+    
+    // Only open in new tab if it's a leaf item (no children)
+    if (!item.children) {
+      // Skip database backup as it has special handling
+      if (item.key === "database_backup") {
+        return;
+      }
+
+      const path = getPathFromMenuKey(item.key);
+      const fullUrl = `${window.location.origin}${path}`;
+      window.open(fullUrl, "_blank");
+    }
+  };
+
   const renderMenuItem = (item: MenuItem, level = 0) => {
     const paddingClass = `pr-${4 + level * 4}`;
     const isOpen = !!searchTerm || openMenus[item.key] || false;
@@ -209,6 +225,7 @@ const Sidebar: React.FC<SidebarProps> = ({
       <div key={item.key}>
         <button
           onClick={() => handleSelect(item)}
+          onContextMenu={(e) => handleContextMenu(e, item)}
           className={`w-full text-right flex justify-between items-center py-2.5 px-4 text-sm font-medium rounded-md transition-colors duration-200 ${paddingClass} ${styleClass}`}
         >
           <span className="flex items-center">
