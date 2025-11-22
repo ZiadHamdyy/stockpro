@@ -44,7 +44,6 @@ const BranchesData: React.FC<BranchesDataProps> = ({ title }) => {
         handleOpenModal(branch);
       },
       type: "edit",
-      showPassword: true,
     });
   };
 
@@ -54,7 +53,6 @@ const BranchesData: React.FC<BranchesDataProps> = ({ title }) => {
       message: `هل أنت متأكد من حذف الفرع "${branch.name}"؟`,
       onConfirm: () => deleteBranch(branch.id),
       type: "delete",
-      showPassword: true,
     });
   };
 

@@ -200,7 +200,6 @@ export const useInternalTransfers = () => {
       message: "هل أنت متأكد من رغبتك في تعديل بيانات هذا السند؟",
       onConfirm: () => setIsReadOnly(false),
       type: "edit",
-      showPassword: true,
     });
   }, [currentIndex, showModal]);
 
@@ -221,7 +220,6 @@ export const useInternalTransfers = () => {
         }
       },
       type: "delete",
-      showPassword: true,
     });
   }, [
     currentIndex,

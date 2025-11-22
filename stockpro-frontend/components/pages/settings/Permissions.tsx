@@ -305,7 +305,6 @@ const Permissions: React.FC<{ title: string }> = ({ title }) => {
         }
       },
       type: "delete",
-      showPassword: true,
     });
   };
 

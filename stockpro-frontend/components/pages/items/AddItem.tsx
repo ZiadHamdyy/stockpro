@@ -268,7 +268,6 @@ const AddItem: React.FC<AddItemProps> = ({ title, editingId, onNavigate }) => {
           }
         },
         type: "delete",
-        showPassword: true,
       });
     }
   };
@@ -280,7 +279,6 @@ const AddItem: React.FC<AddItemProps> = ({ title, editingId, onNavigate }) => {
       message: "هل أنت متأكد من رغبتك في تعديل بيانات هذا الصنف؟",
       onConfirm: () => setIsReadOnly(false),
       type: "edit",
-      showPassword: true,
     });
   };
 

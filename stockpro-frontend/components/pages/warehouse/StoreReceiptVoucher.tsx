@@ -563,7 +563,6 @@ const StoreReceiptVoucher: React.FC<StoreReceiptVoucherProps> = ({ title }) => {
       message: "هل أنت متأكد من رغبتك في تعديل بيانات هذا الإذن؟",
       onConfirm: () => setIsReadOnly(false),
       type: "edit",
-      showPassword: true,
     });
   };
 
@@ -584,7 +583,6 @@ const StoreReceiptVoucher: React.FC<StoreReceiptVoucherProps> = ({ title }) => {
         }
       },
       type: "delete",
-      showPassword: true,
     });
   };
 

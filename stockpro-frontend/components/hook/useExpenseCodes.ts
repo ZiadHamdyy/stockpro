@@ -71,7 +71,6 @@ export const useExpenseCodes = () => {
         message: "هل أنت متأكد من رغبتك في تعديل بيانات هذا البند؟",
         onConfirm: () => handleOpenModal(expenseCode),
         type: "edit",
-        showPassword: true,
       });
     },
     [showModal, handleOpenModal],
@@ -92,7 +91,6 @@ export const useExpenseCodes = () => {
           }
         },
         type: "delete",
-        showPassword: true,
       });
     },
     [showModal, deleteExpenseCode, showToast],

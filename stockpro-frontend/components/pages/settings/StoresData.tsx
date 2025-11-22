@@ -50,7 +50,6 @@ const StoresData: React.FC<StoresDataProps> = ({ title }) => {
         handleOpenModal(store);
       },
       type: "edit",
-      showPassword: true,
     });
   };
 
@@ -60,7 +59,6 @@ const StoresData: React.FC<StoresDataProps> = ({ title }) => {
       message: `هل أنت متأكد من حذف المخزن "${store.name}"؟`,
       onConfirm: () => deleteStore(store.id),
       type: "delete",
-      showPassword: true,
     });
   };
 

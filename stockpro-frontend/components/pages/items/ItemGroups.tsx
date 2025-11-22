@@ -72,7 +72,6 @@ const ItemGroups: React.FC<ItemGroupsProps> = ({ title }) => {
       message: "هل أنت متأكد من رغبتك في تعديل بيانات هذه المجموعة؟",
       onConfirm: () => handleOpenModal(group),
       type: "edit",
-      showPassword: true,
     });
   };
 
@@ -89,7 +88,6 @@ const ItemGroups: React.FC<ItemGroupsProps> = ({ title }) => {
         }
       },
       type: "delete",
-      showPassword: true,
     });
   };
 

@@ -1,12 +1,9 @@
-import React, { useCallback, useMemo, useState } from "react";
-import { LockIcon } from "../icons";
-import { useToast } from "./ToastProvider";
-import { useVerifyPasswordMutation } from "../store/slices/auth/authApi";
+import React, { useState } from "react";
 
 interface ConfirmationModalProps {
   title: string;
   message: string;
-  onConfirm: (password?: string) => void;
+  onConfirm: (password?: string) => void | Promise<void>;
   onCancel: () => void;
   type: "edit" | "delete" | "info";
   showPassword?: boolean;
@@ -18,37 +15,21 @@ const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
   onConfirm,
   onCancel,
   type,
-  showPassword,
 }) => {
-  const [password, setPassword] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const { showToast } = (useToast() as any) || {};
-  const [verifyPassword] = useVerifyPasswordMutation();
 
   const handleConfirm = async () => {
-    if (showPassword) {
-      if (!password || isSubmitting) return;
-      setIsSubmitting(true);
-      try {
-        await verifyPassword({ password }).unwrap();
-        // Success: inform parent and close modal
-        onConfirm();
-        onCancel();
-      } catch (err: any) {
-        if (showToast) {
-          const status = err?.status || err?.originalStatus;
-          if (status === 400 || status === 401 || status === 404) {
-            showToast("كلمة المرور غير صحيحة", 'error');
-          } else {
-            showToast("حدث خطأ أثناء التحقق. حاول مرة أخرى", 'error');
-          }
-        }
-      } finally {
-        setIsSubmitting(false);
-      }
-    } else {
-      // No password required, just inform parent
-      onConfirm();
+    if (isSubmitting) return;
+    setIsSubmitting(true);
+    try {
+      await Promise.resolve(onConfirm());
+    } catch (error) {
+      // Error handling is done in the parent component
+      console.error("Error in confirmation:", error);
+    } finally {
+      setIsSubmitting(false);
+      // Close the modal after the request is done
+      onCancel();
     }
   };
 
@@ -89,38 +70,6 @@ const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
           </h2>
           <p className="text-gray-600 mb-6">{message}</p>
 
-          {showPassword && (
-            <div className="mb-4">
-              <label
-                htmlFor="password"
-                className="block text-sm font-medium text-gray-700 mb-1 text-right"
-              >
-                الرقم السري للتأكيد
-              </label>
-              <div className="relative">
-                <span className="absolute inset-y-0 right-0 flex items-center pr-3">
-                  <LockIcon className="h-5 w-5 text-gray-400" />
-                </span>
-                <input
-                  id="password"
-                  name="password"
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") {
-                      e.preventDefault();
-                      void handleConfirm();
-                    }
-                  }}
-                  className="w-full pr-10 pl-4 py-3 bg-white border-2 border-gray-300 rounded-md text-brand-blue placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-brand-blue focus:border-brand-blue"
-                  placeholder="••••••••"
-                  disabled={isSubmitting}
-                />
-              </div>
-            </div>
-          )}
-
           <div className="flex justify-center gap-4">
             <button
               onClick={onCancel}
@@ -131,10 +80,10 @@ const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
             </button>
             <button
               onClick={handleConfirm}
-              disabled={isSubmitting || (showPassword ? password.length === 0 : false)}
+              disabled={isSubmitting}
               className={`px-8 py-2 text-white rounded-md font-semibold focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-60 disabled:cursor-not-allowed ${selectedTheme.button}`}
             >
-              {isSubmitting ? "جاري التحقق..." : "تأكيد"}
+              {isSubmitting ? "جاري المعالجة..." : "تأكيد"}
             </button>
           </div>
         </div>

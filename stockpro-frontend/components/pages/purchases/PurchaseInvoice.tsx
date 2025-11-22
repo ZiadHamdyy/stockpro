@@ -728,7 +728,6 @@ const PurchaseInvoice: React.FC<PurchaseInvoiceProps> = ({
         "هل أنت متأكد من رغبتك في تعديل بيانات هذه الفاتورة؟ لا يمكن تعديل الكميات بعد الحفظ.",
       onConfirm: () => setIsReadOnly(false),
       type: "edit",
-      showPassword: true,
     });
   };
 
@@ -756,7 +755,6 @@ const PurchaseInvoice: React.FC<PurchaseInvoiceProps> = ({
         }
       },
       type: "delete",
-      showPassword: true,
     });
   };
 

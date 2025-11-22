@@ -864,7 +864,6 @@ const SalesReturn: React.FC<SalesReturnProps> = ({
       message: "هل أنت متأكد من رغبتك في تعديل بيانات هذا المرتجع؟",
       onConfirm: () => setIsReadOnly(false),
       type: "edit",
-      showPassword: true,
     });
   };
 
@@ -890,7 +889,6 @@ const SalesReturn: React.FC<SalesReturnProps> = ({
         }
       },
       type: "delete",
-      showPassword: true,
     });
   };
 

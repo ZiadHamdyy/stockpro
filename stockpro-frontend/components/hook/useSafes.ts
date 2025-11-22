@@ -58,7 +58,6 @@ export const useSafes = () => {
         message: "هل أنت متأكد من رغبتك في تعديل بيانات هذه الخزنة؟",
         onConfirm: () => handleOpenModal(safe),
         type: "edit",
-        showPassword: true,
       });
     },
     [showModal, handleOpenModal],
@@ -79,7 +78,6 @@ export const useSafes = () => {
           }
         },
         type: "delete",
-        showPassword: true,
       });
     },
     [showModal, deleteSafe, showToast],

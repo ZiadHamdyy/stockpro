@@ -116,7 +116,6 @@ export const useExpenseTypes = () => {
         message: "هل أنت متأكد من رغبتك في تعديل بيانات هذا النوع؟",
         onConfirm: () => handleOpenModal(expenseType),
         type: "edit",
-        showPassword: true,
       });
     },
     [showModal, handleOpenModal],
@@ -137,7 +136,6 @@ export const useExpenseTypes = () => {
           }
         },
         type: "delete",
-        showPassword: true,
       });
     },
     [showModal, deleteExpenseType, showToast],

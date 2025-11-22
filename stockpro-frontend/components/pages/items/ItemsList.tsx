@@ -121,7 +121,6 @@ const ItemsList: React.FC<ItemsListProps> = ({ title, onNavigate }) => {
         }
       },
       type: "delete",
-      showPassword: true,
     });
   };
 

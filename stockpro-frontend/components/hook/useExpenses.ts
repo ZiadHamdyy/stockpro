@@ -125,7 +125,6 @@ export const useExpenses = () => {
       message: "هل أنت متأكد من رغبتك في تعديل بيانات هذا المصروف؟",
       onConfirm: () => handleOpenModal(expense),
       type: "edit",
-      showPassword: true,
     });
   };
 

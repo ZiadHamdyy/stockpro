@@ -63,7 +63,6 @@ export const useSuppliers = () => {
         message: "هل أنت متأكد من رغبتك في تعديل بيانات هذا المورد؟",
         onConfirm: () => handleOpenModal(supplier),
         type: "edit",
-        showPassword: true,
       });
     },
     [showModal, handleOpenModal],
@@ -84,7 +83,6 @@ export const useSuppliers = () => {
           }
         },
         type: "delete",
-        showPassword: true,
       });
     },
     [showModal, deleteSupplier, showToast],

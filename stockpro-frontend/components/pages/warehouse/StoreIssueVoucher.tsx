@@ -609,7 +609,6 @@ const StoreIssueVoucher: React.FC<StoreIssueVoucherProps> = ({ title }) => {
       message: "هل أنت متأكد من رغبتك في تعديل بيانات هذا الإذن؟",
       onConfirm: () => setIsReadOnly(false),
       type: "edit",
-      showPassword: true,
     });
   };
 
@@ -630,7 +629,6 @@ const StoreIssueVoucher: React.FC<StoreIssueVoucherProps> = ({ title }) => {
         }
       },
       type: "delete",
-      showPassword: true,
     });
   };
 

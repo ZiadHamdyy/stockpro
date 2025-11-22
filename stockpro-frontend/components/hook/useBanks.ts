@@ -59,7 +59,6 @@ export const useBanks = () => {
         message: "هل أنت متأكد من رغبتك في تعديل بيانات هذا البنك؟",
         onConfirm: () => handleOpenModal(bank),
         type: "edit",
-        showPassword: true,
       });
     },
     [showModal, handleOpenModal],
@@ -80,7 +79,6 @@ export const useBanks = () => {
           }
         },
         type: "delete",
-        showPassword: true,
       });
     },
     [showModal, deleteBank, showToast],

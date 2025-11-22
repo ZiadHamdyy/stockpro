@@ -230,7 +230,6 @@ export const usePaymentVouchers = () => {
       message: "هل أنت متأكد من رغبتك في تعديل بيانات هذا السند؟",
       onConfirm: () => setIsReadOnly(false),
       type: "edit",
-      showPassword: true,
     });
   }, [currentIndex, showModal]);
 
@@ -251,7 +250,6 @@ export const usePaymentVouchers = () => {
         }
       },
       type: "delete",
-      showPassword: true,
     });
   }, [
     currentIndex,

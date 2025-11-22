@@ -63,7 +63,6 @@ export const useCustomers = () => {
         message: "هل أنت متأكد من رغبتك في تعديل بيانات هذا العميل؟",
         onConfirm: () => handleOpenModal(customer),
         type: "edit",
-        showPassword: true,
       });
     },
     [showModal, handleOpenModal],
@@ -84,7 +83,6 @@ export const useCustomers = () => {
           }
         },
         type: "delete",
-        showPassword: true,
       });
     },
     [showModal, deleteCustomer, showToast],

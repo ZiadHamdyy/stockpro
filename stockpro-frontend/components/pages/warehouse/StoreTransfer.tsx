@@ -601,7 +601,6 @@ const StoreTransfer: React.FC<StoreTransferProps> = ({ title }) => {
       message: "هل أنت متأكد من رغبتك في تعديل بيانات هذا السند؟",
       onConfirm: () => setIsReadOnly(false),
       type: "edit",
-      showPassword: true,
     });
   };
 
@@ -622,7 +621,6 @@ const StoreTransfer: React.FC<StoreTransferProps> = ({ title }) => {
         }
       },
       type: "delete",
-      showPassword: true,
     });
   };
 

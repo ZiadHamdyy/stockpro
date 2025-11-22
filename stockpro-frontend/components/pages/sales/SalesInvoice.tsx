@@ -852,7 +852,6 @@ const SalesInvoice: React.FC<SalesInvoiceProps> = ({
       message: "هل أنت متأكد من رغبتك في تعديل بيانات هذه الفاتورة؟",
       onConfirm: () => setIsReadOnly(false),
       type: "edit",
-      showPassword: true,
     });
   };
 
@@ -878,7 +877,6 @@ const SalesInvoice: React.FC<SalesInvoiceProps> = ({
         }
       },
       type: "delete",
-      showPassword: true,
     });
   };
 

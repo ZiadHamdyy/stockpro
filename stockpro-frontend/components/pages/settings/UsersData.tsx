@@ -55,7 +55,6 @@ const UsersData: React.FC<UsersDataProps> = ({ title }) => {
         handleOpenModal(user);
       },
       type: "edit",
-      showPassword: true,
     });
   };
 
@@ -77,7 +76,6 @@ const UsersData: React.FC<UsersDataProps> = ({ title }) => {
         }
       },
       type: "delete",
-      showPassword: true,
     });
   };
 

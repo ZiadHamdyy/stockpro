@@ -72,7 +72,6 @@ const Units: React.FC<UnitsProps> = ({ title }) => {
       message: "هل أنت متأكد من رغبتك في تعديل بيانات هذه الوحدة؟",
       onConfirm: () => handleOpenModal(unit),
       type: "edit",
-      showPassword: true,
     });
   };
 
@@ -89,7 +88,6 @@ const Units: React.FC<UnitsProps> = ({ title }) => {
         }
       },
       type: "delete",
-      showPassword: true,
     });
   };
 

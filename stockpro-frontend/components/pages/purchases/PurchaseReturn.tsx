@@ -748,7 +748,6 @@ const PurchaseReturn: React.FC<PurchaseReturnProps> = ({
       message: "هل أنت متأكد من رغبتك في تعديل بيانات هذا المرتجع؟",
       onConfirm: () => setIsReadOnly(false),
       type: "edit",
-      showPassword: true,
     });
   };
 
@@ -776,7 +775,6 @@ const PurchaseReturn: React.FC<PurchaseReturnProps> = ({
         }
       },
       type: "delete",
-      showPassword: true,
     });
   };
 
