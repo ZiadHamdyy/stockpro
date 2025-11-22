@@ -254,7 +254,7 @@ const DataTableModal: React.FC<DataTableModalProps> = ({
 
                         let displayValue = value;
                         if (isBalanceColumn && typeof value === "number") {
-                          displayValue = formatNumber(Math.abs(value));
+                          displayValue = formatNumber(value);
                         }
 
                         const isNegativeBalance =
@@ -292,7 +292,7 @@ const DataTableModal: React.FC<DataTableModalProps> = ({
                               key={`total-${col.accessor}`}
                               className={`px-6 py-3 text-right border border-gray-300 ${isNegativeTotal ? "text-red-600" : ""}`}
                             >
-                              {formatNumber(Math.abs(total))}
+                              {formatNumber(total)}
                             </td>
                           );
                         } else {
