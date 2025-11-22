@@ -235,7 +235,7 @@ export class ExpenseService {
           },
         },
       },
-      orderBy: { date: 'desc' },
+      orderBy: { date: 'asc' },
     });
 
     return expenses.map((expense) => this.mapExpenseToResponse(expense));
