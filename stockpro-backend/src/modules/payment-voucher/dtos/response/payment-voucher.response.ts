@@ -55,6 +55,12 @@ export class PaymentVoucherResponse {
   amount: number;
 
   @Expose()
+  priceBeforeTax?: number | null;
+
+  @Expose()
+  taxPrice?: number | null;
+
+  @Expose()
   description?: string | null;
 
   @Expose()

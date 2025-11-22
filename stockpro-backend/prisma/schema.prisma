@@ -812,6 +812,8 @@ model PaymentVoucher {
   entityType    String // "customer", "supplier", "current_account", "expense"
   entityName    String
   amount        Float
+  priceBeforeTax Float?
+  taxPrice       Float?
   description   String?
   paymentMethod String // "safe" or "bank"
   safeId        String?

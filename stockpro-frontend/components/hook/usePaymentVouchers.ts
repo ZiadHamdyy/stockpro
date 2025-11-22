@@ -28,6 +28,8 @@ export const usePaymentVouchers = () => {
     date: new Date().toISOString().substring(0, 10),
     entity: { type: "supplier", id: null, name: "" } as VoucherEntity,
     amount: "" as any,
+    priceBeforeTax: null as number | null,
+    taxPrice: null as number | null,
     paymentMethod: "safe" as "safe" | "bank",
     safeOrBankId: null as string | null,
     description: "",
@@ -98,6 +100,8 @@ export const usePaymentVouchers = () => {
           name: v.entityName,
         },
         amount: v.amount === 0 || v.amount === null ? ("" as any) : v.amount,
+        priceBeforeTax: v.priceBeforeTax || null,
+        taxPrice: v.taxPrice || null,
         paymentMethod: v.paymentMethod as "safe" | "bank",
         safeOrBankId:
           v.paymentMethod === "safe" ? v.safeId || null : v.bankId || null,
@@ -117,6 +121,8 @@ export const usePaymentVouchers = () => {
       date: new Date().toISOString().substring(0, 10),
       entity: { type: "supplier", id: null, name: "" },
       amount: "" as any,
+      priceBeforeTax: null,
+      taxPrice: null,
       paymentMethod: "safe",
       safeOrBankId: safes.length > 0 ? safes[0].id : null,
       description: "",
@@ -187,6 +193,8 @@ export const usePaymentVouchers = () => {
       paymentMethod: voucherData.paymentMethod,
       ...paymentFields,
       ...entityFields,
+      ...(voucherData.priceBeforeTax !== null ? { priceBeforeTax: voucherData.priceBeforeTax } : {}),
+      ...(voucherData.taxPrice !== null ? { taxPrice: voucherData.taxPrice } : {}),
       ...(branchId ? { branchId } : {}),
     };
 

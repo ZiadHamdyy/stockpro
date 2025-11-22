@@ -127,7 +127,26 @@ const PaymentVoucher: React.FC<PaymentVoucherProps> = ({ title }) => {
           foundName = expenseCodes.find((c) => c.id === value)?.name || "";
         newEntity.name = foundName;
       }
-      return { ...prev, entity: newEntity };
+      
+      const updatedData: any = { ...prev, entity: newEntity };
+      
+      // Recalculate VAT if entity type changed to "expense-Type" and we have amount
+      if (field === "type" && value === "expense-Type" && companyInfo?.vatRate) {
+        const amountValue = typeof prev.amount === "number" ? prev.amount : (typeof prev.amount === "string" ? parseFloat(prev.amount) || 0 : 0);
+        if (amountValue > 0) {
+          const vatRate = companyInfo.vatRate;
+          const priceBeforeTax = amountValue / (1 + vatRate / 100);
+          const taxPrice = amountValue - priceBeforeTax;
+          updatedData.priceBeforeTax = priceBeforeTax;
+          updatedData.taxPrice = taxPrice;
+        }
+      } else if (field === "type" && value !== "expense-Type") {
+        // Reset VAT fields if entity type changed away from "expense-Type"
+        updatedData.priceBeforeTax = null;
+        updatedData.taxPrice = null;
+      }
+      
+      return updatedData;
     });
   };
 
@@ -352,10 +371,37 @@ const PaymentVoucher: React.FC<PaymentVoucherProps> = ({ title }) => {
                 const value = e.target.value;
                 // Allow empty string, negative sign, and valid numbers (including decimals and negatives)
                 if (value === "" || value === "-" || /^-?\d*\.?\d*$/.test(value)) {
-                  setVoucherData((prev) => ({
-                    ...prev,
-                    amount: value === "" || value === "-" ? (value as any) : parseFloat(value) || 0,
-                  }));
+                  const numValue = value === "" || value === "-" ? (value as any) : parseFloat(value) || 0;
+                  setVoucherData((prev) => {
+                    const newData: any = {
+                      ...prev,
+                      amount: numValue,
+                    };
+                    
+                    // Calculate VAT breakdown if entityType is "expense-Type" and we have a valid amount and VAT rate
+                    if (prev.entity.type === "expense-Type" && companyInfo?.vatRate) {
+                      const amountNum = typeof numValue === "number" ? numValue : (typeof numValue === "string" ? parseFloat(numValue) || 0 : 0);
+                      if (amountNum > 0) {
+                        const vatRate = companyInfo.vatRate;
+                        // Calculate: priceBeforeTax = amount / (1 + vatRate/100)
+                        const priceBeforeTax = amountNum / (1 + vatRate / 100);
+                        // Calculate: taxPrice = amount - priceBeforeTax
+                        const taxPrice = amountNum - priceBeforeTax;
+                        newData.priceBeforeTax = priceBeforeTax;
+                        newData.taxPrice = taxPrice;
+                      } else {
+                        // Reset if amount is invalid
+                        newData.priceBeforeTax = null;
+                        newData.taxPrice = null;
+                      }
+                    } else if (prev.entity.type === "expense-Type") {
+                      // Reset if entity type changed
+                      newData.priceBeforeTax = null;
+                      newData.taxPrice = null;
+                    }
+                    
+                    return newData;
+                  });
                 }
               }}
               className={inputStyle}
@@ -364,6 +410,41 @@ const PaymentVoucher: React.FC<PaymentVoucherProps> = ({ title }) => {
               inputMode="numeric"
             />
           </div>
+
+          {/* Show VAT breakdown for expense-Type */}
+          {voucherData.entity.type === "expense-Type" && 
+           companyInfo?.vatRate && 
+           ((typeof voucherData.amount === "number" && voucherData.amount > 0) || 
+            (typeof voucherData.amount === "string" && parseFloat(voucherData.amount) > 0)) && 
+           voucherData.priceBeforeTax !== null && 
+           voucherData.taxPrice !== null && (
+            <div className="md:col-span-3 grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700">
+                  السعر قبل الضريبة
+                </label>
+                <input
+                  type="text"
+                  value={formatNumber(voucherData.priceBeforeTax)}
+                  className={inputStyle + " bg-gray-200"}
+                  readOnly
+                  disabled
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700">
+                  قيمة الضريبة ({companyInfo.vatRate}%)
+                </label>
+                <input
+                  type="text"
+                  value={formatNumber(voucherData.taxPrice)}
+                  className={inputStyle + " bg-gray-200"}
+                  readOnly
+                  disabled
+                />
+              </div>
+            </div>
+          )}
 
           <div className="md:col-span-3 grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
@@ -529,6 +610,8 @@ const PaymentVoucher: React.FC<PaymentVoucherProps> = ({ title }) => {
                         name: savedVoucher.entityName,
                       },
                       amount: savedVoucher.amount === 0 || savedVoucher.amount === null ? ("" as any) : savedVoucher.amount,
+                      priceBeforeTax: savedVoucher.priceBeforeTax || null,
+                      taxPrice: savedVoucher.taxPrice || null,
                       paymentMethod: savedVoucher.paymentMethod as "safe" | "bank",
                       safeOrBankId: savedVoucher.paymentMethod === "safe" ? savedVoucher.safeId || null : savedVoucher.bankId || null,
                       description: savedVoucher.description || "",

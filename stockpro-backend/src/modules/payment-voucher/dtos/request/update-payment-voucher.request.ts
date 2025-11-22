@@ -74,6 +74,14 @@ export class UpdatePaymentVoucherRequest {
   expenseCodeId?: string;
 
   @IsOptional()
+  @IsNumber()
+  priceBeforeTax?: number;
+
+  @IsOptional()
+  @IsNumber()
+  taxPrice?: number;
+
+  @IsOptional()
   @IsString()
   branchId?: string;
 }

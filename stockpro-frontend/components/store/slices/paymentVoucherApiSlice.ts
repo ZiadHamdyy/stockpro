@@ -9,6 +9,8 @@ export interface PaymentVoucher {
   entityType: string;
   entityName: string;
   amount: number;
+  priceBeforeTax?: number | null;
+  taxPrice?: number | null;
   description?: string | null;
   paymentMethod: string;
   safeId?: string | null;
@@ -43,6 +45,8 @@ export interface CreatePaymentVoucherRequest {
   expenseCodeId?: string;
   receivableAccountId?: string;
   payableAccountId?: string;
+  priceBeforeTax?: number;
+  taxPrice?: number;
   branchId?: string;
 }
 
@@ -60,6 +64,8 @@ export interface UpdatePaymentVoucherRequest {
   expenseCodeId?: string;
   receivableAccountId?: string;
   payableAccountId?: string;
+  priceBeforeTax?: number;
+  taxPrice?: number;
   branchId?: string;
 }
 
