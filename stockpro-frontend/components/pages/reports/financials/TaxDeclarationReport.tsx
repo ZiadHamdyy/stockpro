@@ -114,6 +114,7 @@ const TaxDeclarationReport: React.FC<TaxDeclarationReportProps> = ({
     returnsTax: 0,
     purchasesSubtotal: 0,
     purchasesTax: 0,
+    purchasesValue: 0,
     purchaseReturnsSubtotal: 0,
     purchaseReturnsTax: 0,
     outputVat: 0,
@@ -199,21 +200,39 @@ const TaxDeclarationReport: React.FC<TaxDeclarationReportProps> = ({
     );
 
     // 3. Total taxable expenses (payment vouchers tagged with expense codes)
+    // Use priceBeforeTax if available (for expense-Type vouchers), otherwise use amount
     const taxableExpensesTotal = filteredExpenses.reduce(
-      (sum, v) => sum + (v.amount || 0),
+      (sum, v) => sum + ((v.priceBeforeTax ?? v.amount) || 0),
       0,
     );
     
-    // 4. Purchase tax column = invoice VAT + taxable expense amounts
-    const purchasesTax = purchaseInvoicesTax + taxableExpensesTotal;
+    // 4. Calculate expense tax (taxPrice from vouchers, or amount - priceBeforeTax if taxPrice not available)
+    const expenseTax = filteredExpenses.reduce(
+      (sum, v) => {
+        if (v.taxPrice !== null && v.taxPrice !== undefined) {
+          return sum + (v.taxPrice || 0);
+        }
+        // Fallback: calculate tax as amount - priceBeforeTax if taxPrice is not available
+        const amount = v.amount || 0;
+        const priceBeforeTax = v.priceBeforeTax ?? amount;
+        return sum + (amount - priceBeforeTax);
+      },
+      0,
+    );
+    
+    // 5. Purchase tax column = invoice VAT + expense tax
+    const purchasesTax = purchaseInvoicesTax + expenseTax;
+    
+    // 6. Calculate purchases value: Purchases before tax + Taxable expenses - (Purchase Tax + Expense Tax)
+    const purchasesValue = purchasesSubtotal + taxableExpensesTotal - (purchaseInvoicesTax + expenseTax);
 
-    // 5. Purchase returns subtotal (before tax) from search date
+    // 7. Purchase returns subtotal (before tax) from search date
     const purchaseReturnsSubtotal = filteredPurchaseReturns.reduce(
       (sum, inv) => sum + (inv.subtotal || 0),
       0,
     );
     
-    // 6. Calculate purchase returns tax as: VAT rate * purchase returns subtotal
+    // 8. Calculate purchase returns tax as: VAT rate * purchase returns subtotal
     const purchaseReturnsTax = purchaseReturnsSubtotal * vatRate;
 
     const outputVat = salesTax - returnsTax;
@@ -227,6 +246,7 @@ const TaxDeclarationReport: React.FC<TaxDeclarationReportProps> = ({
       returnsTax,
       purchasesSubtotal,
       purchasesTax,
+      purchasesValue,
       purchaseReturnsSubtotal,
       purchaseReturnsTax,
       outputVat,
@@ -468,8 +488,8 @@ const TaxDeclarationReport: React.FC<TaxDeclarationReportProps> = ({
               <tr>
                 <td className="px-4 py-3 text-center">3</td>
                 <td className="px-4 py-3">المشتريات الخاضعة للنسبة الأساسية</td>
-                <td className={`px-4 py-3 ${getNegativeNumberClass(reportData.purchasesSubtotal)}`}>
-                  {formatNumber(reportData.purchasesSubtotal)}
+                <td className={`px-4 py-3 ${getNegativeNumberClass(reportData.purchasesValue)}`}>
+                  {formatNumber(reportData.purchasesValue)}
                 </td>
                 <td className={`px-4 py-3 ${getNegativeNumberClass(reportData.purchasesTax)}`}>
                   {formatNumber(reportData.purchasesTax)}
