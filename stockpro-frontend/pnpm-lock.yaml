@@ -8,6 +8,9 @@ importers:
 
   .:
     dependencies:
+      '@ericblade/quagga2':
+        specifier: ^1.8.1
+        version: 1.10.2
       '@reduxjs/toolkit':
         specifier: ^2.9.2
         version: 2.9.2(react-redux@9.2.0(@types/react@19.2.2)(react@19.2.0)(redux@5.0.1))(react@19.2.0)
@@ -139,6 +142,10 @@ packages:
   '@babel/types@7.28.5':
     resolution: {integrity: sha512-qQ5m48eI/MFLQ5PxQj4PFaprjyCTLI37ElWMmNs0K8Lk3dVeOdNpB3ks8jc7yM5CDmVC73eMVk/trk3fgmrUpA==}
     engines: {node: '>=6.9.0'}
+
+  '@ericblade/quagga2@1.10.2':
+    resolution: {integrity: sha512-CQzP1o1G/tSa93Wm5RawBD28HN7mixTHP4S9KqULM+wgEn+YCtU8Gu+Xh1DoV0kOtH2mBq6zt3aclEyWv9UsLQ==}
+    engines: {node: '>= 20.0'}
 
   '@esbuild/aix-ppc64@0.25.11':
     resolution: {integrity: sha512-Xt1dOL13m8u0WE8iplx9Ibbm+hFAO0GsU2P34UNoDGvZYkY8ifSiy6Zuc1lYxfG7svWE2fzqCUmFp5HCn51gJg==}
@@ -869,6 +876,10 @@ snapshots:
     dependencies:
       '@babel/helper-string-parser': 7.27.1
       '@babel/helper-validator-identifier': 7.28.5
+
+  '@ericblade/quagga2@1.10.2':
+    optionalDependencies:
+      fsevents: 2.3.3
 
   '@esbuild/aix-ppc64@0.25.11':
     optional: true

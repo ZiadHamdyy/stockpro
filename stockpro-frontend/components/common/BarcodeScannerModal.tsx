@@ -1,6 +1,13 @@
 import React, { useEffect, useRef, useState } from "react";
 import { useToast } from "./ToastProvider";
 
+// QuaggaJS will be loaded dynamically via script tag to avoid Vite module resolution issues
+declare global {
+  interface Window {
+    Quagga: any;
+  }
+}
+
 interface BarcodeScannerModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -12,23 +19,23 @@ const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({
   onClose,
   onScanSuccess,
 }) => {
-  const videoRef = useRef<HTMLVideoElement>(null);
+  const scannerRef = useRef<HTMLDivElement>(null);
   const [isScanning, setIsScanning] = useState(false);
-  const streamRef = useRef<MediaStream | null>(null);
-  const animationFrameIdRef = useRef<number | null>(null);
+  const detectionHandlerRef = useRef<((result: any) => void) | null>(null);
   const { showToast } = useToast();
 
   const stopScan = () => {
-    if (animationFrameIdRef.current) {
-      cancelAnimationFrame(animationFrameIdRef.current);
-      animationFrameIdRef.current = null;
-    }
-    if (streamRef.current) {
-      streamRef.current.getTracks().forEach((track) => track.stop());
-      streamRef.current = null;
-    }
-    if (videoRef.current) {
-      videoRef.current.srcObject = null;
+    try {
+      const Quagga = window.Quagga;
+      if (Quagga && detectionHandlerRef.current) {
+        Quagga.offDetected(detectionHandlerRef.current);
+        detectionHandlerRef.current = null;
+      }
+      if (Quagga) {
+        Quagga.stop();
+      }
+    } catch (err) {
+      // Quagga might not be initialized, ignore errors
     }
     setIsScanning(false);
   };
@@ -39,86 +46,131 @@ const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({
       return;
     }
 
-    const startScan = async () => {
-      // @ts-ignore
-      if (!("BarcodeDetector" in window)) {
-        showToast("متصفحك لا يدعم قارئ الباركود.", 'error');
-        onClose();
-        return;
-      }
-      setIsScanning(true);
+    if (!scannerRef.current) {
+      return;
+    }
+
+    setIsScanning(true);
+
+    const initializeScanner = async () => {
       try {
-        streamRef.current = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: "environment" },
-        });
-        if (videoRef.current) {
-          videoRef.current.srcObject = streamRef.current;
-          videoRef.current.onloadedmetadata = () => {
-            videoRef.current?.play();
-          };
+        // Load QuaggaJS via script tag using CDN to avoid Vite module resolution issues
+        let Quagga = window.Quagga;
+        
+        if (!Quagga) {
+          // Load the script if not already loaded
+          await new Promise<void>((resolve, reject) => {
+            // Check if script is already being loaded
+            const existingScript = document.querySelector('script[data-quagga]');
+            if (existingScript) {
+              const checkQuagga = setInterval(() => {
+                if (window.Quagga) {
+                  clearInterval(checkQuagga);
+                  resolve();
+                }
+              }, 100);
+              setTimeout(() => {
+                clearInterval(checkQuagga);
+                if (!window.Quagga) {
+                  reject(new Error('Quagga failed to load'));
+                }
+              }, 5000);
+              return;
+            }
+
+            const script = document.createElement('script');
+            // Use jsDelivr CDN for QuaggaJS
+            script.src = 'https://cdn.jsdelivr.net/npm/@ericblade/quagga2@1.10.2/dist/quagga.min.js';
+            script.setAttribute('data-quagga', 'true');
+            script.onload = () => {
+              // Wait a bit for Quagga to be available on window
+              const checkQuagga = setInterval(() => {
+                if (window.Quagga) {
+                  clearInterval(checkQuagga);
+                  resolve();
+                }
+              }, 100);
+              setTimeout(() => {
+                clearInterval(checkQuagga);
+                if (!window.Quagga) {
+                  reject(new Error('Quagga failed to load'));
+                }
+              }, 5000);
+            };
+            script.onerror = () => reject(new Error('Failed to load QuaggaJS script'));
+            document.head.appendChild(script);
+          });
+          
+          Quagga = window.Quagga;
         }
+
+        if (!Quagga) {
+          throw new Error('Quagga is not available');
+        }
+
+        const detectionHandler = (result: any) => {
+          const code = result.codeResult.code;
+          if (code) {
+            onScanSuccess(code);
+            stopScan();
+            onClose();
+          }
+        };
+
+        detectionHandlerRef.current = detectionHandler;
+
+        Quagga.init(
+          {
+            inputStream: {
+              name: "Live",
+              type: "LiveStream",
+              target: scannerRef.current,
+              constraints: {
+                facingMode: "environment", // Use back camera on mobile
+              },
+            },
+            locator: {
+              patchSize: "medium",
+              halfSample: true,
+            },
+            numOfWorkers: 2,
+            decoder: {
+              readers: [
+                "ean_reader",
+                "ean_8_reader",
+                "code_128_reader",
+                "upc_reader",
+                "upc_e_reader",
+              ],
+            },
+            locate: true,
+          },
+          (err: any) => {
+            if (err) {
+              console.error("Quagga initialization error:", err);
+              showToast("لا يمكن الوصول إلى الكاميرا. الرجاء التحقق من الصلاحيات.", 'error');
+              setIsScanning(false);
+              onClose();
+              return;
+            }
+            Quagga.onDetected(detectionHandler);
+            Quagga.start();
+          }
+        );
       } catch (err) {
-        console.error("Error accessing camera:", err);
-        showToast("لا يمكن الوصول إلى الكاميرا. الرجاء التحقق من الصلاحيات.", 'error');
+        console.error("Error loading QuaggaJS:", err);
+        showToast("حدث خطأ في تحميل قارئ الباركود.", 'error');
         setIsScanning(false);
         onClose();
       }
     };
 
-    startScan();
+    initializeScanner();
 
     return () => {
       stopScan();
     };
-  }, [isOpen]);
-
-  useEffect(() => {
-    const detectBarcode = async () => {
-      if (!videoRef.current || !isScanning || videoRef.current.readyState < 2) {
-        return;
-      }
-
-      try {
-        // @ts-ignore
-        const barcodeDetector = new window.BarcodeDetector({
-          formats: ["ean_13", "upc_a", "code_128", "qr_code"],
-        });
-        const barcodes = await barcodeDetector.detect(videoRef.current);
-
-        if (barcodes.length > 0) {
-          onScanSuccess(barcodes[0].rawValue);
-          stopScan();
-          onClose();
-        }
-      } catch (err) {
-        console.error("Barcode detection failed:", err);
-        // Silently fail to avoid spamming user
-      }
-    };
-
-    const scanLoop = () => {
-      if (isScanning) {
-        detectBarcode();
-        animationFrameIdRef.current = requestAnimationFrame(scanLoop);
-      }
-    };
-
-    if (isScanning) {
-      // Start the loop only when the video is ready to play
-      videoRef.current?.addEventListener("canplay", () => {
-        if (!animationFrameIdRef.current) {
-          animationFrameIdRef.current = requestAnimationFrame(scanLoop);
-        }
-      });
-    }
-
-    return () => {
-      if (animationFrameIdRef.current) {
-        cancelAnimationFrame(animationFrameIdRef.current);
-        animationFrameIdRef.current = null;
-      }
-    };
-  }, [isScanning, onScanSuccess, onClose]);
+  }, [isOpen, onClose, onScanSuccess, showToast]);
 
   if (!isOpen) return null;
 
@@ -135,24 +187,23 @@ const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({
           وجه الكاميرا نحو الباركود
         </h3>
         <div className="relative w-full aspect-video bg-gray-900 rounded-md overflow-hidden">
-          <video
-            ref={videoRef}
-            autoPlay
-            playsInline
-            muted
-            className="w-full h-full object-cover"
-          ></video>
-          {isScanning && (
-            <div className="absolute inset-0 flex justify-center items-center pointer-events-none">
-              <div className="w-11/12 h-2/3 border-4 border-dashed border-gray-400 rounded-lg opacity-75"></div>
-              <div className="absolute top-1/2 left-0 w-full h-0.5 bg-red-500 animate-scan"></div>
-            </div>
-          )}
-          {!isScanning && (
-            <div className="absolute inset-0 flex justify-center items-center bg-black bg-opacity-50">
-              <p className="text-white text-lg">جاري تشغيل الكاميرا...</p>
-            </div>
-          )}
+          <div
+            ref={scannerRef}
+            className="w-full h-full"
+            style={{ position: "relative" }}
+          >
+            {isScanning && (
+              <div className="absolute inset-0 flex justify-center items-center pointer-events-none z-10">
+                <div className="w-11/12 h-2/3 border-4 border-dashed border-gray-400 rounded-lg opacity-75"></div>
+                <div className="absolute top-1/2 left-0 w-full h-0.5 bg-red-500 animate-scan"></div>
+              </div>
+            )}
+            {!isScanning && (
+              <div className="absolute inset-0 flex justify-center items-center bg-black bg-opacity-50 z-10">
+                <p className="text-white text-lg">جاري تشغيل الكاميرا...</p>
+              </div>
+            )}
+          </div>
         </div>
         <button
           onClick={onClose}
@@ -161,15 +212,27 @@ const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({
           إلغاء
         </button>
         <style>{`
-                    @keyframes scan-animation {
-                        0% { transform: translateY(-33%); }
-                        50% { transform: translateY(33%); }
-                        100% { transform: translateY(-33%); }
-                    }
-                    .animate-scan {
-                        animation: scan-animation 1.5s ease-in-out infinite;
-                    }
-                `}</style>
+          @keyframes scan-animation {
+            0% { transform: translateY(-33%); }
+            50% { transform: translateY(33%); }
+            100% { transform: translateY(-33%); }
+          }
+          .animate-scan {
+            animation: scan-animation 1.5s ease-in-out infinite;
+          }
+          /* QuaggaJS video styling */
+          #interactive.viewport {
+            width: 100%;
+            height: 100%;
+            position: relative;
+          }
+          #interactive.viewport > canvas,
+          #interactive.viewport > video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+          }
+        `}</style>
       </div>
     </div>
   );

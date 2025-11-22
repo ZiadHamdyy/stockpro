@@ -20,5 +20,17 @@ export default defineConfig(({ mode }) => {
         "@": path.resolve(__dirname, "."),
       },
     },
+    optimizeDeps: {
+      include: ["@ericblade/quagga2"],
+      esbuildOptions: {
+        // Handle CommonJS modules
+        target: "es2020",
+      },
+    },
+    build: {
+      commonjsOptions: {
+        include: [/@ericblade\/quagga2/, /node_modules/],
+      },
+    },
   };
 });

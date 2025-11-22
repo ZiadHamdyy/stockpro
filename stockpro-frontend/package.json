@@ -10,6 +10,7 @@
     "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,css,scss,md}\""
   },
   "dependencies": {
+    "@ericblade/quagga2": "^1.8.1",
     "@reduxjs/toolkit": "^2.9.2",
     "notistack": "^3.0.2",
     "react": "^19.2.0",
