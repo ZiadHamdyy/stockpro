@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback, useEffect } from "react";
+import React, { useState, useMemo, useCallback, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import type {
   CompanyInfo,
@@ -205,28 +205,56 @@ const SupplierStatementReport: React.FC<SupplierStatementReportProps> = ({
   const { start: defaultStartDate, end: defaultEndDate } = getCurrentYearRange();
   const [startDate, setStartDate] = useState(defaultStartDate);
   const [endDate, setEndDate] = useState(defaultEndDate);
-  const [supplierSearchTerm, setSupplierSearchTerm] = useState("");
+  const [supplierQuery, setSupplierQuery] = useState("");
+  const [isSupplierDropdownOpen, setIsSupplierDropdownOpen] = useState(false);
   const [selectedSupplierId, setSelectedSupplierId] = useState<string | null>(null);
+  const [hasUserInteracted, setHasUserInteracted] = useState(false);
+  const supplierRef = useRef<HTMLDivElement>(null);
 
   const [reportData, setReportData] = useState<any[]>([]);
   const [openingBalance, setOpeningBalance] = useState(0);
 
-  const filteredSuppliers = suppliers.filter((s) =>
-    s.name.toLowerCase().includes(supplierSearchTerm.toLowerCase()),
-  );
+  const filteredSuppliers = supplierQuery
+    ? suppliers.filter((s) =>
+        s.name.toLowerCase().includes(supplierQuery.toLowerCase()),
+      )
+    : suppliers;
 
-  // Set initial supplier when suppliers load
+  // Set initial supplier when suppliers load (only if user hasn't interacted)
   useEffect(() => {
-    if (suppliers.length > 0 && !selectedSupplierId) {
-      setSelectedSupplierId(suppliers[0].id.toString());
+    if (suppliers.length > 0 && !selectedSupplierId && !hasUserInteracted) {
+      const firstSupplier = suppliers[0];
+      setSelectedSupplierId(firstSupplier.id.toString());
+      setSupplierQuery(firstSupplier.name);
     }
-  }, [suppliers, selectedSupplierId]);
+  }, [suppliers, selectedSupplierId, hasUserInteracted]);
 
   const selectedSupplier = useMemo(
     () => suppliers.find((s) => s.id.toString() === selectedSupplierId),
     [suppliers, selectedSupplierId],
   );
   const selectedSupplierName = selectedSupplier?.name || "غير محدد";
+
+  const handleSelectSupplier = (supplier: any) => {
+    setHasUserInteracted(true);
+    setSelectedSupplierId(supplier.id.toString());
+    setSupplierQuery(supplier.name);
+    setIsSupplierDropdownOpen(false);
+  };
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (supplierRef.current && !supplierRef.current.contains(event.target as Node)) {
+        setIsSupplierDropdownOpen(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
 
   const handleViewReport = useCallback(() => {
     if (!selectedSupplier) {
@@ -537,25 +565,40 @@ const SupplierStatementReport: React.FC<SupplierStatementReportProps> = ({
         </div>
         <div className="flex justify-between items-center my-4 bg-gray-50 p-3 rounded-md border-2 border-gray-200 no-print">
           <div className="flex items-center gap-4 flex-wrap">
-            <input
-              type="text"
-              placeholder="بحث عن مورد..."
-              className={inputStyle + " w-48"}
-              value={supplierSearchTerm}
-              onChange={(e) => setSupplierSearchTerm(e.target.value)}
-            />
-            <select
-              className={inputStyle}
-              value={selectedSupplierId || ""}
-              onChange={(e) => setSelectedSupplierId(e.target.value)}
-            >
-              <option value="">اختر المورد...</option>
-              {filteredSuppliers.map((supplier) => (
-                <option key={supplier.id} value={supplier.id}>
-                  {supplier.name}
-                </option>
-              ))}
-            </select>
+            <div className="relative w-48" ref={supplierRef}>
+              <input
+                type="text"
+                placeholder="بحث عن مورد..."
+                className={inputStyle + " w-full"}
+                value={supplierQuery}
+                onChange={(e) => {
+                  setHasUserInteracted(true);
+                  setSupplierQuery(e.target.value);
+                  setIsSupplierDropdownOpen(true);
+                  setSelectedSupplierId(null);
+                }}
+                onFocus={() => setIsSupplierDropdownOpen(true)}
+              />
+              {isSupplierDropdownOpen && (
+                <div className="absolute z-20 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-y-auto">
+                  {filteredSuppliers.length > 0 ? (
+                    filteredSuppliers.map((supplier) => (
+                      <div
+                        key={supplier.id}
+                        onClick={() => handleSelectSupplier(supplier)}
+                        className="p-2 cursor-pointer hover:bg-brand-blue-bg"
+                      >
+                        {supplier.name}
+                      </div>
+                    ))
+                  ) : (
+                    <div className="p-2 text-gray-500 text-center">
+                      لا توجد نتائج
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
             <label className="font-semibold">من:</label>
             <input
               type="date"

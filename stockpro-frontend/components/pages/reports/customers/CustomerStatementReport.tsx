@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback, useEffect } from "react";
+import React, { useState, useMemo, useCallback, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import type {
   CompanyInfo,
@@ -205,28 +205,56 @@ const CustomerStatementReport: React.FC<CustomerStatementReportProps> = ({
   const { start: defaultStartDate, end: defaultEndDate } = getCurrentYearRange();
   const [startDate, setStartDate] = useState(defaultStartDate);
   const [endDate, setEndDate] = useState(defaultEndDate);
-  const [customerSearchTerm, setCustomerSearchTerm] = useState("");
+  const [customerQuery, setCustomerQuery] = useState("");
+  const [isCustomerDropdownOpen, setIsCustomerDropdownOpen] = useState(false);
   const [selectedCustomerId, setSelectedCustomerId] = useState<string | null>(null);
+  const [hasUserInteracted, setHasUserInteracted] = useState(false);
+  const customerRef = useRef<HTMLDivElement>(null);
 
   const [reportData, setReportData] = useState<any[]>([]);
   const [openingBalance, setOpeningBalance] = useState(0);
 
-  const filteredCustomers = customers.filter((c) =>
-    c.name.toLowerCase().includes(customerSearchTerm.toLowerCase()),
-  );
+  const filteredCustomers = customerQuery
+    ? customers.filter((c) =>
+        c.name.toLowerCase().includes(customerQuery.toLowerCase()),
+      )
+    : customers;
 
-  // Set initial customer when customers load
+  // Set initial customer when customers load (only if user hasn't interacted)
   useEffect(() => {
-    if (customers.length > 0 && !selectedCustomerId) {
-      setSelectedCustomerId(customers[0].id.toString());
+    if (customers.length > 0 && !selectedCustomerId && !hasUserInteracted) {
+      const firstCustomer = customers[0];
+      setSelectedCustomerId(firstCustomer.id.toString());
+      setCustomerQuery(firstCustomer.name);
     }
-  }, [customers, selectedCustomerId]);
+  }, [customers, selectedCustomerId, hasUserInteracted]);
 
   const selectedCustomer = useMemo(
     () => customers.find((c) => c.id.toString() === selectedCustomerId),
     [customers, selectedCustomerId],
   );
   const selectedCustomerName = selectedCustomer?.name || "غير محدد";
+
+  const handleSelectCustomer = (customer: any) => {
+    setHasUserInteracted(true);
+    setSelectedCustomerId(customer.id.toString());
+    setCustomerQuery(customer.name);
+    setIsCustomerDropdownOpen(false);
+  };
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (customerRef.current && !customerRef.current.contains(event.target as Node)) {
+        setIsCustomerDropdownOpen(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
 
   const handleViewReport = useCallback(() => {
     if (!selectedCustomer) {
@@ -545,25 +573,40 @@ const CustomerStatementReport: React.FC<CustomerStatementReportProps> = ({
 
         <div className="flex justify-between items-center my-4 bg-gray-50 p-3 rounded-md border-2 border-gray-200 no-print">
           <div className="flex items-center gap-4 flex-wrap">
-            <input
-              type="text"
-              placeholder="بحث عن عميل..."
-              className={inputStyle + " w-48"}
-              value={customerSearchTerm}
-              onChange={(e) => setCustomerSearchTerm(e.target.value)}
-            />
-            <select
-              className={inputStyle}
-              value={selectedCustomerId || ""}
-              onChange={(e) => setSelectedCustomerId(e.target.value)}
-            >
-              <option value="">اختر العميل...</option>
-              {filteredCustomers.map((customer) => (
-                <option key={customer.id} value={customer.id}>
-                  {customer.name}
-                </option>
-              ))}
-            </select>
+            <div className="relative w-48" ref={customerRef}>
+              <input
+                type="text"
+                placeholder="بحث عن عميل..."
+                className={inputStyle + " w-full"}
+                value={customerQuery}
+                onChange={(e) => {
+                  setHasUserInteracted(true);
+                  setCustomerQuery(e.target.value);
+                  setIsCustomerDropdownOpen(true);
+                  setSelectedCustomerId(null);
+                }}
+                onFocus={() => setIsCustomerDropdownOpen(true)}
+              />
+              {isCustomerDropdownOpen && (
+                <div className="absolute z-20 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-y-auto">
+                  {filteredCustomers.length > 0 ? (
+                    filteredCustomers.map((customer) => (
+                      <div
+                        key={customer.id}
+                        onClick={() => handleSelectCustomer(customer)}
+                        className="p-2 cursor-pointer hover:bg-brand-blue-bg"
+                      >
+                        {customer.name}
+                      </div>
+                    ))
+                  ) : (
+                    <div className="p-2 text-gray-500 text-center">
+                      لا توجد نتائج
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
             <label className="font-semibold">من:</label>
             <input
               type="date"
