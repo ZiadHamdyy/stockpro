@@ -60,8 +60,9 @@ export const customerApiSlice = apiSlice.injectEndpoints({
         body: data,
       }),
       transformResponse: (response: { data: Customer }) => response.data,
-      invalidatesTags: [
+      invalidatesTags: (result) => [
         { type: "Customer", id: "LIST" },
+        ...(result ? [{ type: "Customer" as const, id: result.id }] : []),
         "SalesInvoice",
         "SalesReturn",
         "PaymentVoucher",
