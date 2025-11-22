@@ -144,7 +144,7 @@ const IncomeStatement: React.FC = () => {
   return (
     <div className="bg-white p-6 rounded-lg shadow">
       <div id="printable-area-income">
-        <ReportHeader title={title} companyInfo={companyInfo} />
+        <ReportHeader title={title} />
 
         <div className="flex justify-between items-center my-4 bg-gray-50 p-3 rounded-md border-2 border-gray-200 no-print">
           <div className="flex items-center gap-4">

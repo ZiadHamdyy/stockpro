@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useEffect, useCallback } from "react";
 import type { CompanyInfo, Branch, User, Invoice } from "../../../../types";
 import { ExcelIcon, PdfIcon, PrintIcon, SearchIcon } from "../../../icons";
-import InvoiceHeader from "../../../common/InvoiceHeader";
+import ReportHeader from "../ReportHeader";
 import { formatNumber, getNegativeNumberClass } from "../../../../utils/formatting";
 import { useGetSalesInvoicesQuery } from "../../../store/slices/salesInvoice/salesInvoiceApiSlice";
 import { useGetSalesReturnsQuery } from "../../../store/slices/salesReturn/salesReturnApiSlice";
@@ -343,12 +343,7 @@ const TaxDeclarationReport: React.FC<TaxDeclarationReportProps> = ({
   return (
     <div className="bg-white p-6 rounded-lg shadow">
       <div id="printable-area">
-        <div className="border-2 border-brand-blue rounded-lg mb-4">
-          <InvoiceHeader
-            branchName={typeof currentUser?.branch === 'string' ? currentUser.branch : (currentUser?.branch as any)?.name}
-            userName={currentUser?.fullName || currentUser?.name}
-          />
-        </div>
+        <ReportHeader title={title} />
         <div className="px-6 py-4 text-base print:block hidden border-t-2 border-b-2 mt-2 mb-4 bg-gray-50">
           <div className="flex justify-between items-start">
             <div className="space-y-2 text-right">
