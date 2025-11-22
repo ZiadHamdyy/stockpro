@@ -90,8 +90,8 @@ export class PaymentVoucherService {
         // If tracking is needed, add currentBalance field to ExpenseCode model
       } else {
         // Apply entity-side effect for other account types
-        const direction =
-          data.entityType === 'payable_account' ? 'decrement' : 'increment';
+        // For payable_account, receivable_account, and current_account: increment (transfer money to account)
+        const direction = 'increment';
         await this.applyEntityBalanceEffect(tx, data.entityType, {
           currentAccountId: data.currentAccountId,
           receivableAccountId: data.receivableAccountId as any,
@@ -242,10 +242,8 @@ export class PaymentVoucherService {
           // Expense-Type: Note - ExpenseCode doesn't have currentBalance field
           // If tracking is needed, add currentBalance field to ExpenseCode model
         } else {
-          const reverseDirection =
-            existing.entityType === 'payable_account'
-              ? 'increment'
-              : 'decrement';
+          // Reverse: decrement for all account types (subtract the money we previously added)
+          const reverseDirection = 'decrement';
           await this.applyEntityBalanceEffect(tx, existing.entityType, {
             currentAccountId: existing.currentAccountId,
             receivableAccountId: (existing as any).receivableAccountId,
@@ -332,8 +330,8 @@ export class PaymentVoucherService {
               (data as any).payableAccountId ??
               (existing as any).payableAccountId,
           };
-          const direction =
-            newEntityType === 'payable_account' ? 'decrement' : 'increment';
+          // For payable_account, receivable_account, and current_account: increment (transfer money to account)
+          const direction = 'increment';
           await this.applyEntityBalanceEffect(tx, newEntityType, {
             ...newEntityIds,
             amount: newAmount,
@@ -438,10 +436,8 @@ export class PaymentVoucherService {
           // Expense-Type: Note - ExpenseCode doesn't have currentBalance field
           // If tracking is needed, add currentBalance field to ExpenseCode model
         } else {
-          const reverseDirection =
-            existing.entityType === 'payable_account'
-              ? 'increment'
-              : 'decrement';
+          // Reverse: decrement for all account types (subtract the money we previously added)
+          const reverseDirection = 'decrement';
           await this.applyEntityBalanceEffect(tx, existing.entityType, {
             currentAccountId: existing.currentAccountId,
             receivableAccountId: (existing as any).receivableAccountId,
@@ -564,16 +560,7 @@ export class PaymentVoucherService {
         data: { currentBalance: { [deltaOp]: params.amount } } as any,
       });
     } else if (entityType === 'payable_account' && params.payableAccountId) {
-      // Payable account: decrement for payment (check balance)
-      if (deltaOp === 'decrement') {
-        const acc = await tx.payableAccount.findUnique({
-          where: { id: params.payableAccountId },
-        });
-        if (!acc) throw new NotFoundException('Payable account not found');
-        if (acc.currentBalance < params.amount) {
-          throw new ConflictException('الرصيد غير كافي في حساب الموردين');
-        }
-      }
+      // Payable account: increment for payment (transfer money to account, no balance check needed)
       await tx.payableAccount.update({
         where: { id: params.payableAccountId },
         data: { currentBalance: { [deltaOp]: params.amount } } as any,

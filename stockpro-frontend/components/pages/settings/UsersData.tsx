@@ -235,6 +235,9 @@ const UsersData: React.FC<UsersDataProps> = ({ title }) => {
                     الاسم الكامل
                   </th>
                   <th className="px-6 py-3 text-right text-sm font-semibold text-white uppercase tracking-wider">
+                    الفرع
+                  </th>
+                  <th className="px-6 py-3 text-right text-sm font-semibold text-white uppercase tracking-wider">
                     البريد الإلكتروني
                   </th>
                   <th className="px-6 py-3 text-right text-sm font-semibold text-white uppercase tracking-wider">
