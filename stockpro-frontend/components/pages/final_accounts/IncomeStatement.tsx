@@ -29,55 +29,52 @@ const IncomeStatement: React.FC = () => {
     'مصروفات تشغيلية',
     'مصروفات تسويقية',
     'مصروفات إدارية',
-    'مصروفات ادارية', // Handle both spellings (إ vs ا)
     'مصروفات عمومية',
     'مصروفات أخري',
-    'مصروفات اخري', // Handle both spellings
   ];
 
   // Get expense types in the same order as they were originally displayed
+  // Only include expense types that match the expenseTypeOrder array
   const sortedExpenseTypes = useMemo(() => {
-    return [...expenseTypes].sort((a, b) => {
-      const getOrderIndex = (name: string): number => {
-        // Normalize name for comparison (handle both spellings)
-        const normalizedName = name
+    const getOrderIndex = (name: string): number => {
+      // Normalize name for comparison (handle both spellings)
+      const normalizedName = name
+        .replace(/[إا]دارية/g, 'ادارية')
+        .replace(/[أا]خري/g, 'اخري');
+      
+      // Try exact match first
+      for (let i = 0; i < expenseTypeOrder.length; i++) {
+        const normalizedOrder = expenseTypeOrder[i]
           .replace(/[إا]دارية/g, 'ادارية')
           .replace(/[أا]خري/g, 'اخري');
-        
-        // Try exact match first
-        for (let i = 0; i < expenseTypeOrder.length; i++) {
-          const normalizedOrder = expenseTypeOrder[i]
-            .replace(/[إا]دارية/g, 'ادارية')
-            .replace(/[أا]خري/g, 'اخري');
-          if (normalizedName === normalizedOrder || name === expenseTypeOrder[i]) {
-            return i;
-          }
+        if (normalizedName === normalizedOrder || name === expenseTypeOrder[i]) {
+          return i;
         }
-        
-        // Try partial match (includes check)
-        for (let i = 0; i < expenseTypeOrder.length; i++) {
-          const normalizedOrder = expenseTypeOrder[i]
-            .replace(/[إا]دارية/g, 'ادارية')
-            .replace(/[أا]خري/g, 'اخري');
-          if (normalizedName.includes(normalizedOrder) || normalizedOrder.includes(normalizedName)) {
-            return i;
-          }
-        }
-        
-        return 999; // Not found in order list, put at end
-      };
-      
-      const indexA = getOrderIndex(a.name);
-      const indexB = getOrderIndex(b.name);
-      
-      // Sort by their position in the order list
-      if (indexA !== indexB) {
-        return indexA - indexB;
       }
       
-      // If same order position, sort alphabetically
-      return a.name.localeCompare(b.name);
-    });
+      // Try partial match (includes check)
+      for (let i = 0; i < expenseTypeOrder.length; i++) {
+        const normalizedOrder = expenseTypeOrder[i]
+          .replace(/[إا]دارية/g, 'ادارية')
+          .replace(/[أا]خري/g, 'اخري');
+        if (normalizedName.includes(normalizedOrder) || normalizedOrder.includes(normalizedName)) {
+          return i;
+        }
+      }
+      
+      return -1; // Not found in order list
+    };
+    
+    // Filter to only include expense types that match the order list
+    return [...expenseTypes]
+      .filter((expenseType) => getOrderIndex(expenseType.name) !== -1)
+      .sort((a, b) => {
+        const indexA = getOrderIndex(a.name);
+        const indexB = getOrderIndex(b.name);
+        
+        // Sort by their position in the order list
+        return indexA - indexB;
+      });
   }, [expenseTypes]);
 
   const handlePrint = () => {

@@ -23,11 +23,11 @@ export class IncomeStatementService {
     // Calculate net sales
     const netSales = totalSales - totalSalesReturns;
 
-    // Calculate beginning inventory (at startDate - 1 day)
-    const previousDay = new Date(start);
-    previousDay.setDate(previousDay.getDate() - 1);
+    // Calculate beginning inventory (at startDate, excluding transactions on start date)
+    // Valuation is based on the last purchase price on or before the start date
     const beginningInventory = await this.calculateInventoryValue(
-      previousDay.toISOString().split('T')[0],
+      startDate,
+      true, // excludeTargetDate = true to exclude transactions on start date
     );
 
     // Calculate total purchases (net of tax - subtotal only, excluding tax)
@@ -181,14 +181,16 @@ export class IncomeStatementService {
     startDate: Date,
     endDate: Date,
   ): Promise<Record<string, number>> {
-    // Get payment vouchers with expense type
+    // Get payment vouchers with expense type (both 'expense' and 'expense-Type')
     const vouchers = await this.prisma.paymentVoucher.findMany({
       where: {
         date: {
           gte: startDate,
           lte: endDate,
         },
-        entityType: 'expense',
+        entityType: {
+          in: ['expense', 'expense-Type'],
+        },
       },
       include: {
         expenseCode: {
@@ -217,9 +219,13 @@ export class IncomeStatementService {
    * Calculate total inventory valuation at a specific date
    * Uses the last purchase price before or on the target date for each item
    * @param targetDate - The date to calculate inventory valuation for (format: YYYY-MM-DD)
+   * @param excludeTargetDate - If true, excludes transactions on the target date (for beginning inventory)
    * @returns Total inventory value based on last purchase prices
    */
-  private async calculateInventoryValue(targetDate: string): Promise<number> {
+  private async calculateInventoryValue(
+    targetDate: string,
+    excludeTargetDate: boolean = false,
+  ): Promise<number> {
     const targetDateTime = new Date(targetDate);
     targetDateTime.setHours(23, 59, 59, 999);
 
@@ -238,6 +244,7 @@ export class IncomeStatementService {
         item.id,
         item.code,
         targetDateTime,
+        excludeTargetDate,
       );
 
       if (balance > 0) {
@@ -258,11 +265,13 @@ export class IncomeStatementService {
   /**
    * Calculate the total inventory balance for an item at a specific date
    * across all stores
+   * @param excludeTargetDate - If true, excludes transactions on the target date (uses lt instead of lte)
    */
   private async calculateItemBalanceAtDate(
     itemId: string,
     itemCode: string,
     targetDate: Date,
+    excludeTargetDate: boolean = false,
   ): Promise<number> {
     // Start with opening balances from all StoreItems
     const storeItems = await this.prisma.storeItem.findMany({
@@ -276,13 +285,16 @@ export class IncomeStatementService {
       0,
     );
 
+    // Determine date filter: use lt (strictly less than) if excluding target date, otherwise lte
+    const dateFilter = excludeTargetDate
+      ? { lt: targetDate }
+      : { lte: targetDate };
+
     // Add quantities from PurchaseInvoices (before or on target date)
     // Include all purchase invoices regardless of branch for company-wide income statement
     const purchaseInvoices = await this.prisma.purchaseInvoice.findMany({
       where: {
-        date: {
-          lte: targetDate,
-        },
+        date: dateFilter,
       },
       select: {
         items: true,
@@ -302,9 +314,7 @@ export class IncomeStatementService {
     // Include all sales returns regardless of branch for company-wide income statement
     const salesReturns = await this.prisma.salesReturn.findMany({
       where: {
-        date: {
-          lte: targetDate,
-        },
+        date: dateFilter,
       },
       select: {
         items: true,
@@ -323,9 +333,7 @@ export class IncomeStatementService {
     // Add quantities from StoreReceiptVouchers (before or on target date)
     const storeReceiptVouchers = await this.prisma.storeReceiptVoucher.findMany({
       where: {
-        date: {
-          lte: targetDate,
-        },
+        date: dateFilter,
       },
       include: {
         items: {
@@ -346,9 +354,7 @@ export class IncomeStatementService {
     // Include all sales invoices regardless of branch for company-wide income statement
     const salesInvoices = await this.prisma.salesInvoice.findMany({
       where: {
-        date: {
-          lte: targetDate,
-        },
+        date: dateFilter,
       },
       select: {
         items: true,
@@ -368,9 +374,7 @@ export class IncomeStatementService {
     // Include all purchase returns regardless of branch for company-wide income statement
     const purchaseReturns = await this.prisma.purchaseReturn.findMany({
       where: {
-        date: {
-          lte: targetDate,
-        },
+        date: dateFilter,
       },
       select: {
         items: true,
@@ -389,9 +393,7 @@ export class IncomeStatementService {
     // Subtract quantities from StoreIssueVouchers (before or on target date)
     const storeIssueVouchers = await this.prisma.storeIssueVoucher.findMany({
       where: {
-        date: {
-          lte: targetDate,
-        },
+        date: dateFilter,
       },
       include: {
         items: {
