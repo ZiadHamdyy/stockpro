@@ -79,6 +79,7 @@ const DailyCollectionsReport: React.FC<DailyCollectionsReportProps> = ({
         id: voucher.id,
         code: voucher.code,
         date: normalizeDate(voucher.date),
+        createdAt: voucher.createdAt || voucher.date,
         entity: {
           type: voucher.entityType,
           id:
@@ -103,9 +104,9 @@ const DailyCollectionsReport: React.FC<DailyCollectionsReportProps> = ({
   const [endDate, setEndDate] = useState(defaultEndDate);
   const [selectedBranch, setSelectedBranch] = useState("all");
 
-  // Filter vouchers by date range and branch
+  // Filter vouchers by date range and branch, then sort by createdAt
   const filteredVouchers = useMemo(() => {
-    return receiptVouchers.filter((voucher) => {
+    const filtered = receiptVouchers.filter((voucher) => {
       // Normalize voucher date to ensure proper comparison
       const voucherDate = normalizeDate(voucher.date);
       if (!voucherDate) return false;
@@ -118,6 +119,23 @@ const DailyCollectionsReport: React.FC<DailyCollectionsReportProps> = ({
       const branchMatch = selectedBranch === "all" || voucher.branchName === selectedBranch;
       return dateMatch && branchMatch;
     });
+    
+    // Sort all vouchers by createdAt from oldest to newest (ascending order)
+    filtered.sort((a, b) => {
+      // Prioritize createdAt, fallback to date if createdAt is not available
+      const dateA = new Date(a.createdAt || a.date).getTime();
+      const dateB = new Date(b.createdAt || b.date).getTime();
+      
+      // If dates are equal, use id as secondary sort to maintain consistent order
+      if (dateA === dateB) {
+        return String(a.id).localeCompare(String(b.id));
+      }
+      
+      // Sort ascending: older dates first (oldest to newest)
+      return dateA - dateB;
+    });
+    
+    return filtered;
   }, [receiptVouchers, startDate, endDate, selectedBranch, normalizeDate]);
 
   const isLoading = vouchersLoading || branchesLoading;

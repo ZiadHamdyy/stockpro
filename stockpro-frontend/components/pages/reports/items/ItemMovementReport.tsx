@@ -482,10 +482,18 @@ const ItemMovementReport: React.FC<ItemMovementReportProps> = ({
       }
     });
 
-    // Sort all transactions by createdAt (or date as fallback)
+    // Sort all transactions by createdAt from oldest to newest (ascending order)
     transactions.sort((a, b) => {
+      // Prioritize createdAt, fallback to date if createdAt is not available
       const dateA = new Date(a.createdAt || a.date).getTime();
       const dateB = new Date(b.createdAt || b.date).getTime();
+      
+      // If dates are equal, use ref as secondary sort to maintain consistent order
+      if (dateA === dateB) {
+        return String(a.ref).localeCompare(String(b.ref));
+      }
+      
+      // Sort ascending: older dates first (oldest to newest)
       return dateA - dateB;
     });
 

@@ -118,6 +118,7 @@ const ReceivableAccountStatementReport: React.FC<
         id: voucher.id,
         code: voucher.code,
         date: normalizeDate(voucher.date),
+        createdAt: voucher.createdAt || voucher.date,
         entity: entity,
         amount: voucher.amount,
         description: voucher.description || "",
@@ -149,6 +150,7 @@ const ReceivableAccountStatementReport: React.FC<
         id: voucher.id,
         code: voucher.code,
         date: normalizeDate(voucher.date),
+        createdAt: voucher.createdAt || voucher.date,
         entity: entity,
         amount: voucher.amount,
         description: voucher.description || "",
@@ -226,6 +228,7 @@ const ReceivableAccountStatementReport: React.FC<
 
     const transactions: {
       date: string;
+      createdAt: string; // Add createdAt for sorting
       description: string;
       ref: string;
       voucherId: string;
@@ -250,6 +253,7 @@ const ReceivableAccountStatementReport: React.FC<
         if (branchMatch) {
           transactions.push({
             date: v.date,
+            createdAt: v.createdAt || v.date,
             description: "سند صرف",
             ref: v.code || v.id,
             voucherId: v.id,
@@ -276,6 +280,7 @@ const ReceivableAccountStatementReport: React.FC<
         if (branchMatch) {
           transactions.push({
             date: v.date,
+            createdAt: v.createdAt || v.date,
             description: "سند قبض",
             ref: v.code || v.id,
             voucherId: v.id,
@@ -288,9 +293,20 @@ const ReceivableAccountStatementReport: React.FC<
       }
     });
 
-    transactions.sort(
-      (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime(),
-    );
+    // Sort all transactions by createdAt from oldest to newest (ascending order)
+    transactions.sort((a, b) => {
+      // Prioritize createdAt, fallback to date if createdAt is not available
+      const dateA = new Date(a.createdAt || a.date).getTime();
+      const dateB = new Date(b.createdAt || b.date).getTime();
+      
+      // If dates are equal, use voucherId as secondary sort to maintain consistent order
+      if (dateA === dateB) {
+        return String(a.voucherId).localeCompare(String(b.voucherId));
+      }
+      
+      // Sort ascending: older dates first (oldest to newest)
+      return dateA - dateB;
+    });
 
     let balance = openingBalance;
     return transactions.map((t) => {

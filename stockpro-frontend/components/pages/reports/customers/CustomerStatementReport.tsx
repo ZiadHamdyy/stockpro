@@ -165,6 +165,7 @@ const CustomerStatementReport: React.FC<CustomerStatementReportProps> = ({
         id: voucher.id,
         code: voucher.code || voucher.id,
         date: normalizeDate(voucher.date),
+        createdAt: voucher.createdAt || voucher.date,
         entity: entity,
         amount: voucher.amount,
         description: voucher.description || "",
@@ -189,6 +190,7 @@ const CustomerStatementReport: React.FC<CustomerStatementReportProps> = ({
         id: voucher.id,
         code: voucher.code || voucher.id,
         date: normalizeDate(voucher.date),
+        createdAt: voucher.createdAt || voucher.date,
         entity: entity,
         amount: voucher.amount,
         description: voucher.description || "",
@@ -297,6 +299,7 @@ const CustomerStatementReport: React.FC<CustomerStatementReportProps> = ({
 
     const transactions: {
       date: string;
+      createdAt: string; // Add createdAt for sorting
       description: string;
       ref: string;
       voucherCode: string;
@@ -322,6 +325,7 @@ const CustomerStatementReport: React.FC<CustomerStatementReportProps> = ({
       ) {
         transactions.push({
           date: inv.date,
+          createdAt: inv.createdAt || inv.date,
           description: "فاتورة مبيعات",
           ref: inv.id,
           voucherCode: inv.code || inv.id,
@@ -344,6 +348,7 @@ const CustomerStatementReport: React.FC<CustomerStatementReportProps> = ({
       ) {
         transactions.push({
           date: inv.date,
+          createdAt: inv.createdAt || inv.date,
           description: "مرتجع مبيعات",
           ref: inv.id,
           voucherCode: inv.code || inv.id,
@@ -365,6 +370,7 @@ const CustomerStatementReport: React.FC<CustomerStatementReportProps> = ({
       ) {
         transactions.push({
           date: v.date,
+          createdAt: v.createdAt || v.date,
           description: "سند قبض",
           ref: v.id,
           voucherCode: v.code || v.id,
@@ -386,6 +392,7 @@ const CustomerStatementReport: React.FC<CustomerStatementReportProps> = ({
       ) {
         transactions.push({
           date: v.date,
+          createdAt: v.createdAt || v.date,
           description: "سند صرف (رد مبلغ)",
           ref: v.id,
           voucherCode: v.code || v.id,
@@ -396,10 +403,20 @@ const CustomerStatementReport: React.FC<CustomerStatementReportProps> = ({
       }
     });
 
-    // Sort transactions chronologically by date
-    transactions.sort(
-      (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime(),
-    );
+    // Sort all transactions by createdAt from oldest to newest (ascending order)
+    transactions.sort((a, b) => {
+      // Prioritize createdAt, fallback to date if createdAt is not available
+      const dateA = new Date(a.createdAt || a.date).getTime();
+      const dateB = new Date(b.createdAt || b.date).getTime();
+      
+      // If dates are equal, use ref as secondary sort to maintain consistent order
+      if (dateA === dateB) {
+        return String(a.ref).localeCompare(String(b.ref));
+      }
+      
+      // Sort ascending: older dates first (oldest to newest)
+      return dateA - dateB;
+    });
 
     let balance = currentOpeningBalance;
     const finalData = transactions.map((t) => {

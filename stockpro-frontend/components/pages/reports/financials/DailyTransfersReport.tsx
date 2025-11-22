@@ -83,6 +83,7 @@ const DailyTransfersReport: React.FC<DailyTransfersReportProps> = ({
         id: transfer.id,
         code: transfer.code,
         date: normalizeDate(transfer.date),
+        createdAt: transfer.createdAt || transfer.date,
         amount: transfer.amount,
         description: transfer.description || "",
         branchId: transfer.branchId,
@@ -101,7 +102,7 @@ const DailyTransfersReport: React.FC<DailyTransfersReportProps> = ({
   const [selectedBranch, setSelectedBranch] = useState("all");
 
   const filteredTransfers = useMemo(() => {
-    return internalTransfers.filter((transfer) => {
+    const filtered = internalTransfers.filter((transfer) => {
       const transferDate = normalizeDate(transfer.date);
       if (!transferDate) return false;
 
@@ -114,6 +115,23 @@ const DailyTransfersReport: React.FC<DailyTransfersReportProps> = ({
         selectedBranch === "all" || transfer.branchName === selectedBranch;
       return dateMatch && branchMatch;
     });
+    
+    // Sort all transfers by createdAt from oldest to newest (ascending order)
+    filtered.sort((a, b) => {
+      // Prioritize createdAt, fallback to date if createdAt is not available
+      const dateA = new Date(a.createdAt || a.date).getTime();
+      const dateB = new Date(b.createdAt || b.date).getTime();
+      
+      // If dates are equal, use id as secondary sort to maintain consistent order
+      if (dateA === dateB) {
+        return String(a.id).localeCompare(String(b.id));
+      }
+      
+      // Sort ascending: older dates first (oldest to newest)
+      return dateA - dateB;
+    });
+    
+    return filtered;
   }, [internalTransfers, startDate, endDate, selectedBranch, normalizeDate]);
 
   const isLoading = transfersLoading || branchesLoading;

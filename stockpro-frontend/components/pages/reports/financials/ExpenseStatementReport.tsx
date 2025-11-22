@@ -87,6 +87,7 @@ const ExpenseStatementReport: React.FC<ExpenseStatementReportProps> = ({
         id: voucher.id,
         code: voucher.code,
         date: normalizeDate(voucher.date),
+        createdAt: voucher.createdAt || voucher.date,
         entity: {
           type: voucher.entityType,
           id: voucher.expenseCodeId || "",
@@ -147,6 +148,7 @@ const ExpenseStatementReport: React.FC<ExpenseStatementReportProps> = ({
       })
       .map((v) => ({
         date: v.date,
+        createdAt: v.createdAt || v.date,
         description: v.description || "مصروف",
         ref: v.code,
         voucherId: v.id,
@@ -154,9 +156,20 @@ const ExpenseStatementReport: React.FC<ExpenseStatementReportProps> = ({
         branchName: v.branchName,
       }));
 
-    transactions.sort(
-      (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime(),
-    );
+    // Sort all transactions by createdAt from oldest to newest (ascending order)
+    transactions.sort((a, b) => {
+      // Prioritize createdAt, fallback to date if createdAt is not available
+      const dateA = new Date(a.createdAt || a.date).getTime();
+      const dateB = new Date(b.createdAt || b.date).getTime();
+      
+      // If dates are equal, use voucherId as secondary sort to maintain consistent order
+      if (dateA === dateB) {
+        return String(a.voucherId).localeCompare(String(b.voucherId));
+      }
+      
+      // Sort ascending: older dates first (oldest to newest)
+      return dateA - dateB;
+    });
 
     let balance = 0;
     const finalData = transactions.map((t) => {
