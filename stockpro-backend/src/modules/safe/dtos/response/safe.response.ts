@@ -20,6 +20,9 @@ export class SafeResponse {
   openingBalance: number;
 
   @Expose()
+  currentBalance: number;
+
+  @Expose()
   createdAt: Date;
 
   @Expose()

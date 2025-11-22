@@ -558,6 +558,17 @@ const PurchaseInvoice: React.FC<PurchaseInvoiceProps> = ({
       return;
     }
 
+    // Validate safe balance for cash payments with safe as payment target
+    if (paymentMethod === "cash" && paymentTargetType === "safe") {
+      const userBranchId = currentUser?.branchId || 
+        (typeof currentUser?.branch === 'string' ? currentUser.branch : (currentUser?.branch as any)?.id);
+      const safe = filteredSafes.find((s) => s.branchId === userBranchId);
+      if (safe && safe.currentBalance !== undefined && safe.currentBalance < totals.net) {
+        showToast("الرصيد غير كافي في الخزنة.", 'error');
+        return;
+      }
+    }
+
     try {
       // For cash payments without a supplier, pass null (backend will handle default)
       // Get branch ID from current user - use it as paymentTargetId when payment target is "safe"

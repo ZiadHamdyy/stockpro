@@ -198,6 +198,33 @@ export class PurchaseInvoiceService {
 
       // Apply cash impact if applicable (purchase invoice decreases balance)
       if (data.paymentMethod === 'cash' && data.paymentTargetType) {
+        // Validate safe balance before applying impact
+        if (data.paymentTargetType === 'safe') {
+          if (!branchId) {
+            throwHttp(
+              422,
+              ERROR_CODES.INV_PAYMENT_ACCOUNT_REQUIRED,
+              'Branch ID is required for safe payments',
+            );
+          }
+          const safe = await tx.safe.findFirst({
+            where: { branchId },
+          });
+          if (!safe) {
+            throwHttp(
+              422,
+              ERROR_CODES.INV_PAYMENT_ACCOUNT_REQUIRED,
+              'لا توجد خزنة مرتبطة بهذا الفرع',
+            );
+          }
+          if ((safe as any).currentBalance < net) {
+            throwHttp(
+              409,
+              ERROR_CODES.INV_SAFE_BALANCE_INSUFFICIENT,
+              'الرصيد غير كافي في الخزنة',
+            );
+          }
+        }
         await AccountingService.applyImpact({
           kind: 'purchase-invoice',
           amount: net,
@@ -415,6 +442,34 @@ export class PurchaseInvoiceService {
           ? (inv as any).paymentTargetType
           : null;
       if (targetType) {
+        // Validate safe balance before applying impact
+        if (targetType === 'safe') {
+          const invoiceBranchId = (inv as any).branchId;
+          if (!invoiceBranchId) {
+            throwHttp(
+              422,
+              ERROR_CODES.INV_PAYMENT_ACCOUNT_REQUIRED,
+              'Branch ID is required for safe payments',
+            );
+          }
+          const safe = await tx.safe.findFirst({
+            where: { branchId: invoiceBranchId },
+          });
+          if (!safe) {
+            throwHttp(
+              422,
+              ERROR_CODES.INV_PAYMENT_ACCOUNT_REQUIRED,
+              'لا توجد خزنة مرتبطة بهذا الفرع',
+            );
+          }
+          if ((safe as any).currentBalance < (inv as any).net) {
+            throwHttp(
+              409,
+              ERROR_CODES.INV_SAFE_BALANCE_INSUFFICIENT,
+              'الرصيد غير كافي في الخزنة',
+            );
+          }
+        }
         await AccountingService.applyImpact({
           kind: 'purchase-invoice',
           amount: (inv as any).net,

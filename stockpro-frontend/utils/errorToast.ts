@@ -24,6 +24,12 @@ function deriveCodeFromMessage(message?: string): string | undefined {
     (msg.includes("must be empty") || msg.includes("not allowed"))
   )
     return "INV_PAYMENT_ACCOUNT_FOR_CREDIT_NOT_ALLOWED";
+  if (
+    msg.includes("insufficient balance") ||
+    msg.includes("الرصيد غير كافي") ||
+    msg.includes("balance insufficient")
+  )
+    return "INV_SAFE_BALANCE_INSUFFICIENT";
   if (msg.includes("not found")) return "INV_NOT_FOUND";
   return undefined;
 }
@@ -38,6 +44,7 @@ const CODE_MESSAGES: Record<string, string> = {
     "لا يجب اختيار خزنة/بنك عند الدفع الآجل.",
   INV_ITEM_NOT_FOUND: "لم يتم العثور على أحد الأصناف.",
   INV_NOT_FOUND: "السجل غير موجود.",
+  INV_SAFE_BALANCE_INSUFFICIENT: "الرصيد غير كافي في الخزنة.",
 };
 
 export function showApiErrorToast(error: unknown) {

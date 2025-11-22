@@ -174,6 +174,7 @@ export class SafeService {
       branchId: safe.branchId,
       branchName: safe.branch.name,
       openingBalance: safe.openingBalance,
+      currentBalance: safe.currentBalance ?? safe.openingBalance,
       createdAt: safe.createdAt,
       updatedAt: safe.updatedAt,
     };

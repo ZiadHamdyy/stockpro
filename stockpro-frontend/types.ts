@@ -200,6 +200,7 @@ export interface Safe {
   branchId: string;
   branchName: string;
   openingBalance: number;
+  currentBalance: number;
   createdAt: string;
   updatedAt: string;
 }
