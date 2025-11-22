@@ -55,7 +55,13 @@ export const storeApi = apiSlice.injectEndpoints({
         body: data,
       }),
       transformResponse: (response: { data: Store }) => response.data,
-      invalidatesTags: ["Store"],
+      invalidatesTags: [
+        "Store",
+        "StoreReceiptVoucher",
+        "StoreIssueVoucher",
+        "StoreTransferVoucher",
+        "Branch",
+      ],
     }),
     updateStore: builder.mutation<Store, { id: string; data: UpdateStoreDto }>({
       query: ({ id, data }) => ({
@@ -67,6 +73,10 @@ export const storeApi = apiSlice.injectEndpoints({
       invalidatesTags: (result, error, { id }) => [
         { type: "Store", id },
         "Store",
+        "StoreReceiptVoucher",
+        "StoreIssueVoucher",
+        "StoreTransferVoucher",
+        "Branch",
       ],
     }),
     deleteStore: builder.mutation<void, string>({
@@ -74,7 +84,14 @@ export const storeApi = apiSlice.injectEndpoints({
         url: `stores/${id}`,
         method: "DELETE",
       }),
-      invalidatesTags: (result, error, id) => [{ type: "Store", id }, "Store"],
+      invalidatesTags: (result, error, id) => [
+        { type: "Store", id },
+        "Store",
+        "StoreReceiptVoucher",
+        "StoreIssueVoucher",
+        "StoreTransferVoucher",
+        "Branch",
+      ],
     }),
     getStoreItemBalance: builder.query<
       StoreItemBalance,

@@ -110,7 +110,7 @@ export const expenseApiSlice = apiSlice.injectEndpoints({
         body: data,
       }),
       transformResponse: (response: { data: ExpenseType }) => response.data,
-      invalidatesTags: [{ type: "ExpenseType", id: "LIST" }],
+      invalidatesTags: [{ type: "ExpenseType", id: "LIST" }, "Expense"],
     }),
     updateExpenseType: builder.mutation<
       ExpenseType,
@@ -125,6 +125,7 @@ export const expenseApiSlice = apiSlice.injectEndpoints({
       invalidatesTags: (result, error, { id }) => [
         { type: "ExpenseType", id },
         { type: "ExpenseType", id: "LIST" },
+        "Expense",
       ],
     }),
     deleteExpenseType: builder.mutation<void, string>({
@@ -135,6 +136,7 @@ export const expenseApiSlice = apiSlice.injectEndpoints({
       invalidatesTags: (result, error, id) => [
         { type: "ExpenseType", id },
         { type: "ExpenseType", id: "LIST" },
+        "Expense",
       ],
     }),
 
@@ -165,7 +167,7 @@ export const expenseApiSlice = apiSlice.injectEndpoints({
         body: data,
       }),
       transformResponse: (response: { data: ExpenseCode }) => response.data,
-      invalidatesTags: [{ type: "ExpenseCode", id: "LIST" }],
+      invalidatesTags: [{ type: "ExpenseCode", id: "LIST" }, "Expense"],
     }),
     updateExpenseCode: builder.mutation<
       ExpenseCode,
@@ -180,6 +182,7 @@ export const expenseApiSlice = apiSlice.injectEndpoints({
       invalidatesTags: (result, error, { id }) => [
         { type: "ExpenseCode", id },
         { type: "ExpenseCode", id: "LIST" },
+        "Expense",
       ],
     }),
     deleteExpenseCode: builder.mutation<void, string>({
@@ -190,6 +193,7 @@ export const expenseApiSlice = apiSlice.injectEndpoints({
       invalidatesTags: (result, error, id) => [
         { type: "ExpenseCode", id },
         { type: "ExpenseCode", id: "LIST" },
+        "Expense",
       ],
     }),
 

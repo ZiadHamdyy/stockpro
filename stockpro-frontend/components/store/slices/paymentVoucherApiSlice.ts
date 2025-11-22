@@ -110,6 +110,8 @@ export const paymentVoucherApiSlice = apiSlice.injectEndpoints({
         "Safe",
         "Bank",
         "CurrentAccount",
+        "Customer",
+        "Supplier",
         { type: "DashboardStats", id: "GLOBAL" },
         { type: "MonthlyStats", id: "GLOBAL" },
         { type: "IncomeStatement", id: "GLOBAL" },

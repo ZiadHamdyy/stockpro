@@ -60,7 +60,13 @@ export const supplierApiSlice = apiSlice.injectEndpoints({
         body: data,
       }),
       transformResponse: (response: { data: Supplier }) => response.data,
-      invalidatesTags: [{ type: "Supplier", id: "LIST" }],
+      invalidatesTags: [
+        { type: "Supplier", id: "LIST" },
+        "PurchaseInvoice",
+        "PurchaseReturn",
+        "PaymentVoucher",
+        "ReceiptVoucher",
+      ],
     }),
     updateSupplier: builder.mutation<
       Supplier,
@@ -75,6 +81,10 @@ export const supplierApiSlice = apiSlice.injectEndpoints({
       invalidatesTags: (result, error, { id }) => [
         { type: "Supplier", id },
         { type: "Supplier", id: "LIST" },
+        "PurchaseInvoice",
+        "PurchaseReturn",
+        "PaymentVoucher",
+        "ReceiptVoucher",
       ],
     }),
     deleteSupplier: builder.mutation<void, string>({
@@ -85,6 +95,10 @@ export const supplierApiSlice = apiSlice.injectEndpoints({
       invalidatesTags: (result, error, id) => [
         { type: "Supplier", id },
         { type: "Supplier", id: "LIST" },
+        "PurchaseInvoice",
+        "PurchaseReturn",
+        "PaymentVoucher",
+        "ReceiptVoucher",
       ],
     }),
   }),

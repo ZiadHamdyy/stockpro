@@ -91,7 +91,7 @@ export const storeTransferVoucherApi = apiSlice.injectEndpoints({
       }),
       transformResponse: (response: { data: StoreTransferVoucher }) =>
         response.data,
-      invalidatesTags: ["StoreTransferVoucher"],
+      invalidatesTags: ["StoreTransferVoucher", "Item"],
     }),
     updateStoreTransferVoucher: builder.mutation<
       StoreTransferVoucher,
@@ -107,6 +107,7 @@ export const storeTransferVoucherApi = apiSlice.injectEndpoints({
       invalidatesTags: (result, error, { id }) => [
         { type: "StoreTransferVoucher", id },
         "StoreTransferVoucher",
+        "Item",
       ],
     }),
     deleteStoreTransferVoucher: builder.mutation<void, string>({
@@ -117,6 +118,7 @@ export const storeTransferVoucherApi = apiSlice.injectEndpoints({
       invalidatesTags: (result, error, id) => [
         { type: "StoreTransferVoucher", id },
         "StoreTransferVoucher",
+        "Item",
       ],
     }),
   }),

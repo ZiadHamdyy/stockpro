@@ -93,7 +93,7 @@ export const itemsApiSlice = apiSlice.injectEndpoints({
         method: "POST",
         body: data,
       }),
-      invalidatesTags: ["ItemGroup"],
+      invalidatesTags: ["ItemGroup", "Item"],
     }),
     updateItemGroup: builder.mutation({
       query: ({ id, data }) => ({
@@ -101,14 +101,14 @@ export const itemsApiSlice = apiSlice.injectEndpoints({
         method: "PATCH",
         body: data,
       }),
-      invalidatesTags: ["ItemGroup"],
+      invalidatesTags: ["ItemGroup", "Item"],
     }),
     deleteItemGroup: builder.mutation({
       query: (id) => ({
         url: `item-groups/${id}`,
         method: "DELETE",
       }),
-      invalidatesTags: ["ItemGroup"],
+      invalidatesTags: ["ItemGroup", "Item"],
     }),
 
     // Units
@@ -123,7 +123,7 @@ export const itemsApiSlice = apiSlice.injectEndpoints({
         method: "POST",
         body: data,
       }),
-      invalidatesTags: ["Unit"],
+      invalidatesTags: ["Unit", "Item"],
     }),
     updateUnit: builder.mutation({
       query: ({ id, data }) => ({
@@ -131,14 +131,14 @@ export const itemsApiSlice = apiSlice.injectEndpoints({
         method: "PATCH",
         body: data,
       }),
-      invalidatesTags: ["Unit"],
+      invalidatesTags: ["Unit", "Item"],
     }),
     deleteUnit: builder.mutation({
       query: (id) => ({
         url: `units/${id}`,
         method: "DELETE",
       }),
-      invalidatesTags: ["Unit"],
+      invalidatesTags: ["Unit", "Item"],
     }),
 
     // Items
@@ -166,7 +166,14 @@ export const itemsApiSlice = apiSlice.injectEndpoints({
         method: "POST",
         body: data,
       }),
-      invalidatesTags: ["Item"],
+      invalidatesTags: [
+        "Item",
+        "StoreReceiptVoucher",
+        "StoreIssueVoucher",
+        "StoreTransferVoucher",
+        "ItemGroup",
+        "Unit",
+      ],
     }),
     updateItem: builder.mutation({
       query: ({ id, data }) => ({
@@ -174,14 +181,28 @@ export const itemsApiSlice = apiSlice.injectEndpoints({
         method: "PATCH",
         body: data,
       }),
-      invalidatesTags: ["Item"],
+      invalidatesTags: [
+        "Item",
+        "StoreReceiptVoucher",
+        "StoreIssueVoucher",
+        "StoreTransferVoucher",
+        "ItemGroup",
+        "Unit",
+      ],
     }),
     deleteItem: builder.mutation({
       query: (id) => ({
         url: `items/${id}`,
         method: "DELETE",
       }),
-      invalidatesTags: ["Item"],
+      invalidatesTags: [
+        "Item",
+        "StoreReceiptVoucher",
+        "StoreIssueVoucher",
+        "StoreTransferVoucher",
+        "ItemGroup",
+        "Unit",
+      ],
     }),
   }),
 });
