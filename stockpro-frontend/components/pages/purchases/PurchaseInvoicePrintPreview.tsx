@@ -45,6 +45,8 @@ const PurchaseInvoicePrintPreview: React.FC<
     details,
   } = invoiceData;
 
+  const paymentMethodLabel = paymentMethod === "cash" ? "نقدا" : "اجل";
+
   if (isLoading) {
     return (
       <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
@@ -240,6 +242,10 @@ const PurchaseInvoicePrintPreview: React.FC<
                 </p>
               </div>
               <div className="border border-gray-300 rounded-md p-3">
+                <p>
+                  <span className="font-semibold">نوع الفاتورة:</span>{" "}
+                  {paymentMethodLabel}
+                </p>
                 <p>
                   <span className="font-semibold">رقم الفاتورة:</span>{" "}
                   {details.invoiceNumber}

@@ -61,7 +61,7 @@ const InvoicePrintPreview: React.FC<InvoicePrintPreviewProps> = ({
   const paymentMethodLabel = paymentMethod === "cash" ? "نقدا" : "اجل";
 
   // Determine the original VAT status from invoice data (not current company settings)
-  // If invoice has no tax (total tax is 0 and all items have 0 or no taxAmount), 
+  // If invoice has no tax (total tax is 0 and all items have 0 or no taxAmount),
   // then VAT was disabled when invoice was created
   const originalIsVatEnabled =
     totals.tax > 0 || items.some((item) => (item.taxAmount || 0) > 0);
@@ -101,17 +101,17 @@ const InvoicePrintPreview: React.FC<InvoicePrintPreviewProps> = ({
     const headerHtml = `
       <div class="flex justify-between items-start pb-4 border-b-2 border-brand-blue mb-3">
         <div class="flex items-center gap-4">
-          ${companyInfo.logo ? `<img src="${companyInfo.logo}" alt="Company Logo" class="h-20 w-auto object-contain" />` : ''}
+          ${companyInfo.logo ? `<img src="${companyInfo.logo}" alt="Company Logo" class="h-20 w-auto object-contain" />` : ""}
           <div>
-            <div class="text-2xl font-bold text-black">${companyInfo.name || ''}</div>
-            <div class="text-sm text-gray-600">${companyInfo.address || ''}</div>
-            <div class="text-sm text-gray-600">الرقم الضريبي: ${companyInfo.taxNumber || ''}</div>
-            <div class="text-sm text-gray-600">السجل التجاري: ${companyInfo.commercialReg || ''}</div>
+            <div class="text-2xl font-bold text-black">${companyInfo.name || ""}</div>
+            <div class="text-sm text-gray-600">${companyInfo.address || ""}</div>
+            <div class="text-sm text-gray-600">الرقم الضريبي: ${companyInfo.taxNumber || ""}</div>
+            <div class="text-sm text-gray-600">السجل التجاري: ${companyInfo.commercialReg || ""}</div>
           </div>
         </div>
         <div class="text-left">
-          <div class="text-3xl font-bold text-brand-blue">${isReturn ? 'فاتورة ضريبية' : (!originalIsVatEnabled ? 'فاتورة مبيعات' : (customer?.taxNumber ? 'فاتورة ضريبية' : 'فاتورة ضريبية مبسطة'))}</div>
-          <div class="text-sm">Tax Invoice ${isReturn ? '<span class="text-gray-700">إشغار دائن</span>' : ''}</div>
+          <div class="text-3xl font-bold text-brand-blue">${isReturn ? "فاتورة ضريبية" : !originalIsVatEnabled ? "فاتورة مبيعات" : customer?.taxNumber ? "فاتورة ضريبية" : "فاتورة ضريبية مبسطة"}</div>
+          <div class="text-sm">Tax Invoice ${isReturn ? '<span class="text-gray-700">إشغار دائن</span>' : ""}</div>
         </div>
       </div>
     `;
@@ -179,8 +179,8 @@ const InvoicePrintPreview: React.FC<InvoicePrintPreviewProps> = ({
         if (img.complete) {
           done();
         } else {
-          img.addEventListener('load', done);
-          img.addEventListener('error', done);
+          img.addEventListener("load", done);
+          img.addEventListener("error", done);
         }
       });
       // Fallback timeout in case some images never fire events
@@ -190,7 +190,9 @@ const InvoicePrintPreview: React.FC<InvoicePrintPreviewProps> = ({
     if (printWindow.document.readyState === "complete") {
       setTimeout(waitForImages, 100);
     } else {
-      printWindow.addEventListener("load", () => setTimeout(waitForImages, 100));
+      printWindow.addEventListener("load", () =>
+        setTimeout(waitForImages, 100)
+      );
     }
   };
 
@@ -207,7 +209,7 @@ const InvoicePrintPreview: React.FC<InvoicePrintPreviewProps> = ({
     companyInfo.taxNumber,
     new Date(details.invoiceDate).toISOString(),
     totals.net.toFixed(2),
-    totals.tax.toFixed(2),
+    totals.tax.toFixed(2)
   );
   const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?data=${encodeURIComponent(qrData)}&size=128x128&margin=0`;
 
@@ -264,7 +266,10 @@ const InvoicePrintPreview: React.FC<InvoicePrintPreviewProps> = ({
                 const isLastPage = pageIndex === totalPages - 1;
                 const rowNumberOffset = pageIndex * rowsPerPage;
                 return (
-                  <div key={pageIndex} className={!isLastPage ? "page-break" : undefined}>
+                  <div
+                    key={pageIndex}
+                    className={!isLastPage ? "page-break" : undefined}
+                  >
                     {isFirstPage && (
                       <>
                         <header className="flex justify-between items-start pb-4 border-b-2 border-brand-blue">
@@ -280,7 +285,9 @@ const InvoicePrintPreview: React.FC<InvoicePrintPreviewProps> = ({
                               <h2 className="text-2xl font-bold text-black">
                                 {companyInfo.name}
                               </h2>
-                              <p className="text-sm text-gray-600">{companyInfo.address}</p>
+                              <p className="text-sm text-gray-600">
+                                {companyInfo.address}
+                              </p>
                               <p className="text-sm text-gray-600">
                                 الرقم الضريبي: {companyInfo.taxNumber}
                               </p>
@@ -293,52 +300,70 @@ const InvoicePrintPreview: React.FC<InvoicePrintPreviewProps> = ({
                             <h1 className="text-3xl font-bold text-brand-blue">
                               {isReturn
                                 ? "فاتورة ضريبية"
-                                : (!originalIsVatEnabled 
-                                    ? "فاتورة مبيعات"
-                                    : (customer?.taxNumber 
-                                        ? "فاتورة ضريبية" 
-                                        : "فاتورة ضريبية مبسطة"))}
+                                : !originalIsVatEnabled
+                                  ? "فاتورة مبيعات"
+                                  : customer?.taxNumber
+                                    ? "فاتورة ضريبية"
+                                    : "فاتورة ضريبية مبسطة"}
                             </h1>
                             <p>
                               {isReturn && (
-                                <span className="text-sm text-gray-700">إشغار مدين</span>
-                              )} Tax Invoice
+                                <span className="text-sm text-gray-700">
+                                  إشغار مدين
+                                </span>
+                              )}{" "}
+                              Tax Invoice
                             </p>
                           </div>
                         </header>
 
                         <section className="grid grid-cols-2 gap-x-8 text-sm my-6">
                           <div className="border border-gray-300 rounded-md p-3">
-                            <h3 className="font-bold text-base mb-2">بيانات العميل:</h3>
+                            <h3 className="font-bold text-base mb-2">
+                              بيانات العميل:
+                            </h3>
                             <p>
                               <span className="font-semibold">الاسم:</span>{" "}
                               {customer?.name || "عميل نقدي"}
                             </p>
                             <p>
                               <span className="font-semibold">العنوان:</span>{" "}
-                              {customer?.address || "--------------------------------"}
+                              {customer?.address ||
+                                "--------------------------------"}
                             </p>
                             <p>
-                              <span className="font-semibold">الرقم الضريبي:</span>{" "}
-                              {customer?.taxNumber || "--------------------------------"}
+                              <span className="font-semibold">
+                                الرقم الضريبي:
+                              </span>{" "}
+                              {customer?.taxNumber ||
+                                "--------------------------------"}
                             </p>
                             <p>
-                              <span className="font-semibold">السجل التجاري:</span>{" "}
-                              {customer?.commercialReg || "--------------------------------"}
+                              <span className="font-semibold">
+                                السجل التجاري:
+                              </span>{" "}
+                              {customer?.commercialReg ||
+                                "--------------------------------"}
                             </p>
                           </div>
                           <div className="border border-gray-300 rounded-md p-3">
                             <p>
-                              <span className="font-semibold">رقم الفاتورة:</span>{" "}
+                              <span className="font-semibold">
+                                نوع الفاتورة:
+                              </span>{" "}
+                              {paymentMethodLabel}
+                            </p>
+                            <p>
+                              <span className="font-semibold">
+                                رقم الفاتورة:
+                              </span>{" "}
                               {details.invoiceNumber}
                             </p>
                             <p>
-                              <span className="font-semibold">تاريخ الفاتورة:</span>{" "}
+                              <span className="font-semibold">
+                                تاريخ الفاتورة:
+                              </span>{" "}
                               {details.invoiceDate}
-                            </p>
-                            <p>
-                              <span className="font-semibold">نوع الفاتورة:</span>{" "}
-                              {paymentMethodLabel}
                             </p>
                             <p>
                               <span className="font-semibold">الفرع:</span>{" "}
@@ -352,10 +377,11 @@ const InvoicePrintPreview: React.FC<InvoicePrintPreviewProps> = ({
                         </section>
                       </>
                     )}
-                    
+
                     {!isFirstPage && totalPages > 1 && (
                       <div className="text-center text-xs text-gray-500 mb-4 pb-2 border-b border-gray-300">
-                        صفحة {pageIndex + 1} من {totalPages} - {details.invoiceNumber}
+                        صفحة {pageIndex + 1} من {totalPages} -{" "}
+                        {details.invoiceNumber}
                       </div>
                     )}
 
@@ -363,7 +389,10 @@ const InvoicePrintPreview: React.FC<InvoicePrintPreviewProps> = ({
                       <thead className="bg-brand-blue text-white">
                         <tr>
                           <th className="p-2 border border-blue-300">م</th>
-                          <th className="p-2 border border-blue-300 text-right" style={{ width: '35%' }}>
+                          <th
+                            className="p-2 border border-blue-300 text-right"
+                            style={{ width: "35%" }}
+                          >
                             الصنف
                           </th>
                           <th className="p-2 border border-blue-300">الوحدة</th>
@@ -371,10 +400,13 @@ const InvoicePrintPreview: React.FC<InvoicePrintPreviewProps> = ({
                           <th className="p-2 border border-blue-300">السعر</th>
                           {shouldDisplayTaxColumn && (
                             <th className="p-2 border border-blue-300">
-                              الضريبة {originalIsVatEnabled ? `(%${vatRate})` : "(%0)"}
+                              الضريبة{" "}
+                              {originalIsVatEnabled ? `(%${vatRate})` : "(%0)"}
                             </th>
                           )}
-                          <th className="p-2 border border-blue-300">الاجمالي</th>
+                          <th className="p-2 border border-blue-300">
+                            الاجمالي
+                          </th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-gray-300">
@@ -383,7 +415,12 @@ const InvoicePrintPreview: React.FC<InvoicePrintPreviewProps> = ({
                             <td className="p-2 border border-gray-300 text-center">
                               {rowNumberOffset + index + 1}
                             </td>
-                            <td className="p-2 border border-gray-300" style={{ width: '35%' }}>{item.name}</td>
+                            <td
+                              className="p-2 border border-gray-300"
+                              style={{ width: "35%" }}
+                            >
+                              {item.name}
+                            </td>
                             <td className="p-2 border border-gray-300 text-center">
                               {item.unit}
                             </td>
@@ -411,7 +448,11 @@ const InvoicePrintPreview: React.FC<InvoicePrintPreviewProps> = ({
                         <section className="flex justify-between items-start mt-4 gap-4">
                           <div className="w-1/2">
                             {shouldDisplayTaxColumn && qrData && (
-                              <img src={qrCodeUrl} alt="QR Code" className="w-28 h-28" />
+                              <img
+                                src={qrCodeUrl}
+                                alt="QR Code"
+                                className="w-28 h-28"
+                              />
                             )}
                           </div>
                           <div className="w-1/2 text-sm">
@@ -444,7 +485,9 @@ const InvoicePrintPreview: React.FC<InvoicePrintPreviewProps> = ({
                                   </tr>
                                 )}
                                 <tr className="bg-brand-blue text-white font-bold text-base">
-                                  <td className="p-2 border border-blue-300">الصافي</td>
+                                  <td className="p-2 border border-blue-300">
+                                    الصافي
+                                  </td>
                                   <td className="p-2 border border-blue-300 text-left">
                                     {formatMoney(totals.net)}
                                   </td>
@@ -480,7 +523,9 @@ const InvoicePrintPreview: React.FC<InvoicePrintPreviewProps> = ({
                         </footer>
                       </>
                     ) : (
-                      <div className="text-center text-xs text-gray-500 mt-2">يتبع...</div>
+                      <div className="text-center text-xs text-gray-500 mt-2">
+                        يتبع...
+                      </div>
                     )}
                   </div>
                 );
