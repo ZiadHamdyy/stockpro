@@ -8,6 +8,7 @@ import { useGetCompanyQuery } from "../../store/slices/companyApiSlice";
 import { useGetBranchesQuery } from "../../store/slices/branch/branchApi";
 import { useAppSelector } from "../../store/hooks";
 import { selectCurrentUser } from "../../store/slices/auth/auth";
+import { getCurrentYearRange } from "../reports/dateUtils";
 
 interface DailySalesProps {
   title: string;
@@ -33,12 +34,9 @@ const DailySales: React.FC<DailySalesProps> = ({ title }) => {
     vatRate: 15,
     isVatEnabled: true,
   };
-  const [startDate, setStartDate] = useState(
-    new Date().toISOString().substring(0, 10),
-  ); // Current day
-  const [endDate, setEndDate] = useState(
-    new Date().toISOString().substring(0, 10),
-  ); // Current day
+  const { start: defaultStartDate, end: defaultEndDate } = getCurrentYearRange();
+  const [startDate, setStartDate] = useState(defaultStartDate);
+  const [endDate, setEndDate] = useState(defaultEndDate);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedBranchId, setSelectedBranchId] = useState<string>("");
 
