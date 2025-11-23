@@ -156,11 +156,11 @@ const ExpenseStatementReport: React.FC<ExpenseStatementReportProps> = ({
         branchName: v.branchName,
       }));
 
-    // Sort all transactions by createdAt from oldest to newest (ascending order)
+    // Sort all transactions by date field from oldest to newest (ascending order)
     transactions.sort((a, b) => {
-      // Prioritize createdAt, fallback to date if createdAt is not available
-      const dateA = new Date(a.createdAt || a.date).getTime();
-      const dateB = new Date(b.createdAt || b.date).getTime();
+      // Sort by date field (transaction date)
+      const dateA = new Date(a.date).getTime();
+      const dateB = new Date(b.date).getTime();
       
       // If dates are equal, use voucherId as secondary sort to maintain consistent order
       if (dateA === dateB) {

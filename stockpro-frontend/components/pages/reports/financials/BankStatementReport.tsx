@@ -339,14 +339,24 @@ const BankStatementReport: React.FC<BankStatementReportProps> = ({
       sortKey: number;
     }[] = [];
 
-    const buildSortKey = (record: any, fallbackDate: string) => {
-      const base =
-        record?.createdAt ||
-        record?.created_at ||
-        record?.date ||
-        fallbackDate;
-      const time = new Date(base || fallbackDate).getTime();
-      return Number.isFinite(time) ? time : 0;
+    const buildSortKey = (record: any) => {
+      // Sort by date field (transaction date) for chronological ordering
+      const dateValue = record?.date;
+      if (dateValue) {
+        const time = new Date(dateValue).getTime();
+        if (Number.isFinite(time) && time > 0) {
+          return time;
+        }
+      }
+      // Fallback to createdAt if date is not available
+      const createdAt = record?.createdAt || record?.created_at;
+      if (createdAt) {
+        const time = new Date(createdAt).getTime();
+        if (Number.isFinite(time) && time > 0) {
+          return time;
+        }
+      }
+      return 0;
     };
 
     // Receipt Vouchers (incoming) - Debit
@@ -366,7 +376,7 @@ const BankStatementReport: React.FC<BankStatementReportProps> = ({
           debit: v.amount,
           credit: 0,
           link: { page: "receipt_voucher", label: "سند قبض" },
-          sortKey: buildSortKey(v, v.date),
+          sortKey: buildSortKey(v),
         });
       }
     });
@@ -390,7 +400,7 @@ const BankStatementReport: React.FC<BankStatementReportProps> = ({
           debit: amount,
           credit: 0,
           link: { page: "sales_invoice", label: "فاتورة مبيعات" },
-          sortKey: buildSortKey(inv, invoiceDate),
+          sortKey: buildSortKey(inv),
         });
       }
     });
@@ -414,7 +424,7 @@ const BankStatementReport: React.FC<BankStatementReportProps> = ({
           debit: amount,
           credit: 0,
           link: { page: "purchase_return", label: "مرتجع مشتريات" },
-          sortKey: buildSortKey(ret, returnDate),
+          sortKey: buildSortKey(ret),
         });
       }
     });
@@ -438,7 +448,7 @@ const BankStatementReport: React.FC<BankStatementReportProps> = ({
           debit: t.amount,
           credit: 0,
           link: { page: "internal_transfer", label: "تحويل داخلي" },
-          sortKey: buildSortKey(t, transferDate),
+          sortKey: buildSortKey(t),
         });
       }
     });
@@ -462,7 +472,7 @@ const BankStatementReport: React.FC<BankStatementReportProps> = ({
           debit: 0,
           credit: amount,
           link: { page: "purchase_invoice", label: "فاتورة مشتريات" },
-          sortKey: buildSortKey(inv, invoiceDate),
+          sortKey: buildSortKey(inv),
         });
       }
     });
@@ -486,7 +496,7 @@ const BankStatementReport: React.FC<BankStatementReportProps> = ({
           debit: 0,
           credit: amount,
           link: { page: "sales_return", label: "مرتجع مبيعات" },
-          sortKey: buildSortKey(ret, returnDate),
+          sortKey: buildSortKey(ret),
         });
       }
     });
@@ -508,7 +518,7 @@ const BankStatementReport: React.FC<BankStatementReportProps> = ({
           debit: 0,
           credit: v.amount,
           link: { page: "payment_voucher", label: "سند صرف" },
-          sortKey: buildSortKey(v, v.date),
+          sortKey: buildSortKey(v),
         });
       }
     });
@@ -532,7 +542,7 @@ const BankStatementReport: React.FC<BankStatementReportProps> = ({
           debit: 0,
           credit: t.amount,
           link: { page: "internal_transfer", label: "تحويل داخلي" },
-          sortKey: buildSortKey(t, transferDate),
+          sortKey: buildSortKey(t),
         });
       }
     });

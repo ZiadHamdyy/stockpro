@@ -120,11 +120,11 @@ const DailyCollectionsReport: React.FC<DailyCollectionsReportProps> = ({
       return dateMatch && branchMatch;
     });
     
-    // Sort all vouchers by createdAt from oldest to newest (ascending order)
+    // Sort all vouchers by date field from oldest to newest (ascending order)
     filtered.sort((a, b) => {
-      // Prioritize createdAt, fallback to date if createdAt is not available
-      const dateA = new Date(a.createdAt || a.date).getTime();
-      const dateB = new Date(b.createdAt || b.date).getTime();
+      // Sort by date field (transaction date)
+      const dateA = new Date(a.date).getTime();
+      const dateB = new Date(b.date).getTime();
       
       // If dates are equal, use id as secondary sort to maintain consistent order
       if (dateA === dateB) {

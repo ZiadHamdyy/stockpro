@@ -358,18 +358,18 @@ const SafeStatementReport: React.FC<SafeStatementReportProps> = ({
     }[] = [];
 
     const buildSortKey = (record: any) => {
-      // Prioritize createdAt for accurate chronological sorting (full timestamp with time)
-      const createdAt = record?.createdAt || record?.created_at;
-      if (createdAt) {
-        const time = new Date(createdAt).getTime();
+      // Sort by date field (transaction date) for chronological ordering
+      const dateValue = record?.date;
+      if (dateValue) {
+        const time = new Date(dateValue).getTime();
         if (Number.isFinite(time) && time > 0) {
           return time;
         }
       }
-      // Fallback to original date field (not normalized) if createdAt is not available
-      const dateValue = record?.date;
-      if (dateValue) {
-        const time = new Date(dateValue).getTime();
+      // Fallback to createdAt if date is not available
+      const createdAt = record?.createdAt || record?.created_at;
+      if (createdAt) {
+        const time = new Date(createdAt).getTime();
         if (Number.isFinite(time) && time > 0) {
           return time;
         }
@@ -558,8 +558,8 @@ const SafeStatementReport: React.FC<SafeStatementReportProps> = ({
     });
 
 
-    // Sort ascending by createdAt (or date) to compute running balance correctly
-    // sortKey contains full timestamp, so simple numeric comparison is sufficient
+    // Sort ascending by date field to compute running balance correctly
+    // sortKey contains the date timestamp, so simple numeric comparison is sufficient
     transactions.sort((a, b) => (a.sortKey || 0) - (b.sortKey || 0));
 
     let balance = openingBalance;
