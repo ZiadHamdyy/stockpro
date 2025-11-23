@@ -357,20 +357,20 @@ const SafeStatementReport: React.FC<SafeStatementReportProps> = ({
       sortKey: number;
     }[] = [];
 
-    const buildSortKey = (record: any, fallbackDate: string) => {
-      // Prioritize createdAt for accurate chronological sorting
+    const buildSortKey = (record: any) => {
+      // Prioritize createdAt for accurate chronological sorting (full timestamp with time)
       const createdAt = record?.createdAt || record?.created_at;
       if (createdAt) {
         const time = new Date(createdAt).getTime();
-        if (Number.isFinite(time)) {
+        if (Number.isFinite(time) && time > 0) {
           return time;
         }
       }
-      // Fallback to date if createdAt is not available
-      const dateValue = record?.date || fallbackDate;
+      // Fallback to original date field (not normalized) if createdAt is not available
+      const dateValue = record?.date;
       if (dateValue) {
         const time = new Date(dateValue).getTime();
-        if (Number.isFinite(time)) {
+        if (Number.isFinite(time) && time > 0) {
           return time;
         }
       }
@@ -394,7 +394,7 @@ const SafeStatementReport: React.FC<SafeStatementReportProps> = ({
           debit: v.amount,
           credit: 0,
           link: { page: "receipt_voucher", label: "سند قبض" },
-          sortKey: buildSortKey(v, v.date),
+          sortKey: buildSortKey(v),
         });
       }
     });
@@ -416,7 +416,7 @@ const SafeStatementReport: React.FC<SafeStatementReportProps> = ({
           debit: amount,
           credit: 0,
           link: { page: "sales_invoice", label: "فاتورة مبيعات" },
-          sortKey: buildSortKey(inv, invoiceDate),
+          sortKey: buildSortKey(inv),
         });
       }
     });
@@ -438,7 +438,7 @@ const SafeStatementReport: React.FC<SafeStatementReportProps> = ({
           debit: amount,
           credit: 0,
           link: { page: "purchase_return", label: "مرتجع مشتريات" },
-          sortKey: buildSortKey(ret, returnDate),
+          sortKey: buildSortKey(ret),
         });
       }
     });
@@ -462,7 +462,7 @@ const SafeStatementReport: React.FC<SafeStatementReportProps> = ({
           debit: t.amount,
           credit: 0,
           link: { page: "internal_transfer", label: "تحويل داخلي" },
-          sortKey: buildSortKey(t, transferDate),
+          sortKey: buildSortKey(t),
         });
       }
     });
@@ -484,7 +484,7 @@ const SafeStatementReport: React.FC<SafeStatementReportProps> = ({
           debit: 0,
           credit: amount,
           link: { page: "purchase_invoice", label: "فاتورة مشتريات" },
-          sortKey: buildSortKey(inv, invoiceDate),
+          sortKey: buildSortKey(inv),
         });
       }
     });
@@ -506,7 +506,7 @@ const SafeStatementReport: React.FC<SafeStatementReportProps> = ({
           debit: 0,
           credit: amount,
           link: { page: "sales_return", label: "مرتجع مبيعات" },
-          sortKey: buildSortKey(ret, returnDate),
+          sortKey: buildSortKey(ret),
         });
       }
     });
@@ -528,7 +528,7 @@ const SafeStatementReport: React.FC<SafeStatementReportProps> = ({
           debit: 0,
           credit: v.amount,
           link: { page: "payment_voucher", label: "سند صرف" },
-          sortKey: buildSortKey(v, v.date),
+          sortKey: buildSortKey(v),
         });
       }
     });
@@ -552,24 +552,15 @@ const SafeStatementReport: React.FC<SafeStatementReportProps> = ({
           debit: 0,
           credit: t.amount,
           link: { page: "internal_transfer", label: "تحويل داخلي" },
-          sortKey: buildSortKey(t, transferDate),
+          sortKey: buildSortKey(t),
         });
       }
     });
 
 
     // Sort ascending by createdAt (or date) to compute running balance correctly
-    transactions.sort((a, b) => {
-      const keyA = a.sortKey || 0;
-      const keyB = b.sortKey || 0;
-      if (keyA !== keyB) {
-        return keyA - keyB;
-      }
-      // Secondary sort by date if sortKey is the same
-      const dateA = new Date(a.date).getTime();
-      const dateB = new Date(b.date).getTime();
-      return (Number.isFinite(dateA) ? dateA : 0) - (Number.isFinite(dateB) ? dateB : 0);
-    });
+    // sortKey contains full timestamp, so simple numeric comparison is sufficient
+    transactions.sort((a, b) => (a.sortKey || 0) - (b.sortKey || 0));
 
     let balance = openingBalance;
     const withBalance = transactions.map((t) => {
