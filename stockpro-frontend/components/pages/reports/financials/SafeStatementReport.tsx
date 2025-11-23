@@ -358,13 +358,23 @@ const SafeStatementReport: React.FC<SafeStatementReportProps> = ({
     }[] = [];
 
     const buildSortKey = (record: any, fallbackDate: string) => {
-      const base =
-        record?.createdAt ||
-        record?.created_at ||
-        record?.date ||
-        fallbackDate;
-      const time = new Date(base || fallbackDate).getTime();
-      return Number.isFinite(time) ? time : 0;
+      // Prioritize createdAt for accurate chronological sorting
+      const createdAt = record?.createdAt || record?.created_at;
+      if (createdAt) {
+        const time = new Date(createdAt).getTime();
+        if (Number.isFinite(time)) {
+          return time;
+        }
+      }
+      // Fallback to date if createdAt is not available
+      const dateValue = record?.date || fallbackDate;
+      if (dateValue) {
+        const time = new Date(dateValue).getTime();
+        if (Number.isFinite(time)) {
+          return time;
+        }
+      }
+      return 0;
     };
 
     // Receipt Vouchers (incoming) - Debit
@@ -548,8 +558,18 @@ const SafeStatementReport: React.FC<SafeStatementReportProps> = ({
     });
 
 
-    // Sort ascending to compute running balance correctly
-    transactions.sort((a, b) => (a.sortKey || 0) - (b.sortKey || 0));
+    // Sort ascending by createdAt (or date) to compute running balance correctly
+    transactions.sort((a, b) => {
+      const keyA = a.sortKey || 0;
+      const keyB = b.sortKey || 0;
+      if (keyA !== keyB) {
+        return keyA - keyB;
+      }
+      // Secondary sort by date if sortKey is the same
+      const dateA = new Date(a.date).getTime();
+      const dateB = new Date(b.date).getTime();
+      return (Number.isFinite(dateA) ? dateA : 0) - (Number.isFinite(dateB) ? dateB : 0);
+    });
 
     let balance = openingBalance;
     const withBalance = transactions.map((t) => {
