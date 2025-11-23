@@ -223,8 +223,8 @@ const TaxDeclarationReport: React.FC<TaxDeclarationReportProps> = ({
     // 5. Purchase tax column = invoice VAT + expense tax
     const purchasesTax = purchaseInvoicesTax + expenseTax;
     
-    // 6. Calculate purchases value: Purchases before tax + Taxable expenses - (Purchase Tax + Expense Tax)
-    const purchasesValue = purchasesSubtotal + taxableExpensesTotal - (purchaseInvoicesTax + expenseTax);
+    // 6. Calculate purchases value: Purchases before tax + Taxable expenses
+    const purchasesValue = purchasesSubtotal + taxableExpensesTotal;
 
     // 7. Purchase returns subtotal (before tax) from search date
     const purchaseReturnsSubtotal = filteredPurchaseReturns.reduce(
