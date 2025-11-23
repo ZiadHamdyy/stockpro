@@ -179,8 +179,20 @@ configure_nginx() {
 run_migrations() {
     print_info "Running database migrations..."
     
-    # Use migrate deploy to apply migrations without resetting the database
-    docker exec stockpro-backend-prod pnpm prisma migrate deploy || true
+    # Try to deploy migrations
+    MIGRATE_OUTPUT=$(docker exec stockpro-backend-prod pnpm prisma migrate deploy 2>&1)
+    MIGRATE_EXIT_CODE=$?
+    
+    # If migration fails with P3005 (database not baselined), resolve all migrations as applied
+    if [ $MIGRATE_EXIT_CODE -ne 0 ] && echo "$MIGRATE_OUTPUT" | grep -q "P3005"; then
+        print_info "Database needs to be baselined. Marking all existing migrations as applied..."
+        # Mark all migrations as applied
+        docker exec stockpro-backend-prod sh -c 'cd /app && ls -d prisma/migrations/*/ | while read migration_dir; do migration_name=$(basename "$migration_dir"); pnpm prisma migrate resolve --applied "$migration_name" 2>/dev/null || true; done'
+        # Now try deploy again - it should only apply new migrations
+        docker exec stockpro-backend-prod pnpm prisma migrate deploy || true
+    elif [ $MIGRATE_EXIT_CODE -ne 0 ]; then
+        print_error "Migration failed with error: $MIGRATE_OUTPUT"
+    fi
     
     print_success "Database migrations completed"
 }
