@@ -179,19 +179,27 @@ configure_nginx() {
 run_migrations() {
     print_info "Running database migrations..."
     
-    # Try to deploy migrations
+    # Try to deploy migrations and capture output
     MIGRATE_OUTPUT=$(docker exec stockpro-backend-prod pnpm prisma migrate deploy 2>&1)
     MIGRATE_EXIT_CODE=$?
+    
+    # Show the output
+    echo "$MIGRATE_OUTPUT"
     
     # If migration fails with P3005 (database not baselined), resolve all migrations as applied
     if [ $MIGRATE_EXIT_CODE -ne 0 ] && echo "$MIGRATE_OUTPUT" | grep -q "P3005"; then
         print_info "Database needs to be baselined. Marking all existing migrations as applied..."
         # Mark all migrations as applied
-        docker exec stockpro-backend-prod sh -c 'cd /app && ls -d prisma/migrations/*/ | while read migration_dir; do migration_name=$(basename "$migration_dir"); pnpm prisma migrate resolve --applied "$migration_name" 2>/dev/null || true; done'
+        docker exec stockpro-backend-prod sh -c 'cd /app && ls -d prisma/migrations/*/ | while read migration_dir; do migration_name=$(basename "$migration_dir"); echo "Marking $migration_name as applied..."; pnpm prisma migrate resolve --applied "$migration_name" 2>&1 || true; done'
+        print_info "Retrying migration deploy..."
         # Now try deploy again - it should only apply new migrations
-        docker exec stockpro-backend-prod pnpm prisma migrate deploy || true
+        docker exec stockpro-backend-prod pnpm prisma migrate deploy || {
+            print_error "Migration still failed after baselining"
+            return 1
+        }
     elif [ $MIGRATE_EXIT_CODE -ne 0 ]; then
-        print_error "Migration failed with error: $MIGRATE_OUTPUT"
+        print_error "Migration failed with error (see output above)"
+        return 1
     fi
     
     print_success "Database migrations completed"
