@@ -18,7 +18,7 @@ export class HttpExceptionFilter implements ExceptionFilter {
 
   constructor(private readonly logger?: PinoLogger) {}
 
-  async catch(exception: unknown, host: ArgumentsHost): Promise<void> {
+  catch(exception: unknown, host: ArgumentsHost): void {
     const httpContext = host.switchToHttp();
     const response = httpContext.getResponse();
     const request = httpContext.getRequest();

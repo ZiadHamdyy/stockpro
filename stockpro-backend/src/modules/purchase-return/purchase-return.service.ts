@@ -125,14 +125,13 @@ export class PurchaseReturnService {
         }
       }
 
-      const safeId =
-        branchId
-          ? (
-              await tx.safe.findFirst({
-                where: { branchId },
-              })
-            )?.id || null
-          : null;
+      const safeId = branchId
+        ? (
+            await tx.safe.findFirst({
+              where: { branchId },
+            })
+          )?.id || null
+        : null;
       const bankId =
         data.paymentTargetType === 'bank' ? data.paymentTargetId || null : null;
 
@@ -361,14 +360,14 @@ export class PurchaseReturnService {
       const nextPaymentTargetType =
         data.paymentTargetType !== undefined
           ? data.paymentTargetType
-          : existingReturn.paymentTargetType ?? null;
+          : (existingReturn.paymentTargetType ?? null);
       const nextPaymentTargetId =
         data.paymentTargetId !== undefined
           ? data.paymentTargetId
-          : existingReturn.paymentTargetId ?? null;
+          : (existingReturn.paymentTargetId ?? null);
       const safeId = await this.findSafeId(existingReturn.branchId, tx);
       const bankId =
-        nextPaymentTargetType === 'bank' ? nextPaymentTargetId ?? null : null;
+        nextPaymentTargetType === 'bank' ? (nextPaymentTargetId ?? null) : null;
 
       const ret = await tx.purchaseReturn.update({
         where: { id },

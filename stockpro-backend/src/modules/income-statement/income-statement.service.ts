@@ -249,8 +249,10 @@ export class IncomeStatementService {
 
       if (balance > 0) {
         // Find the last purchase price before or on the target date
-        const lastPurchasePrice =
-          await this.getLastPurchasePriceBeforeDate(item.code, targetDateTime);
+        const lastPurchasePrice = await this.getLastPurchasePriceBeforeDate(
+          item.code,
+          targetDateTime,
+        );
 
         // Use last purchase price if found, otherwise fall back to item's current purchase price
         const price = lastPurchasePrice || item.purchasePrice || 0;
@@ -331,18 +333,20 @@ export class IncomeStatementService {
     }
 
     // Add quantities from StoreReceiptVouchers (before or on target date)
-    const storeReceiptVouchers = await this.prisma.storeReceiptVoucher.findMany({
-      where: {
-        date: dateFilter,
-      },
-      include: {
-        items: {
-          where: {
-            itemId,
+    const storeReceiptVouchers = await this.prisma.storeReceiptVoucher.findMany(
+      {
+        where: {
+          date: dateFilter,
+        },
+        include: {
+          items: {
+            where: {
+              itemId,
+            },
           },
         },
       },
-    });
+    );
 
     for (const voucher of storeReceiptVouchers) {
       for (const voucherItem of voucher.items) {

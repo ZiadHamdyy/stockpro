@@ -22,7 +22,8 @@ export class BalanceSheetService {
     const receivables = await this.calculateReceivables(targetDate);
     const otherReceivables = await this.calculateOtherReceivables(targetDate);
     const inventory = await this.calculateInventoryValue(endDate);
-    const totalAssets = cashInSafes + cashInBanks + receivables + otherReceivables + inventory;
+    const totalAssets =
+      cashInSafes + cashInBanks + receivables + otherReceivables + inventory;
 
     const payables = await this.calculatePayables(targetDate);
     const otherPayables = await this.calculateOtherPayables(targetDate);
@@ -479,8 +480,10 @@ export class BalanceSheetService {
 
       if (balance > 0) {
         // Find the last purchase price before or on the target date
-        const lastPurchasePrice =
-          await this.getLastPurchasePriceBeforeDate(item.code, targetDateTime);
+        const lastPurchasePrice = await this.getLastPurchasePriceBeforeDate(
+          item.code,
+          targetDateTime,
+        );
 
         // Use last purchase price if found, otherwise fall back to item's current purchase price
         const price = lastPurchasePrice || item.purchasePrice || 0;
@@ -556,20 +559,22 @@ export class BalanceSheetService {
     }
 
     // Add quantities from StoreReceiptVouchers (before or on target date)
-    const storeReceiptVouchers = await this.prisma.storeReceiptVoucher.findMany({
-      where: {
-        date: {
-          lte: targetDate,
+    const storeReceiptVouchers = await this.prisma.storeReceiptVoucher.findMany(
+      {
+        where: {
+          date: {
+            lte: targetDate,
+          },
         },
-      },
-      include: {
-        items: {
-          where: {
-            itemId,
+        include: {
+          items: {
+            where: {
+              itemId,
+            },
           },
         },
       },
-    });
+    );
 
     for (const voucher of storeReceiptVouchers) {
       for (const voucherItem of voucher.items) {
@@ -814,7 +819,7 @@ export class BalanceSheetService {
     const vatRate = company?.vatRate || 0;
 
     if (!isVatEnabled || vatRate <= 0) {
-    return 0;
+      return 0;
     }
 
     // Calculate Output VAT (VAT collected on sales)

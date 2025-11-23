@@ -88,11 +88,11 @@ export class SalesInvoiceService {
     let tax = 0;
 
     const itemsWithTotals = data.items.map((item) => {
-      const { net: lineNet, taxAmount, total } = this.computeLineTotals(
-        item,
-        vatRate,
-        isVatEnabled,
-      );
+      const {
+        net: lineNet,
+        taxAmount,
+        total,
+      } = this.computeLineTotals(item, vatRate, isVatEnabled);
       subtotal += lineNet;
       tax += taxAmount;
       return {
@@ -134,11 +134,15 @@ export class SalesInvoiceService {
       // Skip validation if allowInsufficientStock is true
       if (!data.allowInsufficientStock && store) {
         for (const item of data.items) {
-          const itemRecord = await tx.item.findUnique({ 
-            where: { code: item.id }
+          const itemRecord = await tx.item.findUnique({
+            where: { code: item.id },
           });
           if (!itemRecord) {
-            throwHttp(404, ERROR_CODES.INV_ITEM_NOT_FOUND, `Item ${item.id} not found`);
+            throwHttp(
+              404,
+              ERROR_CODES.INV_ITEM_NOT_FOUND,
+              `Item ${item.id} not found`,
+            );
           }
           // Only validate stock for STOCKED items, SERVICE items don't have stock
           if ((itemRecord as any).type === 'STOCKED') {
@@ -158,14 +162,13 @@ export class SalesInvoiceService {
         }
       }
 
-      const safeId =
-        branchId
-          ? (
-              await tx.safe.findFirst({
-                where: { branchId },
-              })
-            )?.id || null
-          : null;
+      const safeId = branchId
+        ? (
+            await tx.safe.findFirst({
+              where: { branchId },
+            })
+          )?.id || null
+        : null;
       const bankId =
         data.paymentTargetType === 'bank' ? data.paymentTargetId || null : null;
 
@@ -204,14 +207,14 @@ export class SalesInvoiceService {
         // Filter STOCKED items and get item records
         const stockedItemsWithRecords = await Promise.all(
           data.items.map(async (item) => {
-            const itemRecord = await tx.item.findUnique({ 
-              where: { code: item.id }
+            const itemRecord = await tx.item.findUnique({
+              where: { code: item.id },
             });
             if (itemRecord && (itemRecord as any).type === 'STOCKED') {
               return { item, itemRecord };
             }
             return null;
-          })
+          }),
         );
         const stockedItems = stockedItemsWithRecords.filter(Boolean) as Array<{
           item: any;
@@ -230,8 +233,8 @@ export class SalesInvoiceService {
       } else {
         // Fallback: Update global stock if store not found (backward compatibility)
         for (const item of data.items) {
-          const itemRecord = await tx.item.findUnique({ 
-            where: { code: item.id }
+          const itemRecord = await tx.item.findUnique({
+            where: { code: item.id },
           });
           if (itemRecord && (itemRecord as any).type === 'STOCKED') {
             await tx.item.update({
@@ -249,7 +252,10 @@ export class SalesInvoiceService {
           amount: net,
           paymentTargetType: data.paymentTargetType as any,
           branchId,
-          bankId: data.paymentTargetType === 'bank' ? data.paymentTargetId || null : null,
+          bankId:
+            data.paymentTargetType === 'bank'
+              ? data.paymentTargetId || null
+              : null,
           tx,
         });
       }
@@ -395,9 +401,14 @@ export class SalesInvoiceService {
       });
       // Customer is only required for credit payments
       // If payment method is credit (or being changed to credit), customer must be provided
-      const paymentMethod = data.paymentMethod || existingInvoice?.paymentMethod;
+      const paymentMethod =
+        data.paymentMethod || existingInvoice?.paymentMethod;
       if (paymentMethod === 'credit' && data.customerId === null) {
-        throwHttp(422, ERROR_CODES.INV_CUSTOMER_REQUIRED, 'Customer is required for credit payments');
+        throwHttp(
+          422,
+          ERROR_CODES.INV_CUSTOMER_REQUIRED,
+          'Customer is required for credit payments',
+        );
       }
 
       if (existingInvoice) {
@@ -423,11 +434,11 @@ export class SalesInvoiceService {
       let subtotal = 0;
       let tax = 0;
       const itemsWithTotals = rawItems.map((item) => {
-        const { net: lineNet, taxAmount, total } = this.computeLineTotals(
-          item,
-          vatRate,
-          isVatEnabled,
-        );
+        const {
+          net: lineNet,
+          taxAmount,
+          total,
+        } = this.computeLineTotals(item, vatRate, isVatEnabled);
         subtotal += lineNet;
         tax += taxAmount;
         return {
@@ -444,8 +455,8 @@ export class SalesInvoiceService {
         // Restore stock for old items (only for STOCKED items, SERVICE items don't have stock)
         if (existingInvoice) {
           for (const oldItem of (existingInvoice.items as any[]) || []) {
-            const oldItemRecord = await tx.item.findUnique({ 
-              where: { code: oldItem.id }
+            const oldItemRecord = await tx.item.findUnique({
+              where: { code: oldItem.id },
             });
             if (oldItemRecord && (oldItemRecord as any).type === 'STOCKED') {
               await tx.item.update({
@@ -460,15 +471,26 @@ export class SalesInvoiceService {
         // Skip validation if allowInsufficientStock is true
         if (!allowInsufficientStock) {
           for (const item of itemsWithTotals) {
-            const itemRecord = await tx.item.findUnique({ 
-              where: { code: item.id }
+            const itemRecord = await tx.item.findUnique({
+              where: { code: item.id },
             });
             if (!itemRecord) {
-              throwHttp(404, ERROR_CODES.INV_ITEM_NOT_FOUND, `Item ${item.id} not found`);
+              throwHttp(
+                404,
+                ERROR_CODES.INV_ITEM_NOT_FOUND,
+                `Item ${item.id} not found`,
+              );
             }
             // Only validate stock for STOCKED items, SERVICE items don't have stock
-            if ((itemRecord as any).type === 'STOCKED' && itemRecord.stock < item.qty) {
-              throwHttp(409, ERROR_CODES.INV_STOCK_INSUFFICIENT, `Insufficient stock for item ${itemRecord.name}`);
+            if (
+              (itemRecord as any).type === 'STOCKED' &&
+              itemRecord.stock < item.qty
+            ) {
+              throwHttp(
+                409,
+                ERROR_CODES.INV_STOCK_INSUFFICIENT,
+                `Insufficient stock for item ${itemRecord.name}`,
+              );
             }
           }
         }
@@ -476,15 +498,17 @@ export class SalesInvoiceService {
         const nextPaymentTargetType =
           data.paymentTargetType !== undefined
             ? data.paymentTargetType
-            : existingInvoice?.paymentTargetType ?? null;
+            : (existingInvoice?.paymentTargetType ?? null);
         const nextPaymentTargetId =
           data.paymentTargetId !== undefined
             ? data.paymentTargetId
-            : existingInvoice?.paymentTargetId ?? null;
+            : (existingInvoice?.paymentTargetId ?? null);
         const branchIdForInvoice = existingInvoice?.branchId ?? null;
         const safeId = await this.findSafeId(branchIdForInvoice, tx);
         const bankId =
-          nextPaymentTargetType === 'bank' ? nextPaymentTargetId ?? null : null;
+          nextPaymentTargetType === 'bank'
+            ? (nextPaymentTargetId ?? null)
+            : null;
 
         const inv = await tx.salesInvoice.update({
           where: { id },
@@ -512,8 +536,8 @@ export class SalesInvoiceService {
 
         // Decrease stock for new items (only for STOCKED items, SERVICE items don't have stock)
         for (const item of itemsWithTotals) {
-          const itemRecord = await tx.item.findUnique({ 
-            where: { code: item.id }
+          const itemRecord = await tx.item.findUnique({
+            where: { code: item.id },
           });
           if (itemRecord && (itemRecord as any).type === 'STOCKED') {
             await tx.item.update({
@@ -524,13 +548,19 @@ export class SalesInvoiceService {
         }
 
         // Reverse previous cash impact if needed
-        if (existingInvoice?.paymentMethod === 'cash' && existingInvoice.paymentTargetType) {
+        if (
+          existingInvoice?.paymentMethod === 'cash' &&
+          existingInvoice.paymentTargetType
+        ) {
           await AccountingService.reverseImpact({
             kind: 'sales-invoice',
             amount: (existingInvoice as any).net,
             paymentTargetType: existingInvoice.paymentTargetType as any,
             branchId: (existingInvoice as any).branchId,
-            bankId: existingInvoice.paymentTargetType === 'bank' ? (existingInvoice as any).paymentTargetId : null,
+            bankId:
+              existingInvoice.paymentTargetType === 'bank'
+                ? (existingInvoice as any).paymentTargetId
+                : null,
             tx,
           });
         }
@@ -542,12 +572,15 @@ export class SalesInvoiceService {
         //   });
         // }
         // Apply new cash impact if applicable
-        const targetType = (inv as any).paymentMethod === 'cash' ? (inv as any).paymentTargetType : null;
+        const targetType =
+          (inv as any).paymentMethod === 'cash'
+            ? (inv as any).paymentTargetType
+            : null;
         if (targetType) {
           await AccountingService.applyImpact({
             kind: 'sales-invoice',
             amount: (inv as any).net,
-            paymentTargetType: targetType as any,
+            paymentTargetType: targetType,
             branchId: (inv as any).branchId,
             bankId: targetType === 'bank' ? (inv as any).paymentTargetId : null,
             tx,
@@ -582,14 +615,20 @@ export class SalesInvoiceService {
         await this.updateStockForItems(invoice.items as any[], 'increase');
 
         // Reverse cash impact if applicable
-        if ((invoice as any).paymentMethod === 'cash' && (invoice as any).paymentTargetType) {
+        if (
+          (invoice as any).paymentMethod === 'cash' &&
+          (invoice as any).paymentTargetType
+        ) {
           await this.prisma.$transaction(async (tx) => {
             await AccountingService.reverseImpact({
               kind: 'sales-invoice',
               amount: (invoice as any).net,
-              paymentTargetType: (invoice as any).paymentTargetType as any,
+              paymentTargetType: (invoice as any).paymentTargetType,
               branchId: (invoice as any).branchId,
-              bankId: (invoice as any).paymentTargetType === 'bank' ? (invoice as any).paymentTargetId : null,
+              bankId:
+                (invoice as any).paymentTargetType === 'bank'
+                  ? (invoice as any).paymentTargetId
+                  : null,
               tx,
             });
           });
@@ -634,8 +673,8 @@ export class SalesInvoiceService {
     operation: 'increase' | 'decrease',
   ): Promise<void> {
     for (const item of items) {
-      const itemRecord = await this.prisma.item.findUnique({ 
-        where: { code: item.id }
+      const itemRecord = await this.prisma.item.findUnique({
+        where: { code: item.id },
       });
       // Only update stock for STOCKED items, SERVICE items don't have stock
       if (itemRecord && (itemRecord as any).type === 'STOCKED') {

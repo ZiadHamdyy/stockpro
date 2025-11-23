@@ -56,7 +56,7 @@ function setupStaticFileServing(app: NestExpressApplication) {
   console.log(`Static file serving enabled for: ${uploadPath}`);
 }
 
-function setupGlobalFilters(app: NestExpressApplication) {
+function setupGlobalFilters() {
   // Global filters are set up in AppModule with proper dependency injection
   // Global validation pipe is also set up in AppModule
 }
@@ -107,7 +107,7 @@ async function bootstrap(): Promise<void> {
 
   app.setGlobalPrefix(APP_CONSTANTS.API.PREFIX);
   setupMiddlewares(app);
-  setupGlobalFilters(app);
+  setupGlobalFilters();
   setupStaticFileServing(app);
   setupSwagger(app);
 
@@ -121,4 +121,4 @@ async function bootstrap(): Promise<void> {
     `Swagger documentation available at: http://localhost:${port}/${APP_CONSTANTS.API.DOCS_PATH}`,
   );
 }
-bootstrap();
+void bootstrap();

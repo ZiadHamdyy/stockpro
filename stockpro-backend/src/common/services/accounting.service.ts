@@ -29,15 +29,8 @@ export class AccountingService {
     bankId?: string | null;
     tx: TxClient;
   }): Promise<void> {
-    const {
-      kind,
-      amount,
-      paymentTargetType,
-      branchId,
-      safeId,
-      bankId,
-      tx,
-    } = options;
+    const { kind, amount, paymentTargetType, branchId, safeId, bankId, tx } =
+      options;
     if (amount === 0) {
       return;
     }
@@ -57,7 +50,9 @@ export class AccountingService {
         data: { currentBalance: { increment: delta } },
       });
     } else {
-      throw new Error(`Unsupported payment target type: ${paymentTargetType}`);
+      throw new Error(
+        `Unsupported payment target type: ${String(paymentTargetType)}`,
+      );
     }
   }
 

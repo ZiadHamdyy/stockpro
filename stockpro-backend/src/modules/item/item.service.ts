@@ -25,7 +25,7 @@ export class ItemService {
     // Get user's store from their branch
     const store = await this.storeService.findByBranchId(currentUser.branchId);
 
-    const openingStock = data.type === 'SERVICE' ? 0 : (data.stock || 0);
+    const openingStock = data.type === 'SERVICE' ? 0 : data.stock || 0;
 
     const payload: any = {
       ...data,
@@ -78,11 +78,16 @@ export class ItemService {
             storeId,
             item.id,
           );
-          const openingBalance = await this.stockService.getStoreItemOpeningBalance(
-            storeId,
-            item.id,
-          );
-          return this.mapToResponse({ ...item, stock: balance, openingBalance });
+          const openingBalance =
+            await this.stockService.getStoreItemOpeningBalance(
+              storeId,
+              item.id,
+            );
+          return this.mapToResponse({
+            ...item,
+            stock: balance,
+            openingBalance,
+          });
         }),
       );
       return itemsWithBalances;
@@ -125,7 +130,8 @@ export class ItemService {
   }
 
   async update(id: string, data: UpdateItemRequest): Promise<ItemResponse> {
-    const coerced: any = data?.type === 'SERVICE' ? { ...data, stock: 0 } : data;
+    const coerced: any =
+      data?.type === 'SERVICE' ? { ...data, stock: 0 } : data;
     const item = await this.prisma.item.update({
       where: { id },
       data: coerced,
@@ -146,7 +152,9 @@ export class ItemService {
     } catch (error: any) {
       // Prisma: foreign key constraint failed
       if (error?.code === 'P2003') {
-        const { GenericHttpException } = require('../../common/application/exceptions/generic-http-exception');
+        const {
+          GenericHttpException,
+        } = require('../../common/application/exceptions/generic-http-exception');
         const { HttpStatus } = require('@nestjs/common');
         throw new GenericHttpException(
           'Cannot delete item because it has related transactions',
@@ -155,7 +163,9 @@ export class ItemService {
       }
       // Prisma: record not found
       if (error?.code === 'P2025') {
-        const { GenericHttpException } = require('../../common/application/exceptions/generic-http-exception');
+        const {
+          GenericHttpException,
+        } = require('../../common/application/exceptions/generic-http-exception');
         const { HttpStatus } = require('@nestjs/common');
         throw new GenericHttpException('Item not found', HttpStatus.NOT_FOUND);
       }
@@ -193,7 +203,7 @@ export class ItemService {
       purchasePrice: item.purchasePrice,
       salePrice: item.salePrice,
       stock: item.stock,
-      openingBalance: (item as any).openingBalance,
+      openingBalance: item.openingBalance,
       reorderLimit: item.reorderLimit,
       type: item.type,
       group: {

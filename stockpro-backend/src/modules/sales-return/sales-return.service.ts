@@ -82,11 +82,11 @@ export class SalesReturnService {
     let subtotal = 0;
     let tax = 0;
     const itemsWithTotals = data.items.map((item) => {
-      const { net: lineNet, taxAmount, total } = this.computeLineTotals(
-        item,
-        vatRate,
-        isVatEnabled,
-      );
+      const {
+        net: lineNet,
+        taxAmount,
+        total,
+      } = this.computeLineTotals(item, vatRate, isVatEnabled);
       subtotal += lineNet;
       tax += taxAmount;
       return {
@@ -117,14 +117,13 @@ export class SalesReturnService {
         });
       }
 
-      const safeId =
-        branchId
-          ? (
-              await tx.safe.findFirst({
-                where: { branchId },
-              })
-            )?.id || null
-          : null;
+      const safeId = branchId
+        ? (
+            await tx.safe.findFirst({
+              where: { branchId },
+            })
+          )?.id || null
+        : null;
       const bankId =
         data.paymentTargetType === 'bank' ? data.paymentTargetId || null : null;
 
@@ -342,11 +341,11 @@ export class SalesReturnService {
       let subtotal = 0;
       let tax = 0;
       const itemsWithTotals = rawItems.map((item) => {
-        const { net: lineNet, taxAmount, total } = this.computeLineTotals(
-          item,
-          vatRate,
-          isVatEnabled,
-        );
+        const {
+          net: lineNet,
+          taxAmount,
+          total,
+        } = this.computeLineTotals(item, vatRate, isVatEnabled);
         subtotal += lineNet;
         tax += taxAmount;
         return {
@@ -373,15 +372,17 @@ export class SalesReturnService {
         const nextPaymentTargetType =
           data.paymentTargetType !== undefined
             ? data.paymentTargetType
-            : existingReturn?.paymentTargetType ?? null;
+            : (existingReturn?.paymentTargetType ?? null);
         const nextPaymentTargetId =
           data.paymentTargetId !== undefined
             ? data.paymentTargetId
-            : existingReturn?.paymentTargetId ?? null;
+            : (existingReturn?.paymentTargetId ?? null);
         const branchIdForReturn = existingReturn?.branchId ?? null;
         const safeId = await this.findSafeId(branchIdForReturn, tx);
         const bankId =
-          nextPaymentTargetType === 'bank' ? nextPaymentTargetId ?? null : null;
+          nextPaymentTargetType === 'bank'
+            ? (nextPaymentTargetId ?? null)
+            : null;
 
         const ret = await tx.salesReturn.update({
           where: { id },

@@ -1,7 +1,6 @@
 import {
   IsDefined,
   IsEmail,
-  IsEnum,
   IsNotEmpty,
   IsOptional,
   IsString,

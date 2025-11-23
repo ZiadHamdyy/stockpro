@@ -1,7 +1,6 @@
 import { Session, User } from '@prisma/client';
 import { TokenPayload } from '../../types/auth-token-payload.type';
 import { Request } from 'express';
-import type { currentUserType } from '../../types/current-user.type';
 
 export const IContextAuthServiceToken = 'IContextAuthService';
 

@@ -90,14 +90,13 @@ export class PurchaseInvoiceService {
         });
       }
 
-      const safeId =
-        branchId
-          ? (
-              await tx.safe.findFirst({
-                where: { branchId },
-              })
-            )?.id || null
-          : null;
+      const safeId = branchId
+        ? (
+            await tx.safe.findFirst({
+              where: { branchId },
+            })
+          )?.id || null
+        : null;
       const bankId =
         data.paymentTargetType === 'bank' ? data.paymentTargetId || null : null;
 
@@ -367,14 +366,14 @@ export class PurchaseInvoiceService {
       const nextPaymentTargetType =
         data.paymentTargetType !== undefined
           ? data.paymentTargetType
-          : existingInvoice.paymentTargetType ?? null;
+          : (existingInvoice.paymentTargetType ?? null);
       const nextPaymentTargetId =
         data.paymentTargetId !== undefined
           ? data.paymentTargetId
-          : existingInvoice.paymentTargetId ?? null;
+          : (existingInvoice.paymentTargetId ?? null);
       const safeId = await this.findSafeId(existingInvoice.branchId, tx);
       const bankId =
-        nextPaymentTargetType === 'bank' ? nextPaymentTargetId ?? null : null;
+        nextPaymentTargetType === 'bank' ? (nextPaymentTargetId ?? null) : null;
 
       const inv = await tx.purchaseInvoice.update({
         where: { id },

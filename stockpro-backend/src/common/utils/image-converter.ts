@@ -97,19 +97,36 @@ function detectMimeType(buffer: Buffer): string {
  * @returns Data URI string (data:image/png;base64,...), or null if buffer is empty
  */
 export function bufferToDataUri(
-  buffer: Buffer | null | any,
+  buffer: Buffer | null | { type: string; data: number[] } | number[] | Uint8Array | Record<string, unknown>,
   mimeType?: string,
 ): string | null {
   if (!buffer) {
     return null;
   }
 
+  // Type guard for JSON serialized Buffer
+  const isJsonBuffer = (b: Buffer | { type: string; data: number[] } | number[] | Uint8Array | Record<string, unknown>): b is { type: string; data: number[] } => {
+    return (
+      typeof b === 'object' &&
+      b !== null &&
+      'type' in b &&
+      'data' in b &&
+      (b as { type: unknown }).type === 'Buffer' &&
+      Array.isArray((b as { data: unknown }).data)
+    );
+  };
+
   console.log('🔍 bufferToDataUri called with:', {
     type: typeof buffer,
     isBuffer: Buffer.isBuffer(buffer),
-    hasType: buffer.type,
+    hasType: isJsonBuffer(buffer) ? buffer.type : 'N/A',
     isArray: Array.isArray(buffer),
-    length: buffer.length || 'no length',
+    length:
+      Buffer.isBuffer(buffer) || Array.isArray(buffer)
+        ? buffer.length
+        : isJsonBuffer(buffer)
+          ? buffer.data.length
+          : 'no length',
     firstFew: Array.isArray(buffer) ? buffer.slice(0, 5) : 'not array',
   });
 
@@ -118,7 +135,7 @@ export function bufferToDataUri(
   // Handle different Buffer formats
   if (Buffer.isBuffer(buffer)) {
     bufferData = buffer;
-  } else if (buffer.type === 'Buffer' && Array.isArray(buffer.data)) {
+  } else if (isJsonBuffer(buffer)) {
     // Handle JSON serialized Buffer: { type: 'Buffer', data: [137, 80, 78, 71, ...] }
     console.log(
       '🔍 Converting JSON serialized Buffer, data length:',
@@ -136,7 +153,8 @@ export function bufferToDataUri(
   } else {
     // Try to convert whatever it is
     console.log('🔍 Fallback conversion');
-    bufferData = Buffer.from(buffer);
+    // Type assertion needed for fallback - cast through unknown first
+    bufferData = Buffer.from(buffer as unknown as string | ArrayLike<number>);
   }
 
   const detectedMimeType = mimeType || detectMimeType(bufferData);
