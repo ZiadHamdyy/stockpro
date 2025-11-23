@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
 import { PrintIcon } from "../../icons";
 import { tafqeet } from "../../../utils/tafqeet";
-import InvoiceHeader from "../../common/InvoiceHeader";
+import DocumentHeader from "../../common/DocumentHeader";
 import { useGetCompanyQuery } from "../../store/slices/companyApiSlice";
 import { useReceiptVouchers } from "../../hook/useReceiptVouchers";
 import PermissionWrapper from "../../common/PermissionWrapper";
@@ -269,7 +269,7 @@ const ReceiptVoucher: React.FC<ReceiptVoucherProps> = ({ title }) => {
     <>
       <div className="bg-white p-6 rounded-lg shadow">
         <div className="border-2 border-brand-blue rounded-lg mb-4">
-          <InvoiceHeader />
+          <DocumentHeader companyInfo={companyInfo} />
         </div>
 
         <h1 className="text-2xl font-bold mb-4 text-brand-dark">{title}</h1>

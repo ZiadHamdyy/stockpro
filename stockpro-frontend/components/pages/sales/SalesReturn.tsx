@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo } from "react";
 import DataTableModal from "../../common/DataTableModal";
-import InvoiceHeader from "../../common/InvoiceHeader";
+import DocumentHeader from "../../common/DocumentHeader";
 import {
   PdfIcon,
   ListIcon,
@@ -985,7 +985,7 @@ const SalesReturn: React.FC<SalesReturnProps> = ({
       `}</style>
       <div className="bg-white p-6 rounded-lg shadow">
         <div className="border-2 border-brand-blue rounded-lg mb-4">
-          <InvoiceHeader />
+          <DocumentHeader companyInfo={companyInfo} />
         </div>
 
         <div className="border-2 border-brand-blue rounded-lg">
