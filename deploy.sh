@@ -202,10 +202,13 @@ run_migrations() {
     # If migration fails with P3005 (database not baselined), resolve all migrations as applied
     if echo "$MIGRATE_OUTPUT" | grep -q "P3005"; then
         print_info "Database needs to be baselined. Marking all existing migrations as applied..."
-        # Mark all migrations as applied
-        docker exec stockpro-backend-prod sh -c 'cd /app && ls -d prisma/migrations/*/ | while read migration_dir; do migration_name=$(basename "$migration_dir"); echo "Marking $migration_name as applied..."; pnpm prisma migrate resolve --applied "$migration_name" 2>&1 || true; done'
-        print_info "Retrying migration deploy..."
-        # Now try deploy again - it should only apply new migrations
+        # Get the list of migrations and find the last one (newest)
+        LAST_MIGRATION=$(docker exec stockpro-backend-prod sh -c 'cd /app && ls -d prisma/migrations/*/ | sort | tail -1 | xargs basename')
+        print_info "Will exclude the newest migration ($LAST_MIGRATION) from baselining so it can be applied..."
+        # Mark all migrations EXCEPT the last one as applied
+        docker exec stockpro-backend-prod sh -c "cd /app && ls -d prisma/migrations/*/ | while read migration_dir; do migration_name=\$(basename \"\$migration_dir\"); if [ \"\$migration_name\" != \"$LAST_MIGRATION\" ]; then echo \"Marking \$migration_name as applied...\"; pnpm prisma migrate resolve --applied \"\$migration_name\" 2>&1 || true; fi; done"
+        print_info "Retrying migration deploy to apply the new migration..."
+        # Now try deploy again - it should apply the new migration
         set +e
         docker exec stockpro-backend-prod pnpm prisma migrate deploy
         MIGRATE_EXIT_CODE=$?
