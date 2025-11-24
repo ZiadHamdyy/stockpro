@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { useDispatch } from "react-redux";
 import { PrintIcon, SearchIcon } from "../../icons";
 import BranchModal from "./BranchModal";
+import PermissionWrapper from "../../common/PermissionWrapper";
 import { useModal } from "../../common/ModalProvider";
 import { useGetBranchesQuery } from "../../store/slices/branch/branchApi";
 import {
@@ -9,6 +10,11 @@ import {
   useUpdateBranchMutation,
   useDeleteBranchMutation,
 } from "../../store/slices/branch/branchApi";
+import {
+  Actions,
+  Resources,
+  buildPermission,
+} from "../../../enums/permissions.enum";
 
 interface BranchesDataProps {
   title: string;
@@ -116,19 +122,34 @@ const BranchesData: React.FC<BranchesDataProps> = ({ title }) => {
               onChange={(e) => setSearchTerm(e.target.value)}
             />
           </div>
-          <div>
+          <div className="flex items-center gap-3">
             <button
               onClick={() => handleOpenModal()}
-              className="px-6 py-3 bg-brand-blue text-white rounded-md hover:bg-blue-800 ml-2 font-semibold"
+              className="px-6 py-3 bg-brand-blue text-white rounded-md hover:bg-blue-800 font-semibold"
             >
               اضافة فرع جديد
             </button>
-            <button
-              onClick={() => window.print()}
-              className="p-3 border-2 border-gray-200 rounded-md hover:bg-gray-100"
+            <PermissionWrapper
+              requiredPermission={buildPermission(
+                Resources.BRANCHES_DATA,
+                Actions.PRINT,
+              )}
+              fallback={
+                <button
+                  disabled
+                  className="p-3 border-2 border-gray-200 rounded-md cursor-not-allowed opacity-50"
+                >
+                  <PrintIcon className="w-6 h-6" />
+                </button>
+              }
             >
-              <PrintIcon className="w-6 h-6" />
-            </button>
+              <button
+                onClick={() => window.print()}
+                className="p-3 border-2 border-gray-200 rounded-md hover:bg-gray-100"
+              >
+                <PrintIcon className="w-6 h-6" />
+              </button>
+            </PermissionWrapper>
           </div>
         </div>
         <div className="overflow-x-auto">

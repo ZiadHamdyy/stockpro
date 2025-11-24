@@ -221,11 +221,11 @@ export class PurchaseReturnService {
         });
       }
 
-      // Update supplier balance for credit purchase returns (we owe them less)
+      // Update supplier balance for credit purchase returns (decreases what we owe, increases balance)
       if (data.paymentMethod === 'credit' && data.supplierId) {
         await tx.supplier.update({
           where: { id: data.supplierId },
-          data: { currentBalance: { decrement: net } },
+          data: { currentBalance: { increment: net } },
         });
       }
 
@@ -424,7 +424,7 @@ export class PurchaseReturnService {
       ) {
         await tx.supplier.update({
           where: { id: existingReturn.supplierId },
-          data: { currentBalance: { increment: (existingReturn as any).net } },
+          data: { currentBalance: { decrement: (existingReturn as any).net } },
         });
       }
       // Apply new cash impact if applicable
@@ -446,7 +446,7 @@ export class PurchaseReturnService {
       if ((ret as any).paymentMethod === 'credit' && (ret as any).supplierId) {
         await tx.supplier.update({
           where: { id: (ret as any).supplierId },
-          data: { currentBalance: { decrement: (ret as any).net } },
+          data: { currentBalance: { increment: (ret as any).net } },
         });
       }
 
@@ -511,7 +511,7 @@ export class PurchaseReturnService {
       ) {
         await tx.supplier.update({
           where: { id: (returnRecord as any).supplierId },
-          data: { currentBalance: { increment: (returnRecord as any).net } },
+          data: { currentBalance: { decrement: (returnRecord as any).net } },
         });
       }
 

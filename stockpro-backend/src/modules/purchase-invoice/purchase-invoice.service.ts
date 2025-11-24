@@ -237,11 +237,11 @@ export class PurchaseInvoiceService {
         });
       }
 
-      // Update supplier balance for credit purchases (we owe them more)
+      // Update supplier balance for credit purchases (increases what we owe, decreases balance)
       if (data.paymentMethod === 'credit' && data.supplierId) {
         await tx.supplier.update({
           where: { id: data.supplierId },
-          data: { currentBalance: { increment: net } },
+          data: { currentBalance: { decrement: net } },
         });
       }
 
@@ -432,7 +432,7 @@ export class PurchaseInvoiceService {
       ) {
         await tx.supplier.update({
           where: { id: existingInvoice.supplierId },
-          data: { currentBalance: { decrement: (existingInvoice as any).net } },
+          data: { currentBalance: { increment: (existingInvoice as any).net } },
         });
       }
       // Apply new cash impact if applicable
@@ -482,7 +482,7 @@ export class PurchaseInvoiceService {
       if ((inv as any).paymentMethod === 'credit' && (inv as any).supplierId) {
         await tx.supplier.update({
           where: { id: (inv as any).supplierId },
-          data: { currentBalance: { increment: (inv as any).net } },
+          data: { currentBalance: { decrement: (inv as any).net } },
         });
       }
 
@@ -548,7 +548,7 @@ export class PurchaseInvoiceService {
       ) {
         await tx.supplier.update({
           where: { id: (invoice as any).supplierId },
-          data: { currentBalance: { decrement: (invoice as any).net } },
+          data: { currentBalance: { increment: (invoice as any).net } },
         });
       }
 

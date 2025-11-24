@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from "react";
 import { PrintIcon, SearchIcon } from "../../icons";
 import StoreModal from "./StoreModal.tsx";
+import PermissionWrapper from "../../common/PermissionWrapper";
 import { useModal } from "../../common/ModalProvider.tsx";
 import { useGetBranchesQuery } from "../../store/slices/branch/branchApi";
 import {
@@ -10,6 +11,11 @@ import {
   useDeleteStoreMutation,
 } from "../../store/slices/store/storeApi";
 import type { Store as StoreEntity } from "../../store/slices/store/storeApi";
+import {
+  Actions,
+  Resources,
+  buildPermission,
+} from "../../../enums/permissions.enum";
 
 interface StoresDataProps {
   title: string;
@@ -174,19 +180,49 @@ const StoresData: React.FC<StoresDataProps> = ({ title }) => {
               onChange={(e) => setSearchTerm(e.target.value)}
             />
           </div>
-          <div>
-            <button
-              onClick={() => handleOpenModal()}
-              className="px-6 py-3 bg-brand-blue text-white rounded-md hover:bg-blue-800 ml-2 font-semibold"
+          <div className="flex items-center gap-3">
+            <PermissionWrapper
+              requiredPermission={buildPermission(
+                Resources.STORES_DATA,
+                Actions.CREATE,
+              )}
+              fallback={
+                <button
+                  disabled
+                  className="px-6 py-3 bg-gray-400 text-white rounded-md cursor-not-allowed opacity-50 font-semibold"
+                >
+                  اضافة مخزن جديد
+                </button>
+              }
             >
-              اضافة مخزن جديد
-            </button>
-            <button
-              onClick={() => window.print()}
-              className="p-3 border-2 border-gray-200 rounded-md hover:bg-gray-100"
+              <button
+                onClick={() => handleOpenModal()}
+                className="px-6 py-3 bg-brand-blue text-white rounded-md hover:bg-blue-800 font-semibold"
+              >
+                اضافة مخزن جديد
+              </button>
+            </PermissionWrapper>
+            <PermissionWrapper
+              requiredPermission={buildPermission(
+                Resources.STORES_DATA,
+                Actions.PRINT,
+              )}
+              fallback={
+                <button
+                  disabled
+                  className="p-3 border-2 border-gray-200 rounded-md cursor-not-allowed opacity-50"
+                >
+                  <PrintIcon className="w-6 h-6" />
+                </button>
+              }
             >
-              <PrintIcon className="w-6 h-6" />
-            </button>
+              <button
+                onClick={() => window.print()}
+                className="p-3 border-2 border-gray-200 rounded-md hover:bg-gray-100"
+              >
+                <PrintIcon className="w-6 h-6" />
+              </button>
+            </PermissionWrapper>
           </div>
         </div>
         <div className="overflow-x-auto">

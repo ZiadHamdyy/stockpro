@@ -260,13 +260,13 @@ export class SalesInvoiceService {
         });
       }
 
-      // Customer balance updates are disabled
-      // if (data.paymentMethod === 'credit' && data.customerId) {
-      //   await tx.customer.update({
-      //     where: { id: data.customerId },
-      //     data: { currentBalance: { increment: net } },
-      //   });
-      // }
+      // Update customer balance for credit sales (customer owes more)
+      if (data.paymentMethod === 'credit' && data.customerId) {
+        await tx.customer.update({
+          where: { id: data.customerId },
+          data: { currentBalance: { increment: net } },
+        });
+      }
 
       return created;
     });
@@ -564,13 +564,13 @@ export class SalesInvoiceService {
             tx,
           });
         }
-        // Customer balance updates are disabled
-        // if (existingInvoice?.paymentMethod === 'credit' && existingInvoice.customerId) {
-        //   await tx.customer.update({
-        //     where: { id: existingInvoice.customerId },
-        //     data: { currentBalance: { decrement: (existingInvoice as any).net } },
-        //   });
-        // }
+        // Reverse previous customer balance update if needed
+        if (existingInvoice?.paymentMethod === 'credit' && existingInvoice.customerId) {
+          await tx.customer.update({
+            where: { id: existingInvoice.customerId },
+            data: { currentBalance: { decrement: (existingInvoice as any).net } },
+          });
+        }
         // Apply new cash impact if applicable
         const targetType =
           (inv as any).paymentMethod === 'cash'
@@ -586,13 +586,13 @@ export class SalesInvoiceService {
             tx,
           });
         }
-        // Customer balance updates are disabled
-        // if ((inv as any).paymentMethod === 'credit' && (inv as any).customerId) {
-        //   await tx.customer.update({
-        //     where: { id: (inv as any).customerId },
-        //     data: { currentBalance: { increment: (inv as any).net } },
-        //   });
-        // }
+        // Apply new customer balance update if applicable
+        if ((inv as any).paymentMethod === 'credit' && (inv as any).customerId) {
+          await tx.customer.update({
+            where: { id: (inv as any).customerId },
+            data: { currentBalance: { increment: (inv as any).net } },
+          });
+        }
 
         return inv;
       });
@@ -633,13 +633,13 @@ export class SalesInvoiceService {
             });
           });
         }
-        // Customer balance updates are disabled
-        // if ((invoice as any).paymentMethod === 'credit' && (invoice as any).customerId) {
-        //   await this.prisma.customer.update({
-        //     where: { id: (invoice as any).customerId },
-        //     data: { currentBalance: { decrement: (invoice as any).net } },
-        //   });
-        // }
+        // Reverse customer balance update if applicable
+        if ((invoice as any).paymentMethod === 'credit' && (invoice as any).customerId) {
+          await this.prisma.customer.update({
+            where: { id: (invoice as any).customerId },
+            data: { currentBalance: { decrement: (invoice as any).net } },
+          });
+        }
       }
 
       await this.prisma.salesInvoice.delete({

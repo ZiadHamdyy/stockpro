@@ -77,15 +77,10 @@ const PermissionWrapper: React.FC<PermissionWrapperProps> = ({
   const { hasPermission } = useUserPermissions();
   const currentUser = useSelector(selectCurrentUser);
 
-  // Managers (مدير) have all permissions - always allow access
-  const isManager = currentUser?.role?.name === "مدير";
-
   // Check if user has any of the required permissions
-  const hasAccess =
-    isManager ||
-    (Array.isArray(requiredPermission)
-      ? requiredPermission.some((permission) => hasPermission(permission))
-      : hasPermission(requiredPermission));
+  const hasAccess = Array.isArray(requiredPermission)
+    ? requiredPermission.some((permission) => hasPermission(permission))
+    : hasPermission(requiredPermission);
 
   if (hasAccess) {
     return <>{children}</>;

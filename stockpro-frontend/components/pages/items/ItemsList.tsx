@@ -187,29 +187,31 @@ const ItemsList: React.FC<ItemsListProps> = ({ title, onNavigate }) => {
       </style>
       <div className="bg-white p-6 rounded-lg shadow">
         <div className="flex justify-between items-center mb-4 border-b pb-4 no-print">
-        <h1 className="text-2xl font-bold text-brand-dark">{title}</h1>
-        <PermissionWrapper
-          requiredPermission={buildPermission(
-            Resources.ADD_ITEM,
-            Actions.CREATE,
-          )}
-          fallback={
-            <button
-              disabled
-              className="px-6 py-2 bg-gray-400 text-white rounded-md cursor-not-allowed opacity-50 font-semibold transition-colors"
+          <h1 className="text-2xl font-bold text-brand-dark">{title}</h1>
+          <div className="flex items-center gap-3">
+            <PermissionWrapper
+              requiredPermission={buildPermission(
+                Resources.ADD_ITEM,
+                Actions.CREATE,
+              )}
+              fallback={
+                <button
+                  disabled
+                  className="px-6 py-2 bg-gray-400 text-white rounded-md cursor-not-allowed opacity-50 font-semibold transition-colors"
+                >
+                  إضافة صنف جديد
+                </button>
+              }
             >
-              إضافة صنف جديد
-            </button>
-          }
-        >
-          <button
-            onClick={() => navigate("/items/add")}
-            className="px-6 py-2 bg-brand-green text-white rounded-md hover:bg-green-700 font-semibold transition-colors"
-          >
-            إضافة صنف جديد
-          </button>
-        </PermissionWrapper>
-      </div>
+              <button
+                onClick={() => navigate("/items/add")}
+                className="px-6 py-2 bg-brand-green text-white rounded-md hover:bg-green-700 font-semibold transition-colors"
+              >
+                إضافة صنف جديد
+              </button>
+            </PermissionWrapper>
+          </div>
+        </div>
       <div className="flex justify-between items-center mb-4 no-print">
         <div className="flex items-center gap-4">
           <div className="relative">
