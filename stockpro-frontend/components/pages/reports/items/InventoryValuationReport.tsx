@@ -334,11 +334,11 @@ const InventoryValuationReport: React.FC<InventoryValuationReportProps> = ({
     let totalCost = 0;
     let totalQty = 0;
 
-    // Calculate weighted average: sum(qty * price) / sum(qty)
+    // Calculate weighted average: Total invoice value (price) per item / Total quantities of the item
     for (const inv of relevantInvoices) {
       for (const invItem of inv.items) {
-        if (invItem.id === itemCode && invItem.price && invItem.qty) {
-          totalCost += invItem.qty * invItem.price;
+        if (invItem.id === itemCode && invItem.total && invItem.qty) {
+          totalCost += invItem.total; // Use total invoice value per item
           totalQty += invItem.qty;
         }
       }
