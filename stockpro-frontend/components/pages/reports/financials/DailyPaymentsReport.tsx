@@ -87,6 +87,8 @@ const DailyPaymentsReport: React.FC<DailyPaymentsReportProps> = ({
           name: voucher.entityName,
         },
         amount: voucher.amount,
+        priceBeforeTax: voucher.priceBeforeTax || 0,
+        taxPrice: voucher.taxPrice || 0,
         description: voucher.description || "",
         paymentMethod: voucher.paymentMethod,
         safeOrBankId: voucher.safeId || voucher.bankId,
@@ -140,9 +142,11 @@ const DailyPaymentsReport: React.FC<DailyPaymentsReportProps> = ({
   const totals = filteredVouchers.reduce(
     (acc, voucher) => {
       acc.amount += voucher.amount;
+      acc.priceBeforeTax += voucher.priceBeforeTax || 0;
+      acc.taxPrice += voucher.taxPrice || 0;
       return acc;
     },
-    { amount: 0 },
+    { amount: 0, priceBeforeTax: 0, taxPrice: 0 },
   );
 
   const handlePrint = () => {
@@ -341,6 +345,12 @@ const DailyPaymentsReport: React.FC<DailyPaymentsReportProps> = ({
                   المبلغ
                 </th>
                 <th className="px-6 py-3 text-right text-sm font-semibold text-white uppercase">
+                  قبل الضريبة
+                </th>
+                <th className="px-6 py-3 text-right text-sm font-semibold text-white uppercase">
+                  قيمة الضريبة
+                </th>
+                <th className="px-6 py-3 text-right text-sm font-semibold text-white uppercase">
                   البيان
                 </th>
               </tr>
@@ -379,6 +389,12 @@ const DailyPaymentsReport: React.FC<DailyPaymentsReportProps> = ({
                   <td className={`px-6 py-4 font-bold ${getNegativeNumberClass(voucher.amount)}`}>
                     {formatNumber(voucher.amount)}
                   </td>
+                  <td className="px-6 py-4">
+                    {formatNumber(voucher.priceBeforeTax || 0)}
+                  </td>
+                  <td className="px-6 py-4">
+                    {formatNumber(voucher.taxPrice || 0)}
+                  </td>
                   <td className="px-6 py-4">{voucher.description}</td>
                 </tr>
               ))}
@@ -390,6 +406,12 @@ const DailyPaymentsReport: React.FC<DailyPaymentsReportProps> = ({
                 </td>
                 <td className={`px-6 py-3 text-right text-white ${getNegativeNumberClass(totals.amount)}`}>
                   {formatNumber(totals.amount)}
+                </td>
+                <td className="px-6 py-3 text-right text-white">
+                  {formatNumber(totals.priceBeforeTax)}
+                </td>
+                <td className="px-6 py-3 text-right text-white">
+                  {formatNumber(totals.taxPrice)}
                 </td>
                 <td className="text-white"></td>
               </tr>
