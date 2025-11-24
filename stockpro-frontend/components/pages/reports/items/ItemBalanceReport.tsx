@@ -67,11 +67,13 @@ const ItemBalanceReport: React.FC<ItemBalanceReportProps> = ({
 
   // Transform API data to match expected format
   const items = useMemo(() => {
-    return (apiItems as any[]).map((item) => ({
-      ...item,
-      unit: item.unit?.name || "",
-      group: item.group?.name || "",
-    }));
+    return (apiItems as any[])
+      .filter((item) => item.type !== 'SERVICE') // Exclude SERVICE items
+      .map((item) => ({
+        ...item,
+        unit: item.unit?.name || "",
+        group: item.group?.name || "",
+      }));
   }, [apiItems]);
 
   const transformedSalesInvoices = useMemo(() => {
