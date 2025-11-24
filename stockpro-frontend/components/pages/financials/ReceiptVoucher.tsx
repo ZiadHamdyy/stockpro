@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useSearchParams } from "react-router-dom";
 import { PrintIcon } from "../../icons";
 import { tafqeet } from "../../../utils/tafqeet";
@@ -61,6 +61,25 @@ const ReceiptVoucher: React.FC<ReceiptVoucherProps> = ({ title }) => {
   const [isSearchModalOpen, setIsSearchModalOpen] = useState(false);
   const [shouldResetOnClose, setShouldResetOnClose] = useState(false);
   const [hasInitialized, setHasInitialized] = useState(false);
+  const [previewVoucherData, setPreviewVoucherData] = useState<{
+    number: string;
+    date: string;
+    amount: number | string;
+    receivedFrom: string;
+    description: string;
+    paymentMethod: "safe" | "bank";
+    userName: string;
+    branchName: string;
+  } | null>(null);
+  const shouldOpenPreviewRef = useRef(false);
+
+  // Open preview when previewVoucherData is set and we have a flag to open it
+  useEffect(() => {
+    if (shouldOpenPreviewRef.current && previewVoucherData) {
+      setIsPreviewOpen(true);
+      shouldOpenPreviewRef.current = false; // Reset flag
+    }
+  }, [previewVoucherData]);
 
   // Handle voucherId from URL query params
   useEffect(() => {
@@ -496,6 +515,23 @@ const ReceiptVoucher: React.FC<ReceiptVoucherProps> = ({ title }) => {
                       safeOrBankId: savedVoucher.paymentMethod === "safe" ? savedVoucher.safeId || null : savedVoucher.bankId || null,
                       description: savedVoucher.description || "",
                     });
+                    // Prepare preview data
+                    const previewData = {
+                      number: savedVoucher.code,
+                      date: savedVoucher.date ? new Date(savedVoucher.date).toISOString().substring(0, 10) : voucherData.date,
+                      amount: savedVoucher.amount === 0 || savedVoucher.amount === null ? ("" as any) : savedVoucher.amount,
+                      receivedFrom: savedVoucher.entityName,
+                      description: savedVoucher.description || "",
+                      paymentMethod: savedVoucher.paymentMethod as "safe" | "bank",
+                      userName: User?.fullName || User?.name || "غير محدد",
+                      branchName: typeof User?.branch === 'string' ? User.branch : User?.branch?.name || "غير محدد",
+                    };
+                    
+                    // Set preview data and flag to open preview
+                    setPreviewVoucherData(previewData);
+                    setShouldResetOnClose(true);
+                    shouldOpenPreviewRef.current = true;
+                    
                     // Find and set current index for navigation
                     setTimeout(() => {
                       const savedIndex = vouchers.findIndex((v) => v.id === savedVoucher.id);
@@ -503,9 +539,6 @@ const ReceiptVoucher: React.FC<ReceiptVoucherProps> = ({ title }) => {
                         navigate(savedIndex);
                       }
                     }, 300);
-                    // Open print preview and mark for reset on close
-                    setShouldResetOnClose(true);
-                    setIsPreviewOpen(true);
                   }
                 }}
                 disabled={isReadOnly}
@@ -663,12 +696,14 @@ const ReceiptVoucher: React.FC<ReceiptVoucherProps> = ({ title }) => {
           isOpen={isPreviewOpen}
           onClose={() => {
             setIsPreviewOpen(false);
+            setPreviewVoucherData(null);
+            shouldOpenPreviewRef.current = false;
             if (shouldResetOnClose) {
               handleNew();
               setShouldResetOnClose(false);
             }
           }}
-          voucherData={{
+          voucherData={previewVoucherData || {
             number: voucherData.number,
             date: voucherData.date,
             amount: voucherData.amount,

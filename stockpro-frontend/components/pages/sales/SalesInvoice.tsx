@@ -239,7 +239,8 @@ const SalesInvoice: React.FC<SalesInvoiceProps> = ({
   const [isScannerOpen, setIsScannerOpen] = useState(false);
   const [currentIndex, setCurrentIndex] = useState(-1);
   const justSavedRef = useRef(false); // Flag to prevent resetting state after save
-  const previewDataRef = useRef<{
+  const shouldOpenPreviewRef = useRef(false); // Flag to indicate we want to open preview after data is set
+  const [previewData, setPreviewData] = useState<{
     vatRate: number;
     isVatEnabled: boolean;
     items: InvoiceRow[];
@@ -343,7 +344,7 @@ const SalesInvoice: React.FC<SalesInvoiceProps> = ({
     setPaymentTargetId(null);
     setOriginalInvoiceVatEnabled(false); // Reset for new invoices
     setIsReadOnly(false);
-    previewDataRef.current = null; // Clear preview data ref
+    setPreviewData(null); // Clear preview data
   };
 
   useEffect(() => {
@@ -405,6 +406,14 @@ const SalesInvoice: React.FC<SalesInvoiceProps> = ({
       setFocusIndex(null); // Reset after focusing
     }
   }, [focusIndex]);
+
+  // Open preview when previewData is set and we have a flag to open it
+  useEffect(() => {
+    if (shouldOpenPreviewRef.current && previewData && previewData.items.length > 0) {
+      setIsPreviewOpen(true);
+      shouldOpenPreviewRef.current = false; // Reset flag
+    }
+  }, [previewData]);
 
   useEffect(() => {
     if (currentIndex >= 0) return;
@@ -765,8 +774,8 @@ const SalesInvoice: React.FC<SalesInvoiceProps> = ({
         showToast("تم تحديث الفاتورة بنجاح!");
         setIsReadOnly(true);
         
-        // Store preview data in ref before opening preview
-        previewDataRef.current = {
+        // Store preview data in state before opening preview
+        const previewDataToStore = {
           vatRate,
           isVatEnabled: effectiveVatEnabled,
           items: finalItems.map((item) => ({
@@ -783,8 +792,10 @@ const SalesInvoice: React.FC<SalesInvoiceProps> = ({
           },
         };
         
-        // Automatically open print preview after successful save
-        setIsPreviewOpen(true);
+        // Set preview data and flag to open preview
+        // useEffect will open preview once data is set
+        shouldOpenPreviewRef.current = true;
+        setPreviewData(previewDataToStore);
       } else {
         // Create new invoice
         const savedInvoice = await createSalesInvoice(invoiceData).unwrap();
@@ -802,9 +813,9 @@ const SalesInvoice: React.FC<SalesInvoiceProps> = ({
         };
         setInvoiceDetails(updatedInvoiceDetails);
         
-        // Store preview data in ref before opening preview
+        // Store preview data in state before opening preview
         // This ensures the preview has data even if state is reset by useEffect
-        previewDataRef.current = {
+        const previewDataToStore = {
           vatRate,
           isVatEnabled: effectiveVatEnabled,
           items: finalItems.map((item) => ({
@@ -823,8 +834,10 @@ const SalesInvoice: React.FC<SalesInvoiceProps> = ({
         
         setIsReadOnly(true);
         
-        // Automatically open print preview immediately with stored data
-        setIsPreviewOpen(true);
+        // Set preview data and flag to open preview
+        // useEffect will open preview once data is set
+        shouldOpenPreviewRef.current = true;
+        setPreviewData(previewDataToStore);
         
         // Wait for invoice list to refresh, then find and load the saved invoice
         // This ensures the invoice is properly tracked for navigation
@@ -1441,8 +1454,8 @@ const SalesInvoice: React.FC<SalesInvoiceProps> = ({
         colorTheme="blue"
       />
       {(() => {
-        // Use preview data from ref if available, otherwise use current state
-        const previewData = previewDataRef.current || (() => {
+        // Use preview data from state if available, otherwise use current state
+        const dataToPreview = previewData || (() => {
           const fullCustomer = selectedCustomer
             ? (customers as any[]).find((c) => c.id === selectedCustomer.id)
             : null;
@@ -1469,16 +1482,24 @@ const SalesInvoice: React.FC<SalesInvoiceProps> = ({
             },
           };
         })();
+        
+        // Only render preview if we have data
+        if (!isPreviewOpen || !dataToPreview || dataToPreview.items.length === 0) {
+          return null;
+        }
+        
         return (
-      <InvoicePrintPreview
-        isOpen={isPreviewOpen}
-        onClose={() => {
-          setIsPreviewOpen(false);
-          previewDataRef.current = null; // Clear preview data ref when closing
-          handleNew();
-        }}
-        invoiceData={previewData}
-      />);
+          <InvoicePrintPreview
+            isOpen={isPreviewOpen}
+            onClose={() => {
+              setIsPreviewOpen(false);
+              setPreviewData(null); // Clear preview data when closing
+              shouldOpenPreviewRef.current = false; // Reset flag
+              handleNew();
+            }}
+            invoiceData={dataToPreview}
+          />
+        );
       })()}
       <BarcodeScannerModal
         isOpen={isScannerOpen}

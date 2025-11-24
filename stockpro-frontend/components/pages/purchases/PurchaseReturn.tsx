@@ -185,7 +185,8 @@ const PurchaseReturn: React.FC<PurchaseReturnProps> = ({
   const [isSearchModalOpen, setIsSearchModalOpen] = useState(false);
   const [currentIndex, setCurrentIndex] = useState(-1);
   const justSavedRef = useRef(false); // Flag to prevent resetting state after save
-  const previewDataRef = useRef<{
+  const shouldOpenPreviewRef = useRef(false); // Flag to indicate we want to open preview after data is set
+  const [previewData, setPreviewData] = useState<{
     vatRate: number;
     isVatEnabled: boolean;
     items: InvoiceItem[];
@@ -281,7 +282,7 @@ const PurchaseReturn: React.FC<PurchaseReturnProps> = ({
     setPaymentTargetType("safe");
     // For safes, we don't need paymentTargetId (we send branchId instead)
     setPaymentTargetId(null);
-    previewDataRef.current = null; // Clear preview data ref
+    setPreviewData(null); // Clear preview data
     setIsReadOnly(false);
   };
 
@@ -327,6 +328,14 @@ const PurchaseReturn: React.FC<PurchaseReturnProps> = ({
       handleNew();
     }
   }, [currentIndex, invoices]);
+
+  // Open preview when previewData is set and we have a flag to open it
+  useEffect(() => {
+    if (shouldOpenPreviewRef.current && previewData && previewData.items.length > 0) {
+      setIsPreviewOpen(true);
+      shouldOpenPreviewRef.current = false; // Reset flag
+    }
+  }, [previewData]);
 
   useEffect(() => {
     const sizer = document.createElement("span");
@@ -667,8 +676,8 @@ const PurchaseReturn: React.FC<PurchaseReturnProps> = ({
         showToast("تم تحديث المرتجع بنجاح!");
         setIsReadOnly(true);
         
-        // Store preview data in ref before opening preview
-        previewDataRef.current = {
+        // Store preview data in state before opening preview
+        const previewDataToStore = {
           vatRate,
           isVatEnabled,
           items: finalItems,
@@ -682,8 +691,10 @@ const PurchaseReturn: React.FC<PurchaseReturnProps> = ({
           },
         };
         
-        // Automatically open print preview after successful save
-        setIsPreviewOpen(true);
+        // Set preview data and flag to open preview
+        // useEffect will open preview once data is set
+        shouldOpenPreviewRef.current = true;
+        setPreviewData(previewDataToStore);
       } else {
         // Create new return
         const savedReturn = await createPurchaseReturn(returnData).unwrap();
@@ -701,9 +712,9 @@ const PurchaseReturn: React.FC<PurchaseReturnProps> = ({
         };
         setInvoiceDetails(updatedInvoiceDetails);
         
-        // Store preview data in ref before opening preview
+        // Store preview data in state before opening preview
         // This ensures the preview has data even if state is reset by useEffect
-        previewDataRef.current = {
+        const previewDataToStore = {
           vatRate,
           isVatEnabled,
           items: finalItems,
@@ -719,8 +730,10 @@ const PurchaseReturn: React.FC<PurchaseReturnProps> = ({
         
         setIsReadOnly(true);
         
-        // Automatically open print preview immediately with stored data
-        setIsPreviewOpen(true);
+        // Set preview data and flag to open preview
+        // useEffect will open preview once data is set
+        shouldOpenPreviewRef.current = true;
+        setPreviewData(previewDataToStore);
         
         // Wait for return list to refresh, then find and load the saved return
         // This ensures the return is properly tracked for navigation
@@ -1401,8 +1414,8 @@ const PurchaseReturn: React.FC<PurchaseReturnProps> = ({
         colorTheme="green"
       />
       {(() => {
-        // Use preview data from ref if available, otherwise use current state
-        const previewData = previewDataRef.current || (() => {
+        // Use preview data from state if available, otherwise use current state
+        const dataToPreview = previewData || (() => {
           const fullSupplier = selectedSupplier
             ? (suppliers as any[]).find((s) => s.id === selectedSupplier.id)
             : null;
@@ -1428,16 +1441,23 @@ const PurchaseReturn: React.FC<PurchaseReturnProps> = ({
             },
           };
         })();
+        
+        // Only render preview if we have data
+        if (!isPreviewOpen || !dataToPreview || dataToPreview.items.length === 0) {
+          return null;
+        }
+        
         return (
           <PurchaseInvoicePrintPreview
             isOpen={isPreviewOpen}
             onClose={() => {
               setIsPreviewOpen(false);
-              previewDataRef.current = null; // Clear preview data ref when closing
+              setPreviewData(null); // Clear preview data when closing
+              shouldOpenPreviewRef.current = false; // Reset flag
               handleNew();
             }}
             isReturn={true}
-            invoiceData={previewData}
+            invoiceData={dataToPreview}
           />
         );
       })()}

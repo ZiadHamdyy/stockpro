@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useSearchParams } from "react-router-dom";
 import { PrintIcon } from "../../icons";
 import { tafqeet } from "../../../utils/tafqeet";
@@ -49,6 +49,27 @@ const InternalTransfers: React.FC<InternalTransfersProps> = ({ title }) => {
   const [isSearchModalOpen, setIsSearchModalOpen] = useState(false);
   const [shouldResetOnClose, setShouldResetOnClose] = useState(false);
   const [hasInitialized, setHasInitialized] = useState(false);
+  const shouldOpenPreviewRef = useRef(false);
+  const [previewVoucherData, setPreviewVoucherData] = useState<{
+    number: string;
+    date: string;
+    amount: number;
+    fromAccount: string;
+    fromType: string;
+    toAccount: string;
+    toType: string;
+    description: string;
+    userName: string;
+    branchName: string;
+  } | null>(null);
+
+  // Open preview when previewVoucherData is set and we have a flag to open it
+  useEffect(() => {
+    if (shouldOpenPreviewRef.current && previewVoucherData) {
+      setIsPreviewOpen(true);
+      shouldOpenPreviewRef.current = false; // Reset flag
+    }
+  }, [previewVoucherData]);
 
   // Handle transferId from URL query params
   useEffect(() => {
@@ -91,18 +112,6 @@ const InternalTransfers: React.FC<InternalTransfersProps> = ({ title }) => {
       setHasInitialized(true);
     }
   }, [vouchers, isLoading, searchParams, setSearchParams, currentIndex, setCurrentIndex, hasInitialized, handleNew]);
-  const [previewVoucherData, setPreviewVoucherData] = useState<{
-    number: string;
-    date: string;
-    amount: number;
-    fromAccount: string;
-    fromType: string;
-    toAccount: string;
-    toType: string;
-    description: string;
-    userName: string;
-    branchName: string;
-  } | null>(null);
 
   const inputStyle =
     "mt-1 block w-full bg-yellow-100 border-2 border-amber-500 rounded-md shadow-sm text-black placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-amber-500 py-3 px-4 disabled:bg-gray-200 disabled:cursor-not-allowed";
@@ -472,8 +481,10 @@ const InternalTransfers: React.FC<InternalTransfersProps> = ({ title }) => {
                             : User?.branch?.name || "غير محدد",
                       };
                       
-                      // Set preview data and open preview immediately
+                      // Set preview data and flag to open preview
                       setPreviewVoucherData(previewData);
+                      setShouldResetOnClose(true);
+                      shouldOpenPreviewRef.current = true;
                       
                       // Update transfer data with saved voucher data
                       setTransferData({
@@ -497,10 +508,6 @@ const InternalTransfers: React.FC<InternalTransfersProps> = ({ title }) => {
                             : savedVoucher.amount,
                         description: savedVoucher.description || "",
                       });
-                      
-                      // Open print preview immediately with saved data and mark for reset on close
-                      setShouldResetOnClose(true);
-                      setIsPreviewOpen(true);
                       
                       // Refetch vouchers and find index for navigation (async, non-blocking)
                       refetch().then(() => {
@@ -691,6 +698,7 @@ const InternalTransfers: React.FC<InternalTransfersProps> = ({ title }) => {
           onClose={() => {
             setIsPreviewOpen(false);
             setPreviewVoucherData(null);
+            shouldOpenPreviewRef.current = false;
             if (shouldResetOnClose) {
               handleNew();
               setShouldResetOnClose(false);
@@ -704,6 +712,7 @@ const InternalTransfers: React.FC<InternalTransfersProps> = ({ title }) => {
           isOpen={isPreviewOpen}
           onClose={() => {
             setIsPreviewOpen(false);
+            shouldOpenPreviewRef.current = false;
             if (shouldResetOnClose) {
               handleNew();
               setShouldResetOnClose(false);
