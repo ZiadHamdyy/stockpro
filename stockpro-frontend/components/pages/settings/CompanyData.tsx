@@ -331,7 +331,7 @@ const CompanyData: React.FC<CompanyDataProps> = ({ title }) => {
           <PermissionWrapper
             requiredPermission={buildPermission(
               Resources.COMPANY_DATA,
-              Actions.UPDATE,
+              Actions.CREATE,
             )}
             fallback={
               <button

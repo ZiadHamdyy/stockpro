@@ -621,7 +621,7 @@ const AddItem: React.FC<AddItemProps> = ({ title, editingId, onNavigate }) => {
             <PermissionWrapper
               requiredPermission={buildPermission(
                 Resources.ITEMS_LIST,
-                Actions.READ,
+                Actions.SEARCH,
               )}
             >
               <button

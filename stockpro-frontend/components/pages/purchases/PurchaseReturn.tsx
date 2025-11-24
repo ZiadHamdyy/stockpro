@@ -1357,12 +1357,19 @@ const PurchaseReturn: React.FC<PurchaseReturnProps> = ({
                   حذف
                 </button>
               </PermissionWrapper>
-              <button
-                onClick={() => setIsSearchModalOpen(true)}
-                className="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 font-semibold"
+              <PermissionWrapper
+                requiredPermission={buildPermission(
+                  Resources.PURCHASE_RETURN,
+                  Actions.SEARCH,
+                )}
               >
-                بحث
-              </button>
+                <button
+                  onClick={() => setIsSearchModalOpen(true)}
+                  className="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 font-semibold"
+                >
+                  بحث
+                </button>
+              </PermissionWrapper>
               <button
                 onClick={handleOpenPreview}
                 className="px-4 py-2 bg-gray-200 text-brand-dark rounded-md hover:bg-gray-300 font-semibold flex items-center"
