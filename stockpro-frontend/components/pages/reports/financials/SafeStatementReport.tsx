@@ -115,7 +115,6 @@ const SafeStatementReport: React.FC<SafeStatementReportProps> = ({
         id: voucher.id,
         code: voucher.code || voucher.id,
         date: normalizeDate(voucher.date),
-        createdAt: voucher.createdAt || voucher.date,
         entity,
         amount: voucher.amount,
         description: voucher.description || "",
@@ -141,7 +140,6 @@ const SafeStatementReport: React.FC<SafeStatementReportProps> = ({
         id: voucher.id,
         code: voucher.code || voucher.id,
         date: normalizeDate(voucher.date),
-        createdAt: voucher.createdAt || voucher.date,
         entity,
         amount: voucher.amount,
         description: voucher.description || "",
@@ -362,14 +360,6 @@ const SafeStatementReport: React.FC<SafeStatementReportProps> = ({
       const dateValue = record?.date;
       if (dateValue) {
         const time = new Date(dateValue).getTime();
-        if (Number.isFinite(time) && time > 0) {
-          return time;
-        }
-      }
-      // Fallback to createdAt if date is not available
-      const createdAt = record?.createdAt || record?.created_at;
-      if (createdAt) {
-        const time = new Date(createdAt).getTime();
         if (Number.isFinite(time) && time > 0) {
           return time;
         }

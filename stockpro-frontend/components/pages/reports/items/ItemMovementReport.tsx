@@ -362,7 +362,6 @@ const ItemMovementReport: React.FC<ItemMovementReportProps> = ({
     // --- Report Data Calculation for the period ---
     type Transaction = {
       date: string;
-      createdAt: string; // Add createdAt for sorting
       branch: string;
       type: string;
       ref: string;
@@ -391,13 +390,10 @@ const ItemMovementReport: React.FC<ItemMovementReportProps> = ({
         // For sales/purchase invoices and returns, use 'code' field
         // For warehouse vouchers, use 'voucherNumber' field
         const displayCode = tx.code || tx.voucherNumber || tx.id;
-        // Use createdAt for sorting, fallback to date if not available
-        const createdAt = tx.createdAt || tx.date;
         tx.items.forEach((item: any) => {
           if (item.id === itemCode) {
             transactions.push({
               date: tx.date,
-              createdAt: createdAt,
               branch: branchName || "",
               type: type,
               ref: tx.id,
@@ -475,8 +471,6 @@ const ItemMovementReport: React.FC<ItemMovementReportProps> = ({
         const fromStore = stores.find((s) => s.name === v.fromStore);
         const toStore = stores.find((s) => s.name === v.toStore);
         const displayCode = v.voucherNumber || v.id;
-        // Use createdAt for sorting, fallback to date if not available
-        const createdAt = v.createdAt || v.date;
         v.items.forEach((item: any) => {
           if (item.id === itemCode) {
             if (
@@ -485,7 +479,6 @@ const ItemMovementReport: React.FC<ItemMovementReportProps> = ({
             ) {
               transactions.push({
                 date: v.date,
-                createdAt: createdAt,
                 branch: fromStore?.branch?.name || "",
                 type: `تحويل من ${v.fromStore}`,
                 ref: v.id,
@@ -501,7 +494,6 @@ const ItemMovementReport: React.FC<ItemMovementReportProps> = ({
             ) {
               transactions.push({
                 date: v.date,
-                createdAt: createdAt,
                 branch: toStore?.branch?.name || "",
                 type: `تحويل إلى ${v.toStore}`,
                 ref: v.id,

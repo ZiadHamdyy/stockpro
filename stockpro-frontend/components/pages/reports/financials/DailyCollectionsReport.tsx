@@ -79,7 +79,6 @@ const DailyCollectionsReport: React.FC<DailyCollectionsReportProps> = ({
         id: voucher.id,
         code: voucher.code,
         date: normalizeDate(voucher.date),
-        createdAt: voucher.createdAt || voucher.date,
         entity: {
           type: voucher.entityType,
           id:
@@ -104,7 +103,7 @@ const DailyCollectionsReport: React.FC<DailyCollectionsReportProps> = ({
   const [endDate, setEndDate] = useState(defaultEndDate);
   const [selectedBranch, setSelectedBranch] = useState("all");
 
-  // Filter vouchers by date range and branch, then sort by createdAt
+  // Filter vouchers by date range and branch, then sort by date
   const filteredVouchers = useMemo(() => {
     const filtered = receiptVouchers.filter((voucher) => {
       // Normalize voucher date to ensure proper comparison

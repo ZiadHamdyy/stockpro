@@ -87,7 +87,6 @@ const ExpenseStatementReport: React.FC<ExpenseStatementReportProps> = ({
         id: voucher.id,
         code: voucher.code,
         date: normalizeDate(voucher.date),
-        createdAt: voucher.createdAt || voucher.date,
         entity: {
           type: voucher.entityType,
           id: voucher.expenseCodeId || "",
@@ -148,7 +147,6 @@ const ExpenseStatementReport: React.FC<ExpenseStatementReportProps> = ({
       })
       .map((v) => ({
         date: v.date,
-        createdAt: v.createdAt || v.date,
         description: v.description || "مصروف",
         ref: v.code,
         voucherId: v.id,

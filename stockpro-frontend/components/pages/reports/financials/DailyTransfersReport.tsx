@@ -83,7 +83,6 @@ const DailyTransfersReport: React.FC<DailyTransfersReportProps> = ({
         id: transfer.id,
         code: transfer.code,
         date: normalizeDate(transfer.date),
-        createdAt: transfer.createdAt || transfer.date,
         amount: transfer.amount,
         description: transfer.description || "",
         branchId: transfer.branchId,

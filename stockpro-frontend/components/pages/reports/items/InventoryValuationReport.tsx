@@ -373,9 +373,7 @@ const InventoryValuationReport: React.FC<InventoryValuationReportProps> = ({
         const txDate =
           normalizeDate(tx.date) ||
           normalizeDate(tx.invoiceDate) ||
-          normalizeDate(tx.transactionDate) ||
-          normalizeDate(tx.createdAt) ||
-          normalizeDate(tx.updatedAt);
+          normalizeDate(tx.transactionDate);
         if (!txDate) return false;
         return txDate <= normalizedEndDate;
       };

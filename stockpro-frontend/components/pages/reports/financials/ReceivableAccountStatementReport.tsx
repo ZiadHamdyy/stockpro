@@ -118,7 +118,6 @@ const ReceivableAccountStatementReport: React.FC<
         id: voucher.id,
         code: voucher.code,
         date: normalizeDate(voucher.date),
-        createdAt: voucher.createdAt || voucher.date,
         entity: entity,
         amount: voucher.amount,
         description: voucher.description || "",
@@ -150,7 +149,6 @@ const ReceivableAccountStatementReport: React.FC<
         id: voucher.id,
         code: voucher.code,
         date: normalizeDate(voucher.date),
-        createdAt: voucher.createdAt || voucher.date,
         entity: entity,
         amount: voucher.amount,
         description: voucher.description || "",
@@ -228,7 +226,6 @@ const ReceivableAccountStatementReport: React.FC<
 
     const transactions: {
       date: string;
-      createdAt: string; // Add createdAt for sorting
       description: string;
       ref: string;
       voucherId: string;
@@ -253,7 +250,6 @@ const ReceivableAccountStatementReport: React.FC<
         if (branchMatch) {
           transactions.push({
             date: v.date,
-            createdAt: v.createdAt || v.date,
             description: "سند صرف",
             ref: v.code || v.id,
             voucherId: v.id,
@@ -280,7 +276,6 @@ const ReceivableAccountStatementReport: React.FC<
         if (branchMatch) {
           transactions.push({
             date: v.date,
-            createdAt: v.createdAt || v.date,
             description: "سند قبض",
             ref: v.code || v.id,
             voucherId: v.id,
