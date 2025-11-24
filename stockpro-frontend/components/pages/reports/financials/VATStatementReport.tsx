@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import type { CompanyInfo, Branch, User, Invoice } from '../../../../types';
 import { ExcelIcon, PdfIcon, PrintIcon, SearchIcon } from '../../../icons';
 import ReportHeader from '../ReportHeader';
+import PermissionWrapper from '../../../common/PermissionWrapper';
 import { formatNumber, getNegativeNumberClass } from '../../../../utils/formatting';
 import { useGetSalesInvoicesQuery } from '../../../store/slices/salesInvoice/salesInvoiceApiSlice';
 import { useGetSalesReturnsQuery } from '../../../store/slices/salesReturn/salesReturnApiSlice';
@@ -14,6 +15,11 @@ import { useGetPaymentVouchersQuery } from '../../../store/slices/paymentVoucher
 import type { PaymentVoucher } from '../../../store/slices/paymentVoucherApiSlice';
 import { useGetReceiptVouchersQuery } from '../../../store/slices/receiptVoucherApiSlice';
 import type { ReceiptVoucher } from '../../../store/slices/receiptVoucherApiSlice';
+import {
+  Actions,
+  Resources,
+  buildPermission,
+} from '../../../../enums/permissions.enum';
 
 interface VATStatementReportProps {
   title: string;
@@ -449,27 +455,59 @@ const VATStatementReport: React.FC<VATStatementReportProps> = ({ title, companyI
                             <span>عرض التقرير</span>
                         </button>
                     </div>
-                    <div className="no-print flex items-center gap-2">
+                    <PermissionWrapper
+                        requiredPermission={buildPermission(
+                            Resources.VAT_STATEMENT_REPORT,
+                            Actions.PRINT,
+                        )}
+                        fallback={
+                            <div className="no-print flex items-center gap-2">
+                                <button
+                                    title="تصدير Excel"
+                                    disabled
+                                    className="p-3 border-2 border-gray-200 rounded-md cursor-not-allowed opacity-50"
+                                >
+                                    <ExcelIcon className="w-6 h-6" />
+                                </button>
+                                <button
+                                    title="تصدير PDF"
+                                    disabled
+                                    className="p-3 border-2 border-gray-200 rounded-md cursor-not-allowed opacity-50"
+                                >
+                                    <PdfIcon className="w-6 h-6" />
+                                </button>
                         <button
-                            title="تصدير Excel"
-                            className="p-3 border-2 border-gray-200 rounded-md hover:bg-gray-100"
-                        >
-                            <ExcelIcon className="w-6 h-6" />
-                        </button>
-                        <button
-                            title="تصدير PDF"
-                            className="p-3 border-2 border-gray-200 rounded-md hover:bg-gray-100"
-                        >
-                            <PdfIcon className="w-6 h-6" />
-                        </button>
-                        <button
-                            onClick={handlePrint}
                             title="طباعة"
-                            className="p-3 border-2 border-gray-200 rounded-md hover:bg-gray-100"
+                            disabled
+                            className="p-3 border-2 border-gray-200 rounded-md cursor-not-allowed opacity-50"
                         >
                             <PrintIcon className="w-6 h-6" />
                         </button>
-                    </div>
+                            </div>
+                        }
+                    >
+                        <div className="no-print flex items-center gap-2">
+                            <button
+                                title="تصدير Excel"
+                                className="p-3 border-2 border-gray-200 rounded-md hover:bg-gray-100"
+                            >
+                                <ExcelIcon className="w-6 h-6" />
+                            </button>
+                            <button
+                                title="تصدير PDF"
+                                className="p-3 border-2 border-gray-200 rounded-md hover:bg-gray-100"
+                            >
+                                <PdfIcon className="w-6 h-6" />
+                            </button>
+                            <button
+                                onClick={handlePrint}
+                                title="طباعة"
+                                className="p-3 border-2 border-gray-200 rounded-md hover:bg-gray-100"
+                            >
+                                <PrintIcon className="w-6 h-6" />
+                            </button>
+                        </div>
+                    </PermissionWrapper>
                 </div>
 
                 <div className="overflow-x-auto border-2 border-brand-blue rounded-lg">

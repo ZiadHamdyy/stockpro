@@ -2,12 +2,18 @@ import React, { useState, useMemo } from "react";
 import type { CompanyInfo, User, Voucher } from "../../../../types";
 import { ExcelIcon, PdfIcon, PrintIcon, SearchIcon } from "../../../icons";
 import ReportHeader from "../ReportHeader";
+import PermissionWrapper from '../../../common/PermissionWrapper';
 import { formatNumber, getNegativeNumberClass } from "../../../../utils/formatting";
 import { useGetPayableAccountsQuery } from "../../../store/slices/payableAccounts/payableAccountsApi";
 import { useGetReceiptVouchersQuery } from "../../../store/slices/receiptVoucherApiSlice";
 import { useGetPaymentVouchersQuery } from "../../../store/slices/paymentVoucherApiSlice";
 import { getCurrentYearRange } from "../dateUtils";
 import { useAuth } from "../../../hook/Auth";
+import {
+  Actions,
+  Resources,
+  buildPermission,
+} from "../../../../enums/permissions.enum";
 
 interface TotalPayableAccountsReportProps {
   title: string;
@@ -309,27 +315,59 @@ const TotalPayableAccountsReport: React.FC<TotalPayableAccountsReportProps> = ({
               <span>عرض التقرير</span>
             </button>
           </div>
-          <div className="no-print flex items-center gap-2">
-            <button
-              title="تصدير Excel"
-              className="p-3 border-2 border-gray-200 rounded-md hover:bg-gray-100"
-            >
-              <ExcelIcon className="w-6 h-6" />
-            </button>
-            <button
-              title="تصدير PDF"
-              className="p-3 border-2 border-gray-200 rounded-md hover:bg-gray-100"
-            >
-              <PdfIcon className="w-6 h-6" />
-            </button>
-            <button
-              onClick={handlePrint}
-              title="طباعة"
-              className="p-3 border-2 border-gray-200 rounded-md hover:bg-gray-100"
-            >
-              <PrintIcon className="w-6 h-6" />
-            </button>
-          </div>
+          <PermissionWrapper
+            requiredPermission={buildPermission(
+              Resources.TOTAL_PAYABLE_ACCOUNTS_REPORT,
+              Actions.PRINT,
+            )}
+            fallback={
+              <div className="no-print flex items-center gap-2">
+                <button
+                  title="تصدير Excel"
+                  disabled
+                  className="p-3 border-2 border-gray-200 rounded-md cursor-not-allowed opacity-50"
+                >
+                  <ExcelIcon className="w-6 h-6" />
+                </button>
+                <button
+                  title="تصدير PDF"
+                  disabled
+                  className="p-3 border-2 border-gray-200 rounded-md cursor-not-allowed opacity-50"
+                >
+                  <PdfIcon className="w-6 h-6" />
+                </button>
+                <button
+                  title="طباعة"
+                  disabled
+                  className="p-3 border-2 border-gray-200 rounded-md cursor-not-allowed opacity-50"
+                >
+                  <PrintIcon className="w-6 h-6" />
+                </button>
+              </div>
+            }
+          >
+            <div className="no-print flex items-center gap-2">
+              <button
+                title="تصدير Excel"
+                className="p-3 border-2 border-gray-200 rounded-md hover:bg-gray-100"
+              >
+                <ExcelIcon className="w-6 h-6" />
+              </button>
+              <button
+                title="تصدير PDF"
+                className="p-3 border-2 border-gray-200 rounded-md hover:bg-gray-100"
+              >
+                <PdfIcon className="w-6 h-6" />
+              </button>
+              <button
+                onClick={handlePrint}
+                title="طباعة"
+                className="p-3 border-2 border-gray-200 rounded-md hover:bg-gray-100"
+              >
+                <PrintIcon className="w-6 h-6" />
+              </button>
+            </div>
+          </PermissionWrapper>
         </div>
 
         <div className="overflow-x-auto border-2 border-brand-blue rounded-lg">

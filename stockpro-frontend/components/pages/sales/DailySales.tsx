@@ -2,7 +2,7 @@ import React, { useState, useMemo } from "react";
 import type { CompanyInfo } from "../../../types";
 import { ExcelIcon, PdfIcon, PrintIcon, SearchIcon } from "../../icons";
 import { exportToExcel, exportToPdf, formatMoney } from "../../../utils/formatting";
-import InvoiceHeader from "../../common/InvoiceHeader";
+import DocumentHeader from "../../common/DocumentHeader";
 import { useGetSalesInvoicesQuery } from "../../store/slices/salesInvoice/salesInvoiceApiSlice";
 import { useGetCompanyQuery } from "../../store/slices/companyApiSlice";
 import { useGetBranchesQuery } from "../../store/slices/branch/branchApi";
@@ -164,11 +164,8 @@ const DailySales: React.FC<DailySalesProps> = ({ title }) => {
         .print-scale-sm .py-3 { padding-top: 6px; padding-bottom: 6px; }
         .print-scale-sm table th, .print-scale-sm table td { padding: 4px 6px !important; }
       }`}</style>
-      <div className="border-2 border-brand-blue rounded-lg mb-4">
-        <InvoiceHeader 
-          branchName={selectedBranchId ? branches.find(b => b.id === selectedBranchId)?.name : undefined}
-          userName={currentUser?.name}
-        />
+      <div className="border-2 border-brand-blue rounded-lg mb-4 bg-white">
+        <DocumentHeader companyInfo={companyInfo} />
       </div>
 
       <h1 className="text-2xl font-bold mb-4 text-brand-dark">{title}</h1>
