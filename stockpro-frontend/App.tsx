@@ -81,6 +81,7 @@ import TotalPayableAccountsReport from "./components/pages/reports/financials/To
 import SafeStatementReport from "./components/pages/reports/financials/SafeStatementReport";
 import BankStatementReport from "./components/pages/reports/financials/BankStatementReport";
 import TaxDeclarationReport from "./components/pages/reports/financials/TaxDeclarationReport";
+import VATStatementReport from "./components/pages/reports/financials/VATStatementReport";
 import IncomeStatement from "./components/pages/final_accounts/IncomeStatement";
 import BalanceSheet from "./components/pages/final_accounts/BalanceSheet";
 
@@ -1464,6 +1465,18 @@ const AppContent = () => {
               element={
                 <ProtectedRoute requiredPermission="tax_declaration_report-read">
                   <TaxDeclarationReport
+                    title={currentPageTitle}
+                    companyInfo={companyInfo}
+                    currentUser={currentUser}
+                  />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/reports/financials/vat-statement"
+              element={
+                <ProtectedRoute requiredPermission="vat_statement_report-read">
+                  <VATStatementReport
                     title={currentPageTitle}
                     companyInfo={companyInfo}
                     currentUser={currentUser}

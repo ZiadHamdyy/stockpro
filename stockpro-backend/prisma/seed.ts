@@ -208,7 +208,14 @@ const MENU_ITEMS: MenuItem[] = [
           { key: 'bank_statement_report', label: 'كشف حساب بنك' },
         ],
       },
-      { key: 'tax_declaration_report', label: 'الإقرار الضريبي' },
+      {
+        key: 'tax_reports',
+        label: 'تقارير ضريبية',
+        children: [
+          { key: 'vat_statement_report', label: 'كشف حساب الضريبة' },
+          { key: 'tax_declaration_report', label: 'الإقرار الضريبي' },
+        ],
+      },
     ],
   },
   {
@@ -411,6 +418,8 @@ async function main() {
         p.resource === 'cash_reports' ||
         p.resource === 'safe_statement_report' ||
         p.resource === 'bank_statement_report' ||
+        p.resource === 'tax_reports' ||
+        p.resource === 'vat_statement_report' ||
         p.resource === 'tax_declaration_report' ||
         p.resource === 'final_accounts' ||
         p.resource === 'income_statement' ||

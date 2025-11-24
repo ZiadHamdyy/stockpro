@@ -103,6 +103,7 @@ export const getPathFromMenuKey = (key: string): string => {
       "/reports/financials/total-payable-accounts",
     safe_statement_report: "/reports/financials/safe-statement",
     bank_statement_report: "/reports/financials/bank-statement",
+    vat_statement_report: "/reports/financials/vat-statement",
     tax_declaration_report: "/reports/financials/tax-declaration",
 
     // Final Accounts
@@ -183,6 +184,7 @@ export const getMenuKeyFromPath = (path: string): string => {
       "total_payable_accounts_report",
     "/reports/financials/safe-statement": "safe_statement_report",
     "/reports/financials/bank-statement": "bank_statement_report",
+    "/reports/financials/vat-statement": "vat_statement_report",
     "/reports/financials/tax-declaration": "tax_declaration_report",
     "/final-accounts/income-statement": "income_statement",
     "/final-accounts/balance-sheet": "balance_sheet",

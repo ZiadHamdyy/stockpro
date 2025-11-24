@@ -361,10 +361,22 @@ export const MENU_ITEMS: MenuItem[] = [
         ],
       },
       {
-        key: "tax_declaration_report",
-        label: "الإقرار الضريبي",
+        key: "tax_reports",
+        label: "تقارير ضريبية",
         icon: BarChartIcon,
-      },
+        children: [
+          {
+            key: "vat_statement_report",
+            label: "كشف حساب الضريبة",
+            icon: BarChartIcon,
+          },
+          {
+            key: "tax_declaration_report",
+            label: "الإقرار الضريبي",
+            icon: BarChartIcon,
+          },
+        ],
+      }
     ],
   },
   {

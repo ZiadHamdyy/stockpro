@@ -59,6 +59,7 @@ import TotalPayableAccountsReport from "../components/pages/reports/financials/T
 import SafeStatementReport from "../components/pages/reports/financials/SafeStatementReport";
 import BankStatementReport from "../components/pages/reports/financials/BankStatementReport";
 import TaxDeclarationReport from "../components/pages/reports/financials/TaxDeclarationReport";
+import VATStatementReport from "../components/pages/reports/financials/VATStatementReport";
 import IncomeStatement from "../components/pages/final_accounts/IncomeStatement";
 import BalanceSheet from "../components/pages/final_accounts/BalanceSheet";
 // Note: You can also use enums: import { Resources, Actions, buildPermission } from '../enums/permissions.enum';
@@ -508,6 +509,12 @@ export const routeConfig = [
     component: TaxDeclarationReport,
     requiredPermission: "tax_declaration_report-read",
     label: "الإقرار الضريبي",
+  },
+  {
+    path: "/reports/financials/vat-statement",
+    component: VATStatementReport,
+    requiredPermission: "vat_statement_report-read",
+    label: "كشف حساب الضريبة",
   },
 
   // Final Accounts
