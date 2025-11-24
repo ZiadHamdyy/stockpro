@@ -31,7 +31,7 @@ export const NavigationHandler = () => {
       if (token) {
         dispatch(setCredentials({ accessToken: token, user }));
         enqueueSnackbar("Login successful!", { variant: "success" });
-        navigate("/");
+        navigate("/dashboard", { replace: true });
       }
     } catch (error) {
       enqueueSnackbar("Login failed!", { variant: "error" });

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { UserIcon, LockIcon, EyeIcon, EyeOffIcon, FacebookIcon, YoutubeIcon, GlobeIcon, PhoneIcon } from "../icons";
 import { useLoginUserMutation } from "../store/slices/auth/authApi";
 import ForgotPassword from "./ForgotPassword";
@@ -33,6 +34,7 @@ const StockProLogo: React.FC<{ size?: 'normal' | 'large', variant?: 'light' | 'd
 };
 
 const Login: React.FC<LoginProps> = ({ onLogin }) => {
+  const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -50,6 +52,8 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
       const result = await loginUser({ email, password }).unwrap();
       // Call the parent onLogin callback with user data
       onLogin(email, password, (result as any)?.data?.user);
+      // Navigate to dashboard after successful login
+      navigate("/dashboard", { replace: true });
     } catch (error: any) {
       console.error("Login error:", error);
       setError("حدث خطأ أثناء تسجيل الدخول");

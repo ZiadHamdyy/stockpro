@@ -148,10 +148,7 @@ const Sidebar: React.FC<SidebarProps> = ({
 }) => {
   const navigate = useNavigate();
   const location = useLocation();
-  const [openMenus, setOpenMenus] = useState<Record<string, boolean>>({
-    settings: true,
-    reports: true,
-  });
+  const [openMenus, setOpenMenus] = useState<Record<string, boolean>>({});
 
   const menuFilteredByPermissions = useMemo(
     () => filterByPermissions(MENU_ITEMS, userPermissions),
