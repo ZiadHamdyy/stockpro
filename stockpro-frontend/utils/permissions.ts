@@ -1,4 +1,4 @@
-import { Permission } from "../types";
+import { Permission, MenuItem } from "../types";
 import { Resources, Actions, buildPermission } from "../enums/permissions.enum";
 
 // Re-export enums and helper for convenience
@@ -89,4 +89,53 @@ export const isMenuItemVisible = (
   // Check if user has read permission for this resource
   const readPermission = `${menuKey}-read`;
   return userPermissions.has(readPermission);
+};
+
+/**
+ * Convenience helper to check read-only access to a menu key
+ */
+export const hasReadPermissionForKey = (
+  menuKey: string,
+  permissionSet: Set<string>,
+): boolean => {
+  if (!permissionSet || permissionSet.size === 0) {
+    return false;
+  }
+  return permissionSet.has(`${menuKey}-read`);
+};
+
+/**
+ * Filter menu items recursively, keeping entries that either have their own read
+ * permission or at least one child that does. Empty parents are removed.
+ */
+export const filterMenuByReadPermissions = (
+  items: MenuItem[],
+  permissionSet: Set<string>,
+): MenuItem[] => {
+  if (!Array.isArray(items) || items.length === 0) {
+    return [];
+  }
+
+  const filterRecursively = (menuItems: MenuItem[]): MenuItem[] => {
+    return menuItems
+      .map((item) => {
+        const filteredChildren = item.children
+          ? filterRecursively(item.children)
+          : undefined;
+        const canSeeItem =
+          hasReadPermissionForKey(item.key, permissionSet) ||
+          (filteredChildren && filteredChildren.length > 0);
+
+        if (!canSeeItem) {
+          return null;
+        }
+
+        return filteredChildren
+          ? { ...item, children: filteredChildren }
+          : item;
+      })
+      .filter((item): item is MenuItem => item !== null);
+  };
+
+  return filterRecursively(items);
 };

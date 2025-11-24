@@ -7,10 +7,11 @@ import {
   getPathFromMenuKey,
   getMenuKeyFromPath,
 } from "../../utils/menuPathMapper";
+import { filterMenuByReadPermissions } from "../../utils/permissions";
 
 interface SidebarProps {
   searchTerm: string;
-  userPermissions: string[];
+  permissionSet: Set<string>;
   onDatabaseBackup?: () => void;
 }
 
@@ -43,79 +44,6 @@ const StockProLogo: React.FC = () => (
   </div>
 );
 
-const filterByPermissions = (
-  items: MenuItem[],
-  permissions: string[],
-): MenuItem[] => {
-  if (permissions.includes("all")) {
-    return items;
-  }
-
-  // Filter to only include read permissions
-  const readPermissions = permissions.filter((permission) =>
-    permission.endsWith("-read"),
-  );
-
-  // Extract allowed keys from read permissions only
-  // Convert "dashboard-read" to "dashboard", "items_list-read" to "items_list", etc.
-  const allowedKeys = new Set<string>();
-  readPermissions.forEach((permission) => {
-    const [resource] = permission.split("-");
-    allowedKeys.add(resource);
-  });
-
-  // Helper function to check if any descendant has read permission
-  const hasAnyAllowedDescendant = (item: MenuItem): boolean => {
-    if (allowedKeys.has(item.key)) {
-      return true;
-    }
-    if (item.children) {
-      return item.children.some((child) => hasAnyAllowedDescendant(child));
-    }
-    return false;
-  };
-
-  // Add parent keys for any allowed child (recursively)
-  // This ensures parent items are shown if they have children with read permissions
-  const addParents = (item: MenuItem) => {
-    if (item.children) {
-      item.children.forEach((child) => {
-        if (hasAnyAllowedDescendant(child)) {
-          allowedKeys.add(item.key);
-        }
-        addParents(child);
-      });
-    }
-  };
-  items.forEach(addParents);
-
-  const recursiveFilter = (menuItems: MenuItem[]): MenuItem[] => {
-    return menuItems
-      .map((item) => {
-        // If item has children, it's a grouping/parent item
-        if (item.children) {
-          const filteredChildren = recursiveFilter(item.children);
-
-          // Show parent only if:
-          // 1. It has read permission itself, OR
-          // 2. It has at least one child with read permission (to maintain menu structure)
-          if (allowedKeys.has(item.key) || filteredChildren.length > 0) {
-            return { ...item, children: filteredChildren };
-          }
-
-          return null;
-        }
-
-        // If item has no children, it's a clickable leaf item
-        // Show it only if it has read permission
-        return allowedKeys.has(item.key) ? item : null;
-      })
-      .filter((item): item is MenuItem => item !== null);
-  };
-
-  return recursiveFilter(items);
-};
-
 const filterMenuItems = (items: MenuItem[], term: string): MenuItem[] => {
   if (!term.trim()) {
     return items;
@@ -143,7 +71,7 @@ const filterMenuItems = (items: MenuItem[], term: string): MenuItem[] => {
 
 const Sidebar: React.FC<SidebarProps> = ({
   searchTerm,
-  userPermissions,
+  permissionSet,
   onDatabaseBackup,
 }) => {
   const navigate = useNavigate();
@@ -151,9 +79,9 @@ const Sidebar: React.FC<SidebarProps> = ({
   const [openMenus, setOpenMenus] = useState<Record<string, boolean>>({});
 
   const menuFilteredByPermissions = useMemo(
-    () => filterByPermissions(MENU_ITEMS, userPermissions),
-    [userPermissions],
-  );
+    () => filterMenuByReadPermissions(MENU_ITEMS, permissionSet),
+    [permissionSet],
+  ); // hides pages without read access and prunes empty groups
   const filteredMenu = useMemo(
     () => filterMenuItems(menuFilteredByPermissions, searchTerm),
     [searchTerm, menuFilteredByPermissions],

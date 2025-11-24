@@ -14,6 +14,7 @@ import { PersistGate } from "redux-persist/integration/react";
 import { store, persistor } from "./components/store/store";
 import { useAppDispatch } from "./components/store/hooks";
 import { useAuth } from "./components/hook/Auth";
+import { useUserPermissions } from "./components/hook/usePermissions";
 import { useSendLogOutMutation } from "./components/store/slices/auth/authApi";
 import { useLazyDownloadBackupQuery } from "./components/store/slices/backupApiSlice";
 import Sidebar from "./components/layout/Sidebar";
@@ -138,7 +139,6 @@ import { ModalProvider } from "./components/common/ModalProvider";
 import Toast from "./components/common/Toast";
 import { getLabelByPath } from "./routes/routeConfig";
 import ProtectedRoute from "./components/common/ProtectedRoute";
-import { getPermissionSet } from "./utils/permissions";
 
 // Simplified role-based permissions
 const rolePermissions: Record<string, string[]> = {
@@ -414,22 +414,13 @@ const AppContent = () => {
   const isLoggedIn = isAuthed;
   const currentUser = User;
   const [sendLogOut] = useSendLogOutMutation();
+  const { permissionSet } = useUserPermissions();
 
   // Local state
   const [searchTerm, setSearchTerm] = useState("");
   const { showToast } = useToast();
 
   // Compute user permissions from Redux store (persistent)
-  const userPermissions = useMemo(() => {
-    if (currentUser?.role?.permissions) {
-      const permissions = currentUser.role.permissions;
-      const permissionSet = getPermissionSet(permissions);
-      // Convert to array of permission strings for backward compatibility with filterByPermissions
-      return Array.from(permissionSet);
-    }
-    return ["all"]; // Default permissions for testing
-  }, [currentUser]);
-
   // App state
   const [companyInfo, setCompanyInfo] = useState<CompanyInfo>({
     name: "StockPro Inc.",
@@ -664,7 +655,7 @@ const AppContent = () => {
     <div className="flex h-screen bg-brand-bg font-sans" dir="rtl">
       <Sidebar
         searchTerm={searchTerm}
-        userPermissions={userPermissions}
+        permissionSet={permissionSet}
         onDatabaseBackup={handleBackup}
       />
       <div className="flex-1 flex flex-col overflow-hidden">
