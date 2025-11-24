@@ -222,7 +222,8 @@ export interface VoucherEntity {
     | "receivable_account"
     | "payable_account"
     | "expense"
-    | "expense-Type";
+    | "expense-Type"
+    | "vat";
   id: string | number | null;
   name: string;
 }

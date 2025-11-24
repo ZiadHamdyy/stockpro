@@ -23,7 +23,8 @@ type AllEntityType =
   | "receivable_account"
   | "payable_account"
   | "expense"
-  | "expense-Type";
+  | "expense-Type"
+  | "vat";
 import DataTableModal from "../../common/DataTableModal";
 import { formatNumber } from "../../../utils/formatting";
 
@@ -129,7 +130,11 @@ const ReceiptVoucher: React.FC<ReceiptVoucherProps> = ({ title }) => {
       const newEntity = { ...prev.entity, [field]: value };
       if (field === "type") {
         newEntity.id = null;
-        newEntity.name = "";
+        if (value === "vat") {
+          newEntity.name = "ضريبة القيمة المضافة";
+        } else {
+          newEntity.name = "";
+        }
       }
       if (field === "id") {
         let foundName = "";
@@ -153,6 +158,10 @@ const ReceiptVoucher: React.FC<ReceiptVoucherProps> = ({ title }) => {
   const renderEntitySelector = () => {
     const entityType = voucherData.entity.type as AllEntityType;
     const entityId = voucherData.entity.id ? String(voucherData.entity.id) : "";
+    
+    if (entityType === "vat") {
+      return null;
+    }
     
     if (entityType === "customer") {
       return (
@@ -362,17 +371,20 @@ const ReceiptVoucher: React.FC<ReceiptVoucherProps> = ({ title }) => {
               >
                 <option value="customer">عميل</option>
                 <option value="supplier">مورد</option>
-                <option value="current_account">حساب جاري</option>
                 <option value="receivable_account">أرصدة مدينة اخري</option>
                 <option value="payable_account">أرصدة دائنة اخري</option>
+                <option value="current_account">حساب جاري</option>
+                <option value="vat">ضريبة القيمة المضافة</option>
               </select>
             </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700">
-                الاسم
-              </label>
-              {renderEntitySelector()}
-            </div>
+            {(voucherData.entity.type as AllEntityType) !== "vat" && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700">
+                  الاسم
+                </label>
+                {renderEntitySelector()}
+              </div>
+            )}
           </div>
 
           <div className="md:col-span-3">

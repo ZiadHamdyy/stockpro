@@ -17,6 +17,7 @@ export class CreateReceiptVoucherRequest {
     'current_account',
     'receivable_account',
     'payable_account',
+    'vat',
   ])
   entityType: string;
 

@@ -23,7 +23,8 @@ type AllEntityType =
   | "receivable_account"
   | "payable_account"
   | "expense"
-  | "expense-Type";
+  | "expense-Type"
+  | "vat";
 import DataTableModal from "../../common/DataTableModal";
 import { formatNumber } from "../../../utils/formatting";
 
@@ -125,7 +126,11 @@ const PaymentVoucher: React.FC<PaymentVoucherProps> = ({ title }) => {
       const newEntity = { ...prev.entity, [field]: value };
       if (field === "type") {
         newEntity.id = null;
-        newEntity.name = "";
+        if (value === "vat") {
+          newEntity.name = "ضريبة القيمة المضافة";
+        } else {
+          newEntity.name = "";
+        }
       }
       if (field === "id") {
         let foundName = "";
@@ -159,8 +164,8 @@ const PaymentVoucher: React.FC<PaymentVoucherProps> = ({ title }) => {
           updatedData.priceBeforeTax = priceBeforeTax;
           updatedData.taxPrice = taxPrice;
         }
-      } else if (field === "type" && value !== "expense-Type") {
-        // Reset VAT fields if entity type changed away from "expense-Type"
+      } else if (field === "type" && value !== "expense-Type" && value !== "vat") {
+        // Reset VAT fields if entity type changed away from "expense-Type" (but not for "vat")
         updatedData.priceBeforeTax = null;
         updatedData.taxPrice = null;
       }
@@ -172,6 +177,10 @@ const PaymentVoucher: React.FC<PaymentVoucherProps> = ({ title }) => {
   const renderEntitySelector = () => {
     const entityType = voucherData.entity.type as AllEntityType;
     const entityId = voucherData.entity.id ? String(voucherData.entity.id) : "";
+    
+    if (entityType === "vat") {
+      return null;
+    }
     
     if (entityType === "customer") {
       return (
@@ -477,20 +486,23 @@ const PaymentVoucher: React.FC<PaymentVoucherProps> = ({ title }) => {
                 disabled={isReadOnly}
               >
                 <option value="supplier">مورد</option>
-                <option value="expense">مصروف</option>
                 <option value="customer">عميل</option>
-                <option value="current_account">حساب جاري</option>
+                <option value="expense">مصروف</option>
                 <option value="expense-Type">مصروفات ضريبية</option>
                 <option value="receivable_account">أرصدة مدينة أخرى</option>
                 <option value="payable_account">أرصدة دائنة أخرى</option>
+                <option value="current_account">حساب جاري</option>
+                <option value="vat">ضريبة القيمة المضافة</option>
               </select>
             </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700">
-                الاسم
-              </label>
-              {renderEntitySelector()}
-            </div>
+            {(voucherData.entity.type as AllEntityType) !== "vat" && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700">
+                  الاسم
+                </label>
+                {renderEntitySelector()}
+              </div>
+            )}
           </div>
 
           <div className="md:col-span-3">

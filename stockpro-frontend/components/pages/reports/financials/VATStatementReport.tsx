@@ -12,6 +12,8 @@ import { useGetPurchaseReturnsQuery } from '../../../store/slices/purchaseReturn
 import { useGetBranchesQuery } from '../../../store/slices/branch/branchApi';
 import { useGetPaymentVouchersQuery } from '../../../store/slices/paymentVoucherApiSlice';
 import type { PaymentVoucher } from '../../../store/slices/paymentVoucherApiSlice';
+import { useGetReceiptVouchersQuery } from '../../../store/slices/receiptVoucherApiSlice';
+import type { ReceiptVoucher } from '../../../store/slices/receiptVoucherApiSlice';
 
 interface VATStatementReportProps {
   title: string;
@@ -35,6 +37,8 @@ const VATStatementReport: React.FC<VATStatementReportProps> = ({ title, companyI
         useGetBranchesQuery(undefined);
     const { data: apiPaymentVouchers = [], isLoading: paymentVouchersLoading } =
         useGetPaymentVouchersQuery(undefined);
+    const { data: apiReceiptVouchers = [], isLoading: receiptVouchersLoading } =
+        useGetReceiptVouchersQuery(undefined);
 
     // Transform API data to match expected format
     const salesInvoices = useMemo(() => {
@@ -102,6 +106,13 @@ const VATStatementReport: React.FC<VATStatementReportProps> = ({ title, companyI
         }));
     }, [apiPaymentVouchers]);
 
+    const receiptVouchers = useMemo(() => {
+        return (apiReceiptVouchers as ReceiptVoucher[]).map((voucher) => ({
+            ...voucher,
+            branchName: voucher.branch?.name || '',
+        }));
+    }, [apiReceiptVouchers]);
+
     const currentYear = new Date().getFullYear();
     const [startDate, setStartDate] = useState(`${currentYear}-01-01`);
     const [endDate, setEndDate] = useState(`${currentYear}-12-31`);
@@ -146,6 +157,12 @@ const VATStatementReport: React.FC<VATStatementReportProps> = ({ title, companyI
         const filterVoucherByBranch = (v: PaymentVoucher & { branchName?: string }) => 
             selectedBranch === 'all' || v.branchName === selectedBranch;
         const filterVoucherByDate = (v: PaymentVoucher) => {
+            const vDate = normalizeDate(v.date);
+            return vDate >= normalizedStartDate && vDate <= normalizedEndDate;
+        };
+        const filterReceiptVoucherByBranch = (v: ReceiptVoucher & { branchName?: string }) => 
+            selectedBranch === 'all' || v.branchName === selectedBranch;
+        const filterReceiptVoucherByDate = (v: ReceiptVoucher) => {
             const vDate = normalizeDate(v.date);
             return vDate >= normalizedStartDate && vDate <= normalizedEndDate;
         };
@@ -224,6 +241,42 @@ const VATStatementReport: React.FC<VATStatementReportProps> = ({ title, companyI
                 });
             });
 
+        // VAT from Receipt Vouchers (Debit - VAT collected)
+        receiptVouchers
+            .filter(v => v.entityType === 'vat' && v.amount && v.amount > 0)
+            .filter(filterReceiptVoucherByDate)
+            .filter(filterReceiptVoucherByBranch)
+            .forEach(v => {
+                transactions.push({
+                    date: normalizeDate(v.date),
+                    ref: v.code,
+                    refId: v.id,
+                    description: `سند قبض - ${v.entityName || 'ضريبة القيمة المضافة'}`,
+                    amount: v.amount || 0,
+                    tax: v.amount || 0,
+                    type: 'debit',
+                    link: { page: 'receipt_voucher', label: 'سند قبض' }
+                });
+            });
+
+        // VAT from Payment Vouchers (Credit - VAT paid)
+        paymentVouchers
+            .filter(v => v.entityType === 'vat' && v.amount && v.amount > 0)
+            .filter(filterVoucherByDate)
+            .filter(filterVoucherByBranch)
+            .forEach(v => {
+                transactions.push({
+                    date: normalizeDate(v.date),
+                    ref: v.code,
+                    refId: v.id,
+                    description: `سند صرف - ${v.entityName || 'ضريبة القيمة المضافة'}`,
+                    amount: v.amount || 0,
+                    tax: v.amount || 0,
+                    type: 'credit',
+                    link: { page: 'payment_voucher', label: 'سند صرف' }
+                });
+            });
+
         // Sort by date
         transactions.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 
@@ -237,7 +290,7 @@ const VATStatementReport: React.FC<VATStatementReportProps> = ({ title, companyI
         });
 
         setReportData(finalData);
-    }, [selectedBranch, startDate, endDate, salesInvoices, salesReturns, purchaseInvoices, purchaseReturns, paymentVouchers, normalizeDate]);
+    }, [selectedBranch, startDate, endDate, salesInvoices, salesReturns, purchaseInvoices, purchaseReturns, paymentVouchers, receiptVouchers, normalizeDate]);
     
     useEffect(() => {
         handleViewReport();
@@ -323,6 +376,11 @@ const VATStatementReport: React.FC<VATStatementReportProps> = ({ title, companyI
 
         if (page === "payment_voucher") {
             window.location.href = `/financials/payment-voucher?voucherId=${encodedId}`;
+            return;
+        }
+
+        if (page === "receipt_voucher") {
+            window.location.href = `/financials/receipt-voucher?voucherId=${encodedId}`;
             return;
         }
 

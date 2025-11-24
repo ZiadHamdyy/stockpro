@@ -21,6 +21,7 @@ export class UpdatePaymentVoucherRequest {
     'payable_account',
     'expense',
     'expense-Type',
+    'vat',
   ])
   entityType?: string;
 

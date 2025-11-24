@@ -72,8 +72,10 @@ export class ReceiptVoucherService {
         });
       }
 
-      // Apply entity balance effects
-      if (data.entityType === 'customer' && data.customerId) {
+      // Apply entity balance effects (skip for VAT type)
+      if (data.entityType === 'vat') {
+        // VAT vouchers don't affect entity balances
+      } else if (data.entityType === 'customer' && data.customerId) {
         // Customer: decrement (customer paid us)
         await tx.customer.update({
           where: { id: data.customerId },
@@ -199,8 +201,10 @@ export class ReceiptVoucherService {
           });
         }
 
-        // Reverse previous entity effect
-        if (existing.entityType === 'customer' && existing.customerId) {
+        // Reverse previous entity effect (skip for VAT type)
+        if (existing.entityType === 'vat') {
+          // VAT vouchers don't affect entity balances
+        } else if (existing.entityType === 'customer' && existing.customerId) {
           await tx.customer.update({
             where: { id: existing.customerId },
             data: { currentBalance: { increment: existing.amount } },
@@ -258,12 +262,14 @@ export class ReceiptVoucherService {
           });
         }
 
-        // Apply new entity effect
+        // Apply new entity effect (skip for VAT type)
         const newEntityType = data.entityType || existing.entityType;
         const newCustomerId = data.customerId ?? existing.customerId;
         const newSupplierId = data.supplierId ?? existing.supplierId;
 
-        if (newEntityType === 'customer' && newCustomerId) {
+        if (newEntityType === 'vat') {
+          // VAT vouchers don't affect entity balances
+        } else if (newEntityType === 'customer' && newCustomerId) {
           await tx.customer.update({
             where: { id: newCustomerId },
             data: { currentBalance: { decrement: newAmount } },
@@ -369,8 +375,10 @@ export class ReceiptVoucherService {
           });
         }
 
-        // Reverse entity effect
-        if (existing.entityType === 'customer' && existing.customerId) {
+        // Reverse entity effect (skip for VAT type)
+        if (existing.entityType === 'vat') {
+          // VAT vouchers don't affect entity balances
+        } else if (existing.entityType === 'customer' && existing.customerId) {
           await tx.customer.update({
             where: { id: existing.customerId },
             data: { currentBalance: { increment: existing.amount } },
@@ -455,6 +463,9 @@ export class ReceiptVoucherService {
           where: { id: entityId },
         });
         return payable?.name || '';
+
+      case 'vat':
+        return 'ضريبة القيمة المضافة';
 
       default:
         return '';

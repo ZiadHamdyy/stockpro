@@ -69,8 +69,10 @@ export class PaymentVoucherService {
         });
       }
 
-      // Apply entity balance effects
-      if (data.entityType === 'supplier' && data.supplierId) {
+      // Apply entity balance effects (skip for VAT type)
+      if (data.entityType === 'vat') {
+        // VAT vouchers don't affect entity balances
+      } else if (data.entityType === 'supplier' && data.supplierId) {
         // Supplier: decrement (we paid supplier)
         await tx.supplier.update({
           where: { id: data.supplierId },
@@ -223,8 +225,10 @@ export class PaymentVoucherService {
           });
         }
 
-        // Reverse previous entity effect
-        if (existing.entityType === 'supplier' && existing.supplierId) {
+        // Reverse previous entity effect (skip for VAT type)
+        if (existing.entityType === 'vat') {
+          // VAT vouchers don't affect entity balances
+        } else if (existing.entityType === 'supplier' && existing.supplierId) {
           await tx.supplier.update({
             where: { id: existing.supplierId },
             data: { currentBalance: { increment: existing.amount } },
@@ -297,13 +301,15 @@ export class PaymentVoucherService {
           });
         }
 
-        // Apply new entity effect
+        // Apply new entity effect (skip for VAT type)
         const newEntityType = data.entityType || existing.entityType;
         const newSupplierId = data.supplierId ?? existing.supplierId;
         const newCustomerId = data.customerId ?? existing.customerId;
         const newExpenseCodeId = data.expenseCodeId ?? existing.expenseCodeId;
 
-        if (newEntityType === 'supplier' && newSupplierId) {
+        if (newEntityType === 'vat') {
+          // VAT vouchers don't affect entity balances
+        } else if (newEntityType === 'supplier' && newSupplierId) {
           await tx.supplier.update({
             where: { id: newSupplierId },
             data: { currentBalance: { decrement: newAmount } },
@@ -417,8 +423,10 @@ export class PaymentVoucherService {
           });
         }
 
-        // Reverse entity effect
-        if (existing.entityType === 'supplier' && existing.supplierId) {
+        // Reverse entity effect (skip for VAT type)
+        if (existing.entityType === 'vat') {
+          // VAT vouchers don't affect entity balances
+        } else if (existing.entityType === 'supplier' && existing.supplierId) {
           await tx.supplier.update({
             where: { id: existing.supplierId },
             data: { currentBalance: { increment: existing.amount } },
@@ -517,6 +525,9 @@ export class PaymentVoucherService {
           where: { id: entityId },
         });
         return expenseCode?.name || '';
+
+      case 'vat':
+        return 'ضريبة القيمة المضافة';
 
       default:
         return '';
