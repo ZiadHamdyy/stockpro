@@ -183,27 +183,75 @@ const CurrentAccountsList: React.FC<CurrentAccountsListProps> = ({
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <button
-            onClick={handleExcelExport}
-            title="تصدير Excel"
-            className="p-3 border-2 border-gray-200 rounded-md hover:bg-gray-100"
+          <PermissionWrapper
+            requiredPermission={buildPermission(
+              Resources.CURRENT_ACCOUNTS,
+              Actions.PRINT,
+            )}
+            fallback={
+              <button
+                disabled
+                title="تصدير Excel"
+                className="p-3 border-2 border-gray-200 rounded-md cursor-not-allowed opacity-50"
+              >
+                <ExcelIcon className="w-6 h-6" />
+              </button>
+            }
           >
-            <ExcelIcon className="w-6 h-6" />
-          </button>
-          <button
-            onClick={handlePdfExport}
-            title="تصدير PDF"
-            className="p-3 border-2 border-gray-200 rounded-md hover:bg-gray-100"
+            <button
+              onClick={handleExcelExport}
+              title="تصدير Excel"
+              className="p-3 border-2 border-gray-200 rounded-md hover:bg-gray-100"
+            >
+              <ExcelIcon className="w-6 h-6" />
+            </button>
+          </PermissionWrapper>
+          <PermissionWrapper
+            requiredPermission={buildPermission(
+              Resources.CURRENT_ACCOUNTS,
+              Actions.PRINT,
+            )}
+            fallback={
+              <button
+                disabled
+                title="تصدير PDF"
+                className="p-3 border-2 border-gray-200 rounded-md cursor-not-allowed opacity-50"
+              >
+                <PdfIcon className="w-6 h-6" />
+              </button>
+            }
           >
-            <PdfIcon className="w-6 h-6" />
-          </button>
-          <button
-            title="طباعة"
-            onClick={() => window.print()}
-            className="p-3 border-2 border-gray-200 rounded-md hover:bg-gray-100"
+            <button
+              onClick={handlePdfExport}
+              title="تصدير PDF"
+              className="p-3 border-2 border-gray-200 rounded-md hover:bg-gray-100"
+            >
+              <PdfIcon className="w-6 h-6" />
+            </button>
+          </PermissionWrapper>
+          <PermissionWrapper
+            requiredPermission={buildPermission(
+              Resources.CURRENT_ACCOUNTS,
+              Actions.PRINT,
+            )}
+            fallback={
+              <button
+                disabled
+                title="طباعة"
+                className="p-3 border-2 border-gray-200 rounded-md cursor-not-allowed opacity-50"
+              >
+                <PrintIcon className="w-6 h-6" />
+              </button>
+            }
           >
-            <PrintIcon className="w-6 h-6" />
-          </button>
+            <button
+              title="طباعة"
+              onClick={() => window.print()}
+              className="p-3 border-2 border-gray-200 rounded-md hover:bg-gray-100"
+            >
+              <PrintIcon className="w-6 h-6" />
+            </button>
+          </PermissionWrapper>
         </div>
       </div>
       <div className="overflow-x-auto">

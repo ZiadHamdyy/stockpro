@@ -93,12 +93,18 @@ export enum Resources {
   FINANCIAL_REPORTS = "financial_reports",
   DAILY_COLLECTIONS_REPORT = "daily_collections_report",
   DAILY_PAYMENTS_REPORT = "daily_payments_report",
+  DAILY_TRANSFERS_REPORT = "daily_transfers_report",
   EXPENSE_STATEMENT_REPORT = "expense_statement_report",
   TOTAL_EXPENSES_REPORT = "total_expenses_report",
   CURRENT_ACCOUNT_STATEMENT_REPORT = "current_account_statement_report",
   TOTAL_CURRENT_ACCOUNTS_REPORT = "total_current_accounts_report",
+  RECEIVABLE_ACCOUNT_STATEMENT_REPORT = "receivable_account_statement_report",
+  TOTAL_RECEIVABLE_ACCOUNTS_REPORT = "total_receivable_accounts_report",
+  PAYABLE_ACCOUNT_STATEMENT_REPORT = "payable_account_statement_report",
+  TOTAL_PAYABLE_ACCOUNTS_REPORT = "total_payable_accounts_report",
   SAFE_STATEMENT_REPORT = "safe_statement_report",
   BANK_STATEMENT_REPORT = "bank_statement_report",
+  VAT_STATEMENT_REPORT = "vat_statement_report",
   TAX_DECLARATION_REPORT = "tax_declaration_report",
 
   // Final Accounts

@@ -2,6 +2,12 @@ import React, { useState, useMemo } from "react";
 import type { CompanyInfo, User, Voucher } from "../../../../types";
 import { ExcelIcon, PdfIcon, PrintIcon, SearchIcon } from "../../../icons";
 import ReportHeader from "../ReportHeader";
+import PermissionWrapper from "../../../common/PermissionWrapper";
+import {
+  Actions,
+  Resources,
+  buildPermission,
+} from "../../../../enums/permissions.enum";
 import { formatNumber, getNegativeNumberClass } from "../../../../utils/formatting";
 import { useGetPaymentVouchersQuery } from "../../../store/slices/paymentVoucherApiSlice";
 import { useGetBranchesQuery } from "../../../store/slices/branch/branchApi";
@@ -296,6 +302,37 @@ const DailyPaymentsReport: React.FC<DailyPaymentsReportProps> = ({
               <span>عرض التقرير</span>
             </button>
           </div>
+        <PermissionWrapper
+          requiredPermission={buildPermission(
+            Resources.DAILY_PAYMENTS_REPORT,
+            Actions.PRINT,
+          )}
+          fallback={
+            <div className="no-print flex items-center gap-2">
+              <button
+                disabled
+                title="تصدير Excel"
+                className="p-3 border-2 border-gray-200 rounded-md cursor-not-allowed opacity-50"
+              >
+                <ExcelIcon className="w-6 h-6" />
+              </button>
+              <button
+                disabled
+                title="تصدير PDF"
+                className="p-3 border-2 border-gray-200 rounded-md cursor-not-allowed opacity-50"
+              >
+                <PdfIcon className="w-6 h-6" />
+              </button>
+              <button
+                disabled
+                title="طباعة"
+                className="p-3 border-2 border-gray-200 rounded-md cursor-not-allowed opacity-50"
+              >
+                <PrintIcon className="w-6 h-6" />
+              </button>
+            </div>
+          }
+        >
           <div className="no-print flex items-center gap-2">
             <button
               title="تصدير Excel"
@@ -317,6 +354,7 @@ const DailyPaymentsReport: React.FC<DailyPaymentsReportProps> = ({
               <PrintIcon className="w-6 h-6" />
             </button>
           </div>
+        </PermissionWrapper>
         </div>
 
         <div className="overflow-x-auto border-2 border-brand-blue rounded-lg">

@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import type { Branch } from "../../../types";
 import { ExcelIcon, PdfIcon, PrintIcon, SearchIcon } from "../../icons";
 import UserModal from "./UserModal";
+import PermissionWrapper from "../../common/PermissionWrapper";
 import { useModal } from "../../common/ModalProvider";
 import { exportToExcel, exportToPdf } from "../../../utils/formatting";
 import {
@@ -14,6 +15,11 @@ import { useGetBranchesQuery } from "../../store/slices/branch/branchApi";
 import { useAppSelector } from "../../store/hooks";
 import { selectCurrentUser } from "../../store/slices/auth/auth";
 import { useToast } from "../../common/ToastProvider";
+import {
+  Actions,
+  Resources,
+  buildPermission,
+} from "../../../enums/permissions.enum";
 
 interface UsersDataProps {
   title: string;
@@ -187,33 +193,96 @@ const UsersData: React.FC<UsersDataProps> = ({ title }) => {
             />
           </div>
           <div className="flex items-center gap-2">
-            <button
-              onClick={() => handleOpenModal()}
-              className="px-6 py-3 bg-brand-blue text-white rounded-md hover:bg-blue-800 font-semibold"
+            <PermissionWrapper
+              requiredPermission={buildPermission(
+                Resources.USERS_DATA,
+                Actions.CREATE,
+              )}
+              fallback={
+                <button
+                  disabled
+                  className="px-6 py-3 bg-gray-400 text-white rounded-md cursor-not-allowed opacity-50 font-semibold"
+                >
+                  اضافة مستخدم جديد
+                </button>
+              }
             >
-              اضافة مستخدم جديد
-            </button>
-            <button
-              onClick={handleExcelExport}
-              title="تصدير Excel"
-              className="p-3 border-2 border-gray-200 rounded-md hover:bg-gray-100"
+              <button
+                onClick={() => handleOpenModal()}
+                className="px-6 py-3 bg-brand-blue text-white rounded-md hover:bg-blue-800 font-semibold"
+              >
+                اضافة مستخدم جديد
+              </button>
+            </PermissionWrapper>
+            <PermissionWrapper
+              requiredPermission={buildPermission(
+                Resources.USERS_DATA,
+                Actions.PRINT,
+              )}
+              fallback={
+                <button
+                  disabled
+                  title="تصدير Excel"
+                  className="p-3 border-2 border-gray-200 rounded-md cursor-not-allowed opacity-50"
+                >
+                  <ExcelIcon className="w-6 h-6" />
+                </button>
+              }
             >
-              <ExcelIcon className="w-6 h-6" />
-            </button>
-            <button
-              onClick={handlePdfExport}
-              title="تصدير PDF"
-              className="p-3 border-2 border-gray-200 rounded-md hover:bg-gray-100"
-            >
-              <PdfIcon className="w-6 h-6" />
-            </button>
-            <button
-              title="طباعة"
-              onClick={() => window.print()}
-              className="p-3 border-2 border-gray-200 rounded-md hover:bg-gray-100"
-            >
-              <PrintIcon className="w-6 h-6" />
-            </button>
+              <button
+                onClick={handleExcelExport}
+                title="تصدير Excel"
+                className="p-3 border-2 border-gray-200 rounded-md hover:bg-gray-100"
+              >
+                <ExcelIcon className="w-6 h-6" />
+              </button>
+            </PermissionWrapper>
+              <PermissionWrapper
+                requiredPermission={buildPermission(
+                  Resources.USERS_DATA,
+                  Actions.PRINT,
+                )}
+                fallback={
+                  <button
+                    disabled
+                    title="تصدير PDF"
+                    className="p-3 border-2 border-gray-200 rounded-md cursor-not-allowed opacity-50"
+                  >
+                    <PdfIcon className="w-6 h-6" />
+                  </button>
+                }
+              >
+                <button
+                  onClick={handlePdfExport}
+                  title="تصدير PDF"
+                  className="p-3 border-2 border-gray-200 rounded-md hover:bg-gray-100"
+                >
+                  <PdfIcon className="w-6 h-6" />
+                </button>
+              </PermissionWrapper>
+              <PermissionWrapper
+                requiredPermission={buildPermission(
+                  Resources.USERS_DATA,
+                  Actions.PRINT,
+                )}
+                fallback={
+                  <button
+                    disabled
+                    title="طباعة"
+                    className="p-3 border-2 border-gray-200 rounded-md cursor-not-allowed opacity-50"
+                  >
+                    <PrintIcon className="w-6 h-6" />
+                  </button>
+                }
+              >
+                <button
+                  title="طباعة"
+                  onClick={() => window.print()}
+                  className="p-3 border-2 border-gray-200 rounded-md hover:bg-gray-100"
+                >
+                  <PrintIcon className="w-6 h-6" />
+                </button>
+              </PermissionWrapper>
           </div>
         </div>
         {isLoadingUsers ? (

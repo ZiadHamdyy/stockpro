@@ -9,6 +9,12 @@ import { useGetBranchesQuery } from "../../store/slices/branch/branchApi";
 import { useAppSelector } from "../../store/hooks";
 import { selectCurrentUser } from "../../store/slices/auth/auth";
 import { getCurrentYearRange } from "../reports/dateUtils";
+import PermissionWrapper from "../../common/PermissionWrapper";
+import {
+  Actions,
+  Resources,
+  buildPermission,
+} from "../../../enums/permissions.enum";
 
 interface DailyPurchasesProps {
   title: string;
@@ -240,27 +246,75 @@ const DailyPurchases: React.FC<DailyPurchasesProps> = ({ title }) => {
           </select>
         </div>
         <div className="flex items-center gap-2">
-          <button
-            onClick={handleExcelExport}
-            title="تصدير Excel"
-            className="p-3 border-2 border-gray-200 rounded-md hover:bg-gray-100"
+          <PermissionWrapper
+            requiredPermission={buildPermission(
+              Resources.DAILY_PURCHASES,
+              Actions.PRINT,
+            )}
+            fallback={
+              <button
+                disabled
+                title="تصدير Excel"
+                className="p-3 border-2 border-gray-200 rounded-md cursor-not-allowed opacity-50"
+              >
+                <ExcelIcon className="w-6 h-6" />
+              </button>
+            }
           >
-            <ExcelIcon className="w-6 h-6" />
-          </button>
-          <button
-            onClick={handlePdfExport}
-            title="تصدير PDF"
-            className="p-3 border-2 border-gray-200 rounded-md hover:bg-gray-100"
+            <button
+              onClick={handleExcelExport}
+              title="تصدير Excel"
+              className="p-3 border-2 border-gray-200 rounded-md hover:bg-gray-100"
+            >
+              <ExcelIcon className="w-6 h-6" />
+            </button>
+          </PermissionWrapper>
+          <PermissionWrapper
+            requiredPermission={buildPermission(
+              Resources.DAILY_PURCHASES,
+              Actions.PRINT,
+            )}
+            fallback={
+              <button
+                disabled
+                title="تصدير PDF"
+                className="p-3 border-2 border-gray-200 rounded-md cursor-not-allowed opacity-50"
+              >
+                <PdfIcon className="w-6 h-6" />
+              </button>
+            }
           >
-            <PdfIcon className="w-6 h-6" />
-          </button>
-          <button
-            title="طباعة"
-            onClick={() => window.print()}
-            className="p-3 border-2 border-gray-200 rounded-md hover:bg-gray-100"
+            <button
+              onClick={handlePdfExport}
+              title="تصدير PDF"
+              className="p-3 border-2 border-gray-200 rounded-md hover:bg-gray-100"
+            >
+              <PdfIcon className="w-6 h-6" />
+            </button>
+          </PermissionWrapper>
+          <PermissionWrapper
+            requiredPermission={buildPermission(
+              Resources.DAILY_PURCHASES,
+              Actions.PRINT,
+            )}
+            fallback={
+              <button
+                disabled
+                title="طباعة"
+                className="p-3 border-2 border-gray-200 rounded-md cursor-not-allowed opacity-50"
+              >
+                <PrintIcon className="w-6 h-6" />
+              </button>
+            }
           >
-            <PrintIcon className="w-6 h-6" />
-          </button>
+            <button
+              title="طباعة"
+              onClick={() => window.print()}
+              className="p-3 border-2 border-gray-200 rounded-md hover:bg-gray-100"
+            >
+              <PrintIcon className="w-6 h-6" />
+            </button>
+          </PermissionWrapper>
         </div>
       </div>
 

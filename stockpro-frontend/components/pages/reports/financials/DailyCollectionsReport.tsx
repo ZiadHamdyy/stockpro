@@ -3,6 +3,12 @@ import { useNavigate } from "react-router-dom";
 import type { CompanyInfo, User, Voucher } from "../../../../types";
 import { ExcelIcon, PdfIcon, PrintIcon, SearchIcon } from "../../../icons";
 import ReportHeader from "../ReportHeader";
+import PermissionWrapper from "../../../common/PermissionWrapper";
+import {
+  Actions,
+  Resources,
+  buildPermission,
+} from "../../../../enums/permissions.enum";
 import { formatNumber, getNegativeNumberClass } from "../../../../utils/formatting";
 import { useGetReceiptVouchersQuery } from "../../../store/slices/receiptVoucherApiSlice";
 import { useGetBranchesQuery } from "../../../store/slices/branch/branchApi";
@@ -295,25 +301,73 @@ const DailyCollectionsReport: React.FC<DailyCollectionsReportProps> = ({
             </button>
           </div>
           <div className="no-print flex items-center gap-2">
-            <button
-              title="تصدير Excel"
-              className="p-3 border-2 border-gray-200 rounded-md hover:bg-gray-100"
+            <PermissionWrapper
+              requiredPermission={buildPermission(
+                Resources.DAILY_COLLECTIONS_REPORT,
+                Actions.PRINT,
+              )}
+              fallback={
+                <button
+                  disabled
+                  title="تصدير Excel"
+                  className="p-3 border-2 border-gray-200 rounded-md cursor-not-allowed opacity-50"
+                >
+                  <ExcelIcon className="w-6 h-6" />
+                </button>
+              }
             >
-              <ExcelIcon className="w-6 h-6" />
-            </button>
-            <button
-              title="تصدير PDF"
-              className="p-3 border-2 border-gray-200 rounded-md hover:bg-gray-100"
+              <button
+                title="تصدير Excel"
+                className="p-3 border-2 border-gray-200 rounded-md hover:bg-gray-100"
+              >
+                <ExcelIcon className="w-6 h-6" />
+              </button>
+            </PermissionWrapper>
+            <PermissionWrapper
+              requiredPermission={buildPermission(
+                Resources.DAILY_COLLECTIONS_REPORT,
+                Actions.PRINT,
+              )}
+              fallback={
+                <button
+                  disabled
+                  title="تصدير PDF"
+                  className="p-3 border-2 border-gray-200 rounded-md cursor-not-allowed opacity-50"
+                >
+                  <PdfIcon className="w-6 h-6" />
+                </button>
+              }
             >
-              <PdfIcon className="w-6 h-6" />
-            </button>
-            <button
-              onClick={handlePrint}
-              title="طباعة"
-              className="p-3 border-2 border-gray-200 rounded-md hover:bg-gray-100"
+              <button
+                title="تصدير PDF"
+                className="p-3 border-2 border-gray-200 rounded-md hover:bg-gray-100"
+              >
+                <PdfIcon className="w-6 h-6" />
+              </button>
+            </PermissionWrapper>
+            <PermissionWrapper
+              requiredPermission={buildPermission(
+                Resources.DAILY_COLLECTIONS_REPORT,
+                Actions.PRINT,
+              )}
+              fallback={
+                <button
+                  disabled
+                  title="طباعة"
+                  className="p-3 border-2 border-gray-200 rounded-md cursor-not-allowed opacity-50"
+                >
+                  <PrintIcon className="w-6 h-6" />
+                </button>
+              }
             >
-              <PrintIcon className="w-6 h-6" />
-            </button>
+              <button
+                onClick={handlePrint}
+                title="طباعة"
+                className="p-3 border-2 border-gray-200 rounded-md hover:bg-gray-100"
+              >
+                <PrintIcon className="w-6 h-6" />
+              </button>
+            </PermissionWrapper>
           </div>
         </div>
 
