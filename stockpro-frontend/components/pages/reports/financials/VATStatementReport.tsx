@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import type { CompanyInfo, Branch, User, Invoice } from '../../../../types';
 import { ExcelIcon, PdfIcon, PrintIcon, SearchIcon } from '../../../icons';
 import ReportHeader from '../ReportHeader';
-import { formatNumber } from '../../../../utils/formatting';
+import { formatNumber, getNegativeNumberClass } from '../../../../utils/formatting';
 import { useGetSalesInvoicesQuery } from '../../../store/slices/salesInvoice/salesInvoiceApiSlice';
 import { useGetSalesReturnsQuery } from '../../../store/slices/salesReturn/salesReturnApiSlice';
 import { useGetPurchaseInvoicesQuery } from '../../../store/slices/purchaseInvoice/purchaseInvoiceApiSlice';
@@ -104,7 +104,7 @@ const VATStatementReport: React.FC<VATStatementReportProps> = ({ title, companyI
 
     const currentYear = new Date().getFullYear();
     const [startDate, setStartDate] = useState(`${currentYear}-01-01`);
-    const [endDate, setEndDate] = useState(new Date().toISOString().substring(0, 10));
+    const [endDate, setEndDate] = useState(`${currentYear}-12-31`);
     const [selectedBranch, setSelectedBranch] = useState('all');
     const [reportData, setReportData] = useState<any[]>([]);
 
@@ -248,36 +248,57 @@ const VATStatementReport: React.FC<VATStatementReportProps> = ({ title, companyI
     const netTax = totalCredit - totalDebit;
 
     const handlePrint = () => {
-        const reportContent = document.getElementById('printable-area');
+        const reportContent = document.getElementById("printable-area");
         if (!reportContent) return;
-
-        const printWindow = window.open('', '', 'height=800,width=1200');
-        printWindow?.document.write('<html><head><title>طباعة التقرير</title>');
-        printWindow?.document.write('<script src="https://cdn.tailwindcss.com"></script>');
-        printWindow?.document.write('<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet">');
+        const printWindow = window.open("", "", "height=800,width=1200");
+        printWindow?.document.write("<html><head><title>طباعة التقرير</title>");
+        printWindow?.document.write(
+            '<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet">',
+        );
+        printWindow?.document.write(
+            '<script src="https://cdn.tailwindcss.com"></script>',
+        );
         printWindow?.document.write(`
             <style>
-                body { font-family: "Cairo", sans-serif; direction: rtl; }
+                body { font-family: "Cairo", sans-serif; direction: rtl; font-size: 14px; }
+                .no-print, .no-print * { display: none !important; visibility: hidden !important; margin: 0 !important; padding: 0 !important; }
+                table { font-size: 13px; }
+                th { font-size: 13px; font-weight: bold; }
+                td { font-size: 13px; }
                 @media print {
-                    body { -webkit-print-color-adjust: exact !important; color-adjust: exact !important; }
-                    .no-print { display: none !important; }
+                    body { -webkit-print-color-adjust: exact !important; color-adjust: exact !important; font-size: 14px !important; }
+                    .no-print, .no-print * { display: none !important; visibility: hidden !important; }
                     thead { display: table-header-group; }
                     tfoot { display: table-footer-group; }
-                    table { width: 100%; border-collapse: collapse; }
+                    table { width: 100%; border-collapse: collapse; font-size: 13px !important; }
+                    th { font-size: 13px !important; font-weight: bold !important; }
+                    td { font-size: 13px !important; }
                     .bg-brand-blue { background-color: #1E40AF !important; }
                     .text-white { color: white !important; }
+                    .bg-gray-50 { background-color: #F9FAFB !important; }
+                    .bg-gray-100 { background-color: #F3F4F6 !important; }
                     .bg-green-100 { background-color: #D1FAE5 !important; }
                     .bg-red-100 { background-color: #FEE2E2 !important; }
-                    .bg-gray-100 { background-color: #F3F4F6 !important; }
+                    .text-brand-blue { color: #1E40AF !important; }
+                    .text-gray-700 { color: #374151 !important; }
+                    .text-gray-800 { color: #1F2937 !important; }
+                    .text-green-600 { color: #059669 !important; }
+                    .text-red-600 { color: #DC2626 !important; }
+                    .flex { display: flex !important; }
+                    .justify-between { justify-content: space-between !important; }
+                    .justify-end { justify-content: flex-end !important; }
                 }
             </style>
         `);
-        printWindow?.document.write('</head><body>');
-        printWindow?.document.write(reportContent.innerHTML);
-        printWindow?.document.write('</body></html>');
+        printWindow?.document.write(
+            "</head><body>" + reportContent.innerHTML + "</body></html>",
+        );
         printWindow?.document.close();
         printWindow?.focus();
-        setTimeout(() => { printWindow?.print(); printWindow?.close(); }, 500);
+        setTimeout(() => {
+            printWindow?.print();
+            printWindow?.close();
+        }, 500);
     };
 
     const inputStyle = "p-2 border-2 border-brand-blue rounded-md focus:outline-none focus:ring-2 focus:ring-brand-blue bg-brand-blue-bg";
@@ -327,16 +348,37 @@ const VATStatementReport: React.FC<VATStatementReportProps> = ({ title, companyI
         <div className="bg-white p-6 rounded-lg shadow">
             <div id="printable-area">
                 <ReportHeader title={title} />
-                <div className="px-6 py-2 text-sm print:block hidden border-t-2 mt-2 space-y-1">
-                    <p><strong>الفرع:</strong> {selectedBranch === 'all' ? 'جميع الفروع' : selectedBranch}</p>
-                    <p><strong>الفترة من:</strong> {startDate} <strong>إلى:</strong> {endDate}</p>
-                    <p><strong>فرع الطباعة:</strong> {getBranchName()}</p>
-                    <p><strong>المستخدم:</strong> {currentUser?.fullName || currentUser?.name || 'غير محدد'}</p>
+                <div className="px-6 py-4 text-base print:block hidden border-t-2 border-b-2 mt-2 mb-4 bg-gray-50">
+                    <div className="flex justify-between items-start">
+                        <div className="space-y-2 text-right">
+                            <p className="text-lg font-bold text-gray-800">
+                                <span className="text-brand-blue">الفرع:</span> {selectedBranch === 'all' ? 'جميع الفروع' : selectedBranch}
+                            </p>
+                            <p className="text-base text-gray-700">
+                                <span className="font-semibold text-gray-800">الفترة من:</span> {startDate} 
+                                <span className="font-semibold text-gray-800 mr-2">إلى:</span> {endDate}
+                            </p>
+                        </div>
+                        <div className="space-y-2 text-right">
+                            <p className="text-base text-gray-700">
+                                <span className="font-semibold text-gray-800">التاريخ:</span> {new Date().toLocaleDateString('ar-EG', { year: 'numeric', month: 'long', day: 'numeric' })}
+                            </p>
+                            <p className="text-base text-gray-700">
+                                <span className="font-semibold text-gray-800">المستخدم:</span> {currentUser?.fullName || currentUser?.name || 'غير محدد'}
+                            </p>
+                        </div>
+                    </div>
                 </div>
 
                 <div className="flex justify-between items-center my-4 bg-gray-50 p-3 rounded-md border-2 border-gray-200 no-print">
-                    <div className="flex items-center gap-4 flex-wrap">
-                        <select className={inputStyle} value={selectedBranch} onChange={e => setSelectedBranch(e.target.value)}>
+                    <div className="flex items-center gap-4 flex-wrap no-print">
+                        <select 
+                            className={inputStyle} 
+                            value={selectedBranch} 
+                            onChange={e => setSelectedBranch(e.target.value)}
+                            size={branches.length > 5 ? 5 : undefined}
+                            style={branches.length > 5 ? { overflowY: 'auto' } : {}}
+                        >
                             <option value="all">جميع الفروع</option>
                             {branches.map(branch => <option key={branch.id} value={branch.name}>{branch.name}</option>)}
                         </select>
@@ -349,30 +391,58 @@ const VATStatementReport: React.FC<VATStatementReportProps> = ({ title, companyI
                             <span>عرض التقرير</span>
                         </button>
                     </div>
-                    <div className="flex items-center gap-2">
-                        <button title="تصدير Excel" className="p-3 border-2 border-gray-200 rounded-md hover:bg-gray-100"><ExcelIcon className="w-6 h-6" /></button>
-                        <button title="تصدير PDF" className="p-3 border-2 border-gray-200 rounded-md hover:bg-gray-100"><PdfIcon className="w-6 h-6" /></button>
-                        <button onClick={handlePrint} title="طباعة" className="p-3 border-2 border-gray-200 rounded-md hover:bg-gray-100"><PrintIcon className="w-6 h-6" /></button>
+                    <div className="no-print flex items-center gap-2">
+                        <button
+                            title="تصدير Excel"
+                            className="p-3 border-2 border-gray-200 rounded-md hover:bg-gray-100"
+                        >
+                            <ExcelIcon className="w-6 h-6" />
+                        </button>
+                        <button
+                            title="تصدير PDF"
+                            className="p-3 border-2 border-gray-200 rounded-md hover:bg-gray-100"
+                        >
+                            <PdfIcon className="w-6 h-6" />
+                        </button>
+                        <button
+                            onClick={handlePrint}
+                            title="طباعة"
+                            className="p-3 border-2 border-gray-200 rounded-md hover:bg-gray-100"
+                        >
+                            <PrintIcon className="w-6 h-6" />
+                        </button>
                     </div>
                 </div>
 
                 <div className="overflow-x-auto border-2 border-brand-blue rounded-lg">
-                    <table className="min-w-full divide-y divide-gray-200 text-sm">
-                        <thead className="bg-brand-blue text-white">
+                    <table className="min-w-full divide-y divide-gray-200">
+                        <thead className="bg-brand-blue">
                             <tr>
-                                <th className="px-4 py-3 text-right font-semibold uppercase">التاريخ</th>
-                                <th className="px-4 py-3 text-right font-semibold uppercase">رقم المستند</th>
-                                <th className="px-4 py-3 text-right font-semibold uppercase w-1/3">البيان</th>
-                                <th className="px-4 py-3 text-right font-semibold uppercase">مدين (مدخلات)</th>
-                                <th className="px-4 py-3 text-right font-semibold uppercase">دائن (مخرجات)</th>
-                                <th className="px-4 py-3 text-right font-semibold uppercase">الرصيد (المستحق)</th>
+                                <th className="px-6 py-3 text-right text-sm font-semibold text-white uppercase w-36">
+                                    التاريخ
+                                </th>
+                                <th className="px-6 py-3 text-right text-sm font-semibold text-white uppercase">
+                                    رقم المستند
+                                </th>
+                                <th className="px-6 py-3 text-right text-sm font-semibold text-white uppercase">
+                                    البيان
+                                </th>
+                                <th className="px-6 py-3 text-right text-sm font-semibold text-green-200 uppercase">
+                                    مدين (مدخلات)
+                                </th>
+                                <th className="px-6 py-3 text-right text-sm font-semibold text-red-200 uppercase">
+                                    دائن (مخرجات)
+                                </th>
+                                <th className="px-6 py-3 text-right text-sm font-semibold text-white uppercase">
+                                    الرصيد (المستحق)
+                                </th>
                             </tr>
                         </thead>
                         <tbody className="bg-white divide-y divide-gray-200">
                             {reportData.map((row, i) => (
-                                <tr key={i} className="hover:bg-gray-50">
-                                    <td className="px-4 py-2 whitespace-nowrap">{row.date}</td>
-                                    <td className="px-4 py-2 whitespace-nowrap font-mono">
+                                <tr key={i} className="hover:bg-brand-blue-bg">
+                                    <td className="px-6 py-4 w-36">{row.date.substring(0, 10)}</td>
+                                    <td className="px-6 py-4 font-medium text-brand-dark">
                                         {row.link ? (
                                             <>
                                                 <button
@@ -393,23 +463,43 @@ const VATStatementReport: React.FC<VATStatementReportProps> = ({ title, companyI
                                             row.ref
                                         )}
                                     </td>
-                                    <td className="px-4 py-2">{row.description}</td>
-                                    <td className="px-4 py-2 text-green-600 font-bold">{row.type === 'debit' ? formatNumber(row.tax) : '-'}</td>
-                                    <td className="px-4 py-2 text-red-600 font-bold">{row.type === 'credit' ? formatNumber(row.tax) : '-'}</td>
-                                    <td className="px-4 py-2 font-bold bg-gray-50">{formatNumber(row.balance)}</td>
+                                    <td className="px-6 py-4 font-medium text-brand-dark">
+                                        {row.description}
+                                    </td>
+                                    <td className={`px-6 py-4 text-green-600 ${getNegativeNumberClass(row.type === 'debit' ? row.tax : 0)}`}>
+                                        {row.type === 'debit' ? formatNumber(row.tax) : '-'}
+                                    </td>
+                                    <td className={`px-6 py-4 text-red-600 ${getNegativeNumberClass(row.type === 'credit' ? row.tax : 0)}`}>
+                                        {row.type === 'credit' ? formatNumber(row.tax) : '-'}
+                                    </td>
+                                    <td className={`px-6 py-4 font-bold ${getNegativeNumberClass(row.balance)}`}>
+                                        {formatNumber(row.balance)}
+                                    </td>
                                 </tr>
                             ))}
                         </tbody>
-                        <tfoot className="bg-gray-100 font-bold">
-                            <tr>
-                                <td colSpan={3} className="px-4 py-3 text-right">الإجمالي</td>
-                                <td className="px-4 py-3 text-green-700">{formatNumber(totalDebit)}</td>
-                                <td className="px-4 py-3 text-red-700">{formatNumber(totalCredit)}</td>
-                                <td className={`px-4 py-3 ${netTax >= 0 ? 'text-red-700' : 'text-green-700'}`}>{formatNumber(netTax)}</td>
+                        <tfoot className="bg-brand-blue text-white">
+                            <tr className="font-bold text-white">
+                                <td colSpan={3} className="px-6 py-3 text-right text-white">
+                                    الإجمالي
+                                </td>
+                                <td className={`px-6 py-3 text-right ${getNegativeNumberClass(totalDebit) || "text-green-200"}`}>
+                                    {formatNumber(totalDebit)}
+                                </td>
+                                <td className={`px-6 py-3 text-right ${getNegativeNumberClass(totalCredit) || "text-red-200"}`}>
+                                    {formatNumber(totalCredit)}
+                                </td>
+                                <td className={`px-6 py-3 text-right text-white ${getNegativeNumberClass(netTax)}`}>
+                                    {formatNumber(netTax)}
+                                </td>
                             </tr>
-                            <tr className="bg-brand-blue text-white text-lg">
-                                <td colSpan={5} className="px-4 py-3 text-right">صافي الضريبة المستحقة</td>
-                                <td className="px-4 py-3">{formatNumber(netTax)}</td>
+                            <tr className="bg-brand-blue-bg border-t border-brand-blue text-brand-dark font-semibold">
+                                <td colSpan={5} className="px-6 py-3 text-right">
+                                    صافي الضريبة المستحقة
+                                </td>
+                                <td className={`px-6 py-3 text-right ${getNegativeNumberClass(netTax)}`}>
+                                    {formatNumber(netTax)}
+                                </td>
                             </tr>
                         </tfoot>
                     </table>
