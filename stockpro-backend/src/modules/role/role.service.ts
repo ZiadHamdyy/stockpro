@@ -168,48 +168,65 @@ export class RoleService {
   ): Promise<RoleResponse> {
     const { permissionIds } = assignPermissionsRequest;
 
-    // Get the role to check if it's manager
-    const role = await this.prisma.role.findUnique({
-      where: { id },
-    });
-
-    if (!role) {
-      throw new ForbiddenException('Role not found');
-    }
-
-    // Get all permissions for the 'permissions' resource
-    const permissionsResourcePermissions =
-      await this.prisma.permission.findMany({
-        where: { resource: 'permissions' },
+    await this.prisma.$transaction(async (tx) => {
+      // Get the role to check if it's manager
+      const role = await tx.role.findUnique({
+        where: { id },
       });
 
-    const permissionsResourcePermissionIds = permissionsResourcePermissions.map(
-      (p) => p.id,
-    );
+      if (!role) {
+        throw new ForbiddenException('Role not found');
+      }
 
-    // If this is the manager role, ensure all permissions resource permissions are included
-    const finalPermissionIds = [...permissionIds];
-    if (role.name === 'مدير') {
-      permissionsResourcePermissionIds.forEach((permId) => {
-        if (!finalPermissionIds.includes(permId)) {
-          finalPermissionIds.push(permId);
-        }
+      // Get all permissions for the 'permissions' resource
+      const permissionsResourcePermissions =
+        await tx.permission.findMany({
+          where: { resource: 'permissions' },
+        });
+
+      const permissionsResourcePermissionIds =
+        permissionsResourcePermissions.map((p) => p.id);
+
+      // If this is the manager role, ensure all permissions resource permissions are included
+      const finalPermissionIds = [...permissionIds];
+      if (role.name === 'مدير') {
+        permissionsResourcePermissionIds.forEach((permId) => {
+          if (!finalPermissionIds.includes(permId)) {
+            finalPermissionIds.push(permId);
+          }
+        });
+      }
+
+      // Remove existing permissions
+      await tx.rolePermission.deleteMany({
+        where: { roleId: id },
       });
-    }
 
-    // Remove existing permissions
-    await this.prisma.rolePermission.deleteMany({
-      where: { roleId: id },
-    });
+      // Add new permissions
+      const rolePermissions = finalPermissionIds.map((permissionId) => ({
+        roleId: id,
+        permissionId,
+      }));
 
-    // Add new permissions
-    const rolePermissions = finalPermissionIds.map((permissionId) => ({
-      roleId: id,
-      permissionId,
-    }));
+      await tx.rolePermission.createMany({
+        data: rolePermissions,
+      });
 
-    await this.prisma.rolePermission.createMany({
-      data: rolePermissions,
+      // Immediately revoke sessions for users assigned to this role so they must re-login.
+      const usersWithRole = await tx.user.findMany({
+        where: { roleId: id },
+        select: { id: true },
+      });
+
+      if (usersWithRole.length) {
+        await tx.session.deleteMany({
+          where: {
+            userId: {
+              in: usersWithRole.map((user) => user.id),
+            },
+          },
+        });
+      }
     });
 
     return this.findOne(id) as Promise<RoleResponse>;
