@@ -214,26 +214,26 @@ const UserModal: React.FC<UserModalProps> = ({
   if (!isOpen) return null;
 
   const inputStyle =
-    "mt-1 block w-full bg-brand-blue-bg border-2 border-brand-blue rounded-md shadow-sm text-black placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-brand-blue focus:border-brand-blue py-3 px-4";
+    "mt-2 block w-full bg-brand-blue-bg border-2 border-brand-blue rounded-lg shadow-sm text-black placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-brand-blue focus:border-brand-blue py-3.5 px-4 transition-all duration-200 hover:border-blue-400";
 
   return (
     <div
-      className="fixed inset-0 bg-black bg-opacity-60 z-50 flex justify-center items-center p-4"
+      className="fixed inset-0 bg-black bg-opacity-60 z-50 flex justify-center items-center p-4 backdrop-blur-sm"
       onClick={onClose}
     >
       <div
-        className="bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto"
+        className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto transform transition-all"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="p-4 border-b border-gray-200">
-          <h2 className="text-xl font-bold text-brand-dark">
+        <div className="p-6 border-b border-gray-200 bg-gradient-to-r from-brand-blue/5 to-transparent">
+          <h2 className="text-2xl font-bold text-brand-dark">
             {userToEdit ? "تعديل مستخدم" : "اضافة مستخدم جديد"}
           </h2>
         </div>
         <form onSubmit={handleSubmit}>
-          <div className="p-6 grid grid-cols-1 md:grid-cols-3 gap-6 items-start">
+          <div className="p-8 grid grid-cols-1 md:grid-cols-3 gap-8 items-start">
             <div className="md:col-span-1 flex flex-col items-center">
-              <div className="w-32 h-32 rounded-full bg-brand-blue-bg border-2 border-brand-blue flex items-center justify-center mb-4 overflow-hidden">
+              <div className="w-40 h-40 rounded-full bg-brand-blue-bg border-4 border-brand-blue flex items-center justify-center mb-6 overflow-hidden shadow-lg transition-transform duration-200 hover:scale-105">
                 {userData.image ? (
                   <img
                     src={userData.image}
@@ -241,12 +241,12 @@ const UserModal: React.FC<UserModalProps> = ({
                     className="w-full h-full object-cover"
                   />
                 ) : (
-                  <UserIcon className="w-16 h-16 text-gray-400" />
+                  <UserIcon className="w-20 h-20 text-gray-400" />
                 )}
               </div>
               <label
                 htmlFor="avatar-upload"
-                className="cursor-pointer px-4 py-2 bg-gray-200 text-gray-800 text-sm font-semibold rounded-md hover:bg-gray-300"
+                className="cursor-pointer px-6 py-2.5 bg-gradient-to-r from-gray-200 to-gray-300 text-gray-800 text-sm font-semibold rounded-lg hover:from-gray-300 hover:to-gray-400 transition-all duration-200 shadow-md hover:shadow-lg"
               >
                 اختيار صورة
               </label>
@@ -259,11 +259,11 @@ const UserModal: React.FC<UserModalProps> = ({
                 accept="image/*"
               />
             </div>
-            <div className="md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
                 <label
                   htmlFor="name"
-                  className="block text-sm font-medium text-gray-700"
+                  className="block text-sm font-semibold text-gray-700 mb-1"
                 >
                   الاسم الكامل
                 </label>
@@ -273,11 +273,11 @@ const UserModal: React.FC<UserModalProps> = ({
                   name="name"
                   value={userData.name}
                   onChange={handleChange}
-                  className={`${inputStyle} ${validationErrors.name ? "border-red-500" : ""}`}
+                  className={`${inputStyle} ${validationErrors.name ? "border-red-500 focus:ring-red-500 focus:border-red-500" : ""}`}
                   required
                 />
                 {validationErrors.name && (
-                  <p className="mt-1 text-sm text-red-600">
+                  <p className="mt-1.5 text-sm text-red-600 font-medium">
                     {validationErrors.name}
                   </p>
                 )}
@@ -285,7 +285,7 @@ const UserModal: React.FC<UserModalProps> = ({
               <div>
                 <label
                   htmlFor="email"
-                  className="block text-sm font-medium text-gray-700"
+                  className="block text-sm font-semibold text-gray-700 mb-1"
                 >
                   البريد الإلكتروني
                 </label>
@@ -295,11 +295,11 @@ const UserModal: React.FC<UserModalProps> = ({
                   name="email"
                   value={userData.email}
                   onChange={handleChange}
-                  className={`${inputStyle} ${validationErrors.email ? "border-red-500" : ""}`}
+                  className={`${inputStyle} ${validationErrors.email ? "border-red-500 focus:ring-red-500 focus:border-red-500" : ""}`}
                   required
                 />
                 {validationErrors.email && (
-                  <p className="mt-1 text-sm text-red-600">
+                  <p className="mt-1.5 text-sm text-red-600 font-medium">
                     {validationErrors.email}
                   </p>
                 )}
@@ -307,7 +307,7 @@ const UserModal: React.FC<UserModalProps> = ({
               <div className="relative">
                 <label
                   htmlFor="password"
-                  className="block text-sm font-medium text-gray-700"
+                  className="block text-sm font-semibold text-gray-700 mb-1"
                 >
                   الرقم السري
                 </label>
@@ -317,19 +317,19 @@ const UserModal: React.FC<UserModalProps> = ({
                   name="password"
                   value={userData.password || ""}
                   onChange={handleChange}
-                  className={`${inputStyle} pl-10 ${validationErrors.password ? "border-red-500" : ""}`}
+                  className={`${inputStyle} pl-12 ${validationErrors.password ? "border-red-500 focus:ring-red-500 focus:border-red-500" : ""}`}
                   placeholder={userToEdit ? "اتركه فارغاً لعدم التغيير" : ""}
                   required={!userToEdit}
                 />
                 <button
                   type="button"
                   onClick={() => setIsPasswordVisible(!isPasswordVisible)}
-                  className="absolute left-3 top-9 text-gray-500 hover:text-brand-blue"
+                  className="absolute left-4 top-11 text-gray-500 hover:text-brand-blue transition-colors duration-200"
                 >
                   {isPasswordVisible ? <EyeOffIcon /> : <EyeIcon />}
                 </button>
                 {validationErrors.password && (
-                  <p className="mt-1 text-sm text-red-600">
+                  <p className="mt-1.5 text-sm text-red-600 font-medium">
                     {validationErrors.password}
                   </p>
                 )}
@@ -337,7 +337,7 @@ const UserModal: React.FC<UserModalProps> = ({
               <div>
                 <label
                   htmlFor="branchId"
-                  className="block text-sm font-medium text-gray-700"
+                  className="block text-sm font-semibold text-gray-700 mb-1"
                 >
                   الفرع التابع له
                 </label>
@@ -346,7 +346,7 @@ const UserModal: React.FC<UserModalProps> = ({
                   name="branchId"
                   value={userData.branchId}
                   onChange={handleChange}
-                  className={`${inputStyle} ${validationErrors.branchId ? "border-red-500" : ""}`}
+                  className={`${inputStyle} ${validationErrors.branchId ? "border-red-500 focus:ring-red-500 focus:border-red-500" : ""}`}
                   required
                 >
                   <option value="">اختر فرع...</option>
@@ -356,11 +356,16 @@ const UserModal: React.FC<UserModalProps> = ({
                     </option>
                   ))}
                 </select>
+                {validationErrors.branchId && (
+                  <p className="mt-1.5 text-sm text-red-600 font-medium">
+                    {validationErrors.branchId}
+                  </p>
+                )}
               </div>
-                <div className="mt-4">
+              <div>
                 <label
                   htmlFor="roleId"
-                  className="block text-sm font-medium text-gray-700"
+                  className="block text-sm font-semibold text-gray-700 mb-1"
                 >
                   الصلاحيات
                 </label>
@@ -369,7 +374,7 @@ const UserModal: React.FC<UserModalProps> = ({
                   name="roleId"
                   value={userData.roleId}
                   onChange={handleChange}
-                  className={`${inputStyle} ${validationErrors.roleId ? "border-red-500" : ""}`}
+                  className={`${inputStyle} ${validationErrors.roleId ? "border-red-500 focus:ring-red-500 focus:border-red-500" : ""}`}
                   required
                 >
                   <option value="">اختر الصلاحيات...</option>
@@ -380,29 +385,29 @@ const UserModal: React.FC<UserModalProps> = ({
                   ))}
                 </select>
                 {validationErrors.roleId && (
-                  <p className="mt-1 text-sm text-red-600">
+                  <p className="mt-1.5 text-sm text-red-600 font-medium">
                     {validationErrors.roleId}
                   </p>
                 )}
               </div>
             </div>
           </div>
-          <div className="p-4 border-t border-gray-200 flex justify-end gap-2">
+          <div className="p-6 border-t border-gray-200 bg-gray-50 flex justify-end gap-3">
             <button
               type="button"
               onClick={onClose}
-              className="px-6 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300 font-semibold"
+              className="px-8 py-3 bg-white text-gray-700 border-2 border-gray-300 rounded-lg hover:bg-gray-100 hover:border-gray-400 font-semibold transition-all duration-200 shadow-sm hover:shadow-md"
             >
               إلغاء
             </button>
             <button
               type="submit"
               disabled={isCreating || isUpdating || isLoadingBranches || isLoadingRoles}
-              className="px-6 py-2 bg-brand-blue text-white rounded-md hover:bg-blue-800 font-semibold disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+              className="px-8 py-3 bg-gradient-to-r from-brand-blue to-blue-700 text-white rounded-lg hover:from-blue-700 hover:to-blue-800 font-semibold disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105 disabled:transform-none"
             >
               {isCreating || isUpdating ? (
                 <>
-                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                  <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
                   جاري الحفظ...
                 </>
               ) : (
