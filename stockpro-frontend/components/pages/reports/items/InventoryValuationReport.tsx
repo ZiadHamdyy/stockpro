@@ -565,17 +565,20 @@ const InventoryValuationReport: React.FC<InventoryValuationReportProps> = ({
         <div className="px-6 py-4 text-base print:block hidden border-t-2 border-b-2 mt-2 mb-4 bg-gray-50">
           <div className="flex justify-between items-start">
             <div className="space-y-2 text-right">
-              <p className="text-lg font-bold text-gray-800">
-                <span className="text-brand-blue">تقييم حسب سعر:</span> {
+              <p className="text-base text-gray-700">
+                <span className="font-semibold text-gray-800">تقييم حسب سعر:</span> {
                   valuationMethod === 'purchasePrice' ? 'آخر شراء' :
                   valuationMethod === 'averageCost' ? 'متوسط التكلفة' :
                   valuationMethod === 'salePrice' ? 'سعر البيع' :
                   'آخر شراء'
                 }
               </p>
-              <span className="font-semibold text-gray-800">الفرع:</span> {selectedBranchId === "all" ? "جميع الفروع" : branches.find(b => b.id === selectedBranchId)?.name || ""}
-              <p className="text-base font-semibold text-gray-800">
-                <span className="text-brand-blue">الفترة:</span> من {startDate} إلى {endDate}
+              <p className="text-base text-gray-700">
+                <span className="font-semibold text-gray-800">الفرع:</span> {selectedBranchId === "all" ? "جميع الفروع" : branches.find(b => b.id === selectedBranchId)?.name || ""}
+              </p>
+              <p className="text-base text-gray-700">
+                <span className="font-semibold text-gray-800">الفترة من:</span> {startDate} 
+                <span className="font-semibold text-gray-800 mr-2">إلى:</span> {endDate}
               </p>
             </div>
             <div className="space-y-2 text-right">
@@ -586,8 +589,8 @@ const InventoryValuationReport: React.FC<InventoryValuationReportProps> = ({
           </div>
         </div>
 
-        <div className="flex justify-between items-center my-4 no-print">
-          <div className="flex items-center gap-4">
+        <div className="flex justify-between items-center my-4 bg-gray-50 p-3 rounded-md border-2 border-gray-200 no-print">
+          <div className="flex items-center gap-4 flex-wrap no-print">
             <label className="font-semibold">الفرع:</label>
             <select
               className="p-2 border-2 border-brand-blue rounded-md bg-brand-blue-bg"
@@ -633,7 +636,7 @@ const InventoryValuationReport: React.FC<InventoryValuationReportProps> = ({
               <span>عرض التقرير</span>
             </button>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="no-print flex items-center gap-2">
             <button
               title="تصدير Excel"
               className="p-3 border-2 border-gray-200 rounded-md hover:bg-gray-100"

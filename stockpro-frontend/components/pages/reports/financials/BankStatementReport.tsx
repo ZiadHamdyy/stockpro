@@ -704,7 +704,7 @@ const BankStatementReport: React.FC<BankStatementReportProps> = ({
         </div>
 
         <div className="flex justify-between items-center my-4 bg-gray-50 p-3 rounded-md border-2 border-gray-200 no-print">
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-4 flex-wrap no-print">
             <select
               className={inputStyle}
               value={selectedBankId || ""}
@@ -736,7 +736,7 @@ const BankStatementReport: React.FC<BankStatementReportProps> = ({
               <span>عرض التقرير</span>
             </button>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="no-print flex items-center gap-2">
             <button
               title="تصدير Excel"
               className="p-3 border-2 border-gray-200 rounded-md hover:bg-gray-100"

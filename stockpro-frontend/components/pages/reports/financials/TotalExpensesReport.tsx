@@ -350,7 +350,7 @@ const TotalExpensesReport: React.FC<TotalExpensesReportProps> = ({
               <span>عرض التقرير</span>
             </button>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="no-print flex items-center gap-2">
             <button
               title="تصدير Excel"
               className="p-3 border-2 border-gray-200 rounded-md hover:bg-gray-100"

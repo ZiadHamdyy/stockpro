@@ -3,7 +3,7 @@ import type { CompanyInfo, User } from "../../../../types";
 import { ExcelIcon, PdfIcon, PrintIcon, SearchIcon } from "../../../icons";
 import ReportHeader from "../ReportHeader";
 import { formatNumber, getNegativeNumberClass } from "../../../../utils/formatting";
-import { useGetItemsQuery } from "../../../store/slices/items/itemsApi";
+import { useGetItemsQuery, useGetItemGroupsQuery, type ItemGroup } from "../../../store/slices/items/itemsApi";
 import { useGetBranchesQuery } from "../../../store/slices/branch/branchApi";
 import { useGetStoresQuery } from "../../../store/slices/store/storeApi";
 import { useGetSalesInvoicesQuery } from "../../../store/slices/salesInvoice/salesInvoiceApiSlice";
@@ -31,11 +31,17 @@ const ItemBalanceReport: React.FC<ItemBalanceReportProps> = ({
     currentUser?.branchId || "all"
   );
   
+  // Item group filter state - default to "all"
+  const [selectedItemGroupId, setSelectedItemGroupId] = useState<string>("all");
+  
   // Get store for selected branch
   const { data: branches = [], isLoading: branchesLoading } =
     useGetBranchesQuery(undefined);
   const { data: stores = [], isLoading: storesLoading } =
     useGetStoresQuery(undefined);
+  const { data: itemGroups = [], isLoading: itemGroupsLoading } =
+    useGetItemGroupsQuery(undefined);
+  const typedItemGroups = (itemGroups as ItemGroup[]);
   
   const selectedStore = selectedBranchId === "all" 
     ? stores.find((store) => store.branchId === currentUser?.branchId)
@@ -73,6 +79,7 @@ const ItemBalanceReport: React.FC<ItemBalanceReportProps> = ({
         ...item,
         unit: item.unit?.name || "",
         group: item.group?.name || "",
+        groupId: item.groupId || item.group?.id || "",
       }));
   }, [apiItems]);
 
@@ -191,6 +198,7 @@ const ItemBalanceReport: React.FC<ItemBalanceReportProps> = ({
     itemsLoading ||
     branchesLoading ||
     storesLoading ||
+    itemGroupsLoading ||
     salesInvoicesLoading ||
     salesReturnsLoading ||
     purchaseInvoicesLoading ||
@@ -361,6 +369,11 @@ const ItemBalanceReport: React.FC<ItemBalanceReportProps> = ({
         totalOutgoing,
         balance: currentBalance,
       };
+    })
+    .filter((item) => {
+      // Filter by item group
+      if (selectedItemGroupId === "all") return true;
+      return (item as any).groupId === selectedItemGroupId;
     });
     setReportData(balanceData);
   }, [
@@ -377,6 +390,8 @@ const ItemBalanceReport: React.FC<ItemBalanceReportProps> = ({
     transformedStoreTransferVouchers,
     stores,
     isLoading,
+    selectedItemGroupId,
+    branches,
   ]);
 
   useEffect(() => {
@@ -462,6 +477,9 @@ const ItemBalanceReport: React.FC<ItemBalanceReportProps> = ({
                 <span className="font-semibold text-gray-800">الفرع:</span> {selectedBranchId === "all" ? "جميع الفروع" : branches.find(b => b.id === selectedBranchId)?.name || ""}
               </p>
               <p className="text-base text-gray-700">
+                <span className="font-semibold text-gray-800">مجموعة الأصناف:</span> {selectedItemGroupId === "all" ? "جميع المجموعات" : typedItemGroups.find(g => g.id === selectedItemGroupId)?.name || ""}
+              </p>
+              <p className="text-base text-gray-700">
                 <span className="font-semibold text-gray-800">الفترة من:</span> {startDate} 
                 <span className="font-semibold text-gray-800 mr-2">إلى:</span> {endDate}
               </p>
@@ -486,6 +504,19 @@ const ItemBalanceReport: React.FC<ItemBalanceReportProps> = ({
               {branches.map((branch) => (
                 <option key={branch.id} value={branch.id}>
                   {branch.name}
+                </option>
+              ))}
+            </select>
+            <label className="font-semibold">مجموعة الأصناف:</label>
+            <select
+              className="p-2 border-2 border-brand-blue rounded-md bg-brand-blue-bg"
+              value={selectedItemGroupId}
+              onChange={(e) => setSelectedItemGroupId(e.target.value)}
+            >
+              <option value="all">جميع المجموعات</option>
+              {typedItemGroups.map((group) => (
+                <option key={group.id} value={group.id}>
+                  {group.name}
                 </option>
               ))}
             </select>
@@ -541,8 +572,11 @@ const ItemBalanceReport: React.FC<ItemBalanceReportProps> = ({
                 <th className="px-4 py-3 text-right text-sm font-semibold text-white uppercase w-28">
                   كود الصنف
                 </th>
-                <th className="px-6 py-3 text-right text-sm font-semibold text-white uppercase w-80">
+                <th className="px-6 py-3 text-right text-sm font-semibold text-white uppercase w-64">
                   اسم الصنف
+                </th>
+                <th className="px-6 py-3 text-right text-sm font-semibold text-white uppercase">
+                  مجموعة الأصناف
                 </th>
                 <th className="px-6 py-3 text-right text-sm font-semibold text-white uppercase">
                   الوحدة
@@ -568,6 +602,7 @@ const ItemBalanceReport: React.FC<ItemBalanceReportProps> = ({
                   <td className="px-6 py-4 font-medium text-brand-dark w-80">
                     {item.name}
                   </td>
+                  <td className="px-6 py-4">{item.group}</td>
                   <td className="px-6 py-4">{item.unit}</td>
                   <td className={`px-6 py-4 font-bold ${getNegativeNumberClass(item.openingBalance)}`}>
                     {formatNumber(item.openingBalance)}
