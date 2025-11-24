@@ -15,7 +15,7 @@ const ForgotPassword: React.FC<ForgotPasswordProps> = ({ onNavigate }) => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email) {
-      showToast("يرجى إدخال البريد الإلكتروني", 'error');
+      showToast("يرجى إدخال البريد او اسم المستخدم", 'error');
       return;
     }
 
@@ -40,7 +40,7 @@ const ForgotPassword: React.FC<ForgotPasswordProps> = ({ onNavigate }) => {
             نسيت كلمة المرور؟
           </h2>
           <p className="mt-2 text-center text-sm text-gray-600">
-            أدخل بريدك الإلكتروني وسنرسل لك رمز التحقق
+            أدخل بريدك الإلكتروني أو اسم المستخدم وسنرسل لك رمز التحقق
           </p>
         </div>
         <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
@@ -49,18 +49,18 @@ const ForgotPassword: React.FC<ForgotPasswordProps> = ({ onNavigate }) => {
               htmlFor="email"
               className="block text-sm font-medium text-gray-700 mb-1"
             >
-              البريد الإلكتروني
+              البريد او اسم المستخدم
             </label>
             <input
               id="email"
               name="email"
-              type="email"
-              autoComplete="email"
+              type="text"
+              autoComplete="username"
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               className="mt-1 block w-full bg-brand-blue-bg border-2 border-brand-blue rounded-md shadow-sm text-black placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-brand-blue focus:border-brand-blue py-3 px-4"
-              placeholder="أدخل بريدك الإلكتروني"
+              placeholder="البريد او اسم المستخدم"
             />
           </div>
 

@@ -1,5 +1,4 @@
 import {
-  IsEmail,
   IsOptional,
   IsString,
   MinLength,
@@ -17,7 +16,6 @@ export class UpdateUserRequest {
   @IsOptional()
   @ValidateIf((o) => o.email !== '' && o.email !== undefined)
   @IsString({ message: ERROR_MESSAGES.EMAIL_SHOULD_BE_STRING })
-  @IsEmail({}, { message: ERROR_MESSAGES.INVALID_EMAIL })
   email?: string;
 
   @IsOptional()

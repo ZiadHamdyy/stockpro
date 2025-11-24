@@ -162,7 +162,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
               )}
 
               <div className="space-y-2">
-                <label htmlFor="email" className="block text-sm font-bold text-gray-700">البريد الإلكتروني</label>
+                <label htmlFor="email" className="block text-sm font-bold text-gray-700">البريد او اسم المستخدم</label>
                 <div className="relative group">
                   <div className="absolute inset-y-0 right-0 flex items-center pr-4 pointer-events-none text-gray-400 group-focus-within:text-brand-blue transition-colors">
                     <UserIcon className="h-6 w-6" />
@@ -170,13 +170,13 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
                   <input
                     id="email"
                     name="email"
-                    type="email"
-                    autoComplete="email"
+                    type="text"
+                    autoComplete="username"
                     required
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     className="w-full pr-12 pl-4 py-4 bg-gray-50 border-2 border-gray-200 rounded-xl text-gray-900 text-lg focus:ring-0 focus:border-brand-blue transition-all outline-none placeholder-gray-400 hover:bg-blue-50/50"
-                    placeholder="user@example.com"
+                    placeholder="البريد او اسم المستخدم"
                   />
                 </div>
               </div>

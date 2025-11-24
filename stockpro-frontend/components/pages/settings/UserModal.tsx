@@ -105,9 +105,7 @@ const UserModal: React.FC<UserModalProps> = ({
     }
 
     if (!userData.email.trim()) {
-      errors.email = "البريد الإلكتروني مطلوب";
-    } else if (!/\S+@\S+\.\S+/.test(userData.email)) {
-      errors.email = "البريد الإلكتروني غير صحيح";
+      errors.email = "البريد او اسم المستخدم مطلوب";
     }
 
     if (!userToEdit && !userData.password.trim()) {
@@ -287,10 +285,10 @@ const UserModal: React.FC<UserModalProps> = ({
                   htmlFor="email"
                   className="block text-sm font-semibold text-gray-700 mb-1"
                 >
-                  البريد الإلكتروني
+                  البريد او اسم المستخدم
                 </label>
                 <input
-                  type="email"
+                  type="text"
                   id="email"
                   name="email"
                   value={userData.email}
