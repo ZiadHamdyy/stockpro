@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback, useEffect } from "react";
+import React, { useState, useMemo, useCallback, useEffect, useRef } from "react";
 import type { CompanyInfo, User } from "../../../../types";
 import { ExcelIcon, PdfIcon, PrintIcon, SearchIcon } from "../../../icons";
 import ReportHeader from "../ReportHeader";
@@ -217,25 +217,59 @@ const ItemMovementReport: React.FC<ItemMovementReportProps> = ({
   const { start: defaultStartDate, end: defaultEndDate } = getCurrentYearRange();
   const [startDate, setStartDate] = useState(defaultStartDate);
   const [endDate, setEndDate] = useState(defaultEndDate);
-  const [selectedItemId, setSelectedItemId] = useState<string | null>(
-    items.length > 0 ? items[0].id.toString() : null,
-  );
-  const [itemSearchTerm, setItemSearchTerm] = useState("");
+  const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
+  const [itemQuery, setItemQuery] = useState("");
+  const [isItemDropdownOpen, setIsItemDropdownOpen] = useState(false);
+  const itemRef = useRef<HTMLDivElement>(null);
 
   const [reportData, setReportData] = useState<any[]>([]);
   const [openingBalance, setOpeningBalance] = useState(0);
 
-  const filteredSelectItems = items.filter(
-    (item) =>
-      item.name.toLowerCase().includes(itemSearchTerm.toLowerCase()) ||
-      item.code.toLowerCase().includes(itemSearchTerm.toLowerCase()),
-  );
+  const filteredItems = itemQuery
+    ? items.filter(
+        (item) =>
+          item.name.toLowerCase().includes(itemQuery.toLowerCase()) ||
+          item.code.toLowerCase().includes(itemQuery.toLowerCase()),
+      )
+    : items;
 
   const selectedItem = useMemo(
     () => items.find((i) => i.id.toString() === selectedItemId),
     [items, selectedItemId],
   );
   const selectedItemName = selectedItem?.name || "غير محدد";
+
+  const handleSelectItem = (item: any) => {
+    setSelectedItemId(item.id.toString());
+    setItemQuery(`${item.code} - ${item.name}`);
+    setIsItemDropdownOpen(false);
+  };
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (itemRef.current && !itemRef.current.contains(event.target as Node)) {
+        setIsItemDropdownOpen(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
+
+  // Update item query when selected item changes (only if item is selected and query doesn't match)
+  useEffect(() => {
+    if (selectedItem) {
+      const expectedQuery = `${selectedItem.code} - ${selectedItem.name}`;
+      // Only update if the current query doesn't match the selected item
+      // This prevents overwriting user input when they're typing
+      if (itemQuery !== expectedQuery) {
+        setItemQuery(expectedQuery);
+      }
+    }
+  }, [selectedItem, itemQuery]);
 
   const handleViewReport = useCallback(() => {
     if (!selectedItem || isLoading) {
@@ -632,29 +666,43 @@ const ItemMovementReport: React.FC<ItemMovementReportProps> = ({
 
         <div className="flex justify-between items-center my-4 bg-gray-50 p-3 rounded-md border-2 border-gray-200 no-print">
           <div className="flex items-center gap-4 flex-wrap no-print">
-            <div className="relative">
-              <SearchIcon className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
+            <div className="relative w-64" ref={itemRef}>
               <input
                 type="text"
-                placeholder="بحث..."
-                className={inputStyle + " w-40 pr-10"}
-                value={itemSearchTerm}
-                onChange={(e) => setItemSearchTerm(e.target.value)}
+                placeholder="اختر الصنف..."
+                className={inputStyle + " w-full"}
+                value={itemQuery}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  setItemQuery(value);
+                  setIsItemDropdownOpen(true);
+                  // Clear selection when user types or clears the input
+                  if (value === "" || !selectedItem || !value.includes(selectedItem.code)) {
+                    setSelectedItemId(null);
+                  }
+                }}
+                onFocus={() => setIsItemDropdownOpen(true)}
               />
+              {isItemDropdownOpen && (
+                <div className="absolute z-20 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-y-auto">
+                  {filteredItems.length > 0 ? (
+                    filteredItems.map((item) => (
+                      <div
+                        key={item.id}
+                        onClick={() => handleSelectItem(item)}
+                        className="p-2 cursor-pointer hover:bg-brand-blue-bg"
+                      >
+                        {item.code} - {item.name}
+                      </div>
+                    ))
+                  ) : (
+                    <div className="p-2 text-gray-500 text-center">
+                      لا توجد نتائج
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
-            <select
-              className={inputStyle + " w-64"}
-              value={selectedItemId || ""}
-              onChange={(e) => setSelectedItemId(e.target.value)}
-            >
-              <option value="">اختر الصنف...</option>
-              {filteredSelectItems.map((item) => (
-                <option
-                  key={item.id}
-                  value={item.id}
-                >{`${item.code} - ${item.name}`}</option>
-              ))}
-            </select>
             <select
               className={inputStyle}
               value={selectedBranchId}

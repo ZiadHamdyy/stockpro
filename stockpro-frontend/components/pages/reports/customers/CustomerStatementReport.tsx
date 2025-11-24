@@ -208,7 +208,6 @@ const CustomerStatementReport: React.FC<CustomerStatementReportProps> = ({
   const [customerQuery, setCustomerQuery] = useState("");
   const [isCustomerDropdownOpen, setIsCustomerDropdownOpen] = useState(false);
   const [selectedCustomerId, setSelectedCustomerId] = useState<string | null>(null);
-  const [hasUserInteracted, setHasUserInteracted] = useState(false);
   const customerRef = useRef<HTMLDivElement>(null);
 
   const [reportData, setReportData] = useState<any[]>([]);
@@ -220,15 +219,6 @@ const CustomerStatementReport: React.FC<CustomerStatementReportProps> = ({
       )
     : customers;
 
-  // Set initial customer when customers load (only if user hasn't interacted)
-  useEffect(() => {
-    if (customers.length > 0 && !selectedCustomerId && !hasUserInteracted) {
-      const firstCustomer = customers[0];
-      setSelectedCustomerId(firstCustomer.id.toString());
-      setCustomerQuery(firstCustomer.name);
-    }
-  }, [customers, selectedCustomerId, hasUserInteracted]);
-
   const selectedCustomer = useMemo(
     () => customers.find((c) => c.id.toString() === selectedCustomerId),
     [customers, selectedCustomerId],
@@ -236,11 +226,22 @@ const CustomerStatementReport: React.FC<CustomerStatementReportProps> = ({
   const selectedCustomerName = selectedCustomer?.name || "غير محدد";
 
   const handleSelectCustomer = (customer: any) => {
-    setHasUserInteracted(true);
     setSelectedCustomerId(customer.id.toString());
     setCustomerQuery(customer.name);
     setIsCustomerDropdownOpen(false);
   };
+
+  // Update customer query when selected customer changes (only if customer is selected and query doesn't match)
+  useEffect(() => {
+    if (selectedCustomer) {
+      const expectedQuery = selectedCustomer.name;
+      // Only update if the current query doesn't match the selected customer
+      // This prevents overwriting user input when they're typing
+      if (customerQuery !== expectedQuery) {
+        setCustomerQuery(expectedQuery);
+      }
+    }
+  }, [selectedCustomer, customerQuery]);
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -575,14 +576,17 @@ const CustomerStatementReport: React.FC<CustomerStatementReportProps> = ({
             <div className="relative w-48" ref={customerRef}>
               <input
                 type="text"
-                placeholder="بحث عن عميل..."
+                placeholder="اختر العميل..."
                 className={inputStyle + " w-full"}
                 value={customerQuery}
                 onChange={(e) => {
-                  setHasUserInteracted(true);
-                  setCustomerQuery(e.target.value);
+                  const value = e.target.value;
+                  setCustomerQuery(value);
                   setIsCustomerDropdownOpen(true);
-                  setSelectedCustomerId(null);
+                  // Clear selection when user types or clears the input
+                  if (value === "" || !selectedCustomer || !value.includes(selectedCustomer.name)) {
+                    setSelectedCustomerId(null);
+                  }
                 }}
                 onFocus={() => setIsCustomerDropdownOpen(true)}
               />

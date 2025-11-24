@@ -208,7 +208,6 @@ const SupplierStatementReport: React.FC<SupplierStatementReportProps> = ({
   const [supplierQuery, setSupplierQuery] = useState("");
   const [isSupplierDropdownOpen, setIsSupplierDropdownOpen] = useState(false);
   const [selectedSupplierId, setSelectedSupplierId] = useState<string | null>(null);
-  const [hasUserInteracted, setHasUserInteracted] = useState(false);
   const supplierRef = useRef<HTMLDivElement>(null);
 
   const [reportData, setReportData] = useState<any[]>([]);
@@ -220,15 +219,6 @@ const SupplierStatementReport: React.FC<SupplierStatementReportProps> = ({
       )
     : suppliers;
 
-  // Set initial supplier when suppliers load (only if user hasn't interacted)
-  useEffect(() => {
-    if (suppliers.length > 0 && !selectedSupplierId && !hasUserInteracted) {
-      const firstSupplier = suppliers[0];
-      setSelectedSupplierId(firstSupplier.id.toString());
-      setSupplierQuery(firstSupplier.name);
-    }
-  }, [suppliers, selectedSupplierId, hasUserInteracted]);
-
   const selectedSupplier = useMemo(
     () => suppliers.find((s) => s.id.toString() === selectedSupplierId),
     [suppliers, selectedSupplierId],
@@ -236,11 +226,22 @@ const SupplierStatementReport: React.FC<SupplierStatementReportProps> = ({
   const selectedSupplierName = selectedSupplier?.name || "غير محدد";
 
   const handleSelectSupplier = (supplier: any) => {
-    setHasUserInteracted(true);
     setSelectedSupplierId(supplier.id.toString());
     setSupplierQuery(supplier.name);
     setIsSupplierDropdownOpen(false);
   };
+
+  // Update supplier query when selected supplier changes (only if supplier is selected and query doesn't match)
+  useEffect(() => {
+    if (selectedSupplier) {
+      const expectedQuery = selectedSupplier.name;
+      // Only update if the current query doesn't match the selected supplier
+      // This prevents overwriting user input when they're typing
+      if (supplierQuery !== expectedQuery) {
+        setSupplierQuery(expectedQuery);
+      }
+    }
+  }, [selectedSupplier, supplierQuery]);
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -567,14 +568,17 @@ const SupplierStatementReport: React.FC<SupplierStatementReportProps> = ({
             <div className="relative w-48" ref={supplierRef}>
               <input
                 type="text"
-                placeholder="بحث عن مورد..."
+                placeholder="اختر المورد..."
                 className={inputStyle + " w-full"}
                 value={supplierQuery}
                 onChange={(e) => {
-                  setHasUserInteracted(true);
-                  setSupplierQuery(e.target.value);
+                  const value = e.target.value;
+                  setSupplierQuery(value);
                   setIsSupplierDropdownOpen(true);
-                  setSelectedSupplierId(null);
+                  // Clear selection when user types or clears the input
+                  if (value === "" || !selectedSupplier || !value.includes(selectedSupplier.name)) {
+                    setSelectedSupplierId(null);
+                  }
                 }}
                 onFocus={() => setIsSupplierDropdownOpen(true)}
               />
