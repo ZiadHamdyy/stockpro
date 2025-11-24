@@ -10,6 +10,12 @@ import {
 import { useGetBranchesQuery } from "../../store/slices/branch/branchApi";
 import { useGetRolesQuery } from "../../store/slices/role/roleApi";
 import { useToast } from "../../common/ToastProvider";
+import PermissionWrapper from "../../common/PermissionWrapper";
+import {
+  Actions,
+  Resources,
+  buildPermission,
+} from "../../../enums/permissions.enum";
 
 interface UserModalProps {
   isOpen: boolean;
@@ -398,20 +404,29 @@ const UserModal: React.FC<UserModalProps> = ({
             >
               إلغاء
             </button>
-            <button
-              type="submit"
-              disabled={isCreating || isUpdating || isLoadingBranches || isLoadingRoles}
-              className="px-8 py-3 bg-gradient-to-r from-brand-blue to-blue-700 text-white rounded-lg hover:from-blue-700 hover:to-blue-800 font-semibold disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105 disabled:transform-none"
+            <PermissionWrapper
+              requiredPermission={[
+                buildPermission(Resources.USERS_DATA, Actions.CREATE),
+                buildPermission(Resources.USERS_DATA, Actions.UPDATE),
+              ]}
             >
-              {isCreating || isUpdating ? (
-                <>
-                  <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                  جاري الحفظ...
-                </>
-              ) : (
-                "حفظ"
-              )}
-            </button>
+              <button
+                type="submit"
+                disabled={
+                  isCreating || isUpdating || isLoadingBranches || isLoadingRoles
+                }
+                className="px-8 py-3 bg-gradient-to-r from-brand-blue to-blue-700 text-white rounded-lg hover:from-blue-700 hover:to-blue-800 font-semibold disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105 disabled:transform-none"
+              >
+                {isCreating || isUpdating ? (
+                  <>
+                    <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                    جاري الحفظ...
+                  </>
+                ) : (
+                  "حفظ"
+                )}
+              </button>
+            </PermissionWrapper>
           </div>
         </form>
       </div>

@@ -23,6 +23,7 @@ const AddReceivableAccount: React.FC<Props> = ({ title, editingId, onNavigate })
 
   const [accountData, setAccountData] = useState<ReceivableAccount | Omit<ReceivableAccount, "id" | "createdAt" | "updatedAt">>(emptyAccount);
   const [isReadOnly, setIsReadOnly] = useState(true);
+  const isExistingAccount = "id" in accountData;
 
   const { data: accounts = [] } = useGetReceivableAccountsQuery();
   const [createAccount, { isLoading: isCreating }] = useCreateReceivableAccountMutation();
@@ -162,21 +163,26 @@ const AddReceivableAccount: React.FC<Props> = ({ title, editingId, onNavigate })
 
         <div className="mt-8 pt-6 border-t-2 border-gray-200 flex flex-col items-start space-y-4">
           <div className="flex justify-start gap-2">
-            <PermissionWrapper requiredPermission={buildPermission(Resources.RECEIVABLE_ACCOUNTS, Actions.CREATE)} fallback={<button disabled className="px-4 py-2 bg-gray-400 text-white rounded-md cursor-not-allowed opacity-50 font-semibold">جديد</button>}>
+            <PermissionWrapper requiredPermission={buildPermission(Resources.RECEIVABLE_ACCOUNTS, Actions.CREATE)}>
               <button type="button" onClick={() => navigate("/financials/receivable-accounts/add")} className="px-4 py-2 bg-brand-blue text-white rounded-md hover:bg-blue-800 font-semibold">جديد</button>
             </PermissionWrapper>
 
             {isReadOnly ? (
-              <PermissionWrapper requiredPermission={buildPermission(Resources.RECEIVABLE_ACCOUNTS, Actions.UPDATE)} fallback={<button disabled className="px-4 py-2 bg-gray-400 text-white rounded-md cursor-not-allowed opacity-50 font-semibold">تعديل</button>}>
+              <PermissionWrapper requiredPermission={buildPermission(Resources.RECEIVABLE_ACCOUNTS, Actions.UPDATE)}>
                 <button type="button" onClick={() => setIsReadOnly(false)} className="px-4 py-2 bg-yellow-500 text-white rounded-md hover:bg-yellow-600 font-semibold">تعديل</button>
               </PermissionWrapper>
             ) : (
-              <PermissionWrapper requiredPermission={[buildPermission(Resources.RECEIVABLE_ACCOUNTS, Actions.CREATE), buildPermission(Resources.RECEIVABLE_ACCOUNTS, Actions.UPDATE)] as any} fallback={<button type="submit" disabled className="px-4 py-2 bg-gray-400 text-white rounded-md cursor-not-allowed opacity-50 font-semibold">{isCreating || isUpdating ? "جاري الحفظ..." : "حفظ"}</button>}>
+              <PermissionWrapper
+                requiredPermission={buildPermission(
+                  Resources.RECEIVABLE_ACCOUNTS,
+                  isExistingAccount ? Actions.UPDATE : Actions.CREATE,
+                )}
+              >
                 <button type="submit" disabled={isCreating || isUpdating} className="px-4 py-2 bg-brand-green text-white rounded-md hover:bg-green-700 font-semibold disabled:opacity-50">{isCreating || isUpdating ? "جاري الحفظ..." : "حفظ"}</button>
               </PermissionWrapper>
             )}
 
-            <PermissionWrapper requiredPermission={buildPermission(Resources.RECEIVABLE_ACCOUNTS, Actions.DELETE)} fallback={<button disabled className="px-4 py-2 bg-gray-400 text-white rounded-md cursor-not-allowed opacity-50 font-semibold">حذف</button>}>
+            <PermissionWrapper requiredPermission={buildPermission(Resources.RECEIVABLE_ACCOUNTS, Actions.DELETE)}>
               <button type="button" onClick={handleDelete} disabled={!("id" in (accountData as any)) || isDeleting} className="px-4 py-2 bg-red-500 text-white rounded-md hover:bg-red-600 font-semibold disabled:bg-gray-400">{isDeleting ? "جاري الحذف..." : "حذف"}</button>
             </PermissionWrapper>
 

@@ -286,13 +286,20 @@ const AddCustomer: React.FC<AddCustomerProps> = ({
         </div>
         <div className="mt-8 pt-6 border-t-2 border-gray-200 flex flex-col items-start space-y-4">
           <div className="flex justify-start gap-2">
-            <button
-              type="button"
-              onClick={() => onNavigate("add_customer", "إضافة عميل")}
-              className="px-4 py-2 bg-brand-blue text-white rounded-md hover:bg-blue-800 font-semibold"
+            <PermissionWrapper
+              requiredPermission={buildPermission(
+                Resources.CUSTOMERS,
+                Actions.CREATE,
+              )}
             >
-              جديد
-            </button>
+              <button
+                type="button"
+                onClick={() => onNavigate("add_customer", "إضافة عميل")}
+                className="px-4 py-2 bg-brand-blue text-white rounded-md hover:bg-blue-800 font-semibold"
+              >
+                جديد
+              </button>
+            </PermissionWrapper>
             {isReadOnly ? (
               <PermissionWrapper
                 requiredPermission={buildPermission(

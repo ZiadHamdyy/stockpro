@@ -114,6 +114,7 @@ const StoreTransfer: React.FC<StoreTransferProps> = ({ title }) => {
     fromStore: stores.length > 0 ? stores[0].name : "",
     toStore: stores.length > 1 ? stores[1].name : "",
   });
+  const isExistingVoucher = Boolean(voucherDetails.id);
   
   // Get store from selected fromStore
   const fromStore = useMemo(() => 
@@ -984,14 +985,6 @@ const StoreTransfer: React.FC<StoreTransferProps> = ({ title }) => {
             Resources.STORE_TRANSFER,
             Actions.CREATE,
           )}
-          fallback={
-            <button
-              disabled
-              className="no-print mb-4 px-4 py-2 bg-gray-400 text-white rounded-md cursor-not-allowed opacity-50 font-semibold"
-            >
-              اضافة سطر
-            </button>
-          }
         >
           <button
             onClick={handleAddItem}
@@ -1016,20 +1009,12 @@ const StoreTransfer: React.FC<StoreTransferProps> = ({ title }) => {
 
           <div className="mt-8 pt-6 border-t-2 border-gray-200 flex flex-col items-center space-y-4 no-print">
             <div className="flex justify-center gap-2 flex-wrap">
-              <PermissionWrapper
-                requiredPermission={buildPermission(
-                  Resources.STORE_TRANSFER,
-                  Actions.CREATE,
-                )}
-                fallback={
-                  <button
-                    disabled
-                    className="px-4 py-2 bg-gray-400 text-white rounded-md cursor-not-allowed opacity-50 font-semibold"
-                  >
-                    جديد
-                  </button>
-                }
-              >
+            <PermissionWrapper
+              requiredPermission={buildPermission(
+                Resources.STORE_TRANSFER,
+                Actions.CREATE,
+              )}
+            >
                 <button
                   onClick={handleNew}
                   className="px-4 py-2 bg-brand-blue text-white rounded-md hover:bg-blue-800 font-semibold"
@@ -1037,20 +1022,12 @@ const StoreTransfer: React.FC<StoreTransferProps> = ({ title }) => {
                   جديد
                 </button>
               </PermissionWrapper>
-              <PermissionWrapper
-                requiredPermission={[
-                  buildPermission(Resources.STORE_TRANSFER, Actions.CREATE),
-                  buildPermission(Resources.STORE_TRANSFER, Actions.UPDATE),
-                ]}
-                fallback={
-                  <button
-                    disabled
-                    className="px-4 py-2 bg-gray-400 text-white rounded-md cursor-not-allowed opacity-50 font-semibold"
-                  >
-                    {isCreating || isUpdating ? "جاري الحفظ..." : "حفظ"}
-                  </button>
-                }
-              >
+            <PermissionWrapper
+              requiredPermission={buildPermission(
+                Resources.STORE_TRANSFER,
+                isExistingVoucher ? Actions.UPDATE : Actions.CREATE,
+              )}
+            >
                 <button
                   onClick={handleSave}
                   disabled={
@@ -1061,20 +1038,12 @@ const StoreTransfer: React.FC<StoreTransferProps> = ({ title }) => {
                   {isCreating || isUpdating ? "جاري الحفظ..." : "حفظ"}
                 </button>
               </PermissionWrapper>
-              <PermissionWrapper
-                requiredPermission={buildPermission(
-                  Resources.STORE_TRANSFER,
-                  Actions.UPDATE,
-                )}
-                fallback={
-                  <button
-                    disabled
-                    className="px-4 py-2 bg-gray-400 text-white rounded-md cursor-not-allowed opacity-50 font-semibold"
-                  >
-                    تعديل
-                  </button>
-                }
-              >
+            <PermissionWrapper
+              requiredPermission={buildPermission(
+                Resources.STORE_TRANSFER,
+                Actions.UPDATE,
+              )}
+            >
                 <button
                   onClick={handleEdit}
                   disabled={currentIndex < 0 || !isReadOnly}
@@ -1083,20 +1052,12 @@ const StoreTransfer: React.FC<StoreTransferProps> = ({ title }) => {
                   تعديل
                 </button>
               </PermissionWrapper>
-              <PermissionWrapper
-                requiredPermission={buildPermission(
-                  Resources.STORE_TRANSFER,
-                  Actions.DELETE,
-                )}
-                fallback={
-                  <button
-                    disabled
-                    className="px-4 py-2 bg-gray-400 text-white rounded-md cursor-not-allowed opacity-50 font-semibold"
-                  >
-                    {isDeleting ? "جاري الحذف..." : "حذف"}
-                  </button>
-                }
-              >
+            <PermissionWrapper
+              requiredPermission={buildPermission(
+                Resources.STORE_TRANSFER,
+                Actions.DELETE,
+              )}
+            >
                 <button
                   onClick={handleDelete}
                   disabled={currentIndex < 0 || isDeleting}
@@ -1105,20 +1066,12 @@ const StoreTransfer: React.FC<StoreTransferProps> = ({ title }) => {
                   {isDeleting ? "جاري الحذف..." : "حذف"}
                 </button>
               </PermissionWrapper>
-              <PermissionWrapper
-                requiredPermission={buildPermission(
-                  Resources.STORE_TRANSFER,
-                  Actions.SEARCH,
-                )}
-                fallback={
-                  <button
-                    disabled
-                    className="px-4 py-2 bg-gray-400 text-white rounded-md cursor-not-allowed opacity-50 font-semibold"
-                  >
-                    بحث
-                  </button>
-                }
-              >
+            <PermissionWrapper
+              requiredPermission={buildPermission(
+                Resources.STORE_TRANSFER,
+                Actions.SEARCH,
+              )}
+            >
                 <button
                   onClick={() => setIsSearchModalOpen(true)}
                   className="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 font-semibold"
@@ -1126,20 +1079,12 @@ const StoreTransfer: React.FC<StoreTransferProps> = ({ title }) => {
                   بحث
                 </button>
               </PermissionWrapper>
-              <PermissionWrapper
-                requiredPermission={buildPermission(
-                  Resources.STORE_TRANSFER,
-                  Actions.PRINT,
-                )}
-                fallback={
-                  <button
-                    disabled
-                    className="px-4 py-2 bg-gray-400 text-white rounded-md cursor-not-allowed opacity-50 font-semibold flex items-center"
-                  >
-                    <PrintIcon className="mr-2 w-5 h-5" /> طباعة
-                  </button>
-                }
-              >
+            <PermissionWrapper
+              requiredPermission={buildPermission(
+                Resources.STORE_TRANSFER,
+                Actions.PRINT,
+              )}
+            >
                 <button
                   onClick={handlePrint}
                   className="px-4 py-2 bg-gray-200 text-brand-dark rounded-md hover:bg-gray-300 font-semibold flex items-center"

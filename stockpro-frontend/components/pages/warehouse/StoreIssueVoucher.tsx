@@ -121,6 +121,7 @@ const StoreIssueVoucher: React.FC<StoreIssueVoucherProps> = ({ title }) => {
     date: new Date().toISOString().substring(0, 10),
     branch: branches.length > 0 ? branches[0].name : "",
   });
+  const isExistingVoucher = Boolean(voucherDetails.id);
   
   // Get store from selected branch
   const selectedBranch = useMemo(() => 
@@ -953,14 +954,6 @@ const StoreIssueVoucher: React.FC<StoreIssueVoucherProps> = ({ title }) => {
             Resources.STORE_ISSUE_VOUCHER,
             Actions.CREATE,
           )}
-          fallback={
-            <button
-              disabled
-              className="no-print mb-4 px-4 py-2 bg-gray-400 text-white rounded-md cursor-not-allowed opacity-50 font-semibold"
-            >
-              اضافة سطر
-            </button>
-          }
         >
           <button
             onClick={handleAddItem}
@@ -990,14 +983,6 @@ const StoreIssueVoucher: React.FC<StoreIssueVoucherProps> = ({ title }) => {
                   Resources.STORE_ISSUE_VOUCHER,
                   Actions.CREATE,
                 )}
-                fallback={
-                  <button
-                    disabled
-                    className="px-4 py-2 bg-gray-400 text-white rounded-md cursor-not-allowed opacity-50 font-semibold"
-                  >
-                    جديد
-                  </button>
-                }
               >
                 <button
                   onClick={handleNew}
@@ -1007,24 +992,10 @@ const StoreIssueVoucher: React.FC<StoreIssueVoucherProps> = ({ title }) => {
                 </button>
               </PermissionWrapper>
               <PermissionWrapper
-                requiredPermission={[
-                  buildPermission(
-                    Resources.STORE_ISSUE_VOUCHER,
-                    Actions.CREATE,
-                  ),
-                  buildPermission(
-                    Resources.STORE_ISSUE_VOUCHER,
-                    Actions.UPDATE,
-                  ),
-                ]}
-                fallback={
-                  <button
-                    disabled
-                    className="px-4 py-2 bg-gray-400 text-white rounded-md cursor-not-allowed opacity-50 font-semibold"
-                  >
-                    {isCreating || isUpdating ? "جاري الحفظ..." : "حفظ"}
-                  </button>
-                }
+                requiredPermission={buildPermission(
+                  Resources.STORE_ISSUE_VOUCHER,
+                  isExistingVoucher ? Actions.UPDATE : Actions.CREATE,
+                )}
               >
                 <button
                   onClick={handleSave}
@@ -1041,14 +1012,6 @@ const StoreIssueVoucher: React.FC<StoreIssueVoucherProps> = ({ title }) => {
                   Resources.STORE_ISSUE_VOUCHER,
                   Actions.UPDATE,
                 )}
-                fallback={
-                  <button
-                    disabled
-                    className="px-4 py-2 bg-gray-400 text-white rounded-md cursor-not-allowed opacity-50 font-semibold"
-                  >
-                    تعديل
-                  </button>
-                }
               >
                 <button
                   onClick={handleEdit}
@@ -1063,14 +1026,6 @@ const StoreIssueVoucher: React.FC<StoreIssueVoucherProps> = ({ title }) => {
                   Resources.STORE_ISSUE_VOUCHER,
                   Actions.DELETE,
                 )}
-                fallback={
-                  <button
-                    disabled
-                    className="px-4 py-2 bg-gray-400 text-white rounded-md cursor-not-allowed opacity-50 font-semibold"
-                  >
-                    {isDeleting ? "جاري الحذف..." : "حذف"}
-                  </button>
-                }
               >
                 <button
                   onClick={handleDelete}
@@ -1085,14 +1040,6 @@ const StoreIssueVoucher: React.FC<StoreIssueVoucherProps> = ({ title }) => {
                   Resources.STORE_ISSUE_VOUCHER,
                   Actions.SEARCH,
                 )}
-                fallback={
-                  <button
-                    disabled
-                    className="px-4 py-2 bg-gray-400 text-white rounded-md cursor-not-allowed opacity-50 font-semibold"
-                  >
-                    بحث
-                  </button>
-                }
               >
                 <button
                   onClick={() => setIsSearchModalOpen(true)}
@@ -1106,14 +1053,6 @@ const StoreIssueVoucher: React.FC<StoreIssueVoucherProps> = ({ title }) => {
                   Resources.STORE_ISSUE_VOUCHER,
                   Actions.PRINT,
                 )}
-                fallback={
-                  <button
-                    disabled
-                    className="px-4 py-2 bg-gray-400 text-white rounded-md cursor-not-allowed opacity-50 font-semibold flex items-center"
-                  >
-                    <PrintIcon className="mr-2 w-5 h-5" /> طباعة
-                  </button>
-                }
               >
                 <button
                   onClick={handlePrint}

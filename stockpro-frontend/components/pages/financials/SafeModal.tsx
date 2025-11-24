@@ -1,6 +1,12 @@
 import React, { useState, useEffect } from "react";
 import type { Safe } from "../../../types";
 import { useGetBranchesAvailableForSafeQueryAlias as useGetBranchesAvailableForSafeQuery } from "../../store/slices/branch/branchApi";
+import PermissionWrapper from "../../common/PermissionWrapper";
+import {
+  Actions,
+  Resources,
+  buildPermission,
+} from "../../../enums/permissions.enum";
 
 interface SafeModalProps {
   isOpen: boolean;
@@ -189,12 +195,19 @@ const SafeModal: React.FC<SafeModalProps> = ({
             >
               إلغاء
             </button>
-            <button
-              type="submit"
-              className="px-6 py-2 bg-brand-blue text-white rounded-md hover:bg-blue-800 font-semibold"
+            <PermissionWrapper
+              requiredPermission={[
+                buildPermission(Resources.SAFES, Actions.CREATE),
+                buildPermission(Resources.SAFES, Actions.UPDATE),
+              ]}
             >
-              حفظ
-            </button>
+              <button
+                type="submit"
+                className="px-6 py-2 bg-brand-blue text-white rounded-md hover:bg-blue-800 font-semibold"
+              >
+                حفظ
+              </button>
+            </PermissionWrapper>
           </div>
         </form>
       </div>

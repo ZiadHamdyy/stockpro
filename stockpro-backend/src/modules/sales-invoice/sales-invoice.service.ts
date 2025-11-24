@@ -451,6 +451,9 @@ export class SalesInvoiceService {
 
       const net = subtotal + tax - discount;
 
+      const normalizedDate = data.date
+        ? new Date(data.date)
+        : existingInvoice?.date || new Date();
       const updated = await this.prisma.$transaction(async (tx) => {
         // Restore stock for old items (only for STOCKED items, SERVICE items don't have stock)
         if (existingInvoice) {
@@ -514,6 +517,7 @@ export class SalesInvoiceService {
           where: { id },
           data: {
             ...persistableData,
+            date: normalizedDate,
             items: itemsWithTotals,
             subtotal,
             discount,
@@ -598,8 +602,11 @@ export class SalesInvoiceService {
       });
 
       return this.mapToResponse(updated);
-    } catch (error) {
-      throw new NotFoundException('Sales invoice not found');
+    } catch (error: any) {
+      if (error?.code === 'P2025') {
+        throw new NotFoundException('Sales invoice not found');
+      }
+      throw error;
     }
   }
 

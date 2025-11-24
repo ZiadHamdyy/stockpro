@@ -3,6 +3,12 @@ import type {
   Expense,
   ExpenseCode,
 } from "../../store/slices/expense/expenseApiSlice";
+import PermissionWrapper from "../../common/PermissionWrapper";
+import {
+  Actions,
+  Resources,
+  buildPermission,
+} from "../../../enums/permissions.enum";
 
 interface AddExpenseModalProps {
   isOpen: boolean;
@@ -171,12 +177,19 @@ const AddExpenseModal: React.FC<AddExpenseModalProps> = ({
             >
               إلغاء
             </button>
-            <button
-              type="submit"
-              className="px-6 py-2 bg-brand-blue text-white rounded-md hover:bg-blue-800 font-semibold"
+            <PermissionWrapper
+              requiredPermission={[
+                buildPermission(Resources.EXPENSES_LIST, Actions.CREATE),
+                buildPermission(Resources.EXPENSES_LIST, Actions.UPDATE),
+              ]}
             >
-              حفظ
-            </button>
+              <button
+                type="submit"
+                className="px-6 py-2 bg-brand-blue text-white rounded-md hover:bg-blue-800 font-semibold"
+              >
+                حفظ
+              </button>
+            </PermissionWrapper>
           </div>
         </form>
       </div>

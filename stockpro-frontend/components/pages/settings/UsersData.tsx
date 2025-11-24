@@ -359,12 +359,31 @@ const UsersData: React.FC<UsersDataProps> = ({ title }) => {
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap w-52 min-w-[208px]">
-                      <div className="flex items-center gap-4">
-                        <span
-                          className={`px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full flex-shrink-0 ${user.active ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"}`}
-                        >
-                          {user.active ? "نشط" : "غير نشط"}
-                        </span>
+                    <div className="flex items-center gap-4">
+                      <span
+                        className={`px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full flex-shrink-0 ${user.active ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"}`}
+                      >
+                        {user.active ? "نشط" : "غير نشط"}
+                      </span>
+                      <PermissionWrapper
+                        requiredPermission={buildPermission(
+                          Resources.USERS_DATA,
+                          Actions.UPDATE,
+                        )}
+                        fallback={
+                          <label className="no-print relative inline-flex items-center cursor-not-allowed flex-shrink-0 opacity-50">
+                            <input
+                              type="checkbox"
+                              checked={user.active}
+                              disabled
+                              className="sr-only peer"
+                            />
+                            <div className="w-11 h-6 bg-gray-200 rounded-full">
+                              <div className={`absolute top-[2px] h-5 w-5 bg-white border border-gray-300 rounded-full ${user.active ? 'left-[2px]' : 'right-[2px]'}`}></div>
+                            </div>
+                          </label>
+                        }
+                      >
                         <label className="no-print relative inline-flex items-center cursor-pointer flex-shrink-0">
                           <input
                             type="checkbox"
@@ -380,25 +399,58 @@ const UsersData: React.FC<UsersDataProps> = ({ title }) => {
                             <div className={`absolute top-[2px] h-5 w-5 bg-white border border-gray-300 rounded-full transition-all duration-200 ${user.active ? 'left-[2px]' : 'right-[2px]'}`}></div>
                           </div>
                         </label>
-                      </div>
+                      </PermissionWrapper>
+                    </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       {new Date(user.createdAt).toLocaleDateString("ar-SA")}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium no-print">
-                      <button
-                        onClick={() => handleEditClick(user)}
-                        className="text-brand-blue hover:text-blue-800 font-semibold ml-4"
+                      <PermissionWrapper
+                        requiredPermission={buildPermission(
+                          Resources.USERS_DATA,
+                          Actions.UPDATE,
+                        )}
+                        fallback={
+                          <button
+                            type="button"
+                            disabled
+                            className="text-gray-400 font-semibold ml-4 cursor-not-allowed opacity-50"
+                          >
+                            تعديل
+                          </button>
+                        }
                       >
-                        تعديل
-                      </button>
-                      <button
-                        onClick={() => handleDeleteClick(user)}
-                        disabled={isDeleting}
-                        className="text-red-600 hover:text-red-900 font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
+                        <button
+                          onClick={() => handleEditClick(user)}
+                          className="text-brand-blue hover:text-blue-800 font-semibold ml-4"
+                        >
+                          تعديل
+                        </button>
+                      </PermissionWrapper>
+                      <PermissionWrapper
+                        requiredPermission={buildPermission(
+                          Resources.USERS_DATA,
+                          Actions.DELETE,
+                        )}
+                        fallback={
+                          <button
+                            type="button"
+                            disabled
+                            className="text-gray-400 font-semibold cursor-not-allowed opacity-50"
+                          >
+                            حذف
+                          </button>
+                        }
                       >
-                        {isDeleting ? "جاري الحذف..." : "حذف"}
-                      </button>
+                        <button
+                          onClick={() => handleDeleteClick(user)}
+                          disabled={isDeleting}
+                          className="text-red-600 hover:text-red-900 font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          {isDeleting ? "جاري الحذف..." : "حذف"}
+                        </button>
+                      </PermissionWrapper>
                     </td>
                   </tr>
                 ))}

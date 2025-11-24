@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useMemo } from "react";
 import DataTableModal from "../../common/DataTableModal";
 import DocumentHeader from "../../common/DocumentHeader";
+import PermissionWrapper from "../../common/PermissionWrapper";
 import {
   BarcodeIcon,
   PdfIcon,
@@ -37,6 +38,11 @@ import { useGetStoresQuery } from "../../store/slices/store/storeApi";
 import { showApiErrorToast } from "../../../utils/errorToast";
 import { formatMoney } from "../../../utils/formatting";
 import { guardPrint } from "../../utils/printGuard";
+import {
+  Actions,
+  Resources,
+  buildPermission,
+} from "../../../enums/permissions.enum";
 
 type SelectableItem = {
   id: string;
@@ -204,6 +210,7 @@ const SalesInvoice: React.FC<SalesInvoiceProps> = ({
     invoiceNumber: "",
     invoiceDate: new Date().toISOString().substring(0, 10),
   });
+  const [invoiceBranchId, setInvoiceBranchId] = useState<string | null>(null);
   const [isReadOnly, setIsReadOnly] = useState(true);
   const [paymentTargetType, setPaymentTargetType] = useState<"safe" | "bank">(
     "safe",
@@ -275,6 +282,7 @@ const SalesInvoice: React.FC<SalesInvoiceProps> = ({
     () => currentIndex >= 0 && isReadOnly,
     [currentIndex, isReadOnly],
   );
+  const isExistingInvoice = currentIndex >= 0;
 
   const handleOpenPreview = () => {
     if (!canPrintExistingInvoice) {
@@ -342,6 +350,13 @@ const SalesInvoice: React.FC<SalesInvoiceProps> = ({
     setPaymentTargetType("safe");
     // For safes, we don't need paymentTargetId (we send branchId instead)
     setPaymentTargetId(null);
+    const defaultBranchId =
+      currentUser?.branchId ||
+      (typeof currentUser?.branch === "string"
+        ? currentUser.branch
+        : (currentUser?.branch as any)?.id) ||
+      null;
+    setInvoiceBranchId(defaultBranchId);
     setOriginalInvoiceVatEnabled(false); // Reset for new invoices
     setIsReadOnly(false);
     setPreviewData(null); // Clear preview data
@@ -392,6 +407,7 @@ const SalesInvoice: React.FC<SalesInvoiceProps> = ({
       setPaymentMethod(inv.paymentMethod);
       setPaymentTargetType(inv.paymentTargetType || "safe");
       setPaymentTargetId(inv.paymentTargetId || null);
+      setInvoiceBranchId(inv.branch?.id || inv.branchId || null);
       setIsReadOnly(true);
       justSavedRef.current = false; // Clear the flag after loading invoice
     } else if (!justSavedRef.current) {
@@ -717,8 +733,17 @@ const SalesInvoice: React.FC<SalesInvoiceProps> = ({
     try {
       // For cash payments without a customer, pass null (backend will handle default)
       // Get branch ID from current user - use it as paymentTargetId when payment target is "safe"
-      const userBranchId = currentUser?.branchId || 
-        (typeof currentUser?.branch === 'string' ? currentUser.branch : (currentUser?.branch as any)?.id);
+      const userBranchId =
+        currentUser?.branchId ||
+        (typeof currentUser?.branch === "string"
+          ? currentUser.branch
+          : (currentUser?.branch as any)?.id);
+      const safeBranchId = userBranchId || invoiceBranchId;
+
+      if (paymentMethod === "cash" && paymentTargetType === "safe" && !safeBranchId) {
+        showToast("لا يمكن حفظ فاتورة نقدية بدون تحديد فرع مرتبط بالخزنة.", "error");
+        return;
+      }
       
       const invoiceData = {
         customerId: paymentMethod === "cash" && !selectedCustomer 
@@ -743,8 +768,8 @@ const SalesInvoice: React.FC<SalesInvoiceProps> = ({
         // When payment target is "bank", send bank ID as paymentTargetId
         paymentTargetId:
           paymentMethod === "cash" 
-            ? (paymentTargetType === "safe" && userBranchId
-                ? userBranchId.toString()
+            ? (paymentTargetType === "safe"
+                ? safeBranchId?.toString() || undefined
                 : paymentTargetId?.toString())
             : undefined,
         notes: "",
@@ -1335,33 +1360,61 @@ const SalesInvoice: React.FC<SalesInvoiceProps> = ({
 
           <div className="mt-6 pt-4 border-t-2 border-gray-200 flex flex-col items-center space-y-4">
             <div className="flex justify-center gap-2 flex-wrap">
-              <button
-                onClick={handleNew}
-                className="px-4 py-2 bg-brand-blue text-white rounded-md hover:bg-blue-800 font-semibold"
+              <PermissionWrapper
+                requiredPermission={buildPermission(
+                  Resources.SALES_INVOICE,
+                  Actions.CREATE,
+                )}
               >
-                جديد
-              </button>
-              <button
-                onClick={handleSave}
-                disabled={isReadOnly}
-                className="px-4 py-2 bg-brand-green text-white rounded-md hover:bg-green-700 font-semibold disabled:bg-gray-400"
+                <button
+                  onClick={handleNew}
+                  className="px-4 py-2 bg-brand-blue text-white rounded-md hover:bg-blue-800 font-semibold"
+                >
+                  جديد
+                </button>
+              </PermissionWrapper>
+              <PermissionWrapper
+                requiredPermission={buildPermission(
+                  Resources.SALES_INVOICE,
+                  isExistingInvoice ? Actions.UPDATE : Actions.CREATE,
+                )}
               >
-                حفظ
-              </button>
-              <button
-                onClick={handleEdit}
-                disabled={currentIndex < 0 || !isReadOnly}
-                className="px-4 py-2 bg-yellow-500 text-white rounded-md hover:bg-yellow-600 font-semibold disabled:bg-gray-400"
+                <button
+                  onClick={handleSave}
+                  disabled={isReadOnly}
+                  className="px-4 py-2 bg-brand-green text-white rounded-md hover:bg-green-700 font-semibold disabled:bg-gray-400"
+                >
+                  حفظ
+                </button>
+              </PermissionWrapper>
+              <PermissionWrapper
+                requiredPermission={buildPermission(
+                  Resources.SALES_INVOICE,
+                  Actions.UPDATE,
+                )}
               >
-                تعديل
-              </button>
-              <button
-                onClick={handleDelete}
-                disabled={currentIndex < 0}
-                className="px-4 py-2 bg-red-500 text-white rounded-md hover:bg-red-600 font-semibold disabled:bg-gray-400"
+                <button
+                  onClick={handleEdit}
+                  disabled={currentIndex < 0 || !isReadOnly}
+                  className="px-4 py-2 bg-yellow-500 text-white rounded-md hover:bg-yellow-600 font-semibold disabled:bg-gray-400"
+                >
+                  تعديل
+                </button>
+              </PermissionWrapper>
+              <PermissionWrapper
+                requiredPermission={buildPermission(
+                  Resources.SALES_INVOICE,
+                  Actions.DELETE,
+                )}
               >
-                حذف
-              </button>
+                <button
+                  onClick={handleDelete}
+                  disabled={currentIndex < 0}
+                  className="px-4 py-2 bg-red-500 text-white rounded-md hover:bg-red-600 font-semibold disabled:bg-gray-400"
+                >
+                  حذف
+                </button>
+              </PermissionWrapper>
               <button
                 onClick={() => setIsSearchModalOpen(true)}
                 className="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 font-semibold"

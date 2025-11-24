@@ -288,6 +288,7 @@ const ReceiptVoucher: React.FC<ReceiptVoucherProps> = ({ title }) => {
   };
 
   const voucher = currentIndex > -1 ? vouchers[currentIndex] : null;
+  const isExistingVoucher = currentIndex > -1;
 
   if (isLoading) {
     return <div className="text-center p-6">جاري التحميل...</div>;
@@ -489,25 +490,24 @@ const ReceiptVoucher: React.FC<ReceiptVoucherProps> = ({ title }) => {
 
         <div className="mt-8 pt-6 border-t-2 border-gray-200 flex flex-col items-center space-y-4">
           <div className="flex justify-center gap-2 flex-wrap">
-            <button
-              onClick={handleNew}
-              className="px-4 py-2 bg-brand-blue text-white rounded-md hover:bg-blue-800 font-semibold"
-            >
-              جديد
-            </button>
             <PermissionWrapper
-              requiredPermission={[
-                buildPermission(Resources.RECEIPT_VOUCHER, Actions.CREATE),
-                buildPermission(Resources.RECEIPT_VOUCHER, Actions.UPDATE),
-              ]}
-              fallback={
-                <button
-                  disabled={true}
-                  className="px-4 py-2 bg-gray-400 text-white rounded-md font-semibold"
-                >
-                  حفظ
-                </button>
-              }
+              requiredPermission={buildPermission(
+                Resources.RECEIPT_VOUCHER,
+                Actions.CREATE,
+              )}
+            >
+              <button
+                onClick={handleNew}
+                className="px-4 py-2 bg-brand-blue text-white rounded-md hover:bg-blue-800 font-semibold"
+              >
+                جديد
+              </button>
+            </PermissionWrapper>
+            <PermissionWrapper
+              requiredPermission={buildPermission(
+                Resources.RECEIPT_VOUCHER,
+                isExistingVoucher ? Actions.UPDATE : Actions.CREATE,
+              )}
             >
               <button
                 onClick={async () => {
@@ -564,14 +564,6 @@ const ReceiptVoucher: React.FC<ReceiptVoucherProps> = ({ title }) => {
                 Resources.RECEIPT_VOUCHER,
                 Actions.UPDATE,
               )}
-              fallback={
-                <button
-                  disabled={true}
-                  className="px-4 py-2 bg-gray-400 text-white rounded-md font-semibold"
-                >
-                  تعديل
-                </button>
-              }
             >
               <button
                 onClick={handleEdit}
@@ -586,14 +578,6 @@ const ReceiptVoucher: React.FC<ReceiptVoucherProps> = ({ title }) => {
                 Resources.RECEIPT_VOUCHER,
                 Actions.DELETE,
               )}
-              fallback={
-                <button
-                  disabled={true}
-                  className="px-4 py-2 bg-gray-400 text-white rounded-md font-semibold"
-                >
-                  حذف
-                </button>
-              }
             >
               <button
                 onClick={handleDelete}
@@ -608,14 +592,6 @@ const ReceiptVoucher: React.FC<ReceiptVoucherProps> = ({ title }) => {
                 Resources.RECEIPT_VOUCHER,
                 Actions.SEARCH,
               )}
-              fallback={
-                <button
-                  disabled={true}
-                  className="px-4 py-2 bg-gray-400 text-white rounded-md font-semibold"
-                >
-                  بحث
-                </button>
-              }
             >
               <button
                 onClick={() => setIsSearchModalOpen(true)}
@@ -629,14 +605,6 @@ const ReceiptVoucher: React.FC<ReceiptVoucherProps> = ({ title }) => {
                 Resources.RECEIPT_VOUCHER,
                 Actions.PRINT,
               )}
-              fallback={
-                <button
-                  disabled={true}
-                  className="px-4 py-2 bg-gray-400 text-brand-dark rounded-md font-semibold flex items-center"
-                >
-                  <PrintIcon className="mr-2 w-5 h-5" /> معاينة وطباعة
-                </button>
-              }
             >
               <button
                 onClick={() => {

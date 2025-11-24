@@ -123,12 +123,28 @@ const BranchesData: React.FC<BranchesDataProps> = ({ title }) => {
             />
           </div>
           <div className="flex items-center gap-3">
-            <button
-              onClick={() => handleOpenModal()}
-              className="px-6 py-3 bg-brand-blue text-white rounded-md hover:bg-blue-800 font-semibold"
+            <PermissionWrapper
+              requiredPermission={buildPermission(
+                Resources.BRANCHES_DATA,
+                Actions.CREATE,
+              )}
+              fallback={
+                <button
+                  type="button"
+                  disabled
+                  className="px-6 py-3 bg-gray-400 text-white rounded-md cursor-not-allowed opacity-50 font-semibold"
+                >
+                  اضافة فرع جديد
+                </button>
+              }
             >
-              اضافة فرع جديد
-            </button>
+              <button
+                onClick={() => handleOpenModal()}
+                className="px-6 py-3 bg-brand-blue text-white rounded-md hover:bg-blue-800 font-semibold"
+              >
+                اضافة فرع جديد
+              </button>
+            </PermissionWrapper>
             <PermissionWrapper
               requiredPermission={buildPermission(
                 Resources.BRANCHES_DATA,
@@ -187,18 +203,50 @@ const BranchesData: React.FC<BranchesDataProps> = ({ title }) => {
                     {branch.phone}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium no-print">
+                  <PermissionWrapper
+                    requiredPermission={buildPermission(
+                      Resources.BRANCHES_DATA,
+                      Actions.UPDATE,
+                    )}
+                    fallback={
+                      <button
+                        type="button"
+                        disabled
+                        className="text-gray-400 font-semibold ml-4 cursor-not-allowed opacity-50"
+                      >
+                        تعديل
+                      </button>
+                    }
+                  >
                     <button
                       onClick={() => handleEditClick(branch)}
                       className="text-brand-blue hover:text-blue-800 font-semibold ml-4"
                     >
                       تعديل
                     </button>
+                  </PermissionWrapper>
+                  <PermissionWrapper
+                    requiredPermission={buildPermission(
+                      Resources.BRANCHES_DATA,
+                      Actions.DELETE,
+                    )}
+                    fallback={
+                      <button
+                        type="button"
+                        disabled
+                        className="text-gray-400 font-semibold cursor-not-allowed opacity-50"
+                      >
+                        حذف
+                      </button>
+                    }
+                  >
                     <button
                       onClick={() => handleDeleteClick(branch)}
                       className="text-red-600 hover:text-red-900 font-semibold"
                     >
                       حذف
                     </button>
+                  </PermissionWrapper>
                   </td>
                 </tr>
               ))}

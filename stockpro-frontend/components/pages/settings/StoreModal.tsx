@@ -2,6 +2,12 @@ import React, { useState, useEffect } from "react";
 import { useGetUsersQuery } from "../../store/slices/user/userApi";
 import type { Branch } from "../../store/slices/branch/branchApi";
 import type { Store as StoreEntity } from "../../store/slices/store/storeApi";
+import PermissionWrapper from "../../common/PermissionWrapper";
+import {
+  Actions,
+  Resources,
+  buildPermission,
+} from "../../../enums/permissions.enum";
 
 interface StoreFormData {
   name: string;
@@ -163,12 +169,19 @@ const StoreModal: React.FC<StoreModalProps> = ({
             >
               إلغاء
             </button>
-            <button
-              type="submit"
-              className="px-6 py-2 bg-brand-blue text-white rounded-md hover:bg-blue-800 font-semibold"
+            <PermissionWrapper
+              requiredPermission={[
+                buildPermission(Resources.STORES_DATA, Actions.CREATE),
+                buildPermission(Resources.STORES_DATA, Actions.UPDATE),
+              ]}
             >
-              حفظ
-            </button>
+              <button
+                type="submit"
+                className="px-6 py-2 bg-brand-blue text-white rounded-md hover:bg-blue-800 font-semibold"
+              >
+                حفظ
+              </button>
+            </PermissionWrapper>
           </div>
         </form>
       </div>

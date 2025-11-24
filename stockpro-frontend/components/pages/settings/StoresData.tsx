@@ -260,18 +260,50 @@ const StoresData: React.FC<StoresDataProps> = ({ title }) => {
                     {store.user?.name || ""}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium no-print">
-                    <button
-                      onClick={() => handleEditClick(store)}
-                      className="text-brand-blue hover:text-blue-800 font-semibold ml-4"
+                    <PermissionWrapper
+                      requiredPermission={buildPermission(
+                        Resources.STORES_DATA,
+                        Actions.UPDATE,
+                      )}
+                      fallback={
+                        <button
+                          type="button"
+                          disabled
+                          className="text-gray-400 font-semibold ml-4 cursor-not-allowed opacity-50"
+                        >
+                          تعديل
+                        </button>
+                      }
                     >
-                      تعديل
-                    </button>
-                    <button
-                      onClick={() => handleDeleteClick(store)}
-                      className="text-red-600 hover:text-red-900 font-semibold"
+                      <button
+                        onClick={() => handleEditClick(store)}
+                        className="text-brand-blue hover:text-blue-800 font-semibold ml-4"
+                      >
+                        تعديل
+                      </button>
+                    </PermissionWrapper>
+                    <PermissionWrapper
+                      requiredPermission={buildPermission(
+                        Resources.STORES_DATA,
+                        Actions.DELETE,
+                      )}
+                      fallback={
+                        <button
+                          type="button"
+                          disabled
+                          className="text-gray-400 font-semibold cursor-not-allowed opacity-50"
+                        >
+                          حذف
+                        </button>
+                      }
                     >
-                      حذف
-                    </button>
+                      <button
+                        onClick={() => handleDeleteClick(store)}
+                        className="text-red-600 hover:text-red-900 font-semibold"
+                      >
+                        حذف
+                      </button>
+                    </PermissionWrapper>
                   </td>
                 </tr>
               ))}

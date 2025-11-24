@@ -51,6 +51,7 @@ const AddCurrentAccount: React.FC<AddCurrentAccountProps> = ({
   >(emptyAccount);
   const [isReadOnly, setIsReadOnly] = useState(true);
   const [accountPosition, setAccountPosition] = useState<number | null>(null);
+  const isExistingAccount = "id" in accountData;
 
   const { data: accounts = [], isLoading } = useGetCurrentAccountsQuery();
   const [createCurrentAccount, { isLoading: isCreating }] =
@@ -295,14 +296,6 @@ const AddCurrentAccount: React.FC<AddCurrentAccountProps> = ({
                 Resources.CURRENT_ACCOUNTS,
                 Actions.CREATE,
               )}
-              fallback={
-                <button
-                  disabled
-                  className="px-4 py-2 bg-gray-400 text-white rounded-md cursor-not-allowed opacity-50 font-semibold"
-                >
-                  جديد
-                </button>
-              }
             >
               <button
                 type="button"
@@ -318,14 +311,6 @@ const AddCurrentAccount: React.FC<AddCurrentAccountProps> = ({
                   Resources.CURRENT_ACCOUNTS,
                   Actions.UPDATE,
                 )}
-                fallback={
-                  <button
-                    disabled
-                    className="px-4 py-2 bg-gray-400 text-white rounded-md cursor-not-allowed opacity-50 font-semibold"
-                  >
-                    تعديل
-                  </button>
-                }
               >
                 <button
                   type="button"
@@ -337,19 +322,10 @@ const AddCurrentAccount: React.FC<AddCurrentAccountProps> = ({
               </PermissionWrapper>
             ) : (
               <PermissionWrapper
-                requiredPermission={[
-                  buildPermission(Resources.CURRENT_ACCOUNTS, Actions.CREATE),
-                  buildPermission(Resources.CURRENT_ACCOUNTS, Actions.UPDATE),
-                ]}
-                fallback={
-                  <button
-                    type="submit"
-                    disabled
-                    className="px-4 py-2 bg-gray-400 text-white rounded-md cursor-not-allowed opacity-50 font-semibold"
-                  >
-                    {isCreating || isUpdating ? "جاري الحفظ..." : "حفظ"}
-                  </button>
-                }
+                requiredPermission={buildPermission(
+                  Resources.CURRENT_ACCOUNTS,
+                  isExistingAccount ? Actions.UPDATE : Actions.CREATE,
+                )}
               >
                 <button
                   type="submit"
@@ -365,14 +341,6 @@ const AddCurrentAccount: React.FC<AddCurrentAccountProps> = ({
                 Resources.CURRENT_ACCOUNTS,
                 Actions.DELETE,
               )}
-              fallback={
-                <button
-                  disabled
-                  className="px-4 py-2 bg-gray-400 text-white rounded-md cursor-not-allowed opacity-50 font-semibold"
-                >
-                  حذف
-                </button>
-              }
             >
               <button
                 type="button"

@@ -119,6 +119,7 @@ const StoreReceiptVoucher: React.FC<StoreReceiptVoucherProps> = ({ title }) => {
     date: new Date().toISOString().substring(0, 10),
     branch: branches.length > 0 ? branches[0].name : "",
   });
+  const isExistingVoucher = Boolean(voucherDetails.id);
   
   // Get store from selected branch
   const selectedBranch = useMemo(() => 
@@ -906,14 +907,6 @@ const StoreReceiptVoucher: React.FC<StoreReceiptVoucherProps> = ({ title }) => {
             Resources.STORE_RECEIPT_VOUCHER,
             Actions.CREATE,
           )}
-          fallback={
-            <button
-              disabled
-              className="no-print mb-4 px-4 py-2 bg-gray-400 text-white rounded-md cursor-not-allowed opacity-50 font-semibold"
-            >
-              اضافة سطر
-            </button>
-          }
         >
           <button
             onClick={handleAddItem}
@@ -943,14 +936,6 @@ const StoreReceiptVoucher: React.FC<StoreReceiptVoucherProps> = ({ title }) => {
                   Resources.STORE_RECEIPT_VOUCHER,
                   Actions.CREATE,
                 )}
-                fallback={
-                  <button
-                    disabled
-                    className="px-4 py-2 bg-gray-400 text-white rounded-md cursor-not-allowed opacity-50 font-semibold"
-                  >
-                    جديد
-                  </button>
-                }
               >
                 <button
                   onClick={handleNew}
@@ -960,24 +945,10 @@ const StoreReceiptVoucher: React.FC<StoreReceiptVoucherProps> = ({ title }) => {
                 </button>
               </PermissionWrapper>
               <PermissionWrapper
-                requiredPermission={[
-                  buildPermission(
-                    Resources.STORE_RECEIPT_VOUCHER,
-                    Actions.CREATE,
-                  ),
-                  buildPermission(
-                    Resources.STORE_RECEIPT_VOUCHER,
-                    Actions.UPDATE,
-                  ),
-                ]}
-                fallback={
-                  <button
-                    disabled
-                    className="px-4 py-2 bg-gray-400 text-white rounded-md cursor-not-allowed opacity-50 font-semibold"
-                  >
-                    {isCreating || isUpdating ? "جاري الحفظ..." : "حفظ"}
-                  </button>
-                }
+                requiredPermission={buildPermission(
+                  Resources.STORE_RECEIPT_VOUCHER,
+                  isExistingVoucher ? Actions.UPDATE : Actions.CREATE,
+                )}
               >
                 <button
                   onClick={handleSave}
@@ -994,14 +965,6 @@ const StoreReceiptVoucher: React.FC<StoreReceiptVoucherProps> = ({ title }) => {
                   Resources.STORE_RECEIPT_VOUCHER,
                   Actions.UPDATE,
                 )}
-                fallback={
-                  <button
-                    disabled
-                    className="px-4 py-2 bg-gray-400 text-white rounded-md cursor-not-allowed opacity-50 font-semibold"
-                  >
-                    تعديل
-                  </button>
-                }
               >
                 <button
                   onClick={handleEdit}
@@ -1016,14 +979,6 @@ const StoreReceiptVoucher: React.FC<StoreReceiptVoucherProps> = ({ title }) => {
                   Resources.STORE_RECEIPT_VOUCHER,
                   Actions.DELETE,
                 )}
-                fallback={
-                  <button
-                    disabled
-                    className="px-4 py-2 bg-gray-400 text-white rounded-md cursor-not-allowed opacity-50 font-semibold"
-                  >
-                    {isDeleting ? "جاري الحذف..." : "حذف"}
-                  </button>
-                }
               >
                 <button
                   onClick={handleDelete}
@@ -1038,14 +993,6 @@ const StoreReceiptVoucher: React.FC<StoreReceiptVoucherProps> = ({ title }) => {
                   Resources.STORE_RECEIPT_VOUCHER,
                   Actions.SEARCH,
                 )}
-                fallback={
-                  <button
-                    disabled
-                    className="px-4 py-2 bg-gray-400 text-white rounded-md cursor-not-allowed opacity-50 font-semibold"
-                  >
-                    بحث
-                  </button>
-                }
               >
                 <button
                   onClick={() => setIsSearchModalOpen(true)}
@@ -1059,14 +1006,6 @@ const StoreReceiptVoucher: React.FC<StoreReceiptVoucherProps> = ({ title }) => {
                   Resources.STORE_RECEIPT_VOUCHER,
                   Actions.PRINT,
                 )}
-                fallback={
-                  <button
-                    disabled
-                    className="px-4 py-2 bg-gray-400 text-white rounded-md cursor-not-allowed opacity-50 font-semibold flex items-center"
-                  >
-                    <PrintIcon className="mr-2 w-5 h-5" /> طباعة
-                  </button>
-                }
               >
                 <button
                   onClick={handlePrint}

@@ -358,6 +358,9 @@ export class SalesReturnService {
 
       const net = subtotal + tax - discount;
 
+      const normalizedDate = data.date
+        ? new Date(data.date)
+        : existingReturn?.date || new Date();
       const updated = await this.prisma.$transaction(async (tx) => {
         // Reverse previous increase
         if (existingReturn) {
@@ -388,6 +391,7 @@ export class SalesReturnService {
           where: { id },
           data: {
             ...data,
+            date: normalizedDate,
             items: itemsWithTotals,
             subtotal,
             discount,
@@ -467,8 +471,11 @@ export class SalesReturnService {
       });
 
       return this.mapToResponse(updated);
-    } catch (error) {
-      throw new NotFoundException('Sales return not found');
+    } catch (error: any) {
+      if (error?.code === 'P2025') {
+        throw new NotFoundException('Sales return not found');
+      }
+      throw error;
     }
   }
 

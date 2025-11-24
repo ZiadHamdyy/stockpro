@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useMemo } from "react";
 import DataTableModal from "../../common/DataTableModal";
 import DocumentHeader from "../../common/DocumentHeader";
+import PermissionWrapper from "../../common/PermissionWrapper";
 import {
   PdfIcon,
   ListIcon,
@@ -36,6 +37,11 @@ import { useGetSafesQuery } from "../../store/slices/safe/safeApiSlice";
 import { useGetCompanyQuery } from "../../store/slices/companyApiSlice";
 import { useGetSalesInvoicesQuery } from "../../store/slices/salesInvoice/salesInvoiceApiSlice";
 import { guardPrint } from "../../utils/printGuard";
+import {
+  Actions,
+  Resources,
+  buildPermission,
+} from "../../../enums/permissions.enum";
 
 type SelectableItem = {
   id: string;
@@ -167,6 +173,7 @@ const SalesReturn: React.FC<SalesReturnProps> = ({
     invoiceNumber: "",
     invoiceDate: new Date().toISOString().substring(0, 10),
   });
+  const [returnBranchId, setReturnBranchId] = useState<string | null>(null);
   const [isReadOnly, setIsReadOnly] = useState(true);
   const [paymentTargetType, setPaymentTargetType] = useState<"safe" | "bank">(
     "safe",
@@ -292,6 +299,7 @@ const SalesReturn: React.FC<SalesReturnProps> = ({
     () => currentIndex >= 0 && isReadOnly,
     [currentIndex, isReadOnly],
   );
+  const isExistingReturn = currentIndex >= 0;
 
   const handleOpenPreview = () => {
     if (!canPrintExistingReturn) {
@@ -350,6 +358,13 @@ const SalesReturn: React.FC<SalesReturnProps> = ({
     setPaymentTargetType("safe");
     // For safes, we don't need paymentTargetId (we send branchId instead)
     setPaymentTargetId(null);
+    const defaultBranchId =
+      currentUser?.branchId ||
+      (typeof currentUser?.branch === "string"
+        ? currentUser.branch
+        : (currentUser?.branch as any)?.id) ||
+      null;
+    setReturnBranchId(defaultBranchId);
     setPreviewData(null); // Clear preview data
     setIsReadOnly(false);
     setOriginalReturnVatEnabled(false);
@@ -399,6 +414,7 @@ const SalesReturn: React.FC<SalesReturnProps> = ({
       setPaymentMethod(ret.paymentMethod);
       setPaymentTargetType(ret.paymentTargetType || "safe");
       setPaymentTargetId(ret.paymentTargetId || null);
+      setReturnBranchId(ret.branch?.id || ret.branchId || null);
       setIsReadOnly(true);
       justSavedRef.current = false; // Clear the flag after loading return
     } else if (!justSavedRef.current) {
@@ -732,8 +748,17 @@ const SalesReturn: React.FC<SalesReturnProps> = ({
     }
     try {
       // Get branch ID from current user - use it as paymentTargetId when payment target is "safe"
-      const userBranchId = currentUser?.branchId || 
-        (typeof currentUser?.branch === 'string' ? currentUser.branch : (currentUser?.branch as any)?.id);
+      const userBranchId =
+        currentUser?.branchId ||
+        (typeof currentUser?.branch === "string"
+          ? currentUser.branch
+          : (currentUser?.branch as any)?.id);
+      const safeBranchId = userBranchId || returnBranchId;
+
+      if (paymentMethod === "cash" && paymentTargetType === "safe" && !safeBranchId) {
+        showToast("لا يمكن حفظ مرتجع نقدي بدون تحديد فرع مرتبط بالخزنة.", "error");
+        return;
+      }
       
       const returnData = {
         customerId: selectedCustomer?.id,
@@ -756,8 +781,8 @@ const SalesReturn: React.FC<SalesReturnProps> = ({
         // When payment target is "bank", send bank ID as paymentTargetId
         paymentTargetId:
           paymentMethod === "cash" 
-            ? (paymentTargetType === "safe" && userBranchId
-                ? userBranchId.toString()
+            ? (paymentTargetType === "safe"
+                ? safeBranchId?.toString() || undefined
                 : paymentTargetId?.toString())
             : undefined,
         notes: "",
@@ -1413,33 +1438,61 @@ const SalesReturn: React.FC<SalesReturnProps> = ({
 
           <div className="mt-6 pt-4 border-t-2 border-gray-200 flex flex-col items-center space-y-4">
             <div className="flex justify-center gap-2 flex-wrap">
-              <button
-                onClick={handleNew}
-                className="px-4 py-2 bg-brand-blue text-white rounded-md hover:bg-blue-800 font-semibold"
+              <PermissionWrapper
+                requiredPermission={buildPermission(
+                  Resources.SALES_RETURN,
+                  Actions.CREATE,
+                )}
               >
-                جديد
-              </button>
-              <button
-                onClick={handleSave}
-                disabled={isReadOnly}
-                className="px-4 py-2 bg-brand-green text-white rounded-md hover:bg-green-700 font-semibold disabled:bg-gray-400"
+                <button
+                  onClick={handleNew}
+                  className="px-4 py-2 bg-brand-blue text-white rounded-md hover:bg-blue-800 font-semibold"
+                >
+                  جديد
+                </button>
+              </PermissionWrapper>
+              <PermissionWrapper
+                requiredPermission={buildPermission(
+                  Resources.SALES_RETURN,
+                  isExistingReturn ? Actions.UPDATE : Actions.CREATE,
+                )}
               >
-                حفظ
-              </button>
-              <button
-                onClick={handleEdit}
-                disabled={currentIndex < 0 || !isReadOnly}
-                className="px-4 py-2 bg-yellow-500 text-white rounded-md hover:bg-yellow-600 font-semibold disabled:bg-gray-400"
+                <button
+                  onClick={handleSave}
+                  disabled={isReadOnly}
+                  className="px-4 py-2 bg-brand-green text-white rounded-md hover:bg-green-700 font-semibold disabled:bg-gray-400"
+                >
+                  حفظ
+                </button>
+              </PermissionWrapper>
+              <PermissionWrapper
+                requiredPermission={buildPermission(
+                  Resources.SALES_RETURN,
+                  Actions.UPDATE,
+                )}
               >
-                تعديل
-              </button>
-              <button
-                onClick={handleDelete}
-                disabled={currentIndex < 0}
-                className="px-4 py-2 bg-red-500 text-white rounded-md hover:bg-red-600 font-semibold disabled:bg-gray-400"
+                <button
+                  onClick={handleEdit}
+                  disabled={currentIndex < 0 || !isReadOnly}
+                  className="px-4 py-2 bg-yellow-500 text-white rounded-md hover:bg-yellow-600 font-semibold disabled:bg-gray-400"
+                >
+                  تعديل
+                </button>
+              </PermissionWrapper>
+              <PermissionWrapper
+                requiredPermission={buildPermission(
+                  Resources.SALES_RETURN,
+                  Actions.DELETE,
+                )}
               >
-                حذف
-              </button>
+                <button
+                  onClick={handleDelete}
+                  disabled={currentIndex < 0}
+                  className="px-4 py-2 bg-red-500 text-white rounded-md hover:bg-red-600 font-semibold disabled:bg-gray-400"
+                >
+                  حذف
+                </button>
+              </PermissionWrapper>
               <button
                 onClick={() => setIsSearchModalOpen(true)}
                 className="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 font-semibold"

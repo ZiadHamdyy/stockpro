@@ -1,7 +1,13 @@
 import React, { useState, useEffect } from "react";
 import type { Expense, ExpenseCode } from "../../../types";
+import PermissionWrapper from "../../common/PermissionWrapper";
 import { useModal } from "../../common/ModalProvider.tsx";
 import { useToast } from "../../common/ToastProvider.tsx";
+import {
+  Actions,
+  Resources,
+  buildPermission,
+} from "../../../enums/permissions.enum";
 
 interface AddExpenseProps {
   title: string;
@@ -277,38 +283,66 @@ const AddExpense: React.FC<AddExpenseProps> = ({
         </div>
         <div className="mt-8 pt-6 border-t-2 border-gray-200 flex flex-col items-start space-y-4">
           <div className="flex justify-start gap-2">
-            <button
-              type="button"
-              onClick={() => onNavigate("add_expense", "إضافة مصروف")}
-              className="px-4 py-2 bg-brand-blue text-white rounded-md hover:bg-blue-800 font-semibold"
+            <PermissionWrapper
+              requiredPermission={buildPermission(
+                Resources.EXPENSES_LIST,
+                Actions.CREATE,
+              )}
             >
-              جديد
-            </button>
-            {isReadOnly ? (
               <button
                 type="button"
-                onClick={handleEdit}
-                disabled={!("id" in expenseData)}
-                className="px-4 py-2 bg-yellow-500 text-white rounded-md hover:bg-yellow-600 font-semibold"
+                onClick={() => onNavigate("add_expense", "إضافة مصروف")}
+                className="px-4 py-2 bg-brand-blue text-white rounded-md hover:bg-blue-800 font-semibold"
               >
-                تعديل
+                جديد
               </button>
+            </PermissionWrapper>
+            {isReadOnly ? (
+              <PermissionWrapper
+                requiredPermission={buildPermission(
+                  Resources.EXPENSES_LIST,
+                  Actions.UPDATE,
+                )}
+              >
+                <button
+                  type="button"
+                  onClick={handleEdit}
+                  disabled={!("id" in expenseData)}
+                  className="px-4 py-2 bg-yellow-500 text-white rounded-md hover:bg-yellow-600 font-semibold"
+                >
+                  تعديل
+                </button>
+              </PermissionWrapper>
             ) : (
-              <button
-                type="submit"
-                className="px-4 py-2 bg-brand-green text-white rounded-md hover:bg-green-700 font-semibold"
+              <PermissionWrapper
+                requiredPermission={[
+                  buildPermission(Resources.EXPENSES_LIST, Actions.CREATE),
+                  buildPermission(Resources.EXPENSES_LIST, Actions.UPDATE),
+                ]}
               >
-                حفظ
-              </button>
+                <button
+                  type="submit"
+                  className="px-4 py-2 bg-brand-green text-white rounded-md hover:bg-green-700 font-semibold"
+                >
+                  حفظ
+                </button>
+              </PermissionWrapper>
             )}
-            <button
-              type="button"
-              onClick={handleDelete}
-              disabled={!("id" in expenseData)}
-              className="px-4 py-2 bg-red-500 text-white rounded-md hover:bg-red-600 font-semibold disabled:bg-gray-400"
+            <PermissionWrapper
+              requiredPermission={buildPermission(
+                Resources.EXPENSES_LIST,
+                Actions.DELETE,
+              )}
             >
-              حذف
-            </button>
+              <button
+                type="button"
+                onClick={handleDelete}
+                disabled={!("id" in expenseData)}
+                className="px-4 py-2 bg-red-500 text-white rounded-md hover:bg-red-600 font-semibold disabled:bg-gray-400"
+              >
+                حذف
+              </button>
+            </PermissionWrapper>
             <button
               type="button"
               onClick={() => onNavigate("expenses_list", "قائمة المصروفات")}

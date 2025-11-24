@@ -8,6 +8,11 @@ import { useToast } from "../../common/ToastProvider";
 import { useModal } from "../../common/ModalProvider";
 import { useCreateRoleMutation, useUpdateRoleMutation, useDeleteRoleMutation } from "../../store/slices/role/roleApi";
 import PermissionWrapper from "../../common/PermissionWrapper";
+import {
+  Actions,
+  Resources,
+  buildPermission,
+} from "../../../enums/permissions.enum";
 
 // Helper to render the permission tree
 const PermissionTree: React.FC<{
@@ -418,7 +423,21 @@ ow-md">
               </option>
             ))}
           </select>
-          <PermissionWrapper requiredPermission="permissions-create">
+          <PermissionWrapper
+            requiredPermission={buildPermission(
+              Resources.PERMISSIONS,
+              Actions.CREATE,
+            )}
+            fallback={
+              <button
+                type="button"
+                disabled
+                className="px-4 py-3 bg-green-600 text-white rounded-md font-semibold opacity-50 cursor-not-allowed"
+              >
+                إضافة
+              </button>
+            }
+          >
             <button
               type="button"
               onClick={handleCreateClick}
@@ -430,7 +449,21 @@ ow-md">
           </PermissionWrapper>
           {selectedRoleObj && (
             <>
-              <PermissionWrapper requiredPermission="permissions-update">
+              <PermissionWrapper
+                requiredPermission={buildPermission(
+                  Resources.PERMISSIONS,
+                  Actions.UPDATE,
+                )}
+                fallback={
+                  <button
+                    type="button"
+                    disabled
+                    className="px-4 py-3 bg-yellow-600 text-white rounded-md font-semibold opacity-50 cursor-not-allowed"
+                  >
+                    تعديل
+                  </button>
+                }
+              >
                 <button
                   type="button"
                   onClick={handleEditClick}
@@ -440,7 +473,22 @@ ow-md">
                   تعديل
                 </button>
               </PermissionWrapper>
-              <PermissionWrapper requiredPermission="permissions-delete">
+              <PermissionWrapper
+                requiredPermission={buildPermission(
+                  Resources.PERMISSIONS,
+                  Actions.DELETE,
+                )}
+                fallback={
+                  <button
+                    type="button"
+                    disabled
+                    className="px-4 py-3 bg-red-600 text-white rounded-md font-semibold opacity-50 cursor-not-allowed"
+                  >
+
+                    حذف
+                  </button>
+                }
+              >
                 <button
                   type="button"
                   onClick={handleDeleteClick}
@@ -505,14 +553,30 @@ ow-md">
       </div>
 
       <div className="pt-4 border-t border-gray-200 mt-4">
-        <button
-          type="button"
-          onClick={handleSavePermissions}
-          disabled={isLoading}
-          className="px-8 py-3 bg-brand-blue text-white rounded-md hover:bg-blue-800 font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
+        <PermissionWrapper
+          requiredPermission={buildPermission(
+            Resources.PERMISSIONS,
+            Actions.UPDATE,
+          )}
+          fallback={
+            <button
+              type="button"
+              disabled
+              className="px-8 py-3 bg-brand-blue text-white rounded-md font-semibold opacity-50 cursor-not-allowed"
+            >
+              حفظ الصلاحيات
+            </button>
+          }
         >
-          {isLoading ? "جاري الحفظ..." : "حفظ الصلاحيات"}
-        </button>
+          <button
+            type="button"
+            onClick={handleSavePermissions}
+            disabled={isLoading}
+            className="px-8 py-3 bg-brand-blue text-white rounded-md hover:bg-blue-800 font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {isLoading ? "جاري الحفظ..." : "حفظ الصلاحيات"}
+          </button>
+        </PermissionWrapper>
       </div>
 
       {/* Create Role Modal */}
@@ -556,14 +620,30 @@ ow-md">
               >
                 إلغاء
               </button>
-              <button
-                type="button"
-                onClick={handleSaveCreate}
-                disabled={isCreatingRole}
-                className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
+              <PermissionWrapper
+                requiredPermission={buildPermission(
+                  Resources.PERMISSIONS,
+                  Actions.CREATE,
+                )}
+                fallback={
+                  <button
+                    type="button"
+                    disabled
+                    className="px-4 py-2 bg-green-600 text-white rounded-md font-semibold opacity-50 cursor-not-allowed"
+                  >
+                    إضافة
+                  </button>
+                }
               >
-                {isCreatingRole ? "جاري الإضافة..." : "إضافة"}
-              </button>
+                <button
+                  type="button"
+                  onClick={handleSaveCreate}
+                  disabled={isCreatingRole}
+                  className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isCreatingRole ? "جاري الإضافة..." : "إضافة"}
+                </button>
+              </PermissionWrapper>
             </div>
           </div>
         </div>
@@ -610,14 +690,30 @@ ow-md">
               >
                 إلغاء
               </button>
-              <button
-                type="button"
-                onClick={handleSaveEdit}
-                disabled={isUpdatingRole}
-                className="px-4 py-2 bg-brand-blue text-white rounded-md hover:bg-blue-800 font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
+              <PermissionWrapper
+                requiredPermission={buildPermission(
+                  Resources.PERMISSIONS,
+                  Actions.UPDATE,
+                )}
+                fallback={
+                  <button
+                    type="button"
+                    disabled
+                    className="px-4 py-2 bg-brand-blue text-white rounded-md font-semibold opacity-50 cursor-not-allowed"
+                  >
+                    حفظ
+                  </button>
+                }
               >
-                {isUpdatingRole ? "جاري الحفظ..." : "حفظ"}
-              </button>
+                <button
+                  type="button"
+                  onClick={handleSaveEdit}
+                  disabled={isUpdatingRole}
+                  className="px-4 py-2 bg-brand-blue text-white rounded-md hover:bg-blue-800 font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isUpdatingRole ? "جاري الحفظ..." : "حفظ"}
+                </button>
+              </PermissionWrapper>
             </div>
           </div>
         </div>

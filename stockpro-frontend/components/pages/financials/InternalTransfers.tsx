@@ -116,6 +116,8 @@ const InternalTransfers: React.FC<InternalTransfersProps> = ({ title }) => {
   const inputStyle =
     "mt-1 block w-full bg-yellow-100 border-2 border-amber-500 rounded-md shadow-sm text-black placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-amber-500 py-3 px-4 disabled:bg-gray-200 disabled:cursor-not-allowed";
 
+  const isExistingTransfer = currentIndex > -1;
+
   const navigateToVoucher = (direction: "first" | "prev" | "next" | "last") => {
     if (!Array.isArray(vouchers) || vouchers.length === 0) return;
 
@@ -418,14 +420,6 @@ const InternalTransfers: React.FC<InternalTransfersProps> = ({ title }) => {
                   Resources.INTERNAL_TRANSFER,
                   Actions.CREATE,
                 )}
-                fallback={
-                  <button
-                    disabled
-                    className="px-4 py-2 bg-gray-400 text-white rounded-md cursor-not-allowed opacity-50 font-semibold"
-                  >
-                    جديد
-                  </button>
-                }
               >
                 <button
                   onClick={handleNew}
@@ -435,18 +429,10 @@ const InternalTransfers: React.FC<InternalTransfersProps> = ({ title }) => {
                 </button>
               </PermissionWrapper>
               <PermissionWrapper
-                requiredPermission={[
-                  buildPermission(Resources.INTERNAL_TRANSFER, Actions.CREATE),
-                  buildPermission(Resources.INTERNAL_TRANSFER, Actions.UPDATE),
-                ]}
-                fallback={
-                  <button
-                    disabled
-                    className="px-4 py-2 bg-gray-400 text-white rounded-md cursor-not-allowed opacity-50 font-semibold"
-                  >
-                    {isCreating || isUpdating ? "جاري الحفظ..." : "حفظ"}
-                  </button>
-                }
+                requiredPermission={buildPermission(
+                  Resources.INTERNAL_TRANSFER,
+                  isExistingTransfer ? Actions.UPDATE : Actions.CREATE,
+                )}
               >
                 <button
                   onClick={async () => {
@@ -536,14 +522,6 @@ const InternalTransfers: React.FC<InternalTransfersProps> = ({ title }) => {
                   Resources.INTERNAL_TRANSFER,
                   Actions.UPDATE,
                 )}
-                fallback={
-                  <button
-                    disabled
-                    className="px-4 py-2 bg-gray-400 text-white rounded-md cursor-not-allowed opacity-50 font-semibold"
-                  >
-                    تعديل
-                  </button>
-                }
               >
                 <button
                   onClick={handleEdit}
@@ -558,14 +536,6 @@ const InternalTransfers: React.FC<InternalTransfersProps> = ({ title }) => {
                   Resources.INTERNAL_TRANSFER,
                   Actions.DELETE,
                 )}
-                fallback={
-                  <button
-                    disabled
-                    className="px-4 py-2 bg-gray-400 text-white rounded-md cursor-not-allowed opacity-50 font-semibold"
-                  >
-                    {isDeleting ? "جاري الحذف..." : "حذف"}
-                  </button>
-                }
               >
                 <button
                   onClick={handleDelete}
@@ -580,14 +550,6 @@ const InternalTransfers: React.FC<InternalTransfersProps> = ({ title }) => {
                   Resources.INTERNAL_TRANSFER,
                   Actions.SEARCH,
                 )}
-                fallback={
-                  <button
-                    disabled
-                    className="px-4 py-2 bg-gray-400 text-white rounded-md cursor-not-allowed opacity-50 font-semibold"
-                  >
-                    بحث
-                  </button>
-                }
               >
                 <button
                   onClick={() => setIsSearchModalOpen(true)}
@@ -601,14 +563,6 @@ const InternalTransfers: React.FC<InternalTransfersProps> = ({ title }) => {
                   Resources.INTERNAL_TRANSFER,
                   Actions.PRINT,
                 )}
-                fallback={
-                  <button
-                    disabled
-                    className="px-4 py-2 bg-gray-400 text-white rounded-md cursor-not-allowed opacity-50 font-semibold flex items-center"
-                  >
-                    <PrintIcon className="mr-2 w-5 h-5" /> معاينة وطباعة
-                  </button>
-                }
               >
                 <button
                   onClick={() => {

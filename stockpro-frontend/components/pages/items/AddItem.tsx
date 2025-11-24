@@ -580,15 +580,6 @@ const AddItem: React.FC<AddItemProps> = ({ title, editingId, onNavigate }) => {
                 Resources.ADD_ITEM,
                 Actions.CREATE,
               )}
-              fallback={
-                <button
-                  type="button"
-                  disabled
-                  className="px-4 py-2 bg-gray-400 text-white rounded-md cursor-not-allowed opacity-50"
-                >
-                  جديد
-                </button>
-              }
             >
               <button
                 type="button"
@@ -599,19 +590,10 @@ const AddItem: React.FC<AddItemProps> = ({ title, editingId, onNavigate }) => {
               </button>
             </PermissionWrapper>
             <PermissionWrapper
-              requiredPermission={[
-                buildPermission(Resources.ADD_ITEM, Actions.CREATE),
-                buildPermission(Resources.ADD_ITEM, Actions.UPDATE),
-              ]}
-              fallback={
-                <button
-                  type="submit"
-                  disabled
-                  className="px-4 py-2 bg-gray-400 text-white rounded-md cursor-not-allowed opacity-50"
-                >
-                  حفظ
-                </button>
-              }
+              requiredPermission={buildPermission(
+                Resources.ADD_ITEM,
+                "id" in itemData ? Actions.UPDATE : Actions.CREATE,
+              )}
             >
               <button
                 type="submit"
@@ -626,15 +608,6 @@ const AddItem: React.FC<AddItemProps> = ({ title, editingId, onNavigate }) => {
                 Resources.ADD_ITEM,
                 Actions.UPDATE,
               )}
-              fallback={
-                <button
-                  type="button"
-                  disabled
-                  className="px-4 py-2 bg-gray-400 text-white rounded-md cursor-not-allowed opacity-50"
-                >
-                  تعديل
-                </button>
-              }
             >
               <button
                 type="button"
@@ -650,15 +623,6 @@ const AddItem: React.FC<AddItemProps> = ({ title, editingId, onNavigate }) => {
                 Resources.ITEMS_LIST,
                 Actions.READ,
               )}
-              fallback={
-                <button
-                  type="button"
-                  disabled
-                  className="px-4 py-2 bg-gray-400 text-white rounded-md cursor-not-allowed opacity-50"
-                >
-                  بحث
-                </button>
-              }
             >
               <button
                 type="button"
@@ -673,15 +637,6 @@ const AddItem: React.FC<AddItemProps> = ({ title, editingId, onNavigate }) => {
                 Resources.ADD_ITEM,
                 Actions.DELETE,
               )}
-              fallback={
-                <button
-                  type="button"
-                  disabled
-                  className="px-4 py-2 bg-gray-400 text-white rounded-md cursor-not-allowed opacity-50"
-                >
-                  حذف
-                </button>
-              }
             >
               <button
                 type="button"

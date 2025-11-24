@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useMemo } from "react";
 import DataTableModal from "../../common/DataTableModal";
 import DocumentHeader from "../../common/DocumentHeader";
+import PermissionWrapper from "../../common/PermissionWrapper";
 // FIX: Replaced FileTextIcon with PdfIcon
 import {
   PdfIcon,
@@ -25,6 +26,11 @@ import { useModal } from "../../common/ModalProvider";
 import { useToast } from "../../common/ToastProvider";
 import { showApiErrorToast } from "../../../utils/errorToast";
 import { formatMoney } from "../../../utils/formatting";
+import {
+  Actions,
+  Resources,
+  buildPermission,
+} from "../../../enums/permissions.enum";
 import {
   useGetPurchaseReturnsQuery,
   useCreatePurchaseReturnMutation,
@@ -224,6 +230,7 @@ const PurchaseReturn: React.FC<PurchaseReturnProps> = ({
     () => currentIndex >= 0 && isReadOnly,
     [currentIndex, isReadOnly],
   );
+  const isExistingReturn = currentIndex >= 0;
 
   const handleOpenPreview = () => {
     if (!canPrintExistingReturn) {
@@ -1295,33 +1302,61 @@ const PurchaseReturn: React.FC<PurchaseReturnProps> = ({
 
           <div className="mt-6 pt-4 border-t-2 border-gray-200 flex flex-col items-center space-y-4">
             <div className="flex justify-center gap-2 flex-wrap">
-              <button
-                onClick={handleNew}
-                className="px-4 py-2 bg-brand-blue text-white rounded-md hover:bg-blue-800 font-semibold"
+              <PermissionWrapper
+                requiredPermission={buildPermission(
+                  Resources.PURCHASE_RETURN,
+                  Actions.CREATE,
+                )}
               >
-                جديد
-              </button>
-              <button
-                onClick={handleSave}
-                disabled={isReadOnly}
-                className="px-4 py-2 bg-brand-green text-white rounded-md hover:bg-green-700 font-semibold disabled:bg-gray-400"
+                <button
+                  onClick={handleNew}
+                  className="px-4 py-2 bg-brand-blue text-white rounded-md hover:bg-blue-800 font-semibold"
+                >
+                  جديد
+                </button>
+              </PermissionWrapper>
+              <PermissionWrapper
+                requiredPermission={buildPermission(
+                  Resources.PURCHASE_RETURN,
+                  isExistingReturn ? Actions.UPDATE : Actions.CREATE,
+                )}
               >
-                حفظ
-              </button>
-              <button
-                onClick={handleEdit}
-                disabled={currentIndex < 0 || !isReadOnly}
-                className="px-4 py-2 bg-yellow-500 text-white rounded-md hover:bg-yellow-600 font-semibold disabled:bg-gray-400"
+                <button
+                  onClick={handleSave}
+                  disabled={isReadOnly}
+                  className="px-4 py-2 bg-brand-green text-white rounded-md hover:bg-green-700 font-semibold disabled:bg-gray-400"
+                >
+                  حفظ
+                </button>
+              </PermissionWrapper>
+              <PermissionWrapper
+                requiredPermission={buildPermission(
+                  Resources.PURCHASE_RETURN,
+                  Actions.UPDATE,
+                )}
               >
-                تعديل
-              </button>
-              <button
-                onClick={handleDelete}
-                disabled={currentIndex < 0}
-                className="px-4 py-2 bg-red-500 text-white rounded-md hover:bg-red-600 font-semibold disabled:bg-gray-400"
+                <button
+                  onClick={handleEdit}
+                  disabled={currentIndex < 0 || !isReadOnly}
+                  className="px-4 py-2 bg-yellow-500 text-white rounded-md hover:bg-yellow-600 font-semibold disabled:bg-gray-400"
+                >
+                  تعديل
+                </button>
+              </PermissionWrapper>
+              <PermissionWrapper
+                requiredPermission={buildPermission(
+                  Resources.PURCHASE_RETURN,
+                  Actions.DELETE,
+                )}
               >
-                حذف
-              </button>
+                <button
+                  onClick={handleDelete}
+                  disabled={currentIndex < 0}
+                  className="px-4 py-2 bg-red-500 text-white rounded-md hover:bg-red-600 font-semibold disabled:bg-gray-400"
+                >
+                  حذف
+                </button>
+              </PermissionWrapper>
               <button
                 onClick={() => setIsSearchModalOpen(true)}
                 className="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 font-semibold"

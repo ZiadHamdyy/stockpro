@@ -1,4 +1,4 @@
-import React from "react";
+import React, { ReactElement, cloneElement, isValidElement } from "react";
 import { useUserPermissions } from "../hook/usePermissions";
 import { useSelector } from "react-redux";
 import { selectCurrentUser } from "../store/slices/auth/auth";
@@ -86,8 +86,45 @@ const PermissionWrapper: React.FC<PermissionWrapperProps> = ({
     return <>{children}</>;
   }
 
-  // Render fallback if provided, otherwise return null
-  return fallback !== undefined ? <>{fallback}</> : null;
+  if (fallback !== undefined) {
+    return <>{fallback}</>;
+  }
+
+  const renderDisabledButton = (
+    node: React.ReactNode,
+  ): React.ReactNode | null => {
+    if (!isValidElement(node)) {
+      return null;
+    }
+
+    const element = node as ReactElement<{
+      className?: string;
+      onClick?: (...args: unknown[]) => void;
+      disabled?: boolean;
+    }>;
+
+    if (typeof element.type !== "string" || element.type !== "button") {
+      return null;
+    }
+
+    const disabledClassNames = [
+      element.props.className || "",
+      "cursor-not-allowed opacity-50 pointer-events-none",
+    ]
+      .join(" ")
+      .trim();
+
+    return cloneElement(element, {
+      ...element.props,
+      className: disabledClassNames,
+      onClick: undefined,
+      disabled: true,
+    });
+  };
+
+  const disabledChild = renderDisabledButton(children);
+
+  return disabledChild;
 };
 
 export default PermissionWrapper;

@@ -1,5 +1,11 @@
 import React, { useState, useEffect } from "react";
 import type { Bank } from "../../../types";
+import PermissionWrapper from "../../common/PermissionWrapper";
+import {
+  Actions,
+  Resources,
+  buildPermission,
+} from "../../../enums/permissions.enum";
 
 interface BankModalProps {
   isOpen: boolean;
@@ -195,12 +201,19 @@ const BankModal: React.FC<BankModalProps> = ({
             >
               إلغاء
             </button>
-            <button
-              type="submit"
-              className="px-6 py-2 bg-brand-blue text-white rounded-md hover:bg-blue-800 font-semibold"
+            <PermissionWrapper
+              requiredPermission={[
+                buildPermission(Resources.BANKS, Actions.CREATE),
+                buildPermission(Resources.BANKS, Actions.UPDATE),
+              ]}
             >
-              حفظ
-            </button>
+              <button
+                type="submit"
+                className="px-6 py-2 bg-brand-blue text-white rounded-md hover:bg-blue-800 font-semibold"
+              >
+                حفظ
+              </button>
+            </PermissionWrapper>
           </div>
         </form>
       </div>
