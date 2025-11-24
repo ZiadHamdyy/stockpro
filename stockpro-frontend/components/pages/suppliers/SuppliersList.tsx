@@ -325,6 +325,7 @@ const SuppliersList: React.FC<SuppliersListProps> = ({
           onNavigate("add_supplier", `تعديل مورد #${row.id}`, row.id);
           setIsListModalOpen(false);
         }}
+        exportPermission={buildPermission(Resources.SUPPLIERS_LIST, Actions.PRINT)}
       />
     </div>
   );

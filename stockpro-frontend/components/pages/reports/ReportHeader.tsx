@@ -1,14 +1,29 @@
 import React from "react";
 import { useGetCompanyQuery } from "../../store/slices/companyApiSlice";
+import type { CompanyInfo } from "../../../types";
 
 interface ReportHeaderProps {
   title: string;
+  companyInfo?: CompanyInfo | null;
 }
 
-const ReportHeader: React.FC<ReportHeaderProps> = ({ title }) => {
-  const { data: companyInfo, isLoading, error } = useGetCompanyQuery();
+const ReportHeader: React.FC<ReportHeaderProps> = ({
+  title,
+  companyInfo: providedCompanyInfo,
+}) => {
+  const {
+    data: fetchedCompanyInfo,
+    isLoading,
+    error,
+  } = useGetCompanyQuery(undefined, {
+    skip: Boolean(providedCompanyInfo),
+  });
 
-  if (isLoading) {
+  const companyInfo = providedCompanyInfo ?? fetchedCompanyInfo;
+  const isLoadingState = providedCompanyInfo ? false : isLoading;
+  const hasError = providedCompanyInfo ? false : error;
+
+  if (isLoadingState) {
     return (
       <div className="border-2 border-brand-blue rounded-lg mb-4 p-4 bg-white">
         <div className="flex justify-between items-start">
@@ -30,7 +45,7 @@ const ReportHeader: React.FC<ReportHeaderProps> = ({ title }) => {
     );
   }
 
-  if (error || !companyInfo) {
+  if (hasError || !companyInfo) {
     return (
       <div className="border-2 border-brand-blue rounded-lg mb-4 p-4 bg-white">
         <div className="flex justify-center items-center">

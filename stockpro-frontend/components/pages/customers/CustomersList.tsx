@@ -323,6 +323,7 @@ const CustomersList: React.FC<CustomersListProps> = ({
           onNavigate("add_customer", `تعديل عميل #${row.id}`, row.id);
           setIsListModalOpen(false);
         }}
+        exportPermission={buildPermission(Resources.CUSTOMERS_LIST, Actions.PRINT)}
       />
     </div>
   );

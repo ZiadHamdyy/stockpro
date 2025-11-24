@@ -2,6 +2,7 @@ import React, { useState, useMemo } from "react";
 import { ExcelIcon, PdfIcon, PrintIcon, SearchIcon, XIcon } from "../icons";
 import ReportHeader from "../pages/reports/ReportHeader";
 import type { CompanyInfo } from "../../types";
+import PermissionWrapper from "./PermissionWrapper";
 import {
   formatNumber,
   exportToExcel,
@@ -17,6 +18,7 @@ interface DataTableModalProps {
   onSelectRow: (row: any) => void;
   companyInfo?: CompanyInfo;
   colorTheme?: "blue" | "green" | "amber";
+  exportPermission?: string | string[];
 }
 
 const DataTableModal: React.FC<DataTableModalProps> = ({
@@ -28,6 +30,7 @@ const DataTableModal: React.FC<DataTableModalProps> = ({
   onSelectRow,
   companyInfo,
   colorTheme = "blue",
+  exportPermission,
 }) => {
   const [searchTerm, setSearchTerm] = useState("");
 
@@ -180,26 +183,96 @@ const DataTableModal: React.FC<DataTableModalProps> = ({
         <div className="p-4 border-b border-gray-200 flex justify-between items-center flex-shrink-0">
           <h2 className="text-xl font-bold text-brand-dark">{title}</h2>
           <div className="flex items-center gap-2">
-            <button
-              onClick={handleExcelExport}
-              title="تصدير Excel"
-              className="text-gray-500 hover:text-brand-dark p-2 rounded-full hover:bg-gray-100"
-            >
-              <ExcelIcon className="w-6 h-6" />
-            </button>
-            <button
-              onClick={handlePdfExport}
-              title="تصدير PDF"
-              className="text-gray-500 hover:text-brand-dark p-2 rounded-full hover:bg-gray-100"
-            >
-              <PdfIcon className="w-6 h-6" />
-            </button>
-            <button
-              onClick={handlePrint}
-              className="text-gray-500 hover:text-brand-dark p-2 rounded-full hover:bg-gray-100"
-            >
-              <PrintIcon />
-            </button>
+            {(exportPermission ? (
+              <PermissionWrapper
+                requiredPermission={exportPermission}
+                fallback={
+                  <button
+                    title="تصدير Excel"
+                    disabled
+                    className="p-2 border-2 border-gray-200 rounded-full cursor-not-allowed opacity-50"
+                  >
+                    <ExcelIcon className="w-6 h-6 text-gray-400" />
+                  </button>
+                }
+              >
+                <button
+                  onClick={handleExcelExport}
+                  title="تصدير Excel"
+                  className="text-gray-500 hover:text-brand-dark p-2 rounded-full hover:bg-gray-100"
+                >
+                  <ExcelIcon className="w-6 h-6" />
+                </button>
+              </PermissionWrapper>
+            ) : (
+              <button
+                onClick={handleExcelExport}
+                title="تصدير Excel"
+                className="p-2 border-2 border-gray-200 rounded-full hover:bg-gray-100"
+              >
+                <ExcelIcon className="w-6 h-6" />
+              </button>
+            ))}
+            {(exportPermission ? (
+              <PermissionWrapper
+                requiredPermission={exportPermission}
+                fallback={
+                  <button
+                    title="تصدير PDF"
+                    disabled
+                    className="p-2 border-2 border-gray-200 rounded-full cursor-not-allowed opacity-50"
+                  >
+                    <PdfIcon className="w-6 h-6 text-gray-400" />
+                  </button>
+                }
+              >
+                <button
+                  onClick={handlePdfExport}
+                  title="تصدير PDF"
+                  className="text-gray-500 hover:text-brand-dark p-2 rounded-full hover:bg-gray-100"
+                >
+                  <PdfIcon className="w-6 h-6" />
+                </button>
+              </PermissionWrapper>
+            ) : (
+              <button
+                onClick={handlePdfExport}
+                title="تصدير PDF"
+                className="p-2 border-2 border-gray-200 rounded-full hover:bg-gray-100"
+              >
+                <PdfIcon className="w-6 h-6" />
+              </button>
+            ))}
+            {(exportPermission ? (
+              <PermissionWrapper
+                requiredPermission={exportPermission}
+                fallback={
+                  <button
+                    title="طباعة"
+                    disabled
+                    className="p-2 border-2 border-gray-200 rounded-full cursor-not-allowed opacity-50"
+                  >
+                    <PrintIcon className="w-6 h-6 text-gray-400" />
+                  </button>
+                }
+              >
+                <button
+                  onClick={handlePrint}
+                  title="طباعة"
+                  className="text-gray-500 hover:text-brand-dark p-2 rounded-full hover:bg-gray-100"
+                >
+                  <PrintIcon />
+                </button>
+              </PermissionWrapper>
+            ) : (
+              <button
+                onClick={handlePrint}
+                title="طباعة"
+                className="p-2 border-2 border-gray-200 rounded-full hover:bg-gray-100"
+              >
+                <PrintIcon />
+              </button>
+            ))}
             <button
               onClick={onClose}
               className="text-gray-500 hover:text-brand-dark p-1 rounded-full hover:bg-gray-100"
@@ -224,9 +297,7 @@ const DataTableModal: React.FC<DataTableModalProps> = ({
 
         <div className="overflow-y-auto overflow-x-auto px-4 pb-4">
           <div id="modal-printable-area">
-            {companyInfo && (
-              <ReportHeader title={title} companyInfo={companyInfo} />
-            )}
+            {companyInfo && <ReportHeader title={title} />}
             <div className={companyInfo ? "mt-4" : ""}>
               <table className="min-w-full border-collapse">
                 <thead className={headerBgClass}>
