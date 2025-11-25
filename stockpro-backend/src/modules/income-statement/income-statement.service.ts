@@ -23,11 +23,14 @@ export class IncomeStatementService {
     // Calculate net sales
     const netSales = totalSales - totalSalesReturns;
 
-    // Calculate beginning inventory (at startDate, excluding transactions on start date)
-    // Valuation is based on the last purchase price on or before the start date
+    // Calculate beginning inventory (before startDate - at the end of the day before start date)
+    // Valuation is based on the last purchase price on or before the day before start date
+    const dayBeforeStart = new Date(start);
+    dayBeforeStart.setDate(dayBeforeStart.getDate() - 1);
+    const dayBeforeStartString = dayBeforeStart.toISOString().split('T')[0];
     const beginningInventory = await this.calculateInventoryValue(
-      startDate,
-      true, // excludeTargetDate = true to exclude transactions on start date
+      dayBeforeStartString,
+      false, // include all transactions up to and including the day before start date
     );
 
     // Calculate total purchases (net of tax - subtotal only, excluding tax)
