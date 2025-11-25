@@ -9,6 +9,11 @@ import {
 } from "../../../utils/formatting";
 import { useBalanceSheet } from "../../hook/useBalanceSheet";
 import PermissionWrapper from "../../common/PermissionWrapper";
+import {
+  Resources,
+  Actions,
+  buildPermission,
+} from "../../../enums/permissions.enum";
 
 const flipSign = (value: number) => (value === 0 ? 0 : value * -1);
 
@@ -348,7 +353,7 @@ const BalanceSheet: React.FC = () => {
     className,
     ...props
   }) => (
-    <td className={`px-4 py-3 ${className || ""}`} {...props}>
+    <td className={`px-2 py-2 text-sm ${className || ""}`} {...props}>
       {children}
     </td>
   );
@@ -402,20 +407,25 @@ const BalanceSheet: React.FC = () => {
             <label className="font-semibold">من:</label>
             <input
               type="date"
-              className="p-2 border-2 border-brand-blue rounded-md bg-brand-blue-bg"
+              className="p-1.5 border border-brand-blue rounded bg-brand-blue-bg text-sm"
               value={startDate}
               onChange={(e) => setStartDate(e.target.value)}
             />
             <label className="font-semibold">إلى:</label>
             <input
               type="date"
-              className="p-2 border-2 border-brand-blue rounded-md bg-brand-blue-bg"
+              className="p-1.5 border border-brand-blue rounded bg-brand-blue-bg text-sm"
               value={endDate}
               onChange={(e) => setEndDate(e.target.value)}
             />
           </div>
           <div className="flex items-center gap-2">
-            <PermissionWrapper requiredPermission="balance_sheet:read">
+            <PermissionWrapper
+              requiredPermission={buildPermission(
+                Resources.BALANCE_SHEET,
+                Actions.READ,
+              )}
+            >
               <button
                 onClick={handleExcelExport}
                 title="تصدير Excel"
@@ -424,7 +434,12 @@ const BalanceSheet: React.FC = () => {
                 <ExcelIcon className="w-6 h-6" />
               </button>
             </PermissionWrapper>
-            <PermissionWrapper requiredPermission="balance_sheet:read">
+            <PermissionWrapper
+              requiredPermission={buildPermission(
+                Resources.BALANCE_SHEET,
+                Actions.READ,
+              )}
+            >
               <button
                 onClick={handlePdfExport}
                 title="تصدير PDF"
@@ -433,7 +448,12 @@ const BalanceSheet: React.FC = () => {
                 <PdfIcon className="w-6 h-6" />
               </button>
             </PermissionWrapper>
-            <PermissionWrapper requiredPermission="balance_sheet:read">
+            <PermissionWrapper
+              requiredPermission={buildPermission(
+                Resources.BALANCE_SHEET,
+                Actions.READ,
+              )}
+            >
               <button
                 onClick={handlePrint}
                 title="طباعة"
@@ -480,8 +500,8 @@ const BalanceSheet: React.FC = () => {
           </div>
         )}
 
-        <div className="overflow-x-auto border-2 border-gray-300 rounded-lg mt-4">
-          <table className="min-w-full text-base">
+        <div className="overflow-x-auto border border-gray-300 rounded-lg mt-3">
+          <table className="min-w-full text-sm">
             <tbody className="divide-y divide-gray-200">
               {/* Assets */}
               <tr className="bg-blue-600 text-white font-bold">

@@ -1,10 +1,28 @@
 import React, { useState, useMemo } from "react";
 import { ExcelIcon, PdfIcon, PrintIcon } from "../../icons";
 import ReportHeader from "../reports/ReportHeader";
-import { formatNumber, getNegativeNumberClass } from "../../../utils/formatting";
+import {
+  formatNumber,
+  getNegativeNumberClass,
+  exportToExcel,
+  exportToPdf,
+} from "../../../utils/formatting";
 import { useIncomeStatement } from "../../hook/useIncomeStatement";
 import PermissionWrapper from "../../common/PermissionWrapper";
 import { useGetExpenseTypesQuery } from "../../store/slices/expense/expenseApiSlice";
+import {
+  Resources,
+  Actions,
+  buildPermission,
+} from "../../../enums/permissions.enum";
+
+type StatementRow = {
+  statement: string;
+  partial?: number | null;
+  total?: number | null;
+};
+
+const asNegative = (value: number): number => (value === 0 ? 0 : -Math.abs(value));
 
 const IncomeStatement: React.FC = () => {
   const title = "قائمة الدخل";
@@ -75,6 +93,87 @@ const IncomeStatement: React.FC = () => {
       });
   }, [expenseTypes]);
 
+  const statementRows = useMemo<StatementRow[]>(() => {
+    if (!financialData) return [];
+
+    const rows: StatementRow[] = [];
+    const addRow = (
+      statement: string,
+      partial?: number | null,
+      total?: number | null,
+    ) => rows.push({ statement, partial, total });
+
+    addRow("الإيرادات");
+    addRow("إجمالي المبيعات", financialData.totalSales);
+    addRow("(-) مرتجع المبيعات", asNegative(financialData.totalSalesReturns));
+    addRow("صافي المبيعات", undefined, financialData.netSales);
+
+    addRow("تكلفة البضاعة المباعة");
+    addRow("رصيد مخزون أول المدة", financialData.beginningInventory);
+    addRow("(+) صافي المشتريات", financialData.netPurchases);
+    addRow(
+      "(-) رصيد مخزون آخر المدة",
+      asNegative(financialData.endingInventory),
+    );
+    addRow(
+      "تكلفة البضاعة المباعة",
+      undefined,
+      asNegative(financialData.cogs),
+    );
+
+    addRow("مجمل الربح", undefined, financialData.grossProfit);
+
+    addRow("المصروفات");
+    sortedExpenseTypes.forEach((expenseType) => {
+      const expenseAmount =
+        financialData.expensesByType?.[expenseType.name] || 0;
+      addRow(expenseType.name, asNegative(expenseAmount));
+    });
+
+    addRow(
+      "إجمالي المصروفات",
+      undefined,
+      asNegative(financialData.totalExpenses),
+    );
+
+    addRow("صافي الربح / (الخسارة)", undefined, financialData.netProfit);
+
+    return rows;
+  }, [financialData, sortedExpenseTypes]);
+
+  const formatExportValue = (value?: number | null): string => {
+    if (value === null || value === undefined) return "";
+    const absolute = formatNumber(Math.abs(value));
+    return value < 0 ? `(${absolute})` : absolute;
+  };
+
+  const exportFileName = useMemo(
+    () => `قائمة-الدخل-${startDate}-الى-${endDate}`.replace(/\s+/g, "-"),
+    [startDate, endDate],
+  );
+
+  const handleExcelExport = () => {
+    if (!statementRows.length) return;
+    const data = statementRows.map((row) => ({
+      البيان: row.statement,
+      جزئي: formatExportValue(row.partial),
+      كلي: formatExportValue(row.total),
+    }));
+    exportToExcel(data, exportFileName);
+  };
+
+  const handlePdfExport = async () => {
+    if (!statementRows.length || !companyInfo) return;
+    const head = [["البيان", "جزئي", "كلي"]];
+    const body = statementRows.map((row) => [
+      row.statement,
+      formatExportValue(row.partial),
+      formatExportValue(row.total),
+    ]);
+    const pdfTitle = `${title} (${startDate} - ${endDate})`;
+    await exportToPdf(pdfTitle, head, body, exportFileName, companyInfo);
+  };
+
   const handlePrint = () => {
     const reportContent = document.getElementById("printable-area-income");
     if (!reportContent) return;
@@ -101,13 +200,13 @@ const IncomeStatement: React.FC = () => {
   };
 
   const inputStyle =
-    "p-2 border-2 border-brand-blue rounded-md bg-brand-blue-bg focus:outline-none focus:ring-2 focus:ring-brand-blue";
+    "p-1.5 border border-brand-blue rounded bg-brand-blue-bg focus:outline-none focus:ring-1 focus:ring-brand-blue text-sm";
   const Td: React.FC<React.TdHTMLAttributes<HTMLTableCellElement>> = ({
     children,
     className,
     ...props
   }) => (
-    <td className={`p-3 ${className || ""}`} {...props}>
+    <td className={`px-2 py-2 text-sm ${className || ""}`} {...props}>
       {children}
     </td>
   );
@@ -162,23 +261,40 @@ const IncomeStatement: React.FC = () => {
             />
           </div>
           <div className="flex items-center gap-2">
-            <PermissionWrapper requiredPermission="income_statement:read">
+            <PermissionWrapper
+              requiredPermission={buildPermission(
+                Resources.INCOME_STATEMENT,
+                Actions.READ,
+              )}
+            >
               <button
+                onClick={handleExcelExport}
                 title="تصدير Excel"
                 className="p-3 border-2 border-gray-200 rounded-md hover:bg-gray-100"
               >
                 <ExcelIcon className="w-6 h-6" />
               </button>
             </PermissionWrapper>
-            <PermissionWrapper requiredPermission="income_statement:read">
+            <PermissionWrapper
+              requiredPermission={buildPermission(
+                Resources.INCOME_STATEMENT,
+                Actions.READ,
+              )}
+            >
               <button
+                onClick={handlePdfExport}
                 title="تصدير PDF"
                 className="p-3 border-2 border-gray-200 rounded-md hover:bg-gray-100"
               >
                 <PdfIcon className="w-6 h-6" />
               </button>
             </PermissionWrapper>
-            <PermissionWrapper requiredPermission="income_statement:read">
+            <PermissionWrapper
+              requiredPermission={buildPermission(
+                Resources.INCOME_STATEMENT,
+                Actions.READ,
+              )}
+            >
               <button
                 onClick={handlePrint}
                 title="طباعة"
@@ -190,17 +306,19 @@ const IncomeStatement: React.FC = () => {
           </div>
         </div>
 
-        <div className="overflow-x-auto border-2 border-brand-blue rounded-lg mt-4">
-          <table className="min-w-full text-base">
+        <div className="overflow-x-auto border border-brand-blue rounded-lg mt-3">
+          <table className="min-w-full text-sm">
             <thead>
-              <tr className="bg-brand-blue-bg">
-                <th className="p-3 text-right font-bold text-brand-dark w-3/5">
+              <tr className="bg-brand-blue-bg text-sm">
+                <th className="px-2 py-2 text-right font-semibold text-brand-dark w-3/5">
                   البيان
                 </th>
-                <th className="p-3 text-left font-bold text-brand-dark">
+                <th className="px-2 py-2 text-left font-semibold text-brand-dark">
                   جزئي
                 </th>
-                <th className="p-3 text-left font-bold text-brand-dark">كلي</th>
+                <th className="px-2 py-2 text-left font-semibold text-brand-dark">
+                  كلي
+                </th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-300">
