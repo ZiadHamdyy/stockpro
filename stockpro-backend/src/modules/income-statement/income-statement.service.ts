@@ -233,11 +233,16 @@ export class IncomeStatementService {
     targetDateTime.setHours(23, 59, 59, 999);
 
     // Get all items
-    const items = await this.prisma.item.findMany({
+    const items = (await this.prisma.item.findMany({
       where: {
         type: 'STOCKED', // Only calculate for stocked items
       },
-    });
+    })) as unknown as Array<{
+      id: string;
+      code: string;
+      purchasePrice: number | null;
+      initialPurchasePrice: number | null;
+    }>;
 
     let totalValue = 0;
 
@@ -258,7 +263,9 @@ export class IncomeStatementService {
         );
 
         // Use last purchase price if found, otherwise fall back to item's current purchase price
-        const price = lastPurchasePrice || item.purchasePrice || 0;
+        const fallbackPrice =
+          item.initialPurchasePrice ?? item.purchasePrice ?? 0;
+        const price = lastPurchasePrice ?? fallbackPrice;
 
         totalValue += balance * price;
       }
