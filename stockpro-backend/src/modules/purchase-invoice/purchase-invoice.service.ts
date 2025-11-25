@@ -517,10 +517,52 @@ export class PurchaseInvoiceService {
 
     await this.prisma.$transaction(async (tx) => {
       const items = invoice.items as any[];
+      const itemCodes = Array.from(new Set(items.map((item) => item.id)));
+      const otherInvoices = await tx.purchaseInvoice.findMany({
+        where: { id: { not: invoice.id } },
+        orderBy: { date: 'desc' },
+        select: { id: true, date: true, items: true },
+      });
+      const itemInitials = await tx.item.findMany({
+        where: { code: { in: itemCodes } },
+      });
+      const initialMap = new Map(
+        itemInitials.map((entry) => [
+          entry.code,
+          ((entry as any).initialPurchasePrice ?? entry.purchasePrice ?? 0) as number,
+        ]),
+      );
+
       for (const item of items) {
         await tx.item.update({
           where: { code: item.id },
           data: { stock: { decrement: item.qty } },
+        });
+
+        const latestInvoice = otherInvoices.find((candidate) =>
+          Array.isArray(candidate.items) &&
+          (candidate.items as any[]).some(
+            (invItem) => invItem.id === item.id && invItem.price,
+          ),
+        );
+
+        if (latestInvoice) {
+          const matchedItem = (latestInvoice.items as any[]).find(
+            (invItem) => invItem.id === item.id && invItem.price,
+          );
+          if (matchedItem?.price) {
+            await tx.item.update({
+              where: { code: item.id },
+              data: { purchasePrice: matchedItem.price },
+            });
+            continue;
+          }
+        }
+
+        const fallbackPrice = initialMap.get(item.id) ?? 0;
+        await tx.item.update({
+          where: { code: item.id },
+          data: { purchasePrice: fallbackPrice },
         });
       }
 
