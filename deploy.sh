@@ -27,6 +27,9 @@ print_info() {
     echo -e "${YELLOW}ℹ $1${NC}"
 }
 
+# Track whether seeding (and therefore dropping) is requested
+SHOULD_SEED=false
+
 # Check if Docker is installed
 check_docker() {
     if ! command -v docker &> /dev/null; then
@@ -179,20 +182,37 @@ configure_nginx() {
 run_migrations() {
     print_info "Running database migrations..."
     
-    # Use db push instead of migrate deploy for simplicity
-    docker exec stockpro-backend-prod pnpm prisma db push --force-reset || true
+    if [ "$SHOULD_SEED" = true ]; then
+        print_info "Dropping and re-applying schema before seeding..."
+        docker exec stockpro-backend-prod pnpm prisma db push --force-reset || true
+    else
+        docker exec stockpro-backend-prod pnpm prisma migrate deploy || true
+    fi
     
     print_success "Database migrations completed"
 }
 
-# Seed database (optional)
-seed_database() {
+# Ask whether seeding (and drop) should happen
+prompt_seed_choice() {
     read -p "Do you want to seed the database? (y/n) " -n 1 -r
     echo
     if [[ $REPLY =~ ^[Yy]$ ]]; then
+        SHOULD_SEED=true
+        print_info "Database will be dropped, migrated, and seeded"
+    else
+        SHOULD_SEED=false
+        print_info "Database will only run migrations (no drop, no seed)"
+    fi
+}
+
+# Seed database (optional)
+seed_database() {
+    if [ "$SHOULD_SEED" = true ]; then
         print_info "Seeding database..."
         docker exec stockpro-backend-prod pnpm prisma:seed || true
         print_success "Database seeded"
+    else
+        print_info "Skipping database seed"
     fi
 }
 
@@ -242,6 +262,9 @@ main() {
     echo ""
     
     wait_for_services
+    echo ""
+    
+    prompt_seed_choice
     echo ""
     
     run_migrations
