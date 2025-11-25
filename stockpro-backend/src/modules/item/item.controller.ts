@@ -49,6 +49,7 @@ export class ItemController {
   @Auth({ permissions: ['items_list:read'] })
   async findAll(
     @Query('storeId') storeId?: string,
+    @Query('priceDate') priceDate?: string,
     @currentUser() user?: currentUserType,
   ): Promise<ItemResponse[]> {
     // If storeId not provided, get from current user's branch
@@ -62,7 +63,7 @@ export class ItemController {
         // This will return items with global stock (0 for new items)
       }
     }
-    return this.itemService.findAll(finalStoreId);
+    return this.itemService.findAll(finalStoreId, priceDate);
   }
 
   @Get('code/:code')

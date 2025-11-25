@@ -61,7 +61,7 @@ export class ItemService {
     return this.mapToResponse(result);
   }
 
-  async findAll(storeId?: string): Promise<ItemResponse[]> {
+  async findAll(storeId?: string, priceDate?: string): Promise<ItemResponse[]> {
     const items = await this.prisma.item.findMany({
       include: {
         group: true,
@@ -69,6 +69,17 @@ export class ItemService {
       },
       orderBy: { createdAt: 'asc' },
     });
+
+    let lastPurchasePriceMap: Map<string, number> | null = null;
+    if (priceDate) {
+      const referenceDate = new Date(priceDate);
+      if (!Number.isNaN(referenceDate.getTime())) {
+        referenceDate.setHours(23, 59, 59, 999);
+        lastPurchasePriceMap = await this.buildLastPurchasePriceMap(
+          referenceDate,
+        );
+      }
+    }
 
     // If storeId provided, calculate store-specific balances and include openingBalance
     if (storeId) {
@@ -87,6 +98,8 @@ export class ItemService {
             ...item,
             stock: balance,
             openingBalance,
+            lastPurchasePrice:
+              lastPurchasePriceMap?.get(item.code) ?? undefined,
           });
         }),
       );
@@ -94,7 +107,12 @@ export class ItemService {
     }
 
     // If no storeId, return with global stock (0 for new items)
-    return items.map((item) => this.mapToResponse(item));
+    return items.map((item) =>
+      this.mapToResponse({
+        ...item,
+        lastPurchasePrice: lastPurchasePriceMap?.get(item.code),
+      }),
+    );
   }
 
   async findOne(id: string): Promise<ItemResponse> {
@@ -194,6 +212,40 @@ export class ItemService {
     }
   }
 
+  private async buildLastPurchasePriceMap(
+    referenceDate: Date,
+  ): Promise<Map<string, number>> {
+    const invoices = await this.prisma.purchaseInvoice.findMany({
+      where: {
+        date: {
+          lte: referenceDate,
+        },
+      },
+      orderBy: {
+        date: 'desc',
+      },
+      select: {
+        items: true,
+      },
+    });
+
+    const priceMap = new Map<string, number>();
+
+    for (const invoice of invoices) {
+      const invItems = (invoice.items as any[]) || [];
+      for (const invItem of invItems) {
+        const itemCode = invItem?.id || invItem?.code;
+        if (!itemCode) continue;
+        if (priceMap.has(itemCode)) continue;
+        if (typeof invItem?.price === 'number') {
+          priceMap.set(itemCode, invItem.price);
+        }
+      }
+    }
+
+    return priceMap;
+  }
+
   private mapToResponse(item: any): ItemResponse {
     return {
       id: item.id,
@@ -201,6 +253,10 @@ export class ItemService {
       barcode: item.barcode,
       name: item.name,
       purchasePrice: item.purchasePrice,
+      lastPurchasePrice:
+        typeof item.lastPurchasePrice === 'number'
+          ? item.lastPurchasePrice
+          : undefined,
       salePrice: item.salePrice,
       stock: item.stock,
       openingBalance: item.openingBalance,
