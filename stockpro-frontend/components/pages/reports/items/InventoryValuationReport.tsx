@@ -233,10 +233,10 @@ const InventoryValuationReport: React.FC<InventoryValuationReportProps> = ({
     "purchasePrice" | "salePrice" | "averageCost"
   >("purchasePrice");
 
-  // Helper function to get last purchase price before or on endDate
-  const getLastPurchasePriceBeforeDate = useCallback((itemCode: string, endDate: string): number | null => {
-    const normalizedEndDate = normalizeDate(endDate);
-    if (!normalizedEndDate) return null;
+  // Helper function to get last purchase price before or on a reference date
+  const getLastPurchasePriceBeforeDate = useCallback((itemCode: string, referenceDate: string): number | null => {
+    const normalizedReferenceDate = normalizeDate(referenceDate);
+    if (!normalizedReferenceDate) return null;
 
     // Filter purchase invoices by branch and date
     const selectedBranchName = selectedBranchId === "all" 
@@ -249,12 +249,12 @@ const InventoryValuationReport: React.FC<InventoryValuationReportProps> = ({
       tx.branchName === selectedBranchName ||
       tx.branchId === selectedBranchId;
 
-    // Get all purchase invoices up to endDate, sorted by date descending
+    // Get all purchase invoices up to the reference date, sorted by date descending
     const relevantInvoices = transformedPurchaseInvoices
       .filter(filterByBranch)
       .filter((inv) => {
         const txDate = normalizeDate(inv.date) || normalizeDate(inv.invoiceDate);
-        return txDate && txDate <= normalizedEndDate;
+        return txDate && txDate <= normalizedReferenceDate;
       })
       .sort((a, b) => {
         const dateA = normalizeDate(a.date) || normalizeDate(a.invoiceDate) || "";
@@ -274,10 +274,10 @@ const InventoryValuationReport: React.FC<InventoryValuationReportProps> = ({
     return null;
   }, [transformedPurchaseInvoices, selectedBranchId, branches, normalizeDate]);
 
-  // Helper function to get last sale price before or on endDate
-  const getLastSalePriceBeforeDate = useCallback((itemCode: string, endDate: string): number | null => {
-    const normalizedEndDate = normalizeDate(endDate);
-    if (!normalizedEndDate) return null;
+  // Helper function to get last sale price before or on a reference date
+  const getLastSalePriceBeforeDate = useCallback((itemCode: string, referenceDate: string): number | null => {
+    const normalizedReferenceDate = normalizeDate(referenceDate);
+    if (!normalizedReferenceDate) return null;
 
     const selectedBranchName = selectedBranchId === "all" 
       ? "all"
@@ -289,12 +289,12 @@ const InventoryValuationReport: React.FC<InventoryValuationReportProps> = ({
       tx.branchName === selectedBranchName ||
       tx.branchId === selectedBranchId;
 
-    // Get all sales invoices up to endDate, sorted by date descending
+    // Get all sales invoices up to the reference date, sorted by date descending
     const relevantInvoices = transformedSalesInvoices
       .filter(filterByBranch)
       .filter((inv) => {
         const txDate = normalizeDate(inv.date) || normalizeDate(inv.invoiceDate);
-        return txDate && txDate <= normalizedEndDate;
+        return txDate && txDate <= normalizedReferenceDate;
       })
       .sort((a, b) => {
         const dateA = normalizeDate(a.date) || normalizeDate(a.invoiceDate) || "";
@@ -314,10 +314,10 @@ const InventoryValuationReport: React.FC<InventoryValuationReportProps> = ({
     return null;
   }, [transformedSalesInvoices, selectedBranchId, branches, normalizeDate]);
 
-  // Helper function to calculate weighted average cost up to endDate
-  const calculateWeightedAverageCost = useCallback((itemCode: string, endDate: string): number | null => {
-    const normalizedEndDate = normalizeDate(endDate);
-    if (!normalizedEndDate) return null;
+  // Helper function to calculate weighted average cost up to a reference date
+  const calculateWeightedAverageCost = useCallback((itemCode: string, referenceDate: string): number | null => {
+    const normalizedReferenceDate = normalizeDate(referenceDate);
+    if (!normalizedReferenceDate) return null;
 
     const selectedBranchName = selectedBranchId === "all" 
       ? "all"
@@ -329,12 +329,12 @@ const InventoryValuationReport: React.FC<InventoryValuationReportProps> = ({
       tx.branchName === selectedBranchName ||
       tx.branchId === selectedBranchId;
 
-    // Get all purchase invoices up to endDate
+    // Get all purchase invoices up to the reference date
     const relevantInvoices = transformedPurchaseInvoices
       .filter(filterByBranch)
       .filter((inv) => {
         const txDate = normalizeDate(inv.date) || normalizeDate(inv.invoiceDate);
-        return txDate && txDate <= normalizedEndDate;
+        return txDate && txDate <= normalizedReferenceDate;
       });
 
     let totalCost = 0;
@@ -432,22 +432,23 @@ const InventoryValuationReport: React.FC<InventoryValuationReportProps> = ({
 
       // Calculate cost based on valuation method and endDate
       let cost = 0;
+      const priceReferenceDate = startDate || endDate;
       switch (valuationMethod) {
         case "purchasePrice": {
-          const lastPurchasePrice = getLastPurchasePriceBeforeDate(item.code, endDate);
+          const lastPurchasePrice = getLastPurchasePriceBeforeDate(item.code, priceReferenceDate);
           cost = lastPurchasePrice ?? item.purchasePrice ?? 0;
           break;
         }
         case "salePrice": {
-          const lastSalePrice = getLastSalePriceBeforeDate(item.code, endDate);
+          const lastSalePrice = getLastSalePriceBeforeDate(item.code, priceReferenceDate);
           cost = lastSalePrice ?? item.salePrice ?? 0;
           break;
         }
         case "averageCost": {
-          const avgCost = calculateWeightedAverageCost(item.code, endDate);
+          const avgCost = calculateWeightedAverageCost(item.code, priceReferenceDate);
           // Fallback to last purchase price if no purchases found
           if (avgCost === null) {
-            const lastPurchasePrice = getLastPurchasePriceBeforeDate(item.code, endDate);
+            const lastPurchasePrice = getLastPurchasePriceBeforeDate(item.code, priceReferenceDate);
             cost = lastPurchasePrice ?? item.purchasePrice ?? 0;
           } else {
             cost = avgCost;
@@ -488,6 +489,7 @@ const InventoryValuationReport: React.FC<InventoryValuationReportProps> = ({
     getLastPurchasePriceBeforeDate,
     getLastSalePriceBeforeDate,
     calculateWeightedAverageCost,
+    startDate,
   ]);
 
   useEffect(() => {
