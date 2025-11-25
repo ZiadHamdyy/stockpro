@@ -23,7 +23,7 @@ export interface Item {
   barcode?: string;
   name: string;
   purchasePrice: number;
-  lastPurchasePrice?: number | null;
+  initialPurchasePrice: number;
   salePrice: number;
   stock: number;
   reorderLimit: number;
@@ -91,7 +91,7 @@ export interface ImportItemsSummary {
 }
 
 export const itemsApiSlice = apiSlice.injectEndpoints({
-  endpoints: (builder: any) => ({
+  endpoints: (builder) => ({
     // Item Groups
     getItemGroups: builder.query({
       query: () => "item-groups",
@@ -154,13 +154,10 @@ export const itemsApiSlice = apiSlice.injectEndpoints({
 
     // Items
     getItems: builder.query({
-      query: (params?: { storeId?: string; priceDate?: string }) => {
+      query: (params?: { storeId?: string }) => {
         const queryParams = new URLSearchParams();
         if (params?.storeId) {
           queryParams.append('storeId', params.storeId);
-        }
-        if (params?.priceDate) {
-          queryParams.append('priceDate', params.priceDate);
         }
         const queryString = queryParams.toString();
         return `items${queryString ? `?${queryString}` : ''}`;

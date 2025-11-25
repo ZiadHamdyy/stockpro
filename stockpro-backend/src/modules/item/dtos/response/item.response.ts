@@ -7,7 +7,7 @@ export class ItemResponse {
   barcode?: string;
   name: string;
   purchasePrice: number;
-  lastPurchasePrice?: number | null;
+  initialPurchasePrice: number;
   salePrice: number;
   stock: number;
   openingBalance?: number; // StoreItem openingBalance when storeId is provided
