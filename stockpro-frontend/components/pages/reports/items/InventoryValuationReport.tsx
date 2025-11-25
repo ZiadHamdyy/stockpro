@@ -226,8 +226,9 @@ const InventoryValuationReport: React.FC<InventoryValuationReportProps> = ({
     storeIssueVouchersLoading ||
     storeTransferVouchersLoading;
   const [reportData, setReportData] = useState<any[]>([]);
-  const { start: defaultStartDate, end: defaultEndDate } = getCurrentYearRange();
-  const [startDate, setStartDate] = useState(defaultStartDate);
+  const { end: defaultEndDate } = getCurrentYearRange();
+  const today = useMemo(() => new Date().toISOString().substring(0, 10), []);
+  const [startDate, setStartDate] = useState(today);
   const [endDate, setEndDate] = useState(defaultEndDate);
   const [valuationMethod, setValuationMethod] = useState<
     "purchasePrice" | "salePrice" | "averageCost"
