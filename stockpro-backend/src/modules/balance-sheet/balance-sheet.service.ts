@@ -699,13 +699,12 @@ export class BalanceSheetService {
     let totalBalance = 0;
 
     for (const supplier of suppliers) {
-      let balance = supplier.openingBalance || 0;
+      const opening = supplier.openingBalance || 0;
 
-      // Add PurchaseInvoices (credit purchases - increases what we owe)
+      // Get all PurchaseInvoices (increases what we owe - credit)
       const purchaseInvoices = await this.prisma.purchaseInvoice.aggregate({
         where: {
           supplierId: supplier.id,
-          paymentMethod: 'credit',
           date: {
             lte: endDate,
           },
@@ -714,13 +713,12 @@ export class BalanceSheetService {
           net: true,
         },
       });
-      balance += purchaseInvoices._sum.net || 0;
+      const totalCredit = purchaseInvoices._sum.net || 0;
 
-      // Subtract PurchaseReturns (credit returns - decreases what we owe)
+      // Get all PurchaseReturns (decreases what we owe - debit)
       const purchaseReturns = await this.prisma.purchaseReturn.aggregate({
         where: {
           supplierId: supplier.id,
-          paymentMethod: 'credit',
           date: {
             lte: endDate,
           },
@@ -729,9 +727,9 @@ export class BalanceSheetService {
           net: true,
         },
       });
-      balance -= purchaseReturns._sum.net || 0;
+      const totalReturns = purchaseReturns._sum.net || 0;
 
-      // Subtract PaymentVouchers (payments to supplier - decreases what we owe)
+      // Get PaymentVouchers (payments to supplier - decreases what we owe - debit)
       const paymentVouchers = await this.prisma.paymentVoucher.aggregate({
         where: {
           entityType: 'supplier',
@@ -744,9 +742,9 @@ export class BalanceSheetService {
           amount: true,
         },
       });
-      balance -= paymentVouchers._sum.amount || 0;
+      const totalPayments = paymentVouchers._sum.amount || 0;
 
-      // Subtract ReceiptVouchers (receipts from supplier - decreases what we owe)
+      // Get ReceiptVouchers (receipts from supplier - decreases what we owe - debit)
       const receiptVouchers = await this.prisma.receiptVoucher.aggregate({
         where: {
           entityType: 'supplier',
@@ -759,7 +757,14 @@ export class BalanceSheetService {
           amount: true,
         },
       });
-      balance -= receiptVouchers._sum.amount || 0;
+      const totalReceipts = receiptVouchers._sum.amount || 0;
+
+      // Calculate balance using the same formula as SupplierBalanceReport
+      // Total Debit: purchase returns, payment vouchers, receipt vouchers (all decrease what we owe)
+      const totalDebit = totalReturns + totalPayments + totalReceipts;
+      // Total Credit: purchase invoices (increases what we owe)
+      // Balance = Beginning Balance + Total Debit - Total Credit
+      const balance = opening + totalDebit - totalCredit;
 
       totalBalance += balance;
     }
