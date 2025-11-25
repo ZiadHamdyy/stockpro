@@ -10,6 +10,8 @@ import {
   HttpStatus,
   Query,
   UseGuards,
+  UseInterceptors,
+  UploadedFile,
 } from '@nestjs/common';
 import { ItemService } from './item.service';
 import { CreateItemRequest } from './dtos/request/create-item.request';
@@ -20,6 +22,9 @@ import { Auth } from '../../common/decorators/auth.decorator';
 import { currentUser } from '../../common/decorators/currentUser.decorator';
 import type { currentUserType } from '../../common/types/current-user.type';
 import { StoreService } from '../store/store.service';
+import { ItemImportService } from './services/item-import.service';
+import { FileInterceptor } from '@nestjs/platform-express';
+import * as multer from 'multer';
 
 @Controller('items')
 @UseGuards(JwtAuthenticationGuard)
@@ -27,6 +32,7 @@ export class ItemController {
   constructor(
     private readonly itemService: ItemService,
     private readonly storeService: StoreService,
+    private readonly itemImportService: ItemImportService,
   ) {}
 
   @Post()
@@ -85,5 +91,21 @@ export class ItemController {
   @Auth({ permissions: ['add_item:delete'] })
   async remove(@Param('id') id: string): Promise<void> {
     return this.itemService.remove(id);
+  }
+
+  @Post('import')
+  @HttpCode(HttpStatus.OK)
+  @Auth({ permissions: ['add_item:create'] })
+  @UseInterceptors(
+    FileInterceptor('file', {
+      storage: multer.memoryStorage(),
+      limits: { fileSize: 5 * 1024 * 1024 }, // 5MB
+    }),
+  )
+  async importItems(
+    @UploadedFile() file: Express.Multer.File,
+    @currentUser() user: currentUserType,
+  ) {
+    return this.itemImportService.importFromExcel(file, user);
   }
 }

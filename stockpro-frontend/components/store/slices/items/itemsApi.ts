@@ -79,6 +79,16 @@ export interface UpdateItemRequest {
   type?: 'STOCKED' | 'SERVICE';
 }
 
+export interface ImportItemsSummary {
+  totalRows: number;
+  importedCount: number;
+  failedCount: number;
+  errors: Array<{
+    row: number;
+    message: string;
+  }>;
+}
+
 export const itemsApiSlice = apiSlice.injectEndpoints({
   endpoints: (builder: any) => ({
     // Item Groups
@@ -204,6 +214,15 @@ export const itemsApiSlice = apiSlice.injectEndpoints({
         "Unit",
       ],
     }),
+    importItems: builder.mutation<ImportItemsSummary, FormData>({
+      query: (formData) => ({
+        url: "items/import",
+        method: "POST",
+        body: formData,
+      }),
+      transformResponse: (response: { data: ImportItemsSummary }) => response.data,
+      invalidatesTags: ["Item"],
+    }),
   }),
 });
 
@@ -222,4 +241,5 @@ export const {
   useCreateItemMutation,
   useUpdateItemMutation,
   useDeleteItemMutation,
+  useImportItemsMutation,
 } = itemsApiSlice;
