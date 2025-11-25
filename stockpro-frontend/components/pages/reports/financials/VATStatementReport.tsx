@@ -562,11 +562,11 @@ const VATStatementReport: React.FC<VATStatementReportProps> = ({ title, companyI
                                     <td className="px-6 py-4 font-medium text-brand-dark">
                                         {row.description}
                                     </td>
-                                    <td className={`px-6 py-4 text-green-600 ${getNegativeNumberClass(row.type === 'debit' ? row.tax : 0)}`}>
-                                        {row.type === 'debit' ? formatNumber(row.tax) : '-'}
-                                    </td>
-                                    <td className={`px-6 py-4 text-red-600 ${getNegativeNumberClass(row.type === 'credit' ? row.tax : 0)}`}>
+                                    <td className={`px-6 py-4 text-green-600 ${getNegativeNumberClass(row.type === 'credit' ? row.tax : 0)}`}>
                                         {row.type === 'credit' ? formatNumber(row.tax) : '-'}
+                                    </td>
+                                    <td className={`px-6 py-4 text-red-600 ${getNegativeNumberClass(row.type === 'debit' ? row.tax : 0)}`}>
+                                        {row.type === 'debit' ? formatNumber(row.tax) : '-'}
                                     </td>
                                     <td className={`px-6 py-4 font-bold ${getNegativeNumberClass(row.balance)}`}>
                                         {formatNumber(row.balance)}

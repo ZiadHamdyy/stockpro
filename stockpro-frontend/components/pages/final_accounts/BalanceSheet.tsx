@@ -381,9 +381,10 @@ const BalanceSheet: React.FC = () => {
   }
 
   // Calculate balance discrepancy
-  const discrepancy = Math.abs(
-    displayData.totalAssets - displayData.totalLiabilitiesAndEquity,
-  );
+  // Ensure proper subtraction regardless of signs
+  const assets = displayData.totalAssets;
+  const liabilitiesAndEquity = displayData.totalLiabilitiesAndEquity;
+  const discrepancy = Math.abs(assets - liabilitiesAndEquity);
   const hasDiscrepancy = discrepancy > 0.01; // Allow for small rounding differences
 
   return (
