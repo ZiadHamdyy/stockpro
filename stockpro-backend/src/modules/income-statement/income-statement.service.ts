@@ -23,15 +23,15 @@ export class IncomeStatementService {
     // Calculate net sales
     const netSales = totalSales - totalSalesReturns;
 
-    // Calculate beginning inventory
-    // Balance is calculated as of endDate (matching InventoryValuationReport)
-    // Price is based on the last purchase price on or before the day before start date
+    // Calculate beginning inventory (before startDate - at the end of the day before start date)
+    // Balance and price are both calculated at the day before startDate
+    // This finds the earliest purchase before the start date
     const dayBeforeStart = new Date(start);
     dayBeforeStart.setDate(dayBeforeStart.getDate() - 1);
     const dayBeforeStartString = dayBeforeStart.toISOString().split('T')[0];
     const endDateString = end.toISOString().split('T')[0];
     const beginningInventory = await this.calculateInventoryValue(
-      endDateString, // Balance calculated at endDate
+      dayBeforeStartString, // Balance calculated at day before startDate
       dayBeforeStartString, // Price calculated at day before startDate
     );
 

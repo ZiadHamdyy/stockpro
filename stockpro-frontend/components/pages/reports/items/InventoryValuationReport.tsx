@@ -373,7 +373,8 @@ const InventoryValuationReport: React.FC<InventoryValuationReportProps> = ({
         tx.branchName === selectedBranchName ||
         tx.branchId === selectedBranchId;
 
-      // Filter transactions up to and including endDate (not within the range)
+      // Filter transactions up to and including endDate
+      // Calculate balance as of endDate (find all transactions that happened before or on the end date)
       const filterByDate = (tx: any) => {
         if (!normalizedEndDate) return false;
         const txDate =
@@ -383,8 +384,6 @@ const InventoryValuationReport: React.FC<InventoryValuationReportProps> = ({
         if (!txDate) return false;
         return txDate <= normalizedEndDate;
       };
-
-      // Calculate balance as of endDate by including all transactions up to endDate
       transformedPurchaseInvoices.filter(filterByBranch).filter(filterByDate).forEach((inv) =>
         inv.items.forEach((i) => {
           if (i.id === item.code) balance += i.qty;
@@ -430,18 +429,10 @@ const InventoryValuationReport: React.FC<InventoryValuationReportProps> = ({
         });
       }
 
-      // Calculate cost based on valuation method at start of the period (day before start date)
+      // Calculate cost based on valuation method at end of the period (end date)
+      // Find the nearest purchase invoice that happened before or on the end date
       let cost = 0;
-      const priceReferenceDate = (() => {
-        if (startDate) {
-          const date = new Date(startDate);
-          if (!Number.isNaN(date.getTime())) {
-            date.setDate(date.getDate() - 1);
-            return date.toISOString().substring(0, 10);
-          }
-        }
-        return endDate;
-      })();
+      const priceReferenceDate = endDate;
       const fallbackPrice =
         item.initialPurchasePrice ?? item.purchasePrice ?? 0;
       switch (valuationMethod) {
