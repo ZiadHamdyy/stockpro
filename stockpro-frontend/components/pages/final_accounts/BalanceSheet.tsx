@@ -20,10 +20,8 @@ const flipSign = (value: number) => (value === 0 ? 0 : value * -1);
 const BalanceSheet: React.FC = () => {
   const title = "قائمة المركز المالي";
   const currentYear = new Date().getFullYear();
-  const formatDate = (date: Date) => date.toISOString().substring(0, 10);
-  const today = formatDate(new Date());
-  const [startDate, setStartDate] = useState(today);
-  const [endDate, setEndDate] = useState(today);
+  const [startDate, setStartDate] = useState(`${currentYear}-01-01`);
+  const [endDate, setEndDate] = useState(`${currentYear}-12-31`);
 
   const {
     data: balanceSheetData,
