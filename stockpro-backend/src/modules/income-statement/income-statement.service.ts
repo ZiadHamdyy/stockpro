@@ -23,14 +23,16 @@ export class IncomeStatementService {
     // Calculate net sales
     const netSales = totalSales - totalSalesReturns;
 
-    // Calculate beginning inventory (before startDate - at the end of the day before start date)
-    // Valuation is based on the last purchase price on or before the day before start date
+    // Calculate beginning inventory
+    // Balance is calculated as of endDate (matching InventoryValuationReport)
+    // Price is based on the last purchase price on or before the day before start date
     const dayBeforeStart = new Date(start);
     dayBeforeStart.setDate(dayBeforeStart.getDate() - 1);
     const dayBeforeStartString = dayBeforeStart.toISOString().split('T')[0];
+    const endDateString = end.toISOString().split('T')[0];
     const beginningInventory = await this.calculateInventoryValue(
-      dayBeforeStartString,
-      false, // include all transactions up to and including the day before start date
+      endDateString, // Balance calculated at endDate
+      dayBeforeStartString, // Price calculated at day before startDate
     );
 
     // Calculate total purchases (net of tax - subtotal only, excluding tax)
@@ -47,7 +49,8 @@ export class IncomeStatementService {
 
     // Calculate ending inventory (at endDate)
     // Valuation is based on the last purchase price before or on the end date
-    const endingInventory = await this.calculateInventoryValue(endDate);
+    // Both balance and price are calculated at endDate
+    const endingInventory = await this.calculateInventoryValue(endDateString);
 
     // Calculate COGS
     const cogs = beginningInventory + netPurchases - endingInventory;
@@ -219,18 +222,24 @@ export class IncomeStatementService {
   }
 
   /**
-   * Calculate total inventory valuation at a specific date
-   * Uses the last purchase price before or on the target date for each item
-   * @param targetDate - The date to calculate inventory valuation for (format: YYYY-MM-DD)
-   * @param excludeTargetDate - If true, excludes transactions on the target date (for beginning inventory)
-   * @returns Total inventory value based on last purchase prices
+   * Calculate total inventory valuation
+   * Uses separate dates for balance calculation and price lookup (matching InventoryValuationReport)
+   * @param balanceDate - The date to calculate inventory balance for (format: YYYY-MM-DD)
+   * @param priceDate - The date to lookup purchase price for (format: YYYY-MM-DD)
+   * @returns Total inventory value based on balance at balanceDate and price at priceDate
    */
   private async calculateInventoryValue(
-    targetDate: string,
-    excludeTargetDate: boolean = false,
+    balanceDate: string,
+    priceDate?: string,
   ): Promise<number> {
-    const targetDateTime = new Date(targetDate);
-    targetDateTime.setHours(23, 59, 59, 999);
+    const balanceDateTime = new Date(balanceDate);
+    balanceDateTime.setHours(23, 59, 59, 999);
+
+    // Use priceDate if provided, otherwise use balanceDate (for ending inventory)
+    const priceDateTime = priceDate
+      ? new Date(priceDate)
+      : new Date(balanceDate);
+    priceDateTime.setHours(23, 59, 59, 999);
 
     // Get all items
     const items = (await this.prisma.item.findMany({
@@ -247,19 +256,19 @@ export class IncomeStatementService {
     let totalValue = 0;
 
     for (const item of items) {
-      // Calculate inventory balance at target date
+      // Calculate inventory balance at balanceDate
       const balance = await this.calculateItemBalanceAtDate(
         item.id,
         item.code,
-        targetDateTime,
-        excludeTargetDate,
+        balanceDateTime,
+        false, // Include all transactions up to and including balanceDate
       );
 
       if (balance > 0) {
-        // Find the last purchase price before or on the target date
+        // Find the last purchase price before or on the priceDate
         const lastPurchasePrice = await this.getLastPurchasePriceBeforeDate(
           item.code,
-          targetDateTime,
+          priceDateTime,
         );
 
         // Use last purchase price if found, otherwise fall back to item's current purchase price
