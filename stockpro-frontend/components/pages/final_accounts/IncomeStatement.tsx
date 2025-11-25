@@ -10,9 +10,7 @@ const IncomeStatement: React.FC = () => {
   const title = "قائمة الدخل";
   const currentYear = new Date().getFullYear();
   const [startDate, setStartDate] = useState(`${currentYear}-01-01`);
-  const [endDate, setEndDate] = useState(
-    new Date().toISOString().substring(0, 10),
-  );
+  const [endDate, setEndDate] = useState(`${currentYear}-12-31`);
 
   const {
     data: financialData,
