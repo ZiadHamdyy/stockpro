@@ -418,7 +418,7 @@ const IncomeStatement: React.FC = () => {
               </tr>
 
               <tr
-                className={`font-bold text-2xl text-white ${financialData.netProfit >= 0 ? "bg-brand-green" : "bg-red-600"}`}
+                className={`font-bold text-2xl text-white ${financialData.netProfit >= 0 ? "bg-brand-green" : "bg-red-200"}`}
               >
                 <Td>صافي الربح / (الخسارة)</Td>
                 <Td></Td>

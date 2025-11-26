@@ -301,6 +301,9 @@ const SalesReturn: React.FC<SalesReturnProps> = ({
   );
   const isExistingReturn = currentIndex >= 0;
 
+  // Show tax column when viewing/editing existing return OR when VAT is enabled for new returns
+  const shouldShowTaxColumn = currentIndex >= 0 || isVatEnabled;
+
   const handleOpenPreview = () => {
     if (!canPrintExistingReturn) {
       showToast("لا يمكن الطباعة إلا بعد تحميل مستند محفوظ.", "error");
@@ -1226,9 +1229,11 @@ const SalesReturn: React.FC<SalesReturnProps> = ({
                 >
                   السعر
                 </th>
-                <th className="px-2 py-3 w-36 text-center text-sm font-semibold uppercase border border-blue-300">
-                  الضريبة {effectiveVatEnabled ? `(%${vatRate})` : '(%0)'}
-                </th>
+                {shouldShowTaxColumn && (
+                  <th className="px-2 py-3 w-36 text-center text-sm font-semibold uppercase border border-blue-300">
+                    الضريبة {effectiveVatEnabled ? `(%${vatRate})` : '(%0)'}
+                  </th>
+                )}
                 <th className="px-2 py-3 w-36 text-center text-sm font-semibold uppercase border border-blue-300">
                   الاجمالي
                 </th>
@@ -1353,9 +1358,11 @@ const SalesReturn: React.FC<SalesReturnProps> = ({
                       disabled={isReadOnly}
                     />
                   </td>
-                  <td className="p-2 align-middle text-center border-x border-gray-300">
-                    {formatMoney(effectiveVatEnabled ? item.taxAmount : 0)}
-                  </td>
+                  {shouldShowTaxColumn && (
+                    <td className="p-2 align-middle text-center border-x border-gray-300">
+                      {formatMoney(effectiveVatEnabled ? item.taxAmount : 0)}
+                    </td>
+                  )}
                   <td className="p-2 align-middle text-center border-x border-gray-300">
                     {formatMoney(item.total)}
                   </td>
