@@ -192,12 +192,20 @@ const SafeStatementReport: React.FC<SafeStatementReportProps> = ({
       branchId && value?.toString() === branchId;
     const matchesSafeRecord = (record: any) => {
       if (!record) return false;
+      // 1) Explicit link to this safe (legacy / direct safeId usage)
       if (matchesSafeValue(record.safeId)) return true;
-      if (matchesBranchValue(record.branchId)) return true;
-      if (record.paymentTargetType === "safe") {
-        if (matchesSafeValue(record.paymentTargetId)) return true;
-        if (matchesBranchValue(record.paymentTargetId)) return true;
+
+      // 2) For invoices / returns we ONLY consider cash payments that target a safe.
+      //    These records use branchId as the paymentTargetId when paymentTargetType === "safe".
+      if (
+        record.paymentMethod === "cash" &&
+        record.paymentTargetType === "safe" &&
+        (matchesBranchValue(record.paymentTargetId) ||
+          matchesSafeValue(record.paymentTargetId))
+      ) {
+        return true;
       }
+
       return false;
     };
     
@@ -215,7 +223,7 @@ const SafeStatementReport: React.FC<SafeStatementReportProps> = ({
 
     const normalizedStartDate = normalizeDate(startDate);
 
-    // Receipt vouchers (incoming)
+    // Receipt vouchers (incoming) - always explicitly linked to safe/bank
     const receiptsBefore = receiptVouchers
       .filter(
         (v) => {
@@ -244,8 +252,17 @@ const SafeStatementReport: React.FC<SafeStatementReportProps> = ({
       .filter(
         (inv) => {
           const invDate = normalizeDate(inv.date);
-          return matchesSafeRecord(inv) &&
-            invDate < normalizedStartDate;
+          // Only cash invoices that actually pay to a safe
+          if (
+            inv.paymentMethod !== "cash" ||
+            inv.paymentTargetType !== "safe" ||
+            !matchesSafeRecord(inv)
+          ) {
+            return false;
+          }
+          return (
+            invDate < normalizedStartDate
+          );
         }
       )
       .reduce((sum, inv) => sum + resolveRecordAmount(inv), 0);
@@ -255,8 +272,17 @@ const SafeStatementReport: React.FC<SafeStatementReportProps> = ({
       .filter(
         (inv) => {
           const invDate = normalizeDate(inv.date);
-          return matchesSafeRecord(inv) &&
-            invDate < normalizedStartDate;
+          // Only cash invoices that actually pay from a safe
+          if (
+            inv.paymentMethod !== "cash" ||
+            inv.paymentTargetType !== "safe" ||
+            !matchesSafeRecord(inv)
+          ) {
+            return false;
+          }
+          return (
+            invDate < normalizedStartDate
+          );
         }
       )
       .reduce((sum, inv) => sum + resolveRecordAmount(inv), 0);
@@ -266,8 +292,17 @@ const SafeStatementReport: React.FC<SafeStatementReportProps> = ({
       .filter(
         (ret) => {
           const retDate = normalizeDate(ret.date);
-          return matchesSafeRecord(ret) &&
-            retDate < normalizedStartDate;
+          // Only cash returns that actually pay from a safe
+          if (
+            ret.paymentMethod !== "cash" ||
+            ret.paymentTargetType !== "safe" ||
+            !matchesSafeRecord(ret)
+          ) {
+            return false;
+          }
+          return (
+            retDate < normalizedStartDate
+          );
         }
       )
       .reduce((sum, ret) => sum + resolveRecordAmount(ret), 0);
@@ -277,8 +312,17 @@ const SafeStatementReport: React.FC<SafeStatementReportProps> = ({
       .filter(
         (ret) => {
           const retDate = normalizeDate(ret.date);
-          return matchesSafeRecord(ret) &&
-            retDate < normalizedStartDate;
+          // Only cash returns that actually pay to a safe
+          if (
+            ret.paymentMethod !== "cash" ||
+            ret.paymentTargetType !== "safe" ||
+            !matchesSafeRecord(ret)
+          ) {
+            return false;
+          }
+          return (
+            retDate < normalizedStartDate
+          );
         }
       )
       .reduce((sum, ret) => sum + resolveRecordAmount(ret), 0);
@@ -326,12 +370,20 @@ const SafeStatementReport: React.FC<SafeStatementReportProps> = ({
       branchId && value?.toString() === branchId;
     const matchesSafeRecord = (record: any) => {
       if (!record) return false;
+      // 1) Explicit link to this safe (legacy / direct safeId usage)
       if (matchesSafeValue(record.safeId)) return true;
-      if (matchesBranchValue(record.branchId)) return true;
-      if (record.paymentTargetType === "safe") {
-        if (matchesSafeValue(record.paymentTargetId)) return true;
-        if (matchesBranchValue(record.paymentTargetId)) return true;
+
+      // 2) For invoices / returns we ONLY consider cash payments that target a safe.
+      //    These records use branchId as the paymentTargetId when paymentTargetType === "safe".
+      if (
+        record.paymentMethod === "cash" &&
+        record.paymentTargetType === "safe" &&
+        (matchesBranchValue(record.paymentTargetId) ||
+          matchesSafeValue(record.paymentTargetId))
+      ) {
+        return true;
       }
+
       return false;
     };
 
@@ -399,6 +451,8 @@ const SafeStatementReport: React.FC<SafeStatementReportProps> = ({
     (apiSalesInvoices as any[]).forEach((inv) => {
       const invoiceDate = normalizeDate(inv.date);
       if (
+        inv.paymentMethod === "cash" &&
+        inv.paymentTargetType === "safe" &&
         matchesSafeRecord(inv) &&
         invoiceDate >= normalizedStartDate &&
         invoiceDate <= normalizedEndDate
@@ -421,6 +475,8 @@ const SafeStatementReport: React.FC<SafeStatementReportProps> = ({
     (apiPurchaseReturns as any[]).forEach((ret) => {
       const returnDate = normalizeDate(ret.date);
       if (
+        ret.paymentMethod === "cash" &&
+        ret.paymentTargetType === "safe" &&
         matchesSafeRecord(ret) &&
         returnDate >= normalizedStartDate &&
         returnDate <= normalizedEndDate
@@ -467,6 +523,8 @@ const SafeStatementReport: React.FC<SafeStatementReportProps> = ({
     (apiPurchaseInvoices as any[]).forEach((inv) => {
       const invoiceDate = normalizeDate(inv.date);
       if (
+        inv.paymentMethod === "cash" &&
+        inv.paymentTargetType === "safe" &&
         matchesSafeRecord(inv) &&
         invoiceDate >= normalizedStartDate &&
         invoiceDate <= normalizedEndDate
@@ -489,6 +547,8 @@ const SafeStatementReport: React.FC<SafeStatementReportProps> = ({
     (apiSalesReturns as any[]).forEach((ret) => {
       const returnDate = normalizeDate(ret.date);
       if (
+        ret.paymentMethod === "cash" &&
+        ret.paymentTargetType === "safe" &&
         matchesSafeRecord(ret) &&
         returnDate >= normalizedStartDate &&
         returnDate <= normalizedEndDate
@@ -583,11 +643,13 @@ const SafeStatementReport: React.FC<SafeStatementReportProps> = ({
 
   const totalDebit = reportData.reduce((sum, item) => sum + item.debit, 0);
   const totalCredit = reportData.reduce((sum, item) => sum + item.credit, 0);
+
+  // Final balance is recalculated purely from opening balance and movements in this report
+  // (do NOT rely on selectedSafe.currentBalance, which may use different business rules).
   const finalBalance =
-    selectedSafe?.currentBalance !== undefined &&
-    selectedSafe?.currentBalance !== null
-      ? selectedSafe.currentBalance
-      : openingBalance + totalDebit - totalCredit;
+    reportData.length > 0
+      ? reportData[reportData.length - 1].balance
+      : openingBalance;
 
   const inputStyle =
     "p-2 border-2 border-brand-blue rounded-md focus:outline-none focus:ring-2 focus:ring-brand-blue bg-brand-blue-bg";

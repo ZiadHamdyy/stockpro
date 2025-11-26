@@ -117,15 +117,21 @@ export class SalesReturnService {
         });
       }
 
-      const safeId = branchId
-        ? (
-            await tx.safe.findFirst({
-              where: { branchId },
-            })
-          )?.id || null
-        : null;
+      // Only persist safe/bank links for CASH returns
+      const safeId =
+        data.paymentMethod === 'cash' &&
+        data.paymentTargetType === 'safe' &&
+        branchId
+          ? (
+              await tx.safe.findFirst({
+                where: { branchId },
+              })
+            )?.id || null
+          : null;
       const bankId =
-        data.paymentTargetType === 'bank' ? data.paymentTargetId || null : null;
+        data.paymentMethod === 'cash' && data.paymentTargetType === 'bank'
+          ? data.paymentTargetId || null
+          : null;
 
       const ret = await tx.salesReturn.create({
         data: {
@@ -138,8 +144,11 @@ export class SalesReturnService {
           tax,
           net,
           paymentMethod: data.paymentMethod,
-          paymentTargetType: data.paymentTargetType,
-          paymentTargetId: data.paymentTargetId,
+          // For credit returns, do not persist any payment target metadata
+          paymentTargetType:
+            data.paymentMethod === 'cash' ? data.paymentTargetType : null,
+          paymentTargetId:
+            data.paymentMethod === 'cash' ? data.paymentTargetId : null,
           safeId,
           bankId,
           notes: data.notes,
@@ -372,19 +381,28 @@ export class SalesReturnService {
           }
         }
 
+        const nextPaymentMethod =
+          data.paymentMethod ?? existingReturn?.paymentMethod;
         const nextPaymentTargetType =
           data.paymentTargetType !== undefined
             ? data.paymentTargetType
-            : (existingReturn?.paymentTargetType ?? null);
+            : existingReturn?.paymentTargetType ?? null;
         const nextPaymentTargetId =
           data.paymentTargetId !== undefined
             ? data.paymentTargetId
-            : (existingReturn?.paymentTargetId ?? null);
+            : existingReturn?.paymentTargetId ?? null;
         const branchIdForReturn = existingReturn?.branchId ?? null;
-        const safeId = await this.findSafeId(branchIdForReturn, tx);
+
+        // Only persist safe/bank links for CASH returns
+        const safeId =
+          nextPaymentMethod === 'cash' &&
+          nextPaymentTargetType === 'safe' &&
+          branchIdForReturn
+            ? await this.findSafeId(branchIdForReturn, tx)
+            : null;
         const bankId =
-          nextPaymentTargetType === 'bank'
-            ? (nextPaymentTargetId ?? null)
+          nextPaymentMethod === 'cash' && nextPaymentTargetType === 'bank'
+            ? nextPaymentTargetId ?? null
             : null;
 
         const ret = await tx.salesReturn.update({
@@ -398,8 +416,13 @@ export class SalesReturnService {
             tax,
             net,
             userId,
-            paymentTargetType: nextPaymentTargetType,
-            paymentTargetId: nextPaymentTargetType ? nextPaymentTargetId : null,
+            // For credit returns, do not persist any payment target metadata
+            paymentTargetType:
+              nextPaymentMethod === 'cash' ? nextPaymentTargetType : null,
+            paymentTargetId:
+              nextPaymentMethod === 'cash' && nextPaymentTargetType
+                ? nextPaymentTargetId
+                : null,
             safeId,
             bankId,
           },

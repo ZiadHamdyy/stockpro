@@ -162,15 +162,21 @@ export class SalesInvoiceService {
         }
       }
 
-      const safeId = branchId
-        ? (
-            await tx.safe.findFirst({
-              where: { branchId },
-            })
-          )?.id || null
-        : null;
+      // Only persist safe/bank links for CASH invoices
+      const safeId =
+        data.paymentMethod === 'cash' &&
+        data.paymentTargetType === 'safe' &&
+        branchId
+          ? (
+              await tx.safe.findFirst({
+                where: { branchId },
+              })
+            )?.id || null
+          : null;
       const bankId =
-        data.paymentTargetType === 'bank' ? data.paymentTargetId || null : null;
+        data.paymentMethod === 'cash' && data.paymentTargetType === 'bank'
+          ? data.paymentTargetId || null
+          : null;
 
       const created = await tx.salesInvoice.create({
         data: {
@@ -183,8 +189,11 @@ export class SalesInvoiceService {
           tax,
           net,
           paymentMethod: data.paymentMethod,
-          paymentTargetType: data.paymentTargetType,
-          paymentTargetId: data.paymentTargetId,
+          // For credit invoices, do not persist any payment target metadata
+          paymentTargetType:
+            data.paymentMethod === 'cash' ? data.paymentTargetType : null,
+          paymentTargetId:
+            data.paymentMethod === 'cash' ? data.paymentTargetId : null,
           safeId,
           bankId,
           notes: data.notes,
@@ -498,19 +507,28 @@ export class SalesInvoiceService {
           }
         }
 
+        const nextPaymentMethod =
+          data.paymentMethod ?? existingInvoice?.paymentMethod;
         const nextPaymentTargetType =
           data.paymentTargetType !== undefined
             ? data.paymentTargetType
-            : (existingInvoice?.paymentTargetType ?? null);
+            : existingInvoice?.paymentTargetType ?? null;
         const nextPaymentTargetId =
           data.paymentTargetId !== undefined
             ? data.paymentTargetId
-            : (existingInvoice?.paymentTargetId ?? null);
+            : existingInvoice?.paymentTargetId ?? null;
         const branchIdForInvoice = existingInvoice?.branchId ?? null;
-        const safeId = await this.findSafeId(branchIdForInvoice, tx);
+
+        // Only persist safe/bank links for CASH invoices
+        const safeId =
+          nextPaymentMethod === 'cash' &&
+          nextPaymentTargetType === 'safe' &&
+          branchIdForInvoice
+            ? await this.findSafeId(branchIdForInvoice, tx)
+            : null;
         const bankId =
-          nextPaymentTargetType === 'bank'
-            ? (nextPaymentTargetId ?? null)
+          nextPaymentMethod === 'cash' && nextPaymentTargetType === 'bank'
+            ? nextPaymentTargetId ?? null
             : null;
 
         const inv = await tx.salesInvoice.update({
@@ -524,8 +542,13 @@ export class SalesInvoiceService {
             tax,
             net,
             userId,
-            paymentTargetType: nextPaymentTargetType,
-            paymentTargetId: nextPaymentTargetType ? nextPaymentTargetId : null,
+            // For credit invoices, do not persist any payment target metadata
+            paymentTargetType:
+              nextPaymentMethod === 'cash' ? nextPaymentTargetType : null,
+            paymentTargetId:
+              nextPaymentMethod === 'cash' && nextPaymentTargetType
+                ? nextPaymentTargetId
+                : null,
             safeId,
             bankId,
           },

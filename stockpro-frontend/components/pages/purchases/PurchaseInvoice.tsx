@@ -627,16 +627,17 @@ const PurchaseInvoice: React.FC<PurchaseInvoiceProps> = ({
         })),
         discount: totals.discount,
         paymentMethod,
+        // For credit invoices, do NOT send any safe/bank info
         paymentTargetType:
-          paymentMethod === "cash" ? paymentTargetType : undefined,
+          paymentMethod === "cash" ? paymentTargetType : null,
         // When payment target is "safe", send branch ID as paymentTargetId
         // When payment target is "bank", send bank ID as paymentTargetId
         paymentTargetId:
-          paymentMethod === "cash" 
+          paymentMethod === "cash"
             ? (paymentTargetType === "safe" && userBranchId
                 ? userBranchId.toString()
-                : paymentTargetId?.toString())
-            : undefined,
+                : paymentTargetId?.toString() || null)
+            : null,
         notes: "",
       };
 

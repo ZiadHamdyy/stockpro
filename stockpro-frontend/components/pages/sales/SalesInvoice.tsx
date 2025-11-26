@@ -762,16 +762,17 @@ const SalesInvoice: React.FC<SalesInvoiceProps> = ({
         })),
         discount: totals.discount,
         paymentMethod,
+        // For credit invoices, do NOT send any safe/bank info
         paymentTargetType:
-          paymentMethod === "cash" ? paymentTargetType : undefined,
+          paymentMethod === "cash" ? paymentTargetType : null,
         // When payment target is "safe", send branch ID as paymentTargetId
         // When payment target is "bank", send bank ID as paymentTargetId
         paymentTargetId:
-          paymentMethod === "cash" 
+          paymentMethod === "cash"
             ? (paymentTargetType === "safe"
-                ? safeBranchId?.toString() || undefined
-                : paymentTargetId?.toString())
-            : undefined,
+                ? safeBranchId?.toString() || null
+                : paymentTargetId?.toString() || null)
+            : null,
         notes: "",
         allowInsufficientStock: allowSellingLessThanStock,
       };
