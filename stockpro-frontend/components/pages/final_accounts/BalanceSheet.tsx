@@ -39,7 +39,8 @@ const BalanceSheet: React.FC = () => {
     const otherPayables = flipSign(balanceSheetData.otherPayables);
     const vatPayable = flipSign(balanceSheetData.vatPayable);
     const partnersBalance = flipSign(balanceSheetData.partnersBalance);
-    const retainedEarnings = flipSign(balanceSheetData.retainedEarnings);
+    // Keep retained earnings with its original sign from backend
+    const retainedEarnings = balanceSheetData.retainedEarnings;
 
     const totalLiabilities = payables + otherPayables + vatPayable;
     const totalEquity =
@@ -392,6 +393,13 @@ const BalanceSheet: React.FC = () => {
   const discrepancy = Math.abs(assets - liabilitiesAndEquity);
   const hasDiscrepancy = discrepancy > 0.01; // Allow for small rounding differences
 
+  // Net VAT position routing:
+  // - If positive => treated as a VAT asset (paid more than collected)
+  // - If negative => treated as a VAT liability (owed to tax authority), shown as positive using * -1
+  const vatNet = balanceSheetData.vatPayable ?? 0;
+  const vatAsset = vatNet > 0 ? vatNet : 0;
+  const vatLiability = vatNet < 0 ? vatNet * -1 : 0;
+
   return (
     <div className="bg-white p-6 rounded-lg shadow">
       <div id="printable-area-balance-sheet">
@@ -539,6 +547,12 @@ const BalanceSheet: React.FC = () => {
                   {formatNumber(displayData.inventory)}
                 </Td>
               </tr>
+              <tr>
+                <Td>ضريبة القيمة المضافة المدفوعة</Td>
+                <Td className={`text-left font-mono ${getNegativeNumberClass(vatAsset)}`}>
+                  {formatNumber(vatAsset)}
+                </Td>
+              </tr>
               <tr
                 className={`font-bold text-brand-dark ${
                   hasDiscrepancy ? "bg-yellow-100" : "bg-blue-100"
@@ -570,8 +584,8 @@ const BalanceSheet: React.FC = () => {
               </tr>
               <tr>
                 <Td>ضريبة القيمة المضافة المستحقة</Td>
-                <Td className={`text-left font-mono ${getNegativeNumberClass(displayData.vatPayable)}`}>
-                  {formatNumber(displayData.vatPayable)}
+                <Td className={`text-left font-mono ${getNegativeNumberClass(vatLiability)}`}>
+                  {formatNumber(vatLiability)}
                 </Td>
               </tr>
               <tr className="font-bold bg-red-100 text-red-800">
@@ -601,7 +615,11 @@ const BalanceSheet: React.FC = () => {
               </tr>
               <tr>
                 <Td>الأرباح المحتجزة (أرباح الفترة)</Td>
-                <Td className={`text-left font-mono ${getNegativeNumberClass(displayData.retainedEarnings)}`}>
+                <Td
+                  className={`text-left font-mono ${getNegativeNumberClass(
+                    displayData.retainedEarnings,
+                  )}`}
+                >
                   {formatNumber(displayData.retainedEarnings)}
                 </Td>
               </tr>
