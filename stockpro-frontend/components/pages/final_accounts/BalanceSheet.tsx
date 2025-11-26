@@ -697,8 +697,24 @@ const BalanceSheet: React.FC = () => {
                 }`}
               >
                 <Td>إجمالي الأصول</Td>
-                <Td className={`text-left font-mono text-lg ${getNegativeNumberClass(displayData.totalAssets)}`}>
-                  {formatNumber(displayData.totalAssets)}
+                <Td
+                  className={`text-left font-mono text-lg ${getNegativeNumberClass(
+                    displayData.cashInSafes +
+                      displayData.cashInBanks +
+                      displayData.receivables +
+                      displayData.otherReceivables +
+                      displayData.inventory +
+                      vatAsset,
+                  )}`}
+                >
+                  {formatNumber(
+                    displayData.cashInSafes +
+                      displayData.cashInBanks +
+                      displayData.receivables +
+                      displayData.otherReceivables +
+                      displayData.inventory +
+                      vatAsset,
+                  )}
                 </Td>
               </tr>
 
@@ -728,8 +744,12 @@ const BalanceSheet: React.FC = () => {
               </tr>
               <tr className="font-bold bg-red-100 text-red-800">
                 <Td>إجمالي الالتزامات</Td>
-                <Td className={`text-left font-mono text-lg ${getNegativeNumberClass(displayData.totalLiabilities)}`}>
-                  {formatNumber(displayData.totalLiabilities)}
+                <Td
+                  className={`text-left font-mono text-lg ${getNegativeNumberClass(
+                    displayData.payables + displayData.otherPayables + vatLiability,
+                  )}`}
+                >
+                  {formatNumber(displayData.payables + displayData.otherPayables + vatLiability)}
                 </Td>
               </tr>
 
