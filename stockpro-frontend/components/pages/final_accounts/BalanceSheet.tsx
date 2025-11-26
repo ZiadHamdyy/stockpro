@@ -14,6 +14,14 @@ import {
   Actions,
   buildPermission,
 } from "../../../enums/permissions.enum";
+import { useGetSalesInvoicesQuery } from "../../store/slices/salesInvoice/salesInvoiceApiSlice";
+import { useGetSalesReturnsQuery } from "../../store/slices/salesReturn/salesReturnApiSlice";
+import { useGetPurchaseInvoicesQuery } from "../../store/slices/purchaseInvoice/purchaseInvoiceApiSlice";
+import { useGetPurchaseReturnsQuery } from "../../store/slices/purchaseReturn/purchaseReturnApiSlice";
+import { useGetPaymentVouchersQuery } from "../../store/slices/paymentVoucherApiSlice";
+import type { PaymentVoucher } from "../../store/slices/paymentVoucherApiSlice";
+import { useGetReceiptVouchersQuery } from "../../store/slices/receiptVoucherApiSlice";
+import type { ReceiptVoucher } from "../../store/slices/receiptVoucherApiSlice";
 
 const flipSign = (value: number) => (value === 0 ? 0 : value * -1);
 
@@ -22,6 +30,18 @@ const BalanceSheet: React.FC = () => {
   const currentYear = new Date().getFullYear();
   const [startDate, setStartDate] = useState(`${currentYear}-01-01`);
   const [endDate, setEndDate] = useState(`${currentYear}-12-31`);
+
+  // VAT-related data (same sources as VATStatementReport)
+  const { data: apiSalesInvoices = [] } = useGetSalesInvoicesQuery(undefined);
+  const { data: apiSalesReturns = [] } = useGetSalesReturnsQuery(undefined);
+  const { data: apiPurchaseInvoices = [] } =
+    useGetPurchaseInvoicesQuery(undefined);
+  const { data: apiPurchaseReturns = [] } =
+    useGetPurchaseReturnsQuery(undefined);
+  const { data: apiPaymentVouchers = [] } =
+    useGetPaymentVouchersQuery(undefined);
+  const { data: apiReceiptVouchers = [] } =
+    useGetReceiptVouchersQuery(undefined);
 
   const {
     data: balanceSheetData,
@@ -59,6 +79,124 @@ const BalanceSheet: React.FC = () => {
       totalLiabilitiesAndEquity,
     };
   }, [balanceSheetData]);
+
+  // Helper to normalize date to YYYY-MM-DD (copied from VATStatementReport)
+  const normalizeDate = useMemo(() => {
+    return (date: any): string => {
+      if (!date) return "";
+      if (typeof date === "string") {
+        if (/^\d{4}-\d{2}-\d{2}$/.test(date)) return date;
+        return date.substring(0, 10);
+      }
+      if (date instanceof Date) {
+        return date.toISOString().split("T")[0];
+      }
+      try {
+        const parsed = new Date(date);
+        if (!isNaN(parsed.getTime())) {
+          return parsed.toISOString().split("T")[0];
+        }
+      } catch {
+        // ignore
+      }
+      return "";
+    };
+  }, []);
+
+  // Compute VAT net from مدين/دائن totals (same logic as VATStatementReport)
+  const vatNetFromStatement = useMemo(() => {
+    const normalizedStartDate = normalizeDate(startDate);
+    const normalizedEndDate = normalizeDate(endDate);
+
+    const filterByDate = (inv: any) => {
+      const invDate = normalizeDate(inv.date);
+      return invDate >= normalizedStartDate && invDate <= normalizedEndDate;
+    };
+
+    const filterVoucherByDate = (v: PaymentVoucher) => {
+      const vDate = normalizeDate(v.date);
+      return vDate >= normalizedStartDate && vDate <= normalizedEndDate;
+    };
+
+    const filterReceiptVoucherByDate = (v: ReceiptVoucher) => {
+      const vDate = normalizeDate(v.date);
+      return vDate >= normalizedStartDate && vDate <= normalizedEndDate;
+    };
+
+    let totalDebit = 0;
+    let totalCredit = 0;
+
+    // Debit (مدين): Sales Invoices + Purchase Returns
+    (apiSalesInvoices as any[])
+      .filter(filterByDate)
+      .forEach((inv) => {
+        const tax = inv.tax || 0;
+        totalDebit += tax;
+      });
+
+    (apiPurchaseReturns as any[])
+      .filter(filterByDate)
+      .forEach((inv) => {
+        const tax = inv.tax || 0;
+        totalDebit += tax;
+      });
+
+    // Credit (دائن): Purchase Invoices + Sales Returns + Expense-Type Tax from Payment Vouchers
+    (apiPurchaseInvoices as any[])
+      .filter(filterByDate)
+      .forEach((inv) => {
+        const tax = inv.tax || 0;
+        totalCredit += tax;
+      });
+
+    (apiSalesReturns as any[])
+      .filter(filterByDate)
+      .forEach((inv) => {
+        const tax = inv.tax || 0;
+        totalCredit += tax;
+      });
+
+    (apiPaymentVouchers as PaymentVoucher[])
+      .filter(
+        (v) => v.entityType === "expense-Type" && v.taxPrice && v.taxPrice > 0,
+      )
+      .filter(filterVoucherByDate)
+      .forEach((v) => {
+        const tax = v.taxPrice || 0;
+        totalCredit += tax;
+      });
+
+    // VAT from Receipt Vouchers (Debit - VAT collected)
+    (apiReceiptVouchers as ReceiptVoucher[])
+      .filter((v) => v.entityType === "vat" && v.amount && v.amount > 0)
+      .filter(filterReceiptVoucherByDate)
+      .forEach((v) => {
+        const tax = v.amount || 0;
+        totalDebit += tax;
+      });
+
+    // VAT from Payment Vouchers (Credit - VAT paid)
+    (apiPaymentVouchers as PaymentVoucher[])
+      .filter((v) => v.entityType === "vat" && v.amount && v.amount > 0)
+      .filter(filterVoucherByDate)
+      .forEach((v) => {
+        const tax = v.amount || 0;
+        totalCredit += tax;
+      });
+
+    // Same formula used in VATStatementReport: netTax = totalCredit - totalDebit
+    return totalCredit - totalDebit;
+  }, [
+    apiSalesInvoices,
+    apiSalesReturns,
+    apiPurchaseInvoices,
+    apiPurchaseReturns,
+    apiPaymentVouchers,
+    apiReceiptVouchers,
+    normalizeDate,
+    startDate,
+    endDate,
+  ]);
 
   const handlePrint = () => {
     const reportContent = document.getElementById(
@@ -393,10 +531,10 @@ const BalanceSheet: React.FC = () => {
   const discrepancy = Math.abs(assets - liabilitiesAndEquity);
   const hasDiscrepancy = discrepancy > 0.01; // Allow for small rounding differences
 
-  // Net VAT position routing:
+  // Net VAT position from VAT Statement (مدين/دائن totals)
   // - If positive => treated as a VAT asset (paid more than collected)
   // - If negative => treated as a VAT liability (owed to tax authority), shown as positive using * -1
-  const vatNet = balanceSheetData.vatPayable ?? 0;
+  const vatNet = vatNetFromStatement || 0;
   const vatAsset = vatNet > 0 ? vatNet : 0;
   const vatLiability = vatNet < 0 ? vatNet * -1 : 0;
 
