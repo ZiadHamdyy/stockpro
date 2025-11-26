@@ -795,8 +795,24 @@ const BalanceSheet: React.FC = () => {
                 }`}
               >
                 <Td>إجمالي الالتزامات وحقوق الملكية</Td>
-                <Td className={`text-left font-mono ${getNegativeNumberClass(displayData.totalLiabilitiesAndEquity)}`}>
-                  {formatNumber(displayData.totalLiabilitiesAndEquity)}
+                <Td
+                  className={`text-left font-mono ${getNegativeNumberClass(
+                    displayData.payables +
+                      displayData.otherPayables +
+                      vatLiability +
+                      displayData.capital +
+                      displayData.partnersBalance +
+                      displayData.retainedEarnings,
+                  )}`}
+                >
+                  {formatNumber(
+                    displayData.payables +
+                      displayData.otherPayables +
+                      vatLiability +
+                      displayData.capital +
+                      displayData.partnersBalance +
+                      displayData.retainedEarnings,
+                  )}
                 </Td>
               </tr>
               {/* Balance Check Row */}
