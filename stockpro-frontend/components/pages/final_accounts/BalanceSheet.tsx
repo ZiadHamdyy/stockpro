@@ -524,19 +524,31 @@ const BalanceSheet: React.FC = () => {
     );
   }
 
-  // Calculate balance discrepancy
-  // Ensure proper subtraction regardless of signs
-  const assets = displayData.totalAssets;
-  const liabilitiesAndEquity = displayData.totalLiabilitiesAndEquity;
-  const discrepancy = Math.abs(assets - liabilitiesAndEquity);
-  const hasDiscrepancy = discrepancy > 0.01; // Allow for small rounding differences
-
   // Net VAT position from VAT Statement (مدين/دائن totals)
   // - If positive => treated as a VAT asset (paid more than collected)
   // - If negative => treated as a VAT liability (owed to tax authority), shown as positive using * -1
   const vatNet = vatNetFromStatement || 0;
   const vatAsset = vatNet > 0 ? vatNet : 0;
   const vatLiability = vatNet < 0 ? vatNet * -1 : 0;
+
+  // Calculate balance discrepancy using the actual displayed totals (including VAT)
+  // This matches what's shown in the table
+  const displayedTotalAssets =
+    displayData.cashInSafes +
+    displayData.cashInBanks +
+    displayData.receivables +
+    displayData.otherReceivables +
+    displayData.inventory +
+    vatAsset;
+  const displayedTotalLiabilitiesAndEquity =
+    displayData.payables +
+    displayData.otherPayables +
+    vatLiability +
+    displayData.capital +
+    displayData.partnersBalance +
+    displayData.retainedEarnings;
+  const discrepancy = Math.abs(displayedTotalAssets - displayedTotalLiabilitiesAndEquity);
+  const hasDiscrepancy = discrepancy > 0.01; // Allow for small rounding differences
 
   return (
     <div className="bg-white p-6 rounded-lg shadow">
@@ -637,9 +649,9 @@ const BalanceSheet: React.FC = () => {
                   {formatNumber(discrepancy)}
                 </p>
                 <p className="text-sm text-yellow-700">
-                  إجمالي الأصول: {formatNumber(displayData.totalAssets)} |{" "}
+                  إجمالي الأصول: {formatNumber(displayedTotalAssets)} |{" "}
                   إجمالي الالتزامات وحقوق الملكية:{" "}
-                  {formatNumber(displayData.totalLiabilitiesAndEquity)}
+                  {formatNumber(displayedTotalLiabilitiesAndEquity)}
                 </p>
               </div>
             </div>
