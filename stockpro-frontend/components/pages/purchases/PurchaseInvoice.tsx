@@ -81,16 +81,11 @@ const PurchaseInvoice: React.FC<PurchaseInvoiceProps> = ({
   const { data: stores = [] } = useGetStoresQuery();
   
   // Get store for current user's branch
-  const userBranchId = currentUser?.branchId || currentUser?.branch;
+  const userBranchId = getUserBranchId(currentUser);
   const userStore = stores.find((store) => store.branchId === userBranchId);
   
   // Get items with store-specific balances
   const { data: items = [] } = useGetItemsQuery(userStore ? { storeId: userStore.id } : undefined);
-
-  // Filter safes by current user's branch
-  const filteredSafes = userBranchId
-    ? safes.filter((safe) => safe.branchId === userBranchId)
-    : safes;
 
   // Transform data
   const allItems: SelectableItem[] = (items as any[]).map((item) => ({
@@ -141,6 +136,44 @@ const PurchaseInvoice: React.FC<PurchaseInvoiceProps> = ({
     total: 0,
   });
 
+const extractBranchName = (value: any): string => {
+  if (!value) return "";
+  if (typeof value === "string") return value;
+  if (typeof value === "object") {
+    return value.name || value.title || "";
+  }
+  return "";
+};
+
+const getUserBranchId = (user: User | null): string | null => {
+  if (!user) return null;
+  if (user.branchId) return user.branchId;
+  const branch = (user as any)?.branch;
+  if (typeof branch === "string") return branch;
+  if (branch && typeof branch === "object") return branch.id || null;
+  return null;
+};
+
+const getUserBranchName = (user: User | null): string => {
+  if (!user) return "";
+  if ((user as any)?.branchName) return (user as any).branchName;
+  return extractBranchName((user as any)?.branch);
+};
+
+const getInvoiceBranchMeta = (invoice: any) => {
+  if (!invoice) return { id: null, name: "" };
+  const id =
+    invoice.branch?.id ||
+    invoice.branchId ||
+    (invoice.paymentTargetType === "safe" ? invoice.paymentTargetId : null) ||
+    null;
+  const name =
+    extractBranchName(invoice.branch) ||
+    invoice.branchName ||
+    "";
+  return { id, name };
+};
+
   const [purchaseItems, setPurchaseItems] = useState<InvoiceItem[]>(
     Array(6).fill(null).map(createEmptyItem),
   );
@@ -155,6 +188,10 @@ const PurchaseInvoice: React.FC<PurchaseInvoiceProps> = ({
     invoiceNumber: "",
     invoiceDate: new Date().toISOString().substring(0, 10),
   });
+  const [invoiceBranchId, setInvoiceBranchId] = useState<string | null>(null);
+  const [safeBranchName, setSafeBranchName] = useState<string>(
+    () => getUserBranchName(currentUser),
+  );
   const [isReadOnly, setIsReadOnly] = useState(true);
   const [paymentTargetType, setPaymentTargetType] = useState<"safe" | "bank">(
     "safe",
@@ -211,6 +248,7 @@ const PurchaseInvoice: React.FC<PurchaseInvoiceProps> = ({
     };
   } | null>(null);
   const [focusIndex, setFocusIndex] = useState<number | null>(null);
+  const resolvedBranchName = safeBranchName || getUserBranchName(currentUser);
 
   const hasPrintableItems = useMemo(
     () =>
@@ -278,6 +316,9 @@ const PurchaseInvoice: React.FC<PurchaseInvoiceProps> = ({
     setPaymentTargetType("safe");
     // For safes, we don't need paymentTargetId (we send branchId instead)
     setPaymentTargetId(null);
+    const defaultBranchId = getUserBranchId(currentUser);
+    setInvoiceBranchId(defaultBranchId);
+    setSafeBranchName(getUserBranchName(currentUser));
     setIsReadOnly(false);
     setPreviewData(null); // Clear preview data
   };
@@ -318,13 +359,23 @@ const PurchaseInvoice: React.FC<PurchaseInvoiceProps> = ({
       setPaymentMethod(inv.paymentMethod);
       setPaymentTargetType(inv.paymentTargetType || "safe");
       setPaymentTargetId(inv.paymentTargetId || null);
+      const { id: branchIdFromInvoice, name: branchNameFromInvoice } =
+        getInvoiceBranchMeta(inv);
+      setInvoiceBranchId(branchIdFromInvoice);
+      setSafeBranchName(branchNameFromInvoice || getUserBranchName(currentUser));
       setIsReadOnly(true);
       justSavedRef.current = false; // Clear the flag after loading invoice
     } else if (!justSavedRef.current) {
       // Only call handleNew if we haven't just saved
       handleNew();
     }
-  }, [currentIndex, invoices]);
+  }, [currentIndex, invoices, currentUser]);
+
+  useEffect(() => {
+    if (currentIndex >= 0) return;
+    setInvoiceBranchId(getUserBranchId(currentUser));
+    setSafeBranchName(getUserBranchName(currentUser));
+  }, [currentIndex, currentUser]);
 
   // Open preview when previewData is set and we have a flag to open it
   useEffect(() => {
@@ -599,10 +650,15 @@ const PurchaseInvoice: React.FC<PurchaseInvoiceProps> = ({
 
     // Validate safe balance for cash payments with safe as payment target
     if (paymentMethod === "cash" && paymentTargetType === "safe") {
-      const userBranchId = currentUser?.branchId || 
-        (typeof currentUser?.branch === 'string' ? currentUser.branch : (currentUser?.branch as any)?.id);
-      const safe = filteredSafes.find((s) => s.branchId === userBranchId);
-      if (safe && safe.currentBalance !== undefined && safe.currentBalance < totals.net) {
+      const targetBranchId = invoiceBranchId || userBranchId;
+      const branchSafe = targetBranchId
+        ? safes.find((s) => s.branchId === targetBranchId)
+        : null;
+      if (
+        branchSafe &&
+        branchSafe.currentBalance !== undefined &&
+        branchSafe.currentBalance < totals.net
+      ) {
         showToast("الرصيد غير كافي في الخزنة.", 'error');
         return;
       }
@@ -610,9 +666,11 @@ const PurchaseInvoice: React.FC<PurchaseInvoiceProps> = ({
 
     try {
       // For cash payments without a supplier, pass null (backend will handle default)
-      // Get branch ID from current user - use it as paymentTargetId when payment target is "safe"
-      const userBranchId = currentUser?.branchId || 
-        (typeof currentUser?.branch === 'string' ? currentUser.branch : (currentUser?.branch as any)?.id);
+      const safeBranchId = invoiceBranchId || userBranchId;
+      if (paymentMethod === "cash" && paymentTargetType === "safe" && !safeBranchId) {
+        showToast("لا يمكن حفظ فاتورة نقدية بدون تحديد فرع مرتبط بالخزنة.", "error");
+        return;
+      }
       
       const invoiceData = {
         supplierId: paymentMethod === "cash" && !selectedSupplier 
@@ -637,8 +695,8 @@ const PurchaseInvoice: React.FC<PurchaseInvoiceProps> = ({
         // When payment target is "bank", send bank ID as paymentTargetId
         paymentTargetId:
           paymentMethod === "cash"
-            ? (paymentTargetType === "safe" && userBranchId
-                ? userBranchId.toString()
+            ? (paymentTargetType === "safe"
+                ? safeBranchId?.toString() || null
                 : paymentTargetId?.toString() || null)
             : null,
         notes: "",
@@ -677,7 +735,7 @@ const PurchaseInvoice: React.FC<PurchaseInvoiceProps> = ({
           details: {
             ...invoiceDetails,
             userName: currentUser?.fullName || "غير محدد",
-            branchName: currentUser?.branch || "غير محدد",
+            branchName: resolvedBranchName || "غير محدد",
           },
         };
         
@@ -714,7 +772,7 @@ const PurchaseInvoice: React.FC<PurchaseInvoiceProps> = ({
           details: {
             ...updatedInvoiceDetails,
             userName: currentUser?.fullName || "غير محدد",
-            branchName: currentUser?.branch || "غير محدد",
+            branchName: resolvedBranchName || "غير محدد",
           },
         };
         
@@ -943,9 +1001,7 @@ const PurchaseInvoice: React.FC<PurchaseInvoiceProps> = ({
                   {paymentTargetType === "safe" ? (
                     <input
                       type="text"
-                      value={typeof currentUser?.branch === 'string' 
-                        ? currentUser.branch 
-                        : (currentUser?.branch as any)?.name || currentUser?.branch || ""}
+                      value={resolvedBranchName}
                       className={inputStyle}
                       disabled={true}
                       readOnly
@@ -1411,7 +1467,7 @@ const PurchaseInvoice: React.FC<PurchaseInvoiceProps> = ({
             details: {
               ...invoiceDetails,
               userName: currentUser?.fullName || "غير محدد",
-              branchName: currentUser?.branch || "غير محدد",
+              branchName: resolvedBranchName || "غير محدد",
             },
           };
         })();
