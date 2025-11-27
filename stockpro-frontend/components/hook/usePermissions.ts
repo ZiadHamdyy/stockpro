@@ -316,6 +316,17 @@ export const usePermissions = () => {
         });
       }
 
+      // Company data read permission must remain available for every role
+      const companyDataReadPermission = allPermissions.find(
+        (p) => p.resource === "company_data" && p.action === "read",
+      );
+      if (
+        companyDataReadPermission &&
+        !permissionIds.includes(companyDataReadPermission.id)
+      ) {
+        permissionIds.push(companyDataReadPermission.id);
+      }
+
       const result = await assignPermissions({
         roleId: role.id,
         permissions: { permissionIds },

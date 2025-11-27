@@ -69,7 +69,8 @@ const PermissionTree: React.FC<{
           const permissionKey = `${node.key}-${englishAction}`;
           const isChecked = permissions.has(permissionKey);
           const isDisabled =
-            isPermissionsResource && selectedRoleName === "مدير";
+            (isPermissionsResource && selectedRoleName === "مدير") ||
+            (node.key === "company_data" && englishAction === "read");
 
           // Debug logging
           if (node.key === "dashboard" && action === "قراءة") {
