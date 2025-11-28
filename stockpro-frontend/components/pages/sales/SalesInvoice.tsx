@@ -24,6 +24,7 @@ import InvoicePrintPreview from "./InvoicePrintPreview";
 import { useModal } from "../../common/ModalProvider";
 import { useToast } from "../../common/ToastProvider";
 import BarcodeScannerModal from "../../common/BarcodeScannerModal";
+import ItemContextBar from "../../common/ItemContextBar";
 import {
   useGetSalesInvoicesQuery,
   useCreateSalesInvoiceMutation,
@@ -37,6 +38,13 @@ import { useGetSafesQuery } from "../../store/slices/safe/safeApiSlice";
 import { useGetCompanyQuery } from "../../store/slices/companyApiSlice";
 import { useGetStoresQuery } from "../../store/slices/store/storeApi";
 import { useGetPriceQuotationByIdQuery } from "../../store/slices/priceQuotation/priceQuotationApiSlice";
+import { useGetBranchesQuery } from "../../store/slices/branch/branchApi";
+import { useGetStoreReceiptVouchersQuery } from "../../store/slices/storeReceiptVoucher/storeReceiptVoucherApi";
+import { useGetStoreIssueVouchersQuery } from "../../store/slices/storeIssueVoucher/storeIssueVoucherApi";
+import { useGetStoreTransferVouchersQuery } from "../../store/slices/storeTransferVoucher/storeTransferVoucherApi";
+import { useGetPurchaseInvoicesQuery } from "../../store/slices/purchaseInvoice/purchaseInvoiceApiSlice";
+import { useGetPurchaseReturnsQuery } from "../../store/slices/purchaseReturn/purchaseReturnApiSlice";
+import { useGetSalesReturnsQuery } from "../../store/slices/salesReturn/salesReturnApiSlice";
 import { showApiErrorToast } from "../../../utils/errorToast";
 import { formatMoney } from "../../../utils/formatting";
 import { guardPrint } from "../../utils/printGuard";
@@ -169,6 +177,15 @@ const SalesInvoice: React.FC<SalesInvoiceProps> = ({
   
   // Get items with store-specific balances
   const { data: items = [] } = useGetItemsQuery(userStore ? { storeId: userStore.id } : undefined);
+
+  // Get data for ItemContextBar
+  const { data: branches = [] } = useGetBranchesQuery();
+  const { data: storeReceiptVouchers = [] } = useGetStoreReceiptVouchersQuery();
+  const { data: storeIssueVouchers = [] } = useGetStoreIssueVouchersQuery();
+  const { data: storeTransferVouchers = [] } = useGetStoreTransferVouchersQuery();
+  const { data: purchaseInvoices = [] } = useGetPurchaseInvoicesQuery();
+  const { data: purchaseReturns = [] } = useGetPurchaseReturnsQuery();
+  const { data: salesReturns = [] } = useGetSalesReturnsQuery();
 
   // Filter safes by current user's branch
   const filteredSafes = userBranchId
@@ -333,7 +350,15 @@ const SalesInvoice: React.FC<SalesInvoiceProps> = ({
   } | null>(null);
 
   const [focusIndex, setFocusIndex] = useState<number | null>(null);
+  const [focusedQtyIndex, setFocusedQtyIndex] = useState<number | null>(null);
   const resolvedBranchName = safeBranchName || getUserBranchName(currentUser);
+
+  const focusedItemData = useMemo(() => {
+    if (focusedQtyIndex !== null && invoiceItems[focusedQtyIndex] && invoiceItems[focusedQtyIndex].id) {
+      return allItems.find((i) => i.id === invoiceItems[focusedQtyIndex].id);
+    }
+    return null;
+  }, [focusedQtyIndex, invoiceItems, allItems]);
 
   const hasPrintableItems = useMemo(
     () =>
@@ -782,6 +807,7 @@ const SalesInvoice: React.FC<SalesInvoiceProps> = ({
       newItems.push(createEmptyItem());
     }
     setInvoiceItems(newItems);
+    if (focusedQtyIndex === index) setFocusedQtyIndex(null);
   };
 
   const handleSelectCustomer = (customer: Customer) => {
@@ -1187,7 +1213,7 @@ const SalesInvoice: React.FC<SalesInvoiceProps> = ({
           .no-print-delete-col { display: none !important; }
         }
       `}</style>
-      <div className="bg-white p-6 rounded-lg shadow">
+      <div className="bg-white p-6 rounded-lg shadow pb-24">
         <div className="border-2 border-brand-blue rounded-lg mb-4">
           <DocumentHeader companyInfo={companyInfo} />
         </div>
@@ -1642,6 +1668,8 @@ const SalesInvoice: React.FC<SalesInvoiceProps> = ({
                         );
                         autosizeInput(e.target);
                       }}
+                      onFocus={() => setFocusedQtyIndex(index)}
+                      onBlur={() => setTimeout(() => setFocusedQtyIndex(null), 200)}
                       onKeyDown={(e) => handleTableKeyDown(e, index, "qty")}
                       ref={(el) => {
                         if (el) qtyInputRefs.current[index] = el;
@@ -2007,6 +2035,20 @@ const SalesInvoice: React.FC<SalesInvoiceProps> = ({
         onClose={() => setIsScannerOpen(false)}
         onScanSuccess={handleScanSuccess}
       />
+      {focusedItemData && (
+        <ItemContextBar
+          item={focusedItemData}
+          stores={stores}
+          branches={branches}
+          storeReceiptVouchers={storeReceiptVouchers}
+          storeIssueVouchers={storeIssueVouchers}
+          storeTransferVouchers={storeTransferVouchers}
+          purchaseInvoices={purchaseInvoices}
+          purchaseReturns={purchaseReturns}
+          salesReturns={salesReturns}
+          invoices={invoices}
+        />
+      )}
     </>
   );
 };
