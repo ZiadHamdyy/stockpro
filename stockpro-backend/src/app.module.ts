@@ -45,6 +45,7 @@ import { BalanceSheetModule } from './modules/balance-sheet/balance-sheet.module
 import { BackupModule } from './modules/backup/backup.module';
 import { ReportPdfModule } from './modules/report-pdf/report-pdf.module.js';
 import { PriceQuotationModule } from './modules/price-quotation/price-quotation.module';
+import { InventoryCountModule } from './modules/inventory-count/inventory-count.module';
 
 @Module({
   imports: [
@@ -88,6 +89,7 @@ import { PriceQuotationModule } from './modules/price-quotation/price-quotation.
     ReceivableAccountModule,
     PayableAccountModule,
     PriceQuotationModule,
+    InventoryCountModule,
   ],
   controllers: [AppController],
   providers: [

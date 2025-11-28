@@ -1,69 +1,99 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
-import type { CompanyInfo, Item, Store, InventoryCount, InventoryCountItem } from '../../../types';
-import { ExcelIcon, PdfIcon, PrintIcon, SearchIcon, BoxIcon, DollarSignIcon, ListIcon, DatabaseIcon } from '../../icons';
+import type { CompanyInfo } from '../../../types';
+import { ExcelIcon, PdfIcon, PrintIcon, SearchIcon, BoxIcon, DollarSignIcon, DatabaseIcon } from '../../icons';
 import { useToast } from '../../common/ToastProvider';
 import { useModal } from '../../common/ModalProvider';
 import { formatNumber, exportToExcel, exportToPdf } from '../../../utils/formatting';
 import DataTableModal from '../../common/DataTableModal';
+import { useGetItemsQuery } from '../../store/slices/items/itemsApi';
+import { useGetStoresQuery } from '../../store/slices/store/storeApi';
+import { 
+  useGetInventoryCountsQuery, 
+  useCreateInventoryCountMutation, 
+  usePostInventoryCountMutation,
+  type InventoryCount as InventoryCountType,
+  type InventoryCountItem as InventoryCountItemType
+} from '../../store/slices/inventoryCount/inventoryCountApi';
+import { useAppSelector } from '../../store/hooks';
+import { selectCurrentUser } from '../../store/slices/auth/auth';
 
 interface InventoryCountProps {
     title: string;
     companyInfo: CompanyInfo;
-    items: Item[];
-    stores: Store[];
-    onSave: (count: InventoryCount) => void;
-    inventoryCounts: InventoryCount[];
 }
 
-const InventoryCountPage: React.FC<InventoryCountProps> = ({ title, companyInfo, items, stores, onSave, inventoryCounts }) => {
+const InventoryCountPage: React.FC<InventoryCountProps> = ({ title, companyInfo }) => {
     const [countId, setCountId] = useState<string>('');
     const [date, setDate] = useState(new Date().toISOString().substring(0, 10));
-    const [selectedStore, setSelectedStore] = useState(stores.length > 0 ? stores[0].name : '');
-    const [countItems, setCountItems] = useState<InventoryCountItem[]>([]);
+    const [selectedStoreId, setSelectedStoreId] = useState<string>('');
+    const [countItems, setCountItems] = useState<InventoryCountItemType[]>([]);
     const [searchTerm, setSearchTerm] = useState('');
     const [notes, setNotes] = useState('');
-    const [status, setStatus] = useState<'pending' | 'posted'>('pending');
+    const [status, setStatus] = useState<'PENDING' | 'POSTED'>('PENDING');
     
     const [isHistoryOpen, setIsHistoryOpen] = useState(false);
 
     const { showToast } = useToast();
     const { showModal } = useModal();
+    const currentUser = useAppSelector(selectCurrentUser);
+
+    // Fetch data from Redux
+    const { data: items = [], isLoading: itemsLoading } = useGetItemsQuery(selectedStoreId ? { storeId: selectedStoreId } : undefined);
+    const { data: stores = [], isLoading: storesLoading } = useGetStoresQuery();
+    const { data: inventoryCounts = [], isLoading: countsLoading } = useGetInventoryCountsQuery();
+    const [createInventoryCount, { isLoading: isCreating }] = useCreateInventoryCountMutation();
+    const [postInventoryCount, { isLoading: isPosting }] = usePostInventoryCountMutation();
+
+    // Set default store when stores are loaded
+    useEffect(() => {
+        if (stores.length > 0 && !selectedStoreId) {
+            setSelectedStoreId(stores[0].id);
+        }
+    }, [stores, selectedStoreId]);
 
     // Initialize new count
     const initializeCount = () => {
-        const newId = `INV-${Date.now()}`;
-        setCountId(newId);
+        if (!selectedStoreId || items.length === 0) return;
+
+        setCountId('');
         setNotes('');
-        setStatus('pending');
+        setStatus('PENDING');
         setDate(new Date().toISOString().substring(0, 10));
-        const initialCountItems = items.map(item => ({
-            id: item.code,
-            name: item.name,
-            unit: item.unit,
-            systemStock: item.stock,
-            actualStock: item.stock,
-            difference: 0,
-            cost: item.purchasePrice
+        
+        // Initialize count items with system stock from store (items fetched with storeId have store stock)
+        // Filter out SERVICE items - only include STOCKED items
+        const stockedItems = items.filter(item => item.type === 'STOCKED');
+        const initialCountItems: InventoryCountItemType[] = stockedItems.map(item => ({
+            id: '', // Will be set when saved
+            systemStock: item.stock || 0, // This is store-specific stock when storeId is provided
+            actualStock: 0, // Default to 0 for manual entry
+            difference: -(item.stock || 0), // Difference will be negative initially (0 - systemStock)
+            cost: item.purchasePrice,
+            item: item,
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
         }));
         setCountItems(initialCountItems);
     };
 
     useEffect(() => {
-        // Only initialize if we don't have items or explicit ID yet (on mount)
-        if (countItems.length === 0) {
+        // Initialize when store or items change (only if no count is loaded)
+        // Only initialize if there are stocked items (not just any items)
+        const stockedItems = items.filter(item => item.type === 'STOCKED');
+        if (selectedStoreId && stockedItems.length > 0 && countItems.length === 0 && !countId) {
             initializeCount();
         }
-    }, [items]);
+    }, [selectedStoreId, items]);
 
-    const handleActualChange = (id: string, val: string) => {
-        if (status === 'posted') return; // Read-only if posted
+    const handleActualChange = (itemId: string, val: string) => {
+        if (status === 'POSTED') return; // Read-only if posted
 
         const actual = parseFloat(val);
         if (isNaN(actual)) return;
 
         setCountItems(prev => prev.map(item => {
-            if (item.id === id) {
+            if (item.item.id === itemId) {
                 const difference = actual - item.systemStock;
                 return { ...item, actualStock: actual, difference };
             }
@@ -72,8 +102,8 @@ const InventoryCountPage: React.FC<InventoryCountProps> = ({ title, companyInfo,
     };
 
     const filteredItems = countItems.filter(item => 
-        item.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-        item.id.toLowerCase().includes(searchTerm.toLowerCase())
+        item.item.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+        item.item.code.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
     // Calculate Totals
@@ -104,24 +134,34 @@ const InventoryCountPage: React.FC<InventoryCountProps> = ({ title, companyInfo,
         };
     }, [filteredItems]);
 
-    const saveCount = (newStatus: 'pending' | 'posted') => {
-        const inventoryCount: InventoryCount = {
-            id: countId,
-            date,
-            storeName: selectedStore,
-            branchName: stores.find(s => s.name === selectedStore)?.branch || '',
-            items: countItems,
-            totalVarianceValue: stats.netSettlementValue,
-            status: newStatus,
-            notes
-        };
-        onSave(inventoryCount);
-        setStatus(newStatus);
-    };
+    const handleSaveDraft = async () => {
+        if (!selectedStoreId || !currentUser?.id) {
+            showToast('يرجى اختيار المخزن والمستخدم', 'error');
+            return;
+        }
 
-    const handleSaveDraft = () => {
-        saveCount('pending');
-        showToast('تم حفظ الجرد كمسودة بنجاح.');
+        try {
+            const result = await createInventoryCount({
+                storeId: selectedStoreId,
+                userId: currentUser.id,
+                branchId: currentUser.branchId,
+                date,
+                notes,
+                items: countItems.map(item => ({
+                    itemId: item.item.id,
+                    systemStock: item.systemStock,
+                    actualStock: item.actualStock,
+                    difference: item.difference,
+                    cost: item.cost,
+                })),
+            }).unwrap();
+
+            setCountId(result.id);
+            setStatus('PENDING');
+            showToast('تم حفظ الجرد كمسودة بنجاح.');
+        } catch (error: any) {
+            showToast(error?.data?.message || 'حدث خطأ أثناء حفظ الجرد', 'error');
+        }
     };
 
     const handlePostSettlement = () => {
@@ -133,9 +173,38 @@ const InventoryCountPage: React.FC<InventoryCountProps> = ({ title, companyInfo,
         showModal({
             title: 'اعتماد التسوية النهائية',
             message: message,
-            onConfirm: () => {
-                saveCount('posted');
-                showToast('تم اعتماد الجرد وإنشاء قيود التسوية بنجاح.');
+            onConfirm: async () => {
+                try {
+                    let finalCountId = countId;
+                    
+                    // If not saved yet, save first as draft
+                    if (!finalCountId) {
+                        const result = await createInventoryCount({
+                            storeId: selectedStoreId,
+                            userId: currentUser!.id,
+                            branchId: currentUser!.branchId,
+                            date,
+                            notes,
+                            items: countItems.map(item => ({
+                                itemId: item.item.id,
+                                systemStock: item.systemStock,
+                                actualStock: item.actualStock,
+                                difference: item.difference,
+                                cost: item.cost,
+                            })),
+                        }).unwrap();
+                        
+                        finalCountId = result.id;
+                        setCountId(result.id);
+                    }
+                    
+                    // Now post the count
+                    await postInventoryCount(finalCountId).unwrap();
+                    setStatus('POSTED');
+                    showToast('تم اعتماد الجرد وإنشاء قيود التسوية بنجاح.');
+                } catch (error: any) {
+                    showToast(error?.data?.message || 'حدث خطأ أثناء اعتماد الجرد', 'error');
+                }
             },
             type: 'edit',
             showPassword: true
@@ -146,22 +215,23 @@ const InventoryCountPage: React.FC<InventoryCountProps> = ({ title, companyInfo,
         const count = inventoryCounts.find(c => c.id === row.id);
         if (count) {
             setCountId(count.id);
-            setDate(count.date);
-            setSelectedStore(count.storeName);
-            setNotes(count.notes);
+            setDate(count.date.substring(0, 10));
+            setSelectedStoreId(count.store.id);
+            setNotes(count.notes || '');
             setCountItems(count.items);
             setStatus(count.status);
             setIsHistoryOpen(false);
-            showToast(`تم تحميل سجل الجرد رقم ${count.id}`);
+            showToast(`تم تحميل سجل الجرد رقم ${count.code}`);
         }
     };
 
     const handleExcelExport = () => {
+        const selectedStore = stores.find(s => s.id === selectedStoreId);
         const data = filteredItems.map((item, index) => ({
             'م': index + 1,
-            'كود الصنف': item.id,
-            'اسم الصنف': item.name,
-            'الوحدة': item.unit,
+            'كود الصنف': item.item.code,
+            'اسم الصنف': item.item.name,
+            'الوحدة': item.item.unit.name,
             'الرصيد الدفتري': item.systemStock,
             'الرصيد الفعلي': item.actualStock,
             'الفرق': item.difference,
@@ -169,21 +239,22 @@ const InventoryCountPage: React.FC<InventoryCountProps> = ({ title, companyInfo,
             'سعر التكلفة': item.cost,
             'قيمة الفرق': (item.difference * item.cost).toFixed(2)
         }));
-        exportToExcel(data, `جرد_مخزون_${selectedStore}_${date}`);
+        exportToExcel(data, `جرد_مخزون_${selectedStore?.name || 'مخزن'}_${date}`);
     };
 
     const handlePdfExport = () => {
+        const selectedStore = stores.find(s => s.id === selectedStoreId);
         const head = [['قيمة الفرق', 'سعر التكلفة', 'الحالة', 'الفرق', 'الرصيد الفعلي', 'الرصيد الدفتري', 'الوحدة', 'اسم الصنف', 'كود الصنف', 'م']];
         const body = filteredItems.map((item, index) => [
             (item.difference * item.cost).toFixed(2),
             item.cost.toFixed(2),
             item.difference !== 0 ? (item.difference > 0 ? 'زيادة' : 'عجز') : 'مطابق',
-            item.difference,
-            item.actualStock,
-            item.systemStock,
-            item.unit,
-            item.name,
-            item.id,
+            item.difference.toString(),
+            item.actualStock.toString(),
+            item.systemStock.toString(),
+            item.item.unit.name,
+            item.item.name,
+            item.item.code,
             (index + 1).toString()
         ]);
         
@@ -193,10 +264,17 @@ const InventoryCountPage: React.FC<InventoryCountProps> = ({ title, companyInfo,
             ['', '', '', '', '', '', '', '', 'صافي التسوية', formatNumber(stats.netSettlementValue)],
         ];
 
-        exportToPdf(`تقرير جرد مخزن ${selectedStore}`, head, body, `جرد_${date}`, companyInfo, footer);
+        exportToPdf(`تقرير جرد مخزن ${selectedStore?.name || 'مخزن'}`, head, body, `جرد_${date}`, companyInfo, footer);
     };
 
     const inputStyle = "w-full p-2 bg-brand-blue-bg border-2 border-brand-blue rounded-md text-black placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-brand-blue disabled:bg-gray-200 disabled:cursor-not-allowed";
+
+    const selectedStore = stores.find(s => s.id === selectedStoreId);
+    const isLoading = itemsLoading || storesLoading || countsLoading;
+
+    if (isLoading) {
+        return <div className="flex justify-center items-center h-full">جاري التحميل...</div>;
+    }
 
     return (
         <div className="flex flex-col h-full space-y-4 pr-2">
@@ -208,10 +286,10 @@ const InventoryCountPage: React.FC<InventoryCountProps> = ({ title, companyInfo,
                         <div>
                             <h1 className="text-2xl font-bold text-brand-dark">{title}</h1>
                             <div className="flex items-center gap-2 mt-1">
-                                <span className={`px-2 py-0.5 text-xs rounded-full ${status === 'posted' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}`}>
-                                    {status === 'posted' ? 'معتمد (مرحل)' : 'مسودة (قيد العمل)'}
+                                <span className={`px-2 py-0.5 text-xs rounded-full ${status === 'POSTED' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}`}>
+                                    {status === 'POSTED' ? 'معتمد (مرحل)' : 'مسودة (قيد العمل)'}
                                 </span>
-                                <p className="text-sm text-gray-500">{countId}</p>
+                                <p className="text-sm text-gray-500">{countId || 'جرد جديد'}</p>
                             </div>
                         </div>
                     </div>
@@ -220,7 +298,7 @@ const InventoryCountPage: React.FC<InventoryCountProps> = ({ title, companyInfo,
                             <DatabaseIcon className="w-5 h-5"/>
                             <span>سجل الجرد</span>
                         </button>
-                        <button onClick={() => initializeCount()} className="px-4 py-2 bg-brand-blue text-white rounded-md hover:bg-blue-800 font-medium">جرد جديد</button>
+                        <button onClick={initializeCount} className="px-4 py-2 bg-brand-blue text-white rounded-md hover:bg-blue-800 font-medium">جرد جديد</button>
                         <button onClick={handleExcelExport} title="تصدير Excel" className="p-2 border rounded-md hover:bg-gray-100 text-green-700"><ExcelIcon/></button>
                         <button onClick={handlePdfExport} title="طباعة" className="p-2 border rounded-md hover:bg-gray-100 text-gray-700"><PrintIcon/></button>
                     </div>
@@ -229,17 +307,25 @@ const InventoryCountPage: React.FC<InventoryCountProps> = ({ title, companyInfo,
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                     <div>
                         <label className="block text-sm font-bold text-gray-700 mb-1">تاريخ الجرد</label>
-                        <input type="date" value={date} onChange={(e) => setDate(e.target.value)} className={inputStyle} disabled={status === 'posted'} />
+                        <input type="date" value={date} onChange={(e) => setDate(e.target.value)} className={inputStyle} disabled={status === 'POSTED'} />
                     </div>
                     <div>
                         <label className="block text-sm font-bold text-gray-700 mb-1">المخزن</label>
-                        <select value={selectedStore} onChange={(e) => setSelectedStore(e.target.value)} className={inputStyle} disabled={status === 'posted'}>
-                            {stores.map(s => <option key={s.id} value={s.name}>{s.name}</option>)}
+                        <select 
+                            value={selectedStoreId} 
+                            onChange={(e) => {
+                                setSelectedStoreId(e.target.value);
+                                setCountItems([]); // Reset items when store changes
+                            }} 
+                            className={inputStyle} 
+                            disabled={status === 'POSTED'}
+                        >
+                            {stores.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
                         </select>
                     </div>
                     <div>
                         <label className="block text-sm font-bold text-gray-700 mb-1">ملاحظات</label>
-                        <input type="text" value={notes} onChange={(e) => setNotes(e.target.value)} className={inputStyle} placeholder="ملاحظات عامة على الجرد" disabled={status === 'posted'} />
+                        <input type="text" value={notes} onChange={(e) => setNotes(e.target.value)} className={inputStyle} placeholder="ملاحظات عامة على الجرد" disabled={status === 'POSTED'} />
                     </div>
                 </div>
             </div>
@@ -286,23 +372,30 @@ const InventoryCountPage: React.FC<InventoryCountProps> = ({ title, companyInfo,
                             </tr>
                         </thead>
                         <tbody className="bg-white divide-y divide-gray-200">
-                            {filteredItems.map((item, index) => {
+                            {filteredItems.length === 0 ? (
+                                <tr>
+                                    <td colSpan={10} className="px-4 py-8 text-center text-gray-500">
+                                        {selectedStoreId ? 'لا توجد أصناف في هذا المخزن' : 'يرجى اختيار مخزن'}
+                                    </td>
+                                </tr>
+                            ) : filteredItems.map((item, index) => {
                                 const varianceValue = item.difference * item.cost;
                                 return (
-                                    <tr key={item.id} className="hover:bg-gray-50">
+                                    <tr key={item.item.id} className="hover:bg-gray-50">
                                         <td className="px-4 py-2 text-center text-sm text-gray-500">{index + 1}</td>
-                                        <td className="px-4 py-2 text-sm text-gray-700 font-mono">{item.id}</td>
-                                        <td className="px-4 py-2 text-sm font-medium text-brand-dark">{item.name}</td>
-                                        <td className="px-4 py-2 text-center text-sm text-gray-500">{item.unit}</td>
+                                        <td className="px-4 py-2 text-sm text-gray-700 font-mono">{item.item.code}</td>
+                                        <td className="px-4 py-2 text-sm font-medium text-brand-dark">{item.item.name}</td>
+                                        <td className="px-4 py-2 text-center text-sm text-gray-500">{item.item.unit.name}</td>
                                         <td className="px-4 py-2 text-center text-sm font-bold bg-blue-50 text-blue-900">{item.systemStock}</td>
                                         <td className="px-4 py-2 text-center">
                                             <input 
                                                 type="number" 
-                                                value={item.actualStock} 
-                                                onChange={(e) => handleActualChange(item.id, e.target.value)}
+                                                value={item.actualStock || 0} 
+                                                onChange={(e) => handleActualChange(item.item.id, e.target.value)}
                                                 className="w-24 p-1.5 text-center border border-gray-300 rounded bg-white focus:ring-2 focus:ring-brand-green focus:border-brand-green font-bold text-gray-900 shadow-inner"
                                                 onFocus={(e) => e.target.select()}
-                                                disabled={status === 'posted'}
+                                                disabled={status === 'POSTED'}
+                                                placeholder="0"
                                             />
                                         </td>
                                         <td className={`px-4 py-2 text-center font-bold text-sm ${item.difference < 0 ? 'text-red-600' : item.difference > 0 ? 'text-green-600' : 'text-gray-400'}`}>
@@ -366,17 +459,17 @@ const InventoryCountPage: React.FC<InventoryCountProps> = ({ title, companyInfo,
                     <div className="flex flex-col gap-2">
                         <button 
                             onClick={handleSaveDraft}
-                            disabled={status === 'posted'}
+                            disabled={status === 'POSTED' || isCreating || !selectedStoreId}
                             className="w-full px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 font-semibold text-sm shadow flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                         >
-                            <span>حفظ مؤقت (مسودة)</span>
+                            <span>{isCreating ? 'جاري الحفظ...' : 'حفظ مؤقت (مسودة)'}</span>
                         </button>
                         <button 
                             onClick={handlePostSettlement}
-                            disabled={status === 'posted'}
+                            disabled={status === 'POSTED' || isPosting || !selectedStoreId}
                             className="w-full px-4 py-3 bg-brand-blue text-white rounded-lg hover:bg-blue-800 font-bold text-lg shadow-md flex items-center justify-center gap-3 transition-transform active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
                         >
-                            <span>اعتماد التسوية وترحيل القيود</span>
+                            <span>{isPosting ? 'جاري الاعتماد...' : 'اعتماد التسوية وترحيل القيود'}</span>
                         </button>
                     </div>
                 </div>
@@ -387,13 +480,20 @@ const InventoryCountPage: React.FC<InventoryCountProps> = ({ title, companyInfo,
                 onClose={() => setIsHistoryOpen(false)}
                 title="سجل عمليات الجرد"
                 columns={[
-                    { Header: 'رقم الجرد', accessor: 'id' },
+                    { Header: 'رقم الجرد', accessor: 'code' },
                     { Header: 'التاريخ', accessor: 'date' },
                     { Header: 'المخزن', accessor: 'storeName' },
                     { Header: 'الحالة', accessor: 'status' },
                     { Header: 'صافي الفروقات', accessor: 'totalVarianceValue' },
                 ]}
-                data={inventoryCounts.map(c => ({...c, totalVarianceValue: formatNumber(c.totalVarianceValue), status: c.status === 'posted' ? 'معتمد' : 'مسودة'}))}
+                data={inventoryCounts.map(c => ({
+                    id: c.id,
+                    code: c.code,
+                    date: c.date.substring(0, 10),
+                    storeName: c.store.name,
+                    status: c.status === 'POSTED' ? 'معتمد' : 'مسودة',
+                    totalVarianceValue: formatNumber(c.totalVarianceValue)
+                }))}
                 onSelectRow={loadHistoricalCount}
             />
         </div>

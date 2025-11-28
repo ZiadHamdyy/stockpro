@@ -123,7 +123,6 @@ import {
   initialFiscalYears,
   initialUsers,
   initialAuditLogs,
-  initialInventoryCounts,
 } from "./data";
 // FIX: Aliased StoreIssueVoucher type to avoid name collision with component.
 import type {
@@ -150,7 +149,6 @@ import type {
   Notification,
   FiscalYear,
   AuditLogEntry,
-  InventoryCount as InventoryCountType,
   PrintSettings,
 } from "./types";
 import { ToastProvider, useToast } from "./components/common/ToastProvider";
@@ -522,8 +520,6 @@ const AppContent = () => {
     useState<FiscalYear[]>(initialFiscalYears);
   const [auditLogs, setAuditLogs] =
     useState<AuditLogEntry[]>(initialAuditLogs);
-  const [inventoryCounts, setInventoryCounts] =
-    useState<InventoryCountType[]>(initialInventoryCounts);
   const [printSettings, setPrintSettings] = useState<PrintSettings>({
     template: "default",
     showLogo: true,
@@ -722,15 +718,6 @@ const AppContent = () => {
     );
   };
 
-  const handleSaveInventoryCount = (count: InventoryCountType) => {
-    setInventoryCounts((prev) => {
-      const exists = prev.some((c) => c.id === count.id);
-      if (exists) {
-        return prev.map((c) => (c.id === count.id ? count : c));
-      }
-      return [count, ...prev];
-    });
-  };
 
   if (!isLoggedIn) {
     return <Login onLogin={handleLogin} />;
@@ -919,10 +906,6 @@ const AppContent = () => {
                   <InventoryCount
                     title={currentPageTitle}
                     companyInfo={companyInfo}
-                    items={itemsWithLiveStock}
-                    stores={stores}
-                    inventoryCounts={inventoryCounts}
-                    onSave={handleSaveInventoryCount}
                   />
                 </ProtectedRoute>
               }

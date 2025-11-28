@@ -256,6 +256,7 @@ const PERMISSION_ACTIONS = [
   'delete',
   'search',
   'print',
+  'post',
 ];
 
 // Recursively extract all keys from menu items

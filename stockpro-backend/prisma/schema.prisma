@@ -1,9 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -14,71 +8,47 @@ datasource db {
 }
 
 model User {
-  id            String  @id @default(uuid())
-  code          Int     @unique
-  email         String  @unique
-  name          String?
-  image         Bytes?
-  password      String?
-  emailVerified Boolean @default(true)
-  active        Boolean @default(true)
-
-  // Role relationship
-  roleId String?
-  role   Role?   @relation(fields: [roleId], references: [id])
-
-  // Branch relationship
-  branchId String
-  branch   Branch @relation(fields: [branchId], references: [id])
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  Session Session[]
-  Otp     Otp[]
-  Store   Store[]
-
-  // Warehouse operations
-  storeReceiptVouchers  StoreReceiptVoucher[]
+  id                    String                 @id @default(uuid())
+  email                 String                 @unique
+  name                  String?
+  password              String?
+  emailVerified         Boolean                @default(true)
+  active                Boolean                @default(true)
+  roleId                String?
+  createdAt             DateTime               @default(now())
+  updatedAt             DateTime               @updatedAt
+  branchId              String
+  image                 Bytes?
+  code                  Int                    @unique
+  internalTransfers     InternalTransfer[]
+  inventoryCounts       InventoryCount[]
+  Otp                   Otp[]
+  paymentVouchers       PaymentVoucher[]
+  priceQuotations       PriceQuotation[]
+  purchaseInvoices      PurchaseInvoice[]
+  purchaseReturns       PurchaseReturn[]
+  receiptVouchers       ReceiptVoucher[]
+  salesInvoices         SalesInvoice[]
+  salesReturns          SalesReturn[]
+  Session               Session[]
+  Store                 Store[]
   storeIssueVouchers    StoreIssueVoucher[]
+  storeReceiptVouchers  StoreReceiptVoucher[]
   storeTransferVouchers StoreTransferVoucher[]
-
-  // Sales operations
-  salesInvoices SalesInvoice[]
-  salesReturns  SalesReturn[]
-
-  // Purchase operations
-  purchaseInvoices PurchaseInvoice[]
-  purchaseReturns  PurchaseReturn[]
-
-  // Payment vouchers
-  paymentVouchers PaymentVoucher[]
-
-  // Receipt vouchers
-  receiptVouchers ReceiptVoucher[]
-
-  // Internal transfers
-  internalTransfers InternalTransfer[]
-  priceQuotations  PriceQuotation[]
+  branch                Branch                 @relation(fields: [branchId], references: [id])
+  role                  Role?                  @relation(fields: [roleId], references: [id])
 }
 
 model Session {
   id           String        @id @default(uuid())
   status       SessionStatus @default(ACTIVE)
   refreshToken String?
-
-  ipAddress String?
-  userAgent String?
-
-  userId    String
-  user      User     @relation(fields: [userId], references: [id])
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-}
-
-enum SessionStatus {
-  ACTIVE
-  INACTIVE
+  ipAddress    String?
+  userAgent    String?
+  userId       String
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  user         User          @relation(fields: [userId], references: [id])
 }
 
 model Otp {
@@ -86,47 +56,35 @@ model Otp {
   otpHash      String
   otpExpiresAt DateTime
   otpVerified  Boolean  @default(false)
-
-  type   OtpType
-  userId String
-  user   User    @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  type         OtpType
+  userId       String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@index([otpExpiresAt])
 }
 
-enum OtpType {
-  EMAIL_VERIFICATION
-  PASSWORD_RESET
-}
-
 model Role {
-  id          String  @id @default(uuid())
-  name        String  @unique
-  description String?
-  isSystem    Boolean @default(false) // Prevents deletion of system roles
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  // Relationships
-  users           User[]
-  rolePermissions RolePermission[]
+  id                 String           @id @default(uuid())
+  name               String           @unique
+  description        String?
+  isSystem           Boolean          @default(false)
+  createdAt          DateTime         @default(now())
+  updatedAt          DateTime         @updatedAt
+  permissionsVersion Int              @default(0)
+  rolePermissions    RolePermission[]
+  users              User[]
 }
 
 model Permission {
-  id          String  @id @default(uuid())
-  resource    String // e.g., "sales", "items", "reports"
-  action      String // e.g., "create", "read", "update", "delete", "view"
-  description String?
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  // Relationships
+  id              String           @id @default(uuid())
+  resource        String
+  action          String
+  description     String?
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
   rolePermissions RolePermission[]
 
   @@unique([resource, action])
@@ -134,15 +92,13 @@ model Permission {
 }
 
 model RolePermission {
-  id           String @id @default(uuid())
+  id           String     @id @default(uuid())
   roleId       String
   permissionId String
-
-  role       Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
-  permission Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+  permission   Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+  role         Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
 
   @@unique([roleId, permissionId])
   @@index([roleId])
@@ -150,59 +106,47 @@ model RolePermission {
 }
 
 model ItemGroup {
-  id          String  @id @default(uuid())
-  code        Int     @unique @default(autoincrement())
-  name        String  @unique
+  id          String   @id @default(uuid())
+  name        String   @unique
   description String?
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  // Relationships
-  items Item[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  code        Int      @unique @default(autoincrement())
+  items       Item[]
 }
 
 model Unit {
-  id          String  @id @default(uuid())
-  code        Int     @unique @default(autoincrement())
-  name        String  @unique
+  id          String   @id @default(uuid())
+  name        String   @unique
   description String?
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  // Relationships
-  items Item[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  code        Int      @unique @default(autoincrement())
+  items       Item[]
 }
 
 model Item {
-  id            String   @id @default(uuid())
-  code          String   @unique
-  barcode       String?
-  name          String
-  purchasePrice Float
-  initialPurchasePrice Float @default(0)
-  salePrice     Float    @default(0)
-  stock         Float    @default(0)
-  reorderLimit  Float    @default(0)
-  type          ItemType @default(STOCKED)
-
-  // Foreign keys
-  groupId String
-  unitId  String
-
-  // Relationships
-  group ItemGroup @relation(fields: [groupId], references: [id])
-  unit  Unit      @relation(fields: [unitId], references: [id])
-
-  // Warehouse operations
-  storeReceiptVoucherItems  StoreReceiptVoucherItem[]
+  id                        String                     @id @default(uuid())
+  code                      String                     @unique
+  barcode                   String?
+  name                      String
+  purchasePrice             Float
+  salePrice                 Float                      @default(0)
+  stock                     Float                      @default(0)
+  reorderLimit              Float                      @default(0)
+  groupId                   String
+  unitId                    String
+  createdAt                 DateTime                   @default(now())
+  updatedAt                 DateTime                   @updatedAt
+  type                      ItemType                   @default(STOCKED)
+  initialPurchasePrice      Float                      @default(0)
+  inventoryCountItems       InventoryCountItem[]
+  group                     ItemGroup                  @relation(fields: [groupId], references: [id])
+  unit                      Unit                       @relation(fields: [unitId], references: [id])
   storeIssueVoucherItems    StoreIssueVoucherItem[]
-  storeTransferVoucherItems StoreTransferVoucherItem[]
   storeItems                StoreItem[]
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  storeReceiptVoucherItems  StoreReceiptVoucherItem[]
+  storeTransferVoucherItems StoreTransferVoucherItem[]
 
   @@index([code])
   @@index([barcode])
@@ -210,13 +154,8 @@ model Item {
   @@index([unitId])
 }
 
-enum ItemType {
-  STOCKED
-  SERVICE
-}
-
 model Company {
-  id            String  @id @default(uuid())
+  id            String   @id @default(uuid())
   name          String
   activity      String
   address       String
@@ -225,187 +164,158 @@ model Company {
   commercialReg String
   currency      String
   capital       Float
-  vatRate       Float   @default(0)
-  isVatEnabled  Boolean @default(false)
+  vatRate       Float    @default(0)
+  isVatEnabled  Boolean  @default(false)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
   logo          Bytes?
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
 }
 
 model Bank {
-  id             String @id @default(uuid())
-  code           String @unique
-  name           String
-  accountNumber  String
-  iban           String
-  openingBalance Float  @default(0)
-  currentBalance Float  @default(0)
-
-  // Relationships
-  paymentVouchers  PaymentVoucher[]
-  receiptVouchers  ReceiptVoucher[]
+  id               String             @id @default(uuid())
+  code             String             @unique
+  name             String
+  accountNumber    String
+  iban             String
+  openingBalance   Float              @default(0)
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime           @updatedAt
+  currentBalance   Float              @default(0)
   fromTransfers    InternalTransfer[] @relation("FromBankTransfers")
   toTransfers      InternalTransfer[] @relation("ToBankTransfers")
-  salesInvoices    SalesInvoice[]
-  salesReturns     SalesReturn[]
+  paymentVouchers  PaymentVoucher[]
   purchaseInvoices PurchaseInvoice[]
   purchaseReturns  PurchaseReturn[]
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  receiptVouchers  ReceiptVoucher[]
+  salesInvoices    SalesInvoice[]
+  salesReturns     SalesReturn[]
 
   @@index([code])
 }
 
 model Safe {
-  id             String @id @default(uuid())
-  code           String @unique
-  name           String
-  branchId       String
-  openingBalance Float  @default(0)
-  currentBalance Float  @default(0)
-
-  // Relationships
-  branch          Branch             @relation(fields: [branchId], references: [id])
-  paymentVouchers PaymentVoucher[]
-  receiptVouchers ReceiptVoucher[]
-  fromTransfers   InternalTransfer[] @relation("FromSafeTransfers")
-  toTransfers     InternalTransfer[] @relation("ToSafeTransfers")
-  salesInvoices    SalesInvoice[]
-  salesReturns     SalesReturn[]
+  id               String             @id @default(uuid())
+  code             String             @unique
+  name             String
+  branchId         String             @unique
+  openingBalance   Float              @default(0)
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime           @updatedAt
+  currentBalance   Float              @default(0)
+  fromTransfers    InternalTransfer[] @relation("FromSafeTransfers")
+  toTransfers      InternalTransfer[] @relation("ToSafeTransfers")
+  paymentVouchers  PaymentVoucher[]
   purchaseInvoices PurchaseInvoice[]
   purchaseReturns  PurchaseReturn[]
-  
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  receiptVouchers  ReceiptVoucher[]
+  branch           Branch             @relation(fields: [branchId], references: [id])
+  salesInvoices    SalesInvoice[]
+  salesReturns     SalesReturn[]
 
   @@index([code])
   @@index([branchId])
-  @@unique([branchId])
 }
 
 model Customer {
-  id              String @id @default(uuid())
-  code            String @unique
+  id              String           @id @default(uuid())
+  code            String           @unique
   name            String
   commercialReg   String
   taxNumber       String
   nationalAddress String
   phone           String
-  openingBalance  Float  @default(0)
-  currentBalance  Float  @default(0)
-
-  // Relationships
+  openingBalance  Float            @default(0)
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  currentBalance  Float            @default(0)
+  paymentVouchers PaymentVoucher[]
+  priceQuotations PriceQuotation[]
+  receiptVouchers ReceiptVoucher[]
   salesInvoices   SalesInvoice[]
   salesReturns    SalesReturn[]
-  paymentVouchers PaymentVoucher[]
-  receiptVouchers ReceiptVoucher[]
-  priceQuotations PriceQuotation[]
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
 
   @@index([code])
 }
 
 model Supplier {
-  id              String @id @default(uuid())
-  code            String @unique
-  name            String
-  commercialReg   String
-  taxNumber       String
-  nationalAddress String
-  phone           String
-  openingBalance  Float  @default(0)
-  currentBalance  Float  @default(0)
-
-  // Relationships
+  id               String            @id @default(uuid())
+  code             String            @unique
+  name             String
+  commercialReg    String
+  taxNumber        String
+  nationalAddress  String
+  phone            String
+  openingBalance   Float             @default(0)
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+  currentBalance   Float             @default(0)
+  paymentVouchers  PaymentVoucher[]
   purchaseInvoices PurchaseInvoice[]
   purchaseReturns  PurchaseReturn[]
-  paymentVouchers  PaymentVoucher[]
   receiptVouchers  ReceiptVoucher[]
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
 
   @@index([code])
 }
 
 model Branch {
-  id          String  @id @default(uuid())
-  code        Int     @unique
-  name        String
-  address     String?
-  phone       String?
-  description String?
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  // Relationships
-  users             User[]
-  stores            Store[]
-  safes             Safe[]
-  salesInvoices     SalesInvoice[]
-  salesReturns      SalesReturn[]
+  id                String             @id @default(uuid())
+  name              String
+  address           String?
+  phone             String?
+  description       String?
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+  code              Int                @unique
+  internalTransfers InternalTransfer[]
+  inventoryCounts   InventoryCount[]
+  paymentVouchers   PaymentVoucher[]
+  priceQuotations   PriceQuotation[]
   purchaseInvoices  PurchaseInvoice[]
   purchaseReturns   PurchaseReturn[]
-  paymentVouchers   PaymentVoucher[]
   receiptVouchers   ReceiptVoucher[]
-  internalTransfers InternalTransfer[]
-  priceQuotations   PriceQuotation[]
+  safes             Safe?
+  salesInvoices     SalesInvoice[]
+  salesReturns      SalesReturn[]
+  stores            Store?
+  users             User[]
 }
 
 model Store {
-  id          String  @id @default(uuid())
-  code        Int     @unique
-  name        String
-  address     String?
-  phone       String?
-  description String?
-
-  // Foreign keys
-  branchId String
-  userId   String
-
-  // Relationships
-  branch Branch @relation(fields: [branchId], references: [id])
-  user   User   @relation(fields: [userId], references: [id])
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  // Warehouse operations
-  storeReceiptVouchers StoreReceiptVoucher[]
+  id                   String                 @id @default(uuid())
+  name                 String
+  address              String?
+  phone                String?
+  description          String?
+  branchId             String                 @unique
+  userId               String
+  createdAt            DateTime               @default(now())
+  updatedAt            DateTime               @updatedAt
+  code                 Int                    @unique
+  inventoryCounts      InventoryCount[]
+  branch               Branch                 @relation(fields: [branchId], references: [id])
+  user                 User                   @relation(fields: [userId], references: [id])
   storeIssueVouchers   StoreIssueVoucher[]
+  storeItems           StoreItem[]
+  storeReceiptVouchers StoreReceiptVoucher[]
   fromTransfers        StoreTransferVoucher[] @relation("FromStore")
   toTransfers          StoreTransferVoucher[] @relation("ToStore")
-  storeItems           StoreItem[]
 
-  @@unique([branchId])
   @@index([branchId])
 }
 
 model StoreReceiptVoucher {
-  id            String   @id @default(uuid())
-  voucherNumber String   @unique
-  date          DateTime @default(now())
+  id            String                    @id @default(uuid())
+  voucherNumber String                    @unique
+  date          DateTime                  @default(now())
   notes         String?
-  totalAmount   Float    @default(0)
-
-  // Foreign keys
-  storeId String
-  userId  String
-
-  // Relationships
-  store Store                     @relation(fields: [storeId], references: [id])
-  user  User                      @relation(fields: [userId], references: [id])
-  items StoreReceiptVoucherItem[]
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  totalAmount   Float                     @default(0)
+  storeId       String
+  userId        String
+  createdAt     DateTime                  @default(now())
+  updatedAt     DateTime                  @updatedAt
+  store         Store                     @relation(fields: [storeId], references: [id])
+  user          User                      @relation(fields: [userId], references: [id])
+  items         StoreReceiptVoucherItem[]
 
   @@index([voucherNumber])
   @@index([date])
@@ -413,23 +323,18 @@ model StoreReceiptVoucher {
 }
 
 model StoreIssueVoucher {
-  id            String   @id @default(uuid())
-  voucherNumber String   @unique
-  date          DateTime @default(now())
+  id            String                  @id @default(uuid())
+  voucherNumber String                  @unique
+  date          DateTime                @default(now())
   notes         String?
-  totalAmount   Float    @default(0)
-
-  // Foreign keys
-  storeId String
-  userId  String
-
-  // Relationships
-  store Store                   @relation(fields: [storeId], references: [id])
-  user  User                    @relation(fields: [userId], references: [id])
-  items StoreIssueVoucherItem[]
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  totalAmount   Float                   @default(0)
+  storeId       String
+  userId        String
+  createdAt     DateTime                @default(now())
+  updatedAt     DateTime                @updatedAt
+  store         Store                   @relation(fields: [storeId], references: [id])
+  user          User                    @relation(fields: [userId], references: [id])
+  items         StoreIssueVoucherItem[]
 
   @@index([voucherNumber])
   @@index([date])
@@ -437,25 +342,20 @@ model StoreIssueVoucher {
 }
 
 model StoreTransferVoucher {
-  id            String   @id @default(uuid())
-  voucherNumber String   @unique
-  date          DateTime @default(now())
+  id            String                     @id @default(uuid())
+  voucherNumber String                     @unique
+  date          DateTime                   @default(now())
   notes         String?
-  totalAmount   Float    @default(0)
-
-  // Foreign keys
-  fromStoreId String
-  toStoreId   String
-  userId      String
-
-  // Relationships
-  fromStore Store                      @relation("FromStore", fields: [fromStoreId], references: [id])
-  toStore   Store                      @relation("ToStore", fields: [toStoreId], references: [id])
-  user      User                       @relation(fields: [userId], references: [id])
-  items     StoreTransferVoucherItem[]
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  totalAmount   Float                      @default(0)
+  fromStoreId   String
+  toStoreId     String
+  userId        String
+  createdAt     DateTime                   @default(now())
+  updatedAt     DateTime                   @updatedAt
+  fromStore     Store                      @relation("FromStore", fields: [fromStoreId], references: [id])
+  toStore       Store                      @relation("ToStore", fields: [toStoreId], references: [id])
+  user          User                       @relation(fields: [userId], references: [id])
+  items         StoreTransferVoucherItem[]
 
   @@index([voucherNumber])
   @@index([date])
@@ -464,82 +364,62 @@ model StoreTransferVoucher {
 }
 
 model StoreReceiptVoucherItem {
-  id         String @id @default(uuid())
+  id         String              @id @default(uuid())
   quantity   Float
   unitPrice  Float
   totalPrice Float
-
-  // Foreign keys
-  voucherId String
-  itemId    String
-
-  // Relationships
-  voucher StoreReceiptVoucher @relation(fields: [voucherId], references: [id], onDelete: Cascade)
-  item    Item                @relation(fields: [itemId], references: [id])
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  voucherId  String
+  itemId     String
+  createdAt  DateTime            @default(now())
+  updatedAt  DateTime            @updatedAt
+  item       Item                @relation(fields: [itemId], references: [id])
+  voucher    StoreReceiptVoucher @relation(fields: [voucherId], references: [id], onDelete: Cascade)
 
   @@index([voucherId])
   @@index([itemId])
 }
 
 model StoreIssueVoucherItem {
-  id         String @id @default(uuid())
+  id         String            @id @default(uuid())
   quantity   Float
   unitPrice  Float
   totalPrice Float
-
-  // Foreign keys
-  voucherId String
-  itemId    String
-
-  // Relationships
-  voucher StoreIssueVoucher @relation(fields: [voucherId], references: [id], onDelete: Cascade)
-  item    Item              @relation(fields: [itemId], references: [id])
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  voucherId  String
+  itemId     String
+  createdAt  DateTime          @default(now())
+  updatedAt  DateTime          @updatedAt
+  item       Item              @relation(fields: [itemId], references: [id])
+  voucher    StoreIssueVoucher @relation(fields: [voucherId], references: [id], onDelete: Cascade)
 
   @@index([voucherId])
   @@index([itemId])
 }
 
 model StoreTransferVoucherItem {
-  id         String @id @default(uuid())
+  id         String               @id @default(uuid())
   quantity   Float
   unitPrice  Float
   totalPrice Float
-
-  // Foreign keys
-  voucherId String
-  itemId    String
-
-  // Relationships
-  voucher StoreTransferVoucher @relation(fields: [voucherId], references: [id], onDelete: Cascade)
-  item    Item                 @relation(fields: [itemId], references: [id])
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  voucherId  String
+  itemId     String
+  createdAt  DateTime             @default(now())
+  updatedAt  DateTime             @updatedAt
+  item       Item                 @relation(fields: [itemId], references: [id])
+  voucher    StoreTransferVoucher @relation(fields: [voucherId], references: [id], onDelete: Cascade)
 
   @@index([voucherId])
   @@index([itemId])
 }
 
 model StoreItem {
-  id             String @id @default(uuid())
-  openingBalance Float  @default(0)
-
-  // Foreign keys
-  storeId String
-  itemId  String
-
-  // Relationships
-  store Store @relation(fields: [storeId], references: [id], onDelete: Cascade)
-  item  Item  @relation(fields: [itemId], references: [id], onDelete: Cascade)
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id             String   @id @default(uuid())
+  openingBalance Float    @default(0)
+  storeId        String
+  itemId         String
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  item           Item     @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  store          Store    @relation(fields: [storeId], references: [id], onDelete: Cascade)
 
   @@unique([storeId, itemId])
   @@index([storeId])
@@ -547,86 +427,67 @@ model StoreItem {
 }
 
 model CurrentAccount {
-  id             String @id @default(uuid())
-  code           String @unique
-  name           String
-  type           String
-  openingBalance Float  @default(0)
-  currentBalance Float  @default(0)
-
-  // Relationships
+  id              String           @id @default(uuid())
+  code            String           @unique
+  name            String
+  type            String
+  openingBalance  Float            @default(0)
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  currentBalance  Float            @default(0)
   paymentVouchers PaymentVoucher[]
   receiptVouchers ReceiptVoucher[]
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
 
   @@index([code])
 }
 
 model ReceivableAccount {
-  id             String @id @default(uuid())
-  code           String @unique
-  name           String
-  openingBalance Float  @default(0)
-  currentBalance Float  @default(0)
-
-  // Relationships
+  id              String           @id @default(uuid())
+  code            String           @unique
+  name            String
+  openingBalance  Float            @default(0)
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  currentBalance  Float            @default(0)
   paymentVouchers PaymentVoucher[]
   receiptVouchers ReceiptVoucher[]
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
 
   @@index([code])
 }
 
 model PayableAccount {
-  id             String @id @default(uuid())
-  code           String @unique
-  name           String
-  openingBalance Float  @default(0)
-  currentBalance Float  @default(0)
-
-  // Relationships
+  id              String           @id @default(uuid())
+  code            String           @unique
+  name            String
+  openingBalance  Float            @default(0)
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  currentBalance  Float            @default(0)
   paymentVouchers PaymentVoucher[]
   receiptVouchers ReceiptVoucher[]
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
 
   @@index([code])
 }
 
 model ExpenseType {
-  id          String  @id @default(uuid())
-  name        String  @unique
-  description String?
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  // Relationships
+  id           String        @id @default(uuid())
+  name         String        @unique
+  description  String?
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
   expenseCodes ExpenseCode[]
 }
 
 model ExpenseCode {
-  id          String  @id @default(uuid())
-  code        String  @unique
-  name        String
-  description String?
-
-  // Foreign keys
-  expenseTypeId String
-
-  // Relationships
-  expenseType ExpenseType @relation(fields: [expenseTypeId], references: [id])
-  expenses    Expense[]
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  // Relationships
+  id              String           @id @default(uuid())
+  code            String           @unique
+  name            String
+  description     String?
+  expenseTypeId   String
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  expenses        Expense[]
+  expenseType     ExpenseType      @relation(fields: [expenseTypeId], references: [id])
   paymentVouchers PaymentVoucher[]
 
   @@index([code])
@@ -634,19 +495,14 @@ model ExpenseCode {
 }
 
 model Expense {
-  id          String   @id @default(uuid())
-  code        String   @unique
-  date        DateTime
-  description String?
-
-  // Foreign keys
+  id            String      @id @default(uuid())
+  code          String      @unique
+  date          DateTime
+  description   String?
   expenseCodeId String
-
-  // Relationships
-  expenseCode ExpenseCode @relation(fields: [expenseCodeId], references: [id])
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+  expenseCode   ExpenseCode @relation(fields: [expenseCodeId], references: [id])
 
   @@index([code])
   @@index([date])
@@ -654,35 +510,30 @@ model Expense {
 }
 
 model SalesInvoice {
-  id                String   @id @default(uuid())
-  code              String   @unique
-  date              DateTime @default(now())
+  id                String    @id @default(uuid())
+  code              String    @unique
+  date              DateTime  @default(now())
   customerId        String?
-  items             Json // Array of invoice items
-  subtotal          Float    @default(0)
-  discount          Float    @default(0)
-  tax               Float    @default(0)
-  net               Float    @default(0)
-  paymentMethod     String // "cash" or "credit"
-  paymentTargetType String? // "safe" or "bank"
+  items             Json
+  subtotal          Float     @default(0)
+  discount          Float     @default(0)
+  tax               Float     @default(0)
+  net               Float     @default(0)
+  paymentMethod     String
+  paymentTargetType String?
   paymentTargetId   String?
-  safeId            String?
-  bankId            String?
   notes             String?
-
-  // Foreign keys
-  userId   String
-  branchId String?
-
-  // Relationships
-  customer Customer? @relation(fields: [customerId], references: [id])
-  user     User      @relation(fields: [userId], references: [id])
-  branch   Branch?   @relation(fields: [branchId], references: [id])
-  safe     Safe?     @relation(fields: [safeId], references: [id])
-  bank     Bank?     @relation(fields: [bankId], references: [id])
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  userId            String
+  branchId          String?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  bankId            String?
+  safeId            String?
+  bank              Bank?     @relation(fields: [bankId], references: [id])
+  branch            Branch?   @relation(fields: [branchId], references: [id])
+  customer          Customer? @relation(fields: [customerId], references: [id])
+  safe              Safe?     @relation(fields: [safeId], references: [id])
+  user              User      @relation(fields: [userId], references: [id])
 
   @@index([code])
   @@index([date])
@@ -693,27 +544,22 @@ model SalesInvoice {
 }
 
 model PriceQuotation {
-  id          String   @id @default(uuid())
-  code        String   @unique
-  date        DateTime @default(now())
-  expiryDate  DateTime?
-  status      String   @default("draft")
-  notes       String?
-  items       Json
-  totals      Json
-
-  // Foreign keys
+  id         String    @id @default(uuid())
+  code       String    @unique
+  date       DateTime  @default(now())
+  expiryDate DateTime?
+  status     String    @default("draft")
+  notes      String?
+  items      Json
+  totals     Json
   customerId String?
   userId     String
   branchId   String?
-
-  // Relationships
-  customer Customer? @relation(fields: [customerId], references: [id])
-  user     User      @relation(fields: [userId], references: [id])
-  branch   Branch?   @relation(fields: [branchId], references: [id])
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+  branch     Branch?   @relation(fields: [branchId], references: [id])
+  customer   Customer? @relation(fields: [customerId], references: [id])
+  user       User      @relation(fields: [userId], references: [id])
 
   @@index([code])
   @@index([date])
@@ -723,35 +569,30 @@ model PriceQuotation {
 }
 
 model SalesReturn {
-  id                String   @id @default(uuid())
-  code              String   @unique
-  date              DateTime @default(now())
+  id                String    @id @default(uuid())
+  code              String    @unique
+  date              DateTime  @default(now())
   customerId        String?
-  items             Json // Array of return items
-  subtotal          Float    @default(0)
-  discount          Float    @default(0)
-  tax               Float    @default(0)
-  net               Float    @default(0)
-  paymentMethod     String // "cash" or "credit"
-  paymentTargetType String? // "safe" or "bank"
+  items             Json
+  subtotal          Float     @default(0)
+  discount          Float     @default(0)
+  tax               Float     @default(0)
+  net               Float     @default(0)
+  paymentMethod     String
+  paymentTargetType String?
   paymentTargetId   String?
-  safeId            String?
-  bankId            String?
   notes             String?
-
-  // Foreign keys
-  userId   String
-  branchId String?
-
-  // Relationships
-  customer Customer? @relation(fields: [customerId], references: [id])
-  user     User      @relation(fields: [userId], references: [id])
-  branch   Branch?   @relation(fields: [branchId], references: [id])
-  safe     Safe?     @relation(fields: [safeId], references: [id])
-  bank     Bank?     @relation(fields: [bankId], references: [id])
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  userId            String
+  branchId          String?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  bankId            String?
+  safeId            String?
+  bank              Bank?     @relation(fields: [bankId], references: [id])
+  branch            Branch?   @relation(fields: [branchId], references: [id])
+  customer          Customer? @relation(fields: [customerId], references: [id])
+  safe              Safe?     @relation(fields: [safeId], references: [id])
+  user              User      @relation(fields: [userId], references: [id])
 
   @@index([code])
   @@index([date])
@@ -762,35 +603,30 @@ model SalesReturn {
 }
 
 model PurchaseInvoice {
-  id                String   @id @default(uuid())
-  code              String   @unique
-  date              DateTime @default(now())
+  id                String    @id @default(uuid())
+  code              String    @unique
+  date              DateTime  @default(now())
   supplierId        String?
-  items             Json // Array of invoice items
-  subtotal          Float    @default(0)
-  discount          Float    @default(0)
-  tax               Float    @default(0)
-  net               Float    @default(0)
-  paymentMethod     String // "cash" or "credit"
-  paymentTargetType String? // "safe" or "bank"
+  items             Json
+  subtotal          Float     @default(0)
+  discount          Float     @default(0)
+  tax               Float     @default(0)
+  net               Float     @default(0)
+  paymentMethod     String
+  paymentTargetType String?
   paymentTargetId   String?
-  safeId            String?
-  bankId            String?
   notes             String?
-
-  // Foreign keys
-  userId   String
-  branchId String?
-
-  // Relationships
-  supplier Supplier? @relation(fields: [supplierId], references: [id])
-  user     User      @relation(fields: [userId], references: [id])
-  branch   Branch?   @relation(fields: [branchId], references: [id])
-  safe     Safe?     @relation(fields: [safeId], references: [id])
-  bank     Bank?     @relation(fields: [bankId], references: [id])
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  userId            String
+  branchId          String?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  bankId            String?
+  safeId            String?
+  bank              Bank?     @relation(fields: [bankId], references: [id])
+  branch            Branch?   @relation(fields: [branchId], references: [id])
+  safe              Safe?     @relation(fields: [safeId], references: [id])
+  supplier          Supplier? @relation(fields: [supplierId], references: [id])
+  user              User      @relation(fields: [userId], references: [id])
 
   @@index([code])
   @@index([date])
@@ -801,35 +637,30 @@ model PurchaseInvoice {
 }
 
 model PurchaseReturn {
-  id                String   @id @default(uuid())
-  code              String   @unique
-  date              DateTime @default(now())
+  id                String    @id @default(uuid())
+  code              String    @unique
+  date              DateTime  @default(now())
   supplierId        String?
-  items             Json // Array of return items
-  subtotal          Float    @default(0)
-  discount          Float    @default(0)
-  tax               Float    @default(0)
-  net               Float    @default(0)
-  paymentMethod     String // "cash" or "credit"
-  paymentTargetType String? // "safe" or "bank"
+  items             Json
+  subtotal          Float     @default(0)
+  discount          Float     @default(0)
+  tax               Float     @default(0)
+  net               Float     @default(0)
+  paymentMethod     String
+  paymentTargetType String?
   paymentTargetId   String?
-  safeId            String?
-  bankId            String?
   notes             String?
-
-  // Foreign keys
-  userId   String
-  branchId String?
-
-  // Relationships
-  supplier Supplier? @relation(fields: [supplierId], references: [id])
-  user     User      @relation(fields: [userId], references: [id])
-  branch   Branch?   @relation(fields: [branchId], references: [id])
-  safe     Safe?     @relation(fields: [safeId], references: [id])
-  bank     Bank?     @relation(fields: [bankId], references: [id])
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  userId            String
+  branchId          String?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  bankId            String?
+  safeId            String?
+  bank              Bank?     @relation(fields: [bankId], references: [id])
+  branch            Branch?   @relation(fields: [branchId], references: [id])
+  safe              Safe?     @relation(fields: [safeId], references: [id])
+  supplier          Supplier? @relation(fields: [supplierId], references: [id])
+  user              User      @relation(fields: [userId], references: [id])
 
   @@index([code])
   @@index([date])
@@ -840,45 +671,38 @@ model PurchaseReturn {
 }
 
 model PaymentVoucher {
-  id            String   @id @default(uuid())
-  code          String   @unique
-  date          DateTime @default(now())
-  entityType    String // "customer", "supplier", "current_account", "expense"
-  entityName    String
-  amount        Float
-  priceBeforeTax Float?
-  taxPrice       Float?
-  description   String?
-  paymentMethod String // "safe" or "bank"
-  safeId        String?
-  bankId        String?
-
-  // Entity foreign keys (polymorphic relation)
-  customerId       String?
-  supplierId       String?
-  currentAccountId String?
-  expenseCodeId    String?
+  id                  String             @id @default(uuid())
+  code                String             @unique
+  date                DateTime           @default(now())
+  entityType          String
+  entityName          String
+  amount              Float
+  description         String?
+  paymentMethod       String
+  safeId              String?
+  bankId              String?
+  customerId          String?
+  supplierId          String?
+  currentAccountId    String?
+  expenseCodeId       String?
+  userId              String
+  branchId            String?
+  createdAt           DateTime           @default(now())
+  updatedAt           DateTime           @updatedAt
   receivableAccountId String?
   payableAccountId    String?
-
-  // Foreign keys
-  userId   String
-  branchId String?
-
-  // Relationships
-  user           User            @relation(fields: [userId], references: [id])
-  branch         Branch?         @relation(fields: [branchId], references: [id])
-  safe           Safe?           @relation(fields: [safeId], references: [id])
-  bank           Bank?           @relation(fields: [bankId], references: [id])
-  customer       Customer?       @relation(fields: [customerId], references: [id])
-  supplier       Supplier?       @relation(fields: [supplierId], references: [id])
-  currentAccount CurrentAccount? @relation(fields: [currentAccountId], references: [id])
-  expenseCode    ExpenseCode?    @relation(fields: [expenseCodeId], references: [id])
-  receivableAccount ReceivableAccount? @relation(fields: [receivableAccountId], references: [id])
-  payableAccount    PayableAccount?    @relation(fields: [payableAccountId], references: [id])
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  priceBeforeTax      Float?
+  taxPrice            Float?
+  bank                Bank?              @relation(fields: [bankId], references: [id])
+  branch              Branch?            @relation(fields: [branchId], references: [id])
+  currentAccount      CurrentAccount?    @relation(fields: [currentAccountId], references: [id])
+  customer            Customer?          @relation(fields: [customerId], references: [id])
+  expenseCode         ExpenseCode?       @relation(fields: [expenseCodeId], references: [id])
+  payableAccount      PayableAccount?    @relation(fields: [payableAccountId], references: [id])
+  receivableAccount   ReceivableAccount? @relation(fields: [receivableAccountId], references: [id])
+  safe                Safe?              @relation(fields: [safeId], references: [id])
+  supplier            Supplier?          @relation(fields: [supplierId], references: [id])
+  user                User               @relation(fields: [userId], references: [id])
 
   @@index([code])
   @@index([date])
@@ -889,41 +713,34 @@ model PaymentVoucher {
 }
 
 model ReceiptVoucher {
-  id            String   @id @default(uuid())
-  code          String   @unique
-  date          DateTime @default(now())
-  entityType    String // "customer", "supplier", "current_account"
-  entityName    String
-  amount        Float
-  description   String?
-  paymentMethod String // "safe" or "bank"
-  safeId        String?
-  bankId        String?
-
-  // Entity foreign keys (polymorphic relation)
-  customerId       String?
-  supplierId       String?
-  currentAccountId String?
+  id                  String             @id @default(uuid())
+  code                String             @unique
+  date                DateTime           @default(now())
+  entityType          String
+  entityName          String
+  amount              Float
+  description         String?
+  paymentMethod       String
+  safeId              String?
+  bankId              String?
+  customerId          String?
+  supplierId          String?
+  currentAccountId    String?
+  userId              String
+  branchId            String?
+  createdAt           DateTime           @default(now())
+  updatedAt           DateTime           @updatedAt
   receivableAccountId String?
   payableAccountId    String?
-
-  // Foreign keys
-  userId   String
-  branchId String?
-
-  // Relationships
-  user           User            @relation(fields: [userId], references: [id])
-  branch         Branch?         @relation(fields: [branchId], references: [id])
-  safe           Safe?           @relation(fields: [safeId], references: [id])
-  bank           Bank?           @relation(fields: [bankId], references: [id])
-  customer       Customer?       @relation(fields: [customerId], references: [id])
-  supplier       Supplier?       @relation(fields: [supplierId], references: [id])
-  currentAccount CurrentAccount? @relation(fields: [currentAccountId], references: [id])
-  receivableAccount ReceivableAccount? @relation(fields: [receivableAccountId], references: [id])
-  payableAccount    PayableAccount?    @relation(fields: [payableAccountId], references: [id])
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  bank                Bank?              @relation(fields: [bankId], references: [id])
+  branch              Branch?            @relation(fields: [branchId], references: [id])
+  currentAccount      CurrentAccount?    @relation(fields: [currentAccountId], references: [id])
+  customer            Customer?          @relation(fields: [customerId], references: [id])
+  payableAccount      PayableAccount?    @relation(fields: [payableAccountId], references: [id])
+  receivableAccount   ReceivableAccount? @relation(fields: [receivableAccountId], references: [id])
+  safe                Safe?              @relation(fields: [safeId], references: [id])
+  supplier            Supplier?          @relation(fields: [supplierId], references: [id])
+  user                User               @relation(fields: [userId], references: [id])
 
   @@index([code])
   @@index([date])
@@ -939,29 +756,85 @@ model InternalTransfer {
   date        DateTime @default(now())
   amount      Float
   description String?
-  fromType    String // "safe" or "bank"
-  toType      String // "safe" or "bank"
+  fromType    String
+  toType      String
   fromSafeId  String?
   fromBankId  String?
   toSafeId    String?
   toBankId    String?
-
-  // Foreign keys
-  userId   String
-  branchId String?
-
-  // Relationships
-  user     User    @relation(fields: [userId], references: [id])
-  branch   Branch? @relation(fields: [branchId], references: [id])
-  fromSafe Safe?   @relation("FromSafeTransfers", fields: [fromSafeId], references: [id])
-  fromBank Bank?   @relation("FromBankTransfers", fields: [fromBankId], references: [id])
-  toSafe   Safe?   @relation("ToSafeTransfers", fields: [toSafeId], references: [id])
-  toBank   Bank?   @relation("ToBankTransfers", fields: [toBankId], references: [id])
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  userId      String
+  branchId    String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  branch      Branch?  @relation(fields: [branchId], references: [id])
+  fromBank    Bank?    @relation("FromBankTransfers", fields: [fromBankId], references: [id])
+  fromSafe    Safe?    @relation("FromSafeTransfers", fields: [fromSafeId], references: [id])
+  toBank      Bank?    @relation("ToBankTransfers", fields: [toBankId], references: [id])
+  toSafe      Safe?    @relation("ToSafeTransfers", fields: [toSafeId], references: [id])
+  user        User     @relation(fields: [userId], references: [id])
 
   @@index([code])
   @@index([date])
   @@index([userId])
+}
+
+model InventoryCount {
+  id                 String               @id @default(uuid())
+  code               String               @unique
+  date               DateTime             @default(now())
+  status             InventoryCountStatus @default(PENDING)
+  notes              String?
+  totalVarianceValue Float                @default(0)
+  storeId            String
+  userId             String
+  branchId           String?
+  createdAt          DateTime             @default(now())
+  updatedAt          DateTime             @updatedAt
+  branch             Branch?              @relation(fields: [branchId], references: [id])
+  store              Store                @relation(fields: [storeId], references: [id])
+  user               User                 @relation(fields: [userId], references: [id])
+  items              InventoryCountItem[]
+
+  @@index([code])
+  @@index([date])
+  @@index([status])
+  @@index([storeId])
+  @@index([userId])
+}
+
+model InventoryCountItem {
+  id               String         @id @default(uuid())
+  systemStock      Float
+  actualStock      Float
+  difference       Float
+  cost             Float
+  inventoryCountId String
+  itemId           String
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+  inventoryCount   InventoryCount @relation(fields: [inventoryCountId], references: [id], onDelete: Cascade)
+  item             Item           @relation(fields: [itemId], references: [id])
+
+  @@index([inventoryCountId])
+  @@index([itemId])
+}
+
+enum SessionStatus {
+  ACTIVE
+  INACTIVE
+}
+
+enum OtpType {
+  EMAIL_VERIFICATION
+  PASSWORD_RESET
+}
+
+enum ItemType {
+  STOCKED
+  SERVICE
+}
+
+enum InventoryCountStatus {
+  PENDING
+  POSTED
 }
