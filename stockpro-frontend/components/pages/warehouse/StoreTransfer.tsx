@@ -1213,19 +1213,21 @@ const StoreTransfer: React.FC<StoreTransferProps> = ({ title }) => {
         colorTheme="amber"
       />
       {focusedItemData && (
-        <ItemContextBar
-          item={focusedItemData}
-          stores={stores}
-          branches={branches}
-          storeReceiptVouchers={storeReceiptVouchers}
-          storeIssueVouchers={storeIssueVouchers}
-          storeTransferVouchers={storeTransferVouchers}
-          purchaseInvoices={purchaseInvoices}
-          purchaseReturns={purchaseReturns}
-          salesReturns={salesReturns}
-          invoices={invoices}
-          storeItems={storeItems}
-        />
+        <div className="no-print">
+          <ItemContextBar
+            item={focusedItemData}
+            stores={stores}
+            branches={branches}
+            storeReceiptVouchers={storeReceiptVouchers}
+            storeIssueVouchers={storeIssueVouchers}
+            storeTransferVouchers={storeTransferVouchers}
+            purchaseInvoices={purchaseInvoices}
+            purchaseReturns={purchaseReturns}
+            salesReturns={salesReturns}
+            invoices={invoices}
+            storeItems={storeItems}
+          />
+        </div>
       )}
     </>
   );

@@ -1212,6 +1212,7 @@ const SalesInvoice: React.FC<SalesInvoiceProps> = ({
       <style>{`
         @media print {
           .no-print-delete-col { display: none !important; }
+          [class*="ItemContextBar"], [id*="ItemContextBar"] { display: none !important; }
         }
       `}</style>
       <div className="bg-white p-6 rounded-lg shadow pb-24">
@@ -2037,19 +2038,21 @@ const SalesInvoice: React.FC<SalesInvoiceProps> = ({
         onScanSuccess={handleScanSuccess}
       />
       {focusedItemData && (
-        <ItemContextBar
-          item={focusedItemData}
-          stores={stores}
-          branches={branches}
-          storeReceiptVouchers={storeReceiptVouchers}
-          storeIssueVouchers={storeIssueVouchers}
-          storeTransferVouchers={storeTransferVouchers}
-          purchaseInvoices={purchaseInvoices}
-          purchaseReturns={purchaseReturns}
-          salesReturns={salesReturns}
-          invoices={invoices}
-          storeItems={storeItems}
-        />
+        <div className="no-print">
+          <ItemContextBar
+            item={focusedItemData}
+            stores={stores}
+            branches={branches}
+            storeReceiptVouchers={storeReceiptVouchers}
+            storeIssueVouchers={storeIssueVouchers}
+            storeTransferVouchers={storeTransferVouchers}
+            purchaseInvoices={purchaseInvoices}
+            purchaseReturns={purchaseReturns}
+            salesReturns={salesReturns}
+            invoices={invoices}
+            storeItems={storeItems}
+          />
+        </div>
       )}
     </>
   );
