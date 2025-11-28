@@ -377,11 +377,11 @@ export class PurchaseInvoiceService {
       const nextPaymentTargetType =
         data.paymentTargetType !== undefined
           ? data.paymentTargetType
-          : existingInvoice.paymentTargetType ?? null;
+          : (existingInvoice.paymentTargetType ?? null);
       const nextPaymentTargetId =
         data.paymentTargetId !== undefined
           ? data.paymentTargetId
-          : existingInvoice.paymentTargetId ?? null;
+          : (existingInvoice.paymentTargetId ?? null);
 
       // Only persist safe/bank links for CASH invoices
       const safeId =
@@ -392,7 +392,7 @@ export class PurchaseInvoiceService {
           : null;
       const bankId =
         nextPaymentMethod === 'cash' && nextPaymentTargetType === 'bank'
-          ? nextPaymentTargetId ?? null
+          ? (nextPaymentTargetId ?? null)
           : null;
 
       const inv = await tx.purchaseInvoice.update({
@@ -554,7 +554,9 @@ export class PurchaseInvoiceService {
       const initialMap = new Map(
         itemInitials.map((entry) => [
           entry.code,
-          ((entry as any).initialPurchasePrice ?? entry.purchasePrice ?? 0) as number,
+          ((entry as any).initialPurchasePrice ??
+            entry.purchasePrice ??
+            0) as number,
         ]),
       );
 
@@ -564,11 +566,12 @@ export class PurchaseInvoiceService {
           data: { stock: { decrement: item.qty } },
         });
 
-        const latestInvoice = otherInvoices.find((candidate) =>
-          Array.isArray(candidate.items) &&
-          (candidate.items as any[]).some(
-            (invItem) => invItem.id === item.id && invItem.price,
-          ),
+        const latestInvoice = otherInvoices.find(
+          (candidate) =>
+            Array.isArray(candidate.items) &&
+            (candidate.items as any[]).some(
+              (invItem) => invItem.id === item.id && invItem.price,
+            ),
         );
 
         if (latestInvoice) {

@@ -103,6 +103,7 @@ export const apiSlice = createApi({
     "ExpenseType",
     "ExpenseCode",
     "SalesInvoice",
+    "PriceQuotation",
     "SalesReturn",
     "PurchaseInvoice",
     "PurchaseReturn",

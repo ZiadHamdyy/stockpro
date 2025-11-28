@@ -62,7 +62,10 @@ export class ItemService {
     return this.mapToResponse(result);
   }
 
-  async findAll(storeId?: string, _priceDate?: string): Promise<ItemResponse[]> {
+  async findAll(
+    storeId?: string,
+    _priceDate?: string,
+  ): Promise<ItemResponse[]> {
     const items = await this.prisma.item.findMany({
       include: {
         group: true,

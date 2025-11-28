@@ -59,6 +59,7 @@ model User {
 
   // Internal transfers
   internalTransfers InternalTransfer[]
+  priceQuotations  PriceQuotation[]
 }
 
 model Session {
@@ -301,6 +302,7 @@ model Customer {
   salesReturns    SalesReturn[]
   paymentVouchers PaymentVoucher[]
   receiptVouchers ReceiptVoucher[]
+  priceQuotations PriceQuotation[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -353,6 +355,7 @@ model Branch {
   paymentVouchers   PaymentVoucher[]
   receiptVouchers   ReceiptVoucher[]
   internalTransfers InternalTransfer[]
+  priceQuotations   PriceQuotation[]
 }
 
 model Store {
@@ -687,6 +690,36 @@ model SalesInvoice {
   @@index([userId])
   @@index([safeId])
   @@index([bankId])
+}
+
+model PriceQuotation {
+  id          String   @id @default(uuid())
+  code        String   @unique
+  date        DateTime @default(now())
+  expiryDate  DateTime?
+  status      String   @default("draft")
+  notes       String?
+  items       Json
+  totals      Json
+
+  // Foreign keys
+  customerId String?
+  userId     String
+  branchId   String?
+
+  // Relationships
+  customer Customer? @relation(fields: [customerId], references: [id])
+  user     User      @relation(fields: [userId], references: [id])
+  branch   Branch?   @relation(fields: [branchId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([code])
+  @@index([date])
+  @@index([customerId])
+  @@index([userId])
+  @@index([branchId])
 }
 
 model SalesReturn {

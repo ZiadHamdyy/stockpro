@@ -1,34 +1,37 @@
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import DataTableModal from '../../common/DataTableModal';
 import DocumentHeader from '../../common/DocumentHeader';
 import { BarcodeIcon, ListIcon, PrintIcon, TrashIcon } from '../../icons';
 import { tafqeet } from '../../../utils/tafqeet';
-import type { CompanyInfo, InvoiceItem, Customer, Quotation, User } from '../../../types';
+import type { CompanyInfo, InvoiceItem, Customer } from '../../../types';
 import QuotationPrintPreview from './QuotationPrintPreview.tsx';
 import { useModal } from '../../common/ModalProvider';
 import { useToast } from '../../common/ToastProvider';
 import { useGetCompanyQuery } from '../../store/slices/companyApiSlice';
+import { useGetItemsQuery } from '../../store/slices/items/itemsApi';
+import { useGetCustomersQuery } from '../../store/slices/customer/customerApiSlice';
+import {
+    useCreatePriceQuotationMutation,
+    useDeletePriceQuotationMutation,
+    useGetPriceQuotationsQuery,
+    useUpdatePriceQuotationMutation,
+    type PriceQuotation as PriceQuotationRecord,
+} from '../../store/slices/priceQuotation/priceQuotationApiSlice';
+import { useAppSelector } from '../../store/hooks';
 
 type SelectableItem = {id: string, name: string, unit: string, price: number, stock: number, barcode?: string};
 
 interface PriceQuotationProps {
     title: string;
-    vatRate: number;
-    isVatEnabled: boolean;
-    companyInfo?: CompanyInfo;
-    items: SelectableItem[];
-    customers: Customer[];
-    quotations: Quotation[];
-    onSave: (quotation: Quotation) => void;
-    onDelete: (id: string) => void;
-    currentUser: User | null;
-    onConvertToInvoice: (quotation: Quotation) => void;
 }
 
-const PriceQuotation: React.FC<PriceQuotationProps> = ({ title, vatRate, isVatEnabled, companyInfo: companyInfoProp, items: allItems, customers: allCustomers, quotations, onSave, onDelete, currentUser, onConvertToInvoice }) => {
+const PriceQuotation: React.FC<PriceQuotationProps> = ({ title }) => {
+    const currentUser = useAppSelector(state => state.auth.user);
     const { data: company } = useGetCompanyQuery();
-    const companyInfo: CompanyInfo = company || companyInfoProp || {
+    const computedVatRate = company?.vatRate ?? 0;
+    const computedIsVatEnabled = company?.isVatEnabled ?? false;
+    const companyInfo: CompanyInfo = company || {
         name: '',
         activity: '',
         address: '',
@@ -38,16 +41,41 @@ const PriceQuotation: React.FC<PriceQuotationProps> = ({ title, vatRate, isVatEn
         currency: 'SAR',
         logo: null,
         capital: 0,
-        vatRate: vatRate,
-        isVatEnabled,
+        vatRate: computedVatRate,
+        isVatEnabled: computedIsVatEnabled,
     };
+    const vatRate = companyInfo.vatRate ?? 0;
+    const isVatEnabled = companyInfo.isVatEnabled ?? false;
+
+    const { data: itemsData = [] } = useGetItemsQuery();
+    const selectableItems: SelectableItem[] = useMemo(
+        () =>
+            itemsData.map((item: any) => ({
+                id: item.code,
+                name: item.name,
+                unit: item.unit?.name || '',
+                price: item.salePrice ?? item.price ?? 0,
+                stock: item.stock ?? 0,
+                barcode: item.barcode,
+            })),
+        [itemsData]
+    );
+    const { data: customersData = [] } = useGetCustomersQuery();
+    const allCustomers: Customer[] = customersData;
+    const { data: quotationsData } = useGetPriceQuotationsQuery();
+    const quotations: PriceQuotationRecord[] = quotationsData ?? [];
+    const [createPriceQuotation, { isLoading: isCreatingQuotation }] = useCreatePriceQuotationMutation();
+    const [updatePriceQuotation, { isLoading: isUpdatingQuotation }] = useUpdatePriceQuotationMutation();
+    const [deletePriceQuotation, { isLoading: isDeletingQuotation }] = useDeletePriceQuotationMutation();
 
     const createEmptyItem = (): InvoiceItem => ({id: '', name: '', unit: '', qty: 1, price: 0, taxAmount: 0, total: 0});
+    const isMutating = isCreatingQuotation || isUpdatingQuotation || isDeletingQuotation;
     
     const [items, setItems] = useState<InvoiceItem[]>(Array(6).fill(null).map(createEmptyItem));
     const [totals, setTotals] = useState({ subtotal: 0, discount: 0, tax: 0, net: 0 });
     const [quotationDetails, setQuotationDetails] = useState({ id: '', date: new Date().toISOString().substring(0, 10), expiryDate: new Date(new Date().setDate(new Date().getDate() + 7)).toISOString().substring(0, 10), notes: 'عرض السعر صالح لمدة أسبوع من تاريخه.' });
     const [isReadOnly, setIsReadOnly] = useState(true);
+    const [pendingSelectionId, setPendingSelectionId] = useState<string | null>(null);
     const { showModal } = useModal();
     const { showToast } = useToast();
     
@@ -70,7 +98,7 @@ const PriceQuotation: React.FC<PriceQuotationProps> = ({ title, vatRate, isVatEn
     const [currentIndex, setCurrentIndex] = useState(-1);
 
     const filteredCustomers = customerQuery ? allCustomers.filter(c => c.name.toLowerCase().includes(customerQuery.toLowerCase())) : allCustomers;
-    const filteredItems = (activeItemSearch && typeof activeItemSearch.query === 'string') ? allItems.filter(item => 
+    const filteredItems = (activeItemSearch && typeof activeItemSearch.query === 'string') ? selectableItems.filter(item => 
         (item.name && item.name.toLowerCase().includes(activeItemSearch.query.toLowerCase())) ||
         (item.id && typeof item.id === 'string' && item.id.toLowerCase().includes(activeItemSearch.query.toLowerCase()))
     ) : [];
@@ -80,7 +108,7 @@ const PriceQuotation: React.FC<PriceQuotationProps> = ({ title, vatRate, isVatEn
         setItems(Array(6).fill(null).map(createEmptyItem));
         setTotals({ subtotal: 0, discount: 0, tax: 0, net: 0 });
         setQuotationDetails({
-            id: `QUO-${Math.floor(10000 + Math.random() * 90000)}`,
+            id: '',
             date: new Date().toISOString().substring(0, 10),
             expiryDate: new Date(new Date().setDate(new Date().getDate() + 7)).toISOString().substring(0, 10),
             notes: 'عرض السعر صالح لمدة أسبوع من تاريخه.'
@@ -88,16 +116,42 @@ const PriceQuotation: React.FC<PriceQuotationProps> = ({ title, vatRate, isVatEn
         setSelectedCustomer(null);
         setCustomerQuery('');
         setIsReadOnly(false);
+        setPendingSelectionId(null);
     };
+
+    useEffect(() => {
+        if (pendingSelectionId && quotations.length) {
+            const idx = quotations.findIndex(q => q.id === pendingSelectionId);
+            if (idx !== -1) {
+                setCurrentIndex(idx);
+                setPendingSelectionId(null);
+            }
+        }
+    }, [pendingSelectionId, quotations]);
+
+    useEffect(() => {
+        if (!quotations.length && currentIndex !== -1) {
+            setCurrentIndex(-1);
+            return;
+        }
+        if (quotations.length > 0 && currentIndex >= quotations.length) {
+            setCurrentIndex(quotations.length - 1);
+        }
+    }, [quotations.length, currentIndex]);
 
     useEffect(() => {
         if (currentIndex >= 0 && quotations[currentIndex]) {
             const quote = quotations[currentIndex];
-            setQuotationDetails({ id: quote.id, date: quote.date, expiryDate: quote.expiryDate, notes: quote.notes });
-            setSelectedCustomer(quote.customer);
+            setQuotationDetails({ 
+                id: quote.code,
+                date: quote.date ? quote.date.substring(0, 10) : new Date().toISOString().substring(0, 10),
+                expiryDate: quote.expiryDate ? quote.expiryDate.substring(0, 10) : new Date(new Date().setDate(new Date().getDate() + 7)).toISOString().substring(0, 10),
+                notes: quote.notes || 'عرض السعر صالح لمدة أسبوع من تاريخه.'
+            });
+            setSelectedCustomer(quote.customer ? { id: quote.customer.id, name: quote.customer.name } : null);
             setCustomerQuery(quote.customer?.name || '');
-            setItems(quote.items);
-            setTotals(quote.totals);
+            setItems(quote.items as InvoiceItem[]);
+            setTotals(quote.totals || { subtotal: 0, discount: 0, tax: 0, net: 0 });
             setIsReadOnly(true);
         } else {
             handleNew();
@@ -146,42 +200,74 @@ const PriceQuotation: React.FC<PriceQuotationProps> = ({ title, vatRate, isVatEn
         setEditingItemIndex(null);
     };
 
-    const handleSave = () => {
+    const handleSave = async () => {
         const finalItems = items.filter(i => i.id && i.name && i.qty > 0);
         if (finalItems.length === 0) {
             showToast('الرجاء إضافة صنف واحد على الأقل.');
             return;
         }
-        const quotationData: Quotation = {
-            id: quotationDetails.id,
+        const sanitizedItems = finalItems.map(item => ({
+            id: item.id,
+            name: item.name,
+            unit: item.unit,
+            qty: Number(item.qty) || 0,
+            price: Number(item.price) || 0,
+            taxAmount: Number(item.taxAmount) || 0,
+            total: Number(item.total) || 0,
+        }));
+
+        const payload = {
+            customerId: selectedCustomer?.id,
             date: quotationDetails.date,
             expiryDate: quotationDetails.expiryDate,
-            customer: selectedCustomer,
-            items: finalItems,
+            items: sanitizedItems,
             totals,
             notes: quotationDetails.notes,
-            status: 'sent',
-            userName: currentUser?.fullName || 'غير محدد',
-            branchName: currentUser?.branch || 'غير محدد',
+            status: currentIndex >= 0 && quotations[currentIndex]?.status ? quotations[currentIndex].status : 'sent',
         };
-        onSave(quotationData);
-        showToast('تم حفظ عرض السعر بنجاح!');
-        setIsReadOnly(true);
-        const savedIndex = quotations.findIndex(q => q.id === quotationData.id);
-        if (savedIndex !== -1) setCurrentIndex(savedIndex);
-        else setCurrentIndex(quotations.length);
+
+        try {
+            if (currentIndex >= 0 && quotations[currentIndex]) {
+                const targetId = quotations[currentIndex].id;
+                await updatePriceQuotation({ id: targetId, data: payload }).unwrap();
+                setPendingSelectionId(targetId);
+            } else {
+                const created = await createPriceQuotation(payload).unwrap();
+                setPendingSelectionId(created.id);
+                setQuotationDetails({
+                    id: created.code,
+                    date: created.date ? created.date.substring(0, 10) : quotationDetails.date,
+                    expiryDate: created.expiryDate ? created.expiryDate.substring(0, 10) : quotationDetails.expiryDate,
+                    notes: created.notes || quotationDetails.notes,
+                });
+                setItems((created.items as InvoiceItem[]) ?? finalItems);
+                setTotals((created.totals as typeof totals) ?? totals);
+                setSelectedCustomer(created.customer ? { id: created.customer.id, name: created.customer.name } : null);
+                setCustomerQuery(created.customer?.name || '');
+            }
+            showToast('تم حفظ عرض السعر بنجاح!');
+            setIsReadOnly(true);
+        } catch (error) {
+            console.error(error);
+            showToast('حدث خطأ أثناء حفظ عرض السعر.');
+        }
     };
 
     const handleDelete = () => {
-        if (currentIndex === -1) return;
+        if (currentIndex === -1 || !quotations[currentIndex]) return;
         showModal({
             title: 'تأكيد الحذف',
             message: 'هل أنت متأكد من حذف عرض السعر هذا؟',
-            onConfirm: () => {
-                 onDelete(quotations[currentIndex].id);
-                 showToast('تم الحذف بنجاح.');
-                if (quotations.length <= 1) handleNew();
-                else setCurrentIndex(prev => Math.max(0, prev - 1));
+            onConfirm: async () => {
+                try {
+                    await deletePriceQuotation(quotations[currentIndex].id).unwrap();
+                    showToast('تم الحذف بنجاح.');
+                    if (quotations.length <= 1) handleNew();
+                    else setCurrentIndex(prev => Math.max(0, prev - 1));
+                } catch (error) {
+                    console.error(error);
+                    showToast('حدث خطأ أثناء حذف عرض السعر.');
+                }
             },
             type: 'delete',
             showPassword: true,
@@ -189,13 +275,13 @@ const PriceQuotation: React.FC<PriceQuotationProps> = ({ title, vatRate, isVatEn
     };
 
     const navigate = (index: number) => {
-        if ((quotations as any[]).length > 0) {
-            setCurrentIndex(Math.max(0, Math.min((quotations as any[]).length - 1, index)));
+        if (quotations.length > 0) {
+            setCurrentIndex(Math.max(0, Math.min(quotations.length - 1, index)));
         }
     };
 
     const navigateBy = (direction: 'first' | 'prev' | 'next' | 'last') => {
-        const list = quotations as any[];
+        const list = quotations;
         if (!Array.isArray(list) || list.length === 0) return;
 
         let newIndex = currentIndex;
@@ -216,6 +302,20 @@ const PriceQuotation: React.FC<PriceQuotationProps> = ({ title, vatRate, isVatEn
         navigate(newIndex);
     };
 
+    const handleConvertToInvoice = async () => {
+        if (currentIndex < 0 || !quotations[currentIndex]) return;
+        try {
+            await updatePriceQuotation({
+                id: quotations[currentIndex].id,
+                data: { status: 'converted' },
+            }).unwrap();
+            showToast('تم تحويل عرض السعر إلى فاتورة (محاكاة).');
+        } catch (error) {
+            console.error(error);
+            showToast('تعذر تحويل عرض السعر إلى فاتورة.');
+        }
+    };
+
     const inputStyle = "block w-full bg-yellow-50 border-2 border-amber-500 rounded-md shadow-sm text-brand-dark placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-amber-500 py-3 px-4 disabled:bg-gray-200 disabled:cursor-not-allowed";
     const tableInputStyle = "text-center bg-transparent focus:outline-none focus:ring-1 focus:ring-amber-500 rounded p-1 disabled:bg-transparent";
 
@@ -232,7 +332,13 @@ const PriceQuotation: React.FC<PriceQuotationProps> = ({ title, vatRate, isVatEn
                         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
                             <div className="flex flex-col">
                                 <label className="text-xs text-gray-500 mb-1">رقم العرض</label>
-                                <input type="text" placeholder="رقم العرض" className={inputStyle} value={quotationDetails.id} onChange={e => setQuotationDetails({...quotationDetails, id: e.target.value})} readOnly={currentIndex > -1 || isReadOnly} />
+                                <input
+                                    type="text"
+                                    disabled
+                                    className={inputStyle}
+                                    value={quotationDetails.id || ''}
+                                    readOnly
+                                />
                             </div>
                             <div className="flex flex-col">
                                 <label className="text-xs text-gray-500 mb-1">تاريخ العرض</label>
@@ -313,7 +419,7 @@ const PriceQuotation: React.FC<PriceQuotationProps> = ({ title, vatRate, isVatEn
                         </tbody>
                     </table>
                 </div>
-                <button onClick={() => setItems([...items, createEmptyItem()])} className="mb-4 px-4 py-2 bg-gray-200 text-brand-dark rounded-md hover:bg-gray-300" disabled={isReadOnly}>اضافة سطر</button>
+                <button onClick={() => setItems([...items, createEmptyItem()])} className="mb-4 px-4 py-2 bg-gray-200 text-brand-dark rounded-md hover:bg-gray-300" disabled={isReadOnly || isMutating}>اضافة سطر</button>
 
                 <div className="bg-yellow-50 -mx-6 -mb-6 mt-4 p-6 rounded-b-lg">
                     <div className="flex flex-col md:flex-row justify-between items-start gap-6">
@@ -360,16 +466,16 @@ const PriceQuotation: React.FC<PriceQuotationProps> = ({ title, vatRate, isVatEn
 
                 <div className="mt-6 pt-4 border-t-2 border-gray-200 flex flex-col items-center space-y-4">
                     <div className="flex justify-center gap-2 flex-wrap">
-                        <button onClick={handleNew} className="px-4 py-2 bg-brand-blue text-white rounded-md hover:bg-blue-800 font-semibold">جديد</button>
-                        <button onClick={handleSave} disabled={isReadOnly} className="px-4 py-2 bg-brand-green text-white rounded-md hover:bg-green-700 font-semibold disabled:bg-gray-400">حفظ</button>
-                        <button onClick={() => setIsReadOnly(false)} disabled={currentIndex < 0 || !isReadOnly} className="px-4 py-2 bg-yellow-500 text-white rounded-md hover:bg-yellow-600 font-semibold disabled:bg-gray-400">تعديل</button>
-                        <button onClick={handleDelete} disabled={currentIndex < 0} className="px-4 py-2 bg-red-500 text-white rounded-md hover:bg-red-600 font-semibold disabled:bg-gray-400">حذف</button>
+                        <button onClick={handleNew} disabled={isMutating} className="px-4 py-2 bg-brand-blue text-white rounded-md hover:bg-blue-800 font-semibold disabled:bg-gray-400">جديد</button>
+                        <button onClick={handleSave} disabled={isReadOnly || isMutating} className="px-4 py-2 bg-brand-green text-white rounded-md hover:bg-green-700 font-semibold disabled:bg-gray-400">حفظ</button>
+                        <button onClick={() => setIsReadOnly(false)} disabled={currentIndex < 0 || !isReadOnly || isMutating} className="px-4 py-2 bg-yellow-500 text-white rounded-md hover:bg-yellow-600 font-semibold disabled:bg-gray-400">تعديل</button>
+                        <button onClick={handleDelete} disabled={currentIndex < 0 || isMutating} className="px-4 py-2 bg-red-500 text-white rounded-md hover:bg-red-600 font-semibold disabled:bg-gray-400">حذف</button>
                         <button onClick={() => setIsSearchModalOpen(true)} className="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 font-semibold">بحث</button>
                         <button onClick={() => setIsPreviewOpen(true)} className="px-4 py-2 bg-gray-200 text-brand-dark rounded-md hover:bg-gray-300 font-semibold flex items-center"><PrintIcon className="mr-2 w-5 h-5"/>معاينة الطباعة</button>
                         {/* Killer Feature: Convert to Invoice */}
                         <button 
-                            onClick={() => onConvertToInvoice(quotations[currentIndex])} 
-                            disabled={currentIndex < 0 || isReadOnly === false} 
+                            onClick={handleConvertToInvoice} 
+                            disabled={currentIndex < 0 || isReadOnly === false || isMutating} 
                             className="px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 font-semibold disabled:bg-gray-400 flex items-center shadow-lg transform transition hover:-translate-y-1"
                         >
                             <ListIcon className="ml-2 w-5 h-5"/> تحويل إلى فاتورة
@@ -378,33 +484,33 @@ const PriceQuotation: React.FC<PriceQuotationProps> = ({ title, vatRate, isVatEn
                     <div className="flex items-center justify-center gap-2">
                         <button
                             onClick={() => navigateBy('first')}
-                            disabled={(quotations as any[]).length === 0 || currentIndex === 0}
+                            disabled={quotations.length === 0 || currentIndex === 0}
                             className="p-2 bg-gray-200 rounded-md hover:bg-gray-300 disabled:opacity-50"
                         >
                             الأول
                         </button>
                         <button
                             onClick={() => navigateBy('prev')}
-                            disabled={(quotations as any[]).length === 0 || currentIndex === 0}
+                            disabled={quotations.length === 0 || currentIndex === 0}
                             className="p-2 bg-gray-200 rounded-md hover:bg-gray-300 disabled:opacity-50"
                         >
                             السابق
                         </button>
                         <div className="px-4 py-2 bg-brand-blue-bg border-2 border-brand-blue rounded-md">
                             <span className="font-bold">
-                                {currentIndex > -1 ? `${currentIndex + 1} / ${(quotations as any[]).length}` : 'جديد'}
+                                {currentIndex > -1 ? `${currentIndex + 1} / ${quotations.length}` : 'جديد'}
                             </span>
                         </div>
                         <button
                             onClick={() => navigateBy('next')}
-                            disabled={(quotations as any[]).length === 0 || currentIndex === (quotations as any[]).length - 1}
+                            disabled={quotations.length === 0 || currentIndex === quotations.length - 1}
                             className="p-2 bg-gray-200 rounded-md hover:bg-gray-300 disabled:opacity-50"
                         >
                             التالي
                         </button>
                         <button
                             onClick={() => navigateBy('last')}
-                            disabled={(quotations as any[]).length === 0 || currentIndex === (quotations as any[]).length - 1}
+                            disabled={quotations.length === 0 || currentIndex === quotations.length - 1}
                             className="p-2 bg-gray-200 rounded-md hover:bg-gray-300 disabled:opacity-50"
                         >
                             الأخير
@@ -418,16 +524,34 @@ const PriceQuotation: React.FC<PriceQuotationProps> = ({ title, vatRate, isVatEn
                 onClose={() => setIsItemModalOpen(false)}
                 title="قائمة الأصناف"
                 columns={[ { Header: 'الكود', accessor: 'id' }, { Header: 'الاسم', accessor: 'name' }, { Header: 'الرصيد', accessor: 'stock' }, { Header: 'السعر', accessor: 'price' } ]}
-                data={allItems}
+                data={selectableItems}
                 onSelectRow={handleSelectItemFromModal}
             />
              <DataTableModal
                 isOpen={isSearchModalOpen}
                 onClose={() => setIsSearchModalOpen(false)}
                 title="بحث عن عرض سعر"
-                columns={[ { Header: 'الرقم', accessor: 'id' }, { Header: 'التاريخ', accessor: 'date' }, { Header: 'العميل', accessor: 'customer' }, { Header: 'الصافي', accessor: 'total' } ]}
-                data={quotations.map(q => ({id: q.id, date: q.date, customer: q.customer?.name || '-', total: q.totals.net.toFixed(2)}))}
-                onSelectRow={(row) => { const idx = quotations.findIndex(q => q.id === row.id); if(idx > -1) setCurrentIndex(idx); setIsSearchModalOpen(false); }}
+                columns={[
+                    { Header: 'الرقم', accessor: 'code' },
+                    { Header: 'التاريخ', accessor: 'date' },
+                    { Header: 'العميل', accessor: 'customer' },
+                    { Header: 'الصافي', accessor: 'total' },
+                ]}
+                data={quotations.map(q => ({
+                    id: q.id,
+                    code: q.code,
+                    date: q.date ? q.date.substring(0, 10) : '-',
+                    customer: q.customer?.name || '-',
+                    total: Number((q.totals?.net ?? 0)).toFixed(2),
+                }))}
+                onSelectRow={(row) => {
+                    const idx = quotations.findIndex(q => q.id === row.id);
+                    if (idx > -1) {
+                        setCurrentIndex(idx);
+                    }
+                    setPendingSelectionId(row.id);
+                    setIsSearchModalOpen(false);
+                }}
             />
             <QuotationPrintPreview
                 isOpen={isPreviewOpen}

@@ -253,9 +253,7 @@ export class ItemImportService {
     }
 
     const normalizedSource =
-      typeof value === 'string'
-        ? value.trim()
-        : String(value ?? '').trim();
+      typeof value === 'string' ? value.trim() : String(value ?? '').trim();
 
     if (!normalizedSource) {
       return 0;
@@ -298,5 +296,3 @@ export class ItemImportService {
     return false;
   }
 }
-
-

@@ -1,9 +1,4 @@
-import {
-  IsDefined,
-  IsNotEmpty,
-  IsString,
-  ValidateIf,
-} from 'class-validator';
+import { IsDefined, IsNotEmpty, IsString, ValidateIf } from 'class-validator';
 import { ERROR_MESSAGES } from '../../../../common/constants/error-messages.constant';
 
 export class CheckEmailRequest {

@@ -386,11 +386,11 @@ export class SalesReturnService {
         const nextPaymentTargetType =
           data.paymentTargetType !== undefined
             ? data.paymentTargetType
-            : existingReturn?.paymentTargetType ?? null;
+            : (existingReturn?.paymentTargetType ?? null);
         const nextPaymentTargetId =
           data.paymentTargetId !== undefined
             ? data.paymentTargetId
-            : existingReturn?.paymentTargetId ?? null;
+            : (existingReturn?.paymentTargetId ?? null);
         const branchIdForReturn = existingReturn?.branchId ?? null;
 
         // Only persist safe/bank links for CASH returns
@@ -402,7 +402,7 @@ export class SalesReturnService {
             : null;
         const bankId =
           nextPaymentMethod === 'cash' && nextPaymentTargetType === 'bank'
-            ? nextPaymentTargetId ?? null
+            ? (nextPaymentTargetId ?? null)
             : null;
 
         const ret = await tx.salesReturn.update({
@@ -461,10 +461,16 @@ export class SalesReturnService {
           });
         }
         // Reverse previous customer balance update if needed
-        if (existingReturn && (existingReturn as any).paymentMethod === 'credit' && (existingReturn as any).customerId) {
+        if (
+          existingReturn &&
+          (existingReturn as any).paymentMethod === 'credit' &&
+          (existingReturn as any).customerId
+        ) {
           await tx.customer.update({
             where: { id: (existingReturn as any).customerId },
-            data: { currentBalance: { increment: (existingReturn as any).net } },
+            data: {
+              currentBalance: { increment: (existingReturn as any).net },
+            },
           });
         }
         // Apply new cash impact if applicable
@@ -483,7 +489,10 @@ export class SalesReturnService {
           });
         }
         // Apply new customer balance update if applicable
-        if ((ret as any).paymentMethod === 'credit' && (ret as any).customerId) {
+        if (
+          (ret as any).paymentMethod === 'credit' &&
+          (ret as any).customerId
+        ) {
           await tx.customer.update({
             where: { id: (ret as any).customerId },
             data: { currentBalance: { decrement: (ret as any).net } },
@@ -514,7 +523,10 @@ export class SalesReturnService {
         await this.updateStockForItems(return_.items as any[], 'decrease');
 
         // Reverse customer balance update if applicable
-        if ((return_ as any).paymentMethod === 'credit' && (return_ as any).customerId) {
+        if (
+          (return_ as any).paymentMethod === 'credit' &&
+          (return_ as any).customerId
+        ) {
           await this.prisma.customer.update({
             where: { id: (return_ as any).customerId },
             data: { currentBalance: { increment: (return_ as any).net } },

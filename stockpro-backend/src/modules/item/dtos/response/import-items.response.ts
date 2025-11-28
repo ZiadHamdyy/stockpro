@@ -7,5 +7,3 @@ export interface ImportItemsResponse {
     message: string;
   }>;
 }
-
-

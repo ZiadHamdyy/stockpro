@@ -97,7 +97,13 @@ function detectMimeType(buffer: Buffer): string {
  * @returns Data URI string (data:image/png;base64,...), or null if buffer is empty
  */
 export function bufferToDataUri(
-  buffer: Buffer | null | { type: string; data: number[] } | number[] | Uint8Array | Record<string, unknown>,
+  buffer:
+    | Buffer
+    | null
+    | { type: string; data: number[] }
+    | number[]
+    | Uint8Array
+    | Record<string, unknown>,
   mimeType?: string,
 ): string | null {
   if (!buffer) {
@@ -105,7 +111,14 @@ export function bufferToDataUri(
   }
 
   // Type guard for JSON serialized Buffer
-  const isJsonBuffer = (b: Buffer | { type: string; data: number[] } | number[] | Uint8Array | Record<string, unknown>): b is { type: string; data: number[] } => {
+  const isJsonBuffer = (
+    b:
+      | Buffer
+      | { type: string; data: number[] }
+      | number[]
+      | Uint8Array
+      | Record<string, unknown>,
+  ): b is { type: string; data: number[] } => {
     return (
       typeof b === 'object' &&
       b !== null &&

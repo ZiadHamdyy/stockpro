@@ -179,10 +179,9 @@ export class RoleService {
       }
 
       // Get all permissions for the 'permissions' resource
-      const permissionsResourcePermissions =
-        await tx.permission.findMany({
-          where: { resource: 'permissions' },
-        });
+      const permissionsResourcePermissions = await tx.permission.findMany({
+        where: { resource: 'permissions' },
+      });
 
       const permissionsResourcePermissionIds =
         permissionsResourcePermissions.map((p) => p.id);

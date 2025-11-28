@@ -371,11 +371,11 @@ export class PurchaseReturnService {
       const nextPaymentTargetType =
         data.paymentTargetType !== undefined
           ? data.paymentTargetType
-          : existingReturn.paymentTargetType ?? null;
+          : (existingReturn.paymentTargetType ?? null);
       const nextPaymentTargetId =
         data.paymentTargetId !== undefined
           ? data.paymentTargetId
-          : existingReturn.paymentTargetId ?? null;
+          : (existingReturn.paymentTargetId ?? null);
 
       // Only persist safe/bank links for CASH returns
       const safeId =
@@ -386,7 +386,7 @@ export class PurchaseReturnService {
           : null;
       const bankId =
         nextPaymentMethod === 'cash' && nextPaymentTargetType === 'bank'
-          ? nextPaymentTargetId ?? null
+          ? (nextPaymentTargetId ?? null)
           : null;
 
       const ret = await tx.purchaseReturn.update({

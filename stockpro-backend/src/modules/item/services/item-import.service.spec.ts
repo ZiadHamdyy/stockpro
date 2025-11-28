@@ -71,10 +71,7 @@ describe('ItemImportService', () => {
     ]);
     mockPrisma.unit.create.mockResolvedValue({ id: 'unit-1' });
     mockPrisma.unit.findFirst.mockResolvedValue(null);
-    service = new ItemImportService(
-      mockItemService as any,
-      mockPrisma as any,
-    );
+    service = new ItemImportService(mockItemService as any, mockPrisma as any);
   });
 
   it('throws when headers are missing', async () => {
@@ -167,5 +164,3 @@ describe('ItemImportService', () => {
     expect(mockItemService.create).toHaveBeenCalledTimes(1);
   });
 });
-
-

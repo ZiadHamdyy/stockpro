@@ -150,7 +150,6 @@ import type {
   FiscalYear,
   AuditLogEntry,
   InventoryCount as InventoryCountType,
-  Quotation,
 } from "./types";
 import { ToastProvider, useToast } from "./components/common/ToastProvider";
 import { ModalProvider } from "./components/common/ModalProvider";
@@ -506,7 +505,6 @@ const AppContent = () => {
     useState<AuditLogEntry[]>(initialAuditLogs);
   const [inventoryCounts, setInventoryCounts] =
     useState<InventoryCountType[]>(initialInventoryCounts);
-  const [quotations, setQuotations] = useState<Quotation[]>([]);
 
   const itemBalances = useMemo(() => {
     const balances = new Map<string, number>();
@@ -553,19 +551,6 @@ const AppContent = () => {
   const itemsWithLiveStock = useMemo(
     () => items.map((i) => ({ ...i, stock: itemBalances.get(i.code) ?? 0 })),
     [items, itemBalances],
-  );
-
-  const quotationSelectableItems = useMemo(
-    () =>
-      itemsWithLiveStock.map((item) => ({
-        id: item.code,
-        name: item.name,
-        unit: item.unit,
-        price: item.salePrice ?? item.price ?? 0,
-        stock: item.stock,
-        barcode: item.barcode,
-      })),
-    [itemsWithLiveStock],
   );
 
   useEffect(() => {
@@ -717,31 +702,6 @@ const AppContent = () => {
       }
       return [count, ...prev];
     });
-  };
-
-  const handleSaveQuotation = (quotation: Quotation) => {
-    setQuotations((prev) => {
-      const index = prev.findIndex((q) => q.id === quotation.id);
-      if (index > -1) {
-        const updated = [...prev];
-        updated[index] = quotation;
-        return updated;
-      }
-      return [quotation, ...prev];
-    });
-  };
-
-  const handleDeleteQuotation = (id: string) => {
-    setQuotations((prev) => prev.filter((q) => q.id !== id));
-  };
-
-  const handleConvertQuotationToInvoice = (quotation: Quotation) => {
-    setQuotations((prev) =>
-      prev.map((q) =>
-        q.id === quotation.id ? { ...q, status: "converted" } : q,
-      ),
-    );
-    showToast("تم تحويل عرض السعر إلى فاتورة (محاكاة).");
   };
 
   if (!isLoggedIn) {
@@ -944,19 +904,7 @@ const AppContent = () => {
               path="/sales/price-quotation"
               element={
                 <ProtectedRoute requiredPermission="price_quotation-read">
-                  <PriceQuotation
-                    title={currentPageTitle}
-                    vatRate={vatRate}
-                    isVatEnabled={isVatEnabled}
-                    companyInfo={companyInfo}
-                    items={quotationSelectableItems}
-                    customers={customers}
-                    quotations={quotations}
-                    onSave={handleSaveQuotation}
-                    onDelete={handleDeleteQuotation}
-                    currentUser={currentUser}
-                    onConvertToInvoice={handleConvertQuotationToInvoice}
-                  />
+                  <PriceQuotation title={currentPageTitle} />
                 </ProtectedRoute>
               }
             />

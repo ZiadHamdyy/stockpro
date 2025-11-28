@@ -512,11 +512,11 @@ export class SalesInvoiceService {
         const nextPaymentTargetType =
           data.paymentTargetType !== undefined
             ? data.paymentTargetType
-            : existingInvoice?.paymentTargetType ?? null;
+            : (existingInvoice?.paymentTargetType ?? null);
         const nextPaymentTargetId =
           data.paymentTargetId !== undefined
             ? data.paymentTargetId
-            : existingInvoice?.paymentTargetId ?? null;
+            : (existingInvoice?.paymentTargetId ?? null);
         const branchIdForInvoice = existingInvoice?.branchId ?? null;
 
         // Only persist safe/bank links for CASH invoices
@@ -528,7 +528,7 @@ export class SalesInvoiceService {
             : null;
         const bankId =
           nextPaymentMethod === 'cash' && nextPaymentTargetType === 'bank'
-            ? nextPaymentTargetId ?? null
+            ? (nextPaymentTargetId ?? null)
             : null;
 
         const inv = await tx.salesInvoice.update({
@@ -592,10 +592,15 @@ export class SalesInvoiceService {
           });
         }
         // Reverse previous customer balance update if needed
-        if (existingInvoice?.paymentMethod === 'credit' && existingInvoice.customerId) {
+        if (
+          existingInvoice?.paymentMethod === 'credit' &&
+          existingInvoice.customerId
+        ) {
           await tx.customer.update({
             where: { id: existingInvoice.customerId },
-            data: { currentBalance: { decrement: (existingInvoice as any).net } },
+            data: {
+              currentBalance: { decrement: (existingInvoice as any).net },
+            },
           });
         }
         // Apply new cash impact if applicable
@@ -614,7 +619,10 @@ export class SalesInvoiceService {
           });
         }
         // Apply new customer balance update if applicable
-        if ((inv as any).paymentMethod === 'credit' && (inv as any).customerId) {
+        if (
+          (inv as any).paymentMethod === 'credit' &&
+          (inv as any).customerId
+        ) {
           await tx.customer.update({
             where: { id: (inv as any).customerId },
             data: { currentBalance: { increment: (inv as any).net } },
@@ -664,7 +672,10 @@ export class SalesInvoiceService {
           });
         }
         // Reverse customer balance update if applicable
-        if ((invoice as any).paymentMethod === 'credit' && (invoice as any).customerId) {
+        if (
+          (invoice as any).paymentMethod === 'credit' &&
+          (invoice as any).customerId
+        ) {
           await this.prisma.customer.update({
             where: { id: (invoice as any).customerId },
             data: { currentBalance: { decrement: (invoice as any).net } },
