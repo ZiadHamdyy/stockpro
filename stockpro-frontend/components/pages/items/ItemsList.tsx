@@ -105,7 +105,6 @@ const ItemsList: React.FC<ItemsListProps> = ({ title, onNavigate }) => {
     data: apiItems = [],
     isLoading: apiLoading,
     error,
-    refetch: refetchItems,
   } = useGetItemsQuery(
     selectedStore ? { storeId: selectedStore.id } : undefined
   );
@@ -192,7 +191,6 @@ const ItemsList: React.FC<ItemsListProps> = ({ title, onNavigate }) => {
 
   const handleImportSuccess = (summary: ImportItemsSummary) => {
     setIsImportModalOpen(false);
-    refetchItems();
     if (!showToast) return;
 
     const baseMessage = `تم استيراد ${summary.importedCount} من ${summary.totalRows} صف`;

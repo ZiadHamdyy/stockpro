@@ -222,7 +222,14 @@ export const itemsApiSlice = apiSlice.injectEndpoints({
         body: formData,
       }),
       transformResponse: (response: { data: ImportItemsSummary }) => response.data,
-      invalidatesTags: ["Item"],
+      invalidatesTags: [
+        "Item",
+        "StoreReceiptVoucher",
+        "StoreIssueVoucher",
+        "StoreTransferVoucher",
+        "ItemGroup",
+        "Unit",
+      ],
     }),
   }),
 });
