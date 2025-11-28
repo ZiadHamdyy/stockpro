@@ -35,6 +35,7 @@ import { useGetBanksQuery } from "../../store/slices/bank/bankApiSlice";
 import { useGetSafesQuery } from "../../store/slices/safe/safeApiSlice";
 import { useGetCompanyQuery } from "../../store/slices/companyApiSlice";
 import { useGetStoresQuery } from "../../store/slices/store/storeApi";
+import { useGetPriceQuotationByIdQuery } from "../../store/slices/priceQuotation/priceQuotationApiSlice";
 import { showApiErrorToast } from "../../../utils/errorToast";
 import { formatMoney } from "../../../utils/formatting";
 import { guardPrint } from "../../utils/printGuard";
@@ -131,6 +132,8 @@ interface SalesInvoiceProps {
   currentUser: User | null;
   viewingId: string | number | null;
   onClearViewingId: () => void;
+  prefillQuotationId?: string | null;
+  onClearPrefillQuotation?: () => void;
 }
 
 const SalesInvoice: React.FC<SalesInvoiceProps> = ({
@@ -138,6 +141,8 @@ const SalesInvoice: React.FC<SalesInvoiceProps> = ({
   currentUser,
   viewingId,
   onClearViewingId,
+  prefillQuotationId,
+  onClearPrefillQuotation,
 }) => {
   // Redux hooks
   const { data: invoices = [], isLoading: invoicesLoading } =
@@ -259,6 +264,13 @@ const SalesInvoice: React.FC<SalesInvoiceProps> = ({
   const [paymentTargetId, setPaymentTargetId] = useState<string | null>(null);
   const { showModal } = useModal();
   const { showToast } = useToast();
+  const [isPrefillingFromQuotation, setIsPrefillingFromQuotation] = useState(false);
+  const {
+    data: quotationPrefillData,
+    isFetching: isQuotationPrefillLoading,
+  } = useGetPriceQuotationByIdQuery(prefillQuotationId ?? "", {
+    skip: !prefillQuotationId,
+  });
 
   const [customerQuery, setCustomerQuery] = useState("");
   const [selectedCustomer, setSelectedCustomer] = useState<{
@@ -454,11 +466,77 @@ const SalesInvoice: React.FC<SalesInvoiceProps> = ({
       setSafeBranchName(branchNameFromInvoice || getUserBranchName(currentUser));
       setIsReadOnly(true);
       justSavedRef.current = false; // Clear the flag after loading invoice
-    } else if (!justSavedRef.current) {
+    } else if (!justSavedRef.current && !isPrefillingFromQuotation) {
       // Only call handleNew if we haven't just saved
       handleNew();
     }
-  }, [currentIndex, invoices, currentUser]);
+  }, [currentIndex, invoices, currentUser, isPrefillingFromQuotation]);
+  useEffect(() => {
+    if (!prefillQuotationId || !quotationPrefillData || isQuotationPrefillLoading) {
+      return;
+    }
+
+    setIsPrefillingFromQuotation(true);
+    const quotation = quotationPrefillData;
+    const quoteItems = Array.isArray(quotation.items)
+      ? (quotation.items as InvoiceItem[])
+      : [];
+
+    const mappedItems: InvoiceRow[] = quoteItems.map((item) => ({
+      id: item.id,
+      name: item.name,
+      unit: item.unit,
+      qty: Number(item.qty) || 0,
+      price: Number(item.price) || 0,
+      taxAmount: Number(item.taxAmount) || 0,
+      total: Number(item.total) || (Number(item.qty) || 0) * (Number(item.price) || 0),
+      salePriceIncludesTax: false,
+    }));
+
+    while (mappedItems.length < 6) {
+      mappedItems.push(createEmptyItem());
+    }
+
+    setCurrentIndex(-1);
+    setInvoiceItems(mappedItems);
+    setTotals({
+      subtotal: quotation.totals?.subtotal ?? 0,
+      discount: quotation.totals?.discount ?? 0,
+      tax: quotation.totals?.tax ?? 0,
+      net: quotation.totals?.net ?? 0,
+    });
+    const customerPayload = quotation.customer
+      ? { id: quotation.customer.id, name: quotation.customer.name }
+      : null;
+    setSelectedCustomer(customerPayload);
+    setCustomerQuery(customerPayload?.name || "");
+    setInvoiceDetails({
+      invoiceNumber: "",
+      invoiceDate: quotation.date
+        ? quotation.date.substring(0, 10)
+        : new Date().toISOString().substring(0, 10),
+    });
+    setPaymentMethod("cash");
+    setPaymentTargetType("safe");
+    setPaymentTargetId(null);
+    setInvoiceBranchId(getUserBranchId(currentUser));
+    setSafeBranchName(getUserBranchName(currentUser));
+    setIsReadOnly(false);
+    setPreviewData(null);
+    justSavedRef.current = false;
+    showToast("تم تحميل بيانات عرض السعر إلى الفاتورة. راجعها ثم احفظ.");
+    onClearPrefillQuotation?.();
+    setIsPrefillingFromQuotation(false);
+  }, [
+    prefillQuotationId,
+    quotationPrefillData,
+    isQuotationPrefillLoading,
+    currentUser,
+    onClearPrefillQuotation,
+    setInvoiceBranchId,
+    setSafeBranchName,
+    showToast,
+  ]);
 
   useEffect(() => {
     if (currentIndex >= 0) return;

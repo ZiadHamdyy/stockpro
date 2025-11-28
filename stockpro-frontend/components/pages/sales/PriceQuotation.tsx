@@ -1,5 +1,6 @@
 
 import React, { useState, useEffect, useRef, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import DataTableModal from '../../common/DataTableModal';
 import DocumentHeader from '../../common/DocumentHeader';
 import { BarcodeIcon, ListIcon, PrintIcon, TrashIcon } from '../../icons';
@@ -27,6 +28,7 @@ interface PriceQuotationProps {
 }
 
 const PriceQuotation: React.FC<PriceQuotationProps> = ({ title }) => {
+    const routerNavigate = useNavigate();
     const currentUser = useAppSelector(state => state.auth.user);
     const { data: company } = useGetCompanyQuery();
     const computedVatRate = company?.vatRate ?? 0;
@@ -47,7 +49,7 @@ const PriceQuotation: React.FC<PriceQuotationProps> = ({ title }) => {
     const vatRate = companyInfo.vatRate ?? 0;
     const isVatEnabled = companyInfo.isVatEnabled ?? false;
 
-    const { data: itemsData = [] } = useGetItemsQuery();
+    const { data: itemsData = [] } = useGetItemsQuery(undefined);
     const selectableItems: SelectableItem[] = useMemo(
         () =>
             itemsData.map((item: any) => ({
@@ -302,18 +304,13 @@ const PriceQuotation: React.FC<PriceQuotationProps> = ({ title }) => {
         navigate(newIndex);
     };
 
-    const handleConvertToInvoice = async () => {
-        if (currentIndex < 0 || !quotations[currentIndex]) return;
-        try {
-            await updatePriceQuotation({
-                id: quotations[currentIndex].id,
-                data: { status: 'converted' },
-            }).unwrap();
-            showToast('تم تحويل عرض السعر إلى فاتورة (محاكاة).');
-        } catch (error) {
-            console.error(error);
-            showToast('تعذر تحويل عرض السعر إلى فاتورة.');
+    const handleConvertToInvoice = () => {
+        if (currentIndex < 0 || !quotations[currentIndex]) {
+            showToast('لا يوجد عرض سعر محدد للتحويل.');
+            return;
         }
+        const targetQuotation = quotations[currentIndex];
+        routerNavigate(`/sales/invoice?quotationId=${encodeURIComponent(targetQuotation.id)}`);
     };
 
     const inputStyle = "block w-full bg-yellow-50 border-2 border-amber-500 rounded-md shadow-sm text-brand-dark placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-amber-500 py-3 px-4 disabled:bg-gray-200 disabled:cursor-not-allowed";

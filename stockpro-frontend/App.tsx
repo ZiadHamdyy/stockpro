@@ -282,7 +282,11 @@ const SalesInvoiceWrapper = ({
 }) => {
   const [searchParams, setSearchParams] = useSearchParams();
   const invoiceId = searchParams.get("invoiceId");
+  const quotationId = searchParams.get("quotationId");
   const [viewingId, setViewingId] = useState<string | number | null>(null);
+  const [prefillQuotationId, setPrefillQuotationId] = useState<string | null>(
+    null,
+  );
 
   useEffect(() => {
     if (invoiceId) {
@@ -295,6 +299,14 @@ const SalesInvoiceWrapper = ({
     }
   }, [invoiceId, searchParams, setSearchParams]);
 
+  useEffect(() => {
+    if (quotationId) {
+      setPrefillQuotationId(quotationId);
+      searchParams.delete("quotationId");
+      setSearchParams(searchParams, { replace: true });
+    }
+  }, [quotationId, searchParams, setSearchParams]);
+
   const handleClearViewingId = () => {
     setViewingId(null);
   };
@@ -305,6 +317,8 @@ const SalesInvoiceWrapper = ({
       currentUser={currentUser}
       viewingId={viewingId}
       onClearViewingId={handleClearViewingId}
+      prefillQuotationId={prefillQuotationId}
+      onClearPrefillQuotation={() => setPrefillQuotationId(null)}
     />
   );
 };
