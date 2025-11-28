@@ -246,7 +246,7 @@ export class SalesInvoiceService {
           safeId,
           bankId,
           bankTransactionType:
-            data.paymentMethod === 'cash' ? data.bankTransactionType : null,
+            data.paymentMethod === 'cash' ? data.bankTransactionType : undefined,
           isSplitPayment:
             data.paymentMethod === 'cash' ? data.isSplitPayment || false : false,
           splitCashAmount:
@@ -724,8 +724,8 @@ export class SalesInvoiceService {
               nextPaymentMethod === 'cash'
                 ? (data.bankTransactionType !== undefined
                     ? data.bankTransactionType
-                    : (existingInvoice as any)?.bankTransactionType || null)
-                : null,
+                    : (existingInvoice as any)?.bankTransactionType || undefined)
+                : undefined,
             isSplitPayment:
               nextPaymentMethod === 'cash' ? nextIsSplitPayment : false,
             splitCashAmount:
