@@ -442,8 +442,13 @@ const SalesInvoice: React.FC<SalesInvoiceProps> = ({
     setSelectedCustomer(null);
     setCustomerQuery("");
     setPaymentTargetType("safe");
-    // For safes, we don't need paymentTargetId (we send branchId instead)
-    setPaymentTargetId(null);
+    // Auto-select first safe from current branch for cash payments
+    // Backend requires paymentTargetId to be set, even though it finds the safe by branchId
+    setPaymentTargetId(
+      filteredSafes.length > 0 
+        ? filteredSafes[0].id 
+        : (getUserBranchId(currentUser) || "")
+    );
     setBankTransactionType("POS");
     setIsSplitPayment(false);
     setSplitCashAmount(0);
@@ -567,7 +572,12 @@ const SalesInvoice: React.FC<SalesInvoiceProps> = ({
     });
     setPaymentMethod("cash");
     setPaymentTargetType("safe");
-    setPaymentTargetId(null);
+    // Auto-select first safe from current branch for cash payments
+    setPaymentTargetId(
+      filteredSafes.length > 0 
+        ? filteredSafes[0].id 
+        : (getUserBranchId(currentUser) || "")
+    );
     setBankTransactionType("POS");
     setIsSplitPayment(false);
     setSplitCashAmount(0);
@@ -705,6 +715,7 @@ const SalesInvoice: React.FC<SalesInvoiceProps> = ({
   }, [activeItemSearch]);
 
   // Auto-select first bank when payment target type is "bank"
+  // Auto-select first safe when payment target type is "safe" and cash is selected
   useEffect(() => {
     if (paymentTargetType === "bank" && !isReadOnly) {
       // Reset paymentTargetId if it doesn't belong to a bank
@@ -714,11 +725,30 @@ const SalesInvoice: React.FC<SalesInvoiceProps> = ({
       } else if (!isValidBank) {
         setPaymentTargetId(null);
       }
-    } else if (paymentTargetType === "safe" && !isReadOnly) {
-      // For safes, we don't need paymentTargetId anymore (we send branchId instead)
-      setPaymentTargetId(null);
+    } else if (paymentTargetType === "safe" && !isReadOnly && paymentMethod === "cash") {
+      // For safes with cash payment, auto-select the first safe from current branch
+      // Backend requires paymentTargetId to be set, even though it finds the safe by branchId
+      if (filteredSafes.length > 0) {
+        // Set to first safe ID to pass validation (backend will use branchId to find the safe)
+        setPaymentTargetId(filteredSafes[0].id);
+      } else {
+        // If no safes available, set to branch ID as fallback to pass validation
+        setPaymentTargetId(userBranchId || invoiceBranchId || "");
+      }
     }
-  }, [paymentTargetType, banks, paymentTargetId, isReadOnly]);
+  }, [paymentTargetType, banks, paymentTargetId, isReadOnly, paymentMethod, filteredSafes, userBranchId, invoiceBranchId]);
+
+  // Auto-select safe when switching to cash payment
+  useEffect(() => {
+    if (paymentMethod === "cash" && paymentTargetType === "safe" && !isReadOnly) {
+      if (filteredSafes.length > 0 && (!paymentTargetId || !filteredSafes.some(s => s.id === paymentTargetId))) {
+        setPaymentTargetId(filteredSafes[0].id);
+      } else if (filteredSafes.length === 0 && !paymentTargetId) {
+        // Fallback to branch ID if no safes available
+        setPaymentTargetId(userBranchId || invoiceBranchId || "");
+      }
+    }
+  }, [paymentMethod, paymentTargetType, isReadOnly, filteredSafes, paymentTargetId, userBranchId, invoiceBranchId]);
 
   // Auto-update split amounts when net total changes
   useEffect(() => {
@@ -988,12 +1018,12 @@ const SalesInvoice: React.FC<SalesInvoiceProps> = ({
         // For credit invoices, do NOT send any safe/bank info
         paymentTargetType:
           paymentMethod === "cash" ? paymentTargetType : null,
-        // When payment target is "safe", send branch ID as paymentTargetId
+        // When payment target is "safe", send safe ID (backend will find safe by branchId)
         // When payment target is "bank", send bank ID as paymentTargetId
         paymentTargetId:
           paymentMethod === "cash"
             ? (paymentTargetType === "safe"
-                ? safeBranchId?.toString() || null
+                ? paymentTargetId?.toString() || safeBranchId?.toString() || null
                 : paymentTargetId?.toString() || null)
             : null,
         notes: "",
