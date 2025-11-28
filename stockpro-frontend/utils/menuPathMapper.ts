@@ -8,10 +8,12 @@ export const getPathFromMenuKey = (key: string): string => {
 
     // Settings
     company_data: "/settings/company-data",
+    fiscal_years: "/settings/fiscal-years",
     branches_data: "/settings/branches-data",
     stores_data: "/settings/stores-data",
     users_data: "/settings/users-data",
     permissions: "/settings/permissions",
+    audit_log: "/settings/audit-log",
     database_backup: "/dashboard", // Special handling - trigger backup
 
     // Items
@@ -24,8 +26,10 @@ export const getPathFromMenuKey = (key: string): string => {
     store_receipt_voucher: "/warehouse/receipt-voucher",
     store_issue_voucher: "/warehouse/issue-voucher",
     store_transfer: "/warehouse/transfer",
+    inventory_count: "/warehouse/inventory-count",
 
     // Sales
+    price_quotation: "/sales/price-quotation",
     sales_invoice: "/sales/invoice",
     sales_return: "/sales/return",
     daily_sales: "/sales/daily",
@@ -72,6 +76,15 @@ export const getPathFromMenuKey = (key: string): string => {
     internal_transfers: "/financials/internal-transfers",
 
     // Reports - Items
+    financial_analysis: "/reports/financial-analysis",
+    liquidity_report: "/reports/financial-analysis/liquidity",
+    financial_performance_report:
+      "/reports/financial-analysis/performance",
+    item_profitability_report:
+      "/reports/financial-analysis/item-profitability",
+    debt_aging_report: "/reports/financial-analysis/debt-aging",
+    stagnant_items_report: "/reports/financial-analysis/stagnant-items",
+    vip_customers_report: "/reports/financial-analysis/vip-customers",
     item_movement_report: "/reports/items/movement",
     item_balance_report: "/reports/items/balance",
     inventory_valuation_report: "/reports/items/valuation",
@@ -121,10 +134,12 @@ export const getMenuKeyFromPath = (path: string): string => {
   const pathToKeyMap: Record<string, string> = {
     "/dashboard": "dashboard",
     "/settings/company-data": "company_data",
+    "/settings/fiscal-years": "fiscal_years",
     "/settings/branches-data": "branches_data",
     "/settings/stores-data": "stores_data",
     "/settings/users-data": "users_data",
     "/settings/permissions": "permissions",
+    "/settings/audit-log": "audit_log",
     "/items/add": "add_item",
     "/items/list": "items_list",
     "/items/groups": "item_groups",
@@ -132,6 +147,8 @@ export const getMenuKeyFromPath = (path: string): string => {
     "/warehouse/receipt-voucher": "store_receipt_voucher",
     "/warehouse/issue-voucher": "store_issue_voucher",
     "/warehouse/transfer": "store_transfer",
+    "/warehouse/inventory-count": "inventory_count",
+    "/sales/price-quotation": "price_quotation",
     "/sales/invoice": "sales_invoice",
     "/sales/return": "sales_return",
     "/sales/daily": "daily_sales",
@@ -158,6 +175,15 @@ export const getMenuKeyFromPath = (path: string): string => {
     "/financials/receipt-voucher": "receipt_voucher",
     "/financials/payment-voucher": "payment_voucher",
     "/financials/internal-transfers": "internal_transfers",
+    "/reports/financial-analysis": "financial_analysis",
+    "/reports/financial-analysis/liquidity": "liquidity_report",
+    "/reports/financial-analysis/performance":
+      "financial_performance_report",
+    "/reports/financial-analysis/item-profitability":
+      "item_profitability_report",
+    "/reports/financial-analysis/debt-aging": "debt_aging_report",
+    "/reports/financial-analysis/stagnant-items": "stagnant_items_report",
+    "/reports/financial-analysis/vip-customers": "vip_customers_report",
     "/reports/items/movement": "item_movement_report",
     "/reports/items/balance": "item_balance_report",
     "/reports/items/valuation": "inventory_valuation_report",

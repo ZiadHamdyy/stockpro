@@ -263,3 +263,57 @@ export interface Role {
 export interface AssignPermissionsRequest {
   permissionIds: string[];
 }
+
+export interface FiscalYear {
+  id: number;
+  name: string; 
+  startDate: string;
+  endDate: string;
+  status: 'open' | 'closed' | 'locked'; 
+  isCurrent: boolean;
+}
+
+export interface AuditLogEntry {
+  id: number;
+  timestamp: string;
+  userId: number;
+  userName: string;
+  branchName?: string;
+  action: 'create' | 'update' | 'delete' | 'login' | 'logout' | 'approve' | 'reject' | 'other';
+  targetType: string;
+  targetId?: string | number;
+  details: string;
+}
+
+export interface InventoryCountItem {
+  id: string; 
+  name: string;
+  unit: string;
+  systemStock: number;
+  actualStock: number;
+  difference: number;
+  cost: number; 
+}
+
+export interface InventoryCount {
+  id: string;
+  date: string;
+  storeName: string;
+  branchName: string;
+  items: InventoryCountItem[];
+  totalVarianceValue: number; 
+  status: 'pending' | 'posted'; 
+  notes: string;
+}
+export interface Quotation {
+  id: string;
+  date: string;
+  expiryDate: string;
+  customer: { id: string; name: string } | null;
+  items: InvoiceItem[];
+  totals: { subtotal: number; discount: number; tax: number; net: number };
+  notes: string;
+  status: 'draft' | 'sent' | 'converted' | 'expired';
+  userName: string;
+  branchName: string;
+}

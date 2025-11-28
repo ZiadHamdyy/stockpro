@@ -17,10 +17,12 @@ const MENU_ITEMS: MenuItem[] = [
     label: 'الإعدادات',
     children: [
       { key: 'company_data', label: 'بيانات الشركة' },
+      { key: 'fiscal_years', label: 'الفترات المحاسبية' },
       { key: 'branches_data', label: 'بيانات الفروع' },
       { key: 'stores_data', label: 'بيانات المخازن' },
       { key: 'users_data', label: 'بيانات المستخدمين' },
       { key: 'permissions', label: 'الصلاحيات' },
+      { key: 'audit_log', label: 'سجل العمليات' },
       {
         key: 'database',
         label: 'قاعدة البيانات',
@@ -45,12 +47,14 @@ const MENU_ITEMS: MenuItem[] = [
       { key: 'store_receipt_voucher', label: 'إذن إضافة مخزن' },
       { key: 'store_issue_voucher', label: 'إذن صرف مخزن' },
       { key: 'store_transfer', label: 'تحويل بين المخازن' },
+      { key: 'inventory_count', label: 'جرد المخزون والتسوية' },
     ],
   },
   {
     key: 'sales',
     label: 'المبيعات',
     children: [
+      { key: 'price_quotation', label: 'عرض أسعار' },
       { key: 'sales_invoice', label: 'فاتورة مبيعات' },
       { key: 'sales_return', label: 'مرتجع مبيعات' },
       { key: 'daily_sales', label: 'يومية المبيعات' },
@@ -143,6 +147,21 @@ const MENU_ITEMS: MenuItem[] = [
     key: 'reports',
     label: 'التقارير',
     children: [
+      {
+        key: 'financial_analysis',
+        label: 'التحليل المالي الذكي',
+        children: [
+          { key: 'liquidity_report', label: 'مؤشر السيولة والأمان' },
+          {
+            key: 'financial_performance_report',
+            label: 'التحليل المالي المقارن',
+          },
+          { key: 'item_profitability_report', label: 'تحليل ربحية الأصناف' },
+          { key: 'debt_aging_report', label: 'تحليل أعمار الديون' },
+          { key: 'stagnant_items_report', label: 'تحليل المخزون الراكد' },
+          { key: 'vip_customers_report', label: 'كبار العملاء (VIP)' },
+        ],
+      },
       {
         key: 'item_reports',
         label: 'تقارير الأصناف',
@@ -362,8 +381,10 @@ async function main() {
       (p) =>
         p.resource === 'dashboard' ||
         p.resource === 'sales' ||
+        p.resource === 'price_quotation' ||
         p.resource === 'sales_invoice' ||
         p.resource === 'sales_return' ||
+        p.resource === 'price_quotation' ||
         p.resource === 'daily_sales' ||
         p.resource === 'daily_sales_returns' ||
         p.resource === 'purchases' ||
@@ -392,6 +413,13 @@ async function main() {
         p.resource === 'payment_voucher' ||
         p.resource === 'internal_transfers' ||
         p.resource === 'reports' ||
+        p.resource === 'financial_analysis' ||
+        p.resource === 'liquidity_report' ||
+        p.resource === 'financial_performance_report' ||
+        p.resource === 'item_profitability_report' ||
+        p.resource === 'debt_aging_report' ||
+        p.resource === 'stagnant_items_report' ||
+        p.resource === 'vip_customers_report' ||
         p.resource === 'item_reports' ||
         p.resource === 'item_movement_report' ||
         p.resource === 'item_balance_report' ||
@@ -500,7 +528,8 @@ async function main() {
         p.resource === 'warehouse_operations' ||
         p.resource === 'store_receipt_voucher' ||
         p.resource === 'store_issue_voucher' ||
-        p.resource === 'store_transfer',
+        p.resource === 'store_transfer' ||
+        p.resource === 'inventory_count',
     );
 
     for (const permission of dataEntryPermissions) {

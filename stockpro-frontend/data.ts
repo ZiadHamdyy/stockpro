@@ -18,6 +18,9 @@ import type {
   StoreReceiptVoucher,
   StoreIssueVoucher,
   StoreTransferVoucher,
+  FiscalYear,
+  AuditLogEntry,
+  InventoryCount,
 } from "./types";
 
 export const initialBranches: Branch[] = [
@@ -488,5 +491,83 @@ export const initialStoreTransferVouchers: StoreTransferVoucher[] = [
     fromStore: "المخزن المركزي",
     toStore: "مخزن جدة",
     items: [{ id: "301", name: "ورق طباعة A4", unit: "رزمه", qty: 50, code: "301" }],
+  },
+];
+
+export const initialFiscalYears: FiscalYear[] = [
+  {
+    id: 1,
+    name: "2023",
+    startDate: "2023-01-01",
+    endDate: "2023-12-31",
+    status: "closed",
+    isCurrent: false,
+  },
+  {
+    id: 2,
+    name: "2024",
+    startDate: "2024-01-01",
+    endDate: "2024-12-31",
+    status: "open",
+    isCurrent: true,
+  },
+];
+
+export const initialAuditLogs: AuditLogEntry[] = [
+  {
+    id: 1,
+    timestamp: "2024-11-01T09:12:34.000Z",
+    userId: 1,
+    userName: "مدير النظام",
+    branchName: "الفرع الرئيسي",
+    action: "login",
+    targetType: "auth",
+    details: "تسجيل دخول ناجح من عنوان IP 10.0.0.1",
+  },
+  {
+    id: 2,
+    timestamp: "2024-11-02T10:45:18.000Z",
+    userId: 2,
+    userName: "علي حسن",
+    branchName: "فرع جدة",
+    action: "create",
+    targetType: "sales_invoice",
+    targetId: "INV-2024-150",
+    details: "إنشاء فاتورة مبيعات جديدة بقيمة 12,500 ريال",
+  },
+  {
+    id: 3,
+    timestamp: "2024-11-03T13:22:07.000Z",
+    userId: 3,
+    userName: "فاطمة الزهراء",
+    branchName: "فرع الدمام",
+    action: "update",
+    targetType: "customer",
+    targetId: "C001",
+    details: "تحديث معلومات العميل 'العميل الأول'",
+  },
+  {
+    id: 4,
+    timestamp: "2024-11-03T15:05:42.000Z",
+    userId: 4,
+    userName: "سارة خالد",
+    branchName: "الفرع الرئيسي",
+    action: "delete",
+    targetType: "expense",
+    targetId: 87,
+    details: "حذف مصروف مكرر بناءً على طلب الإدارة المالية",
+  },
+];
+
+export const initialInventoryCounts: InventoryCount[] = [
+  {
+    id: "INV-2024-001",
+    date: "2024-11-01",
+    storeName: "المخزن المركزي",
+    branchName: "الفرع الرئيسي",
+    notes: "جرد دوري لشهر نوفمبر",
+    status: "posted",
+    totalVarianceValue: 0,
+    items: [],
   },
 ];

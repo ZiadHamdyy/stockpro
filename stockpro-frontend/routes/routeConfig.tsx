@@ -1,10 +1,12 @@
 import Dashboard from "../components/pages/Dashboard";
 import Placeholder from "../components/pages/Placeholder";
 import CompanyData from "../components/pages/settings/CompanyData";
+import FiscalYears from "../components/pages/settings/FiscalYears";
 import BranchesData from "../components/pages/settings/BranchesData";
 import StoresData from "../components/pages/settings/StoresData";
 import UsersData from "../components/pages/settings/UsersData";
 import Permissions from "../components/pages/settings/Permissions";
+import AuditLog from "../components/pages/settings/AuditLog";
 import AddItem from "../components/pages/items/AddItem";
 import ItemsList from "../components/pages/items/ItemsList";
 import ItemGroups from "../components/pages/items/ItemGroups";
@@ -12,7 +14,9 @@ import Units from "../components/pages/items/Units";
 import StoreReceiptVoucher from "../components/pages/warehouse/StoreReceiptVoucher";
 import StoreIssueVoucher from "../components/pages/warehouse/StoreIssueVoucher";
 import StoreTransfer from "../components/pages/warehouse/StoreTransfer";
+import InventoryCount from "../components/pages/warehouse/InventoryCount";
 import SalesInvoice from "../components/pages/sales/SalesInvoice";
+import PriceQuotation from "../components/pages/sales/PriceQuotation";
 import SalesReturn from "../components/pages/sales/SalesReturn";
 import DailySales from "../components/pages/sales/DailySales";
 import DailySalesReturns from "../components/pages/sales/DailySalesReturns";
@@ -41,6 +45,12 @@ import Banks from "../components/pages/financials/Banks";
 import ItemMovementReport from "../components/pages/reports/items/ItemMovementReport";
 import ItemBalanceReport from "../components/pages/reports/items/ItemBalanceReport";
 import InventoryValuationReport from "../components/pages/reports/items/InventoryValuationReport";
+import LiquidityReport from "../components/pages/reports/financial_analysis/LiquidityReport";
+import FinancialPerformanceReport from "../components/pages/reports/financial_analysis/FinancialPerformanceReport";
+import ItemProfitabilityReport from "../components/pages/reports/financial_analysis/ItemProfitabilityReport";
+import DebtAgingReport from "../components/pages/reports/financial_analysis/DebtAgingReport";
+import StagnantItemsReport from "../components/pages/reports/financial_analysis/StagnantItemsReport";
+import VipCustomersReport from "../components/pages/reports/financial_analysis/VipCustomersReport";
 import CustomerStatementReport from "../components/pages/reports/customers/CustomerStatementReport";
 import CustomerBalanceReport from "../components/pages/reports/customers/CustomerBalanceReport";
 import SupplierStatementReport from "../components/pages/reports/suppliers/SupplierStatementReport";
@@ -90,6 +100,12 @@ export const routeConfig = [
     label: "بيانات الشركة",
   },
   {
+    path: "/settings/fiscal-years",
+    component: FiscalYears,
+    requiredPermission: "fiscal_years-read",
+    label: "الفترات المحاسبية",
+  },
+  {
     path: "/settings/branches-data",
     component: BranchesData,
     requiredPermission: "branches_data-read",
@@ -112,6 +128,12 @@ export const routeConfig = [
     component: Permissions,
     requiredPermission: "permissions-read",
     label: "الصلاحيات",
+  },
+  {
+    path: "/settings/audit-log",
+    component: AuditLog,
+    requiredPermission: "audit_log-read",
+    label: "سجل العمليات",
   },
 
   // Items
@@ -171,6 +193,12 @@ export const routeConfig = [
     requiredPermission: "store_transfer-read",
     label: "تحويل بين المخازن",
   },
+  {
+    path: "/warehouse/inventory-count",
+    component: InventoryCount,
+    requiredPermission: "inventory_count-read",
+    label: "جرد المخزون والتسوية",
+  },
 
   // Sales
   {
@@ -178,6 +206,12 @@ export const routeConfig = [
     component: SalesInvoice,
     requiredPermission: "sales_invoice-read",
     label: "فاتورة مبيعات",
+  },
+  {
+    path: "/sales/price-quotation",
+    component: PriceQuotation,
+    requiredPermission: "price_quotation-read",
+    label: "عرض أسعار",
   },
   {
     path: "/sales/return",
@@ -395,6 +429,42 @@ export const routeConfig = [
     component: InventoryValuationReport,
     requiredPermission: "inventory_valuation_report-read",
     label: "تقييم المخزون",
+  },
+  {
+    path: "/reports/financial-analysis/liquidity",
+    component: LiquidityReport,
+    requiredPermission: "liquidity_report-read",
+    label: "مؤشر السيولة والأمان",
+  },
+  {
+    path: "/reports/financial-analysis/performance",
+    component: FinancialPerformanceReport,
+    requiredPermission: "financial_performance_report-read",
+    label: "التحليل المالي المقارن",
+  },
+  {
+    path: "/reports/financial-analysis/item-profitability",
+    component: ItemProfitabilityReport,
+    requiredPermission: "item_profitability_report-read",
+    label: "تحليل ربحية الأصناف",
+  },
+  {
+    path: "/reports/financial-analysis/debt-aging",
+    component: DebtAgingReport,
+    requiredPermission: "debt_aging_report-read",
+    label: "تحليل أعمار الديون",
+  },
+  {
+    path: "/reports/financial-analysis/stagnant-items",
+    component: StagnantItemsReport,
+    requiredPermission: "stagnant_items_report-read",
+    label: "تحليل المخزون الراكد",
+  },
+  {
+    path: "/reports/financial-analysis/vip-customers",
+    component: VipCustomersReport,
+    requiredPermission: "vip_customers_report-read",
+    label: "كبار العملاء (VIP)",
   },
 
   // Reports - Customers

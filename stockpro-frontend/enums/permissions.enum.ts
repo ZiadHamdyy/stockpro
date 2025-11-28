@@ -9,10 +9,12 @@ export enum Resources {
   // Settings
   SETTINGS = "settings",
   COMPANY_DATA = "company_data",
+  FISCAL_YEARS = "fiscal_years",
   BRANCHES_DATA = "branches_data",
   STORES_DATA = "stores_data",
   USERS_DATA = "users_data",
   PERMISSIONS = "permissions",
+  AUDIT_LOG = "audit_log",
   DATABASE = "database",
   DATABASE_BACKUP = "database_backup",
 
@@ -28,9 +30,11 @@ export enum Resources {
   STORE_RECEIPT_VOUCHER = "store_receipt_voucher",
   STORE_ISSUE_VOUCHER = "store_issue_voucher",
   STORE_TRANSFER = "store_transfer",
+  INVENTORY_COUNT = "inventory_count",
 
   // Sales
   SALES = "sales",
+  PRICE_QUOTATION = "price_quotation",
   SALES_INVOICE = "sales_invoice",
   SALES_RETURN = "sales_return",
   DAILY_SALES = "daily_sales",
@@ -80,6 +84,13 @@ export enum Resources {
 
   // Reports
   REPORTS = "reports",
+  FINANCIAL_ANALYSIS = "financial_analysis",
+  LIQUIDITY_REPORT = "liquidity_report",
+  FINANCIAL_PERFORMANCE_REPORT = "financial_performance_report",
+  ITEM_PROFITABILITY_REPORT = "item_profitability_report",
+  DEBT_AGING_REPORT = "debt_aging_report",
+  STAGNANT_ITEMS_REPORT = "stagnant_items_report",
+  VIP_CUSTOMERS_REPORT = "vip_customers_report",
   ITEM_REPORTS = "item_reports",
   ITEM_MOVEMENT_REPORT = "item_movement_report",
   ITEM_BALANCE_REPORT = "item_balance_report",

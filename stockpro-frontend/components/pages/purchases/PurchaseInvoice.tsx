@@ -56,6 +56,30 @@ type SelectableItem = {
   barcode?: string;
 };
 
+const extractBranchName = (value: any): string => {
+  if (!value) return "";
+  if (typeof value === "string") return value;
+  if (typeof value === "object") {
+    return value.name || value.title || "";
+  }
+  return "";
+};
+
+const getUserBranchId = (user: User | null): string | null => {
+  if (!user) return null;
+  if (user.branchId) return user.branchId;
+  const branch = (user as any)?.branch;
+  if (typeof branch === "string") return branch;
+  if (branch && typeof branch === "object") return branch.id || null;
+  return null;
+};
+
+const getUserBranchName = (user: User | null): string => {
+  if (!user) return "";
+  if ((user as any)?.branchName) return (user as any).branchName;
+  return extractBranchName((user as any)?.branch);
+};
+
 interface PurchaseInvoiceProps {
   title: string;
   currentUser: User | null;
@@ -135,30 +159,6 @@ const PurchaseInvoice: React.FC<PurchaseInvoiceProps> = ({
     taxAmount: 0,
     total: 0,
   });
-
-const extractBranchName = (value: any): string => {
-  if (!value) return "";
-  if (typeof value === "string") return value;
-  if (typeof value === "object") {
-    return value.name || value.title || "";
-  }
-  return "";
-};
-
-const getUserBranchId = (user: User | null): string | null => {
-  if (!user) return null;
-  if (user.branchId) return user.branchId;
-  const branch = (user as any)?.branch;
-  if (typeof branch === "string") return branch;
-  if (branch && typeof branch === "object") return branch.id || null;
-  return null;
-};
-
-const getUserBranchName = (user: User | null): string => {
-  if (!user) return "";
-  if ((user as any)?.branchName) return (user as any).branchName;
-  return extractBranchName((user as any)?.branch);
-};
 
 const getInvoiceBranchMeta = (invoice: any) => {
   if (!invoice) return { id: null, name: "" };

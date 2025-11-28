@@ -12,6 +12,13 @@ import {
   DatabaseIcon,
   DatabaseBackupIcon,
   DollarSignIcon,
+  LockIcon,
+  ActivityIcon,
+  ListIcon,
+  TrophyIcon,
+  ClockIcon,
+  TrendingUpIcon,
+  TrendingDownIcon,
 } from "./components/icons";
 import type { MenuItem } from "./types";
 
@@ -23,10 +30,12 @@ export const MENU_ITEMS: MenuItem[] = [
     icon: SettingsIcon,
     children: [
       { key: "company_data", label: "بيانات الشركة", icon: DatabaseIcon },
+      { key: "fiscal_years", label: "الفترات المحاسبية", icon: LockIcon },
       { key: "branches_data", label: "بيانات الفروع", icon: DatabaseIcon },
       { key: "stores_data", label: "بيانات المخازن", icon: DatabaseIcon },
       { key: "users_data", label: "بيانات المستخدمين", icon: DatabaseIcon },
       { key: "permissions", label: "الصلاحيات", icon: DatabaseIcon },
+      { key: "audit_log", label: "سجل العمليات", icon: ActivityIcon },
       {
         key: "database",
         label: "قاعدة البيانات",
@@ -64,6 +73,11 @@ export const MENU_ITEMS: MenuItem[] = [
       },
       { key: "store_issue_voucher", label: "إذن صرف مخزن", icon: ReceiptIcon },
       { key: "store_transfer", label: "تحويل بين المخازن", icon: ReceiptIcon },
+      {
+        key: "inventory_count",
+        label: "جرد المخزون والتسوية",
+        icon: ListIcon,
+      },
     ],
   },
   {
@@ -71,6 +85,7 @@ export const MENU_ITEMS: MenuItem[] = [
     label: "المبيعات",
     icon: ShoppingCartIcon,
     children: [
+      { key: "price_quotation", label: "عرض أسعار", icon: ListIcon },
       { key: "sales_invoice", label: "فاتورة مبيعات", icon: ShoppingCartIcon },
       { key: "sales_return", label: "مرتجع مبيعات", icon: ShoppingCartIcon },
       { key: "daily_sales", label: "يومية المبيعات", icon: ShoppingCartIcon },
@@ -218,6 +233,43 @@ export const MENU_ITEMS: MenuItem[] = [
     label: "التقارير",
     icon: BarChartIcon,
     children: [
+      {
+        key: "financial_analysis",
+        label: "التحليل المالي الذكي",
+        icon: TrendingUpIcon,
+        children: [
+          {
+            key: "liquidity_report",
+            label: "مؤشر السيولة والأمان",
+            icon: ActivityIcon,
+          },
+          {
+            key: "financial_performance_report",
+            label: "التحليل المالي المقارن",
+            icon: BarChartIcon,
+          },
+          {
+            key: "item_profitability_report",
+            label: "تحليل ربحية الأصناف",
+            icon: BoxIcon,
+          },
+          {
+            key: "debt_aging_report",
+            label: "تحليل أعمار الديون",
+            icon: ClockIcon,
+          },
+          {
+            key: "stagnant_items_report",
+            label: "تحليل المخزون الراكد",
+            icon: TrendingDownIcon,
+          },
+          {
+            key: "vip_customers_report",
+            label: "كبار العملاء (VIP)",
+            icon: TrophyIcon,
+          },
+        ],
+      },
       {
         key: "item_reports",
         label: "تقارير الأصناف",

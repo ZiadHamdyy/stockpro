@@ -24,10 +24,12 @@ import Dashboard from "./components/pages/Dashboard";
 import Placeholder from "./components/pages/Placeholder";
 import Login from "./components/pages/Login";
 import CompanyData from "./components/pages/settings/CompanyData";
+import FiscalYears from "./components/pages/settings/FiscalYears";
 import BranchesData from "./components/pages/settings/BranchesData";
 import StoresData from "./components/pages/settings/StoresData";
 import UsersData from "./components/pages/settings/UsersData";
 import Permissions from "./components/pages/settings/Permissions";
+import AuditLog from "./components/pages/settings/AuditLog";
 import AddItem from "./components/pages/items/AddItem";
 import ItemsList from "./components/pages/items/ItemsList";
 import ItemGroups from "./components/pages/items/ItemGroups";
@@ -35,7 +37,9 @@ import Units from "./components/pages/items/Units";
 import StoreReceiptVoucher from "./components/pages/warehouse/StoreReceiptVoucher";
 import StoreIssueVoucher from "./components/pages/warehouse/StoreIssueVoucher";
 import StoreTransfer from "./components/pages/warehouse/StoreTransfer";
+import InventoryCount from "./components/pages/warehouse/InventoryCount";
 import SalesInvoice from "./components/pages/sales/SalesInvoice";
+import PriceQuotation from "./components/pages/sales/PriceQuotation";
 import SalesReturn from "./components/pages/sales/SalesReturn";
 import DailySales from "./components/pages/sales/DailySales";
 import DailySalesReturns from "./components/pages/sales/DailySalesReturns";
@@ -64,6 +68,12 @@ import Banks from "./components/pages/financials/Banks";
 import ItemMovementReport from "./components/pages/reports/items/ItemMovementReport";
 import ItemBalanceReport from "./components/pages/reports/items/ItemBalanceReport";
 import InventoryValuationReport from "./components/pages/reports/items/InventoryValuationReport";
+import LiquidityReport from "./components/pages/reports/financial_analysis/LiquidityReport";
+import FinancialPerformanceReport from "./components/pages/reports/financial_analysis/FinancialPerformanceReport";
+import ItemProfitabilityReport from "./components/pages/reports/financial_analysis/ItemProfitabilityReport";
+import DebtAgingReport from "./components/pages/reports/financial_analysis/DebtAgingReport";
+import StagnantItemsReport from "./components/pages/reports/financial_analysis/StagnantItemsReport";
+import VipCustomersReport from "./components/pages/reports/financial_analysis/VipCustomersReport";
 import CustomerStatementReport from "./components/pages/reports/customers/CustomerStatementReport";
 import CustomerBalanceReport from "./components/pages/reports/customers/CustomerBalanceReport";
 import SupplierStatementReport from "./components/pages/reports/suppliers/SupplierStatementReport";
@@ -109,6 +119,10 @@ import {
   initialStoreReceiptVouchers,
   initialStoreIssueVouchers,
   initialStoreTransferVouchers,
+  initialFiscalYears,
+  initialUsers,
+  initialAuditLogs,
+  initialInventoryCounts,
 } from "./data";
 // FIX: Aliased StoreIssueVoucher type to avoid name collision with component.
 import type {
@@ -133,6 +147,10 @@ import type {
   StoreIssueVoucher as StoreIssueVoucherType,
   StoreTransferVoucher,
   Notification,
+  FiscalYear,
+  AuditLogEntry,
+  InventoryCount as InventoryCountType,
+  Quotation,
 } from "./types";
 import { ToastProvider, useToast } from "./components/common/ToastProvider";
 import { ModalProvider } from "./components/common/ModalProvider";
@@ -438,6 +456,7 @@ const AppContent = () => {
   const [vatRate, setVatRate] = useState(15);
   const [isVatEnabled, setIsVatEnabled] = useState(true);
   const [branches, setBranches] = useState<Branch[]>(initialBranches);
+  const [users, setUsers] = useState<User[]>(initialUsers);
   const [stores, setStores] = useState<Store[]>(initialStores);
   const [itemGroups, setItemGroups] = useState<ItemGroup[]>(initialItemGroups);
   const [units, setUnits] = useState<Unit[]>(initialUnits);
@@ -481,6 +500,13 @@ const AppContent = () => {
     StoreTransferVoucher[]
   >(initialStoreTransferVouchers);
   const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [fiscalYears, setFiscalYears] =
+    useState<FiscalYear[]>(initialFiscalYears);
+  const [auditLogs, setAuditLogs] =
+    useState<AuditLogEntry[]>(initialAuditLogs);
+  const [inventoryCounts, setInventoryCounts] =
+    useState<InventoryCountType[]>(initialInventoryCounts);
+  const [quotations, setQuotations] = useState<Quotation[]>([]);
 
   const itemBalances = useMemo(() => {
     const balances = new Map<string, number>();
@@ -527,6 +553,19 @@ const AppContent = () => {
   const itemsWithLiveStock = useMemo(
     () => items.map((i) => ({ ...i, stock: itemBalances.get(i.code) ?? 0 })),
     [items, itemBalances],
+  );
+
+  const quotationSelectableItems = useMemo(
+    () =>
+      itemsWithLiveStock.map((item) => ({
+        id: item.code,
+        name: item.name,
+        unit: item.unit,
+        price: item.salePrice ?? item.price ?? 0,
+        stock: item.stock,
+        barcode: item.barcode,
+      })),
+    [itemsWithLiveStock],
   );
 
   useEffect(() => {
@@ -647,6 +686,64 @@ const AppContent = () => {
     ]);
   };
 
+  const handleSaveFiscalYear = (year: FiscalYear) => {
+    setFiscalYears((prev) => {
+      const exists = prev.some((fy) => fy.id === year.id);
+      if (exists) {
+        return prev.map((fy) => (fy.id === year.id ? year : fy));
+      }
+      return [...prev, year];
+    });
+  };
+
+  const handleToggleFiscalYearStatus = (id: number) => {
+    setFiscalYears((prev) =>
+      prev.map((fy) =>
+        fy.id === id
+          ? {
+              ...fy,
+              status: fy.status === "open" ? "closed" : "open",
+            }
+          : fy,
+      ),
+    );
+  };
+
+  const handleSaveInventoryCount = (count: InventoryCountType) => {
+    setInventoryCounts((prev) => {
+      const exists = prev.some((c) => c.id === count.id);
+      if (exists) {
+        return prev.map((c) => (c.id === count.id ? count : c));
+      }
+      return [count, ...prev];
+    });
+  };
+
+  const handleSaveQuotation = (quotation: Quotation) => {
+    setQuotations((prev) => {
+      const index = prev.findIndex((q) => q.id === quotation.id);
+      if (index > -1) {
+        const updated = [...prev];
+        updated[index] = quotation;
+        return updated;
+      }
+      return [quotation, ...prev];
+    });
+  };
+
+  const handleDeleteQuotation = (id: string) => {
+    setQuotations((prev) => prev.filter((q) => q.id !== id));
+  };
+
+  const handleConvertQuotationToInvoice = (quotation: Quotation) => {
+    setQuotations((prev) =>
+      prev.map((q) =>
+        q.id === quotation.id ? { ...q, status: "converted" } : q,
+      ),
+    );
+    showToast("تم تحويل عرض السعر إلى فاتورة (محاكاة).");
+  };
+
   if (!isLoggedIn) {
     return <Login onLogin={handleLogin} />;
   }
@@ -690,6 +787,19 @@ const AppContent = () => {
               }
             />
             <Route
+              path="/settings/fiscal-years"
+              element={
+                <ProtectedRoute requiredPermission="fiscal_years-read">
+                  <FiscalYears
+                    title={currentPageTitle}
+                    fiscalYears={fiscalYears}
+                    onSave={handleSaveFiscalYear}
+                    onToggleStatus={handleToggleFiscalYearStatus}
+                  />
+                </ProtectedRoute>
+              }
+            />
+            <Route
               path="/settings/branches-data"
               element={
                 <ProtectedRoute requiredPermission="branches_data-read">
@@ -718,6 +828,19 @@ const AppContent = () => {
               element={
                 <ProtectedRoute requiredPermission="permissions-read">
                   <Permissions title={currentPageTitle} />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/settings/audit-log"
+              element={
+                <ProtectedRoute requiredPermission="audit_log-read">
+                  <AuditLog
+                    title={currentPageTitle}
+                    auditLogs={auditLogs}
+                    users={users}
+                    branches={branches}
+                  />
                 </ProtectedRoute>
               }
             />
@@ -789,6 +912,21 @@ const AppContent = () => {
                 </ProtectedRoute>
               }
             />
+            <Route
+              path="/warehouse/inventory-count"
+              element={
+                <ProtectedRoute requiredPermission="inventory_count-read">
+                  <InventoryCount
+                    title={currentPageTitle}
+                    companyInfo={companyInfo}
+                    items={itemsWithLiveStock}
+                    stores={stores}
+                    inventoryCounts={inventoryCounts}
+                    onSave={handleSaveInventoryCount}
+                  />
+                </ProtectedRoute>
+              }
+            />
 
             {/* Sales */}
             <Route
@@ -798,6 +936,26 @@ const AppContent = () => {
                   <SalesInvoiceWrapper
                     title={currentPageTitle}
                     currentUser={currentUser}
+                  />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/sales/price-quotation"
+              element={
+                <ProtectedRoute requiredPermission="price_quotation-read">
+                  <PriceQuotation
+                    title={currentPageTitle}
+                    vatRate={vatRate}
+                    isVatEnabled={isVatEnabled}
+                    companyInfo={companyInfo}
+                    items={quotationSelectableItems}
+                    customers={customers}
+                    quotations={quotations}
+                    onSave={handleSaveQuotation}
+                    onDelete={handleDeleteQuotation}
+                    currentUser={currentUser}
+                    onConvertToInvoice={handleConvertQuotationToInvoice}
                   />
                 </ProtectedRoute>
               }
@@ -1186,6 +1344,54 @@ const AppContent = () => {
                     companyInfo={companyInfo}
                     currentUser={currentUser}
                   />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/reports/financial-analysis/liquidity"
+              element={
+                <ProtectedRoute requiredPermission="liquidity_report-read">
+                  <LiquidityReport title={currentPageTitle} />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/reports/financial-analysis/performance"
+              element={
+                <ProtectedRoute requiredPermission="financial_performance_report-read">
+                  <FinancialPerformanceReport title={currentPageTitle} />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/reports/financial-analysis/item-profitability"
+              element={
+                <ProtectedRoute requiredPermission="item_profitability_report-read">
+                  <ItemProfitabilityReport title={currentPageTitle} />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/reports/financial-analysis/debt-aging"
+              element={
+                <ProtectedRoute requiredPermission="debt_aging_report-read">
+                  <DebtAgingReport title={currentPageTitle} />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/reports/financial-analysis/stagnant-items"
+              element={
+                <ProtectedRoute requiredPermission="stagnant_items_report-read">
+                  <StagnantItemsReport title={currentPageTitle} />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/reports/financial-analysis/vip-customers"
+              element={
+                <ProtectedRoute requiredPermission="vip_customers_report-read">
+                  <VipCustomersReport title={currentPageTitle} />
                 </ProtectedRoute>
               }
             />
