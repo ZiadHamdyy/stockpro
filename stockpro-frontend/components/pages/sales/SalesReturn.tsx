@@ -18,7 +18,7 @@ import type {
   Safe,
   Bank,
 } from "../../../types";
-import InvoicePrintPreview from "./InvoicePrintPreview";
+import SalesReturnPrintPreview from "./SalesReturnPrintPreview";
 import { useModal } from "../../common/ModalProvider";
 import { useToast } from "../../common/ToastProvider";
 import { showApiErrorToast } from "../../../utils/errorToast";
@@ -210,6 +210,7 @@ const SalesReturn: React.FC<SalesReturnProps> = ({
   const justSavedRef = useRef(false); // Flag to prevent resetting state after save
   const shouldOpenPreviewRef = useRef(false); // Flag to indicate we want to open preview after data is set
   const [previewData, setPreviewData] = useState<{
+    companyInfo: CompanyInfo;
     vatRate: number;
     isVatEnabled: boolean;
     items: ReturnRow[];
@@ -817,6 +818,7 @@ const SalesReturn: React.FC<SalesReturnProps> = ({
         
         // Store preview data in state before opening preview
         const previewDataToStore = {
+          companyInfo,
           vatRate,
           isVatEnabled: effectiveVatEnabled,
           items: finalItems.map((item) => ({
@@ -829,7 +831,10 @@ const SalesReturn: React.FC<SalesReturnProps> = ({
           details: {
             ...invoiceDetails,
             userName: currentUser?.fullName || "غير محدد",
-            branchName: currentUser?.branch || "غير محدد",
+            branchName:
+              typeof currentUser?.branch === "string"
+                ? currentUser.branch
+                : (currentUser?.branch as any)?.name || "غير محدد",
           },
         };
         
@@ -857,6 +862,7 @@ const SalesReturn: React.FC<SalesReturnProps> = ({
         // Store preview data in state before opening preview
         // This ensures the preview has data even if state is reset by useEffect
         const previewDataToStore = {
+          companyInfo,
           vatRate,
           isVatEnabled: effectiveVatEnabled,
           items: finalItems.map((item) => ({
@@ -869,7 +875,10 @@ const SalesReturn: React.FC<SalesReturnProps> = ({
           details: {
             ...updatedInvoiceDetails,
             userName: currentUser?.fullName || "غير محدد",
-            branchName: currentUser?.branch || "غير محدد",
+            branchName:
+              typeof currentUser?.branch === "string"
+                ? currentUser.branch
+                : (currentUser?.branch as any)?.name || "غير محدد",
           },
         };
         
@@ -1622,6 +1631,7 @@ const SalesReturn: React.FC<SalesReturnProps> = ({
               }
             : null;
           return {
+            companyInfo,
             vatRate,
             isVatEnabled: effectiveVatEnabled,
             items: returnItems.filter((i) => i.id && i.name && i.qty > 0),
@@ -1631,7 +1641,10 @@ const SalesReturn: React.FC<SalesReturnProps> = ({
             details: {
               ...invoiceDetails,
               userName: currentUser?.fullName || "غير محدد",
-              branchName: currentUser?.branch || "غير محدد",
+              branchName:
+                typeof currentUser?.branch === "string"
+                  ? currentUser.branch
+                  : (currentUser?.branch as any)?.name || "غير محدد",
             },
           };
         })();
@@ -1642,7 +1655,7 @@ const SalesReturn: React.FC<SalesReturnProps> = ({
         }
         
         return (
-          <InvoicePrintPreview
+          <SalesReturnPrintPreview
             isOpen={isPreviewOpen}
             onClose={() => {
               setIsPreviewOpen(false);

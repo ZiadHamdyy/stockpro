@@ -278,9 +278,11 @@ const AddCurrentAccountWrapper = ({
 const SalesInvoiceWrapper = ({
   title,
   currentUser,
+  printSettings,
 }: {
   title: string;
   currentUser: User | null;
+  printSettings: PrintSettings;
 }) => {
   const [searchParams, setSearchParams] = useSearchParams();
   const invoiceId = searchParams.get("invoiceId");
@@ -321,6 +323,7 @@ const SalesInvoiceWrapper = ({
       onClearViewingId={handleClearViewingId}
       prefillQuotationId={prefillQuotationId}
       onClearPrefillQuotation={() => setPrefillQuotationId(null)}
+      printSettings={printSettings}
     />
   );
 };
@@ -933,6 +936,7 @@ const AppContent = () => {
                   <SalesInvoiceWrapper
                     title={currentPageTitle}
                     currentUser={currentUser}
+                    printSettings={printSettings}
                   />
                 </ProtectedRoute>
               }

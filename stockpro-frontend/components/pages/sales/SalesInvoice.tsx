@@ -18,6 +18,7 @@ import type {
   User,
   Safe,
   Bank,
+  PrintSettings,
 } from "../../../types";
 import InvoicePrintPreview from "./InvoicePrintPreview";
 import { useModal } from "../../common/ModalProvider";
@@ -134,6 +135,7 @@ interface SalesInvoiceProps {
   onClearViewingId: () => void;
   prefillQuotationId?: string | null;
   onClearPrefillQuotation?: () => void;
+  printSettings: PrintSettings;
 }
 
 const SalesInvoice: React.FC<SalesInvoiceProps> = ({
@@ -143,6 +145,7 @@ const SalesInvoice: React.FC<SalesInvoiceProps> = ({
   onClearViewingId,
   prefillQuotationId,
   onClearPrefillQuotation,
+  printSettings,
 }) => {
   // Redux hooks
   const { data: invoices = [], isLoading: invoicesLoading } =
@@ -319,6 +322,7 @@ const SalesInvoice: React.FC<SalesInvoiceProps> = ({
       userName: string;
       branchName: string;
     };
+      printSettings?: PrintSettings;
   } | null>(null);
 
   const [focusIndex, setFocusIndex] = useState<number | null>(null);
@@ -936,9 +940,10 @@ const SalesInvoice: React.FC<SalesInvoiceProps> = ({
           customer: printCustomer,
           details: {
             ...invoiceDetails,
-            userName: currentUser?.fullName || "غير محدد",
+            userName: currentUser?.name || currentUser?.fullName || "غير محدد",
             branchName: resolvedBranchName || "غير محدد",
           },
+          printSettings,
         };
         
         // Set preview data and flag to open preview
@@ -976,9 +981,10 @@ const SalesInvoice: React.FC<SalesInvoiceProps> = ({
           customer: printCustomer,
           details: {
             ...updatedInvoiceDetails,
-            userName: currentUser?.fullName || "غير محدد",
+            userName: currentUser?.name || currentUser?.fullName || "غير محدد",
             branchName: resolvedBranchName || "غير محدد",
           },
+          printSettings,
         };
         
         setIsReadOnly(true);
@@ -1648,7 +1654,29 @@ const SalesInvoice: React.FC<SalesInvoiceProps> = ({
       />
       {(() => {
         // Use preview data from state if available, otherwise use current state
-        const dataToPreview = previewData || (() => {
+        const dataToPreview = (previewData as
+          | {
+              companyInfo: CompanyInfo;
+              vatRate: number;
+              isVatEnabled: boolean;
+              items: InvoiceRow[];
+              totals: { subtotal: number; discount: number; tax: number; net: number };
+              paymentMethod: "cash" | "credit";
+              customer: {
+                id: string;
+                name: string;
+                address?: string;
+                taxNumber?: string;
+                commercialReg?: string;
+              } | null;
+              details: {
+                invoiceNumber: string;
+                invoiceDate: string;
+                userName: string;
+                branchName: string;
+              };
+            }
+          | null) || (() => {
           const fullCustomer = selectedCustomer
             ? (customers as any[]).find((c) => c.id === selectedCustomer.id)
             : null;
@@ -1662,6 +1690,7 @@ const SalesInvoice: React.FC<SalesInvoiceProps> = ({
               }
             : null;
           return {
+            companyInfo,
             vatRate,
             isVatEnabled: effectiveVatEnabled,
             items: invoiceItems.filter((i) => i.id && i.name && i.qty > 0),
@@ -1670,7 +1699,7 @@ const SalesInvoice: React.FC<SalesInvoiceProps> = ({
             customer: printCustomer,
             details: {
               ...invoiceDetails,
-              userName: currentUser?.fullName || "غير محدد",
+              userName: currentUser?.name || currentUser?.fullName || "غير محدد",
               branchName: resolvedBranchName || "غير محدد",
             },
           };
@@ -1691,6 +1720,7 @@ const SalesInvoice: React.FC<SalesInvoiceProps> = ({
               handleNew();
             }}
             invoiceData={dataToPreview}
+            printSettings={printSettings}
           />
         );
       })()}
