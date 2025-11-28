@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, HttpStatus } from '@nestjs/common';
 import { DatabaseService } from '../../configs/database/database.service';
 import { CreateItemRequest } from './dtos/request/create-item.request';
 import { UpdateItemRequest } from './dtos/request/update-item.request';
@@ -6,6 +6,7 @@ import { ItemResponse } from './dtos/response/item.response';
 import { StoreService } from '../store/store.service';
 import { StockService } from '../store/services/stock.service';
 import type { currentUserType } from '../../common/types/current-user.type';
+import { GenericHttpException } from '../../common/application/exceptions/generic-http-exception';
 
 @Injectable()
 export class ItemService {
@@ -149,28 +150,138 @@ export class ItemService {
   }
 
   async remove(id: string): Promise<void> {
+    // First, retrieve the item to get its code (items are referenced by code in JSON fields)
+    const item = await this.prisma.item.findUnique({
+      where: { id },
+      select: { id: true, code: true },
+    });
+
+    if (!item) {
+      throw new GenericHttpException('Item not found', HttpStatus.NOT_FOUND);
+    }
+
+    // Check for related data before attempting deletion
+    const relatedDataTypes: string[] = [];
+
+    // Check direct foreign key relationships
+    const [
+      inventoryCountItemsCount,
+      storeIssueVoucherItemsCount,
+      storeReceiptVoucherItemsCount,
+      storeTransferVoucherItemsCount,
+    ] = await Promise.all([
+      this.prisma.inventoryCountItem.count({
+        where: { itemId: id },
+      }),
+      this.prisma.storeIssueVoucherItem.count({
+        where: { itemId: id },
+      }),
+      this.prisma.storeReceiptVoucherItem.count({
+        where: { itemId: id },
+      }),
+      this.prisma.storeTransferVoucherItem.count({
+        where: { itemId: id },
+      }),
+    ]);
+
+    if (inventoryCountItemsCount > 0) {
+      relatedDataTypes.push('inventory counts');
+    }
+    if (storeIssueVoucherItemsCount > 0) {
+      relatedDataTypes.push('store issue vouchers');
+    }
+    if (storeReceiptVoucherItemsCount > 0) {
+      relatedDataTypes.push('store receipt vouchers');
+    }
+    if (storeTransferVoucherItemsCount > 0) {
+      relatedDataTypes.push('store transfer vouchers');
+    }
+
+    // Check JSON-based relationships (items are stored with id field matching item code)
+    const [
+      salesInvoices,
+      salesReturns,
+      purchaseInvoices,
+      purchaseReturns,
+      priceQuotations,
+    ] = await Promise.all([
+      this.prisma.salesInvoice.findMany({
+        select: { id: true, items: true },
+      }),
+      this.prisma.salesReturn.findMany({
+        select: { id: true, items: true },
+      }),
+      this.prisma.purchaseInvoice.findMany({
+        select: { id: true, items: true },
+      }),
+      this.prisma.purchaseReturn.findMany({
+        select: { id: true, items: true },
+      }),
+      this.prisma.priceQuotation.findMany({
+        select: { id: true, items: true },
+      }),
+    ]);
+
+    // Check if item code appears in any JSON items array
+    const itemCode = item.code;
+    const hasSalesInvoiceReference = salesInvoices.some((invoice) => {
+      const items = invoice.items as any[];
+      return Array.isArray(items) && items.some((item) => item.id === itemCode);
+    });
+
+    const hasSalesReturnReference = salesReturns.some((returnRecord) => {
+      const items = returnRecord.items as any[];
+      return Array.isArray(items) && items.some((item) => item.id === itemCode);
+    });
+
+    const hasPurchaseInvoiceReference = purchaseInvoices.some((invoice) => {
+      const items = invoice.items as any[];
+      return Array.isArray(items) && items.some((item) => item.id === itemCode);
+    });
+
+    const hasPurchaseReturnReference = purchaseReturns.some((returnRecord) => {
+      const items = returnRecord.items as any[];
+      return Array.isArray(items) && items.some((item) => item.id === itemCode);
+    });
+
+    const hasPriceQuotationReference = priceQuotations.some((quotation) => {
+      const items = quotation.items as any[];
+      return Array.isArray(items) && items.some((item) => item.id === itemCode);
+    });
+
+    if (hasSalesInvoiceReference) {
+      relatedDataTypes.push('sales invoices');
+    }
+    if (hasSalesReturnReference) {
+      relatedDataTypes.push('sales returns');
+    }
+    if (hasPurchaseInvoiceReference) {
+      relatedDataTypes.push('purchase invoices');
+    }
+    if (hasPurchaseReturnReference) {
+      relatedDataTypes.push('purchase returns');
+    }
+    if (hasPriceQuotationReference) {
+      relatedDataTypes.push('price quotations');
+    }
+
+    // If any related data exists, throw an error
+    if (relatedDataTypes.length > 0) {
+      const relatedDataList = relatedDataTypes.join(', ');
+      throw new GenericHttpException(
+        `Cannot delete item because it has related data: ${relatedDataList}`,
+        HttpStatus.CONFLICT,
+      );
+    }
+
+    // If no related data exists, proceed with deletion
     try {
       await this.prisma.item.delete({
         where: { id },
       });
     } catch (error: any) {
-      // Prisma: foreign key constraint failed
-      if (error?.code === 'P2003') {
-        const {
-          GenericHttpException,
-        } = require('../../common/application/exceptions/generic-http-exception');
-        const { HttpStatus } = require('@nestjs/common');
-        throw new GenericHttpException(
-          'Cannot delete item because it has related transactions',
-          HttpStatus.CONFLICT,
-        );
-      }
-      // Prisma: record not found
+      // Prisma: record not found (shouldn't happen since we checked above, but handle it anyway)
       if (error?.code === 'P2025') {
-        const {
-          GenericHttpException,
-        } = require('../../common/application/exceptions/generic-http-exception');
-        const { HttpStatus } = require('@nestjs/common');
         throw new GenericHttpException('Item not found', HttpStatus.NOT_FOUND);
       }
       throw error;
