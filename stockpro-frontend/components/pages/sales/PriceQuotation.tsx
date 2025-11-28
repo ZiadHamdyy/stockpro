@@ -188,6 +188,34 @@ const PriceQuotation: React.FC<PriceQuotationProps> = ({ title, vatRate, isVatEn
         });
     };
 
+    const navigate = (index: number) => {
+        if ((quotations as any[]).length > 0) {
+            setCurrentIndex(Math.max(0, Math.min((quotations as any[]).length - 1, index)));
+        }
+    };
+
+    const navigateBy = (direction: 'first' | 'prev' | 'next' | 'last') => {
+        const list = quotations as any[];
+        if (!Array.isArray(list) || list.length === 0) return;
+
+        let newIndex = currentIndex;
+        switch (direction) {
+            case 'first':
+                newIndex = 0;
+                break;
+            case 'last':
+                newIndex = list.length - 1;
+                break;
+            case 'next':
+                newIndex = currentIndex === -1 ? 0 : Math.min(list.length - 1, currentIndex + 1);
+                break;
+            case 'prev':
+                newIndex = currentIndex === -1 ? list.length - 1 : Math.max(0, currentIndex - 1);
+                break;
+        }
+        navigate(newIndex);
+    };
+
     const inputStyle = "block w-full bg-yellow-50 border-2 border-amber-500 rounded-md shadow-sm text-brand-dark placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-amber-500 py-3 px-4 disabled:bg-gray-200 disabled:cursor-not-allowed";
     const tableInputStyle = "text-center bg-transparent focus:outline-none focus:ring-1 focus:ring-amber-500 rounded p-1 disabled:bg-transparent";
 
@@ -201,7 +229,7 @@ const PriceQuotation: React.FC<PriceQuotationProps> = ({ title, vatRate, isVatEn
                 <div className="border-2 border-amber-500 rounded-lg">
                     <div className="p-4">
                         <h1 className="text-2xl font-bold mb-4 border-b-2 border-dashed border-gray-300 pb-2 text-brand-dark">{title}</h1>
-                        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-2">
+                        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
                             <div className="flex flex-col">
                                 <label className="text-xs text-gray-500 mb-1">رقم العرض</label>
                                 <input type="text" placeholder="رقم العرض" className={inputStyle} value={quotationDetails.id} onChange={e => setQuotationDetails({...quotationDetails, id: e.target.value})} readOnly={currentIndex > -1 || isReadOnly} />
@@ -228,26 +256,28 @@ const PriceQuotation: React.FC<PriceQuotationProps> = ({ title, vatRate, isVatEn
                 </div>
 
                 <div className="overflow-x-auto my-4 border-2 border-amber-500 rounded-lg">
-                    <table className="min-w-full border-collapse">
-                        <thead className="bg-amber-500 text-white text-sm font-semibold uppercase">
+                    <table className="min-w-full border-collapse table-fixed">
+                        <thead className="bg-amber-500 text-white">
                             <tr>
-                                <th className="px-2 py-3 w-10 text-center border border-amber-300">م</th>
-                                <th className="px-2 py-3 w-24 text-right border border-amber-300">رقم الصنف</th>
-                                <th className="px-2 py-3 w-2/5 text-right border border-amber-300">الصنف</th>
-                                <th className="px-2 py-3 w-20 text-center border border-amber-300">الوحدة</th>
-                                <th className="px-2 py-3 text-center border border-amber-300" style={{ minWidth: '100px' }}>الكمية</th>
-                                <th className="px-2 py-3 text-center border border-amber-300" style={{ minWidth: '100px' }}>السعر</th>
-                                {isVatEnabled && <th className="px-2 py-3 text-center border border-amber-300">الضريبة</th>}
-                                <th className="px-2 py-3 text-center border border-amber-300">الاجمالي</th>
+                                <th className="px-2 py-3 w-10 text-center text-sm font-semibold uppercase border border-amber-300">م</th>
+                                <th className="px-2 py-3 w-24 text-right text-sm font-semibold uppercase border border-amber-300">رقم الصنف</th>
+                                <th className="px-2 py-3 w-2/5 text-right text-sm font-semibold uppercase border border-amber-300">الصنف</th>
+                                <th className="px-2 py-3 w-20 text-center text-sm font-semibold uppercase border border-amber-300">الوحدة</th>
+                                <th className="px-2 py-3 text-center text-sm font-semibold uppercase border border-amber-300" style={{ minWidth: '100px' }}>الكمية</th>
+                                <th className="px-2 py-3 text-center text-sm font-semibold uppercase border border-amber-300" style={{ minWidth: '100px' }}>السعر</th>
+                                {isVatEnabled && <th className="px-2 py-3 w-36 text-center text-sm font-semibold uppercase border border-amber-300">الضريبة ({vatRate}%)</th>}
+                                <th className="px-2 py-3 w-36 text-center text-sm font-semibold uppercase border border-amber-300">الاجمالي</th>
                                 <th className="px-2 py-3 w-16 text-center border border-amber-300"></th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-amber-200" ref={itemSearchRef}>
                             {items.map((item, index) => (
                                  <tr key={index} className="hover:bg-yellow-50 transition-colors duration-150">
-                                    <td className="p-2 align-middle border-x border-amber-200 text-center">{index + 1}</td>
-                                    <td className="p-2 align-middle border-x border-amber-200"><input type="text" value={item.id} onChange={(e) => handleItemChange(index, 'id', e.target.value)} className={tableInputStyle + " w-full"} disabled={isReadOnly}/></td>
-                                    <td className="p-2 align-middle border-x border-amber-200 relative">
+                                    <td className="p-2 align-middle text-center border-x border-amber-200 w-10">{index + 1}</td>
+                                    <td className="p-2 align-middle border-x border-amber-200 w-24">
+                                        <input type="text" value={item.id} onChange={(e) => handleItemChange(index, 'id', e.target.value)} className={tableInputStyle + " w-full"} disabled={isReadOnly}/>
+                                    </td>
+                                    <td className="p-2 align-middle border-x border-amber-200 relative w-2/5">
                                         <div className="flex items-center">
                                             <input type="text" placeholder="ابحث..." value={item.name} onChange={(e) => handleItemChange(index, 'name', e.target.value)} onFocus={() => setActiveItemSearch({ index, query: item.name })} className="bg-transparent w-full focus:outline-none p-1" disabled={isReadOnly}/>
                                             <button type="button" onClick={() => { setEditingItemIndex(index); setIsItemModalOpen(true); }} className="p-1 text-gray-400 hover:text-amber-600" disabled={isReadOnly}><ListIcon className="w-5 h-5" /></button>
@@ -258,12 +288,26 @@ const PriceQuotation: React.FC<PriceQuotationProps> = ({ title, vatRate, isVatEn
                                             </div>
                                         )}
                                     </td>
-                                    <td className="p-2 align-middle border-x border-amber-200"><input type="text" value={item.unit} onChange={(e) => handleItemChange(index, 'unit', e.target.value)} className={tableInputStyle + " w-full"} disabled={isReadOnly}/></td>
-                                    <td className="p-2 align-middle border-x border-amber-200"><input type="number" value={item.qty} onChange={(e) => handleItemChange(index, 'qty', e.target.value)} ref={el => { if (el) qtyInputRefs.current[index] = el; }} className={tableInputStyle} disabled={isReadOnly}/></td>
-                                    <td className="p-2 align-middle border-x border-amber-200"><input type="number" value={item.price} onChange={(e) => handleItemChange(index, 'price', e.target.value)} ref={el => { if (el) priceInputRefs.current[index] = el; }} className={tableInputStyle} disabled={isReadOnly}/></td>
-                                    {isVatEnabled && <td className="p-2 align-middle border-x border-amber-200 text-center">{item.taxAmount.toFixed(2)}</td>}
-                                    <td className="p-2 align-middle border-x border-amber-200 text-center">{item.total.toFixed(2)}</td>
-                                    <td className="p-2 align-middle border-x border-amber-200 text-center"><button onClick={() => {const newItems = items.filter((_, i) => i !== index); setItems(newItems);}} className="text-red-500 hover:text-red-700" disabled={isReadOnly}><TrashIcon className="w-5 h-5" /></button></td>
+                                    <td className="p-2 align-middle text-center border-x border-amber-200 w-20">
+                                        <input type="text" value={item.unit} onChange={(e) => handleItemChange(index, 'unit', e.target.value)} className={tableInputStyle + " w-full"} disabled={isReadOnly}/>
+                                    </td>
+                                    <td className="p-2 align-middle text-center border-x border-amber-200" style={{ minWidth: '100px' }}>
+                                        <input type="number" value={item.qty} onChange={(e) => handleItemChange(index, 'qty', e.target.value)} ref={el => { if (el) qtyInputRefs.current[index] = el; }} className={tableInputStyle} disabled={isReadOnly}/>
+                                    </td>
+                                    <td className="p-2 align-middle text-center border-x border-amber-200" style={{ minWidth: '100px' }}>
+                                        <input type="number" value={item.price} onChange={(e) => handleItemChange(index, 'price', e.target.value)} ref={el => { if (el) priceInputRefs.current[index] = el; }} className={tableInputStyle} disabled={isReadOnly}/>
+                                    </td>
+                                    {isVatEnabled && (
+                                        <td className="p-2 align-middle text-center border-x border-amber-200 w-36">
+                                            {item.taxAmount.toFixed(2)}
+                                        </td>
+                                    )}
+                                    <td className="p-2 align-middle text-center border-x border-amber-200 w-36">{item.total.toFixed(2)}</td>
+                                    <td className="p-2 align-middle text-center border-x border-amber-200 w-16">
+                                        <button onClick={() => {const newItems = items.filter((_, i) => i !== index); setItems(newItems);}} className="text-red-500 hover:text-red-700" disabled={isReadOnly}>
+                                            <TrashIcon className="w-5 h-5" />
+                                        </button>
+                                    </td>
                                 </tr>
                             ))}
                         </tbody>
@@ -280,7 +324,7 @@ const PriceQuotation: React.FC<PriceQuotationProps> = ({ title, vatRate, isVatEn
                                 استلمت البضاعة كاملة و بجودة سليمة
                             </div>
                         </div>
-                        <div className="w-full md:w-1/3">
+                        <div className="w-full md:w-2/5">
                             <div className="border-2 border-amber-500 rounded-lg bg-white shadow-inner">
                                 <div className="flex justify-between p-3">
                                     <span className="font-semibold text-gray-600">المجموع قبل الضريبة</span>
@@ -308,22 +352,64 @@ const PriceQuotation: React.FC<PriceQuotationProps> = ({ title, vatRate, isVatEn
                     </div>
                 </div>
 
-                <div className="mt-6 pt-4 border-t-2 border-gray-200 flex justify-center gap-4 flex-wrap">
-                    <button onClick={handleNew} className="px-6 py-2 bg-brand-blue text-white rounded-md hover:bg-blue-800">جديد</button>
-                    <button onClick={handleSave} disabled={isReadOnly} className="px-6 py-2 bg-brand-green text-white rounded-md hover:bg-green-700 disabled:bg-gray-400">حفظ</button>
-                    <button onClick={() => setIsReadOnly(false)} disabled={currentIndex < 0 || !isReadOnly} className="px-6 py-2 bg-yellow-500 text-white rounded-md hover:bg-yellow-600 disabled:bg-gray-400">تعديل</button>
-                    <button onClick={handleDelete} disabled={currentIndex < 0} className="px-6 py-2 bg-red-500 text-white rounded-md hover:bg-red-600 disabled:bg-gray-400">حذف</button>
-                    <button onClick={() => setIsSearchModalOpen(true)} className="px-6 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700">بحث</button>
-                    <button onClick={() => setIsPreviewOpen(true)} className="px-6 py-2 bg-gray-200 text-brand-dark rounded-md hover:bg-gray-300 flex items-center"><PrintIcon className="mr-2 w-5 h-5"/>معاينة الطباعة</button>
-                    
-                    {/* Killer Feature: Convert to Invoice */}
-                    <button 
-                        onClick={() => onConvertToInvoice(quotations[currentIndex])} 
-                        disabled={currentIndex < 0 || isReadOnly === false} 
-                        className="px-6 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 disabled:bg-gray-400 flex items-center shadow-lg transform transition hover:-translate-y-1"
-                    >
-                        <ListIcon className="ml-2 w-5 h-5"/> تحويل إلى فاتورة
-                    </button>
+                <div className="mt-4 pt-4 border-t-2 border-dashed border-amber-200">
+                    <div className="bg-amber-50 p-3 rounded-md text-center text-amber-700 font-semibold border border-amber-200">
+                        {tafqeet(totals.net, companyInfo.currency || 'SAR')}
+                    </div>
+                </div>
+
+                <div className="mt-6 pt-4 border-t-2 border-gray-200 flex flex-col items-center space-y-4">
+                    <div className="flex justify-center gap-2 flex-wrap">
+                        <button onClick={handleNew} className="px-4 py-2 bg-brand-blue text-white rounded-md hover:bg-blue-800 font-semibold">جديد</button>
+                        <button onClick={handleSave} disabled={isReadOnly} className="px-4 py-2 bg-brand-green text-white rounded-md hover:bg-green-700 font-semibold disabled:bg-gray-400">حفظ</button>
+                        <button onClick={() => setIsReadOnly(false)} disabled={currentIndex < 0 || !isReadOnly} className="px-4 py-2 bg-yellow-500 text-white rounded-md hover:bg-yellow-600 font-semibold disabled:bg-gray-400">تعديل</button>
+                        <button onClick={handleDelete} disabled={currentIndex < 0} className="px-4 py-2 bg-red-500 text-white rounded-md hover:bg-red-600 font-semibold disabled:bg-gray-400">حذف</button>
+                        <button onClick={() => setIsSearchModalOpen(true)} className="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 font-semibold">بحث</button>
+                        <button onClick={() => setIsPreviewOpen(true)} className="px-4 py-2 bg-gray-200 text-brand-dark rounded-md hover:bg-gray-300 font-semibold flex items-center"><PrintIcon className="mr-2 w-5 h-5"/>معاينة الطباعة</button>
+                        {/* Killer Feature: Convert to Invoice */}
+                        <button 
+                            onClick={() => onConvertToInvoice(quotations[currentIndex])} 
+                            disabled={currentIndex < 0 || isReadOnly === false} 
+                            className="px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 font-semibold disabled:bg-gray-400 flex items-center shadow-lg transform transition hover:-translate-y-1"
+                        >
+                            <ListIcon className="ml-2 w-5 h-5"/> تحويل إلى فاتورة
+                        </button>
+                    </div>
+                    <div className="flex items-center justify-center gap-2">
+                        <button
+                            onClick={() => navigateBy('first')}
+                            disabled={(quotations as any[]).length === 0 || currentIndex === 0}
+                            className="p-2 bg-gray-200 rounded-md hover:bg-gray-300 disabled:opacity-50"
+                        >
+                            الأول
+                        </button>
+                        <button
+                            onClick={() => navigateBy('prev')}
+                            disabled={(quotations as any[]).length === 0 || currentIndex === 0}
+                            className="p-2 bg-gray-200 rounded-md hover:bg-gray-300 disabled:opacity-50"
+                        >
+                            السابق
+                        </button>
+                        <div className="px-4 py-2 bg-brand-blue-bg border-2 border-brand-blue rounded-md">
+                            <span className="font-bold">
+                                {currentIndex > -1 ? `${currentIndex + 1} / ${(quotations as any[]).length}` : 'جديد'}
+                            </span>
+                        </div>
+                        <button
+                            onClick={() => navigateBy('next')}
+                            disabled={(quotations as any[]).length === 0 || currentIndex === (quotations as any[]).length - 1}
+                            className="p-2 bg-gray-200 rounded-md hover:bg-gray-300 disabled:opacity-50"
+                        >
+                            التالي
+                        </button>
+                        <button
+                            onClick={() => navigateBy('last')}
+                            disabled={(quotations as any[]).length === 0 || currentIndex === (quotations as any[]).length - 1}
+                            className="p-2 bg-gray-200 rounded-md hover:bg-gray-300 disabled:opacity-50"
+                        >
+                            الأخير
+                        </button>
+                    </div>
                 </div>
             </div>
 
