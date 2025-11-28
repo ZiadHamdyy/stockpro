@@ -529,6 +529,12 @@ model SalesInvoice {
   updatedAt         DateTime  @updatedAt
   bankId            String?
   safeId            String?
+  bankTransactionType BankTransactionType @default(POS)
+  isSplitPayment    Boolean   @default(false)
+  splitCashAmount   Float?
+  splitBankAmount   Float?
+  splitSafeId       String?
+  splitBankId       String?
   bank              Bank?     @relation(fields: [bankId], references: [id])
   branch            Branch?   @relation(fields: [branchId], references: [id])
   customer          Customer? @relation(fields: [customerId], references: [id])
@@ -837,4 +843,9 @@ enum ItemType {
 enum InventoryCountStatus {
   PENDING
   POSTED
+}
+
+enum BankTransactionType {
+  POS
+  TRANSFER
 }

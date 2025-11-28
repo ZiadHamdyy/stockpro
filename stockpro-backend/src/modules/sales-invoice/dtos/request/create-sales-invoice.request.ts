@@ -8,6 +8,7 @@ import {
   IsBoolean,
 } from 'class-validator';
 import { Type } from 'class-transformer';
+import { BankTransactionType } from '@prisma/client';
 
 export class InvoiceItemDto {
   @IsString()
@@ -66,6 +67,30 @@ export class CreateSalesInvoiceRequest {
   @IsString()
   @IsOptional()
   paymentTargetId?: string;
+
+  @IsEnum(BankTransactionType)
+  @IsOptional()
+  bankTransactionType?: BankTransactionType;
+
+  @IsBoolean()
+  @IsOptional()
+  isSplitPayment?: boolean;
+
+  @IsNumber()
+  @IsOptional()
+  splitCashAmount?: number;
+
+  @IsNumber()
+  @IsOptional()
+  splitBankAmount?: number;
+
+  @IsString()
+  @IsOptional()
+  splitSafeId?: string;
+
+  @IsString()
+  @IsOptional()
+  splitBankId?: string;
 
   @IsString()
   @IsOptional()

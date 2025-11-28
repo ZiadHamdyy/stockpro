@@ -124,7 +124,7 @@ export class SafeService {
 
   async findAvailableBranches(includeId?: string) {
     const available = await this.prisma.branch.findMany({
-      where: { safes: { none: {} } },
+      where: { safes: { is: null } },
       orderBy: { code: 'asc' },
     });
     if (!includeId) return available;

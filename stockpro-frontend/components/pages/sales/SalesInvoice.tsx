@@ -265,6 +265,12 @@ const SalesInvoice: React.FC<SalesInvoiceProps> = ({
     "safe",
   );
   const [paymentTargetId, setPaymentTargetId] = useState<string | null>(null);
+  const [bankTransactionType, setBankTransactionType] = useState<"POS" | "TRANSFER">("POS");
+  const [isSplitPayment, setIsSplitPayment] = useState(false);
+  const [splitCashAmount, setSplitCashAmount] = useState(0);
+  const [splitBankAmount, setSplitBankAmount] = useState(0);
+  const [splitSafeId, setSplitSafeId] = useState<string | null>(null);
+  const [splitBankId, setSplitBankId] = useState<string | null>(null);
   const { showModal } = useModal();
   const { showToast } = useToast();
   const [isPrefillingFromQuotation, setIsPrefillingFromQuotation] = useState(false);
@@ -304,6 +310,7 @@ const SalesInvoice: React.FC<SalesInvoiceProps> = ({
   const justSavedRef = useRef(false); // Flag to prevent resetting state after save
   const shouldOpenPreviewRef = useRef(false); // Flag to indicate we want to open preview after data is set
   const [previewData, setPreviewData] = useState<{
+    companyInfo: CompanyInfo;
     vatRate: number;
     isVatEnabled: boolean;
     items: InvoiceRow[];
@@ -322,7 +329,7 @@ const SalesInvoice: React.FC<SalesInvoiceProps> = ({
       userName: string;
       branchName: string;
     };
-      printSettings?: PrintSettings;
+    printSettings?: PrintSettings;
   } | null>(null);
 
   const [focusIndex, setFocusIndex] = useState<number | null>(null);
@@ -411,6 +418,12 @@ const SalesInvoice: React.FC<SalesInvoiceProps> = ({
     setPaymentTargetType("safe");
     // For safes, we don't need paymentTargetId (we send branchId instead)
     setPaymentTargetId(null);
+    setBankTransactionType("POS");
+    setIsSplitPayment(false);
+    setSplitCashAmount(0);
+    setSplitBankAmount(0);
+    setSplitSafeId(filteredSafes.length > 0 ? filteredSafes[0].id : null);
+    setSplitBankId(banks.length > 0 ? banks[0].id : null);
     const defaultBranchId = getUserBranchId(currentUser);
     setInvoiceBranchId(defaultBranchId);
     setSafeBranchName(getUserBranchName(currentUser));
@@ -464,6 +477,12 @@ const SalesInvoice: React.FC<SalesInvoiceProps> = ({
       setPaymentMethod(inv.paymentMethod);
       setPaymentTargetType(inv.paymentTargetType || "safe");
       setPaymentTargetId(inv.paymentTargetId || null);
+      setBankTransactionType((inv as any).bankTransactionType || "POS");
+      setIsSplitPayment((inv as any).isSplitPayment || false);
+      setSplitCashAmount((inv as any).splitCashAmount || 0);
+      setSplitBankAmount((inv as any).splitBankAmount || 0);
+      setSplitSafeId((inv as any).splitSafeId || null);
+      setSplitBankId((inv as any).splitBankId || null);
       const { id: branchIdFromInvoice, name: branchNameFromInvoice } =
         getInvoiceBranchMeta(inv);
       setInvoiceBranchId(branchIdFromInvoice);
@@ -523,6 +542,12 @@ const SalesInvoice: React.FC<SalesInvoiceProps> = ({
     setPaymentMethod("cash");
     setPaymentTargetType("safe");
     setPaymentTargetId(null);
+    setBankTransactionType("POS");
+    setIsSplitPayment(false);
+    setSplitCashAmount(0);
+    setSplitBankAmount(0);
+    setSplitSafeId(filteredSafes.length > 0 ? filteredSafes[0].id : null);
+    setSplitBankId(banks.length > 0 ? banks[0].id : null);
     setInvoiceBranchId(getUserBranchId(currentUser));
     setSafeBranchName(getUserBranchName(currentUser));
     setIsReadOnly(false);
@@ -668,6 +693,37 @@ const SalesInvoice: React.FC<SalesInvoiceProps> = ({
       setPaymentTargetId(null);
     }
   }, [paymentTargetType, banks, paymentTargetId, isReadOnly]);
+
+  // Auto-update split amounts when net total changes
+  useEffect(() => {
+    if (!isReadOnly && isSplitPayment && totals.net > 0) {
+      setSplitCashAmount(totals.net);
+      setSplitBankAmount(0);
+    }
+  }, [totals.net, isSplitPayment, isReadOnly]);
+
+  // Ensure safe and bank IDs are set when split payment is enabled
+  useEffect(() => {
+    if (!isReadOnly && isSplitPayment) {
+      if (!splitSafeId && filteredSafes.length > 0) {
+        setSplitSafeId(filteredSafes[0].id);
+      }
+      if (!splitBankId && banks.length > 0) {
+        setSplitBankId(banks[0].id);
+      }
+    }
+  }, [isSplitPayment, isReadOnly, splitSafeId, splitBankId, filteredSafes, banks]);
+
+  const handleSplitAmountChange = (type: "cash" | "bank", value: string) => {
+    const val = parseFloat(value) || 0;
+    if (type === "cash") {
+      setSplitCashAmount(val);
+      setSplitBankAmount(Math.max(0, parseFloat((totals.net - val).toFixed(2))));
+    } else {
+      setSplitBankAmount(val);
+      setSplitCashAmount(Math.max(0, parseFloat((totals.net - val).toFixed(2))));
+    }
+  };
 
   const handleAddItemAndFocus = () => {
     const newIndex = invoiceItems.length;
@@ -848,6 +904,19 @@ const SalesInvoice: React.FC<SalesInvoiceProps> = ({
       return;
     }
 
+    // Validate split payment if enabled
+    if (paymentMethod === "cash" && isSplitPayment) {
+      const totalSplit = splitCashAmount + splitBankAmount;
+      if (Math.abs(totalSplit - totals.net) > 0.1) {
+        showToast(`مجموع المبالغ لا يساوي صافي الفاتورة.`, 'error');
+        return;
+      }
+      if (!splitSafeId || splitSafeId === "" || !splitBankId || splitBankId === "") {
+        showToast('الرجاء اختيار الخزنة والبنك لعملية الدفع المجزأة.', 'error');
+        return;
+      }
+    }
+
     // Validate stock for STOCKED items if allowSellingLessThanStock is false
     if (!allowSellingLessThanStock) {
       for (const item of finalItems) {
@@ -872,7 +941,7 @@ const SalesInvoice: React.FC<SalesInvoiceProps> = ({
         return;
       }
       
-      const invoiceData = {
+      const invoiceData: any = {
         customerId: paymentMethod === "cash" && !selectedCustomer 
           ? null 
           : selectedCustomer?.id,
@@ -904,6 +973,24 @@ const SalesInvoice: React.FC<SalesInvoiceProps> = ({
         allowInsufficientStock: allowSellingLessThanStock,
       };
 
+      // Add split payment fields if cash payment
+      if (paymentMethod === "cash") {
+        if (isSplitPayment) {
+          invoiceData.isSplitPayment = true;
+          invoiceData.splitCashAmount = splitCashAmount;
+          invoiceData.splitBankAmount = splitBankAmount;
+          invoiceData.splitSafeId = splitSafeId;
+          invoiceData.splitBankId = splitBankId;
+          invoiceData.bankTransactionType = bankTransactionType;
+        } else {
+          invoiceData.paymentTargetType = paymentTargetType;
+          invoiceData.paymentTargetId = paymentTargetId;
+          if (paymentTargetType === "bank") {
+            invoiceData.bankTransactionType = bankTransactionType;
+          }
+        }
+      }
+
       // Prepare customer data for preview
       const fullCustomer = selectedCustomer
         ? (customers as any[]).find((c) => c.id === selectedCustomer.id)
@@ -929,6 +1016,7 @@ const SalesInvoice: React.FC<SalesInvoiceProps> = ({
         
         // Store preview data in state before opening preview
         const previewDataToStore = {
+          companyInfo,
           vatRate,
           isVatEnabled: effectiveVatEnabled,
           items: finalItems.map((item) => ({
@@ -970,6 +1058,7 @@ const SalesInvoice: React.FC<SalesInvoiceProps> = ({
         // Store preview data in state before opening preview
         // This ensures the preview has data even if state is reset by useEffect
         const previewDataToStore = {
+          companyInfo,
           vatRate,
           isVatEnabled: effectiveVatEnabled,
           items: finalItems.map((item) => ({
@@ -1183,51 +1272,240 @@ const SalesInvoice: React.FC<SalesInvoiceProps> = ({
               </div>
             </div>
             {paymentMethod === "cash" && (
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4 items-end">
-                <div className="md:col-start-2">
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    نوع الدفع
-                  </label>
-                  <select
-                    value={paymentTargetType}
-                    onChange={(e) =>
-                      setPaymentTargetType(e.target.value as "safe" | "bank")
-                    }
-                    className={inputStyle}
-                    disabled={isReadOnly}
-                  >
-                    <option value="safe">خزنة</option>
-                    <option value="bank">بنك</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    {paymentTargetType === "safe"
-                      ? "اختر الخزنة"
-                      : "اختر البنك"}
-                  </label>
-                  {paymentTargetType === "safe" ? (
-                    <input
-                      type="text"
-                      value={resolvedBranchName}
-                      className={inputStyle}
-                      disabled={true}
-                      readOnly
-                    />
+              <div className="space-y-4 mb-4">
+                {/* Checkbox and Payment Logic Container */}
+                <div className="flex flex-col gap-0">
+                  <div className="flex items-center gap-3 pb-2">
+                    <label className="inline-flex items-center cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={isSplitPayment}
+                        onChange={(e) => {
+                          if (isReadOnly) return;
+                          setIsSplitPayment(e.target.checked);
+                          if (e.target.checked) {
+                            setSplitCashAmount(totals.net);
+                            setSplitBankAmount(0);
+                            // Set default safe and bank if not already set
+                            if (!splitSafeId && filteredSafes.length > 0) {
+                              setSplitSafeId(filteredSafes[0].id);
+                            }
+                            if (!splitBankId && banks.length > 0) {
+                              setSplitBankId(banks[0].id);
+                            }
+                          }
+                        }}
+                        className="sr-only peer"
+                        disabled={isReadOnly}
+                      />
+                      <div className="relative w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-brand-blue"></div>
+                      <span className="ms-3 text-sm font-bold text-gray-700">
+                        تجزئة الدفع (نقدي + بنك)
+                      </span>
+                    </label>
+                  </div>
+                  {/* Split Payment UI - Compact 50% Width */}
+                  {isSplitPayment ? (
+                    <div className="w-full md:w-7/12 min-w-[320px] animate-fade-in-down origin-top">
+                      <div className="bg-slate-600 text-white rounded-lg p-2 shadow-md border border-slate-500">
+                        <div className="grid grid-cols-2 gap-4">
+                          {/* Bank Part */}
+                          <div className="p-2 bg-slate-500/40 rounded-md border border-slate-400/30">
+                            <div className="flex items-center justify-between mb-1 pb-1 border-b border-slate-400/30 h-8">
+                              <div className="flex items-center gap-2">
+                                <div className="w-2 h-2 rounded-full bg-blue-400 shadow-[0_0_6px_rgba(96,165,250,0.6)]"></div>
+                                <span className="text-[10px] font-bold text-white uppercase tracking-wider">
+                                  البنكي (BANK)
+                                </span>
+                              </div>
+                              <div className="flex bg-slate-700 rounded p-0.5 border border-slate-500/50">
+                                <button
+                                  onClick={() => setBankTransactionType("POS")}
+                                  className={`px-2 py-0.5 text-[10px] font-bold rounded transition-all ${
+                                    bankTransactionType === "POS"
+                                      ? "bg-blue-600 text-white shadow"
+                                      : "text-slate-300 hover:text-white"
+                                  }`}
+                                  disabled={isReadOnly}
+                                >
+                                  POS
+                                </button>
+                                <button
+                                  onClick={() =>
+                                    setBankTransactionType("TRANSFER")
+                                  }
+                                  className={`px-2 py-0.5 text-[10px] font-bold rounded transition-all ${
+                                    bankTransactionType === "TRANSFER"
+                                      ? "bg-blue-600 text-white shadow"
+                                      : "text-slate-300 hover:text-white"
+                                  }`}
+                                  disabled={isReadOnly}
+                                >
+                                  تحويل
+                                </button>
+                              </div>
+                            </div>
+                            <div className="flex gap-2 items-center h-8">
+                              <div className="flex-1">
+                                <select
+                                  className="w-full h-8 px-1 rounded-sm border-0 bg-white text-slate-900 text-xs focus:ring-1 focus:ring-blue-400 outline-none shadow-sm font-semibold"
+                                  value={splitBankId || ""}
+                                  onChange={(e) =>
+                                    setSplitBankId(e.target.value ? e.target.value : null)
+                                  }
+                                  disabled={isReadOnly}
+                                >
+                                  <option value="">اختر البنك...</option>
+                                  {banks.map((b) => (
+                                    <option key={b.id} value={b.id}>
+                                      {b.name}
+                                    </option>
+                                  ))}
+                                </select>
+                              </div>
+                              <div className="w-24">
+                                <input
+                                  type="number"
+                                  className="w-full h-8 px-1 rounded-sm border-0 bg-white text-slate-900 font-bold text-sm focus:ring-1 focus:ring-blue-400 placeholder-slate-400 outline-none shadow-sm text-center"
+                                  value={splitBankAmount}
+                                  onChange={(e) =>
+                                    handleSplitAmountChange("bank", e.target.value)
+                                  }
+                                  disabled={isReadOnly}
+                                  placeholder="0.00"
+                                />
+                              </div>
+                            </div>
+                          </div>
+                          {/* Cash Part */}
+                          <div className="p-2 bg-slate-500/40 rounded-md border border-slate-400/30">
+                            <div className="flex items-center justify-end mb-1 pb-1 border-b border-slate-400/30 h-8">
+                              <div className="flex items-center gap-2">
+                                <span className="text-[10px] font-bold text-white uppercase tracking-wider">
+                                  النقدي (CASH)
+                                </span>
+                                <div className="w-2 h-2 rounded-full bg-green-400 shadow-[0_0_6px_rgba(74,222,128,0.6)]"></div>
+                              </div>
+                            </div>
+                            <div className="flex gap-2 items-center h-8">
+                              <div className="flex-1">
+                                <select
+                                  className="w-full h-8 px-1 rounded-sm border-0 bg-white text-slate-900 text-xs focus:ring-1 focus:ring-blue-400 outline-none shadow-sm font-semibold"
+                                  value={splitSafeId || ""}
+                                  onChange={(e) =>
+                                    setSplitSafeId(e.target.value ? e.target.value : null)
+                                  }
+                                  disabled={isReadOnly}
+                                >
+                                  <option value="">اختر الخزنة...</option>
+                                  {filteredSafes.map((s) => (
+                                    <option key={s.id} value={s.id}>
+                                      {s.name}
+                                    </option>
+                                  ))}
+                                </select>
+                              </div>
+                              <div className="w-24">
+                                <input
+                                  type="number"
+                                  className="w-full h-8 px-1 rounded-sm border-0 bg-white text-slate-900 font-bold text-sm focus:ring-1 focus:ring-blue-400 placeholder-slate-400 outline-none shadow-sm text-center"
+                                  value={splitCashAmount}
+                                  onChange={(e) =>
+                                    handleSplitAmountChange("cash", e.target.value)
+                                  }
+                                  disabled={isReadOnly}
+                                  placeholder="0.00"
+                                />
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
                   ) : (
-                    <select
-                      value={paymentTargetId || ""}
-                      onChange={(e) => setPaymentTargetId(e.target.value || null)}
-                      className={inputStyle}
-                      disabled={isReadOnly}
-                    >
-                      <option value="">اختر...</option>
-                      {banks.map((target) => (
-                        <option key={target.id} value={target.id}>
-                          {target.name}
-                        </option>
-                      ))}
-                    </select>
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end mt-2">
+                      <div className="md:col-start-2">
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          نوع الدفع
+                        </label>
+                        <select
+                          value={paymentTargetType}
+                          onChange={(e) =>
+                            setPaymentTargetType(
+                              e.target.value as "safe" | "bank"
+                            )
+                          }
+                          className={inputStyle}
+                          disabled={isReadOnly}
+                        >
+                          <option value="safe">خزنة</option>
+                          <option value="bank">بنك</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          {paymentTargetType === "safe"
+                            ? "اختر الخزنة"
+                            : "اختر البنك"}
+                        </label>
+                        {paymentTargetType === "safe" ? (
+                          <input
+                            type="text"
+                            value={resolvedBranchName}
+                            className={inputStyle}
+                            disabled={true}
+                            readOnly
+                          />
+                        ) : (
+                          <select
+                            value={paymentTargetId || ""}
+                            onChange={(e) =>
+                              setPaymentTargetId(e.target.value || null)
+                            }
+                            className={inputStyle}
+                            disabled={isReadOnly}
+                          >
+                            <option value="">اختر...</option>
+                            {banks.map((target) => (
+                              <option key={target.id} value={target.id}>
+                                {target.name}
+                              </option>
+                            ))}
+                          </select>
+                        )}
+                      </div>
+                      {paymentTargetType === "bank" && (
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            طريقة التحويل
+                          </label>
+                          <div className="relative bg-brand-blue-bg border-2 border-brand-blue rounded-md p-1 flex items-center">
+                            <button
+                              onClick={() => setBankTransactionType("POS")}
+                              className={`w-1/2 py-2 rounded text-sm font-semibold ${
+                                bankTransactionType === "POS"
+                                  ? "bg-brand-blue text-white shadow"
+                                  : "text-gray-600"
+                              } transition-all duration-200`}
+                              disabled={isReadOnly}
+                            >
+                              نقاط بيع
+                            </button>
+                            <button
+                              onClick={() => setBankTransactionType("TRANSFER")}
+                              className={`w-1/2 py-2 rounded text-sm font-semibold ${
+                                bankTransactionType === "TRANSFER"
+                                  ? "bg-brand-blue text-white shadow"
+                                  : "text-gray-600"
+                              } transition-all duration-200`}
+                              disabled={isReadOnly}
+                            >
+                              تحويل
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
                   )}
                 </div>
               </div>

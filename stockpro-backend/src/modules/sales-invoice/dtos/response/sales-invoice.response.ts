@@ -1,3 +1,5 @@
+import { BankTransactionType } from '@prisma/client';
+
 export class SalesInvoiceResponse {
   id: string;
   code: string;
@@ -26,6 +28,12 @@ export class SalesInvoiceResponse {
     id: string;
     name: string;
   } | null;
+  bankTransactionType?: BankTransactionType;
+  isSplitPayment?: boolean;
+  splitCashAmount?: number;
+  splitBankAmount?: number;
+  splitSafeId?: string;
+  splitBankId?: string;
   notes?: string;
   userId: string;
   user?: {

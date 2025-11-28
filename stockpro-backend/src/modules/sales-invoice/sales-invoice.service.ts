@@ -59,12 +59,34 @@ export class SalesInvoiceService {
       throwHttp(422, ERROR_CODES.INV_ITEMS_REQUIRED, 'Items are required');
     }
     if (data.paymentMethod === 'cash') {
-      if (!data.paymentTargetType || !data.paymentTargetId) {
-        throwHttp(
-          422,
-          ERROR_CODES.INV_PAYMENT_ACCOUNT_REQUIRED,
-          'Safe or bank is required for cash payments',
-        );
+      // Validate split payment if enabled
+      if (data.isSplitPayment) {
+        if (!data.splitSafeId || !data.splitBankId) {
+          throwHttp(
+            422,
+            ERROR_CODES.INV_PAYMENT_ACCOUNT_REQUIRED,
+            'Safe and bank are required for split payments',
+          );
+        }
+        if (
+          data.splitCashAmount === undefined ||
+          data.splitBankAmount === undefined
+        ) {
+          throwHttp(
+            422,
+            ERROR_CODES.INV_PAYMENT_ACCOUNT_REQUIRED,
+            'Split amounts are required for split payments',
+          );
+        }
+      } else {
+        // Regular payment validation
+        if (!data.paymentTargetType || !data.paymentTargetId) {
+          throwHttp(
+            422,
+            ERROR_CODES.INV_PAYMENT_ACCOUNT_REQUIRED,
+            'Safe or bank is required for cash payments',
+          );
+        }
       }
     } else if (data.paymentMethod === 'credit') {
       if (data.paymentTargetType || data.paymentTargetId) {
@@ -104,6 +126,19 @@ export class SalesInvoiceService {
     });
 
     const net = subtotal + tax - discount;
+
+    // Validate split payment amounts if enabled
+    if (data.paymentMethod === 'cash' && data.isSplitPayment) {
+      const totalSplit =
+        (data.splitCashAmount || 0) + (data.splitBankAmount || 0);
+      if (Math.abs(totalSplit - net) > 0.01) {
+        throwHttp(
+          422,
+          ERROR_CODES.INV_PAYMENT_ACCOUNT_REQUIRED,
+          `Split amounts (${totalSplit}) must equal net total (${net})`,
+        );
+      }
+    }
 
     // Get store from branch
     let storeId: string | null = null;
@@ -163,20 +198,30 @@ export class SalesInvoiceService {
       }
 
       // Only persist safe/bank links for CASH invoices
-      const safeId =
-        data.paymentMethod === 'cash' &&
-        data.paymentTargetType === 'safe' &&
-        branchId
-          ? (
-              await tx.safe.findFirst({
-                where: { branchId },
-              })
-            )?.id || null
-          : null;
-      const bankId =
-        data.paymentMethod === 'cash' && data.paymentTargetType === 'bank'
-          ? data.paymentTargetId || null
-          : null;
+      let safeId: string | null = null;
+      let bankId: string | null = null;
+
+      if (data.paymentMethod === 'cash') {
+        if (data.isSplitPayment) {
+          // For split payments, use splitSafeId and splitBankId
+          safeId = data.splitSafeId || null;
+          bankId = data.splitBankId || null;
+        } else {
+          // Regular payment logic
+          safeId =
+            data.paymentTargetType === 'safe' && branchId
+              ? (
+                  await tx.safe.findFirst({
+                    where: { branchId },
+                  })
+                )?.id || null
+              : null;
+          bankId =
+            data.paymentTargetType === 'bank'
+              ? data.paymentTargetId || null
+              : null;
+        }
+      }
 
       const created = await tx.salesInvoice.create({
         data: {
@@ -191,11 +236,35 @@ export class SalesInvoiceService {
           paymentMethod: data.paymentMethod,
           // For credit invoices, do not persist any payment target metadata
           paymentTargetType:
-            data.paymentMethod === 'cash' ? data.paymentTargetType : null,
+            data.paymentMethod === 'cash' && !data.isSplitPayment
+              ? data.paymentTargetType
+              : null,
           paymentTargetId:
-            data.paymentMethod === 'cash' ? data.paymentTargetId : null,
+            data.paymentMethod === 'cash' && !data.isSplitPayment
+              ? data.paymentTargetId
+              : null,
           safeId,
           bankId,
+          bankTransactionType:
+            data.paymentMethod === 'cash' ? data.bankTransactionType : null,
+          isSplitPayment:
+            data.paymentMethod === 'cash' ? data.isSplitPayment || false : false,
+          splitCashAmount:
+            data.paymentMethod === 'cash' && data.isSplitPayment
+              ? data.splitCashAmount
+              : null,
+          splitBankAmount:
+            data.paymentMethod === 'cash' && data.isSplitPayment
+              ? data.splitBankAmount
+              : null,
+          splitSafeId:
+            data.paymentMethod === 'cash' && data.isSplitPayment
+              ? data.splitSafeId
+              : null,
+          splitBankId:
+            data.paymentMethod === 'cash' && data.isSplitPayment
+              ? data.splitBankId
+              : null,
           notes: data.notes,
           userId,
           branchId,
@@ -255,18 +324,79 @@ export class SalesInvoiceService {
       }
 
       // Apply cash impact if applicable
-      if (data.paymentMethod === 'cash' && data.paymentTargetType) {
-        await AccountingService.applyImpact({
-          kind: 'sales-invoice',
-          amount: net,
-          paymentTargetType: data.paymentTargetType as any,
-          branchId,
-          bankId:
-            data.paymentTargetType === 'bank'
-              ? data.paymentTargetId || null
-              : null,
-          tx,
-        });
+      if (data.paymentMethod === 'cash') {
+        if (data.isSplitPayment) {
+          // Apply impact to safe (cash portion)
+          if (data.splitCashAmount && data.splitCashAmount > 0) {
+            if (!data.splitSafeId) {
+              throwHttp(
+                422,
+                ERROR_CODES.INV_PAYMENT_ACCOUNT_REQUIRED,
+                'Safe ID is required for split payment cash portion',
+              );
+            }
+            await AccountingService.applyImpact({
+              kind: 'sales-invoice',
+              amount: data.splitCashAmount,
+              paymentTargetType: 'safe' as any,
+              branchId,
+              safeId: data.splitSafeId,
+              bankId: null,
+              tx,
+            });
+          }
+          // Apply impact to bank (bank portion)
+          if (data.splitBankAmount && data.splitBankAmount > 0) {
+            if (!data.splitBankId) {
+              throwHttp(
+                422,
+                ERROR_CODES.INV_PAYMENT_ACCOUNT_REQUIRED,
+                'Bank ID is required for split payment bank portion',
+              );
+            }
+            await AccountingService.applyImpact({
+              kind: 'sales-invoice',
+              amount: data.splitBankAmount,
+              paymentTargetType: 'bank' as any,
+              branchId,
+              safeId: null,
+              bankId: data.splitBankId,
+              tx,
+            });
+          }
+        } else if (data.paymentTargetType) {
+          // Regular payment
+          if (data.paymentTargetType === 'safe') {
+            // For safe, use the resolved safeId (or branchId as fallback)
+            await AccountingService.applyImpact({
+              kind: 'sales-invoice',
+              amount: net,
+              paymentTargetType: 'safe' as any,
+              branchId,
+              safeId: safeId || null,
+              bankId: null,
+              tx,
+            });
+          } else if (data.paymentTargetType === 'bank') {
+            // For bank, use the resolved bankId
+            if (!bankId) {
+              throwHttp(
+                422,
+                ERROR_CODES.INV_PAYMENT_ACCOUNT_REQUIRED,
+                'Bank ID is required for bank payments',
+              );
+            }
+            await AccountingService.applyImpact({
+              kind: 'sales-invoice',
+              amount: net,
+              paymentTargetType: 'bank' as any,
+              branchId,
+              safeId: null,
+              bankId: bankId,
+              tx,
+            });
+          }
+        }
       }
 
       // Update customer balance for credit sales (customer owes more)
@@ -387,12 +517,34 @@ export class SalesInvoiceService {
       }
       if (data.paymentMethod) {
         if (data.paymentMethod === 'cash') {
-          if (!data.paymentTargetType || !data.paymentTargetId) {
-            throwHttp(
-              422,
-              ERROR_CODES.INV_PAYMENT_ACCOUNT_REQUIRED,
-              'Safe or bank is required for cash payments',
-            );
+          // Validate split payment if enabled
+          if (data.isSplitPayment) {
+            if (!data.splitSafeId || !data.splitBankId) {
+              throwHttp(
+                422,
+                ERROR_CODES.INV_PAYMENT_ACCOUNT_REQUIRED,
+                'Safe and bank are required for split payments',
+              );
+            }
+            if (
+              data.splitCashAmount === undefined ||
+              data.splitBankAmount === undefined
+            ) {
+              throwHttp(
+                422,
+                ERROR_CODES.INV_PAYMENT_ACCOUNT_REQUIRED,
+                'Split amounts are required for split payments',
+              );
+            }
+          } else {
+            // Regular payment validation
+            if (!data.paymentTargetType || !data.paymentTargetId) {
+              throwHttp(
+                422,
+                ERROR_CODES.INV_PAYMENT_ACCOUNT_REQUIRED,
+                'Safe or bank is required for cash payments',
+              );
+            }
           }
         } else if (data.paymentMethod === 'credit') {
           if (data.paymentTargetType || data.paymentTargetId) {
@@ -520,16 +672,31 @@ export class SalesInvoiceService {
         const branchIdForInvoice = existingInvoice?.branchId ?? null;
 
         // Only persist safe/bank links for CASH invoices
-        const safeId =
-          nextPaymentMethod === 'cash' &&
-          nextPaymentTargetType === 'safe' &&
-          branchIdForInvoice
-            ? await this.findSafeId(branchIdForInvoice, tx)
-            : null;
-        const bankId =
-          nextPaymentMethod === 'cash' && nextPaymentTargetType === 'bank'
-            ? (nextPaymentTargetId ?? null)
-            : null;
+        const nextIsSplitPayment =
+          data.isSplitPayment !== undefined
+            ? data.isSplitPayment
+            : (existingInvoice as any)?.isSplitPayment || false;
+
+        let safeId: string | null = null;
+        let bankId: string | null = null;
+
+        if (nextPaymentMethod === 'cash') {
+          if (nextIsSplitPayment) {
+            // For split payments, use splitSafeId and splitBankId
+            safeId = data.splitSafeId || (existingInvoice as any)?.splitSafeId || null;
+            bankId = data.splitBankId || (existingInvoice as any)?.splitBankId || null;
+          } else {
+            // Regular payment logic
+            safeId =
+              nextPaymentTargetType === 'safe' && branchIdForInvoice
+                ? await this.findSafeId(branchIdForInvoice, tx)
+                : null;
+            bankId =
+              nextPaymentTargetType === 'bank'
+                ? (nextPaymentTargetId ?? null)
+                : null;
+          }
+        }
 
         const inv = await tx.salesInvoice.update({
           where: { id },
@@ -544,13 +711,43 @@ export class SalesInvoiceService {
             userId,
             // For credit invoices, do not persist any payment target metadata
             paymentTargetType:
-              nextPaymentMethod === 'cash' ? nextPaymentTargetType : null,
+              nextPaymentMethod === 'cash' && !nextIsSplitPayment
+                ? nextPaymentTargetType
+                : null,
             paymentTargetId:
-              nextPaymentMethod === 'cash' && nextPaymentTargetType
+              nextPaymentMethod === 'cash' && !nextIsSplitPayment && nextPaymentTargetType
                 ? nextPaymentTargetId
                 : null,
             safeId,
             bankId,
+            bankTransactionType:
+              nextPaymentMethod === 'cash'
+                ? (data.bankTransactionType !== undefined
+                    ? data.bankTransactionType
+                    : (existingInvoice as any)?.bankTransactionType || null)
+                : null,
+            isSplitPayment:
+              nextPaymentMethod === 'cash' ? nextIsSplitPayment : false,
+            splitCashAmount:
+              nextPaymentMethod === 'cash' && nextIsSplitPayment
+                ? (data.splitCashAmount !== undefined
+                    ? data.splitCashAmount
+                    : (existingInvoice as any)?.splitCashAmount || null)
+                : null,
+            splitBankAmount:
+              nextPaymentMethod === 'cash' && nextIsSplitPayment
+                ? (data.splitBankAmount !== undefined
+                    ? data.splitBankAmount
+                    : (existingInvoice as any)?.splitBankAmount || null)
+                : null,
+            splitSafeId:
+              nextPaymentMethod === 'cash' && nextIsSplitPayment
+                ? (data.splitSafeId || (existingInvoice as any)?.splitSafeId || null)
+                : null,
+            splitBankId:
+              nextPaymentMethod === 'cash' && nextIsSplitPayment
+                ? (data.splitBankId || (existingInvoice as any)?.splitBankId || null)
+                : null,
           },
           include: {
             customer: { select: { id: true, name: true, code: true } },
@@ -575,21 +772,54 @@ export class SalesInvoiceService {
         }
 
         // Reverse previous cash impact if needed
-        if (
-          existingInvoice?.paymentMethod === 'cash' &&
-          existingInvoice.paymentTargetType
-        ) {
-          await AccountingService.reverseImpact({
-            kind: 'sales-invoice',
-            amount: (existingInvoice as any).net,
-            paymentTargetType: existingInvoice.paymentTargetType as any,
-            branchId: (existingInvoice as any).branchId,
-            bankId:
-              existingInvoice.paymentTargetType === 'bank'
-                ? (existingInvoice as any).paymentTargetId
-                : null,
-            tx,
-          });
+        if (existingInvoice?.paymentMethod === 'cash') {
+          if ((existingInvoice as any).isSplitPayment) {
+            // Reverse split payment impacts
+            if (
+              (existingInvoice as any).splitCashAmount &&
+              (existingInvoice as any).splitCashAmount > 0 &&
+              (existingInvoice as any).splitSafeId
+            ) {
+              await AccountingService.reverseImpact({
+                kind: 'sales-invoice',
+                amount: (existingInvoice as any).splitCashAmount,
+                paymentTargetType: 'safe' as any,
+                branchId: (existingInvoice as any).branchId,
+                safeId: (existingInvoice as any).splitSafeId,
+                bankId: null,
+                tx,
+              });
+            }
+            if (
+              (existingInvoice as any).splitBankAmount &&
+              (existingInvoice as any).splitBankAmount > 0 &&
+              (existingInvoice as any).splitBankId
+            ) {
+              await AccountingService.reverseImpact({
+                kind: 'sales-invoice',
+                amount: (existingInvoice as any).splitBankAmount,
+                paymentTargetType: 'bank' as any,
+                branchId: (existingInvoice as any).branchId,
+                safeId: null,
+                bankId: (existingInvoice as any).splitBankId,
+                tx,
+              });
+            }
+          } else if (existingInvoice.paymentTargetType) {
+            // Reverse regular payment impact
+            await AccountingService.reverseImpact({
+              kind: 'sales-invoice',
+              amount: (existingInvoice as any).net,
+              paymentTargetType: existingInvoice.paymentTargetType as any,
+              branchId: (existingInvoice as any).branchId,
+              safeId: (existingInvoice as any).safeId || null,
+              bankId:
+                existingInvoice.paymentTargetType === 'bank'
+                  ? (existingInvoice as any).bankId || (existingInvoice as any).paymentTargetId
+                  : null,
+              tx,
+            });
+          }
         }
         // Reverse previous customer balance update if needed
         if (
@@ -604,19 +834,71 @@ export class SalesInvoiceService {
           });
         }
         // Apply new cash impact if applicable
-        const targetType =
-          (inv as any).paymentMethod === 'cash'
-            ? (inv as any).paymentTargetType
-            : null;
-        if (targetType) {
-          await AccountingService.applyImpact({
-            kind: 'sales-invoice',
-            amount: (inv as any).net,
-            paymentTargetType: targetType,
-            branchId: (inv as any).branchId,
-            bankId: targetType === 'bank' ? (inv as any).paymentTargetId : null,
-            tx,
-          });
+        if ((inv as any).paymentMethod === 'cash') {
+          if ((inv as any).isSplitPayment) {
+            // Apply split payment impacts
+            if (
+              (inv as any).splitCashAmount &&
+              (inv as any).splitCashAmount > 0 &&
+              (inv as any).splitSafeId
+            ) {
+              await AccountingService.applyImpact({
+                kind: 'sales-invoice',
+                amount: (inv as any).splitCashAmount,
+                paymentTargetType: 'safe' as any,
+                branchId: (inv as any).branchId,
+                safeId: (inv as any).splitSafeId,
+                bankId: null,
+                tx,
+              });
+            }
+            if (
+              (inv as any).splitBankAmount &&
+              (inv as any).splitBankAmount > 0 &&
+              (inv as any).splitBankId
+            ) {
+              await AccountingService.applyImpact({
+                kind: 'sales-invoice',
+                amount: (inv as any).splitBankAmount,
+                paymentTargetType: 'bank' as any,
+                branchId: (inv as any).branchId,
+                safeId: null,
+                bankId: (inv as any).splitBankId,
+                tx,
+              });
+            }
+          } else if ((inv as any).paymentTargetType) {
+            // Apply regular payment impact
+            const targetType = (inv as any).paymentTargetType;
+            if (targetType === 'safe') {
+              await AccountingService.applyImpact({
+                kind: 'sales-invoice',
+                amount: (inv as any).net,
+                paymentTargetType: 'safe' as any,
+                branchId: (inv as any).branchId,
+                safeId: (inv as any).safeId || null,
+                bankId: null,
+                tx,
+              });
+            } else if (targetType === 'bank') {
+              if (!(inv as any).bankId) {
+                throwHttp(
+                  422,
+                  ERROR_CODES.INV_PAYMENT_ACCOUNT_REQUIRED,
+                  'Bank ID is required for bank payments',
+                );
+              }
+              await AccountingService.applyImpact({
+                kind: 'sales-invoice',
+                amount: (inv as any).net,
+                paymentTargetType: 'bank' as any,
+                branchId: (inv as any).branchId,
+                safeId: null,
+                bankId: (inv as any).bankId,
+                tx,
+              });
+            }
+          }
         }
         // Apply new customer balance update if applicable
         if (
@@ -653,22 +935,55 @@ export class SalesInvoiceService {
         await this.updateStockForItems(invoice.items as any[], 'increase');
 
         // Reverse cash impact if applicable
-        if (
-          (invoice as any).paymentMethod === 'cash' &&
-          (invoice as any).paymentTargetType
-        ) {
+        if ((invoice as any).paymentMethod === 'cash') {
           await this.prisma.$transaction(async (tx) => {
-            await AccountingService.reverseImpact({
-              kind: 'sales-invoice',
-              amount: (invoice as any).net,
-              paymentTargetType: (invoice as any).paymentTargetType,
-              branchId: (invoice as any).branchId,
-              bankId:
-                (invoice as any).paymentTargetType === 'bank'
-                  ? (invoice as any).paymentTargetId
-                  : null,
-              tx,
-            });
+            if ((invoice as any).isSplitPayment) {
+              // Reverse split payment impacts
+              if (
+                (invoice as any).splitCashAmount &&
+                (invoice as any).splitCashAmount > 0 &&
+                (invoice as any).splitSafeId
+              ) {
+                await AccountingService.reverseImpact({
+                  kind: 'sales-invoice',
+                  amount: (invoice as any).splitCashAmount,
+                  paymentTargetType: 'safe' as any,
+                  branchId: (invoice as any).branchId,
+                  safeId: (invoice as any).splitSafeId,
+                  bankId: null,
+                  tx,
+                });
+              }
+              if (
+                (invoice as any).splitBankAmount &&
+                (invoice as any).splitBankAmount > 0 &&
+                (invoice as any).splitBankId
+              ) {
+                await AccountingService.reverseImpact({
+                  kind: 'sales-invoice',
+                  amount: (invoice as any).splitBankAmount,
+                  paymentTargetType: 'bank' as any,
+                  branchId: (invoice as any).branchId,
+                  safeId: null,
+                  bankId: (invoice as any).splitBankId,
+                  tx,
+                });
+              }
+            } else if ((invoice as any).paymentTargetType) {
+              // Reverse regular payment impact
+              await AccountingService.reverseImpact({
+                kind: 'sales-invoice',
+                amount: (invoice as any).net,
+                paymentTargetType: (invoice as any).paymentTargetType,
+                branchId: (invoice as any).branchId,
+                safeId: (invoice as any).safeId || null,
+                bankId:
+                  (invoice as any).paymentTargetType === 'bank'
+                    ? (invoice as any).bankId || (invoice as any).paymentTargetId
+                    : null,
+                tx,
+              });
+            }
           });
         }
         // Reverse customer balance update if applicable
@@ -764,6 +1079,12 @@ export class SalesInvoiceService {
       safe: salesInvoice.safe,
       bankId: salesInvoice.bankId,
       bank: salesInvoice.bank,
+      bankTransactionType: salesInvoice.bankTransactionType,
+      isSplitPayment: salesInvoice.isSplitPayment,
+      splitCashAmount: salesInvoice.splitCashAmount,
+      splitBankAmount: salesInvoice.splitBankAmount,
+      splitSafeId: salesInvoice.splitSafeId,
+      splitBankId: salesInvoice.splitBankId,
       notes: salesInvoice.notes,
       userId: salesInvoice.userId,
       user: salesInvoice.user,

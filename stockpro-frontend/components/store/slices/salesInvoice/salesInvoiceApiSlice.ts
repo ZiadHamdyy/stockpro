@@ -39,6 +39,12 @@ export interface SalesInvoice {
     id: string;
     name: string;
   } | null;
+  bankTransactionType?: "POS" | "TRANSFER";
+  isSplitPayment?: boolean;
+  splitCashAmount?: number;
+  splitBankAmount?: number;
+  splitSafeId?: string;
+  splitBankId?: string;
   notes?: string;
   userId: string;
   user?: {
@@ -62,6 +68,12 @@ export interface CreateSalesInvoiceRequest {
   paymentMethod: "cash" | "credit";
   paymentTargetType?: "safe" | "bank";
   paymentTargetId?: string;
+  bankTransactionType?: "POS" | "TRANSFER";
+  isSplitPayment?: boolean;
+  splitCashAmount?: number;
+  splitBankAmount?: number;
+  splitSafeId?: string;
+  splitBankId?: string;
   notes?: string;
 }
 
@@ -73,6 +85,12 @@ export interface UpdateSalesInvoiceRequest {
   paymentMethod?: "cash" | "credit";
   paymentTargetType?: "safe" | "bank";
   paymentTargetId?: string;
+  bankTransactionType?: "POS" | "TRANSFER";
+  isSplitPayment?: boolean;
+  splitCashAmount?: number;
+  splitBankAmount?: number;
+  splitSafeId?: string;
+  splitBankId?: string;
   notes?: string;
 }
 
