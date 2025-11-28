@@ -248,13 +248,15 @@ const SafeStatementReport: React.FC<SafeStatementReportProps> = ({
       .reduce((sum, v) => sum + v.amount, 0);
     
     // Sales invoices (cash payments to safe) - incoming
+    // Regular payments
     const salesInvoicesBefore = (apiSalesInvoices as any[])
       .filter(
         (inv) => {
           const invDate = normalizeDate(inv.date);
-          // Only cash invoices that actually pay to a safe
+          // Only cash invoices that actually pay to a safe (not split payments)
           if (
             inv.paymentMethod !== "cash" ||
+            inv.isSplitPayment === true ||
             inv.paymentTargetType !== "safe" ||
             !matchesSafeRecord(inv)
           ) {
@@ -267,14 +269,29 @@ const SafeStatementReport: React.FC<SafeStatementReportProps> = ({
       )
       .reduce((sum, inv) => sum + resolveRecordAmount(inv), 0);
     
+    // Split payment sales invoices (safe portion) - incoming
+    const splitSalesInvoicesBefore = (apiSalesInvoices as any[])
+      .filter(
+        (inv) => {
+          const invDate = normalizeDate(inv.date);
+          return inv.paymentMethod === "cash" &&
+            inv.isSplitPayment === true &&
+            matchesSafeValue(inv.splitSafeId) &&
+            invDate < normalizedStartDate;
+        }
+      )
+      .reduce((sum, inv) => sum + (Number(inv.splitCashAmount) || 0), 0);
+    
     // Purchase invoices (cash payments from safe) - outgoing
+    // Regular payments
     const purchaseInvoicesBefore = (apiPurchaseInvoices as any[])
       .filter(
         (inv) => {
           const invDate = normalizeDate(inv.date);
-          // Only cash invoices that actually pay from a safe
+          // Only cash invoices that actually pay from a safe (not split payments)
           if (
             inv.paymentMethod !== "cash" ||
+            inv.isSplitPayment === true ||
             inv.paymentTargetType !== "safe" ||
             !matchesSafeRecord(inv)
           ) {
@@ -287,14 +304,29 @@ const SafeStatementReport: React.FC<SafeStatementReportProps> = ({
       )
       .reduce((sum, inv) => sum + resolveRecordAmount(inv), 0);
     
+    // Split payment purchase invoices (safe portion) - outgoing
+    const splitPurchaseInvoicesBefore = (apiPurchaseInvoices as any[])
+      .filter(
+        (inv) => {
+          const invDate = normalizeDate(inv.date);
+          return inv.paymentMethod === "cash" &&
+            inv.isSplitPayment === true &&
+            matchesSafeValue(inv.splitSafeId) &&
+            invDate < normalizedStartDate;
+        }
+      )
+      .reduce((sum, inv) => sum + (Number(inv.splitCashAmount) || 0), 0);
+    
     // Sales returns (cash payments from safe) - outgoing
+    // Regular payments
     const salesReturnsBefore = (apiSalesReturns as any[])
       .filter(
         (ret) => {
           const retDate = normalizeDate(ret.date);
-          // Only cash returns that actually pay from a safe
+          // Only cash returns that actually pay from a safe (not split payments)
           if (
             ret.paymentMethod !== "cash" ||
+            ret.isSplitPayment === true ||
             ret.paymentTargetType !== "safe" ||
             !matchesSafeRecord(ret)
           ) {
@@ -307,14 +339,29 @@ const SafeStatementReport: React.FC<SafeStatementReportProps> = ({
       )
       .reduce((sum, ret) => sum + resolveRecordAmount(ret), 0);
     
+    // Split payment sales returns (safe portion) - outgoing
+    const splitSalesReturnsBefore = (apiSalesReturns as any[])
+      .filter(
+        (ret) => {
+          const retDate = normalizeDate(ret.date);
+          return ret.paymentMethod === "cash" &&
+            ret.isSplitPayment === true &&
+            matchesSafeValue(ret.splitSafeId) &&
+            retDate < normalizedStartDate;
+        }
+      )
+      .reduce((sum, ret) => sum + (Number(ret.splitCashAmount) || 0), 0);
+    
     // Purchase returns (cash payments to safe) - incoming
+    // Regular payments
     const purchaseReturnsBefore = (apiPurchaseReturns as any[])
       .filter(
         (ret) => {
           const retDate = normalizeDate(ret.date);
-          // Only cash returns that actually pay to a safe
+          // Only cash returns that actually pay to a safe (not split payments)
           if (
             ret.paymentMethod !== "cash" ||
+            ret.isSplitPayment === true ||
             ret.paymentTargetType !== "safe" ||
             !matchesSafeRecord(ret)
           ) {
@@ -326,6 +373,19 @@ const SafeStatementReport: React.FC<SafeStatementReportProps> = ({
         }
       )
       .reduce((sum, ret) => sum + resolveRecordAmount(ret), 0);
+    
+    // Split payment purchase returns (safe portion) - incoming
+    const splitPurchaseReturnsBefore = (apiPurchaseReturns as any[])
+      .filter(
+        (ret) => {
+          const retDate = normalizeDate(ret.date);
+          return ret.paymentMethod === "cash" &&
+            ret.isSplitPayment === true &&
+            matchesSafeValue(ret.splitSafeId) &&
+            retDate < normalizedStartDate;
+        }
+      )
+      .reduce((sum, ret) => sum + (Number(ret.splitCashAmount) || 0), 0);
     
     // Internal transfers before startDate
     const outgoingBefore = (apiInternalTransfers as any[])
@@ -353,11 +413,15 @@ const SafeStatementReport: React.FC<SafeStatementReportProps> = ({
     return selectedSafe.openingBalance 
       + receiptsBefore 
       + salesInvoicesBefore 
+      + splitSalesInvoicesBefore
       + purchaseReturnsBefore 
+      + splitPurchaseReturnsBefore
       + incomingBefore
       - paymentsBefore 
       - purchaseInvoicesBefore 
+      - splitPurchaseInvoicesBefore
       - salesReturnsBefore 
+      - splitSalesReturnsBefore
       - outgoingBefore;
   }, [selectedSafe, receiptVouchers, paymentVouchers, apiInternalTransfers, apiSalesInvoices, apiPurchaseInvoices, apiSalesReturns, apiPurchaseReturns, startDate, endDate]);
 
@@ -448,10 +512,12 @@ const SafeStatementReport: React.FC<SafeStatementReportProps> = ({
     });
 
     // Sales Invoices (cash payments to safe) - Debit (incoming)
+    // Regular payments
     (apiSalesInvoices as any[]).forEach((inv) => {
       const invoiceDate = normalizeDate(inv.date);
       if (
         inv.paymentMethod === "cash" &&
+        !inv.isSplitPayment &&
         inv.paymentTargetType === "safe" &&
         matchesSafeRecord(inv) &&
         invoiceDate >= normalizedStartDate &&
@@ -471,11 +537,39 @@ const SafeStatementReport: React.FC<SafeStatementReportProps> = ({
       }
     });
 
+    // Split payment sales invoices (safe portion) - Debit (incoming)
+    (apiSalesInvoices as any[]).forEach((inv) => {
+      const invoiceDate = normalizeDate(inv.date);
+      if (
+        inv.paymentMethod === "cash" &&
+        inv.isSplitPayment === true &&
+        matchesSafeValue(inv.splitSafeId) &&
+        invoiceDate >= normalizedStartDate &&
+        invoiceDate <= normalizedEndDate
+      ) {
+        const amount = Number(inv.splitCashAmount) || 0;
+        if (amount > 0) {
+          transactions.push({
+            date: invoiceDate,
+            description: `فاتورة مبيعات (جزء من دفع مجزأ) - ${inv.customerOrSupplier?.name || "عميل"}`,
+            ref: inv.code || inv.id,
+            refId: inv.id,
+            debit: amount,
+            credit: 0,
+            link: { page: "sales_invoice", label: "فاتورة مبيعات" },
+            sortKey: buildSortKey(inv),
+          });
+        }
+      }
+    });
+
     // Purchase Returns (cash payments to safe) - Debit (incoming)
+    // Regular payments
     (apiPurchaseReturns as any[]).forEach((ret) => {
       const returnDate = normalizeDate(ret.date);
       if (
         ret.paymentMethod === "cash" &&
+        !ret.isSplitPayment &&
         ret.paymentTargetType === "safe" &&
         matchesSafeRecord(ret) &&
         returnDate >= normalizedStartDate &&
@@ -492,6 +586,32 @@ const SafeStatementReport: React.FC<SafeStatementReportProps> = ({
           link: { page: "purchase_return", label: "مرتجع مشتريات" },
           sortKey: buildSortKey(ret),
         });
+      }
+    });
+
+    // Split payment purchase returns (safe portion) - Debit (incoming)
+    (apiPurchaseReturns as any[]).forEach((ret) => {
+      const returnDate = normalizeDate(ret.date);
+      if (
+        ret.paymentMethod === "cash" &&
+        ret.isSplitPayment === true &&
+        matchesSafeValue(ret.splitSafeId) &&
+        returnDate >= normalizedStartDate &&
+        returnDate <= normalizedEndDate
+      ) {
+        const amount = Number(ret.splitCashAmount) || 0;
+        if (amount > 0) {
+          transactions.push({
+            date: returnDate,
+            description: `مرتجع مشتريات (جزء من دفع مجزأ) - ${ret.customerOrSupplier?.name || "مورد"}`,
+            ref: ret.code || ret.id,
+            refId: ret.id,
+            debit: amount,
+            credit: 0,
+            link: { page: "purchase_return", label: "مرتجع مشتريات" },
+            sortKey: buildSortKey(ret),
+          });
+        }
       }
     });
 
@@ -520,10 +640,12 @@ const SafeStatementReport: React.FC<SafeStatementReportProps> = ({
     });
 
     // Purchase Invoices (cash payments from safe) - Credit (outgoing)
+    // Regular payments
     (apiPurchaseInvoices as any[]).forEach((inv) => {
       const invoiceDate = normalizeDate(inv.date);
       if (
         inv.paymentMethod === "cash" &&
+        !inv.isSplitPayment &&
         inv.paymentTargetType === "safe" &&
         matchesSafeRecord(inv) &&
         invoiceDate >= normalizedStartDate &&
@@ -543,11 +665,39 @@ const SafeStatementReport: React.FC<SafeStatementReportProps> = ({
       }
     });
 
+    // Split payment purchase invoices (safe portion) - Credit (outgoing)
+    (apiPurchaseInvoices as any[]).forEach((inv) => {
+      const invoiceDate = normalizeDate(inv.date);
+      if (
+        inv.paymentMethod === "cash" &&
+        inv.isSplitPayment === true &&
+        matchesSafeValue(inv.splitSafeId) &&
+        invoiceDate >= normalizedStartDate &&
+        invoiceDate <= normalizedEndDate
+      ) {
+        const amount = Number(inv.splitCashAmount) || 0;
+        if (amount > 0) {
+          transactions.push({
+            date: invoiceDate,
+            description: `فاتورة مشتريات (جزء من دفع مجزأ) - ${inv.customerOrSupplier?.name || "مورد"}`,
+            ref: inv.code || inv.id,
+            refId: inv.id,
+            debit: 0,
+            credit: amount,
+            link: { page: "purchase_invoice", label: "فاتورة مشتريات" },
+            sortKey: buildSortKey(inv),
+          });
+        }
+      }
+    });
+
     // Sales Returns (cash payments from safe) - Credit (outgoing)
+    // Regular payments
     (apiSalesReturns as any[]).forEach((ret) => {
       const returnDate = normalizeDate(ret.date);
       if (
         ret.paymentMethod === "cash" &&
+        !ret.isSplitPayment &&
         ret.paymentTargetType === "safe" &&
         matchesSafeRecord(ret) &&
         returnDate >= normalizedStartDate &&
@@ -564,6 +714,32 @@ const SafeStatementReport: React.FC<SafeStatementReportProps> = ({
           link: { page: "sales_return", label: "مرتجع مبيعات" },
           sortKey: buildSortKey(ret),
         });
+      }
+    });
+
+    // Split payment sales returns (safe portion) - Credit (outgoing)
+    (apiSalesReturns as any[]).forEach((ret) => {
+      const returnDate = normalizeDate(ret.date);
+      if (
+        ret.paymentMethod === "cash" &&
+        ret.isSplitPayment === true &&
+        matchesSafeValue(ret.splitSafeId) &&
+        returnDate >= normalizedStartDate &&
+        returnDate <= normalizedEndDate
+      ) {
+        const amount = Number(ret.splitCashAmount) || 0;
+        if (amount > 0) {
+          transactions.push({
+            date: returnDate,
+            description: `مرتجع مبيعات (جزء من دفع مجزأ) - ${ret.customerOrSupplier?.name || "عميل"}`,
+            ref: ret.code || ret.id,
+            refId: ret.id,
+            debit: 0,
+            credit: amount,
+            link: { page: "sales_return", label: "مرتجع مبيعات" },
+            sortKey: buildSortKey(ret),
+          });
+        }
       }
     });
 
