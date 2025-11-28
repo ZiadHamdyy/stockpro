@@ -1,12 +1,14 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import DataTableModal from '../../common/DataTableModal';
+import DocumentHeader from '../../common/DocumentHeader';
 import { BarcodeIcon, ListIcon, PrintIcon, TrashIcon } from '../../icons';
 import { tafqeet } from '../../../utils/tafqeet';
 import type { CompanyInfo, InvoiceItem, Customer, Quotation, User } from '../../../types';
 import QuotationPrintPreview from './QuotationPrintPreview.tsx';
 import { useModal } from '../../common/ModalProvider';
 import { useToast } from '../../common/ToastProvider';
+import { useGetCompanyQuery } from '../../store/slices/companyApiSlice';
 
 type SelectableItem = {id: string, name: string, unit: string, price: number, stock: number, barcode?: string};
 
@@ -14,7 +16,7 @@ interface PriceQuotationProps {
     title: string;
     vatRate: number;
     isVatEnabled: boolean;
-    companyInfo: CompanyInfo;
+    companyInfo?: CompanyInfo;
     items: SelectableItem[];
     customers: Customer[];
     quotations: Quotation[];
@@ -24,7 +26,22 @@ interface PriceQuotationProps {
     onConvertToInvoice: (quotation: Quotation) => void;
 }
 
-const PriceQuotation: React.FC<PriceQuotationProps> = ({ title, vatRate, isVatEnabled, companyInfo, items: allItems, customers: allCustomers, quotations, onSave, onDelete, currentUser, onConvertToInvoice }) => {
+const PriceQuotation: React.FC<PriceQuotationProps> = ({ title, vatRate, isVatEnabled, companyInfo: companyInfoProp, items: allItems, customers: allCustomers, quotations, onSave, onDelete, currentUser, onConvertToInvoice }) => {
+    const { data: company } = useGetCompanyQuery();
+    const companyInfo: CompanyInfo = company || companyInfoProp || {
+        name: '',
+        activity: '',
+        address: '',
+        phone: '',
+        taxNumber: '',
+        commercialReg: '',
+        currency: 'SAR',
+        logo: null,
+        capital: 0,
+        vatRate: vatRate,
+        isVatEnabled,
+    };
+
     const createEmptyItem = (): InvoiceItem => ({id: '', name: '', unit: '', qty: 1, price: 0, taxAmount: 0, total: 0});
     
     const [items, setItems] = useState<InvoiceItem[]>(Array(6).fill(null).map(createEmptyItem));
@@ -177,17 +194,8 @@ const PriceQuotation: React.FC<PriceQuotationProps> = ({ title, vatRate, isVatEn
     return (
         <>
             <div className="bg-white p-6 rounded-lg shadow">
-                <div className="border-2 border-amber-500 rounded-lg p-4 mb-4">
-                    <div className="flex justify-between items-center">
-                        <div>
-                            <h2 className="text-xl font-bold text-amber-600">عرض أسعار</h2>
-                            <p className="text-sm text-gray-500">Quotation</p>
-                        </div>
-                        <div className="text-left text-sm">
-                            <p className="font-bold">{companyInfo.name}</p>
-                            <p>{companyInfo.address}</p>
-                        </div>
-                    </div>
+                <div className="border-2 border-amber-500 rounded-lg mb-4">
+                    <DocumentHeader companyInfo={companyInfo} />
                 </div>
                 
                 <div className="border-2 border-amber-500 rounded-lg">
