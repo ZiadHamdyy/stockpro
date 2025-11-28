@@ -62,4 +62,10 @@ export class StoreController {
   ) {
     return this.stockService.getStoreItemBalanceInfo(storeId, itemId);
   }
+
+  @Get('items/all')
+  @Auth({ permissions: ['stores_data:read'] })
+  async getAllStoreItems() {
+    return this.storeService.findAllStoreItems();
+  }
 }

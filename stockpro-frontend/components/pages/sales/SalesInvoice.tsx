@@ -36,7 +36,7 @@ import { useGetItemsQuery } from "../../store/slices/items/itemsApi";
 import { useGetBanksQuery } from "../../store/slices/bank/bankApiSlice";
 import { useGetSafesQuery } from "../../store/slices/safe/safeApiSlice";
 import { useGetCompanyQuery } from "../../store/slices/companyApiSlice";
-import { useGetStoresQuery } from "../../store/slices/store/storeApi";
+import { useGetStoresQuery, useGetAllStoreItemsQuery } from "../../store/slices/store/storeApi";
 import { useGetPriceQuotationByIdQuery } from "../../store/slices/priceQuotation/priceQuotationApiSlice";
 import { useGetBranchesQuery } from "../../store/slices/branch/branchApi";
 import { useGetStoreReceiptVouchersQuery } from "../../store/slices/storeReceiptVoucher/storeReceiptVoucherApi";
@@ -180,6 +180,7 @@ const SalesInvoice: React.FC<SalesInvoiceProps> = ({
 
   // Get data for ItemContextBar
   const { data: branches = [] } = useGetBranchesQuery();
+  const { data: storeItems = [] } = useGetAllStoreItemsQuery();
   const { data: storeReceiptVouchers = [] } = useGetStoreReceiptVouchersQuery();
   const { data: storeIssueVouchers = [] } = useGetStoreIssueVouchersQuery();
   const { data: storeTransferVouchers = [] } = useGetStoreTransferVouchersQuery();
@@ -2047,6 +2048,7 @@ const SalesInvoice: React.FC<SalesInvoiceProps> = ({
           purchaseReturns={purchaseReturns}
           salesReturns={salesReturns}
           invoices={invoices}
+          storeItems={storeItems}
         />
       )}
     </>

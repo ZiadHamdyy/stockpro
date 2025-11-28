@@ -25,6 +25,7 @@ export interface ItemContextBarProps {
   purchaseReturns: any[];
   salesReturns: any[];
   invoices: any[];
+  storeItems?: any[]; // Array of StoreItem objects with storeId, itemCode (or item.code), and openingBalance
 }
 
 const ItemContextBar: React.FC<ItemContextBarProps> = ({
@@ -38,6 +39,7 @@ const ItemContextBar: React.FC<ItemContextBarProps> = ({
   purchaseReturns,
   salesReturns,
   invoices,
+  storeItems,
 }) => {
   const storeStocks = useMemo(() => {
     if (!stores || !item.id) return [];
@@ -49,8 +51,13 @@ const ItemContextBar: React.FC<ItemContextBarProps> = ({
       const branchName = store.branch?.name || store.branchName || "";
       const branchId = store.branchId || store.branch?.id;
 
-      // Note: Opening balance is not included as it requires StoreItem data
-      // which is not easily accessible in this context
+      // StoreItem Opening Balance: Match by storeId and item code
+      storeItems?.forEach((storeItem: any) => {
+        const itemCode = storeItem.itemCode || storeItem.item?.code;
+        if (storeItem.storeId === storeId && itemCode === item.id) {
+          qty += storeItem.openingBalance || 0;
+        }
+      });
 
       // Store Receipt Vouchers: Match by storeId, use quantity field, match by item code
       storeReceiptVouchers?.forEach((v: any) => {
@@ -162,6 +169,7 @@ const ItemContextBar: React.FC<ItemContextBarProps> = ({
     purchaseReturns,
     salesReturns,
     invoices,
+    storeItems,
   ]);
 
   return (

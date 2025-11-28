@@ -36,6 +36,22 @@ export interface StoreItemBalance {
   availableQty: number;
 }
 
+export interface StoreItem {
+  id: string;
+  openingBalance: number;
+  storeId: string;
+  itemId: string;
+  item: {
+    id: string;
+    code: string;
+  };
+  store: {
+    id: string;
+  };
+  createdAt: string;
+  updatedAt: string;
+}
+
 export const storeApi = apiSlice.injectEndpoints({
   endpoints: (builder) => ({
     getStores: builder.query<Store[], void>({
@@ -102,6 +118,11 @@ export const storeApi = apiSlice.injectEndpoints({
       transformResponse: (response: { data: StoreItemBalance }) =>
         response.data,
     }),
+    getAllStoreItems: builder.query<StoreItem[], void>({
+      query: () => "stores/items/all",
+      transformResponse: (response: { data: StoreItem[] }) => response.data,
+      providesTags: ["Store"],
+    }),
   }),
 });
 
@@ -113,4 +134,5 @@ export const {
   useDeleteStoreMutation,
   useGetStoreItemBalanceQuery,
   useLazyGetStoreItemBalanceQuery,
+  useGetAllStoreItemsQuery,
 } = storeApi;

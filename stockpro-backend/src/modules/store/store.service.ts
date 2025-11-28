@@ -113,4 +113,22 @@ export class StoreService {
 
     return store;
   }
+
+  async findAllStoreItems() {
+    return this.prisma.storeItem.findMany({
+      include: {
+        item: {
+          select: {
+            id: true,
+            code: true,
+          },
+        },
+        store: {
+          select: {
+            id: true,
+          },
+        },
+      },
+    });
+  }
 }
