@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import type { CompanyInfo } from '../../../types';
-import { ExcelIcon, PdfIcon, PrintIcon, SearchIcon, BoxIcon, DollarSignIcon, DatabaseIcon } from '../../icons';
+import { ExcelIcon, PdfIcon, PrintIcon, SearchIcon, BoxIcon, DollarSignIcon, DatabaseIcon, TrashIcon } from '../../icons';
 import { useToast } from '../../common/ToastProvider';
 import { useModal } from '../../common/ModalProvider';
 import { formatNumber, exportToExcel, exportToPdf } from '../../../utils/formatting';
@@ -12,6 +12,7 @@ import {
   useGetInventoryCountsQuery, 
   useCreateInventoryCountMutation, 
   usePostInventoryCountMutation,
+  useDeleteInventoryCountMutation,
   type InventoryCount as InventoryCountType,
   type InventoryCountItem as InventoryCountItemType
 } from '../../store/slices/inventoryCount/inventoryCountApi';
@@ -25,6 +26,7 @@ interface InventoryCountProps {
 
 const InventoryCountPage: React.FC<InventoryCountProps> = ({ title, companyInfo }) => {
     const [countId, setCountId] = useState<string>('');
+    const [countCode, setCountCode] = useState<string>('');
     const [date, setDate] = useState(new Date().toISOString().substring(0, 10));
     const [selectedStoreId, setSelectedStoreId] = useState<string>('');
     const [countItems, setCountItems] = useState<InventoryCountItemType[]>([]);
@@ -44,6 +46,7 @@ const InventoryCountPage: React.FC<InventoryCountProps> = ({ title, companyInfo 
     const { data: inventoryCounts = [], isLoading: countsLoading } = useGetInventoryCountsQuery();
     const [createInventoryCount, { isLoading: isCreating }] = useCreateInventoryCountMutation();
     const [postInventoryCount, { isLoading: isPosting }] = usePostInventoryCountMutation();
+    const [deleteInventoryCount, { isLoading: isDeleting }] = useDeleteInventoryCountMutation();
 
     // Set default store when stores are loaded
     useEffect(() => {
@@ -57,6 +60,7 @@ const InventoryCountPage: React.FC<InventoryCountProps> = ({ title, companyInfo 
         if (!selectedStoreId || items.length === 0) return;
 
         setCountId('');
+        setCountCode('');
         setNotes('');
         setStatus('PENDING');
         setDate(new Date().toISOString().substring(0, 10));
@@ -157,6 +161,7 @@ const InventoryCountPage: React.FC<InventoryCountProps> = ({ title, companyInfo 
             }).unwrap();
 
             setCountId(result.id);
+            setCountCode(result.code);
             setStatus('PENDING');
             showToast('تم حفظ الجرد كمسودة بنجاح.');
         } catch (error: any) {
@@ -196,11 +201,13 @@ const InventoryCountPage: React.FC<InventoryCountProps> = ({ title, companyInfo 
                         
                         finalCountId = result.id;
                         setCountId(result.id);
+                        setCountCode(result.code);
                     }
                     
                     // Now post the count
-                    await postInventoryCount(finalCountId).unwrap();
+                    const postedCount = await postInventoryCount(finalCountId).unwrap();
                     setStatus('POSTED');
+                    setCountCode(postedCount.code);
                     showToast('تم اعتماد الجرد وإنشاء قيود التسوية بنجاح.');
                 } catch (error: any) {
                     showToast(error?.data?.message || 'حدث خطأ أثناء اعتماد الجرد', 'error');
@@ -215,6 +222,7 @@ const InventoryCountPage: React.FC<InventoryCountProps> = ({ title, companyInfo 
         const count = inventoryCounts.find(c => c.id === row.id);
         if (count) {
             setCountId(count.id);
+            setCountCode(count.code);
             setDate(count.date.substring(0, 10));
             setSelectedStoreId(count.store.id);
             setNotes(count.notes || '');
@@ -223,6 +231,32 @@ const InventoryCountPage: React.FC<InventoryCountProps> = ({ title, companyInfo 
             setIsHistoryOpen(false);
             showToast(`تم تحميل سجل الجرد رقم ${count.code}`);
         }
+    };
+
+    const handleDelete = () => {
+        if (!countId) return;
+
+        showModal({
+            title: 'حذف المسودة',
+            message: `هل أنت متأكد من حذف الجرد رقم ${countCode || countId}؟\nلا يمكن التراجع عن هذا الإجراء.`,
+            onConfirm: async () => {
+                try {
+                    await deleteInventoryCount(countId).unwrap();
+                    // Reset form after successful deletion
+                    setCountId('');
+                    setCountCode('');
+                    setCountItems([]);
+                    setNotes('');
+                    setStatus('PENDING');
+                    setDate(new Date().toISOString().substring(0, 10));
+                    showToast('تم حذف الجرد بنجاح.');
+                } catch (error: any) {
+                    showToast(error?.data?.message || 'حدث خطأ أثناء حذف الجرد', 'error');
+                }
+            },
+            type: 'delete',
+            showPassword: false
+        });
     };
 
     const handleExcelExport = () => {
@@ -267,6 +301,134 @@ const InventoryCountPage: React.FC<InventoryCountProps> = ({ title, companyInfo 
         exportToPdf(`تقرير جرد مخزن ${selectedStore?.name || 'مخزن'}`, head, body, `جرد_${date}`, companyInfo, footer);
     };
 
+    const handlePrint = () => {
+        const selectedStore = stores.find(s => s.id === selectedStoreId);
+        
+        const printWindow = window.open('', '', 'height=800,width=900');
+        if (!printWindow) return;
+        
+        // Build table rows manually to ensure all data is included
+        const tableRows = filteredItems.map((item, index) => {
+            const varianceValue = item.difference * item.cost;
+            const statusText = item.difference === 0 ? 'مطابق' : item.difference < 0 ? 'عجز' : 'زيادة';
+            return `
+                <tr>
+                    <td>${index + 1}</td>
+                    <td>${item.item.code}</td>
+                    <td>${item.item.name}</td>
+                    <td>${item.item.unit.name}</td>
+                    <td>${item.systemStock}</td>
+                    <td>${item.actualStock || 0}</td>
+                    <td>${item.difference > 0 ? '+' : ''}${item.difference}</td>
+                    <td>${statusText}</td>
+                    <td>${formatNumber(item.cost)}</td>
+                    <td>${formatNumber(varianceValue)}</td>
+                </tr>
+            `;
+        }).join('');
+        
+        printWindow.document.write('<html><head><title>طباعة الجرد</title>');
+        printWindow.document.write('<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet">');
+        printWindow.document.write(`
+            <style>
+                * { margin: 0; padding: 0; box-sizing: border-box; }
+                body { 
+                    font-family: "Cairo", sans-serif; 
+                    direction: rtl; 
+                    font-size: 12px; 
+                    padding: 15px;
+                }
+                .header { text-align: center; margin-bottom: 15px; }
+                .header img { height: 50px; margin-bottom: 8px; }
+                .header h1 { font-size: 20px; font-weight: bold; margin-bottom: 5px; }
+                .header p { font-size: 12px; color: #666; margin: 3px 0; }
+                .table-container { overflow-x: auto; margin: 15px 0; }
+                table { width: 95%; border-collapse: collapse; margin: 0 auto; font-size: 10px; }
+                th { background-color: #1E40AF !important; color: white !important; padding: 8px 4px; text-align: center; border: 1px solid #1E3A8A; font-size: 10px; font-weight: bold; }
+                td { padding: 6px 4px; text-align: center; border: 1px solid #E5E7EB; font-size: 10px; }
+                .notes { margin: 15px auto; padding: 10px; background-color: #FFF9E6; border-right: 3px solid #F59E0B; border-radius: 4px; width: 95%; text-align: right; }
+                .notes-title { font-weight: bold; color: #92400E; margin-bottom: 5px; font-size: 11px; }
+                .notes-content { color: #78350F; font-size: 11px; }
+                .summary { margin-top: 15px; padding: 12px; background-color: #F9FAFB; border-radius: 8px; width: 95%; margin-left: auto; margin-right: auto; }
+                .summary-row { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid #E5E7EB; }
+                .summary-row:last-child { border-bottom: none; font-weight: bold; font-size: 14px; }
+                @media print {
+                    @page { size: A4 portrait; margin: 0.8cm; }
+                    body { 
+                        -webkit-print-color-adjust: exact !important; 
+                        color-adjust: exact !important; 
+                        print-color-adjust: exact !important;
+                        padding: 10px;
+                    }
+                    .no-print { display: none !important; }
+                    table { width: 95% !important; border-collapse: collapse; font-size: 9px !important; }
+                    th { font-size: 9px !important; font-weight: bold !important; background-color: #1E40AF !important; color: white !important; padding: 6px 3px !important; }
+                    td { font-size: 9px !important; padding: 5px 3px !important; }
+                    .header h1 { font-size: 18px !important; }
+                    .header p { font-size: 11px !important; }
+                }
+            </style>
+        `);
+        printWindow.document.write('</head><body dir="rtl">');
+        printWindow.document.write(`
+            <div class="header">
+                ${companyInfo.logo ? `<img src="${companyInfo.logo}" alt="Logo" />` : ''}
+                <h1>${title}</h1>
+                <p>${selectedStore?.name || 'مخزن'} - ${date}</p>
+                ${countCode ? `<p style="font-size: 11px; color: #999;">رقم الجرد: ${countCode}</p>` : ''}
+            </div>
+            ${notes && notes.trim() ? `
+            <div class="notes">
+                <div class="notes-title">ملاحظات:</div>
+                <div class="notes-content">${notes}</div>
+            </div>
+            ` : ''}
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>م</th>
+                            <th>الكود</th>
+                            <th>اسم الصنف</th>
+                            <th>الوحدة</th>
+                            <th>الرصيد الدفتري</th>
+                            <th>الرصيد الفعلي</th>
+                            <th>الفرق</th>
+                            <th>الحالة</th>
+                            <th>السعر</th>
+                            <th>قيمة الفرق</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${tableRows || '<tr><td colspan="10" style="text-align: center; padding: 20px;">لا توجد بيانات</td></tr>'}
+                    </tbody>
+                </table>
+            </div>
+            <div class="summary">
+                <div class="summary-row">
+                    <span>إجمالي الزيادة:</span>
+                    <span>${formatNumber(stats.totalSurplusValue)} SAR</span>
+                </div>
+                <div class="summary-row">
+                    <span>إجمالي العجز:</span>
+                    <span>${formatNumber(stats.totalShortageValue)} SAR</span>
+                </div>
+                <div class="summary-row">
+                    <span>صافي التسوية:</span>
+                    <span>${formatNumber(stats.netSettlementValue)} SAR</span>
+                </div>
+            </div>
+        `);
+        printWindow.document.write('</body></html>');
+        printWindow.document.close();
+        printWindow.focus();
+        
+        setTimeout(() => {
+            printWindow.print();
+            printWindow.close();
+        }, 500);
+    };
+
     const inputStyle = "w-full p-2 bg-brand-blue-bg border-2 border-brand-blue rounded-md text-black placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-brand-blue disabled:bg-gray-200 disabled:cursor-not-allowed";
 
     const selectedStore = stores.find(s => s.id === selectedStoreId);
@@ -289,7 +451,7 @@ const InventoryCountPage: React.FC<InventoryCountProps> = ({ title, companyInfo 
                                 <span className={`px-2 py-0.5 text-xs rounded-full ${status === 'POSTED' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}`}>
                                     {status === 'POSTED' ? 'معتمد (مرحل)' : 'مسودة (قيد العمل)'}
                                 </span>
-                                <p className="text-sm text-gray-500">{countId || 'جرد جديد'}</p>
+                                <p className="text-sm text-gray-500">{countCode || countId || 'جرد جديد'}</p>
                             </div>
                         </div>
                     </div>
@@ -299,8 +461,38 @@ const InventoryCountPage: React.FC<InventoryCountProps> = ({ title, companyInfo 
                             <span>سجل الجرد</span>
                         </button>
                         <button onClick={initializeCount} className="px-4 py-2 bg-brand-blue text-white rounded-md hover:bg-blue-800 font-medium">جرد جديد</button>
-                        <button onClick={handleExcelExport} title="تصدير Excel" className="p-2 border rounded-md hover:bg-gray-100 text-green-700"><ExcelIcon/></button>
-                        <button onClick={handlePdfExport} title="طباعة" className="p-2 border rounded-md hover:bg-gray-100 text-gray-700"><PrintIcon/></button>
+                        {status === 'PENDING' && countId && (
+                            <button 
+                                onClick={handleDelete} 
+                                disabled={isDeleting}
+                                className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 flex items-center gap-2 font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                                title="حذف المسودة"
+                            >
+                                <TrashIcon className="w-5 h-5"/>
+                                <span>{isDeleting ? 'جاري الحذف...' : 'حذف المسودة'}</span>
+                            </button>
+                        )}
+                        <button 
+                            onClick={handleExcelExport} 
+                            title="تصدير Excel" 
+                            className="p-2 border border-gray-300 rounded-md hover:bg-gray-100 text-green-700 transition-colors"
+                        >
+                            <ExcelIcon className="w-5 h-5"/>
+                        </button>
+                        <button
+                            onClick={handlePdfExport}
+                            title="تصدير PDF"
+                            className="p-2 border border-gray-300 rounded-md hover:bg-gray-100 text-red-700 transition-colors"
+                        >
+                            <PdfIcon className="w-5 h-5" />
+                        </button>
+                        <button 
+                            onClick={handlePrint} 
+                            title="طباعة" 
+                            className="p-2 border border-gray-300 rounded-md hover:bg-gray-100 text-gray-700 transition-colors"
+                        >
+                            <PrintIcon className="w-5 h-5"/>
+                        </button>
                     </div>
                 </div>
 
@@ -354,7 +546,7 @@ const InventoryCountPage: React.FC<InventoryCountProps> = ({ title, companyInfo 
             </div>
 
             {/* Table Section */}
-            <div className="bg-white rounded-lg shadow overflow-hidden flex-grow flex flex-col min-h-[60vh]">
+            <div id="inventory-count-print-area" className="bg-white rounded-lg shadow overflow-hidden flex-grow flex flex-col min-h-[60vh]">
                 <div className="overflow-auto flex-grow">
                     <table className="min-w-full divide-y divide-gray-200">
                         <thead className="bg-brand-blue text-white sticky top-0 z-10">

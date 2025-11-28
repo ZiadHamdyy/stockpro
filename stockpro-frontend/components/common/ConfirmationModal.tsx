@@ -68,7 +68,7 @@ const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
           <h2 className={`text-2xl font-bold mb-4 ${selectedTheme.title}`}>
             {title}
           </h2>
-          <p className="text-gray-600 mb-6">{message}</p>
+          <p className="text-gray-600 mb-6 whitespace-pre-line">{message}</p>
 
           <div className="flex justify-center gap-4">
             <button
