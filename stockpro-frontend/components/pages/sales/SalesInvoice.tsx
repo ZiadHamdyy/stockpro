@@ -375,6 +375,38 @@ const SalesInvoice: React.FC<SalesInvoiceProps> = ({
   );
   const isExistingInvoice = currentIndex >= 0;
 
+  // Include invoice's safe in the list if viewing an invoice (even if from different branch)
+  // This includes both regular safe (safeId) and split payment safe (splitSafeId)
+  const safesForSelection = useMemo(() => {
+    const result = [...filteredSafes];
+    const addedIds = new Set(result.map(s => s.id));
+    
+    if (currentIndex >= 0 && invoices[currentIndex]) {
+      const inv = invoices[currentIndex];
+      const invoiceSafeId = (inv as any).safeId;
+      const invoiceSplitSafeId = (inv as any).splitSafeId;
+      
+      // Add regular safe if not already in list
+      if (invoiceSafeId && !addedIds.has(invoiceSafeId)) {
+        const invoiceSafe = safes.find(s => s.id === invoiceSafeId);
+        if (invoiceSafe) {
+          result.unshift(invoiceSafe);
+          addedIds.add(invoiceSafeId);
+        }
+      }
+      
+      // Add split payment safe if not already in list
+      if (invoiceSplitSafeId && !addedIds.has(invoiceSplitSafeId)) {
+        const invoiceSplitSafe = safes.find(s => s.id === invoiceSplitSafeId);
+        if (invoiceSplitSafe) {
+          result.unshift(invoiceSplitSafe);
+          addedIds.add(invoiceSplitSafeId);
+        }
+      }
+    }
+    return result;
+  }, [filteredSafes, currentIndex, invoices, safes]);
+
   // Show tax column when viewing/editing existing invoice OR when VAT is enabled for new invoices
   const shouldShowTaxColumn = currentIndex >= 0 || isVatEnabled;
 
@@ -507,7 +539,13 @@ const SalesInvoice: React.FC<SalesInvoiceProps> = ({
       setOriginalInvoiceVatEnabled(originalVatEnabled);
       setPaymentMethod(inv.paymentMethod);
       setPaymentTargetType(inv.paymentTargetType || "safe");
-      setPaymentTargetId(inv.paymentTargetId || null);
+      // For safe payments, use safeId from invoice if available, otherwise use paymentTargetId
+      const safeIdFromInvoice = (inv as any).safeId || inv.paymentTargetId || null;
+      setPaymentTargetId(
+        inv.paymentTargetType === "safe" 
+          ? safeIdFromInvoice 
+          : (inv.paymentTargetId || null)
+      );
       setBankTransactionType((inv as any).bankTransactionType || "POS");
       setIsSplitPayment((inv as any).isSplitPayment || false);
       setSplitCashAmount((inv as any).splitCashAmount || 0);
@@ -1456,7 +1494,7 @@ const SalesInvoice: React.FC<SalesInvoiceProps> = ({
                                   disabled={isReadOnly}
                                 >
                                   <option value="">اختر الخزنة...</option>
-                                  {filteredSafes.map((s) => (
+                                  {safesForSelection.map((s) => (
                                     <option key={s.id} value={s.id}>
                                       {s.name}
                                     </option>
@@ -1507,13 +1545,21 @@ const SalesInvoice: React.FC<SalesInvoiceProps> = ({
                             : "اختر البنك"}
                         </label>
                         {paymentTargetType === "safe" ? (
-                          <input
-                            type="text"
-                            value={resolvedBranchName}
+                          <select
+                            value={paymentTargetId || ""}
+                            onChange={(e) =>
+                              setPaymentTargetId(e.target.value || null)
+                            }
                             className={inputStyle}
-                            disabled={true}
-                            readOnly
-                          />
+                            disabled={isReadOnly}
+                          >
+                            <option value="">اختر الخزنة...</option>
+                            {safesForSelection.map((safe) => (
+                              <option key={safe.id} value={safe.id}>
+                                {safe.name}
+                              </option>
+                            ))}
+                          </select>
                         ) : (
                           <select
                             value={paymentTargetId || ""}
