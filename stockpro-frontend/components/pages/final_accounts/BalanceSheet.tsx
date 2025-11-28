@@ -784,7 +784,7 @@ const BalanceSheet: React.FC = () => {
                 </Td>
               </tr>
               <tr>
-                <Td>الأرباح الأرباح ( الخسائر ) المبقاة</Td>
+                <Td> الأرباح ( الخسائر ) المبقاة</Td>
                 <Td
                   className={`text-left font-mono ${getNegativeNumberClass(
                     displayData.retainedEarnings,

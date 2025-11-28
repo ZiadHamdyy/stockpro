@@ -104,6 +104,14 @@ const PriceQuotation: React.FC<PriceQuotationProps> = ({ title }) => {
         (item.name && item.name.toLowerCase().includes(activeItemSearch.query.toLowerCase())) ||
         (item.id && typeof item.id === 'string' && item.id.toLowerCase().includes(activeItemSearch.query.toLowerCase()))
     ) : [];
+    const hasPrintableItems = useMemo(
+        () => items.some((item) => item.id && item.name && Number(item.qty) > 0),
+        [items]
+    );
+    const canPrintExistingQuotation = useMemo(
+        () => currentIndex >= 0 && isReadOnly,
+        [currentIndex, isReadOnly]
+    );
 
     const handleNew = () => {
         setCurrentIndex(-1);
@@ -313,6 +321,18 @@ const PriceQuotation: React.FC<PriceQuotationProps> = ({ title }) => {
         routerNavigate(`/sales/invoice?quotationId=${encodeURIComponent(targetQuotation.id)}`);
     };
 
+    const handleOpenPreview = () => {
+        if (!canPrintExistingQuotation) {
+            showToast('لا يمكن الطباعة إلا بعد تحميل مستند محفوظ.', 'error');
+            return;
+        }
+        if (!hasPrintableItems) {
+            showToast('لا يمكن فتح المعاينة بدون أصناف في عرض السعر.', 'error');
+            return;
+        }
+        setIsPreviewOpen(true);
+    };
+
     const inputStyle = "block w-full bg-yellow-50 border-2 border-amber-500 rounded-md shadow-sm text-brand-dark placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-amber-500 py-3 px-4 disabled:bg-gray-200 disabled:cursor-not-allowed";
     const tableInputStyle = "text-center bg-transparent focus:outline-none focus:ring-1 focus:ring-amber-500 rounded p-1 disabled:bg-transparent";
 
@@ -468,7 +488,7 @@ const PriceQuotation: React.FC<PriceQuotationProps> = ({ title }) => {
                         <button onClick={() => setIsReadOnly(false)} disabled={currentIndex < 0 || !isReadOnly || isMutating} className="px-4 py-2 bg-yellow-500 text-white rounded-md hover:bg-yellow-600 font-semibold disabled:bg-gray-400">تعديل</button>
                         <button onClick={handleDelete} disabled={currentIndex < 0 || isMutating} className="px-4 py-2 bg-red-500 text-white rounded-md hover:bg-red-600 font-semibold disabled:bg-gray-400">حذف</button>
                         <button onClick={() => setIsSearchModalOpen(true)} className="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 font-semibold">بحث</button>
-                        <button onClick={() => setIsPreviewOpen(true)} className="px-4 py-2 bg-gray-200 text-brand-dark rounded-md hover:bg-gray-300 font-semibold flex items-center"><PrintIcon className="mr-2 w-5 h-5"/>معاينة الطباعة</button>
+                        <button onClick={handleOpenPreview} className="px-4 py-2 bg-gray-200 text-brand-dark rounded-md hover:bg-gray-300 font-semibold flex items-center"><PrintIcon className="mr-2 w-5 h-5"/>معاينة الطباعة</button>
                         {/* Killer Feature: Convert to Invoice */}
                         <button 
                             onClick={handleConvertToInvoice} 
