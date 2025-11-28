@@ -175,6 +175,23 @@ const PriceQuotation: React.FC<PriceQuotationProps> = ({ title }) => {
         setTotals(prev => ({ ...prev, subtotal, tax: taxTotal, net }));
     }, [items, totals.discount, isVatEnabled]);
 
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (
+                itemSearchRef.current &&
+                !itemSearchRef.current.contains(event.target as Node)
+            )
+                setActiveItemSearch(null);
+            if (
+                customerRef.current &&
+                !customerRef.current.contains(event.target as Node)
+            )
+                setIsCustomerDropdownOpen(false);
+        };
+        document.addEventListener("mousedown", handleClickOutside);
+        return () => document.removeEventListener("mousedown", handleClickOutside);
+    }, []);
+
     const handleItemChange = (index: number, field: keyof InvoiceItem, value: any) => {
         const newItems = [...items];
         let item = { ...newItems[index], [field]: value };
@@ -312,6 +329,12 @@ const PriceQuotation: React.FC<PriceQuotationProps> = ({ title }) => {
         navigate(newIndex);
     };
 
+    const handleSelectCustomer = (customer: Customer) => {
+        setSelectedCustomer({ id: customer.id.toString(), name: customer.name });
+        setCustomerQuery(customer.name);
+        setIsCustomerDropdownOpen(false);
+    };
+
     const handleConvertToInvoice = () => {
         if (currentIndex < 0 || !quotations[currentIndex]) {
             showToast('لا يوجد عرض سعر محدد للتحويل.');
@@ -365,14 +388,36 @@ const PriceQuotation: React.FC<PriceQuotationProps> = ({ title }) => {
                                 <label className="text-xs text-gray-500 mb-1">تاريخ الانتهاء</label>
                                 <input type="date" className={inputStyle} value={quotationDetails.expiryDate} onChange={e => setQuotationDetails({...quotationDetails, expiryDate: e.target.value})} disabled={isReadOnly} />
                             </div>
-                            <div className="relative flex flex-col" ref={customerRef}>
+                            <div className="flex flex-col" ref={customerRef}>
                                 <label className="text-xs text-gray-500 mb-1">العميل</label>
-                                <input type="text" placeholder="ابحث عن عميل..." className={inputStyle} value={customerQuery} onChange={(e) => { setCustomerQuery(e.target.value); setIsCustomerDropdownOpen(true); setSelectedCustomer(null); }} onFocus={() => setIsCustomerDropdownOpen(true)} disabled={isReadOnly}/>
-                                {isCustomerDropdownOpen && !isReadOnly && (
-                                    <div className="absolute z-20 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-y-auto">
-                                        {filteredCustomers.map(customer => (<div key={customer.id} onClick={() => {setSelectedCustomer({id: customer.id.toString(), name: customer.name}); setCustomerQuery(customer.name); setIsCustomerDropdownOpen(false);}} className="p-2 cursor-pointer hover:bg-yellow-100">{customer.name}</div>))}
-                                    </div>
-                                )}
+                                <div className="relative">
+                                    <input
+                                      type="text"
+                                      placeholder="ابحث عن عميل..."
+                                      className={inputStyle}
+                                      value={customerQuery}
+                                      onChange={(e) => {
+                                        setCustomerQuery(e.target.value);
+                                        setIsCustomerDropdownOpen(true);
+                                        setSelectedCustomer(null);
+                                      }}
+                                      onFocus={() => setIsCustomerDropdownOpen(true)}
+                                      disabled={isReadOnly}
+                                    />
+                                    {isCustomerDropdownOpen && !isReadOnly && (
+                                      <div className="absolute z-20 w-full top-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-y-auto overscroll-contain">
+                                        {filteredCustomers.map((customer) => (
+                                          <div
+                                            key={customer.id}
+                                            onClick={() => handleSelectCustomer(customer)}
+                                            className="p-2 cursor-pointer hover:bg-brand-blue-bg"
+                                          >
+                                            {customer.name}
+                                          </div>
+                                        ))}
+                                      </div>
+                                    )}
+                                </div>
                             </div>
                         </div>
                     </div>
