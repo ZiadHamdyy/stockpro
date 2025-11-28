@@ -1,0 +1,286 @@
+
+import React from 'react';
+import type { PrintSettings as PrintSettingsType } from '../../../types';
+import { PrintIcon, CheckCircleIcon } from '../../icons';
+import { useToast } from '../../common/ToastProvider';
+
+interface PrintSettingsProps {
+    title: string;
+    settings: PrintSettingsType;
+    onSave: (settings: PrintSettingsType) => void;
+}
+
+const TemplatePreview: React.FC<{ 
+    id: PrintSettingsType['template']; 
+    name: string; 
+    selected: boolean; 
+    onSelect: () => void;
+    description: string;
+}> = ({ id, name, selected, onSelect, description }) => {
+    
+    // Abstract visualizations using CSS
+    const renderPreview = () => {
+        switch(id) {
+            case 'default':
+                return (
+                    <div className="w-full h-full bg-white p-2 flex flex-col gap-1 border border-gray-100">
+                        <div className="h-2 w-1/3 bg-blue-100 rounded"></div>
+                        <div className="flex gap-2 mb-1">
+                            <div className="h-4 w-4 bg-gray-200 rounded-full"></div>
+                            <div className="h-4 w-3/4 bg-gray-50 rounded border border-gray-100"></div>
+                        </div>
+                        <div className="h-8 w-full border-2 border-blue-500 rounded bg-blue-50 opacity-50"></div>
+                        <div className="flex-1 border border-gray-200 rounded"></div>
+                    </div>
+                );
+            case 'classic':
+                return (
+                    <div className="w-full h-full bg-white p-2 flex flex-col gap-1 border border-gray-300">
+                        <div className="flex justify-between border-b border-black pb-1 mb-1">
+                            <div className="h-3 w-1/3 bg-gray-800"></div>
+                            <div className="h-3 w-10 bg-gray-300"></div>
+                        </div>
+                        <div className="flex-1 border border-black p-1">
+                            <div className="w-full h-2 bg-gray-200 mb-1"></div>
+                            <div className="w-full h-2 bg-white border-b border-gray-200"></div>
+                            <div className="w-full h-2 bg-white border-b border-gray-200"></div>
+                        </div>
+                    </div>
+                );
+            case 'modern':
+                return (
+                    <div className="w-full h-full bg-white flex flex-col shadow-sm">
+                        <div className="h-8 w-full bg-gradient-to-r from-blue-600 to-indigo-600 rounded-t-sm flex items-center px-2">
+                            <div className="h-2 w-1/2 bg-white/30 rounded"></div>
+                        </div>
+                        <div className="p-2 flex-1 flex flex-col gap-1">
+                            <div className="flex justify-between">
+                                <div className="h-6 w-16 bg-gray-100 rounded"></div>
+                                <div className="h-6 w-16 bg-blue-50 rounded border border-blue-100"></div>
+                            </div>
+                            <div className="flex-1 mt-1 bg-gray-50 rounded border border-gray-100"></div>
+                        </div>
+                    </div>
+                );
+            case 'minimal':
+                return (
+                    <div className="w-full h-full bg-white p-3 flex flex-col gap-2">
+                        <div className="h-4 w-1/2 bg-gray-800 rounded-none"></div>
+                        <div className="h-px w-full bg-gray-200"></div>
+                        <div className="flex-1 flex flex-col gap-1">
+                            <div className="w-full h-1 bg-gray-100"></div>
+                            <div className="w-full h-1 bg-gray-100"></div>
+                            <div className="w-3/4 h-1 bg-gray-100"></div>
+                        </div>
+                        <div className="h-px w-full bg-gray-200"></div>
+                        <div className="flex justify-end"><div className="h-2 w-10 bg-black"></div></div>
+                    </div>
+                );
+            case 'thermal':
+                return (
+                    <div className="w-2/3 h-full bg-white mx-auto shadow-md p-2 flex flex-col gap-1 items-center border border-gray-200">
+                        <div className="h-3 w-8 bg-black rounded-sm mb-1"></div>
+                        <div className="h-1 w-full bg-gray-200"></div>
+                        <div className="h-1 w-full bg-gray-200"></div>
+                        <div className="w-full border-t border-dashed border-gray-400 my-1"></div>
+                        <div className="flex justify-between w-full"><div className="h-1 w-4 bg-gray-300"></div><div className="h-1 w-4 bg-gray-300"></div></div>
+                        <div className="flex justify-between w-full"><div className="h-1 w-4 bg-gray-300"></div><div className="h-1 w-4 bg-gray-300"></div></div>
+                        <div className="w-full border-t border-dashed border-gray-400 my-1"></div>
+                        <div className="h-4 w-12 bg-black rounded mt-auto"></div>
+                    </div>
+                );
+        }
+    };
+
+    return (
+        <div 
+            onClick={onSelect}
+            className={`
+                cursor-pointer rounded-xl border-2 relative overflow-hidden transition-all duration-300 group
+                ${selected ? 'border-brand-blue ring-4 ring-blue-50 bg-white shadow-xl scale-[1.02]' : 'border-gray-200 bg-white hover:border-blue-300 hover:shadow-lg'}
+            `}
+        >
+            {selected && (
+                <div className="absolute top-3 right-3 bg-brand-blue text-white rounded-full p-1 z-20 shadow-sm">
+                    <CheckCircleIcon className="w-5 h-5" />
+                </div>
+            )}
+            
+            <div className={`h-40 ${selected ? 'bg-gray-50' : 'bg-gray-100'} flex items-center justify-center p-4 transition-colors`}>
+                <div className="w-28 h-36 shadow-lg transform group-hover:-translate-y-1 transition-transform duration-300">
+                    {renderPreview()}
+                </div>
+            </div>
+
+            <div className="p-5">
+                <h3 className={`font-bold text-lg mb-1 ${selected ? 'text-brand-blue' : 'text-gray-800'}`}>{name}</h3>
+                <p className="text-xs text-gray-500 leading-relaxed">{description}</p>
+            </div>
+        </div>
+    );
+};
+
+const PrintSettings: React.FC<PrintSettingsProps> = ({ title, settings, onSave }) => {
+    const { showToast } = useToast();
+    const [localSettings, setLocalSettings] = React.useState<PrintSettingsType>(settings);
+
+    const handleChange = (field: keyof PrintSettingsType, value: any) => {
+        setLocalSettings(prev => ({ ...prev, [field]: value }));
+    };
+
+    const handleSave = () => {
+        onSave(localSettings);
+        showToast('تم حفظ إعدادات الطباعة وتطبيق النموذج الجديد.');
+    };
+
+    const inputStyle = "w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-blue focus:border-brand-blue transition-all bg-gray-50 focus:bg-white text-gray-800";
+    const labelStyle = "block text-sm font-bold text-gray-700 mb-2";
+
+    return (
+        <div className="max-w-6xl mx-auto p-4 space-y-8 animate-fade-in">
+            {/* Header */}
+            <div className="bg-white rounded-2xl p-8 shadow-sm border border-gray-100 flex items-center gap-6">
+                <div className="p-4 bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl text-white shadow-lg shadow-blue-200">
+                    <PrintIcon className="w-10 h-10" />
+                </div>
+                <div>
+                    <h1 className="text-3xl font-extrabold text-gray-900 mb-2">{title}</h1>
+                    <p className="text-gray-500 font-medium">تحكم في هوية مطبوعاتك واختر التصميم الذي يناسب علامتك التجارية.</p>
+                </div>
+            </div>
+
+            {/* Template Selection Grid */}
+            <section>
+                <h2 className="text-xl font-bold text-gray-800 mb-6 flex items-center gap-3">
+                    <span className="w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-sm">1</span>
+                    اختر نموذج الفاتورة
+                </h2>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6">
+                    <TemplatePreview 
+                        id="default" 
+                        name="الافتراضي (Default)" 
+                        description="التصميم القياسي للبرنامج. متوازن، عملي، ويحتوي على ألوان الهوية الأساسية."
+                        selected={localSettings.template === 'default'}
+                        onSelect={() => handleChange('template', 'default')}
+                    />
+                    <TemplatePreview 
+                        id="classic" 
+                        name="كلاسيك (Classic)" 
+                        description="تصميم رسمي جداً بالأبيض والأسود. يعتمد على الجداول والحدود الواضحة. مناسب للشركات الرسمية."
+                        selected={localSettings.template === 'classic'}
+                        onSelect={() => handleChange('template', 'classic')}
+                    />
+                    <TemplatePreview 
+                        id="modern" 
+                        name="مودرن (Modern)" 
+                        description="تصميم عصري وجذاب. يستخدم تدرجات لونية، خطوط حديثة، وتخطيط مفتوح."
+                        selected={localSettings.template === 'modern'}
+                        onSelect={() => handleChange('template', 'modern')}
+                    />
+                    <TemplatePreview 
+                        id="minimal" 
+                        name="بسيط (Minimal)" 
+                        description="الأناقة في البساطة. تصميم أوروبي نظيف، مساحات بيضاء واسعة، وتركيز على المحتوى."
+                        selected={localSettings.template === 'minimal'}
+                        onSelect={() => handleChange('template', 'minimal')}
+                    />
+                    <TemplatePreview 
+                        id="thermal" 
+                        name="إيصال (Thermal)" 
+                        description="مخصص لطابعات الكاشير الحرارية (80mm). مثالي لنقاط البيع، المطاعم، والبقالات."
+                        selected={localSettings.template === 'thermal'}
+                        onSelect={() => handleChange('template', 'thermal')}
+                    />
+                </div>
+            </section>
+
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                {/* Configuration Options */}
+                <section className="lg:col-span-2 bg-white p-8 rounded-2xl shadow-sm border border-gray-100">
+                    <h2 className="text-xl font-bold text-gray-800 mb-6 flex items-center gap-3">
+                        <span className="w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-sm">2</span>
+                        تخصيص المحتوى
+                    </h2>
+                    
+                    <div className="space-y-6">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div>
+                                <label className={labelStyle}>نص ترويسة الفاتورة (Header)</label>
+                                <input 
+                                    type="text" 
+                                    className={inputStyle} 
+                                    placeholder="مثال: فاتورة ضريبية مبسطة" 
+                                    value={localSettings.headerText}
+                                    onChange={(e) => handleChange('headerText', e.target.value)}
+                                />
+                            </div>
+                            <div>
+                                <label className={labelStyle}>نص تذييل الفاتورة (Footer)</label>
+                                <input 
+                                    type="text" 
+                                    className={inputStyle} 
+                                    placeholder="مثال: شكراً لزيارتكم" 
+                                    value={localSettings.footerText}
+                                    onChange={(e) => handleChange('footerText', e.target.value)}
+                                />
+                            </div>
+                        </div>
+                        
+                        <div>
+                            <label className={labelStyle}>الشروط والأحكام</label>
+                            <textarea 
+                                className={inputStyle} 
+                                rows={4} 
+                                placeholder="مثال: البضاعة المباعة لا ترد ولا تستبدل بعد 3 أيام من تاريخ الشراء." 
+                                value={localSettings.termsText}
+                                onChange={(e) => handleChange('termsText', e.target.value)}
+                            />
+                            <p className="text-xs text-gray-400 mt-2">ستظهر هذه النصوص في أسفل الفاتورة.</p>
+                        </div>
+                    </div>
+                </section>
+
+                {/* Toggles */}
+                <section className="lg:col-span-1 bg-white p-8 rounded-2xl shadow-sm border border-gray-100 h-fit">
+                    <h2 className="text-xl font-bold text-gray-800 mb-6 flex items-center gap-3">
+                        <span className="w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-sm">3</span>
+                        خيارات العرض
+                    </h2>
+                    
+                    <div className="space-y-4">
+                        {[
+                            { key: 'showLogo', label: 'إظهار الشعار (Logo)' },
+                            { key: 'showTaxNumber', label: 'إظهار الرقم الضريبي' },
+                            { key: 'showAddress', label: 'إظهار العنوان وبيانات الاتصال' }
+                        ].map((opt) => (
+                            <label key={opt.key} className="flex items-center p-4 border border-gray-200 rounded-xl cursor-pointer hover:bg-blue-50 hover:border-blue-200 transition-all group">
+                                <div className="relative flex items-center">
+                                    <input 
+                                        type="checkbox" 
+                                        className="peer sr-only"
+                                        checked={(localSettings as any)[opt.key]}
+                                        onChange={(e) => handleChange(opt.key as keyof PrintSettingsType, e.target.checked)}
+                                    />
+                                    <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                                </div>
+                                <span className="mr-4 font-semibold text-gray-700 group-hover:text-blue-700 transition-colors">{opt.label}</span>
+                            </label>
+                        ))}
+                    </div>
+
+                    <div className="mt-8 pt-6 border-t border-gray-100">
+                        <button 
+                            onClick={handleSave} 
+                            className="w-full py-4 bg-brand-blue text-white rounded-xl font-bold text-lg shadow-lg hover:bg-blue-800 hover:shadow-xl transform transition hover:-translate-y-1 active:translate-y-0"
+                        >
+                            حفظ وتطبيق الإعدادات
+                        </button>
+                    </div>
+                </section>
+            </div>
+        </div>
+    );
+};
+
+export default PrintSettings;

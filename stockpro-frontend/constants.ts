@@ -19,6 +19,7 @@ import {
   ClockIcon,
   TrendingUpIcon,
   TrendingDownIcon,
+  PrintIcon,
 } from "./components/icons";
 import type { MenuItem } from "./types";
 
@@ -36,6 +37,7 @@ export const MENU_ITEMS: MenuItem[] = [
       { key: "users_data", label: "بيانات المستخدمين", icon: DatabaseIcon },
       { key: "permissions", label: "الصلاحيات", icon: DatabaseIcon },
       { key: "audit_log", label: "سجل العمليات", icon: ActivityIcon },
+      { key: 'print_settings', label: 'إعدادات الطباعة', icon: PrintIcon },
       {
         key: "database",
         label: "قاعدة البيانات",

@@ -15,6 +15,7 @@ export enum Resources {
   USERS_DATA = "users_data",
   PERMISSIONS = "permissions",
   AUDIT_LOG = "audit_log",
+  PRINT_SETTINGS = "print_settings",
   DATABASE = "database",
   DATABASE_BACKUP = "database_backup",
 

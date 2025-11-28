@@ -317,3 +317,13 @@ export interface Quotation {
   userName: string;
   branchName: string;
 }
+
+export interface PrintSettings {
+  template: 'default' | 'classic' | 'modern' | 'minimal' | 'thermal';
+  showLogo: boolean;
+  showTaxNumber: boolean;
+  showAddress: boolean;
+  headerText: string;
+  footerText: string;
+  termsText: string;
+}

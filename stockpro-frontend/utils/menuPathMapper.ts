@@ -14,6 +14,7 @@ export const getPathFromMenuKey = (key: string): string => {
     users_data: "/settings/users-data",
     permissions: "/settings/permissions",
     audit_log: "/settings/audit-log",
+    print_settings: "/settings/print-settings",
     database_backup: "/dashboard", // Special handling - trigger backup
 
     // Items
@@ -140,6 +141,7 @@ export const getMenuKeyFromPath = (path: string): string => {
     "/settings/users-data": "users_data",
     "/settings/permissions": "permissions",
     "/settings/audit-log": "audit_log",
+    "/settings/print-settings": "print_settings",
     "/items/add": "add_item",
     "/items/list": "items_list",
     "/items/groups": "item_groups",

@@ -23,6 +23,7 @@ const MENU_ITEMS: MenuItem[] = [
       { key: 'users_data', label: 'بيانات المستخدمين' },
       { key: 'permissions', label: 'الصلاحيات' },
       { key: 'audit_log', label: 'سجل العمليات' },
+      { key: 'print_settings', label: 'إعدادات الطباعة' },
       {
         key: 'database',
         label: 'قاعدة البيانات',

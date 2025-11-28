@@ -95,6 +95,7 @@ import TaxDeclarationReport from "./components/pages/reports/financials/TaxDecla
 import VATStatementReport from "./components/pages/reports/financials/VATStatementReport";
 import IncomeStatement from "./components/pages/final_accounts/IncomeStatement";
 import BalanceSheet from "./components/pages/final_accounts/BalanceSheet";
+import PrintSettingsPage from "./components/pages/settings/PrintSettings";
 
 import {
   initialBranches,
@@ -150,6 +151,7 @@ import type {
   FiscalYear,
   AuditLogEntry,
   InventoryCount as InventoryCountType,
+  PrintSettings,
 } from "./types";
 import { ToastProvider, useToast } from "./components/common/ToastProvider";
 import { ModalProvider } from "./components/common/ModalProvider";
@@ -519,6 +521,15 @@ const AppContent = () => {
     useState<AuditLogEntry[]>(initialAuditLogs);
   const [inventoryCounts, setInventoryCounts] =
     useState<InventoryCountType[]>(initialInventoryCounts);
+  const [printSettings, setPrintSettings] = useState<PrintSettings>({
+    template: "default",
+    showLogo: true,
+    showTaxNumber: true,
+    showAddress: true,
+    headerText: "",
+    footerText: "",
+    termsText: "",
+  });
 
   const itemBalances = useMemo(() => {
     const balances = new Map<string, number>();
@@ -814,6 +825,18 @@ const AppContent = () => {
                     auditLogs={auditLogs}
                     users={users}
                     branches={branches}
+                  />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/settings/print-settings"
+              element={
+                <ProtectedRoute requiredPermission="print_settings-read">
+                  <PrintSettingsPage
+                    title={currentPageTitle}
+                    settings={printSettings}
+                    onSave={setPrintSettings}
                   />
                 </ProtectedRoute>
               }

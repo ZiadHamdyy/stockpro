@@ -7,6 +7,7 @@ import StoresData from "../components/pages/settings/StoresData";
 import UsersData from "../components/pages/settings/UsersData";
 import Permissions from "../components/pages/settings/Permissions";
 import AuditLog from "../components/pages/settings/AuditLog";
+import PrintSettings from "../components/pages/settings/PrintSettings";
 import AddItem from "../components/pages/items/AddItem";
 import ItemsList from "../components/pages/items/ItemsList";
 import ItemGroups from "../components/pages/items/ItemGroups";
@@ -134,6 +135,12 @@ export const routeConfig = [
     component: AuditLog,
     requiredPermission: "audit_log-read",
     label: "سجل العمليات",
+  },
+  {
+    path: "/settings/print-settings",
+    component: PrintSettings,
+    requiredPermission: "print_settings-read",
+    label: "إعدادات الطباعة",
   },
 
   // Items
