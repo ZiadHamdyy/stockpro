@@ -21,7 +21,7 @@ import { guardPrint } from "../../utils/printGuard";
 import { RootState } from "../../store/store";
 import { useGetCompanyQuery } from "../../store/slices/companyApiSlice";
 import { useGetBranchesQuery } from "../../store/slices/branch/branchApi";
-import { useGetStoresQuery } from "../../store/slices/store/storeApi";
+import { useGetStoresQuery, useGetAllStoreItemsQuery } from "../../store/slices/store/storeApi";
 import { useGetItemsQuery } from "../../store/slices/items/itemsApi";
 import {
   useGetStoreTransferVouchersQuery,
@@ -30,6 +30,13 @@ import {
   useDeleteStoreTransferVoucherMutation,
 } from "../../store/slices/storeTransferVoucher/storeTransferVoucherApi";
 import { useLazyGetStoreItemBalanceQuery } from "../../store/slices/store/storeApi";
+import { useGetStoreReceiptVouchersQuery } from "../../store/slices/storeReceiptVoucher/storeReceiptVoucherApi";
+import { useGetStoreIssueVouchersQuery } from "../../store/slices/storeIssueVoucher/storeIssueVoucherApi";
+import { useGetPurchaseInvoicesQuery } from "../../store/slices/purchaseInvoice/purchaseInvoiceApiSlice";
+import { useGetPurchaseReturnsQuery } from "../../store/slices/purchaseReturn/purchaseReturnApiSlice";
+import { useGetSalesReturnsQuery } from "../../store/slices/salesReturn/salesReturnApiSlice";
+import { useGetSalesInvoicesQuery } from "../../store/slices/salesInvoice/salesInvoiceApiSlice";
+import ItemContextBar, { SelectableItem as ItemContextBarSelectableItem } from "../../common/ItemContextBar";
 
 type SelectableItem = {
   id: string;
@@ -38,6 +45,7 @@ type SelectableItem = {
   stock: number;
   code: string;
   purchasePrice: number;
+  salePrice?: number;
 };
 
 interface StoreTransferProps {
@@ -94,6 +102,17 @@ const StoreTransfer: React.FC<StoreTransferProps> = ({ title }) => {
     useDeleteStoreTransferVoucherMutation();
   const [getStoreItemBalance] = useLazyGetStoreItemBalanceQuery();
 
+  // Get data for ItemContextBar
+  const { data: storeItems = [] } = useGetAllStoreItemsQuery();
+  const { data: storeReceiptVouchers = [] } = useGetStoreReceiptVouchersQuery();
+  const { data: storeIssueVouchers = [] } = useGetStoreIssueVouchersQuery();
+  // Reuse vouchers from above instead of fetching again
+  const storeTransferVouchers = vouchers;
+  const { data: purchaseInvoices = [] } = useGetPurchaseInvoicesQuery();
+  const { data: purchaseReturns = [] } = useGetPurchaseReturnsQuery();
+  const { data: salesReturns = [] } = useGetSalesReturnsQuery();
+  const { data: invoices = [] } = useGetSalesInvoicesQuery();
+
   // Get current user from auth state
   const currentUser = useSelector((state: RootState) => state.auth.user);
 
@@ -136,6 +155,7 @@ const StoreTransfer: React.FC<StoreTransferProps> = ({ title }) => {
           typeof item.lastPurchasePrice === "number"
             ? item.lastPurchasePrice
             : item.purchasePrice || 0,
+        salePrice: item.salePrice || 0, // Include salePrice for ItemContextBar
       }))
     : [];
   
@@ -151,6 +171,7 @@ const StoreTransfer: React.FC<StoreTransferProps> = ({ title }) => {
   const [isItemModalOpen, setIsItemModalOpen] = useState(false);
   const [editingItemIndex, setEditingItemIndex] = useState<number | null>(null);
   const [highlightedIndex, setHighlightedIndex] = useState(-1);
+  const [focusedItemIndex, setFocusedItemIndex] = useState<number | null>(null);
 
   const nameInputRefs = useRef<(HTMLInputElement | null)[]>([]);
   const qtyInputRefs = useRef<(HTMLInputElement | null)[]>([]);
@@ -363,6 +384,7 @@ const StoreTransfer: React.FC<StoreTransferProps> = ({ title }) => {
     setItems(newItems);
     setActiveItemSearch(null);
     setHighlightedIndex(-1);
+    setFocusedItemIndex(index);
     setTimeout(() => {
       qtyInputRefs.current[index]?.focus();
       qtyInputRefs.current[index]?.select();
@@ -684,6 +706,26 @@ const StoreTransfer: React.FC<StoreTransferProps> = ({ title }) => {
     [items],
   );
 
+  // Compute focused item data for ItemContextBar
+  const focusedItemData = useMemo<ItemContextBarSelectableItem | null>(() => {
+    if (focusedItemIndex !== null && items[focusedItemIndex] && items[focusedItemIndex].id) {
+      const item = items[focusedItemIndex];
+      const itemData = allItems.find((i) => i.id === item.id);
+      if (itemData) {
+        return {
+          id: itemData.code || item.code || itemData.id, // Use code as id for ItemContextBar
+          name: itemData.name,
+          unit: itemData.unit,
+          salePrice: itemData.salePrice || 0,
+          purchasePrice: itemData.purchasePrice || 0,
+          stock: itemData.stock || 0,
+          type: 'STOCKED' as const,
+        };
+      }
+    }
+    return null;
+  }, [focusedItemIndex, items, allItems]);
+
   if (!companyInfo || isLoadingVouchers) {
     return (
       <div className="flex justify-center items-center py-8">
@@ -879,9 +921,10 @@ const StoreTransfer: React.FC<StoreTransferProps> = ({ title }) => {
                         onChange={(e) =>
                           handleItemChange(index, "name", e.target.value)
                         }
-                        onFocus={() =>
-                          setActiveItemSearch({ index, query: item.name })
-                        }
+                        onFocus={() => {
+                          setActiveItemSearch({ index, query: item.name });
+                          setFocusedItemIndex(index);
+                        }}
                         onKeyDown={handleItemSearchKeyDown}
                         ref={(el) => {
                           if (el) nameInputRefs.current[index] = el;
@@ -934,6 +977,7 @@ const StoreTransfer: React.FC<StoreTransferProps> = ({ title }) => {
                       onChange={(e) =>
                         handleItemChange(index, "qty", e.target.value)
                       }
+                      onFocus={() => setFocusedItemIndex(index)}
                       onKeyDown={(e) => handleTableKeyDown(e, index)}
                       ref={(el) => {
                         if (el) qtyInputRefs.current[index] = el;
@@ -1168,6 +1212,21 @@ const StoreTransfer: React.FC<StoreTransferProps> = ({ title }) => {
         onSelectRow={handleSelectVoucherFromSearch}
         colorTheme="amber"
       />
+      {focusedItemData && (
+        <ItemContextBar
+          item={focusedItemData}
+          stores={stores}
+          branches={branches}
+          storeReceiptVouchers={storeReceiptVouchers}
+          storeIssueVouchers={storeIssueVouchers}
+          storeTransferVouchers={storeTransferVouchers}
+          purchaseInvoices={purchaseInvoices}
+          purchaseReturns={purchaseReturns}
+          salesReturns={salesReturns}
+          invoices={invoices}
+          storeItems={storeItems}
+        />
+      )}
     </>
   );
 };
