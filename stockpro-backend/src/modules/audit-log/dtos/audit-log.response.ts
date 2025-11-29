@@ -1,6 +1,6 @@
 export class AuditLogResponse {
   id: string;
-  timestamp: Date;
+  timestamp: string;
   userId: number;
   userName: string;
   branchId?: string;

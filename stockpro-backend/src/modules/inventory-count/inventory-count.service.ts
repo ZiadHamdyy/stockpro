@@ -304,6 +304,9 @@ export class InventoryCountService {
     const receiptItems: any[] = [];
     const issueItems: any[] = [];
 
+    // Get user's branchId from the count
+    const userBranchId = count.user?.branchId || count.branchId || '';
+
     // Separate items into receipt (surplus) and issue (shortage)
     for (const countItem of count.items) {
       const difference = countItem.difference;
@@ -332,22 +335,28 @@ export class InventoryCountService {
 
     // Create receipt voucher for surpluses (when actual > system, we add the difference)
     if (receiptItems.length > 0) {
-      await this.storeReceiptVoucherService.create({
-        storeId: count.storeId,
-        userId: count.userId,
-        notes: `تسوية جرد - إضافة الزيادة من جرد ${count.code}`,
-        items: receiptItems,
-      });
+      await this.storeReceiptVoucherService.create(
+        {
+          storeId: count.storeId,
+          userId: count.userId,
+          notes: `تسوية جرد - إضافة الزيادة من جرد ${count.code}`,
+          items: receiptItems,
+        },
+        userBranchId,
+      );
     }
 
     // Create issue voucher for shortages (when actual < system, we remove the difference)
     if (issueItems.length > 0) {
-      await this.storeIssueVoucherService.create({
-        storeId: count.storeId,
-        userId: count.userId,
-        notes: `تسوية جرد - إزالة العجز من جرد ${count.code}`,
-        items: issueItems,
-      });
+      await this.storeIssueVoucherService.create(
+        {
+          storeId: count.storeId,
+          userId: count.userId,
+          notes: `تسوية جرد - إزالة العجز من جرد ${count.code}`,
+          items: issueItems,
+        },
+        userBranchId,
+      );
     }
   }
 

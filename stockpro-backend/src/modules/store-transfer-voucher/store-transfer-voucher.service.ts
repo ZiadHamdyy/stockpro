@@ -185,6 +185,7 @@ export class StoreTransferVoucherService {
   async update(
     id: string,
     updateStoreTransferVoucherDto: UpdateStoreTransferVoucherDto,
+    userBranchId: string,
   ) {
     const { items, fromStoreId, ...voucherData } =
       updateStoreTransferVoucherDto;
