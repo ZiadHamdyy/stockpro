@@ -17,7 +17,7 @@ const AuditLogReport: React.FC<AuditLogReportProps> = ({ title }) => {
     const [selectedAction, setSelectedAction] = useState<string>('all');
     const [selectedBranch, setSelectedBranch] = useState<string>('all');
     const [startDate, setStartDate] = useState(`${currentYear}-01-01`);
-    const [endDate, setEndDate] = useState(new Date().toISOString().substring(0, 10));
+    const [endDate, setEndDate] = useState(`${currentYear}-12-31`);
 
     // Fetch data from API - fetch all logs, filter on frontend for better UX
     const { data: auditLogs = [], isLoading: logsLoading, error: logsError } = useGetAuditLogsQuery();
