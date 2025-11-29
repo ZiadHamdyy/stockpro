@@ -141,6 +141,7 @@ export const salesInvoiceApiSlice = apiSlice.injectEndpoints({
         { type: "SalesByItemGroup", id: "GLOBAL" },
         { type: "IncomeStatement", id: "GLOBAL" },
         { type: "BalanceSheet", id: "GLOBAL" },
+        "AuditLog",
       ],
       async onQueryStarted(arg, { queryFulfilled }) {
         try {
@@ -174,6 +175,7 @@ export const salesInvoiceApiSlice = apiSlice.injectEndpoints({
         { type: "SalesByItemGroup", id: "GLOBAL" },
         { type: "IncomeStatement", id: "GLOBAL" },
         { type: "BalanceSheet", id: "GLOBAL" },
+        "AuditLog",
       ],
       async onQueryStarted(arg, { queryFulfilled }) {
         try {
@@ -201,6 +203,7 @@ export const salesInvoiceApiSlice = apiSlice.injectEndpoints({
         { type: "SalesByItemGroup", id: "GLOBAL" },
         { type: "IncomeStatement", id: "GLOBAL" },
         { type: "BalanceSheet", id: "GLOBAL" },
+        "AuditLog",
       ],
       async onQueryStarted(arg, { queryFulfilled }) {
         try {

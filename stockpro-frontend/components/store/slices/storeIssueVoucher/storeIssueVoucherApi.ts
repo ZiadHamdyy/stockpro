@@ -79,7 +79,7 @@ export const storeIssueVoucherApi = apiSlice.injectEndpoints({
       }),
       transformResponse: (response: { data: StoreIssueVoucher }) =>
         response.data,
-      invalidatesTags: ["StoreIssueVoucher", "Item"],
+      invalidatesTags: ["StoreIssueVoucher", "Item", "AuditLog"],
     }),
     updateStoreIssueVoucher: builder.mutation<
       StoreIssueVoucher,
@@ -96,6 +96,7 @@ export const storeIssueVoucherApi = apiSlice.injectEndpoints({
         { type: "StoreIssueVoucher", id },
         "StoreIssueVoucher",
         "Item",
+        "AuditLog",
       ],
     }),
     deleteStoreIssueVoucher: builder.mutation<void, string>({
@@ -107,6 +108,7 @@ export const storeIssueVoucherApi = apiSlice.injectEndpoints({
         { type: "StoreIssueVoucher", id },
         "StoreIssueVoucher",
         "Item",
+        "AuditLog",
       ],
     }),
   }),
