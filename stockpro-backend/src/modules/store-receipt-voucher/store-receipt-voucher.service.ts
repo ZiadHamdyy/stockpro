@@ -7,15 +7,20 @@ import { DatabaseService } from '../../configs/database/database.service';
 import { CreateStoreReceiptVoucherDto } from './dtos/create-store-receipt-voucher.dto';
 import { UpdateStoreReceiptVoucherDto } from './dtos/update-store-receipt-voucher.dto';
 import { StockService } from '../store/services/stock.service';
+import { AuditLogService } from '../audit-log/audit-log.service';
 
 @Injectable()
 export class StoreReceiptVoucherService {
   constructor(
     private readonly prisma: DatabaseService,
     private readonly stockService: StockService,
+    private readonly auditLogService: AuditLogService,
   ) {}
 
-  async create(createStoreReceiptVoucherDto: CreateStoreReceiptVoucherDto) {
+  async create(
+    createStoreReceiptVoucherDto: CreateStoreReceiptVoucherDto,
+    userBranchId: string,
+  ) {
     const { items, ...voucherData } = createStoreReceiptVoucherDto;
 
     // Validate quantities are positive
@@ -34,7 +39,7 @@ export class StoreReceiptVoucherService {
     const totalAmount = items.reduce((sum, item) => sum + item.totalPrice, 0);
 
     // Receipt operations don't need stock validation - can add any item, any quantity
-    return this.prisma.$transaction(async (tx) => {
+    const result = await this.prisma.$transaction(async (tx) => {
       // Ensure StoreItem exists for each item (with openingBalance = 0)
       for (const item of items) {
         await this.stockService.ensureStoreItemExists(
@@ -60,7 +65,11 @@ export class StoreReceiptVoucherService {
           },
         },
         include: {
-          store: true,
+          store: {
+            include: {
+              branch: true,
+            },
+          },
           user: true,
           items: {
             include: {
@@ -75,6 +84,18 @@ export class StoreReceiptVoucherService {
         },
       });
     });
+
+    // Create audit log
+    await this.auditLogService.createAuditLog({
+      userId: result.userId,
+      branchId: userBranchId,
+      action: 'create',
+      targetType: 'store_receipt_voucher',
+      targetId: result.voucherNumber,
+      details: `إنشاء إذن إضافة مخزن رقم ${result.voucherNumber} بقيمة ${totalAmount} ريال`,
+    });
+
+    return result;
   }
 
   async findAll() {
@@ -136,6 +157,7 @@ export class StoreReceiptVoucherService {
   async update(
     id: string,
     updateStoreReceiptVoucherDto: UpdateStoreReceiptVoucherDto,
+    userBranchId: string,
   ) {
     const { items, ...voucherData } = updateStoreReceiptVoucherDto;
 
@@ -159,7 +181,7 @@ export class StoreReceiptVoucherService {
       : undefined;
 
     // Receipt operations don't need stock validation
-    return this.prisma.$transaction(async (tx) => {
+    const result = await this.prisma.$transaction(async (tx) => {
       // Get existing voucher to know the storeId
       const existingVoucher = await tx.storeReceiptVoucher.findUnique({
         where: { id },
@@ -222,14 +244,38 @@ export class StoreReceiptVoucherService {
         },
       });
     });
+
+    // Create audit log
+    await this.auditLogService.createAuditLog({
+      userId: result.userId,
+      branchId: userBranchId,
+      action: 'update',
+      targetType: 'store_receipt_voucher',
+      targetId: result.voucherNumber,
+      details: `تعديل إذن إضافة مخزن رقم ${result.voucherNumber}`,
+    });
+
+    return result;
   }
 
-  async remove(id: string) {
-    await this.findOne(id);
+  async remove(id: string, userBranchId: string) {
+    const voucher = await this.findOne(id);
 
-    return this.prisma.storeReceiptVoucher.delete({
+    const deleted = await this.prisma.storeReceiptVoucher.delete({
       where: { id },
     });
+
+    // Create audit log
+    await this.auditLogService.createAuditLog({
+      userId: voucher.userId,
+      branchId: userBranchId,
+      action: 'delete',
+      targetType: 'store_receipt_voucher',
+      targetId: voucher.voucherNumber,
+      details: `حذف إذن إضافة مخزن رقم ${voucher.voucherNumber}`,
+    });
+
+    return deleted;
   }
 
   private async generateVoucherNumber(): Promise<string> {

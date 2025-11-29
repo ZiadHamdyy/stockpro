@@ -13,6 +13,8 @@ import { CreateStoreTransferVoucherDto } from './dtos/create-store-transfer-vouc
 import { UpdateStoreTransferVoucherDto } from './dtos/update-store-transfer-voucher.dto';
 import { JwtAuthenticationGuard } from '../../common/guards/strategy.guards/jwt.guard';
 import { Auth } from '../../common/decorators/auth.decorator';
+import { currentUser } from '../../common/decorators/currentUser.decorator';
+import type { currentUserType } from '../../common/types/current-user.type';
 
 @Controller('store-transfer-vouchers')
 @UseGuards(JwtAuthenticationGuard)
@@ -23,9 +25,13 @@ export class StoreTransferVoucherController {
 
   @Post()
   @Auth({ permissions: ['store_transfer:create'] })
-  create(@Body() createStoreTransferVoucherDto: CreateStoreTransferVoucherDto) {
+  create(
+    @Body() createStoreTransferVoucherDto: CreateStoreTransferVoucherDto,
+    @currentUser() user: currentUserType,
+  ) {
     return this.storeTransferVoucherService.create(
       createStoreTransferVoucherDto,
+      user.branchId,
     );
   }
 
@@ -46,16 +52,21 @@ export class StoreTransferVoucherController {
   update(
     @Param('id') id: string,
     @Body() updateStoreTransferVoucherDto: UpdateStoreTransferVoucherDto,
+    @currentUser() user: currentUserType,
   ) {
     return this.storeTransferVoucherService.update(
       id,
       updateStoreTransferVoucherDto,
+      user.branchId,
     );
   }
 
   @Delete(':id')
   @Auth({ permissions: ['store_transfer:delete'] })
-  remove(@Param('id') id: string) {
-    return this.storeTransferVoucherService.remove(id);
+  remove(
+    @Param('id') id: string,
+    @currentUser() user: currentUserType,
+  ) {
+    return this.storeTransferVoucherService.remove(id, user.branchId);
   }
 }

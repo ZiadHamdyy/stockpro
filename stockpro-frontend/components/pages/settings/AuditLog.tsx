@@ -1,16 +1,16 @@
 
 import React, { useState, useMemo } from 'react';
-import type { AuditLogEntry, User, Branch } from '../../../types';
+import type { AuditLogEntry } from '../../../types';
 import { SearchIcon, ActivityIcon, UserIcon, ClockIcon, CalendarIcon, CheckCircleIcon, XCircleIcon, TrashIcon, LockIcon, LogOutIcon, ShieldIcon } from '../../icons';
+import { useGetAuditLogsQuery } from '../../store/slices/auditLog/auditLogApiSlice';
+import { useGetUsersQuery } from '../../store/slices/user/userApi';
+import { useGetBranchesQuery } from '../../store/slices/branch/branchApi';
 
 interface AuditLogReportProps {
     title: string;
-    auditLogs: AuditLogEntry[];
-    users: User[];
-    branches: Branch[];
 }
 
-const AuditLogReport: React.FC<AuditLogReportProps> = ({ title, auditLogs, users, branches }) => {
+const AuditLogReport: React.FC<AuditLogReportProps> = ({ title }) => {
     const currentYear = new Date().getFullYear();
     const [searchTerm, setSearchTerm] = useState('');
     const [selectedUser, setSelectedUser] = useState<string>('all');
@@ -19,8 +19,19 @@ const AuditLogReport: React.FC<AuditLogReportProps> = ({ title, auditLogs, users
     const [startDate, setStartDate] = useState(`${currentYear}-01-01`);
     const [endDate, setEndDate] = useState(new Date().toISOString().substring(0, 10));
 
+    // Fetch data from API - fetch all logs, filter on frontend for better UX
+    const { data: auditLogs = [], isLoading: logsLoading, error: logsError } = useGetAuditLogsQuery();
+
+    const { data: users = [], isLoading: usersLoading } = useGetUsersQuery();
+    const { data: branches = [], isLoading: branchesLoading } = useGetBranchesQuery();
+
+    const isLoading = logsLoading || usersLoading || branchesLoading;
+
+    // Ensure auditLogs is an array
+    const logsArray = Array.isArray(auditLogs) ? auditLogs : [];
+
     const filteredLogs = useMemo(() => {
-        return auditLogs.filter(log => {
+        return logsArray.filter(log => {
             const matchesSearch = log.details.toLowerCase().includes(searchTerm.toLowerCase()) || 
                                   log.targetType.toLowerCase().includes(searchTerm.toLowerCase()) ||
                                   (log.targetId && log.targetId.toString().includes(searchTerm));
@@ -34,7 +45,7 @@ const AuditLogReport: React.FC<AuditLogReportProps> = ({ title, auditLogs, users
             
             return matchesSearch && matchesUser && matchesAction && matchesBranch && matchesDate;
         }).sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
-    }, [auditLogs, searchTerm, selectedUser, selectedAction, selectedBranch, startDate, endDate]);
+    }, [logsArray, searchTerm, selectedUser, selectedAction, selectedBranch, startDate, endDate]);
 
     const getActionBadge = (action: string) => {
         const baseClasses = "px-3 py-1 rounded-md text-xs font-bold flex items-center gap-2 border shadow-sm";
@@ -52,17 +63,43 @@ const AuditLogReport: React.FC<AuditLogReportProps> = ({ title, auditLogs, users
 
     const stats = useMemo(() => {
         const today = new Date().toISOString().split('T')[0];
-        const logsToday = auditLogs.filter(l => l.timestamp.startsWith(today)).length;
-        const uniqueUsers = new Set(auditLogs.map(l => l.userId)).size;
+        const logsToday = logsArray.filter(l => l.timestamp.startsWith(today)).length;
+        const uniqueUsers = new Set(logsArray.map(l => l.userId)).size;
         
         return {
-            total: auditLogs.length,
+            total: logsArray.length,
             today: logsToday,
             users: uniqueUsers
         };
-    }, [auditLogs]);
+    }, [logsArray]);
 
     const inputStyle = "bg-white border-2 border-blue-200 text-gray-900 text-sm rounded-lg focus:ring-blue-800 focus:border-blue-800 block w-full p-2.5 placeholder-gray-500 shadow-sm transition-colors";
+
+    if (isLoading) {
+        return (
+            <div className="flex flex-col h-full space-y-5 bg-slate-100 p-4 rounded-lg overflow-hidden">
+                <div className="flex items-center justify-center h-full">
+                    <div className="text-center">
+                        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-900 mx-auto mb-4"></div>
+                        <p className="text-gray-600">جاري تحميل البيانات...</p>
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
+    if (logsError) {
+        return (
+            <div className="flex flex-col h-full space-y-5 bg-slate-100 p-4 rounded-lg overflow-hidden">
+                <div className="flex items-center justify-center h-full">
+                    <div className="text-center">
+                        <p className="text-red-600 text-lg font-semibold mb-2">حدث خطأ في تحميل البيانات</p>
+                        <p className="text-gray-600">يرجى المحاولة مرة أخرى</p>
+                    </div>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="flex flex-col h-full space-y-5 bg-slate-100 p-4 rounded-lg overflow-hidden">
@@ -122,7 +159,7 @@ const AuditLogReport: React.FC<AuditLogReportProps> = ({ title, auditLogs, users
 
                     <select className={`${inputStyle} w-40`} value={selectedUser} onChange={(e) => setSelectedUser(e.target.value)}>
                         <option value="all">كل المستخدمين</option>
-                        {users.map(u => <option key={u.id} value={u.id}>{u.fullName}</option>)}
+                        {users.map(u => <option key={u.id} value={u.id.toString()}>{(u as any).fullName || u.name || u.email}</option>)}
                     </select>
 
                     <select className={`${inputStyle} w-40`} value={selectedAction} onChange={(e) => setSelectedAction(e.target.value)}>
@@ -130,8 +167,6 @@ const AuditLogReport: React.FC<AuditLogReportProps> = ({ title, auditLogs, users
                         <option value="create">إضافة</option>
                         <option value="update">تعديل</option>
                         <option value="delete">حذف</option>
-                        <option value="login">دخول</option>
-                        <option value="logout">خروج</option>
                         <option value="approve">اعتماد</option>
                         <option value="reject">رفض</option>
                     </select>

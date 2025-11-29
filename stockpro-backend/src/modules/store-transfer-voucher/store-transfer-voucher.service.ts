@@ -7,15 +7,20 @@ import { DatabaseService } from '../../configs/database/database.service';
 import { StockService } from '../store/services/stock.service';
 import { CreateStoreTransferVoucherDto } from './dtos/create-store-transfer-voucher.dto';
 import { UpdateStoreTransferVoucherDto } from './dtos/update-store-transfer-voucher.dto';
+import { AuditLogService } from '../audit-log/audit-log.service';
 
 @Injectable()
 export class StoreTransferVoucherService {
   constructor(
     private readonly prisma: DatabaseService,
     private readonly stockService: StockService,
+    private readonly auditLogService: AuditLogService,
   ) {}
 
-  async create(createStoreTransferVoucherDto: CreateStoreTransferVoucherDto) {
+  async create(
+    createStoreTransferVoucherDto: CreateStoreTransferVoucherDto,
+    userBranchId: string,
+  ) {
     const { items, fromStoreId, ...voucherData } =
       createStoreTransferVoucherDto;
 
@@ -34,7 +39,7 @@ export class StoreTransferVoucherService {
     // Calculate total amount
     const totalAmount = items.reduce((sum, item) => sum + item.totalPrice, 0);
 
-    return this.prisma.$transaction(async (tx) => {
+    const result = await this.prisma.$transaction(async (tx) => {
       // Validate stock in fromStore (same as issue operation)
       // No validation needed for toStore (same as receipt operation)
       for (const item of items) {
@@ -97,6 +102,18 @@ export class StoreTransferVoucherService {
         },
       });
     });
+
+    // Create audit log
+    await this.auditLogService.createAuditLog({
+      userId: result.userId,
+      branchId: userBranchId,
+      action: 'create',
+      targetType: 'store_transfer',
+      targetId: result.voucherNumber,
+      details: `إنشاء تحويل مخزن رقم ${result.voucherNumber} من ${result.fromStore.name} إلى ${result.toStore.name}`,
+    });
+
+    return result;
   }
 
   async findAll() {
@@ -192,7 +209,7 @@ export class StoreTransferVoucherService {
       ? items.reduce((sum, item) => sum + item.totalPrice, 0)
       : undefined;
 
-    return this.prisma.$transaction(async (tx) => {
+    const result = await this.prisma.$transaction(async (tx) => {
       // If items are being updated, validate stock accounting for old items being deleted
       if (items) {
         // Group old items by itemId to sum quantities
@@ -309,14 +326,38 @@ export class StoreTransferVoucherService {
         },
       });
     });
+
+    // Create audit log
+    await this.auditLogService.createAuditLog({
+      userId: result.userId,
+      branchId: userBranchId,
+      action: 'update',
+      targetType: 'store_transfer',
+      targetId: result.voucherNumber,
+      details: `تعديل تحويل مخزن رقم ${result.voucherNumber}`,
+    });
+
+    return result;
   }
 
-  async remove(id: string) {
-    await this.findOne(id);
+  async remove(id: string, userBranchId: string) {
+    const voucher = await this.findOne(id);
 
-    return this.prisma.storeTransferVoucher.delete({
+    const deleted = await this.prisma.storeTransferVoucher.delete({
       where: { id },
     });
+
+    // Create audit log
+    await this.auditLogService.createAuditLog({
+      userId: voucher.userId,
+      branchId: userBranchId,
+      action: 'delete',
+      targetType: 'store_transfer',
+      targetId: voucher.voucherNumber,
+      details: `حذف تحويل مخزن رقم ${voucher.voucherNumber}`,
+    });
+
+    return deleted;
   }
 
   private async generateVoucherNumber(): Promise<string> {

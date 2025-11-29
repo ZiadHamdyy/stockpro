@@ -46,6 +46,7 @@ import { BackupModule } from './modules/backup/backup.module';
 import { ReportPdfModule } from './modules/report-pdf/report-pdf.module.js';
 import { PriceQuotationModule } from './modules/price-quotation/price-quotation.module';
 import { InventoryCountModule } from './modules/inventory-count/inventory-count.module';
+import { AuditLogModule } from './modules/audit-log/audit-log.module';
 
 @Module({
   imports: [
@@ -90,6 +91,7 @@ import { InventoryCountModule } from './modules/inventory-count/inventory-count.
     PayableAccountModule,
     PriceQuotationModule,
     InventoryCountModule,
+    AuditLogModule,
   ],
   controllers: [AppController],
   providers: [

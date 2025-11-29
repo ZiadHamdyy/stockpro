@@ -462,7 +462,9 @@ const StoreIssueVoucher: React.FC<StoreIssueVoucherProps> = ({ title }) => {
       return;
     }
 
-    if (!branch.stores || branch.stores.length === 0) {
+    // Find store for the selected branch
+    const store = stores.find((s) => s.branchId === branch.id);
+    if (!store) {
       showToast("لا يوجد مخزن متاح في هذا الفرع.", 'error');
       return;
     }
@@ -492,7 +494,7 @@ const StoreIssueVoucher: React.FC<StoreIssueVoucherProps> = ({ title }) => {
       });
 
       // Validate stock for each item before creating/updating
-      const storeId = branch.stores[0].id;
+      const storeId = store.id;
       for (const item of filledItems) {
         if (!item.id) continue;
         

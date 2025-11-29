@@ -8,6 +8,7 @@ import { SalesInvoiceResponse } from './dtos/response/sales-invoice.response';
 import { AccountingService } from '../../common/services/accounting.service';
 import { StoreService } from '../store/store.service';
 import { StockService } from '../store/services/stock.service';
+import { AuditLogService } from '../audit-log/audit-log.service';
 
 @Injectable()
 export class SalesInvoiceService {
@@ -15,6 +16,7 @@ export class SalesInvoiceService {
     private readonly prisma: DatabaseService,
     private readonly storeService: StoreService,
     private readonly stockService: StockService,
+    private readonly auditLogService: AuditLogService,
   ) {}
 
   private computeLineTotals(
@@ -410,7 +412,19 @@ export class SalesInvoiceService {
       return created;
     });
 
-    return this.mapToResponse(result);
+    const response = this.mapToResponse(result);
+
+    // Create audit log
+    await this.auditLogService.createAuditLog({
+      userId: result.userId,
+      branchId: result.branchId || undefined,
+      action: 'create',
+      targetType: 'sales_invoice',
+      targetId: result.code,
+      details: `إنشاء فاتورة مبيعات رقم ${result.code} بقيمة ${result.net} ريال`,
+    });
+
+    return response;
   }
 
   async findAll(search?: string): Promise<SalesInvoiceResponse[]> {
@@ -914,7 +928,19 @@ export class SalesInvoiceService {
         return inv;
       });
 
-      return this.mapToResponse(updated);
+      const response = this.mapToResponse(updated);
+
+      // Create audit log
+      await this.auditLogService.createAuditLog({
+        userId: updated.userId,
+        branchId: updated.branchId || undefined,
+        action: 'update',
+        targetType: 'sales_invoice',
+        targetId: updated.code,
+        details: `تعديل فاتورة مبيعات رقم ${updated.code}`,
+      });
+
+      return response;
     } catch (error: any) {
       if (error?.code === 'P2025') {
         throw new NotFoundException('Sales invoice not found');
@@ -998,9 +1024,21 @@ export class SalesInvoiceService {
         }
       }
 
-      await this.prisma.salesInvoice.delete({
+      const deleted = await this.prisma.salesInvoice.delete({
         where: { id },
       });
+
+      // Create audit log
+      if (invoice) {
+        await this.auditLogService.createAuditLog({
+          userId: invoice.userId,
+          branchId: invoice.branchId || undefined,
+          action: 'delete',
+          targetType: 'sales_invoice',
+          targetId: invoice.code,
+          details: `حذف فاتورة مبيعات رقم ${invoice.code}`,
+        });
+      }
     } catch (error) {
       throw new NotFoundException('Sales invoice not found');
     }

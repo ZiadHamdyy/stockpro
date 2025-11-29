@@ -13,6 +13,8 @@ import { CreateStoreIssueVoucherDto } from './dtos/create-store-issue-voucher.dt
 import { UpdateStoreIssueVoucherDto } from './dtos/update-store-issue-voucher.dto';
 import { JwtAuthenticationGuard } from '../../common/guards/strategy.guards/jwt.guard';
 import { Auth } from '../../common/decorators/auth.decorator';
+import { currentUser } from '../../common/decorators/currentUser.decorator';
+import type { currentUserType } from '../../common/types/current-user.type';
 
 @Controller('store-issue-vouchers')
 @UseGuards(JwtAuthenticationGuard)
@@ -23,8 +25,14 @@ export class StoreIssueVoucherController {
 
   @Post()
   @Auth({ permissions: ['store_issue_voucher:create'] })
-  create(@Body() createStoreIssueVoucherDto: CreateStoreIssueVoucherDto) {
-    return this.storeIssueVoucherService.create(createStoreIssueVoucherDto);
+  create(
+    @Body() createStoreIssueVoucherDto: CreateStoreIssueVoucherDto,
+    @currentUser() user: currentUserType,
+  ) {
+    return this.storeIssueVoucherService.create(
+      createStoreIssueVoucherDto,
+      user.branchId,
+    );
   }
 
   @Get()
@@ -44,13 +52,21 @@ export class StoreIssueVoucherController {
   update(
     @Param('id') id: string,
     @Body() updateStoreIssueVoucherDto: UpdateStoreIssueVoucherDto,
+    @currentUser() user: currentUserType,
   ) {
-    return this.storeIssueVoucherService.update(id, updateStoreIssueVoucherDto);
+    return this.storeIssueVoucherService.update(
+      id,
+      updateStoreIssueVoucherDto,
+      user.branchId,
+    );
   }
 
   @Delete(':id')
   @Auth({ permissions: ['store_issue_voucher:delete'] })
-  remove(@Param('id') id: string) {
-    return this.storeIssueVoucherService.remove(id);
+  remove(
+    @Param('id') id: string,
+    @currentUser() user: currentUserType,
+  ) {
+    return this.storeIssueVoucherService.remove(id, user.branchId);
   }
 }

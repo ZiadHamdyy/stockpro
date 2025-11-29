@@ -7,15 +7,20 @@ import { DatabaseService } from '../../configs/database/database.service';
 import { StockService } from '../store/services/stock.service';
 import { CreateStoreIssueVoucherDto } from './dtos/create-store-issue-voucher.dto';
 import { UpdateStoreIssueVoucherDto } from './dtos/update-store-issue-voucher.dto';
+import { AuditLogService } from '../audit-log/audit-log.service';
 
 @Injectable()
 export class StoreIssueVoucherService {
   constructor(
     private readonly prisma: DatabaseService,
     private readonly stockService: StockService,
+    private readonly auditLogService: AuditLogService,
   ) {}
 
-  async create(createStoreIssueVoucherDto: CreateStoreIssueVoucherDto) {
+  async create(
+    createStoreIssueVoucherDto: CreateStoreIssueVoucherDto,
+    userBranchId: string,
+  ) {
     const { items, storeId, ...voucherData } = createStoreIssueVoucherDto;
 
     // Validate quantities are positive
@@ -33,7 +38,7 @@ export class StoreIssueVoucherService {
     // Calculate total amount
     const totalAmount = items.reduce((sum, item) => sum + item.totalPrice, 0);
 
-    return this.prisma.$transaction(async (tx) => {
+    const result = await this.prisma.$transaction(async (tx) => {
       // Validate stock for each item before creating voucher
       for (const item of items) {
         await this.stockService.validateAndDecreaseStock(
@@ -61,7 +66,11 @@ export class StoreIssueVoucherService {
           },
         },
         include: {
-          store: true,
+          store: {
+            include: {
+              branch: true,
+            },
+          },
           user: true,
           items: {
             include: {
@@ -76,6 +85,18 @@ export class StoreIssueVoucherService {
         },
       });
     });
+
+    // Create audit log
+    await this.auditLogService.createAuditLog({
+      userId: result.userId,
+      branchId: userBranchId,
+      action: 'create',
+      targetType: 'store_issue_voucher',
+      targetId: result.voucherNumber,
+      details: `إنشاء إذن صرف مخزن رقم ${result.voucherNumber} بقيمة ${totalAmount} ريال`,
+    });
+
+    return result;
   }
 
   async findAll() {
@@ -137,6 +158,7 @@ export class StoreIssueVoucherService {
   async update(
     id: string,
     updateStoreIssueVoucherDto: UpdateStoreIssueVoucherDto,
+    userBranchId: string,
   ) {
     const { items, storeId, ...voucherData } = updateStoreIssueVoucherDto;
 
@@ -160,7 +182,7 @@ export class StoreIssueVoucherService {
       ? items.reduce((sum, item) => sum + item.totalPrice, 0)
       : undefined;
 
-    return this.prisma.$transaction(async (tx) => {
+    const result = await this.prisma.$transaction(async (tx) => {
       // If items are being updated, validate stock accounting for old items being deleted
       if (items) {
         // Group old items by itemId to sum quantities
@@ -258,17 +280,41 @@ export class StoreIssueVoucherService {
         },
       });
     });
+
+    // Create audit log
+    await this.auditLogService.createAuditLog({
+      userId: result.userId,
+      branchId: userBranchId,
+      action: 'update',
+      targetType: 'store_issue_voucher',
+      targetId: result.voucherNumber,
+      details: `تعديل إذن صرف مخزن رقم ${result.voucherNumber}`,
+    });
+
+    return result;
   }
 
-  async remove(id: string) {
+  async remove(id: string, userBranchId: string) {
     // Get voucher before deletion to know what to rollback
     const voucher = await this.findOne(id);
 
     // Delete voucher (stock is automatically "restored" since the voucher items are deleted)
     // No need to explicitly rollback since stock is calculated from voucher history
-    return this.prisma.storeIssueVoucher.delete({
+    const deleted = await this.prisma.storeIssueVoucher.delete({
       where: { id },
     });
+
+    // Create audit log
+    await this.auditLogService.createAuditLog({
+      userId: voucher.userId,
+      branchId: userBranchId,
+      action: 'delete',
+      targetType: 'store_issue_voucher',
+      targetId: voucher.voucherNumber,
+      details: `حذف إذن صرف مخزن رقم ${voucher.voucherNumber}`,
+    });
+
+    return deleted;
   }
 
   private async generateVoucherNumber(): Promise<string> {

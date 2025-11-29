@@ -58,9 +58,6 @@ export const userSlice = apiSlice.injectEndpoints({
     getUsers: builder.query<User[], void>({
       query: () => "users",
       transformResponse: (response: any) => {
-        console.log("getUsers API response:", response);
-        console.log("Response type:", typeof response);
-        console.log("Response keys:", Object.keys(response || {}));
 
         // Handle the response format: { data: { data: User[], meta: {...} } }
         if (

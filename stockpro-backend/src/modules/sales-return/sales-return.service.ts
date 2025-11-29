@@ -8,6 +8,7 @@ import { ERROR_CODES } from '../../common/constants/error-codes';
 import { AccountingService } from '../../common/services/accounting.service';
 import { StoreService } from '../store/store.service';
 import { StockService } from '../store/services/stock.service';
+import { AuditLogService } from '../audit-log/audit-log.service';
 
 @Injectable()
 export class SalesReturnService {
@@ -15,6 +16,7 @@ export class SalesReturnService {
     private readonly prisma: DatabaseService,
     private readonly storeService: StoreService,
     private readonly stockService: StockService,
+    private readonly auditLogService: AuditLogService,
   ) {}
 
   private computeLineTotals(
@@ -233,7 +235,19 @@ export class SalesReturnService {
       return ret;
     });
 
-    return this.mapToResponse(created);
+    const response = this.mapToResponse(created);
+
+    // Create audit log
+    await this.auditLogService.createAuditLog({
+      userId: created.userId,
+      branchId: created.branchId || undefined,
+      action: 'create',
+      targetType: 'sales_return',
+      targetId: created.code,
+      details: `إنشاء مرتجع مبيعات رقم ${created.code} بقيمة ${created.net} ريال`,
+    });
+
+    return response;
   }
 
   async findAll(search?: string): Promise<SalesReturnResponse[]> {
@@ -502,7 +516,19 @@ export class SalesReturnService {
         return ret;
       });
 
-      return this.mapToResponse(updated);
+      const response = this.mapToResponse(updated);
+
+      // Create audit log
+      await this.auditLogService.createAuditLog({
+        userId: updated.userId,
+        branchId: updated.branchId || undefined,
+        action: 'update',
+        targetType: 'sales_return',
+        targetId: updated.code,
+        details: `تعديل مرتجع مبيعات رقم ${updated.code}`,
+      });
+
+      return response;
     } catch (error: any) {
       if (error?.code === 'P2025') {
         throw new NotFoundException('Sales return not found');
@@ -534,9 +560,21 @@ export class SalesReturnService {
         }
       }
 
-      await this.prisma.salesReturn.delete({
+      const deleted = await this.prisma.salesReturn.delete({
         where: { id },
       });
+
+      // Create audit log
+      if (return_) {
+        await this.auditLogService.createAuditLog({
+          userId: return_.userId,
+          branchId: return_.branchId || undefined,
+          action: 'delete',
+          targetType: 'sales_return',
+          targetId: return_.code,
+          details: `حذف مرتجع مبيعات رقم ${return_.code}`,
+        });
+      }
     } catch (error) {
       throw new NotFoundException('Sales return not found');
     }

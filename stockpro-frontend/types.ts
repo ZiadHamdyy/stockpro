@@ -274,7 +274,7 @@ export interface FiscalYear {
 }
 
 export interface AuditLogEntry {
-  id: number;
+  id: string;
   timestamp: string;
   userId: number;
   userName: string;

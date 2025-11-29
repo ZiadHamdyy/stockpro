@@ -460,7 +460,9 @@ const StoreReceiptVoucher: React.FC<StoreReceiptVoucherProps> = ({ title }) => {
       return;
     }
 
-    if (!branch.stores || branch.stores.length === 0) {
+    // Find store for the selected branch
+    const store = stores.find((s) => s.branchId === branch.id);
+    if (!store) {
       showToast("لا يوجد مخزن متاح في هذا الفرع.", 'error');
       return;
     }
@@ -490,7 +492,7 @@ const StoreReceiptVoucher: React.FC<StoreReceiptVoucherProps> = ({ title }) => {
       });
 
       const voucherData = {
-        storeId: branch.stores[0].id,
+        storeId: store.id,
         userId: currentUser.id,
         items: apiItems,
       };

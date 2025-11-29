@@ -35,6 +35,7 @@ model User {
   storeIssueVouchers    StoreIssueVoucher[]
   storeReceiptVouchers  StoreReceiptVoucher[]
   storeTransferVouchers StoreTransferVoucher[]
+  auditLogs            AuditLog[]
   branch                Branch                 @relation(fields: [branchId], references: [id])
   role                  Role?                  @relation(fields: [roleId], references: [id])
 }
@@ -278,6 +279,7 @@ model Branch {
   salesReturns      SalesReturn[]
   stores            Store?
   users             User[]
+  auditLogs         AuditLog[]
 }
 
 model Store {
@@ -823,6 +825,28 @@ model InventoryCountItem {
 
   @@index([inventoryCountId])
   @@index([itemId])
+}
+
+model AuditLog {
+  id         String   @id @default(uuid())
+  timestamp  DateTime @default(now())
+  userId     String
+  branchId   String?
+  action     String   // create, update, delete, approve, reject, login, logout
+  targetType String   // e.g., "store_receipt_voucher", "sales_invoice"
+  targetId   String?
+  details    String
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  user       User     @relation(fields: [userId], references: [id])
+  branch     Branch?  @relation(fields: [branchId], references: [id])
+
+  @@index([timestamp])
+  @@index([userId])
+  @@index([branchId])
+  @@index([action])
+  @@index([targetType])
+  @@index([targetId])
 }
 
 enum SessionStatus {

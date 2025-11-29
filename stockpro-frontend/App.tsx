@@ -122,7 +122,6 @@ import {
   initialStoreTransferVouchers,
   initialFiscalYears,
   initialUsers,
-  initialAuditLogs,
 } from "./data";
 // FIX: Aliased StoreIssueVoucher type to avoid name collision with component.
 import type {
@@ -148,7 +147,6 @@ import type {
   StoreTransferVoucher,
   Notification,
   FiscalYear,
-  AuditLogEntry,
   PrintSettings,
 } from "./types";
 import { ToastProvider, useToast } from "./components/common/ToastProvider";
@@ -518,8 +516,6 @@ const AppContent = () => {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [fiscalYears, setFiscalYears] =
     useState<FiscalYear[]>(initialFiscalYears);
-  const [auditLogs, setAuditLogs] =
-    useState<AuditLogEntry[]>(initialAuditLogs);
   const [printSettings, setPrintSettings] = useState<PrintSettings>({
     template: "default",
     showLogo: true,
@@ -812,9 +808,6 @@ const AppContent = () => {
                 <ProtectedRoute requiredPermission="audit_log-read">
                   <AuditLog
                     title={currentPageTitle}
-                    auditLogs={auditLogs}
-                    users={users}
-                    branches={branches}
                   />
                 </ProtectedRoute>
               }

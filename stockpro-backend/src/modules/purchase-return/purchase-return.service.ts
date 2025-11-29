@@ -9,6 +9,7 @@ import { ERROR_CODES } from '../../common/constants/error-codes';
 import { AccountingService } from '../../common/services/accounting.service';
 import { StoreService } from '../store/store.service';
 import { StockService } from '../store/services/stock.service';
+import { AuditLogService } from '../audit-log/audit-log.service';
 
 @Injectable()
 export class PurchaseReturnService {
@@ -16,6 +17,7 @@ export class PurchaseReturnService {
     private readonly prisma: DatabaseService,
     private readonly storeService: StoreService,
     private readonly stockService: StockService,
+    private readonly auditLogService: AuditLogService,
   ) {}
 
   /**
@@ -241,10 +243,22 @@ export class PurchaseReturnService {
       return ret;
     });
 
-    return {
+    const response = {
       ...created,
       user: this.convertUserForResponse(created.user),
     } as PurchaseReturnResponse;
+
+    // Create audit log
+    await this.auditLogService.createAuditLog({
+      userId: created.userId,
+      branchId: created.branchId || undefined,
+      action: 'create',
+      targetType: 'purchase_return',
+      targetId: created.code,
+      details: `إنشاء مرتجع شراء رقم ${created.code} بقيمة ${created.net} ريال`,
+    });
+
+    return response;
   }
 
   async findAll(search?: string): Promise<PurchaseReturnResponse[]> {
@@ -478,10 +492,22 @@ export class PurchaseReturnService {
       return ret;
     });
 
-    return {
+    const response = {
       ...updated,
       user: this.convertUserForResponse(updated.user),
     } as PurchaseReturnResponse;
+
+    // Create audit log
+    await this.auditLogService.createAuditLog({
+      userId: updated.userId,
+      branchId: updated.branchId || undefined,
+      action: 'update',
+      targetType: 'purchase_return',
+      targetId: updated.code,
+      details: `تعديل مرتجع شراء رقم ${updated.code}`,
+    });
+
+    return response;
   }
 
   private async findSafeId(
@@ -541,6 +567,16 @@ export class PurchaseReturnService {
       }
 
       await tx.purchaseReturn.delete({ where: { id } });
+    });
+
+    // Create audit log
+    await this.auditLogService.createAuditLog({
+      userId: returnRecord.userId,
+      branchId: returnRecord.branchId || undefined,
+      action: 'delete',
+      targetType: 'purchase_return',
+      targetId: returnRecord.code,
+      details: `حذف مرتجع شراء رقم ${returnRecord.code}`,
     });
   }
 

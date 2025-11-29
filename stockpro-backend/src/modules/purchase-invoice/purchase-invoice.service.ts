@@ -9,6 +9,7 @@ import { ERROR_CODES } from '../../common/constants/error-codes';
 import { AccountingService } from '../../common/services/accounting.service';
 import { StoreService } from '../store/store.service';
 import { StockService } from '../store/services/stock.service';
+import { AuditLogService } from '../audit-log/audit-log.service';
 
 @Injectable()
 export class PurchaseInvoiceService {
@@ -16,6 +17,7 @@ export class PurchaseInvoiceService {
     private readonly prisma: DatabaseService,
     private readonly storeService: StoreService,
     private readonly stockService: StockService,
+    private readonly auditLogService: AuditLogService,
   ) {}
 
   /**
@@ -257,10 +259,22 @@ export class PurchaseInvoiceService {
       return inv;
     });
 
-    return {
+    const response = {
       ...created,
       user: this.convertUserForResponse(created.user),
     } as PurchaseInvoiceResponse;
+
+    // Create audit log
+    await this.auditLogService.createAuditLog({
+      userId: created.userId,
+      branchId: created.branchId || undefined,
+      action: 'create',
+      targetType: 'purchase_invoice',
+      targetId: created.code,
+      details: `إنشاء فاتورة شراء رقم ${created.code} بقيمة ${created.net} ريال`,
+    });
+
+    return response;
   }
 
   async findAll(search?: string): Promise<PurchaseInvoiceResponse[]> {
@@ -514,10 +528,22 @@ export class PurchaseInvoiceService {
       return inv;
     });
 
-    return {
+    const response = {
       ...updated,
       user: this.convertUserForResponse(updated.user),
     } as PurchaseInvoiceResponse;
+
+    // Create audit log
+    await this.auditLogService.createAuditLog({
+      userId: updated.userId,
+      branchId: updated.branchId || undefined,
+      action: 'update',
+      targetType: 'purchase_invoice',
+      targetId: updated.code,
+      details: `تعديل فاتورة شراء رقم ${updated.code}`,
+    });
+
+    return response;
   }
 
   private async findSafeId(
@@ -623,6 +649,16 @@ export class PurchaseInvoiceService {
       }
 
       await tx.purchaseInvoice.delete({ where: { id } });
+    });
+
+    // Create audit log
+    await this.auditLogService.createAuditLog({
+      userId: invoice.userId,
+      branchId: invoice.branchId || undefined,
+      action: 'delete',
+      targetType: 'purchase_invoice',
+      targetId: invoice.code,
+      details: `حذف فاتورة شراء رقم ${invoice.code}`,
     });
   }
 
