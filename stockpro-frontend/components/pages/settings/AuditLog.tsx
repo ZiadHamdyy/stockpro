@@ -105,19 +105,19 @@ const AuditLogReport: React.FC<AuditLogReportProps> = ({ title }) => {
         <div className="flex flex-col h-full space-y-5 bg-slate-100 p-4 rounded-lg overflow-hidden">
             
             {/* Top Stats Bar - Deep Royal Blue Gradient (Darker) */}
-            <div className="bg-gradient-to-r from-blue-950 to-blue-900 rounded-xl p-6 shadow-xl text-white relative overflow-hidden border border-blue-800">
+            <div className="bg-gradient-to-r from-blue-950 to-blue-900 rounded-xl p-4 md:p-6 shadow-xl text-white relative overflow-hidden border border-blue-800 flex items-center">
                 <div className="absolute right-0 top-0 h-full w-1/3 bg-white/5 skew-x-12 transform origin-bottom-right"></div>
-                <div className="relative z-10 flex flex-col md:flex-row justify-between items-center gap-6">
-                    <div className="flex justify-center items-center gap-4">
+                <div className="relative z-10 flex flex-col md:flex-row justify-between items-center gap-4 md:gap-6 w-full">
+                    <div className="flex justify-center md:justify-start items-center gap-4">
                         <div className="p-3 bg-blue-800/50 rounded-lg border border-blue-700 backdrop-blur-sm shadow-inner">
                             <ShieldIcon className="w-8 h-8 text-blue-200" />
                         </div>
-                        <div>
+                        <div className="text-center md:text-right">
                             <h1 className="text-2xl font-bold tracking-wide text-white">{title}</h1>
                             <p className="text-blue-200 text-sm font-medium">نظام الرقابة وتتبع العمليات</p>
                         </div>
                     </div>
-                    <div className="flex gap-8 bg-black/20 px-6 py-3 rounded-lg border border-blue-800/50 backdrop-blur-sm">
+                    <div className="flex gap-8 bg-black/20 px-6 py-3 rounded-lg border border-blue-800/50 backdrop-blur-sm justify-center">
                         <div className="text-center">
                             <p className="text-blue-300 text-[10px] uppercase font-bold tracking-wider">إجمالي السجلات</p>
                             <p className="text-2xl font-mono font-bold text-white">{stats.total}</p>
