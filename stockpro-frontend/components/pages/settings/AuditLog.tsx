@@ -145,24 +145,52 @@ const AuditLogReport: React.FC<AuditLogReportProps> = ({ title }) => {
                         onChange={(e) => setSearchTerm(e.target.value)}
                     />
                 </div>
-                <div className="flex gap-3 w-full xl:w-auto justify-end">
-                    <div className="flex items-center gap-2 bg-blue-50 p-1 rounded-lg border border-blue-200 shadow-sm">
-                        <input type="date" className="bg-transparent text-blue-900 text-sm border-none focus:ring-0 px-2 py-1 outline-none font-semibold" value={startDate} onChange={e => setStartDate(e.target.value)} />
+                
+                {/* Filter Controls - All in One Line */}
+                <div className="flex flex-wrap gap-2 w-full xl:w-auto">
+                    {/* Date Range */}
+                    <div className="flex items-center gap-1.5 bg-blue-50 p-1 rounded-lg border border-blue-200 shadow-sm">
+                        <input 
+                            type="date" 
+                            className="bg-transparent text-blue-900 text-xs border-none focus:ring-0 px-1.5 py-1 outline-none font-semibold" 
+                            value={startDate} 
+                            onChange={e => setStartDate(e.target.value)} 
+                        />
                         <span className="text-blue-400 text-xs font-bold">إلى</span>
-                        <input type="date" className="bg-transparent text-blue-900 text-sm border-none focus:ring-0 px-2 py-1 outline-none font-semibold" value={endDate} onChange={e => setEndDate(e.target.value)} />
+                        <input 
+                            type="date" 
+                            className="bg-transparent text-blue-900 text-xs border-none focus:ring-0 px-1.5 py-1 outline-none font-semibold" 
+                            value={endDate} 
+                            onChange={e => setEndDate(e.target.value)} 
+                        />
                     </div>
                     
-                    <select className={`${inputStyle} w-40`} value={selectedBranch} onChange={(e) => setSelectedBranch(e.target.value)}>
+                    {/* Branch Select */}
+                    <select 
+                        className={`${inputStyle} w-32 text-sm`} 
+                        value={selectedBranch} 
+                        onChange={(e) => setSelectedBranch(e.target.value)}
+                    >
                         <option value="all">كل الفروع</option>
                         {branches.map(b => <option key={b.id} value={b.name}>{b.name}</option>)}
                     </select>
 
-                    <select className={`${inputStyle} w-40`} value={selectedUser} onChange={(e) => setSelectedUser(e.target.value)}>
+                    {/* User Select */}
+                    <select 
+                        className={`${inputStyle} w-32 text-sm`} 
+                        value={selectedUser} 
+                        onChange={(e) => setSelectedUser(e.target.value)}
+                    >
                         <option value="all">كل المستخدمين</option>
                         {users.map(u => <option key={u.id} value={u.id.toString()}>{(u as any).fullName || u.name || u.email}</option>)}
                     </select>
 
-                    <select className={`${inputStyle} w-40`} value={selectedAction} onChange={(e) => setSelectedAction(e.target.value)}>
+                    {/* Action Select */}
+                    <select 
+                        className={`${inputStyle} w-32 text-sm`} 
+                        value={selectedAction} 
+                        onChange={(e) => setSelectedAction(e.target.value)}
+                    >
                         <option value="all">كل العمليات</option>
                         <option value="create">إضافة</option>
                         <option value="update">تعديل</option>
