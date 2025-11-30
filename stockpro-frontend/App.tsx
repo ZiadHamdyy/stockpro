@@ -732,6 +732,7 @@ const AppContent = () => {
           onLogout={handleLogout}
           searchTerm={searchTerm}
           setSearchTerm={setSearchTerm}
+          notifications={notifications}
         />
         <main className="flex-1 overflow-x-hidden overflow-y-auto bg-brand-bg p-6">
           <Routes>
