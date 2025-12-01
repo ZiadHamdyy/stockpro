@@ -509,6 +509,20 @@ const StoreTransfer: React.FC<StoreTransferProps> = ({ title }) => {
       return;
     }
 
+    // Validate that current user's store is in either fromStore or toStore
+    if (!userStore) {
+      showToast("لا يمكن إنشاء أو تعديل سند التحويل. يجب أن يكون مخزنك الحالي موجوداً في أحد الحقول (من مخزن أو إلى مخزن).", 'error');
+      return;
+    }
+
+    const isUserStoreInFromStore = fromStore.id === userStore.id;
+    const isUserStoreInToStore = toStore.id === userStore.id;
+
+    if (!isUserStoreInFromStore && !isUserStoreInToStore) {
+      showToast("لا يمكن إنشاء أو تعديل سند التحويل. يجب أن يكون مخزنك الحالي موجوداً في أحد الحقول (من مخزن أو إلى مخزن).", 'error');
+      return;
+    }
+
     try {
       if (!currentUser?.id) {
         showToast("يرجى تسجيل الدخول أولاً.", 'error');
@@ -892,6 +906,8 @@ const StoreTransfer: React.FC<StoreTransferProps> = ({ title }) => {
                     onChange={(e) =>
                       setVoucherDetails({ ...voucherDetails, date: e.target.value })
                     }
+                    disabled={!userStore}
+                    title={!userStore ? "يجب أن يكون لديك مخزن مرتبط بحسابك" : ""}
                   />
                   <input
                     type="text"
@@ -921,6 +937,8 @@ const StoreTransfer: React.FC<StoreTransferProps> = ({ title }) => {
                         fromStore: e.target.value,
                       })
                     }
+                    disabled={!userStore}
+                    title={!userStore ? "يجب أن يكون لديك مخزن مرتبط بحسابك" : ""}
                   >
                     <option value="" disabled>
                       من مخزن...
@@ -959,6 +977,8 @@ const StoreTransfer: React.FC<StoreTransferProps> = ({ title }) => {
                         toStore: e.target.value,
                       })
                     }
+                    disabled={!userStore}
+                    title={!userStore ? "يجب أن يكون لديك مخزن مرتبط بحسابك" : ""}
                   >
                     <option value="" disabled>
                       إلى مخزن...
@@ -1029,7 +1049,8 @@ const StoreTransfer: React.FC<StoreTransferProps> = ({ title }) => {
                         handleItemChange(index, "code", e.target.value)
                       }
                       className={tableInputStyle}
-                      disabled={isReadOnly}
+                      disabled={isReadOnly || !userStore}
+                      title={!userStore ? "يجب أن يكون لديك مخزن مرتبط بحسابك" : ""}
                     />
                   </td>
                   <td className="p-2 align-middle relative">
@@ -1050,7 +1071,8 @@ const StoreTransfer: React.FC<StoreTransferProps> = ({ title }) => {
                           if (el) nameInputRefs.current[index] = el;
                         }}
                         className="bg-transparent w-full focus:outline-none p-1"
-                        disabled={isReadOnly}
+                        disabled={isReadOnly || !userStore}
+                        title={!userStore ? "يجب أن يكون لديك مخزن مرتبط بحسابك" : ""}
                       />
                       <button
                         type="button"
@@ -1103,7 +1125,8 @@ const StoreTransfer: React.FC<StoreTransferProps> = ({ title }) => {
                         if (el) qtyInputRefs.current[index] = el;
                       }}
                       className={tableInputStyle}
-                      disabled={isReadOnly}
+                      disabled={isReadOnly || !userStore}
+                      title={!userStore ? "يجب أن يكون لديك مخزن مرتبط بحسابك" : ""}
                     />
                   </td>
                   <td className="p-2 align-middle">
@@ -1116,7 +1139,8 @@ const StoreTransfer: React.FC<StoreTransferProps> = ({ title }) => {
                         handleItemChange(index, "price", e.target.value)
                       }
                       className={tableInputStyle}
-                      disabled={isReadOnly}
+                      disabled={isReadOnly || !userStore}
+                      title={!userStore ? "يجب أن يكون لديك مخزن مرتبط بحسابك" : ""}
                     />
                   </td>
                   <td className="p-2 align-middle text-center font-semibold text-brand-dark">
@@ -1126,7 +1150,8 @@ const StoreTransfer: React.FC<StoreTransferProps> = ({ title }) => {
                     <button
                       onClick={() => handleRemoveItem(index)}
                       className="text-red-500 p-1 rounded-full hover:bg-red-100 hover:text-red-700 disabled:text-gray-400 disabled:hover:bg-transparent"
-                      disabled={isReadOnly}
+                      disabled={isReadOnly || !userStore}
+                      title={!userStore ? "يجب أن يكون لديك مخزن مرتبط بحسابك" : ""}
                     >
                       <TrashIcon className="w-5 h-5" />
                     </button>
@@ -1153,7 +1178,8 @@ const StoreTransfer: React.FC<StoreTransferProps> = ({ title }) => {
           <button
             onClick={handleAddItem}
             className="no-print mb-4 px-4 py-2 bg-gray-200 text-brand-dark rounded-md hover:bg-gray-300 font-semibold disabled:bg-gray-300 disabled:cursor-not-allowed"
-            disabled={isReadOnly}
+            disabled={isReadOnly || !userStore}
+            title={!userStore ? "يجب أن يكون لديك مخزن مرتبط بحسابك" : ""}
           >
             اضافة سطر
           </button>
@@ -1195,9 +1221,10 @@ const StoreTransfer: React.FC<StoreTransferProps> = ({ title }) => {
                 <button
                   onClick={handleSave}
                   disabled={
-                    isReadOnly || items.length === 0 || isCreating || isUpdating
+                    isReadOnly || items.length === 0 || isCreating || isUpdating || !userStore
                   }
                   className="px-4 py-2 bg-amber-500 text-white rounded-md hover:bg-amber-600 font-semibold disabled:bg-gray-400"
+                  title={!userStore ? "يجب أن يكون لديك مخزن مرتبط بحسابك" : ""}
                 >
                   {isCreating || isUpdating ? "جاري الحفظ..." : "حفظ"}
                 </button>
