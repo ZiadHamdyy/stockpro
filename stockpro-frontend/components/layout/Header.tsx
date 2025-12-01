@@ -79,9 +79,33 @@ const Header: React.FC<HeaderProps> = ({
     }
 
     // Navigate to related page if applicable
-    if (notification.relatedId && notification.type === "store_transfer") {
-      navigate(`/warehouse/store-transfer?voucherId=${notification.relatedId}`);
-      setIsDropdownOpen(false);
+    if (notification.relatedId) {
+      const encodedId = encodeURIComponent(String(notification.relatedId));
+      
+      // Store transfer notifications (new, accepted, rejected)
+      // Use window.location.href for full page reload (like DailyCollectionsReport pattern)
+      if (
+        notification.type === "store_transfer" ||
+        notification.type === "store_transfer_accepted" ||
+        notification.type === "store_transfer_rejected"
+      ) {
+        window.location.href = `/warehouse/transfer?voucherId=${encodedId}`;
+        return;
+      }
+
+      // Invoice notifications - check message to determine sales vs purchase
+      if (notification.type === "invoice" || notification.message?.includes("فاتورة")) {
+        // Check if it's a sales invoice (فاتورة المبيعات) or purchase invoice (فاتورة المشتريات)
+        if (notification.message?.includes("فاتورة المبيعات") || notification.message?.includes("sales")) {
+          navigate(`/sales/invoice?invoiceId=${encodedId}`);
+          setIsDropdownOpen(false);
+          return;
+        } else if (notification.message?.includes("فاتورة المشتريات") || notification.message?.includes("purchase")) {
+          navigate(`/purchases/invoice?invoiceId=${encodedId}`);
+          setIsDropdownOpen(false);
+          return;
+        }
+      }
     }
   };
 
