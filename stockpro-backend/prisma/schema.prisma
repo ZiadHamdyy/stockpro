@@ -36,6 +36,7 @@ model User {
   storeReceiptVouchers  StoreReceiptVoucher[]
   storeTransferVouchers StoreTransferVoucher[]
   auditLogs            AuditLog[]
+  notifications        Notification[]
   branch                Branch                 @relation(fields: [branchId], references: [id])
   role                  Role?                  @relation(fields: [roleId], references: [id])
 }
@@ -349,6 +350,7 @@ model StoreTransferVoucher {
   date          DateTime                   @default(now())
   notes         String?
   totalAmount   Float                      @default(0)
+  status        StoreTransferStatus        @default(PENDING)
   fromStoreId   String
   toStoreId     String
   userId        String
@@ -358,11 +360,13 @@ model StoreTransferVoucher {
   toStore       Store                      @relation("ToStore", fields: [toStoreId], references: [id])
   user          User                       @relation(fields: [userId], references: [id])
   items         StoreTransferVoucherItem[]
+  notifications Notification[]              @relation("TransferNotifications")
 
   @@index([voucherNumber])
   @@index([date])
   @@index([fromStoreId])
   @@index([toStoreId])
+  @@index([status])
 }
 
 model StoreReceiptVoucherItem {
@@ -426,6 +430,23 @@ model StoreItem {
   @@unique([storeId, itemId])
   @@index([storeId])
   @@index([itemId])
+}
+
+model Notification {
+  id                    String                @id @default(uuid())
+  userId                String
+  type                  String
+  message               String
+  relatedId             String?
+  read                  Boolean                @default(false)
+  createdAt             DateTime               @default(now())
+  updatedAt             DateTime               @updatedAt
+  user                  User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  storeTransferVoucher  StoreTransferVoucher? @relation("TransferNotifications", fields: [relatedId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([read])
+  @@index([createdAt])
 }
 
 model CurrentAccount {
@@ -872,4 +893,10 @@ enum InventoryCountStatus {
 enum BankTransactionType {
   POS
   TRANSFER
+}
+
+enum StoreTransferStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
 }

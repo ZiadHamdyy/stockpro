@@ -96,12 +96,13 @@ export class StockService {
       },
     });
 
-    // Sum of all transfers OUT (from this store)
+    // Sum of all transfers OUT (from this store) - only ACCEPTED transfers
     const transfersOut = await client.storeTransferVoucherItem.aggregate({
       where: {
         itemId,
         voucher: {
           fromStoreId: storeId,
+          status: 'ACCEPTED',
         },
       },
       _sum: {
@@ -109,12 +110,13 @@ export class StockService {
       },
     });
 
-    // Sum of all transfers IN (to this store)
+    // Sum of all transfers IN (to this store) - only ACCEPTED transfers
     const transfersIn = await client.storeTransferVoucherItem.aggregate({
       where: {
         itemId,
         voucher: {
           toStoreId: storeId,
+          status: 'ACCEPTED',
         },
       },
       _sum: {

@@ -25,6 +25,7 @@ export interface StoreTransferVoucher {
   date: string;
   notes?: string;
   totalAmount: number;
+  status: 'PENDING' | 'ACCEPTED' | 'REJECTED';
   fromStoreId: string;
   toStoreId: string;
   userId: string;
@@ -66,8 +67,11 @@ export interface UpdateStoreTransferVoucherDto
 
 export const storeTransferVoucherApi = apiSlice.injectEndpoints({
   endpoints: (builder) => ({
-    getStoreTransferVouchers: builder.query<StoreTransferVoucher[], void>({
-      query: () => "store-transfer-vouchers",
+    getStoreTransferVouchers: builder.query<StoreTransferVoucher[], string | void>({
+      query: (status) => {
+        const params = status ? `?status=${status}` : '';
+        return `store-transfer-vouchers${params}`;
+      },
       transformResponse: (response: { data: StoreTransferVoucher[] }) =>
         response.data,
       providesTags: ["StoreTransferVoucher"],
@@ -123,6 +127,41 @@ export const storeTransferVoucherApi = apiSlice.injectEndpoints({
         "AuditLog",
       ],
     }),
+    acceptStoreTransferVoucher: builder.mutation<
+      StoreTransferVoucher,
+      string
+    >({
+      query: (id) => ({
+        url: `store-transfer-vouchers/${id}/accept`,
+        method: "PATCH",
+      }),
+      transformResponse: (response: { data: StoreTransferVoucher }) =>
+        response.data,
+      invalidatesTags: (result, error, id) => [
+        { type: "StoreTransferVoucher", id },
+        "StoreTransferVoucher",
+        "Item",
+        "AuditLog",
+        "Notification",
+      ],
+    }),
+    rejectStoreTransferVoucher: builder.mutation<
+      StoreTransferVoucher,
+      string
+    >({
+      query: (id) => ({
+        url: `store-transfer-vouchers/${id}/reject`,
+        method: "PATCH",
+      }),
+      transformResponse: (response: { data: StoreTransferVoucher }) =>
+        response.data,
+      invalidatesTags: (result, error, id) => [
+        { type: "StoreTransferVoucher", id },
+        "StoreTransferVoucher",
+        "AuditLog",
+        "Notification",
+      ],
+    }),
   }),
 });
 
@@ -132,4 +171,6 @@ export const {
   useCreateStoreTransferVoucherMutation,
   useUpdateStoreTransferVoucherMutation,
   useDeleteStoreTransferVoucherMutation,
+  useAcceptStoreTransferVoucherMutation,
+  useRejectStoreTransferVoucherMutation,
 } = storeTransferVoucherApi;

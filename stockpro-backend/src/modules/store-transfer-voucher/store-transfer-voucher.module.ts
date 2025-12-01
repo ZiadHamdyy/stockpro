@@ -3,9 +3,10 @@ import { StoreTransferVoucherController } from './store-transfer-voucher.control
 import { StoreTransferVoucherService } from './store-transfer-voucher.service';
 import { StoreModule } from '../store/store.module';
 import { AuditLogModule } from '../audit-log/audit-log.module';
+import { NotificationModule } from '../notification/notification.module';
 
 @Module({
-  imports: [StoreModule, AuditLogModule],
+  imports: [StoreModule, AuditLogModule, NotificationModule],
   controllers: [StoreTransferVoucherController],
   providers: [StoreTransferVoucherService],
   exports: [StoreTransferVoucherService],

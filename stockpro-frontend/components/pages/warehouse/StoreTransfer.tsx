@@ -28,7 +28,11 @@ import {
   useCreateStoreTransferVoucherMutation,
   useUpdateStoreTransferVoucherMutation,
   useDeleteStoreTransferVoucherMutation,
+  useAcceptStoreTransferVoucherMutation,
+  useRejectStoreTransferVoucherMutation,
 } from "../../store/slices/storeTransferVoucher/storeTransferVoucherApi";
+import { useGetUnreadCountQuery } from "../../store/slices/notification/notificationApi";
+import type { User } from "../../store/slices/user/userApi";
 import { useLazyGetStoreItemBalanceQuery } from "../../store/slices/store/storeApi";
 import { useGetStoreReceiptVouchersQuery } from "../../store/slices/storeReceiptVoucher/storeReceiptVoucherApi";
 import { useGetStoreIssueVouchersQuery } from "../../store/slices/storeIssueVoucher/storeIssueVoucherApi";
@@ -51,6 +55,16 @@ type SelectableItem = {
 interface StoreTransferProps {
   title: string;
 }
+
+// Helper function to get user's branch ID
+const getUserBranchId = (user: User | null): string | null => {
+  if (!user) return null;
+  if (user.branchId) return user.branchId;
+  const branch = (user as any)?.branch;
+  if (typeof branch === "string") return branch;
+  if (branch && typeof branch === "object") return branch.id || null;
+  return null;
+};
 
 const DocumentHeader: React.FC<{ companyInfo: CompanyInfo }> = ({
   companyInfo,
@@ -100,7 +114,12 @@ const StoreTransfer: React.FC<StoreTransferProps> = ({ title }) => {
     useUpdateStoreTransferVoucherMutation();
   const [deleteVoucher, { isLoading: isDeleting }] =
     useDeleteStoreTransferVoucherMutation();
+  const [acceptVoucher, { isLoading: isAccepting }] =
+    useAcceptStoreTransferVoucherMutation();
+  const [rejectVoucher, { isLoading: isRejecting }] =
+    useRejectStoreTransferVoucherMutation();
   const [getStoreItemBalance] = useLazyGetStoreItemBalanceQuery();
+  const { data: unreadCount = 0 } = useGetUnreadCountQuery();
 
   // Get data for ItemContextBar
   const { data: storeItems = [] } = useGetAllStoreItemsQuery();
@@ -115,6 +134,13 @@ const StoreTransfer: React.FC<StoreTransferProps> = ({ title }) => {
 
   // Get current user from auth state
   const currentUser = useSelector((state: RootState) => state.auth.user);
+
+  // Get current user's store
+  const userBranchId = getUserBranchId(currentUser);
+  const userStore = useMemo(() => 
+    stores.find((store) => store.branchId === userBranchId),
+    [stores, userBranchId]
+  );
 
   const getEmptyItems = (count: number = 5): StoreVoucherItem[] =>
     Array.from({ length: count }, () => ({
@@ -269,6 +295,11 @@ const StoreTransfer: React.FC<StoreTransferProps> = ({ title }) => {
         fromStore: v.fromStore?.name || "",
         toStore: v.toStore?.name || "",
       });
+      // Set read-only based on status - only pending transfers can be edited by sender
+      // Receiving store users can accept/reject pending transfers
+      const isPending = v.status === 'PENDING';
+      const isReceivingStore = userStore && v.toStore?.id === userStore.id;
+      setIsReadOnly(!isPending || (isPending && isReceivingStore));
       // Transform API items to component format
       const transformedItems: StoreVoucherItem[] = v.items.map((item: any) => ({
         id: item.itemId || item.id || "",
@@ -647,6 +678,55 @@ const StoreTransfer: React.FC<StoreTransferProps> = ({ title }) => {
     });
   };
 
+  const handleAccept = async () => {
+    if (currentIndex < 0) return;
+    const voucher = vouchers[currentIndex];
+    if (!voucher || voucher.status !== 'PENDING') {
+      showToast("لا يمكن قبول هذا التحويل", 'error');
+      return;
+    }
+    if (!userStore || voucher.toStore?.id !== userStore.id) {
+      showToast("يمكنك فقط قبول التحويلات المرسلة إلى مخزنك", 'error');
+      return;
+    }
+    try {
+      await acceptVoucher(voucher.id).unwrap();
+      showToast("تم قبول التحويل بنجاح!");
+      await refetchVouchers();
+    } catch (error) {
+      console.error("Error accepting transfer:", error);
+      showToast("حدث خطأ أثناء قبول التحويل", 'error');
+    }
+  };
+
+  const handleReject = async () => {
+    if (currentIndex < 0) return;
+    const voucher = vouchers[currentIndex];
+    if (!voucher || voucher.status !== 'PENDING') {
+      showToast("لا يمكن رفض هذا التحويل", 'error');
+      return;
+    }
+    if (!userStore || voucher.toStore?.id !== userStore.id) {
+      showToast("يمكنك فقط رفض التحويلات المرسلة إلى مخزنك", 'error');
+      return;
+    }
+    showModal({
+      title: "تأكيد الرفض",
+      message: "هل أنت متأكد من رفض هذا التحويل؟",
+      onConfirm: async () => {
+        try {
+          await rejectVoucher(voucher.id).unwrap();
+          showToast("تم رفض التحويل بنجاح.");
+          await refetchVouchers();
+        } catch (error) {
+          console.error("Error rejecting transfer:", error);
+          showToast("حدث خطأ أثناء رفض التحويل", 'error');
+        }
+      },
+      type: "delete",
+    });
+  };
+
   const navigate = (index: number) => {
     if (vouchers.length > 0) {
       setCurrentIndex(Math.max(0, Math.min(vouchers.length - 1, index)));
@@ -744,9 +824,30 @@ const StoreTransfer: React.FC<StoreTransferProps> = ({ title }) => {
 
         <div className="border-2 border-amber-500 rounded-lg mb-4 voucher-header-container">
           <div className="p-4">
-            <h1 className="text-2xl font-bold mb-4 border-b-2 border-dashed border-gray-300 pb-2 text-brand-dark voucher-header-title">
-              {title}
-            </h1>
+            <div className="flex justify-between items-center mb-4">
+              <h1 className="text-2xl font-bold border-b-2 border-dashed border-gray-300 pb-2 text-brand-dark voucher-header-title">
+                {title}
+              </h1>
+              {currentIndex >= 0 && vouchers[currentIndex] && (
+                <div className="flex items-center gap-2 no-print">
+                  {vouchers[currentIndex].status === 'PENDING' && (
+                    <span className="px-3 py-1 bg-yellow-100 text-yellow-800 rounded-full text-sm font-semibold">
+                      قيد الانتظار
+                    </span>
+                  )}
+                  {vouchers[currentIndex].status === 'ACCEPTED' && (
+                    <span className="px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm font-semibold">
+                      مقبول
+                    </span>
+                  )}
+                  {vouchers[currentIndex].status === 'REJECTED' && (
+                    <span className="px-3 py-1 bg-red-100 text-red-800 rounded-full text-sm font-semibold">
+                      مرفوض
+                    </span>
+                  )}
+                </div>
+              )}
+            </div>
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4 voucher-header-grid">
               <input
                 type="text"
@@ -1110,6 +1211,27 @@ const StoreTransfer: React.FC<StoreTransferProps> = ({ title }) => {
                   {isDeleting ? "جاري الحذف..." : "حذف"}
                 </button>
               </PermissionWrapper>
+            {currentIndex >= 0 && vouchers[currentIndex] && 
+             vouchers[currentIndex].status === 'PENDING' &&
+             userStore && 
+             vouchers[currentIndex].toStore?.id === userStore.id && (
+              <>
+                <button
+                  onClick={handleAccept}
+                  disabled={isAccepting}
+                  className="px-4 py-2 bg-green-500 text-white rounded-md hover:bg-green-600 font-semibold disabled:bg-gray-400"
+                >
+                  {isAccepting ? "جاري القبول..." : "قبول"}
+                </button>
+                <button
+                  onClick={handleReject}
+                  disabled={isRejecting}
+                  className="px-4 py-2 bg-orange-500 text-white rounded-md hover:bg-orange-600 font-semibold disabled:bg-gray-400"
+                >
+                  {isRejecting ? "جاري الرفض..." : "رفض"}
+                </button>
+              </>
+            )}
             <PermissionWrapper
               requiredPermission={buildPermission(
                 Resources.STORE_TRANSFER,

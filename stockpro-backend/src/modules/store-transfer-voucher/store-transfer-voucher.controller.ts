@@ -7,6 +7,7 @@ import {
   Param,
   Delete,
   UseGuards,
+  Query,
 } from '@nestjs/common';
 import { StoreTransferVoucherService } from './store-transfer-voucher.service';
 import { CreateStoreTransferVoucherDto } from './dtos/create-store-transfer-voucher.dto';
@@ -37,8 +38,8 @@ export class StoreTransferVoucherController {
 
   @Get()
   @Auth({ permissions: ['store_transfer:read'] })
-  findAll() {
-    return this.storeTransferVoucherService.findAll();
+  findAll(@Query('status') status?: string) {
+    return this.storeTransferVoucherService.findAll(status);
   }
 
   @Get(':id')
@@ -68,5 +69,31 @@ export class StoreTransferVoucherController {
     @currentUser() user: currentUserType,
   ) {
     return this.storeTransferVoucherService.remove(id, user.branchId);
+  }
+
+  @Patch(':id/accept')
+  @Auth({ permissions: ['store_transfer:update'] })
+  accept(
+    @Param('id') id: string,
+    @currentUser() user: currentUserType,
+  ) {
+    return this.storeTransferVoucherService.acceptTransfer(
+      id,
+      user.branchId,
+      user.id,
+    );
+  }
+
+  @Patch(':id/reject')
+  @Auth({ permissions: ['store_transfer:update'] })
+  reject(
+    @Param('id') id: string,
+    @currentUser() user: currentUserType,
+  ) {
+    return this.storeTransferVoucherService.rejectTransfer(
+      id,
+      user.branchId,
+      user.id,
+    );
   }
 }

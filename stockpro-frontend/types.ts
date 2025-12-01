@@ -134,6 +134,7 @@ export interface StoreTransferVoucher {
   date: string;
   fromStore: string;
   toStore: string;
+  status?: 'PENDING' | 'ACCEPTED' | 'REJECTED';
   items: StoreVoucherItem[];
 }
 

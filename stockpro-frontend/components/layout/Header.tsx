@@ -1,21 +1,26 @@
 import React, { useState, useEffect, useRef } from "react";
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import {
   LogOutIcon,
   BellIcon,
   BoxIcon,
   ReceiptIcon,
 } from "../icons";
-import type { User, Notification } from "../../types";
+import type { User } from "../../types";
 import { getLabelByPath } from "../../routes/routeConfig";
 import { useTitle } from "../context/TitleContext";
+import { 
+  useGetNotificationsQuery, 
+  useGetUnreadCountQuery,
+  useMarkAsReadMutation,
+  type Notification 
+} from "../store/slices/notification/notificationApi";
 
 interface HeaderProps {
   currentUser: User | null;
   onLogout: () => void;
   searchTerm: string;
   setSearchTerm: (term: string) => void;
-  notifications: Notification[];
 }
 
 const Header: React.FC<HeaderProps> = ({
@@ -23,14 +28,19 @@ const Header: React.FC<HeaderProps> = ({
   onLogout,
   searchTerm,
   setSearchTerm,
-  notifications,
 }) => {
   const location = useLocation();
+  const navigate = useNavigate();
   const { title: dynamicTitle } = useTitle();
   const routeTitle = getLabelByPath(location.pathname);
   const title = dynamicTitle || routeTitle;
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+
+  // Fetch notifications from API
+  const { data: notifications = [], refetch: refetchNotifications } = useGetNotificationsQuery();
+  const { data: unreadCount = 0 } = useGetUnreadCountQuery();
+  const [markAsRead] = useMarkAsReadMutation();
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -42,14 +52,36 @@ const Header: React.FC<HeaderProps> = ({
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  const NotificationIcon = ({ type }: { type: Notification["type"] }) => {
+  const NotificationIcon = ({ type }: { type: string }) => {
     switch (type) {
       case "stock":
         return <BoxIcon className="w-5 h-5 text-yellow-500" />;
       case "invoice":
         return <ReceiptIcon className="w-5 h-5 text-red-500" />;
+      case "store_transfer":
+      case "store_transfer_accepted":
+      case "store_transfer_rejected":
+        return <BoxIcon className="w-5 h-5 text-blue-500" />;
       default:
         return <BellIcon className="w-5 h-5 text-gray-500" />;
+    }
+  };
+
+  const handleNotificationClick = async (notification: Notification) => {
+    // Mark as read
+    if (!notification.read) {
+      try {
+        await markAsRead(notification.id).unwrap();
+        refetchNotifications();
+      } catch (error) {
+        console.error("Error marking notification as read:", error);
+      }
+    }
+
+    // Navigate to related page if applicable
+    if (notification.relatedId && notification.type === "store_transfer") {
+      navigate(`/warehouse/store-transfer?voucherId=${notification.relatedId}`);
+      setIsDropdownOpen(false);
     }
   };
 
@@ -81,27 +113,51 @@ const Header: React.FC<HeaderProps> = ({
             className="p-2 rounded-full text-gray-500 hover:bg-gray-100 hover:text-brand-dark relative"
           >
             <BellIcon />
-            {notifications.length > 0 && (
+            {unreadCount > 0 && (
               <span className="absolute top-0 right-0 block h-5 w-5 rounded-full bg-red-500 text-white text-xs font-bold flex items-center justify-center transform -translate-y-1/2 translate-x-1/2">
-                {notifications.length}
+                {unreadCount > 99 ? '99+' : unreadCount}
               </span>
             )}
           </button>
 
           {isDropdownOpen && (
             <div className="absolute left-0 mt-2 w-80 bg-white rounded-lg shadow-xl border z-20">
-              <div className="p-3 font-bold text-brand-dark border-b">
-                الإشعارات
+              <div className="p-3 font-bold text-brand-dark border-b flex justify-between items-center">
+                <span>الإشعارات</span>
+                {unreadCount > 0 && (
+                  <span className="text-xs text-gray-500">
+                    {unreadCount} غير مقروء
+                  </span>
+                )}
               </div>
               <div className="max-h-80 overflow-y-auto">
                 {notifications.length > 0 ? (
                   notifications.map((notif) => (
                     <div
                       key={notif.id}
-                      className="flex items-start gap-3 p-3 border-b last:border-b-0 hover:bg-gray-50 cursor-pointer"
+                      onClick={() => handleNotificationClick(notif)}
+                      className={`flex items-start gap-3 p-3 border-b last:border-b-0 hover:bg-gray-50 cursor-pointer ${
+                        !notif.read ? 'bg-blue-50' : ''
+                      }`}
                     >
                       <NotificationIcon type={notif.type} />
-                      <p className="text-sm text-gray-700">{notif.message}</p>
+                      <div className="flex-1">
+                        <p className={`text-sm ${!notif.read ? 'font-semibold text-gray-900' : 'text-gray-700'}`}>
+                          {notif.message}
+                        </p>
+                        <p className="text-xs text-gray-500 mt-1">
+                          {new Date(notif.createdAt).toLocaleDateString('ar-SA', {
+                            year: 'numeric',
+                            month: 'long',
+                            day: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit'
+                          })}
+                        </p>
+                      </div>
+                      {!notif.read && (
+                        <div className="w-2 h-2 rounded-full bg-blue-500 mt-1"></div>
+                      )}
                     </div>
                   ))
                 ) : (

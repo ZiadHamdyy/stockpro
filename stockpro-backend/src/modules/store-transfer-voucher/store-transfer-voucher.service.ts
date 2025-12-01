@@ -8,6 +8,7 @@ import { StockService } from '../store/services/stock.service';
 import { CreateStoreTransferVoucherDto } from './dtos/create-store-transfer-voucher.dto';
 import { UpdateStoreTransferVoucherDto } from './dtos/update-store-transfer-voucher.dto';
 import { AuditLogService } from '../audit-log/audit-log.service';
+import { NotificationService } from '../notification/notification.service';
 
 @Injectable()
 export class StoreTransferVoucherService {
@@ -15,6 +16,7 @@ export class StoreTransferVoucherService {
     private readonly prisma: DatabaseService,
     private readonly stockService: StockService,
     private readonly auditLogService: AuditLogService,
+    private readonly notificationService: NotificationService,
   ) {}
 
   async create(
@@ -61,13 +63,14 @@ export class StoreTransferVoucherService {
         );
       }
 
-      // Create voucher (stock validation passed)
+      // Create voucher (stock validation passed) with PENDING status
       return tx.storeTransferVoucher.create({
         data: {
           ...voucherData,
           fromStoreId,
           voucherNumber,
           totalAmount,
+          status: 'PENDING',
           items: {
             create: items.map((item) => ({
               quantity: item.quantity,
@@ -113,11 +116,44 @@ export class StoreTransferVoucherService {
       details: `إنشاء تحويل مخزن رقم ${result.voucherNumber} من ${result.fromStore.name} إلى ${result.toStore.name}`,
     });
 
+    // Create notifications for users in BOTH stores (sending and receiving)
+    // Notify receiving store
+    try {
+      await this.notificationService.createForStoreUsers(
+        result.toStoreId,
+        'store_transfer',
+        `طلب تحويل مخزن جديد رقم ${result.voucherNumber} من ${result.fromStore.name} - سيتم استلام العناصر`,
+        result.id,
+      );
+    } catch (error) {
+      console.error('Error creating notifications for receiving store:', error);
+      // Continue even if notification creation fails
+    }
+
+    // Notify sending store
+    try {
+      await this.notificationService.createForStoreUsers(
+        result.fromStoreId,
+        'store_transfer',
+        `طلب تحويل مخزن جديد رقم ${result.voucherNumber} إلى ${result.toStore.name} - سيتم إرسال العناصر`,
+        result.id,
+      );
+    } catch (error) {
+      console.error('Error creating notifications for sending store:', error);
+      // Continue even if notification creation fails
+    }
+
     return result;
   }
 
-  async findAll() {
+  async findAll(status?: string) {
+    const where: any = {};
+    if (status && ['PENDING', 'ACCEPTED', 'REJECTED'].includes(status)) {
+      where.status = status;
+    }
+
     return this.prisma.storeTransferVoucher.findMany({
+      where,
       include: {
         fromStore: {
           include: {
@@ -359,6 +395,134 @@ export class StoreTransferVoucherService {
     });
 
     return deleted;
+  }
+
+  async acceptTransfer(id: string, userBranchId: string, userId: string) {
+    const voucher = await this.findOne(id);
+
+    if (voucher.status !== 'PENDING') {
+      throw new BadRequestException(
+        `Transfer voucher ${voucher.voucherNumber} is not pending. Current status: ${voucher.status}`,
+      );
+    }
+
+    // Update status to ACCEPTED and update stock
+    const result = await this.prisma.$transaction(async (tx) => {
+      // Update voucher status
+      const updated = await tx.storeTransferVoucher.update({
+        where: { id },
+        data: { status: 'ACCEPTED' },
+        include: {
+          fromStore: {
+            include: {
+              branch: true,
+            },
+          },
+          toStore: {
+            include: {
+              branch: true,
+            },
+          },
+          user: true,
+          items: {
+            include: {
+              item: {
+                include: {
+                  group: true,
+                  unit: true,
+                },
+              },
+            },
+          },
+        },
+      });
+
+      // Stock is automatically updated via aggregation in StockService
+      // (only ACCEPTED transfers are counted)
+
+      return updated;
+    });
+
+    // Create audit log
+    await this.auditLogService.createAuditLog({
+      userId,
+      branchId: userBranchId,
+      action: 'accept',
+      targetType: 'store_transfer',
+      targetId: result.voucherNumber,
+      details: `قبول تحويل مخزن رقم ${result.voucherNumber} من ${result.fromStore.name} إلى ${result.toStore.name}`,
+    });
+
+    // Mark related notifications as read for all users in the receiving store
+    await this.notificationService.createForStoreUsers(
+      result.toStoreId,
+      'store_transfer_accepted',
+      `تم قبول تحويل المخزن رقم ${result.voucherNumber}`,
+      result.id,
+    );
+
+    return result;
+  }
+
+  async rejectTransfer(id: string, userBranchId: string, userId: string) {
+    const voucher = await this.findOne(id);
+
+    if (voucher.status !== 'PENDING') {
+      throw new BadRequestException(
+        `Transfer voucher ${voucher.voucherNumber} is not pending. Current status: ${voucher.status}`,
+      );
+    }
+
+    // Update status to REJECTED (stock remains unchanged)
+    const result = await this.prisma.$transaction(async (tx) => {
+      return tx.storeTransferVoucher.update({
+        where: { id },
+        data: { status: 'REJECTED' },
+        include: {
+          fromStore: {
+            include: {
+              branch: true,
+            },
+          },
+          toStore: {
+            include: {
+              branch: true,
+            },
+          },
+          user: true,
+          items: {
+            include: {
+              item: {
+                include: {
+                  group: true,
+                  unit: true,
+                },
+              },
+            },
+          },
+        },
+      });
+    });
+
+    // Create audit log
+    await this.auditLogService.createAuditLog({
+      userId,
+      branchId: userBranchId,
+      action: 'reject',
+      targetType: 'store_transfer',
+      targetId: result.voucherNumber,
+      details: `رفض تحويل مخزن رقم ${result.voucherNumber} من ${result.fromStore.name} إلى ${result.toStore.name}`,
+    });
+
+    // Mark related notifications as read and notify sending store
+    await this.notificationService.createForStoreUsers(
+      result.fromStoreId,
+      'store_transfer_rejected',
+      `تم رفض تحويل المخزن رقم ${result.voucherNumber}`,
+      result.id,
+    );
+
+    return result;
   }
 
   private async generateVoucherNumber(): Promise<string> {
