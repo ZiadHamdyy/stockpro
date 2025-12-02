@@ -129,11 +129,13 @@ export class BalanceSheetService {
       balance += transfersTo._sum.amount || 0;
 
       // Add SalesInvoices (cash payments to safe)
+      // Regular payments (non-split)
       const salesInvoices = await this.prisma.salesInvoice.aggregate({
         where: {
           paymentMethod: 'cash',
           paymentTargetType: 'safe',
           safeId: safe.id,
+          isSplitPayment: false,
           date: {
             lte: endDate,
           },
@@ -143,6 +145,26 @@ export class BalanceSheetService {
         },
       });
       balance += salesInvoices._sum.net || 0;
+
+      // Split payment sales invoices (cash portion to this safe)
+      const splitSalesInvoices = await this.prisma.salesInvoice.findMany({
+        where: {
+          paymentMethod: 'cash',
+          isSplitPayment: true,
+          splitSafeId: safe.id,
+          date: {
+            lte: endDate,
+          },
+        },
+        select: {
+          splitCashAmount: true,
+        },
+      });
+      const splitCashTotal = splitSalesInvoices.reduce(
+        (sum, inv) => sum + (inv.splitCashAmount || 0),
+        0,
+      );
+      balance += splitCashTotal;
 
       // Subtract SalesReturns (cash refunds from safe)
       const salesReturns = await this.prisma.salesReturn.aggregate({
@@ -268,11 +290,13 @@ export class BalanceSheetService {
       balance += transfersTo._sum.amount || 0;
 
       // Add SalesInvoices (cash payments to bank)
+      // Regular payments (non-split)
       const salesInvoices = await this.prisma.salesInvoice.aggregate({
         where: {
           paymentMethod: 'cash',
           paymentTargetType: 'bank',
           bankId: bank.id,
+          isSplitPayment: false,
           date: {
             lte: endDate,
           },
@@ -282,6 +306,26 @@ export class BalanceSheetService {
         },
       });
       balance += salesInvoices._sum.net || 0;
+
+      // Split payment sales invoices (bank portion to this bank)
+      const splitSalesInvoices = await this.prisma.salesInvoice.findMany({
+        where: {
+          paymentMethod: 'cash',
+          isSplitPayment: true,
+          splitBankId: bank.id,
+          date: {
+            lte: endDate,
+          },
+        },
+        select: {
+          splitBankAmount: true,
+        },
+      });
+      const splitBankTotal = splitSalesInvoices.reduce(
+        (sum, inv) => sum + (inv.splitBankAmount || 0),
+        0,
+      );
+      balance += splitBankTotal;
 
       // Subtract SalesReturns (cash refunds from bank)
       const salesReturns = await this.prisma.salesReturn.aggregate({
