@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
 import { DatabaseService } from '../../configs/database/database.service';
 import { CreatePurchaseInvoiceRequest } from './dtos/request/create-purchase-invoice.request';
 import { UpdatePurchaseInvoiceRequest } from './dtos/request/update-purchase-invoice.request';
@@ -10,6 +10,7 @@ import { AccountingService } from '../../common/services/accounting.service';
 import { StoreService } from '../store/store.service';
 import { StockService } from '../store/services/stock.service';
 import { AuditLogService } from '../audit-log/audit-log.service';
+import { FiscalYearService } from '../fiscal-year/fiscal-year.service';
 
 @Injectable()
 export class PurchaseInvoiceService {
@@ -18,6 +19,7 @@ export class PurchaseInvoiceService {
     private readonly storeService: StoreService,
     private readonly stockService: StockService,
     private readonly auditLogService: AuditLogService,
+    private readonly fiscalYearService: FiscalYearService,
   ) {}
 
   /**
@@ -36,6 +38,20 @@ export class PurchaseInvoiceService {
     userId: string,
     branchId?: string,
   ): Promise<PurchaseInvoiceResponse> {
+    const invoiceDate = data.date ? new Date(data.date) : new Date();
+    
+    // Check if there is an open period for this date
+    const hasOpenPeriod = await this.fiscalYearService.hasOpenPeriodForDate(invoiceDate);
+    if (!hasOpenPeriod) {
+      throw new ForbiddenException('Cannot create invoice: no open fiscal period exists for this date');
+    }
+
+    // Check if date is in a closed period
+    const isInClosedPeriod = await this.fiscalYearService.isDateInClosedPeriod(invoiceDate);
+    if (isInClosedPeriod) {
+      throw new ForbiddenException('Cannot create invoice in a closed fiscal period');
+    }
+
     // Validations
     // Supplier is only required for credit payments
     if (data.paymentMethod === 'credit' && !data.supplierId) {
@@ -349,6 +365,13 @@ export class PurchaseInvoiceService {
 
     if (!existingInvoice) {
       throw new NotFoundException('Purchase invoice not found');
+    }
+
+    // Check if date is in a closed period (use new date if provided, otherwise existing date)
+    const invoiceDate = data.date ? new Date(data.date) : existingInvoice.date;
+    const isInClosedPeriod = await this.fiscalYearService.isDateInClosedPeriod(invoiceDate);
+    if (isInClosedPeriod) {
+      throw new ForbiddenException('لا يمكن تعديل الفاتورة: الفترة المحاسبية مغلقة');
     }
 
     // Supplier is only required for credit payments

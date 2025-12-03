@@ -31,6 +31,12 @@ function deriveCodeFromMessage(message?: string): string | undefined {
   )
     return "INV_SAFE_BALANCE_INSUFFICIENT";
   if (msg.includes("not found")) return "INV_NOT_FOUND";
+  if (msg.includes("no open fiscal period") || msg.includes("no open period"))
+    return "FISCAL_NO_OPEN_PERIOD";
+  if (msg.includes("closed fiscal period") || msg.includes("closed period"))
+    return "FISCAL_CLOSED_PERIOD";
+  if (msg.includes("future year") || msg.includes("future fiscal"))
+    return "FISCAL_FUTURE_YEAR";
   return undefined;
 }
 
@@ -45,6 +51,9 @@ const CODE_MESSAGES: Record<string, string> = {
   INV_ITEM_NOT_FOUND: "لم يتم العثور على أحد الأصناف.",
   INV_NOT_FOUND: "السجل غير موجود.",
   INV_SAFE_BALANCE_INSUFFICIENT: "الرصيد غير كافي في الخزنة.",
+  FISCAL_NO_OPEN_PERIOD: "لا يمكن إنشاء الفاتورة: لا توجد فترة محاسبية مفتوحة.",
+  FISCAL_CLOSED_PERIOD: "لا يمكن تعديل الفاتورة: الفترة المحاسبية مغلقة.",
+  FISCAL_FUTURE_YEAR: "لا يمكن فتح فترة محاسبية لسنة مستقبلية.",
 };
 
 export function showApiErrorToast(error: unknown) {

@@ -266,12 +266,14 @@ export interface AssignPermissionsRequest {
 }
 
 export interface FiscalYear {
-  id: number;
+  id: string;
   name: string; 
   startDate: string;
   endDate: string;
-  status: 'open' | 'closed' | 'locked'; 
-  isCurrent: boolean;
+  status: 'OPEN' | 'CLOSED'; 
+  retainedEarnings?: number | null;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface AuditLogEntry {

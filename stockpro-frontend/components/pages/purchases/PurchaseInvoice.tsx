@@ -39,6 +39,7 @@ import { useGetBanksQuery } from "../../store/slices/bank/bankApiSlice";
 import { useGetSafesQuery } from "../../store/slices/safe/safeApiSlice";
 import { useGetCompanyQuery } from "../../store/slices/companyApiSlice";
 import { useGetStoresQuery } from "../../store/slices/store/storeApi";
+import { useGetFiscalYearsQuery } from "../../store/slices/fiscalYear/fiscalYearApiSlice";
 import {
   Actions,
   Resources,
@@ -103,6 +104,7 @@ const PurchaseInvoice: React.FC<PurchaseInvoiceProps> = ({
   const { data: safes = [] } = useGetSafesQuery();
   const { data: company } = useGetCompanyQuery();
   const { data: stores = [] } = useGetStoresQuery();
+  const { data: fiscalYears = [] } = useGetFiscalYearsQuery();
   
   // Get store for current user's branch
   const userBranchId = getUserBranchId(currentUser);
@@ -263,6 +265,21 @@ const getInvoiceBranchMeta = (invoice: any) => {
     [currentIndex, isReadOnly],
   );
   const isExistingInvoice = currentIndex >= 0;
+
+  // Check if current invoice is in a closed period
+  const isInvoiceInClosedPeriod = useMemo(() => {
+    if (currentIndex < 0 || !invoices[currentIndex]) return false;
+    const invoice = invoices[currentIndex];
+    const invoiceDate = invoice.date ? new Date(invoice.date) : null;
+    if (!invoiceDate) return false;
+    
+    return fiscalYears.some(fy => {
+      if (fy.status !== 'CLOSED') return false;
+      const startDate = new Date(fy.startDate);
+      const endDate = new Date(fy.endDate);
+      return invoiceDate >= startDate && invoiceDate <= endDate;
+    });
+  }, [currentIndex, invoices, fiscalYears]);
 
   // Show tax column when viewing/editing existing invoice OR when VAT is enabled for new invoices
   const shouldShowTaxColumn = currentIndex >= 0 || isVatEnabled;
@@ -660,6 +677,22 @@ const getInvoiceBranchMeta = (invoice: any) => {
         branchSafe.currentBalance < totals.net
       ) {
         showToast("الرصيد غير كافي في الخزنة.", 'error');
+        return;
+      }
+    }
+
+    // Validate that the invoice date has an open period (only for new invoices)
+    if (currentIndex < 0 && invoiceDetails.invoiceDate) {
+      const invoiceDate = new Date(invoiceDetails.invoiceDate);
+      const hasOpenPeriod = fiscalYears.some(fy => {
+        if (fy.status !== 'OPEN') return false;
+        const startDate = new Date(fy.startDate);
+        const endDate = new Date(fy.endDate);
+        return invoiceDate >= startDate && invoiceDate <= endDate;
+      });
+      
+      if (!hasOpenPeriod) {
+        showToast("لا يمكن إنشاء الفاتورة: لا توجد فترة محاسبية مفتوحة لهذا التاريخ", 'error');
         return;
       }
     }
@@ -1310,34 +1343,38 @@ const getInvoiceBranchMeta = (invoice: any) => {
                   حفظ
                 </button>
               </PermissionWrapper>
-              <PermissionWrapper
-                requiredPermission={buildPermission(
-                  Resources.PURCHASE_INVOICE,
-                  Actions.UPDATE,
-                )}
-              >
-                <button
-                  onClick={handleEdit}
-                  disabled={currentIndex < 0 || !isReadOnly}
-                  className="px-4 py-2 bg-yellow-500 text-white rounded-md hover:bg-yellow-600 font-semibold disabled:bg-gray-400"
-                >
-                  تعديل
-                </button>
-              </PermissionWrapper>
-              <PermissionWrapper
-                requiredPermission={buildPermission(
-                  Resources.PURCHASE_INVOICE,
-                  Actions.DELETE,
-                )}
-              >
-                <button
-                  onClick={handleDelete}
-                  disabled={currentIndex < 0}
-                  className="px-4 py-2 bg-red-500 text-white rounded-md hover:bg-red-600 font-semibold disabled:bg-gray-400"
-                >
-                  حذف
-                </button>
-              </PermissionWrapper>
+              {!isInvoiceInClosedPeriod && (
+                <>
+                  <PermissionWrapper
+                    requiredPermission={buildPermission(
+                      Resources.PURCHASE_INVOICE,
+                      Actions.UPDATE,
+                    )}
+                  >
+                    <button
+                      onClick={handleEdit}
+                      disabled={currentIndex < 0 || !isReadOnly}
+                      className="px-4 py-2 bg-yellow-500 text-white rounded-md hover:bg-yellow-600 font-semibold disabled:bg-gray-400"
+                    >
+                      تعديل
+                    </button>
+                  </PermissionWrapper>
+                  <PermissionWrapper
+                    requiredPermission={buildPermission(
+                      Resources.PURCHASE_INVOICE,
+                      Actions.DELETE,
+                    )}
+                  >
+                    <button
+                      onClick={handleDelete}
+                      disabled={currentIndex < 0}
+                      className="px-4 py-2 bg-red-500 text-white rounded-md hover:bg-red-600 font-semibold disabled:bg-gray-400"
+                    >
+                      حذف
+                    </button>
+                  </PermissionWrapper>
+                </>
+              )}
               <PermissionWrapper
                 requiredPermission={buildPermission(
                   Resources.PURCHASE_INVOICE,

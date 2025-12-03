@@ -4,9 +4,10 @@ import { PurchaseInvoiceController } from './purchase-invoice.controller';
 import { DatabaseModule } from '../../configs/database/database.module';
 import { StoreModule } from '../store/store.module';
 import { AuditLogModule } from '../audit-log/audit-log.module';
+import { FiscalYearModule } from '../fiscal-year/fiscal-year.module';
 
 @Module({
-  imports: [DatabaseModule, StoreModule, AuditLogModule],
+  imports: [DatabaseModule, StoreModule, AuditLogModule, FiscalYearModule],
   controllers: [PurchaseInvoiceController],
   providers: [PurchaseInvoiceService],
   exports: [PurchaseInvoiceService],

@@ -2,6 +2,7 @@ import {
   Injectable,
   NotFoundException,
   BadRequestException,
+  ForbiddenException,
 } from '@nestjs/common';
 import { DatabaseService } from '../../configs/database/database.service';
 import { StockService } from '../store/services/stock.service';
@@ -9,6 +10,7 @@ import { CreateStoreTransferVoucherDto } from './dtos/create-store-transfer-vouc
 import { UpdateStoreTransferVoucherDto } from './dtos/update-store-transfer-voucher.dto';
 import { AuditLogService } from '../audit-log/audit-log.service';
 import { NotificationService } from '../notification/notification.service';
+import { FiscalYearService } from '../fiscal-year/fiscal-year.service';
 
 @Injectable()
 export class StoreTransferVoucherService {
@@ -17,6 +19,7 @@ export class StoreTransferVoucherService {
     private readonly stockService: StockService,
     private readonly auditLogService: AuditLogService,
     private readonly notificationService: NotificationService,
+    private readonly fiscalYearService: FiscalYearService,
   ) {}
 
   async create(
@@ -25,6 +28,20 @@ export class StoreTransferVoucherService {
   ) {
     const { items, fromStoreId, ...voucherData } =
       createStoreTransferVoucherDto;
+
+    // Check if date is in a closed period (date defaults to now() in database)
+    const voucherDate = new Date();
+    
+    // Check if there is an open period for this date
+    const hasOpenPeriod = await this.fiscalYearService.hasOpenPeriodForDate(voucherDate);
+    if (!hasOpenPeriod) {
+      throw new ForbiddenException('Cannot create voucher: no open fiscal period exists for this date');
+    }
+
+    const isInClosedPeriod = await this.fiscalYearService.isDateInClosedPeriod(voucherDate);
+    if (isInClosedPeriod) {
+      throw new ForbiddenException('Cannot create voucher in a closed fiscal period');
+    }
 
     // Validate quantities are positive
     for (const item of items) {
@@ -228,6 +245,13 @@ export class StoreTransferVoucherService {
 
     // Check if voucher exists and get old data
     const oldVoucher = await this.findOne(id);
+    
+    // Check if date is in a closed period (use existing date since DTO doesn't have date field)
+    const voucherDate = oldVoucher.date;
+    const isInClosedPeriod = await this.fiscalYearService.isDateInClosedPeriod(voucherDate);
+    if (isInClosedPeriod) {
+      throw new ForbiddenException('لا يمكن تعديل السند: الفترة المحاسبية مغلقة');
+    }
     const actualFromStoreId = fromStoreId || oldVoucher.fromStoreId;
 
     // Validate quantities are positive if items provided

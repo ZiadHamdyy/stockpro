@@ -2,16 +2,21 @@ import {
   Injectable,
   NotFoundException,
   ConflictException,
+  ForbiddenException,
 } from '@nestjs/common';
 import { DatabaseService } from '../../configs/database/database.service';
 import { CreateReceiptVoucherRequest } from './dtos/request/create-receipt-voucher.request';
 import { UpdateReceiptVoucherRequest } from './dtos/request/update-receipt-voucher.request';
 import { ReceiptVoucherResponse } from './dtos/response/receipt-voucher.response';
 import { AccountingService } from '../../common/services/accounting.service';
+import { FiscalYearService } from '../fiscal-year/fiscal-year.service';
 
 @Injectable()
 export class ReceiptVoucherService {
-  constructor(private readonly prisma: DatabaseService) {}
+  constructor(
+    private readonly prisma: DatabaseService,
+    private readonly fiscalYearService: FiscalYearService,
+  ) {}
 
   // ==================== CRUD Operations ====================
 
@@ -19,6 +24,20 @@ export class ReceiptVoucherService {
     data: CreateReceiptVoucherRequest,
     userId: string,
   ): Promise<ReceiptVoucherResponse> {
+    const voucherDate = data.date ? new Date(data.date) : new Date();
+    
+    // Check if there is an open period for this date
+    const hasOpenPeriod = await this.fiscalYearService.hasOpenPeriodForDate(voucherDate);
+    if (!hasOpenPeriod) {
+      throw new ForbiddenException('Cannot create voucher: no open fiscal period exists for this date');
+    }
+
+    // Check if date is in a closed period
+    const isInClosedPeriod = await this.fiscalYearService.isDateInClosedPeriod(voucherDate);
+    if (isInClosedPeriod) {
+      throw new ForbiddenException('Cannot create voucher in a closed fiscal period');
+    }
+
     const code = await this.generateNextCode();
 
     // Fetch entity name based on type
@@ -173,9 +192,18 @@ export class ReceiptVoucherService {
     data: UpdateReceiptVoucherRequest,
   ): Promise<ReceiptVoucherResponse> {
     try {
+      // Get existing voucher to check date
+      const existing = await this.prisma.receiptVoucher.findUnique({ where: { id } });
+      if (!existing) throw new NotFoundException('Receipt voucher not found');
+
+      // Check if date is in a closed period (use new date if provided, otherwise existing date)
+      const voucherDate = data.date ? new Date(data.date) : existing.date;
+      const isInClosedPeriod = await this.fiscalYearService.isDateInClosedPeriod(voucherDate);
+      if (isInClosedPeriod) {
+        throw new ForbiddenException('لا يمكن تعديل السند: الفترة المحاسبية مغلقة');
+      }
+
       const result = await this.prisma.$transaction(async (tx) => {
-        const existing = await tx.receiptVoucher.findUnique({ where: { id } });
-        if (!existing) throw new NotFoundException('Receipt voucher not found');
 
         // Reverse previous effect on cash/bank (decrement back)
         if (existing.paymentMethod === 'safe' && existing.safeId) {

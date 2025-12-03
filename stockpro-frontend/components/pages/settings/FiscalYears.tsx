@@ -1,67 +1,112 @@
-
 import React, { useState } from 'react';
-import type { FiscalYear } from '../../../types';
 import { useToast } from '../../common/ToastProvider';
 import { useModal } from '../../common/ModalProvider';
-import { LockIcon, EyeIcon, EyeOffIcon, CheckIcon, XIcon } from '../../icons';
+import { LockIcon, EyeIcon, CheckIcon, XIcon } from '../../icons';
+import {
+  useGetFiscalYearsQuery,
+  useCreateFiscalYearMutation,
+  useCloseFiscalYearMutation,
+  useReopenFiscalYearMutation,
+  type FiscalYear,
+} from '../../store/slices/fiscalYear/fiscalYearApiSlice';
+import { formatNumber } from '../../../utils/formatting';
 
 interface FiscalYearsProps {
     title?: string;
-    fiscalYears?: FiscalYear[];
-    onSave: (year: FiscalYear) => void;
-    onToggleStatus: (id: number) => void;
 }
 
-const FiscalYears: React.FC<FiscalYearsProps> = ({ title, fiscalYears = [], onSave, onToggleStatus }) => {
+const FiscalYears: React.FC<FiscalYearsProps> = ({ title }) => {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [newYear, setNewYear] = useState<Partial<FiscalYear>>({
-        name: (new Date().getFullYear() + 1).toString(),
-        startDate: `${new Date().getFullYear() + 1}-01-01`,
-        endDate: `${new Date().getFullYear() + 1}-12-31`,
-        status: 'open'
+        name: new Date().getFullYear().toString(),
+        startDate: `${new Date().getFullYear()}-01-01`,
+        endDate: `${new Date().getFullYear()}-12-31`,
     });
     const { showToast } = useToast();
     const { showModal } = useModal();
 
-    const handleAddYear = () => {
+    const { data: fiscalYears = [], isLoading } = useGetFiscalYearsQuery();
+    const [createFiscalYear, { isLoading: isCreating }] = useCreateFiscalYearMutation();
+    const [closeFiscalYear, { isLoading: isClosing }] = useCloseFiscalYearMutation();
+    const [reopenFiscalYear, { isLoading: isReopening }] = useReopenFiscalYearMutation();
+
+    const handleAddYear = async () => {
         if (!newYear.name || !newYear.startDate || !newYear.endDate) {
-            showToast("الرجاء تعبئة جميع البيانات");
+            showToast("الرجاء تعبئة جميع البيانات", "error");
             return;
         }
-        onSave({
-            id: Date.now(),
-            name: newYear.name,
-            startDate: newYear.startDate,
-            endDate: newYear.endDate,
-            status: 'open',
-            isCurrent: false
-        } as FiscalYear);
-        setIsModalOpen(false);
-        showToast("تم إضافة السنة المالية بنجاح");
+        
+        // Validate that the fiscal year is not for a future year
+        const startDateYear = new Date(newYear.startDate!).getFullYear();
+        const currentYear = new Date().getFullYear();
+        if (startDateYear > currentYear) {
+            showToast("لا يمكن فتح فترة محاسبية لسنة مستقبلية", "error");
+            return;
+        }
+        
+        try {
+            await createFiscalYear({
+                name: newYear.name,
+                startDate: newYear.startDate!,
+                endDate: newYear.endDate!,
+            }).unwrap();
+            setIsModalOpen(false);
+            setNewYear({
+                name: new Date().getFullYear().toString(),
+                startDate: `${new Date().getFullYear()}-01-01`,
+                endDate: `${new Date().getFullYear()}-12-31`,
+            });
+            showToast("تم إضافة السنة المالية بنجاح", "success");
+        } catch (error: any) {
+            showToast(
+                error?.data?.message || "حدث خطأ أثناء إضافة السنة المالية",
+                "error"
+            );
+        }
     };
 
     const confirmToggleStatus = (year: FiscalYear) => {
-        if (year.status === 'closed') {
+        if (year.status === 'CLOSED') {
+            // Validate that the fiscal year is not for a future year
+            const startDateYear = new Date(year.startDate).getFullYear();
+            const currentYear = new Date().getFullYear();
+            if (startDateYear > currentYear) {
+                showToast("لا يمكن إعادة فتح فترة محاسبية لسنة مستقبلية", "error");
+                return;
+            }
+            
             showModal({
                 title: 'إعادة فتح السنة المالية',
                 message: `هل أنت متأكد من إعادة فتح السنة المالية ${year.name}؟ هذا سيسمح بتعديل البيانات.`,
-                onConfirm: () => {
-                    onToggleStatus(year.id);
-                    showToast(`تم فتح السنة المالية ${year.name}`);
+                onConfirm: async () => {
+                    try {
+                        await reopenFiscalYear(year.id).unwrap();
+                        showToast(`تم فتح السنة المالية ${year.name}`, "success");
+                    } catch (error: any) {
+                        showToast(
+                            error?.data?.message || "حدث خطأ أثناء إعادة فتح السنة المالية",
+                            "error"
+                        );
+                    }
                 },
                 type: 'edit',
-                showPassword: true
             });
         } else {
             showModal({
                 title: 'إغلاق السنة المالية',
                 message: `هل أنت متأكد من إغلاق السنة المالية ${year.name}؟ سيمنع هذا أي تعديلات على البيانات في هذه الفترة.`,
-                onConfirm: () => {
-                    onToggleStatus(year.id);
-                    showToast(`تم إغلاق السنة المالية ${year.name}`);
+                onConfirm: async () => {
+                    try {
+                        await closeFiscalYear(year.id).unwrap();
+                        showToast(`تم إغلاق السنة المالية ${year.name}`, "success");
+                    } catch (error: any) {
+                        showToast(
+                            error?.data?.message || "حدث خطأ أثناء إغلاق السنة المالية",
+                            "error"
+                        );
+                    }
                 },
-                type: 'delete', // Using red theme for caution
-                showPassword: true
+                type: 'delete',
             });
         }
     };
@@ -72,22 +117,39 @@ const FiscalYears: React.FC<FiscalYearsProps> = ({ title, fiscalYears = [], onSa
         b.name.localeCompare(a.name)
     );
 
+    if (isLoading) {
+        return (
+            <div className="bg-white p-6 rounded-lg shadow">
+                <div className="flex justify-center items-center h-64">
+                    <div className="text-center">
+                        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand-blue mx-auto mb-4"></div>
+                        <p className="text-gray-600">جاري تحميل البيانات...</p>
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
     return (
         <div className="bg-white p-6 rounded-lg shadow">
             <div className="flex justify-between items-center mb-6 border-b pb-4">
                 <h1 className="text-2xl font-bold text-brand-dark">{title ?? "الفترات المحاسبية"}</h1>
-                <button onClick={() => setIsModalOpen(true)} className="px-6 py-2 bg-brand-blue text-white rounded-md hover:bg-blue-800 font-semibold">
-                    سنة مالية جديدة
+                <button 
+                    onClick={() => setIsModalOpen(true)} 
+                    className="px-6 py-2 bg-brand-blue text-white rounded-md hover:bg-blue-800 font-semibold"
+                    disabled={isCreating}
+                >
+                    {isCreating ? "جاري الإضافة..." : "سنة مالية جديدة"}
                 </button>
             </div>
 
             <div className="grid grid-cols-1 gap-6">
                 {sortedFiscalYears.map(year => (
-                    <div key={year.id} className={`border-2 rounded-lg p-4 flex justify-between items-center ${year.status === 'open' ? 'border-green-500 bg-green-50' : 'border-red-300 bg-red-50'}`}>
+                    <div key={year.id} className={`border-2 rounded-lg p-4 flex justify-between items-center ${year.status === 'OPEN' ? 'border-green-500 bg-green-50' : 'border-red-300 bg-red-50'}`}>
                         <div>
                             <div className="flex items-center gap-3">
                                 <h3 className="text-xl font-bold text-brand-dark">{year.name}</h3>
-                                {year.status === 'open' ? (
+                                {year.status === 'OPEN' ? (
                                     <span className="px-2 py-1 text-xs rounded-full bg-green-200 text-green-800 font-bold flex items-center gap-1">
                                         <EyeIcon className="w-3 h-3"/> مفتوحة
                                     </span>
@@ -98,24 +160,31 @@ const FiscalYears: React.FC<FiscalYearsProps> = ({ title, fiscalYears = [], onSa
                                 )}
                             </div>
                             <p className="text-sm text-gray-600 mt-1">
-                                من: <span className="font-mono font-bold">{year.startDate}</span> إلى: <span className="font-mono font-bold">{year.endDate}</span>
+                                من: <span className="font-mono font-bold">{year.startDate.split('T')[0]}</span> إلى: <span className="font-mono font-bold">{year.endDate.split('T')[0]}</span>
                             </p>
                         </div>
                         
                         <div className="flex items-center gap-4">
                             <div className="text-center px-4 border-l border-gray-300 hidden md:block">
-                                <p className="text-xs text-gray-500">صافي الربح/الخسارة (تقديري)</p>
-                                <p className="font-bold text-lg text-brand-blue">---</p>
+                                <p className="text-xs text-gray-500">الأرباح (الخسائر) المبقاة</p>
+                                <p className={`font-bold text-lg ${year.retainedEarnings !== null ? (year.retainedEarnings >= 0 ? 'text-green-600' : 'text-red-600') : 'text-gray-400'}`}>
+                                    {year.retainedEarnings !== null ? formatNumber(year.retainedEarnings) : '---'}
+                                </p>
                             </div>
                             <button 
                                 onClick={() => confirmToggleStatus(year)}
-                                className={`px-4 py-2 rounded-md font-semibold text-sm transition-colors flex items-center gap-2 ${
-                                    year.status === 'open' 
+                                disabled={
+                                    isClosing || 
+                                    isReopening || 
+                                    (year.status === 'CLOSED' && new Date(year.startDate).getFullYear() > new Date().getFullYear())
+                                }
+                                className={`px-4 py-2 rounded-md font-semibold text-sm transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed ${
+                                    year.status === 'OPEN' 
                                     ? 'bg-red-100 text-red-700 hover:bg-red-200' 
                                     : 'bg-green-100 text-green-700 hover:bg-green-200'
                                 }`}
                             >
-                                {year.status === 'open' ? (
+                                {year.status === 'OPEN' ? (
                                     <> <LockIcon className="w-4 h-4"/> إغلاق السنة </>
                                 ) : (
                                     <> <CheckIcon className="w-4 h-4"/> إعادة فتح </>
@@ -152,7 +221,9 @@ const FiscalYears: React.FC<FiscalYearsProps> = ({ title, fiscalYears = [], onSa
                         </div>
                         <div className="p-4 border-t border-gray-200 flex justify-end gap-2">
                             <button onClick={() => setIsModalOpen(false)} className="px-4 py-2 bg-gray-200 rounded-md hover:bg-gray-300">إلغاء</button>
-                            <button onClick={handleAddYear} className="px-4 py-2 bg-brand-blue text-white rounded-md hover:bg-blue-800">حفظ</button>
+                            <button onClick={handleAddYear} disabled={isCreating} className="px-4 py-2 bg-brand-blue text-white rounded-md hover:bg-blue-800 disabled:opacity-50 disabled:cursor-not-allowed">
+                                {isCreating ? "جاري الحفظ..." : "حفظ"}
+                            </button>
                         </div>
                     </div>
                 </div>

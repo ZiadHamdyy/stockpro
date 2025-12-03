@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
 import { throwHttp } from '../../common/utils/http-error';
 import { ERROR_CODES } from '../../common/constants/error-codes';
 import { DatabaseService } from '../../configs/database/database.service';
@@ -9,6 +9,7 @@ import { AccountingService } from '../../common/services/accounting.service';
 import { StoreService } from '../store/store.service';
 import { StockService } from '../store/services/stock.service';
 import { AuditLogService } from '../audit-log/audit-log.service';
+import { FiscalYearService } from '../fiscal-year/fiscal-year.service';
 
 @Injectable()
 export class SalesInvoiceService {
@@ -17,6 +18,7 @@ export class SalesInvoiceService {
     private readonly storeService: StoreService,
     private readonly stockService: StockService,
     private readonly auditLogService: AuditLogService,
+    private readonly fiscalYearService: FiscalYearService,
   ) {}
 
   private computeLineTotals(
@@ -52,6 +54,20 @@ export class SalesInvoiceService {
     userId: string,
     branchId?: string,
   ): Promise<SalesInvoiceResponse> {
+    const invoiceDate = data.date ? new Date(data.date) : new Date();
+    
+    // Check if there is an open period for this date
+    const hasOpenPeriod = await this.fiscalYearService.hasOpenPeriodForDate(invoiceDate);
+    if (!hasOpenPeriod) {
+      throw new ForbiddenException('Cannot create invoice: no open fiscal period exists for this date');
+    }
+
+    // Check if date is in a closed period
+    const isInClosedPeriod = await this.fiscalYearService.isDateInClosedPeriod(invoiceDate);
+    if (isInClosedPeriod) {
+      throw new ForbiddenException('Cannot create invoice in a closed fiscal period');
+    }
+
     // Basic validations
     // Customer is only required for credit payments
     if (data.paymentMethod === 'credit' && !data.customerId) {
@@ -574,6 +590,18 @@ export class SalesInvoiceService {
       const existingInvoice = await this.prisma.salesInvoice.findUnique({
         where: { id },
       });
+
+      if (!existingInvoice) {
+        throw new NotFoundException('Sales invoice not found');
+      }
+
+      // Check if date is in a closed period (use new date if provided, otherwise existing date)
+      const invoiceDate = data.date ? new Date(data.date) : existingInvoice.date;
+      const isInClosedPeriod = await this.fiscalYearService.isDateInClosedPeriod(invoiceDate);
+      if (isInClosedPeriod) {
+        throw new ForbiddenException('لا يمكن تعديل الفاتورة: الفترة المحاسبية مغلقة');
+      }
+
       // Customer is only required for credit payments
       // If payment method is credit (or being changed to credit), customer must be provided
       const paymentMethod =

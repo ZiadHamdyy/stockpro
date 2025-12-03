@@ -117,6 +117,7 @@ export const apiSlice = createApi({
     "BalanceSheet",
     "InventoryCount",
     "AuditLog",
+    "FiscalYear",
   ],
   endpoints: () => ({}),
 });

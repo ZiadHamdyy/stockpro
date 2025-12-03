@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
 import { DatabaseService } from '../../configs/database/database.service';
 import { CreatePurchaseReturnRequest } from './dtos/request/create-purchase-return.request';
 import { UpdatePurchaseReturnRequest } from './dtos/request/update-purchase-return.request';
@@ -10,6 +10,7 @@ import { AccountingService } from '../../common/services/accounting.service';
 import { StoreService } from '../store/store.service';
 import { StockService } from '../store/services/stock.service';
 import { AuditLogService } from '../audit-log/audit-log.service';
+import { FiscalYearService } from '../fiscal-year/fiscal-year.service';
 
 @Injectable()
 export class PurchaseReturnService {
@@ -18,6 +19,7 @@ export class PurchaseReturnService {
     private readonly storeService: StoreService,
     private readonly stockService: StockService,
     private readonly auditLogService: AuditLogService,
+    private readonly fiscalYearService: FiscalYearService,
   ) {}
 
   /**
@@ -36,6 +38,20 @@ export class PurchaseReturnService {
     userId: string,
     branchId?: string,
   ): Promise<PurchaseReturnResponse> {
+    const returnDate = data.date ? new Date(data.date) : new Date();
+    
+    // Check if there is an open period for this date
+    const hasOpenPeriod = await this.fiscalYearService.hasOpenPeriodForDate(returnDate);
+    if (!hasOpenPeriod) {
+      throw new ForbiddenException('Cannot create return: no open fiscal period exists for this date');
+    }
+
+    // Check if date is in a closed period
+    const isInClosedPeriod = await this.fiscalYearService.isDateInClosedPeriod(returnDate);
+    if (isInClosedPeriod) {
+      throw new ForbiddenException('Cannot create return in a closed fiscal period');
+    }
+
     // Validations
     if (!data.items || data.items.length === 0) {
       throwHttp(422, ERROR_CODES.INV_ITEMS_REQUIRED, 'Items are required');
@@ -333,6 +349,13 @@ export class PurchaseReturnService {
 
     if (!existingReturn) {
       throw new NotFoundException('Purchase return not found');
+    }
+
+    // Check if date is in a closed period (use new date if provided, otherwise existing date)
+    const returnDate = data.date ? new Date(data.date) : existingReturn.date;
+    const isInClosedPeriod = await this.fiscalYearService.isDateInClosedPeriod(returnDate);
+    if (isInClosedPeriod) {
+      throw new ForbiddenException('لا يمكن تعديل المرتجع: الفترة المحاسبية مغلقة');
     }
 
     // Get old items to restore stock

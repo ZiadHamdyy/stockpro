@@ -120,7 +120,6 @@ import {
   initialStoreReceiptVouchers,
   initialStoreIssueVouchers,
   initialStoreTransferVouchers,
-  initialFiscalYears,
   initialUsers,
 } from "./data";
 // FIX: Aliased StoreIssueVoucher type to avoid name collision with component.
@@ -146,7 +145,6 @@ import type {
   StoreIssueVoucher as StoreIssueVoucherType,
   StoreTransferVoucher,
   Notification,
-  FiscalYear,
   PrintSettings,
 } from "./types";
 import { ToastProvider, useToast } from "./components/common/ToastProvider";
@@ -514,8 +512,6 @@ const AppContent = () => {
     StoreTransferVoucher[]
   >(initialStoreTransferVouchers);
   const [notifications, setNotifications] = useState<Notification[]>([]);
-  const [fiscalYears, setFiscalYears] =
-    useState<FiscalYear[]>(initialFiscalYears);
   const [printSettings, setPrintSettings] = useState<PrintSettings>({
     template: "default",
     showLogo: true,
@@ -691,28 +687,6 @@ const AppContent = () => {
     ]);
   };
 
-  const handleSaveFiscalYear = (year: FiscalYear) => {
-    setFiscalYears((prev) => {
-      const exists = prev.some((fy) => fy.id === year.id);
-      if (exists) {
-        return prev.map((fy) => (fy.id === year.id ? year : fy));
-      }
-      return [...prev, year];
-    });
-  };
-
-  const handleToggleFiscalYearStatus = (id: number) => {
-    setFiscalYears((prev) =>
-      prev.map((fy) =>
-        fy.id === id
-          ? {
-              ...fy,
-              status: fy.status === "open" ? "closed" : "open",
-            }
-          : fy,
-      ),
-    );
-  };
 
 
   if (!isLoggedIn) {
@@ -761,12 +735,7 @@ const AppContent = () => {
               path="/settings/fiscal-years"
               element={
                 <ProtectedRoute requiredPermission="fiscal_years-read">
-                  <FiscalYears
-                    title={currentPageTitle}
-                    fiscalYears={fiscalYears}
-                    onSave={handleSaveFiscalYear}
-                    onToggleStatus={handleToggleFiscalYearStatus}
-                  />
+                  <FiscalYears title={currentPageTitle} />
                 </ProtectedRoute>
               }
             />

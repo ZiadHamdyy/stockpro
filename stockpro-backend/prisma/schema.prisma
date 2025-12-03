@@ -900,3 +900,23 @@ enum StoreTransferStatus {
   ACCEPTED
   REJECTED
 }
+
+enum FiscalYearStatus {
+  OPEN
+  CLOSED
+}
+
+model FiscalYear {
+  id              String           @id @default(uuid())
+  name            String           @unique
+  startDate       DateTime
+  endDate         DateTime
+  status          FiscalYearStatus @default(OPEN)
+  retainedEarnings Float?
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+
+  @@index([startDate])
+  @@index([endDate])
+  @@index([status])
+}

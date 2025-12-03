@@ -44,5 +44,6 @@ import { TOKEN_CONSTANTS } from '../../common/constants';
   ],
   providers: [AuthService, LocalStrategy, JwtStrategy, RefreshTokenGuard],
   controllers: [AuthController],
+  exports: [AuthService],
 })
 export class AuthModule {}
