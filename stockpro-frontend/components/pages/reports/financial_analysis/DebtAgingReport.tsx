@@ -209,9 +209,17 @@ const DebtAgingReport: React.FC<DebtAgingReportProps> = ({ title }) => {
             // Apply opening balance as oldest debt (will be allocated to 90+ bucket)
             let remainingOpeningBalance = openingBalance;
 
-            // Apply payments using FIFO (oldest invoices first)
+            // Apply payments using FIFO (oldest debt first - opening balance, then invoices)
             let remainingPayments = customerReceipts.reduce((sum, v) => sum + (v.amount ?? 0), 0);
             
+            // First, apply payments to opening balance (oldest debt)
+            if (remainingOpeningBalance > 0 && remainingPayments > 0) {
+                const paymentToOpening = Math.min(remainingPayments, remainingOpeningBalance);
+                remainingOpeningBalance -= paymentToOpening;
+                remainingPayments -= paymentToOpening;
+            }
+            
+            // Then, apply remaining payments to invoices (oldest first)
             for (let i = 0; i < invoiceBalances.length && remainingPayments > 0; i++) {
                 const invoiceBalance = invoiceBalances[i];
                 const paymentToApply = Math.min(remainingPayments, invoiceBalance.unpaidAmount);
@@ -231,14 +239,20 @@ const DebtAgingReport: React.FC<DebtAgingReportProps> = ({ title }) => {
             // Apply refunds (increase debt, add to oldest)
             remainingOpeningBalance += totalRefunds;
 
-            // Calculate total balance (for filtering - only show customers with credit sales)
+            // Calculate total balance (for filtering - only show customers with outstanding debt)
             const totalUnpaidInvoices = invoiceBalances.reduce((sum, ib) => sum + ib.unpaidAmount, 0);
             const currentBalance = remainingOpeningBalance + totalUnpaidInvoices;
-
-            // If no credit sales, exclude from report
-            if (totalCreditSales <= 0) {
-                return null;
-            }
+            
+            // Round to 2 decimal places to avoid floating point precision issues
+            const roundedBalance = Math.round(currentBalance * 100) / 100;
+            
+            // Calculate total debt (what customer owes) and total payments
+            const totalDebt = openingBalance + totalCreditSales + totalRefunds - totalReturns;
+            const totalPayments = totalReceipts;
+            
+            // Round for comparison to avoid floating point precision issues
+            const roundedTotalDebt = Math.round(totalDebt * 100) / 100;
+            const roundedTotalPayments = Math.round(totalPayments * 100) / 100;
 
             // Calculate payment buckets based on payment date relative to invoice date
             const paymentBuckets = { '0-30': 0, '31-60': 0, '61-90': 0, '90+': 0 };
@@ -314,14 +328,25 @@ const DebtAgingReport: React.FC<DebtAgingReportProps> = ({ title }) => {
                 name: customer.name,
                 code: customer.code,
                 totalBalance: totalCreditSales, // Show total credit sales as current balance
+                currentBalance: roundedBalance, // Actual outstanding balance for filtering (rounded)
                 totalCreditSales,
                 totalReceipts,
+                totalDebt: roundedTotalDebt, // Total debt for filtering
+                totalPayments: roundedTotalPayments, // Total payments for filtering
                 paymentBuckets, // Payments distributed by aging
                 buckets // Unpaid amounts distributed by aging
             };
 
         })
-        .filter((c): c is NonNullable<typeof c> => c !== null && c.totalCreditSales > 0 && c.name.toLowerCase().includes(searchTerm.toLowerCase()))
+        .filter((c) => {
+            // Only show customers with outstanding debt (currentBalance > 0.01)
+            // The 0.01 tolerance handles floating-point precision issues
+            // Customers who have fully paid their debts will have currentBalance <= 0
+            const hasOutstandingDebt = c.currentBalance > 0.01;
+            const matchesSearch = c.name.toLowerCase().includes(searchTerm.toLowerCase());
+            
+            return hasOutstandingDebt && matchesSearch;
+        })
         .sort((a, b) => b.totalBalance - a.totalBalance);
 
     }, [customers, salesInvoices, salesReturns, receiptVouchers, paymentVouchers, searchTerm]);
