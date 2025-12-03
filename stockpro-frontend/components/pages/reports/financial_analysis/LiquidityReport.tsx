@@ -1,31 +1,204 @@
 
 import React, { useMemo } from 'react';
-import type { CompanyInfo, Safe, Bank, Customer, Supplier, Item, Invoice, Voucher, StoreReceiptVoucher, StoreIssueVoucher } from '../../../../types';
+import type { Safe, Bank, Customer, Supplier, Item, Invoice, Voucher } from '../../../../types';
 import { PrintIcon, ShieldIcon, ActivityIcon, TrendingUpIcon, AlertTriangleIcon } from '../../../icons';
 import ReportHeader from '../ReportHeader';
 import { formatNumber } from '../../../../utils/formatting';
+import { useGetSafesQuery } from '../../../store/slices/safe/safeApiSlice';
+import { useGetBanksQuery } from '../../../store/slices/bank/bankApiSlice';
+import { useGetCustomersQuery } from '../../../store/slices/customer/customerApiSlice';
+import { useGetSuppliersQuery } from '../../../store/slices/supplier/supplierApiSlice';
+import { useGetItemsQuery } from '../../../store/slices/items/itemsApi';
+import { useGetSalesInvoicesQuery } from '../../../store/slices/salesInvoice/salesInvoiceApiSlice';
+import { useGetPurchaseInvoicesQuery } from '../../../store/slices/purchaseInvoice/purchaseInvoiceApiSlice';
+import { useGetReceiptVouchersQuery } from '../../../store/slices/receiptVoucherApiSlice';
+import { useGetPaymentVouchersQuery } from '../../../store/slices/paymentVoucherApiSlice';
 
 interface LiquidityReportProps {
     title: string;
-    companyInfo: CompanyInfo;
-    safes: Safe[];
-    banks: Bank[];
-    customers: Customer[];
-    suppliers: Supplier[];
-    items: Item[];
-    // Transaction data needed to calculate current balances
-    salesInvoices: Invoice[];
-    salesReturns: Invoice[];
-    purchaseInvoices: Invoice[];
-    purchaseReturns: Invoice[];
-    receiptVouchers: Voucher[];
-    paymentVouchers: Voucher[];
-    storeReceiptVouchers: StoreReceiptVoucher[];
-    storeIssueVouchers: StoreIssueVoucher[];
 }
 
-const LiquidityReport: React.FC<LiquidityReportProps> = (props) => {
-    const { companyInfo, title, safes = [], banks = [], customers = [], suppliers = [], items = [], salesInvoices = [], salesReturns, purchaseInvoices = [], purchaseReturns, receiptVouchers = [], paymentVouchers = [], storeReceiptVouchers, storeIssueVouchers } = props;
+const LiquidityReport: React.FC<LiquidityReportProps> = ({ title }) => {
+    // Fetch data from Redux
+    const { data: apiSafes = [], isLoading: safesLoading } = useGetSafesQuery();
+    const { data: apiBanks = [], isLoading: banksLoading } = useGetBanksQuery();
+    const { data: apiCustomers = [], isLoading: customersLoading } = useGetCustomersQuery();
+    const { data: apiSuppliers = [], isLoading: suppliersLoading } = useGetSuppliersQuery();
+    const { data: apiItems = [], isLoading: itemsLoading } = useGetItemsQuery(undefined);
+    const { data: apiSalesInvoices = [], isLoading: salesLoading } = useGetSalesInvoicesQuery();
+    const { data: apiPurchaseInvoices = [], isLoading: purchasesLoading } = useGetPurchaseInvoicesQuery();
+    const { data: apiReceiptVouchers = [], isLoading: receiptsLoading } = useGetReceiptVouchersQuery();
+    const { data: apiPaymentVouchers = [], isLoading: paymentsLoading } = useGetPaymentVouchersQuery();
+
+    const isLoading = safesLoading || banksLoading || customersLoading || suppliersLoading || itemsLoading || salesLoading || purchasesLoading || receiptsLoading || paymentsLoading;
+
+    // Transform API data to match component expectations
+    const safes = useMemo<Safe[]>(() => {
+        return apiSafes.map((safe) => ({
+            id: safe.id,
+            code: safe.code,
+            name: safe.name,
+            branchId: safe.branchId || '',
+            branchName: safe.branchName || '',
+            openingBalance: safe.openingBalance || 0,
+            currentBalance: safe.currentBalance || 0,
+            createdAt: safe.createdAt || '',
+            updatedAt: safe.updatedAt || ''
+        }));
+    }, [apiSafes]);
+
+    const banks = useMemo<Bank[]>(() => {
+        return apiBanks.map((bank) => ({
+            id: bank.id,
+            code: bank.code,
+            name: bank.name,
+            accountNumber: bank.accountNumber || '',
+            iban: bank.iban || '',
+            openingBalance: bank.openingBalance || 0
+        }));
+    }, [apiBanks]);
+
+    const customers = useMemo<Customer[]>(() => {
+        return apiCustomers.map((customer) => ({
+            id: customer.id,
+            code: customer.code,
+            name: customer.name,
+            commercialReg: customer.commercialReg || '',
+            taxNumber: customer.taxNumber || '',
+            nationalAddress: customer.nationalAddress || '',
+            phone: customer.phone || '',
+            openingBalance: customer.openingBalance || 0,
+            currentBalance: customer.currentBalance || 0
+        }));
+    }, [apiCustomers]);
+
+    const suppliers = useMemo<Supplier[]>(() => {
+        return apiSuppliers.map((supplier) => ({
+            id: supplier.id,
+            code: supplier.code,
+            name: supplier.name,
+            commercialReg: supplier.commercialReg || '',
+            taxNumber: supplier.taxNumber || '',
+            nationalAddress: supplier.nationalAddress || '',
+            phone: supplier.phone || '',
+            openingBalance: supplier.openingBalance || 0,
+            currentBalance: supplier.currentBalance || 0
+        }));
+    }, [apiSuppliers]);
+
+    const items = useMemo<Item[]>(() => {
+        return apiItems.map((item) => ({
+            id: parseInt(item.id) || 0,
+            code: item.code,
+            name: item.name,
+            group: item.group?.name || '',
+            unit: item.unit?.name || '',
+            purchasePrice: item.purchasePrice,
+            salePrice: item.salePrice,
+            stock: item.stock,
+            reorderLimit: item.reorderLimit
+        }));
+    }, [apiItems]);
+
+    const salesInvoices = useMemo<Invoice[]>(() => {
+        return apiSalesInvoices.map((inv) => ({
+            id: inv.id,
+            date: inv.date,
+            customerOrSupplier: inv.customer ? {
+                id: inv.customer.id,
+                name: inv.customer.name
+            } : null,
+            items: inv.items.map((item) => ({
+                id: item.id,
+                name: item.name,
+                unit: item.unit,
+                qty: item.qty,
+                price: item.price,
+                taxAmount: item.taxAmount ?? 0,
+                total: item.total ?? (item.qty * item.price)
+            })),
+            totals: {
+                subtotal: inv.subtotal,
+                discount: inv.discount,
+                tax: inv.tax,
+                net: inv.net
+            },
+            paymentMethod: inv.paymentMethod,
+            paymentTargetType: inv.paymentTargetType,
+            paymentTargetId: inv.paymentTargetId ? parseInt(inv.paymentTargetId) : null,
+            userName: inv.user?.name || '',
+            branchName: inv.branch?.name || ''
+        }));
+    }, [apiSalesInvoices]);
+
+    const purchaseInvoices = useMemo<Invoice[]>(() => {
+        return apiPurchaseInvoices.map((inv) => ({
+            id: inv.id,
+            date: inv.date,
+            customerOrSupplier: inv.supplier ? {
+                id: inv.supplier.id,
+                name: inv.supplier.name
+            } : null,
+            items: inv.items.map((item) => ({
+                id: item.id,
+                name: item.name,
+                unit: item.unit,
+                qty: item.qty,
+                price: item.price,
+                taxAmount: item.taxAmount ?? 0,
+                total: item.total ?? (item.qty * item.price)
+            })),
+            totals: {
+                subtotal: inv.subtotal,
+                discount: inv.discount,
+                tax: inv.tax,
+                net: inv.net
+            },
+            paymentMethod: inv.paymentMethod,
+            paymentTargetType: inv.paymentTargetType,
+            paymentTargetId: inv.paymentTargetId ? parseInt(inv.paymentTargetId) : null,
+            userName: inv.user?.name || '',
+            branchName: inv.branch?.name || ''
+        }));
+    }, [apiPurchaseInvoices]);
+
+    const receiptVouchers = useMemo<Voucher[]>(() => {
+        return apiReceiptVouchers.map((v) => ({
+            id: v.id,
+            type: 'receipt' as const,
+            date: v.date,
+            entity: {
+                type: v.entityType as any,
+                id: v.customerId || v.supplierId || v.currentAccountId || null,
+                name: v.entityName
+            },
+            amount: v.amount,
+            description: v.description || '',
+            paymentMethod: v.paymentMethod as 'safe' | 'bank',
+            safeOrBankId: v.safeId || v.bankId ? parseInt(v.safeId || v.bankId || '0') : null,
+            userName: '',
+            branchName: v.branch?.name || ''
+        }));
+    }, [apiReceiptVouchers]);
+
+    const paymentVouchers = useMemo<Voucher[]>(() => {
+        return apiPaymentVouchers.map((v) => ({
+            id: v.id,
+            type: 'payment' as const,
+            date: v.date,
+            entity: {
+                type: v.entityType as any,
+                id: v.customerId || v.supplierId || v.currentAccountId || v.expenseCodeId || null,
+                name: v.entityName
+            },
+            amount: v.amount,
+            description: v.description || '',
+            paymentMethod: v.paymentMethod as 'safe' | 'bank',
+            safeOrBankId: v.safeId || v.bankId ? parseInt(v.safeId || v.bankId || '0') : null,
+            userName: '',
+            branchName: v.branch?.name || ''
+        }));
+    }, [apiPaymentVouchers]);
 
     const analysis = useMemo(() => {
         const today = new Date().toISOString().substring(0, 10);
@@ -106,6 +279,19 @@ const LiquidityReport: React.FC<LiquidityReportProps> = (props) => {
     };
 
     const handlePrint = () => window.print();
+
+    if (isLoading) {
+        return (
+            <div className="bg-white p-6 rounded-lg shadow">
+                <div className="flex justify-center items-center h-64">
+                    <div className="text-center">
+                        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand-blue mx-auto mb-4"></div>
+                        <p className="text-gray-600">جاري تحميل البيانات...</p>
+                    </div>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="bg-white p-6 rounded-lg shadow space-y-8">
