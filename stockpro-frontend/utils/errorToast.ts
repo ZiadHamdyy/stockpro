@@ -31,9 +31,17 @@ function deriveCodeFromMessage(message?: string): string | undefined {
   )
     return "INV_SAFE_BALANCE_INSUFFICIENT";
   if (msg.includes("not found")) return "INV_NOT_FOUND";
-  if (msg.includes("no open fiscal period") || msg.includes("no open period"))
+  if (
+    msg.includes("no open fiscal period") || 
+    msg.includes("no open period") ||
+    (msg.includes("cannot create") && msg.includes("no open"))
+  )
     return "FISCAL_NO_OPEN_PERIOD";
-  if (msg.includes("closed fiscal period") || msg.includes("closed period"))
+  if (
+    msg.includes("closed fiscal period") || 
+    msg.includes("closed period") ||
+    (msg.includes("cannot create") && msg.includes("closed"))
+  )
     return "FISCAL_CLOSED_PERIOD";
   if (msg.includes("future year") || msg.includes("future fiscal"))
     return "FISCAL_FUTURE_YEAR";
@@ -51,18 +59,64 @@ const CODE_MESSAGES: Record<string, string> = {
   INV_ITEM_NOT_FOUND: "لم يتم العثور على أحد الأصناف.",
   INV_NOT_FOUND: "السجل غير موجود.",
   INV_SAFE_BALANCE_INSUFFICIENT: "الرصيد غير كافي في الخزنة.",
-  FISCAL_NO_OPEN_PERIOD: "لا يمكن إنشاء الفاتورة: لا توجد فترة محاسبية مفتوحة.",
-  FISCAL_CLOSED_PERIOD: "لا يمكن تعديل الفاتورة: الفترة المحاسبية مغلقة.",
+  FISCAL_NO_OPEN_PERIOD: "لا يمكن إنشاء السند: لا توجد فترة محاسبية مفتوحة لهذا التاريخ.",
+  FISCAL_CLOSED_PERIOD: "لا يمكن تعديل السند: الفترة المحاسبية مغلقة.",
   FISCAL_FUTURE_YEAR: "لا يمكن فتح فترة محاسبية لسنة مستقبلية.",
 };
 
 export function showApiErrorToast(error: unknown) {
   const err = (error || {}) as KnownError;
-  const code = (err.data && (err.data as any).code) || "";
-  const message = (err.data && (err.data as any).message) || "";
+  
+  // Try multiple locations for error message (RTK Query can structure errors differently)
+  let message = "";
+  let code = "";
+  
+  // Check if data exists and extract message
+  if (err.data) {
+    // If data is a string, use it directly
+    if (typeof err.data === "string") {
+      message = err.data;
+    } 
+    // If data is an object, check common properties
+    else if (typeof err.data === "object") {
+      // Check for message property (most common)
+      if (err.data.message && typeof err.data.message === "string") {
+        message = err.data.message;
+      }
+      // Check for error property
+      else if (err.data.error && typeof err.data.error === "string") {
+        message = err.data.error;
+      }
+      // Check for code property
+      if (err.data.code) {
+        code = String(err.data.code);
+      }
+    }
+  }
+  
+  // Fallback to error.message if no message found yet
+  if (!message) {
+    const errorObj = err as any;
+    if (errorObj.message && typeof errorObj.message === "string") {
+      message = errorObj.message;
+    }
+  }
 
   const effectiveCode = code || deriveCodeFromMessage(message) || "";
   let text = CODE_MESSAGES[effectiveCode];
+  
+  // If no code match but message contains fiscal period keywords, try to translate
+  if (!text && message) {
+    const msgLower = message.toLowerCase();
+    if (msgLower.includes("fiscal period") || msgLower.includes("no open") || msgLower.includes("closed period")) {
+      const detectedCode = deriveCodeFromMessage(message);
+      if (detectedCode) {
+        text = CODE_MESSAGES[detectedCode];
+      }
+    }
+  }
+  
+  // Fallback to raw message if still no translation
   if (!text) {
     if (typeof message === "string" && message.trim().length > 0) {
       text = message.trim();

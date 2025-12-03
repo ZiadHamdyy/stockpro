@@ -18,6 +18,7 @@ import type {
 import { useModal } from "../../common/ModalProvider.tsx";
 import { useToast } from "../../common/ToastProvider.tsx";
 import { guardPrint } from "../../utils/printGuard";
+import { showApiErrorToast } from "../../../utils/errorToast";
 import { RootState } from "../../store/store";
 import { useGetCompanyQuery } from "../../store/slices/companyApiSlice";
 import { useGetBranchesQuery } from "../../store/slices/branch/branchApi";
@@ -547,7 +548,7 @@ const StoreIssueVoucher: React.FC<StoreIssueVoucherProps> = ({ title }) => {
           id: voucherId,
           data: voucherData,
         }).unwrap().catch((error: any) => {
-          showToast('حدث خطأ أثناء التحديث', 'error');
+          showApiErrorToast(error);
           throw error;
         });
         
@@ -573,7 +574,7 @@ const StoreIssueVoucher: React.FC<StoreIssueVoucherProps> = ({ title }) => {
       } else {
         // Create new voucher
         const newVoucher = await createVoucher(voucherData).unwrap().catch((error: any) => {
-          showToast('حدث خطأ أثناء الحفظ', 'error');
+          showApiErrorToast(error);
           throw error;
         });
         
@@ -605,7 +606,7 @@ const StoreIssueVoucher: React.FC<StoreIssueVoucherProps> = ({ title }) => {
       }
     } catch (error) {
       console.error("Error saving voucher:", error);
-      showToast("حدث خطأ أثناء حفظ الإذن", 'error');
+      // Error already shown by showApiErrorToast in catch blocks above
     }
   };
 
@@ -632,7 +633,7 @@ const StoreIssueVoucher: React.FC<StoreIssueVoucherProps> = ({ title }) => {
           else setCurrentIndex((prev) => Math.max(0, prev - 1));
         } catch (error) {
           console.error("Error deleting voucher:", error);
-          showToast("حدث خطأ أثناء حذف الإذن", 'error');
+          showApiErrorToast(error);
         }
       },
       type: "delete",

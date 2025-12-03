@@ -18,6 +18,7 @@ import type {
 import { useModal } from "../../common/ModalProvider.tsx";
 import { useToast } from "../../common/ToastProvider.tsx";
 import { guardPrint } from "../../utils/printGuard";
+import { showApiErrorToast } from "../../../utils/errorToast";
 import { RootState } from "../../store/store";
 import { useGetCompanyQuery } from "../../store/slices/companyApiSlice";
 import { useGetBranchesQuery } from "../../store/slices/branch/branchApi";
@@ -559,7 +560,7 @@ const StoreReceiptVoucher: React.FC<StoreReceiptVoucherProps> = ({ title }) => {
       }
     } catch (error) {
       console.error("Error saving voucher:", error);
-      showToast("حدث خطأ أثناء حفظ الإذن", 'error');
+      showApiErrorToast(error);
     }
   };
 
@@ -586,7 +587,7 @@ const StoreReceiptVoucher: React.FC<StoreReceiptVoucherProps> = ({ title }) => {
           else setCurrentIndex((prev) => Math.max(0, prev - 1));
         } catch (error) {
           console.error("Error deleting voucher:", error);
-          showToast("حدث خطأ أثناء حذف الإذن", 'error');
+          showApiErrorToast(error);
         }
       },
       type: "delete",
