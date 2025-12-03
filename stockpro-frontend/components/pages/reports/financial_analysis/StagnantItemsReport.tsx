@@ -1,22 +1,89 @@
 
 import React, { useState, useMemo } from 'react';
-import type { CompanyInfo, Item, Invoice, StoreReceiptVoucher, StoreIssueVoucher } from '../../../../types';
+import type { Item, Invoice, StoreIssueVoucher } from '../../../../types';
 import { ExcelIcon, PdfIcon, PrintIcon, SearchIcon, AlertTriangleIcon } from '../../../icons';
 import ReportHeader from '../ReportHeader';
 import { formatNumber, exportToExcel } from '../../../../utils/formatting';
+import { useGetItemsQuery } from '../../../store/slices/items/itemsApi';
+import { useGetSalesInvoicesQuery } from '../../../store/slices/salesInvoice/salesInvoiceApiSlice';
+import { useGetStoreIssueVouchersQuery } from '../../../store/slices/storeIssueVoucher/storeIssueVoucherApi';
 
 interface StagnantItemsReportProps {
     title: string;
-    companyInfo: CompanyInfo;
-    items: Item[];
-    salesInvoices: Invoice[];
-    salesReturns: Invoice[];
-    storeIssueVouchers: StoreIssueVoucher[];
 }
 
-const StagnantItemsReport: React.FC<StagnantItemsReportProps> = ({ title, companyInfo, items = [], salesInvoices = [], salesReturns = [], storeIssueVouchers = [] }) => {
+const StagnantItemsReport: React.FC<StagnantItemsReportProps> = ({ title }) => {
     const [thresholdDays, setThresholdDays] = useState(90);
     const [searchTerm, setSearchTerm] = useState('');
+
+    // Fetch data from Redux
+    const { data: apiItems = [], isLoading: itemsLoading } = useGetItemsQuery(undefined);
+    const { data: apiSalesInvoices = [], isLoading: salesLoading } = useGetSalesInvoicesQuery();
+    const { data: apiStoreIssueVouchers = [], isLoading: vouchersLoading } = useGetStoreIssueVouchersQuery();
+
+    const isLoading = itemsLoading || salesLoading || vouchersLoading;
+
+    // Transform API data to match component expectations
+    const items = useMemo<Item[]>(() => {
+        return apiItems.map((item) => ({
+            id: parseInt(item.id) || 0,
+            code: item.code,
+            name: item.name,
+            group: item.group?.name || '',
+            unit: item.unit?.name || '',
+            purchasePrice: item.purchasePrice,
+            salePrice: item.salePrice,
+            stock: item.stock,
+            reorderLimit: item.reorderLimit
+        }));
+    }, [apiItems]);
+
+    const salesInvoices = useMemo<Invoice[]>(() => {
+        return apiSalesInvoices.map((inv) => ({
+            id: inv.id,
+            date: inv.date,
+            customerOrSupplier: inv.customer ? {
+                id: inv.customer.id,
+                name: inv.customer.name
+            } : null,
+            items: inv.items.map((item) => ({
+                id: item.id,
+                name: item.name,
+                unit: item.unit,
+                qty: item.qty,
+                price: item.price,
+                taxAmount: item.taxAmount ?? 0,
+                total: item.total ?? (item.qty * item.price)
+            })),
+            totals: {
+                subtotal: inv.subtotal,
+                discount: inv.discount,
+                tax: inv.tax,
+                net: inv.net
+            },
+            paymentMethod: inv.paymentMethod,
+            paymentTargetType: inv.paymentTargetType,
+            paymentTargetId: inv.paymentTargetId ? parseInt(inv.paymentTargetId) : null,
+            userName: inv.user?.name || '',
+            branchName: inv.branch?.name || ''
+        }));
+    }, [apiSalesInvoices]);
+
+    const storeIssueVouchers = useMemo<StoreIssueVoucher[]>(() => {
+        return apiStoreIssueVouchers.map((v) => ({
+            id: v.voucherNumber || v.id,
+            date: v.date,
+            branch: v.store?.branch?.name || '',
+            items: v.items.map((item) => ({
+                id: item.item?.code || item.itemId,
+                name: item.item?.name || '',
+                unit: item.item?.unit?.name || '',
+                qty: item.quantity,
+                code: item.item?.code || item.itemId,
+                price: item.unitPrice
+            }))
+        }));
+    }, [apiStoreIssueVouchers]);
 
     const reportData = useMemo(() => {
         const today = new Date();
@@ -78,10 +145,23 @@ const StagnantItemsReport: React.FC<StagnantItemsReportProps> = ({ title, compan
         exportToExcel(data, 'تحليل_المخزون_الراكد');
     };
 
+    if (isLoading) {
+        return (
+            <div className="bg-white p-6 rounded-lg shadow">
+                <div className="flex justify-center items-center h-64">
+                    <div className="text-center">
+                        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand-blue mx-auto mb-4"></div>
+                        <p className="text-gray-600">جاري تحميل البيانات...</p>
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
     return (
         <div className="bg-white p-6 rounded-lg shadow">
             <div id="printable-area">
-                <ReportHeader title={title} companyInfo={companyInfo} />
+                <ReportHeader title={title} />
                 
                 <div className="flex justify-between items-center my-6 bg-gray-50 p-4 rounded-lg border border-gray-200 no-print">
                     <div className="flex flex-wrap items-center gap-4">
