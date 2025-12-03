@@ -1,4 +1,4 @@
-import React, { useMemo } from "react";
+import React, { useMemo, useRef, useEffect } from "react";
 import { BoxIcon } from "../icons";
 
 export type SelectableItem = {
@@ -26,6 +26,7 @@ export interface ItemContextBarProps {
   salesReturns: any[];
   invoices: any[];
   storeItems?: any[]; // Array of StoreItem objects with storeId, itemCode (or item.code), and openingBalance
+  onClose?: () => void; // Callback to close the component
 }
 
 const ItemContextBar: React.FC<ItemContextBarProps> = ({
@@ -40,7 +41,25 @@ const ItemContextBar: React.FC<ItemContextBarProps> = ({
   salesReturns,
   invoices,
   storeItems,
+  onClose,
 }) => {
+  const barRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (barRef.current && !barRef.current.contains(event.target as Node)) {
+        onClose?.();
+      }
+    };
+
+    // Add event listener to document
+    document.addEventListener("mousedown", handleClickOutside);
+    
+    return () => {
+      // Cleanup event listener on unmount
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [onClose]);
   const storeStocks = useMemo(() => {
     if (!stores || !item.id) return [];
 
@@ -173,7 +192,10 @@ const ItemContextBar: React.FC<ItemContextBarProps> = ({
   ]);
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 bg-blue-600 border-t-4 border-blue-400 text-white shadow-[0_-10px_40px_rgba(0,0,0,0.3)] z-50 animate-slide-up">
+    <div 
+      ref={barRef}
+      className="fixed bottom-0 left-0 right-0 bg-blue-600 border-t-4 border-blue-400 text-white shadow-[0_-10px_40px_rgba(0,0,0,0.3)] z-50 animate-slide-up"
+    >
       <div className="container mx-auto px-6 py-4 flex flex-col lg:flex-row items-center justify-between gap-6">
         <div className="flex items-center gap-4 min-w-[200px]">
           <div className="p-3 bg-blue-500/50 backdrop-blur-md rounded-xl border border-blue-400/50 shadow-lg">

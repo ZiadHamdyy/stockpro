@@ -1373,6 +1373,7 @@ const StoreTransfer: React.FC<StoreTransferProps> = ({ title }) => {
             salesReturns={salesReturns}
             invoices={invoices}
             storeItems={storeItems}
+            onClose={() => setFocusedItemIndex(null)}
           />
         </div>
       )}

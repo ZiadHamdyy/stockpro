@@ -2164,6 +2164,7 @@ const SalesInvoice: React.FC<SalesInvoiceProps> = ({
             salesReturns={salesReturns}
             invoices={invoices}
             storeItems={storeItems}
+            onClose={() => setFocusedQtyIndex(null)}
           />
         </div>
       )}
