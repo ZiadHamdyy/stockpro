@@ -1,115 +1,345 @@
 
 import React, { useState, useMemo } from 'react';
-import type { CompanyInfo, Customer, Invoice, Voucher } from '../../../../types';
-import { ExcelIcon, PdfIcon, PrintIcon, SearchIcon, ClockIcon } from '../../../icons';
+import type { Customer, Invoice, Voucher } from '../../../../types';
+import { ExcelIcon, PdfIcon, PrintIcon, SearchIcon } from '../../../icons';
 import ReportHeader from '../ReportHeader';
 import { formatNumber, exportToExcel } from '../../../../utils/formatting';
+import { useGetCustomersQuery } from '../../../store/slices/customer/customerApiSlice';
+import { useGetSalesInvoicesQuery } from '../../../store/slices/salesInvoice/salesInvoiceApiSlice';
+import { useGetSalesReturnsQuery } from '../../../store/slices/salesReturn/salesReturnApiSlice';
+import { useGetReceiptVouchersQuery } from '../../../store/slices/receiptVoucherApiSlice';
+import { useGetPaymentVouchersQuery } from '../../../store/slices/paymentVoucherApiSlice';
+import { useAuth } from '../../../hook/Auth';
 
 interface DebtAgingReportProps {
     title: string;
-    companyInfo: CompanyInfo;
-    customers: Customer[];
-    salesInvoices: Invoice[];
-    salesReturns: Invoice[];
-    receiptVouchers: Voucher[];
-    paymentVouchers: Voucher[];
 }
 
-const DebtAgingReport: React.FC<DebtAgingReportProps> = ({ title, companyInfo, customers = [], salesInvoices = [], salesReturns = [], receiptVouchers = [], paymentVouchers = [] }) => {
+const DebtAgingReport: React.FC<DebtAgingReportProps> = ({ title }) => {
     const [searchTerm, setSearchTerm] = useState('');
+    const { isAuthed } = useAuth();
+    const skip = !isAuthed;
+
+    // Fetch data from API
+    const { data: apiCustomers = [], isLoading: customersLoading } = useGetCustomersQuery(undefined);
+    const { data: apiSalesInvoices = [], isLoading: salesInvoicesLoading } = useGetSalesInvoicesQuery(undefined);
+    const { data: apiSalesReturns = [], isLoading: salesReturnsLoading } = useGetSalesReturnsQuery(undefined);
+    const { data: apiReceiptVouchers = [], isLoading: receiptVouchersLoading } = useGetReceiptVouchersQuery(undefined, { skip });
+    const { data: apiPaymentVouchers = [], isLoading: paymentVouchersLoading } = useGetPaymentVouchersQuery(undefined, { skip });
+
+    const isLoading = customersLoading || salesInvoicesLoading || salesReturnsLoading || receiptVouchersLoading || paymentVouchersLoading;
+
+    // Helper function to normalize dates
+    const normalizeDate = useMemo(() => {
+        return (date: any): string => {
+            if (!date) return "";
+            if (typeof date === "string") {
+                if (/^\d{4}-\d{2}-\d{2}$/.test(date)) return date;
+                return date.substring(0, 10);
+            }
+            if (date instanceof Date) {
+                return date.toISOString().split("T")[0];
+            }
+            try {
+                const parsed = new Date(date);
+                if (!isNaN(parsed.getTime())) {
+                    return parsed.toISOString().split("T")[0];
+                }
+            } catch (e) {
+                // Ignore parsing errors
+            }
+            return "";
+        };
+    }, []);
+
+    // Transform API data to match expected format
+    const customers = useMemo<Customer[]>(() => {
+        return (apiCustomers as any[]).map((customer) => ({
+            id: customer.id.toString(),
+            code: customer.code,
+            name: customer.name,
+            commercialReg: customer.commercialReg || '',
+            taxNumber: customer.taxNumber || '',
+            nationalAddress: customer.nationalAddress || '',
+            phone: customer.phone || '',
+            openingBalance: customer.openingBalance || 0,
+            currentBalance: customer.currentBalance || 0,
+        }));
+    }, [apiCustomers]);
+
+    const salesInvoices = useMemo<Invoice[]>(() => {
+        return (apiSalesInvoices as any[]).map((invoice) => ({
+            id: invoice.id,
+            date: normalizeDate(invoice.date),
+            customerOrSupplier: invoice.customer
+                ? {
+                    id: invoice.customer.id.toString(),
+                    name: invoice.customer.name,
+                }
+                : null,
+            items: invoice.items || [],
+            totals: invoice.totals || {
+                subtotal: invoice.subtotal || 0,
+                discount: invoice.discount || 0,
+                tax: invoice.tax || 0,
+                net: invoice.net || 0,
+            },
+            paymentMethod: invoice.paymentMethod,
+            paymentTerms: invoice.paymentTerms,
+            userName: invoice.user?.name || '',
+            branchName: invoice.branch?.name || '',
+            paymentTargetType: invoice.paymentTargetType,
+            paymentTargetId: invoice.paymentTargetId ? parseInt(invoice.paymentTargetId) : null,
+        }));
+    }, [apiSalesInvoices, normalizeDate]);
+
+    const salesReturns = useMemo<Invoice[]>(() => {
+        return (apiSalesReturns as any[]).map((returnInvoice) => ({
+            id: returnInvoice.id,
+            date: normalizeDate(returnInvoice.date),
+            customerOrSupplier: returnInvoice.customer
+                ? {
+                    id: returnInvoice.customer.id.toString(),
+                    name: returnInvoice.customer.name,
+                }
+                : null,
+            items: returnInvoice.items || [],
+            totals: returnInvoice.totals || {
+                subtotal: returnInvoice.subtotal || 0,
+                discount: returnInvoice.discount || 0,
+                tax: returnInvoice.tax || 0,
+                net: returnInvoice.net || 0,
+            },
+            paymentMethod: returnInvoice.paymentMethod,
+            paymentTerms: returnInvoice.paymentTerms,
+            userName: returnInvoice.user?.name || '',
+            branchName: returnInvoice.branch?.name || '',
+            paymentTargetType: returnInvoice.paymentTargetType,
+            paymentTargetId: returnInvoice.paymentTargetId ? parseInt(returnInvoice.paymentTargetId) : null,
+        }));
+    }, [apiSalesReturns, normalizeDate]);
+
+    const receiptVouchers = useMemo<Voucher[]>(() => {
+        return (apiReceiptVouchers as any[]).map((voucher) => {
+            const entity = voucher.entity || {
+                type: voucher.entityType,
+                id: voucher.customerId || voucher.supplierId || voucher.currentAccountId || "",
+                name: voucher.entityName || "",
+            };
+            
+            return {
+                id: voucher.id,
+                type: "receipt" as const,
+                date: normalizeDate(voucher.date),
+                entity: entity,
+                amount: voucher.amount,
+                description: voucher.description || "",
+                paymentMethod: voucher.paymentMethod,
+                safeOrBankId: voucher.safeId || voucher.bankId,
+                userName: voucher.user?.name || '',
+                branchName: voucher.branch?.name || '',
+            };
+        });
+    }, [apiReceiptVouchers, normalizeDate]);
+
+    const paymentVouchers = useMemo<Voucher[]>(() => {
+        return (apiPaymentVouchers as any[]).map((voucher) => {
+            const entity = voucher.entity || {
+                type: voucher.entityType,
+                id: voucher.customerId || voucher.supplierId || voucher.currentAccountId || "",
+                name: voucher.entityName || "",
+            };
+            
+            return {
+                id: voucher.id,
+                type: "payment" as const,
+                date: normalizeDate(voucher.date),
+                entity: entity,
+                amount: voucher.amount,
+                description: voucher.description || "",
+                paymentMethod: voucher.paymentMethod,
+                safeOrBankId: voucher.safeId || voucher.bankId,
+                userName: voucher.user?.name || '',
+                branchName: voucher.branch?.name || '',
+            };
+        });
+    }, [apiPaymentVouchers, normalizeDate]);
 
     const reportData = useMemo(() => {
         const today = new Date();
 
         return customers.map(customer => {
-            const customerIdStr = (customer.id ?? '').toString();
+            const customerIdStr = customer.id.toString();
             const customerId = customer.id;
 
-            // Calculate Total Balance First
-            const totalSales = salesInvoices.filter(i => i.customerOrSupplier?.id === customerIdStr).reduce((sum, i) => sum + (i.totals?.net ?? 0), 0);
-            const totalReturns = salesReturns.filter(i => i.customerOrSupplier?.id === customerIdStr).reduce((sum, i) => sum + (i.totals?.net ?? 0), 0);
-            const totalReceipts = receiptVouchers.filter(v => v.entity?.type === 'customer' && v.entity?.id == customerId).reduce((sum, v) => sum + (v.amount ?? 0), 0);
-            const totalRefunds = paymentVouchers.filter(v => v.entity?.type === 'customer' && v.entity?.id == customerId).reduce((sum, v) => sum + (v.amount ?? 0), 0);
+            // Only consider credit sales invoices
+            const creditSalesInvoices = salesInvoices
+                .filter(i => 
+                    i.customerOrSupplier?.id === customerIdStr && 
+                    i.paymentMethod === 'credit' && 
+                    i.date
+                )
+                .sort((a, b) => new Date(a.date ?? 0).getTime() - new Date(b.date ?? 0).getTime()); // Oldest first for FIFO
 
-            // Positive balance = Customer owes us
+            // Get sales returns for this customer
+            const customerReturns = salesReturns.filter(i => i.customerOrSupplier?.id === customerIdStr);
+            
+            // Get receipt vouchers (payments) for this customer, sorted by date (oldest first)
+            const customerReceipts = receiptVouchers
+                .filter(v => v.entity?.type === 'customer' && v.entity?.id?.toString() === customerIdStr)
+                .sort((a, b) => new Date(a.date ?? 0).getTime() - new Date(b.date ?? 0).getTime()); // Oldest first
+
+            // Get payment vouchers (refunds) for this customer
+            const customerRefunds = paymentVouchers.filter(v => v.entity?.type === 'customer' && v.entity?.id?.toString() === customerIdStr);
+
+            // Calculate totals
+            const totalCreditSales = creditSalesInvoices.reduce((sum, i) => sum + (i.totals?.net ?? 0), 0);
+            const totalReturns = customerReturns.reduce((sum, i) => sum + (i.totals?.net ?? 0), 0);
+            const totalReceipts = customerReceipts.reduce((sum, v) => sum + (v.amount ?? 0), 0);
+            const totalRefunds = customerRefunds.reduce((sum, v) => sum + (v.amount ?? 0), 0);
             const openingBalance = customer.openingBalance ?? 0;
-            let currentBalance = openingBalance + totalSales + totalRefunds - totalReturns - totalReceipts;
 
-            // If no debt, return empty buckets
-            if (currentBalance <= 0) {
-                return {
-                    id: customer.id,
-                    name: customer.name,
-                    code: customer.code,
-                    totalBalance: currentBalance,
-                    buckets: { '0-30': 0, '31-60': 0, '61-90': 0, '90+': 0 }
-                };
+            // Track unpaid amounts per invoice using FIFO
+            // Start with all invoices having their full amount unpaid
+            const invoiceBalances: Array<{ invoice: Invoice; unpaidAmount: number }> = creditSalesInvoices.map(inv => ({
+                invoice: inv,
+                unpaidAmount: inv.totals?.net ?? 0
+            }));
+
+            // Apply opening balance as oldest debt (will be allocated to 90+ bucket)
+            let remainingOpeningBalance = openingBalance;
+
+            // Apply payments using FIFO (oldest invoices first)
+            let remainingPayments = customerReceipts.reduce((sum, v) => sum + (v.amount ?? 0), 0);
+            
+            for (let i = 0; i < invoiceBalances.length && remainingPayments > 0; i++) {
+                const invoiceBalance = invoiceBalances[i];
+                const paymentToApply = Math.min(remainingPayments, invoiceBalance.unpaidAmount);
+                invoiceBalance.unpaidAmount -= paymentToApply;
+                remainingPayments -= paymentToApply;
             }
 
-            // Logic to distribute balance into aging buckets (FIFO - First In First Out assumption for unpaid invoices)
-            // We look at the LATEST invoices. The balance is attributed to the most recent sales first? 
-            // NO, usually aging means: How old is the debt?
-            // If I owe 100, and I bought 50 yesterday and 50 a year ago.
-            // If I paid nothing, I have 50 in "0-30" and 50 in "365+".
-            // If I paid 50, usually it pays off the OLD debt first. So remaining debt is new (0-30).
-            
-            // Simplified Algorithm:
-            // 1. Get all invoices sorted by date DESCENDING.
-            // 2. Allocate 'currentBalance' to these invoices starting from the newest.
-            // 3. Calculate age of the portion allocated to each invoice.
-            
-            const customerInvoices = salesInvoices
-                .filter(i => i.customerOrSupplier?.id === customerIdStr && i.date)
-                .sort((a, b) => new Date(b.date ?? 0).getTime() - new Date(a.date ?? 0).getTime()); // Newest first
+            // Apply returns (reduce debt, starting from newest invoices)
+            let remainingReturns = totalReturns;
+            for (let i = invoiceBalances.length - 1; i >= 0 && remainingReturns > 0; i--) {
+                const invoiceBalance = invoiceBalances[i];
+                const returnToApply = Math.min(remainingReturns, invoiceBalance.unpaidAmount);
+                invoiceBalance.unpaidAmount -= returnToApply;
+                remainingReturns -= returnToApply;
+            }
 
+            // Apply refunds (increase debt, add to oldest)
+            remainingOpeningBalance += totalRefunds;
+
+            // Calculate total balance (for filtering - only show customers with credit sales)
+            const totalUnpaidInvoices = invoiceBalances.reduce((sum, ib) => sum + ib.unpaidAmount, 0);
+            const currentBalance = remainingOpeningBalance + totalUnpaidInvoices;
+
+            // If no credit sales, exclude from report
+            if (totalCreditSales <= 0) {
+                return null;
+            }
+
+            // Calculate payment buckets based on payment date relative to invoice date
+            const paymentBuckets = { '0-30': 0, '31-60': 0, '61-90': 0, '90+': 0 };
+            
+            // Track which invoices payments apply to (using FIFO)
+            let invoiceIndex = 0;
+            const invoiceBalancesForPayments = creditSalesInvoices.map(inv => ({
+                invoice: inv,
+                remainingAmount: inv.totals?.net ?? 0
+            }));
+
+            // Distribute payments into aging buckets based on payment date relative to invoice date
+            for (const receipt of customerReceipts) {
+                const receiptAmount = receipt.amount ?? 0;
+                let remainingReceiptAmount = receiptAmount;
+                const paymentDate = new Date(receipt.date ?? today.toISOString());
+
+                // Apply this payment to invoices using FIFO
+                while (remainingReceiptAmount > 0 && invoiceIndex < invoiceBalancesForPayments.length) {
+                    const invoiceBalance = invoiceBalancesForPayments[invoiceIndex];
+                    
+                    if (invoiceBalance.remainingAmount <= 0) {
+                        invoiceIndex++;
+                        continue;
+                    }
+
+                    const invoiceDate = new Date(invoiceBalance.invoice.date ?? today.toISOString());
+                    const paymentToApply = Math.min(remainingReceiptAmount, invoiceBalance.remainingAmount);
+                    
+                    // Calculate days between invoice date and payment date
+                    const diffTime = Math.abs(paymentDate.getTime() - invoiceDate.getTime());
+                    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+                    // Distribute payment into appropriate aging bucket
+                    if (diffDays <= 30) paymentBuckets['0-30'] += paymentToApply;
+                    else if (diffDays <= 60) paymentBuckets['31-60'] += paymentToApply;
+                    else if (diffDays <= 90) paymentBuckets['61-90'] += paymentToApply;
+                    else paymentBuckets['90+'] += paymentToApply;
+
+                    invoiceBalance.remainingAmount -= paymentToApply;
+                    remainingReceiptAmount -= paymentToApply;
+
+                    if (invoiceBalance.remainingAmount <= 0) {
+                        invoiceIndex++;
+                    }
+                }
+            }
+
+            // Calculate aging buckets for unpaid amounts based on invoice dates
             const buckets = { '0-30': 0, '31-60': 0, '61-90': 0, '90+': 0 };
-            let remainingBalanceToAllocate = currentBalance;
 
-            // First, allocate to opening balance if invoices are exhausted or opening balance is the source
-            // (For simplicity, we treat unallocated balance after invoices as oldest debt)
-
-            for (const invoice of customerInvoices) {
-                if (remainingBalanceToAllocate <= 0) break;
+            // Allocate unpaid invoice amounts to aging buckets
+            for (const { invoice, unpaidAmount } of invoiceBalances) {
+                if (unpaidAmount <= 0) continue;
 
                 const invDate = new Date(invoice.date ?? today.toISOString());
                 const diffTime = Math.abs(today.getTime() - invDate.getTime());
                 const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 
-                const amountToAllocate = Math.min(remainingBalanceToAllocate, invoice.totals.net);
-                
-                if (diffDays <= 30) buckets['0-30'] += amountToAllocate;
-                else if (diffDays <= 60) buckets['31-60'] += amountToAllocate;
-                else if (diffDays <= 90) buckets['61-90'] += amountToAllocate;
-                else buckets['90+'] += amountToAllocate;
-
-                remainingBalanceToAllocate -= amountToAllocate;
+                if (diffDays <= 30) buckets['0-30'] += unpaidAmount;
+                else if (diffDays <= 60) buckets['31-60'] += unpaidAmount;
+                else if (diffDays <= 90) buckets['61-90'] += unpaidAmount;
+                else buckets['90+'] += unpaidAmount;
             }
 
-            // If there is still balance (e.g. from Opening Balance), put it in 90+
-            if (remainingBalanceToAllocate > 0) {
-                buckets['90+'] += remainingBalanceToAllocate;
+            // Add remaining opening balance to 90+ bucket (oldest debt)
+            if (remainingOpeningBalance > 0) {
+                buckets['90+'] += remainingOpeningBalance;
             }
 
             return {
                 id: customer.id,
                 name: customer.name,
                 code: customer.code,
-                totalBalance: currentBalance,
-                buckets
+                totalBalance: totalCreditSales, // Show total credit sales as current balance
+                totalCreditSales,
+                totalReceipts,
+                paymentBuckets, // Payments distributed by aging
+                buckets // Unpaid amounts distributed by aging
             };
 
-        }).filter(c => c.totalBalance > 0 && c.name.toLowerCase().includes(searchTerm.toLowerCase())).sort((a, b) => b.totalBalance - a.totalBalance);
+        })
+        .filter((c): c is NonNullable<typeof c> => c !== null && c.totalCreditSales > 0 && c.name.toLowerCase().includes(searchTerm.toLowerCase()))
+        .sort((a, b) => b.totalBalance - a.totalBalance);
 
     }, [customers, salesInvoices, salesReturns, receiptVouchers, paymentVouchers, searchTerm]);
 
     const totals = reportData.reduce((acc, item) => {
         acc.total += item.totalBalance;
+        acc.totalCreditSales += item.totalCreditSales;
+        acc.totalReceipts += item.totalReceipts;
+        acc.paymentB30 += item.paymentBuckets['0-30'];
+        acc.paymentB60 += item.paymentBuckets['31-60'];
+        acc.paymentB90 += item.paymentBuckets['61-90'];
+        acc.paymentB90plus += item.paymentBuckets['90+'];
         acc.b30 += item.buckets['0-30'];
         acc.b60 += item.buckets['31-60'];
         acc.b90 += item.buckets['61-90'];
         acc.b90plus += item.buckets['90+'];
         return acc;
-    }, { total: 0, b30: 0, b60: 0, b90: 0, b90plus: 0 });
+    }, { total: 0, totalCreditSales: 0, totalReceipts: 0, paymentB30: 0, paymentB60: 0, paymentB90: 0, paymentB90plus: 0, b30: 0, b60: 0, b90: 0, b90plus: 0 });
 
     const handlePrint = () => window.print();
 
@@ -117,19 +347,29 @@ const DebtAgingReport: React.FC<DebtAgingReportProps> = ({ title, companyInfo, c
         const data = reportData.map(c => ({
             'الكود': c.code,
             'العميل': c.name,
-            'الرصيد الحالي': c.totalBalance,
-            '1-30 يوم': c.buckets['0-30'],
-            '31-60 يوم': c.buckets['31-60'],
-            '61-90 يوم': c.buckets['61-90'],
-            'أكثر من 90 يوم': c.buckets['90+'],
+            'الرصيد القائم': c.totalBalance,
+            'المدفوعات 1-30 يوم': c.paymentBuckets['0-30'],
+            'المدفوعات 31-60 يوم': c.paymentBuckets['31-60'],
+            'المدفوعات 61-90 يوم': c.paymentBuckets['61-90'],
+            'المدفوعات أكثر من 90 يوم': c.paymentBuckets['90+'],
         }));
         exportToExcel(data, 'تحليل_أعمار_الديون');
     };
 
+    if (isLoading) {
+        return (
+            <div className="bg-white p-6 rounded-lg shadow">
+                <div className="flex items-center justify-center h-64">
+                    <div className="text-gray-500">جاري التحميل...</div>
+                </div>
+            </div>
+        );
+    }
+
     return (
         <div className="bg-white p-6 rounded-lg shadow">
             <div id="printable-area">
-                <ReportHeader title={title} companyInfo={companyInfo} />
+                <ReportHeader title={title} />
                 
                 <div className="flex justify-between items-center my-6 bg-gray-50 p-4 rounded-lg border border-gray-200 no-print">
                     <div className="flex items-center gap-4">
@@ -153,24 +393,24 @@ const DebtAgingReport: React.FC<DebtAgingReportProps> = ({ title, companyInfo, c
                 {/* Summary Cards */}
                 <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-8 no-print">
                     <div className="bg-blue-50 border border-blue-200 p-4 rounded-xl text-center">
-                        <p className="text-xs text-blue-800 font-bold mb-1">إجمالي المديونية</p>
+                        <p className="text-xs text-blue-800 font-bold mb-1">الرصيد القائم</p>
                         <p className="text-xl font-bold text-blue-900">{formatNumber(totals.total)}</p>
                     </div>
                     <div className="bg-green-50 border border-green-200 p-4 rounded-xl text-center">
-                        <p className="text-xs text-green-800 font-bold mb-1">1-30 يوم (جيدة)</p>
-                        <p className="text-xl font-bold text-green-900">{formatNumber(totals.b30)}</p>
+                        <p className="text-xs text-green-800 font-bold mb-1">المدفوعات 1-30 يوم</p>
+                        <p className="text-xl font-bold text-green-900">{formatNumber(totals.paymentB30)}</p>
                     </div>
                     <div className="bg-yellow-50 border border-yellow-200 p-4 rounded-xl text-center">
-                        <p className="text-xs text-yellow-800 font-bold mb-1">31-60 يوم (متوسطة)</p>
-                        <p className="text-xl font-bold text-yellow-900">{formatNumber(totals.b60)}</p>
+                        <p className="text-xs text-yellow-800 font-bold mb-1">المدفوعات 31-60 يوم</p>
+                        <p className="text-xl font-bold text-yellow-900">{formatNumber(totals.paymentB60)}</p>
                     </div>
                     <div className="bg-orange-50 border border-orange-200 p-4 rounded-xl text-center">
-                        <p className="text-xs text-orange-800 font-bold mb-1">61-90 يوم (حذرة)</p>
-                        <p className="text-xl font-bold text-orange-900">{formatNumber(totals.b90)}</p>
+                        <p className="text-xs text-orange-800 font-bold mb-1">المدفوعات 61-90 يوم</p>
+                        <p className="text-xl font-bold text-orange-900">{formatNumber(totals.paymentB90)}</p>
                     </div>
                     <div className="bg-red-50 border border-red-200 p-4 rounded-xl text-center animate-pulse">
-                        <p className="text-xs text-red-800 font-bold mb-1">+90 يوم (متعثرة)</p>
-                        <p className="text-xl font-bold text-red-900">{formatNumber(totals.b90plus)}</p>
+                        <p className="text-xs text-red-800 font-bold mb-1">المدفوعات +90 يوم</p>
+                        <p className="text-xl font-bold text-red-900">{formatNumber(totals.paymentB90plus)}</p>
                     </div>
                 </div>
 
@@ -191,11 +431,11 @@ const DebtAgingReport: React.FC<DebtAgingReportProps> = ({ title, companyInfo, c
                                 <tr key={customer.id} className="hover:bg-gray-50">
                                     <td className="p-3 text-right font-bold text-gray-800">{customer.name}</td>
                                     <td className="p-3 font-mono font-bold bg-blue-50">{formatNumber(customer.totalBalance)}</td>
-                                    <td className="p-3 text-gray-600">{formatNumber(customer.buckets['0-30'])}</td>
-                                    <td className="p-3 text-gray-600">{formatNumber(customer.buckets['31-60'])}</td>
-                                    <td className="p-3 text-gray-600">{formatNumber(customer.buckets['61-90'])}</td>
-                                    <td className={`p-3 font-bold ${customer.buckets['90+'] > 0 ? 'text-red-600 bg-red-50' : 'text-gray-400'}`}>
-                                        {formatNumber(customer.buckets['90+'])}
+                                    <td className="p-3 text-gray-600">{formatNumber(customer.paymentBuckets['0-30'])}</td>
+                                    <td className="p-3 text-gray-600">{formatNumber(customer.paymentBuckets['31-60'])}</td>
+                                    <td className="p-3 text-gray-600">{formatNumber(customer.paymentBuckets['61-90'])}</td>
+                                    <td className={`p-3 font-bold ${customer.paymentBuckets['90+'] > 0 ? 'text-red-600 bg-red-50' : 'text-gray-400'}`}>
+                                        {formatNumber(customer.paymentBuckets['90+'])}
                                     </td>
                                 </tr>
                             ))}
@@ -204,17 +444,17 @@ const DebtAgingReport: React.FC<DebtAgingReportProps> = ({ title, companyInfo, c
                             <tr>
                                 <td className="p-3 text-right">الإجمالي</td>
                                 <td className="p-3 text-blue-800">{formatNumber(totals.total)}</td>
-                                <td className="p-3 text-green-700">{formatNumber(totals.b30)}</td>
-                                <td className="p-3 text-yellow-700">{formatNumber(totals.b60)}</td>
-                                <td className="p-3 text-orange-700">{formatNumber(totals.b90)}</td>
-                                <td className="p-3 text-red-700">{formatNumber(totals.b90plus)}</td>
+                                <td className="p-3 text-green-700">{formatNumber(totals.paymentB30)}</td>
+                                <td className="p-3 text-yellow-700">{formatNumber(totals.paymentB60)}</td>
+                                <td className="p-3 text-orange-700">{formatNumber(totals.paymentB90)}</td>
+                                <td className="p-3 text-red-700">{formatNumber(totals.paymentB90plus)}</td>
                             </tr>
                         </tfoot>
                     </table>
                 </div>
                 
                 <div className="mt-6 text-xs text-gray-500">
-                    * يتم احتساب أعمار الديون بناءً على مبدأ ما يرد أولاً يصرف أولاً (FIFO) للرصيد القائم مقابل أحدث الفواتير.
+                    * يتم احتساب أعمار الديون بناءً على مبدأ ما يرد أولاً يصرف أولاً (FIFO) - يتم تطبيق المدفوعات على أقدم فواتير البيع الآجل أولاً. يتم عرض العملاء الذين لديهم رصيد مدين فقط.
                 </div>
             </div>
         </div>
