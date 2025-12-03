@@ -1,26 +1,114 @@
 
 import React, { useState, useMemo, useEffect, useRef } from 'react';
-import type { CompanyInfo, Invoice, Voucher } from '../../../../types';
+import type { Invoice, Voucher } from '../../../../types';
 import { ExcelIcon, PdfIcon, PrintIcon } from '../../../icons';
 import ReportHeader from '../ReportHeader';
 import { formatNumber, exportToExcel } from '../../../../utils/formatting';
+import { useGetSalesInvoicesQuery } from '../../../store/slices/salesInvoice/salesInvoiceApiSlice';
+import { useGetPurchaseInvoicesQuery } from '../../../store/slices/purchaseInvoice/purchaseInvoiceApiSlice';
+import { useGetPaymentVouchersQuery } from '../../../store/slices/paymentVoucherApiSlice';
 
 declare var Chart: any;
 
 interface FinancialPerformanceReportProps {
     title: string;
-    companyInfo: CompanyInfo;
-    salesInvoices: Invoice[];
-    purchaseInvoices: Invoice[];
-    paymentVouchers: Voucher[];
 }
 
 const months = ['يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو', 'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'];
 
-const FinancialPerformanceReport: React.FC<FinancialPerformanceReportProps> = ({ title, companyInfo, salesInvoices = [], purchaseInvoices = [], paymentVouchers = [] }) => {
+const FinancialPerformanceReport: React.FC<FinancialPerformanceReportProps> = ({ title }) => {
     const [year, setYear] = useState(new Date().getFullYear());
     const chartRef = useRef<HTMLCanvasElement>(null);
     const chartInstance = useRef<any>(null);
+
+    // Fetch data from Redux
+    const { data: apiSalesInvoices = [], isLoading: salesLoading } = useGetSalesInvoicesQuery();
+    const { data: apiPurchaseInvoices = [], isLoading: purchasesLoading } = useGetPurchaseInvoicesQuery();
+    const { data: apiPaymentVouchers = [], isLoading: vouchersLoading } = useGetPaymentVouchersQuery();
+
+    const isLoading = salesLoading || purchasesLoading || vouchersLoading;
+
+    // Transform API data to match component expectations
+    const salesInvoices = useMemo<Invoice[]>(() => {
+        return apiSalesInvoices.map((inv) => ({
+            id: inv.id,
+            date: inv.date,
+            customerOrSupplier: inv.customer ? {
+                id: inv.customer.id,
+                name: inv.customer.name
+            } : null,
+            items: inv.items.map((item) => ({
+                id: item.id,
+                name: item.name,
+                unit: item.unit,
+                qty: item.qty,
+                price: item.price,
+                taxAmount: item.taxAmount ?? 0,
+                total: item.total ?? (item.qty * item.price)
+            })),
+            totals: {
+                subtotal: inv.subtotal,
+                discount: inv.discount,
+                tax: inv.tax,
+                net: inv.net
+            },
+            paymentMethod: inv.paymentMethod,
+            paymentTargetType: inv.paymentTargetType,
+            paymentTargetId: inv.paymentTargetId ? parseInt(inv.paymentTargetId) : null,
+            userName: inv.user?.name || '',
+            branchName: inv.branch?.name || ''
+        }));
+    }, [apiSalesInvoices]);
+
+    const purchaseInvoices = useMemo<Invoice[]>(() => {
+        return apiPurchaseInvoices.map((inv) => ({
+            id: inv.id,
+            date: inv.date,
+            customerOrSupplier: inv.supplier ? {
+                id: inv.supplier.id,
+                name: inv.supplier.name
+            } : null,
+            items: inv.items.map((item) => ({
+                id: item.id,
+                name: item.name,
+                unit: item.unit,
+                qty: item.qty,
+                price: item.price,
+                taxAmount: item.taxAmount ?? 0,
+                total: item.total ?? (item.qty * item.price)
+            })),
+            totals: {
+                subtotal: inv.subtotal,
+                discount: inv.discount,
+                tax: inv.tax,
+                net: inv.net
+            },
+            paymentMethod: inv.paymentMethod,
+            paymentTargetType: inv.paymentTargetType,
+            paymentTargetId: inv.paymentTargetId ? parseInt(inv.paymentTargetId) : null,
+            userName: inv.user?.name || '',
+            branchName: inv.branch?.name || ''
+        }));
+    }, [apiPurchaseInvoices]);
+
+    const paymentVouchers = useMemo<Voucher[]>(() => {
+        return apiPaymentVouchers.map((v) => ({
+            id: v.id,
+            type: 'payment' as const,
+            date: v.date,
+            entity: {
+                type: v.entityType as any,
+                id: v.customerId || v.supplierId || v.currentAccountId || v.expenseCodeId || null,
+                name: v.entityName
+            },
+            amount: v.amount,
+            description: v.description || '',
+            paymentMethod: v.paymentMethod as 'safe' | 'bank',
+            safeOrBankId: v.safeId || v.bankId ? parseInt(v.safeId || v.bankId || '0') : null,
+            userName: '',
+            branchName: v.branch?.name || ''
+        }));
+    }, [apiPaymentVouchers]);
 
     const reportData = useMemo(() => {
         const data = months.map((monthName, index) => {
@@ -153,10 +241,23 @@ const FinancialPerformanceReport: React.FC<FinancialPerformanceReportProps> = ({
         exportToExcel(reportData, `التحليل_المالي_${year}`);
     };
 
+    if (isLoading) {
+        return (
+            <div className="bg-white p-6 rounded-lg shadow">
+                <div className="flex justify-center items-center h-64">
+                    <div className="text-center">
+                        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand-blue mx-auto mb-4"></div>
+                        <p className="text-gray-600">جاري تحميل البيانات...</p>
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
     return (
         <div className="bg-white p-6 rounded-lg shadow">
             <div id="printable-area">
-                <ReportHeader title={title} companyInfo={companyInfo} />
+                <ReportHeader title={title} />
                 
                 <div className="flex justify-between items-center my-4 bg-gray-50 p-4 rounded-lg border border-gray-200 no-print">
                     <div className="flex items-center gap-4">
