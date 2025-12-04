@@ -197,6 +197,8 @@ const CompanyData: React.FC<CompanyDataProps> = ({ title }) => {
               <option value="USD">الدولار الأمريكي (USD)</option>
               <option value="EGP">الجنيه المصري (EGP)</option>
               <option value="AED">الدرهم الإماراتي (AED)</option>
+              <option value="JOD">الدينار الأردني (JOD)</option>
+              <option value="KWD">الدينار الكويتي (KWD)</option>
             </select>
           </div>
           <div>
