@@ -329,6 +329,7 @@ const SalesInvoice: React.FC<SalesInvoiceProps> = ({
   const [currentIndex, setCurrentIndex] = useState(-1);
   const justSavedRef = useRef(false); // Flag to prevent resetting state after save
   const shouldOpenPreviewRef = useRef(false); // Flag to indicate we want to open preview after data is set
+  const justPrefilledFromQuotationRef = useRef(false); // Flag to prevent totals recalculation after prefilling
   const [previewData, setPreviewData] = useState<{
     companyInfo: CompanyInfo;
     vatRate: number;
@@ -591,16 +592,23 @@ const SalesInvoice: React.FC<SalesInvoiceProps> = ({
       ? (quotation.items as InvoiceItem[])
       : [];
 
-    const mappedItems: InvoiceRow[] = quoteItems.map((item) => ({
-      id: item.id,
-      name: item.name,
-      unit: item.unit,
-      qty: Number(item.qty) || 0,
-      price: Number(item.price) || 0,
-      taxAmount: Number(item.taxAmount) || 0,
-      total: Number(item.total) || (Number(item.qty) || 0) * (Number(item.price) || 0),
-      salePriceIncludesTax: false,
-    }));
+    const mappedItems: InvoiceRow[] = quoteItems.map((item) => {
+      // In PriceQuotation, item.total is the base amount (qty * price), not base + tax
+      // In SalesInvoice, when salePriceIncludesTax is false, item.total should be base + tax
+      const baseAmount = Number(item.total) || (Number(item.qty) || 0) * (Number(item.price) || 0);
+      const taxAmount = Number(item.taxAmount) || 0;
+      const totalWithTax = baseAmount + taxAmount;
+      return {
+        id: item.id,
+        name: item.name,
+        unit: item.unit,
+        qty: Number(item.qty) || 0,
+        price: Number(item.price) || 0,
+        taxAmount: taxAmount,
+        total: totalWithTax,
+        salePriceIncludesTax: false,
+      };
+    });
 
     while (mappedItems.length < 6) {
       mappedItems.push(createEmptyItem());
@@ -644,6 +652,7 @@ const SalesInvoice: React.FC<SalesInvoiceProps> = ({
     setIsReadOnly(false);
     setPreviewData(null);
     justSavedRef.current = false;
+    justPrefilledFromQuotationRef.current = true; // Mark that we just prefilled
     showToast("تم تحميل بيانات عرض السعر إلى الفاتورة. راجعها ثم احفظ.");
     onClearPrefillQuotation?.();
     setIsPrefillingFromQuotation(false);
@@ -680,7 +689,8 @@ const SalesInvoice: React.FC<SalesInvoiceProps> = ({
   }, [previewData]);
 
   useEffect(() => {
-    if (currentIndex >= 0) return;
+    // Skip recalculation when prefilling from quotation to preserve original prices
+    if (currentIndex >= 0 || isPrefillingFromQuotation) return;
     setInvoiceItems((prev) =>
       prev.map((item) => {
         const { total, taxAmount } = computeLineAmounts(
@@ -698,7 +708,7 @@ const SalesInvoice: React.FC<SalesInvoiceProps> = ({
         return { ...item, total, taxAmount };
       }),
     );
-  }, [currentIndex, effectiveVatEnabled, vatRate]);
+  }, [currentIndex, effectiveVatEnabled, vatRate, isPrefillingFromQuotation]);
 
   useEffect(() => {
     const sizer = document.createElement("span");
@@ -731,6 +741,15 @@ const SalesInvoice: React.FC<SalesInvoiceProps> = ({
   }, [invoiceItems]);
 
   useEffect(() => {
+    // Skip totals recalculation when prefilling from quotation to preserve original totals
+    if (isPrefillingFromQuotation) return;
+    
+    // Skip recalculation immediately after prefilling to preserve quotation totals
+    if (justPrefilledFromQuotationRef.current) {
+      justPrefilledFromQuotationRef.current = false; // Clear flag after first skip
+      return;
+    }
+    
     const taxTotal = effectiveVatEnabled
       ? invoiceItems.reduce(
           (acc, item) => acc + (Number(item.taxAmount) || 0),
@@ -746,7 +765,7 @@ const SalesInvoice: React.FC<SalesInvoiceProps> = ({
       const net = subtotal + taxTotal - prev.discount;
       return { ...prev, subtotal, tax: taxTotal, net };
     });
-  }, [invoiceItems, effectiveVatEnabled]);
+  }, [invoiceItems, effectiveVatEnabled, isPrefillingFromQuotation]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
