@@ -35,7 +35,7 @@ const AuditLogReport: React.FC<AuditLogReportProps> = ({ title }) => {
             const matchesSearch = log.details.toLowerCase().includes(searchTerm.toLowerCase()) || 
                                   log.targetType.toLowerCase().includes(searchTerm.toLowerCase()) ||
                                   (log.targetId && log.targetId.toString().includes(searchTerm));
-            const matchesUser = selectedUser === 'all' || log.userId.toString() === selectedUser;
+            const matchesUser = selectedUser === 'all' || log.userId.toString() === selectedUser.toString();
             const matchesAction = selectedAction === 'all' || log.action === selectedAction;
             const matchesBranch = selectedBranch === 'all' || (log.branchName === selectedBranch);
             
@@ -182,7 +182,7 @@ const AuditLogReport: React.FC<AuditLogReportProps> = ({ title }) => {
                         onChange={(e) => setSelectedUser(e.target.value)}
                     >
                         <option value="all">كل المستخدمين</option>
-                        {users.map(u => <option key={u.id} value={u.id.toString()}>{(u as any).fullName || u.name || u.email}</option>)}
+                        {users.filter(u => u.code != null).map(u => <option key={u.id} value={u.code!.toString()}>{(u as any).fullName || u.name || u.email}</option>)}
                     </select>
 
                     {/* Action Select */}
