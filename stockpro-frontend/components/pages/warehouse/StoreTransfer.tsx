@@ -1347,6 +1347,7 @@ const StoreTransfer: React.FC<StoreTransferProps> = ({ title }) => {
           { Header: "التاريخ", accessor: "date" },
           { Header: "من مخزن", accessor: "fromStore" },
           { Header: "إلى مخزن", accessor: "toStore" },
+          { Header: "الحالة", accessor: "status" },
         ]}
         data={vouchers.map((v) => ({
           ...v,
@@ -1355,6 +1356,13 @@ const StoreTransfer: React.FC<StoreTransferProps> = ({ title }) => {
           date: v.date
             ? new Date(v.date).toISOString().substring(0, 10)
             : "-",
+          status: v.status === 'PENDING' 
+            ? 'قيد الانتظار' 
+            : v.status === 'ACCEPTED' 
+            ? 'مقبول' 
+            : v.status === 'REJECTED' 
+            ? 'مرفوض' 
+            : '-',
         }))}
         onSelectRow={handleSelectVoucherFromSearch}
         colorTheme="amber"
