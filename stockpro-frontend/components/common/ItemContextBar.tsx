@@ -194,6 +194,11 @@ const ItemContextBar: React.FC<ItemContextBarProps> = ({
     storeItems,
   ]);
 
+  // Calculate total stock across all stores
+  const totalStock = useMemo(() => {
+    return storeStocks.reduce((sum, store) => sum + store.qty, 0);
+  }, [storeStocks]);
+
   return (
     <div 
       ref={barRef}
@@ -278,12 +283,12 @@ const ItemContextBar: React.FC<ItemContextBarProps> = ({
             </span>
             <span
               className={`text-5xl font-black drop-shadow-lg leading-none tracking-tighter ${
-                item.stock <= 0
+                totalStock <= 0
                   ? "text-red-300 animate-pulse"
                   : "text-white"
               }`}
             >
-              {item.stock}
+              {totalStock}
             </span>
           </div>
         </div>
