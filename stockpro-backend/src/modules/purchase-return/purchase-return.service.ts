@@ -353,6 +353,15 @@ export class PurchaseReturnService {
 
     // Check if date is in a closed period (use new date if provided, otherwise existing date)
     const returnDate = data.date ? new Date(data.date) : existingReturn.date;
+    
+    // If date is being changed, validate it's in an open period
+    if (data.date) {
+      const hasOpenPeriod = await this.fiscalYearService.hasOpenPeriodForDate(returnDate);
+      if (!hasOpenPeriod) {
+        throw new ForbiddenException('لا يمكن تعديل المرتجع: لا توجد فترة محاسبية مفتوحة لهذا التاريخ');
+      }
+    }
+    
     const isInClosedPeriod = await this.fiscalYearService.isDateInClosedPeriod(returnDate);
     if (isInClosedPeriod) {
       throw new ForbiddenException('لا يمكن تعديل المرتجع: الفترة المحاسبية مغلقة');
@@ -551,6 +560,12 @@ export class PurchaseReturnService {
 
     if (!returnRecord) {
       throw new NotFoundException('Purchase return not found');
+    }
+
+    // Check if return date is in a closed period
+    const isInClosedPeriod = await this.fiscalYearService.isDateInClosedPeriod(returnRecord.date);
+    if (isInClosedPeriod) {
+      throw new ForbiddenException('لا يمكن حذف المرتجع: الفترة المحاسبية مغلقة');
     }
 
     await this.prisma.$transaction(async (tx) => {

@@ -222,6 +222,15 @@ export class PaymentVoucherService {
 
       // Check if date is in a closed period (use new date if provided, otherwise existing date)
       const voucherDate = data.date ? new Date(data.date) : existing.date;
+      
+      // If date is being changed, validate it's in an open period
+      if (data.date) {
+        const hasOpenPeriod = await this.fiscalYearService.hasOpenPeriodForDate(voucherDate);
+        if (!hasOpenPeriod) {
+          throw new ForbiddenException('لا يمكن تعديل السند: لا توجد فترة محاسبية مفتوحة لهذا التاريخ');
+        }
+      }
+      
       const isInClosedPeriod = await this.fiscalYearService.isDateInClosedPeriod(voucherDate);
       if (isInClosedPeriod) {
         throw new ForbiddenException('لا يمكن تعديل السند: الفترة المحاسبية مغلقة');
@@ -423,62 +432,71 @@ export class PaymentVoucherService {
 
   async removePaymentVoucher(id: string): Promise<void> {
     try {
+      // Check if voucher date is in a closed period before starting transaction
+      const existing = await this.prisma.paymentVoucher.findUnique({ where: { id } });
+      if (!existing) throw new NotFoundException('Payment voucher not found');
+
+      const isInClosedPeriod = await this.fiscalYearService.isDateInClosedPeriod(existing.date);
+      if (isInClosedPeriod) {
+        throw new ForbiddenException('لا يمكن حذف السند: الفترة المحاسبية مغلقة');
+      }
+
       await this.prisma.$transaction(async (tx) => {
-        const existing = await tx.paymentVoucher.findUnique({ where: { id } });
-        if (!existing) throw new NotFoundException('Payment voucher not found');
+        const existingInTx = await tx.paymentVoucher.findUnique({ where: { id } });
+        if (!existingInTx) throw new NotFoundException('Payment voucher not found');
 
         // Reverse debit on safe/bank
-        if (existing.paymentMethod === 'safe' && existing.safeId) {
+        if (existingInTx.paymentMethod === 'safe' && existingInTx.safeId) {
           const safe = await tx.safe.findUnique({
-            where: { id: existing.safeId },
+            where: { id: existingInTx.safeId },
           });
           if (!safe) throw new NotFoundException('Safe not found');
           await AccountingService.reverseImpact({
             kind: 'payment-voucher',
-            amount: existing.amount,
+            amount: existingInTx.amount,
             paymentTargetType: 'safe',
             branchId: safe.branchId,
-            safeId: existing.safeId,
+            safeId: existingInTx.safeId,
             tx,
           });
-        } else if (existing.paymentMethod === 'bank' && existing.bankId) {
+        } else if (existingInTx.paymentMethod === 'bank' && existingInTx.bankId) {
           await AccountingService.reverseImpact({
             kind: 'payment-voucher',
-            amount: existing.amount,
+            amount: existingInTx.amount,
             paymentTargetType: 'bank',
-            bankId: existing.bankId,
+            bankId: existingInTx.bankId,
             tx,
           });
         }
 
         // Reverse entity effect (skip for VAT type)
-        if (existing.entityType === 'vat') {
+        if (existingInTx.entityType === 'vat') {
           // VAT vouchers don't affect entity balances
-        } else if (existing.entityType === 'supplier' && existing.supplierId) {
+        } else if (existingInTx.entityType === 'supplier' && existingInTx.supplierId) {
           await tx.supplier.update({
-            where: { id: existing.supplierId },
-            data: { currentBalance: { increment: existing.amount } },
+            where: { id: existingInTx.supplierId },
+            data: { currentBalance: { increment: existingInTx.amount } },
           });
-        } else if (existing.entityType === 'customer' && existing.customerId) {
+        } else if (existingInTx.entityType === 'customer' && existingInTx.customerId) {
           await tx.customer.update({
-            where: { id: existing.customerId },
-            data: { currentBalance: { decrement: existing.amount } },
+            where: { id: existingInTx.customerId },
+            data: { currentBalance: { decrement: existingInTx.amount } },
           });
         } else if (
-          (existing.entityType === 'expense' ||
-            existing.entityType === 'expense-Type') &&
-          existing.expenseCodeId
+          (existingInTx.entityType === 'expense' ||
+            existingInTx.entityType === 'expense-Type') &&
+          existingInTx.expenseCodeId
         ) {
           // Expense-Type: Note - ExpenseCode doesn't have currentBalance field
           // If tracking is needed, add currentBalance field to ExpenseCode model
         } else {
           // Reverse: decrement for all account types (subtract the money we previously added)
           const reverseDirection = 'decrement';
-          await this.applyEntityBalanceEffect(tx, existing.entityType, {
-            currentAccountId: existing.currentAccountId,
-            receivableAccountId: (existing as any).receivableAccountId,
-            payableAccountId: (existing as any).payableAccountId,
-            amount: existing.amount,
+          await this.applyEntityBalanceEffect(tx, existingInTx.entityType, {
+            currentAccountId: existingInTx.currentAccountId,
+            receivableAccountId: (existingInTx as any).receivableAccountId,
+            payableAccountId: (existingInTx as any).payableAccountId,
+            amount: existingInTx.amount,
             direction: reverseDirection,
           });
         }

@@ -36,8 +36,26 @@ const FiscalYears: React.FC<FiscalYearsProps> = ({ title }) => {
             return;
         }
         
+        // Validate date range
+        const startDate = new Date(newYear.startDate!);
+        const endDate = new Date(newYear.endDate!);
+        
+        if (startDate >= endDate) {
+            showToast("يجب أن يكون تاريخ البداية قبل تاريخ النهاية", "error");
+            return;
+        }
+        
+        // Validate that dates are not in the future
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        
+        if (startDate > today) {
+            showToast("لا يمكن فتح فترة محاسبية لتاريخ مستقبلي", "error");
+            return;
+        }
+        
         // Validate that the fiscal year is not for a future year
-        const startDateYear = new Date(newYear.startDate!).getFullYear();
+        const startDateYear = startDate.getFullYear();
         const currentYear = new Date().getFullYear();
         if (startDateYear > currentYear) {
             showToast("لا يمكن فتح فترة محاسبية لسنة مستقبلية", "error");
@@ -77,7 +95,7 @@ const FiscalYears: React.FC<FiscalYearsProps> = ({ title }) => {
             
             showModal({
                 title: 'إعادة فتح السنة المالية',
-                message: `هل أنت متأكد من إعادة فتح السنة المالية ${year.name}؟ هذا سيسمح بتعديل البيانات.`,
+                message: `هل أنت متأكد من إعادة فتح السنة المالية ${year.name}؟ هذا سيسمح بإنشاء وتعديل المستندات المالية في هذه الفترة.`,
                 onConfirm: async () => {
                     try {
                         await reopenFiscalYear(year.id).unwrap();
@@ -94,7 +112,7 @@ const FiscalYears: React.FC<FiscalYearsProps> = ({ title }) => {
         } else {
             showModal({
                 title: 'إغلاق السنة المالية',
-                message: `هل أنت متأكد من إغلاق السنة المالية ${year.name}؟ سيمنع هذا أي تعديلات على البيانات في هذه الفترة.`,
+                message: `هل أنت متأكد من إغلاق السنة المالية ${year.name}؟ سيمنع هذا إنشاء أي مستندات مالية (فواتير مبيعات، فواتير مشتريات، إرجاعات، سندات صرف، سندات قبض، سندات تحويل) في هذه الفترة.`,
                 onConfirm: async () => {
                     try {
                         await closeFiscalYear(year.id).unwrap();
@@ -143,6 +161,15 @@ const FiscalYears: React.FC<FiscalYearsProps> = ({ title }) => {
                 </button>
             </div>
 
+            {/* Information Banner */}
+            <div className="mb-6 p-4 bg-blue-50 border-r-4 border-brand-blue rounded-md">
+                <p className="text-sm text-gray-700">
+                    <strong className="text-brand-dark">ملاحظة مهمة:</strong> يجب فتح فترة محاسبية أولاً قبل إنشاء أي مستند مالي. 
+                    لا يمكن إنشاء المستندات (فواتير مبيعات، فواتير مشتريات، إرجاعات، سندات صرف، سندات قبض، سندات تحويل) 
+                    إلا في الفترات المفتوحة. عند إغلاق الفترة، لن يتم السماح بإنشاء أي مستندات في هذه الفترة.
+                </p>
+            </div>
+
             <div className="grid grid-cols-1 gap-6">
                 {sortedFiscalYears.map(year => (
                     <div key={year.id} className={`border-2 rounded-lg p-4 flex justify-between items-center ${year.status === 'OPEN' ? 'border-green-500 bg-green-50' : 'border-red-300 bg-red-50'}`}>
@@ -177,6 +204,11 @@ const FiscalYears: React.FC<FiscalYearsProps> = ({ title }) => {
                                     isClosing || 
                                     isReopening || 
                                     (year.status === 'CLOSED' && new Date(year.startDate).getFullYear() > new Date().getFullYear())
+                                }
+                                title={
+                                    year.status === 'CLOSED' && new Date(year.startDate).getFullYear() > new Date().getFullYear()
+                                        ? "لا يمكن إعادة فتح فترة محاسبية لسنة مستقبلية"
+                                        : undefined
                                 }
                                 className={`px-4 py-2 rounded-md font-semibold text-sm transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed ${
                                     year.status === 'OPEN' 
