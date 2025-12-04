@@ -35,11 +35,13 @@ export class StockService {
    * Calculate current stock balance for an item in a store
    * Stock = Opening Balance + Receipts (+) - Issues (-) - Transfers Out (-) + Transfers In (+)
    * + PurchaseInvoice items (+) + SalesReturn items (+) - SalesInvoice items (-) - PurchaseReturn items (-)
+   * @param excludeSalesInvoiceId - Optional sales invoice ID to exclude from the calculation (useful when checking stock before creating/updating an invoice)
    */
   async getStoreItemBalance(
     storeId: string,
     itemId: string,
     tx?: Prisma.TransactionClient,
+    excludeSalesInvoiceId?: string,
   ): Promise<number> {
     const client = tx || this.prisma;
 
@@ -165,10 +167,15 @@ export class StockService {
     }
 
     // Sum quantities from SalesInvoice items (subtracts from stock)
+    // Exclude the invoice being created/updated if provided
+    const salesInvoiceWhere: any = {
+      branchId: store.branchId,
+    };
+    if (excludeSalesInvoiceId) {
+      salesInvoiceWhere.id = { not: excludeSalesInvoiceId };
+    }
     const salesInvoices = await client.salesInvoice.findMany({
-      where: {
-        branchId: store.branchId,
-      },
+      where: salesInvoiceWhere,
       select: {
         items: true,
       },

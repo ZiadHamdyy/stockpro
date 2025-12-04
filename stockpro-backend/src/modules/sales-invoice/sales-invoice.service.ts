@@ -204,11 +204,13 @@ export class SalesInvoiceService {
               itemRecord.id,
               tx,
             );
-            if (balance < item.qty) {
+            // Ensure balance is not negative (shouldn't happen, but safety check)
+            const availableBalance = Math.max(0, balance);
+            if (availableBalance < item.qty) {
               throwHttp(
                 409,
                 ERROR_CODES.INV_STOCK_INSUFFICIENT,
-                `Insufficient stock for item ${itemRecord.name}. Available: ${balance}, Requested: ${item.qty}`,
+                `Insufficient stock for item ${itemRecord.name}. Available: ${availableBalance}, Requested: ${item.qty}`,
               );
             }
           }
@@ -298,35 +300,11 @@ export class SalesInvoiceService {
         },
       });
 
-      // Validate and track stock directly (only for STOCKED items)
-      if (store) {
-        // Filter STOCKED items and get item records
-        const stockedItemsWithRecords = await Promise.all(
-          data.items.map(async (item) => {
-            const itemRecord = await tx.item.findUnique({
-              where: { code: item.id },
-            });
-            if (itemRecord && (itemRecord as any).type === 'STOCKED') {
-              return { item, itemRecord };
-            }
-            return null;
-          }),
-        );
-        const stockedItems = stockedItemsWithRecords.filter(Boolean) as Array<{
-          item: any;
-          itemRecord: any;
-        }>;
-
-        // Validate stock for STOCKED items (stock will be tracked via SalesInvoice items in StockService)
-        for (const { item, itemRecord } of stockedItems) {
-          await this.stockService.validateAndDecreaseStock(
-            store.id,
-            itemRecord.id,
-            item.qty,
-            tx,
-          );
-        }
-      } else {
+      // Stock for store-aware flows is derived from aggregated movements in StockService.
+      // We already validated sufficient stock BEFORE creating the invoice (lines 186–215)
+      // using getStoreItemBalance, so no further per-item validation is needed here when a store exists.
+      // For legacy flows without a store, we continue to update the global item.stock field.
+      if (!store) {
         // Fallback: Update global stock if store not found (backward compatibility)
         for (const item of data.items) {
           const itemRecord = await tx.item.findUnique({
@@ -673,6 +651,19 @@ export class SalesInvoiceService {
           }
         }
 
+        // Get store for stock validation (same as create method)
+        let storeForUpdate: any = null;
+        const branchIdForInvoice = existingInvoice?.branchId ?? null;
+        if (branchIdForInvoice) {
+          try {
+            storeForUpdate = await tx.store.findFirst({
+              where: { branchId: branchIdForInvoice },
+            });
+          } catch (error) {
+            // Store not found, skip store-specific validation
+          }
+        }
+
         // Validate stock for new items (only for STOCKED items, skip SERVICE items)
         // Skip validation if allowInsufficientStock is true
         if (!allowInsufficientStock) {
@@ -688,15 +679,33 @@ export class SalesInvoiceService {
               );
             }
             // Only validate stock for STOCKED items, SERVICE items don't have stock
-            if (
-              (itemRecord as any).type === 'STOCKED' &&
-              itemRecord.stock < item.qty
-            ) {
-              throwHttp(
-                409,
-                ERROR_CODES.INV_STOCK_INSUFFICIENT,
-                `Insufficient stock for item ${itemRecord.name}`,
-              );
+            if ((itemRecord as any).type === 'STOCKED') {
+              if (storeForUpdate) {
+                // Use store-specific balance calculation (exclude the invoice being updated)
+                const balance = await this.stockService.getStoreItemBalance(
+                  storeForUpdate.id,
+                  itemRecord.id,
+                  tx,
+                  id, // Exclude this invoice from balance calculation
+                );
+                const availableBalance = Math.max(0, balance);
+                if (availableBalance < item.qty) {
+                  throwHttp(
+                    409,
+                    ERROR_CODES.INV_STOCK_INSUFFICIENT,
+                    `Insufficient stock for item ${itemRecord.name}. Available: ${availableBalance}, Requested: ${item.qty}`,
+                  );
+                }
+              } else {
+                // Fallback to global stock for backward compatibility
+                if (itemRecord.stock < item.qty) {
+                  throwHttp(
+                    409,
+                    ERROR_CODES.INV_STOCK_INSUFFICIENT,
+                    `Insufficient stock for item ${itemRecord.name}`,
+                  );
+                }
+              }
             }
           }
         }
@@ -711,7 +720,6 @@ export class SalesInvoiceService {
           data.paymentTargetId !== undefined
             ? data.paymentTargetId
             : (existingInvoice?.paymentTargetId ?? null);
-        const branchIdForInvoice = existingInvoice?.branchId ?? null;
 
         // Only persist safe/bank links for CASH invoices
         const nextIsSplitPayment =

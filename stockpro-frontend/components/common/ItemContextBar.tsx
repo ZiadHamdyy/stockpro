@@ -102,8 +102,11 @@ const ItemContextBar: React.FC<ItemContextBarProps> = ({
       });
 
       // Store Transfer Vouchers: Match by fromStoreId/toStoreId, use quantity field, match by item code
+      // Backend uses status values: 'PENDING' | 'ACCEPTED' | 'REJECTED'
+      // Only ACCEPTED transfers are counted in stock aggregation there,
+      // so we must mirror that here instead of using a non-existent "approved" status.
       storeTransferVouchers?.forEach((v: any) => {
-        if (v.status === "approved") {
+        if (v.status === "ACCEPTED") {
           // Transfer out (from this store)
           if (v.fromStoreId === storeId) {
             v.items?.forEach((i: any) => {
