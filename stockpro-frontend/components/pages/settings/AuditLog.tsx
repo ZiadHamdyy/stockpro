@@ -55,7 +55,7 @@ const AuditLogReport: React.FC<AuditLogReportProps> = ({ title }) => {
             case 'delete': return <span className={`${baseClasses} bg-red-100 text-red-800 border-red-300`}><TrashIcon className="w-3 h-3"/>حذف</span>;
             case 'login': return <span className={`${baseClasses} bg-purple-100 text-purple-800 border-purple-300`}><LockIcon className="w-3 h-3"/>دخول</span>;
             case 'logout': return <span className={`${baseClasses} bg-gray-200 text-gray-800 border-gray-300`}><LogOutIcon className="w-3 h-3"/>خروج</span>;
-            case 'approve': return <span className={`${baseClasses} bg-teal-100 text-teal-800 border-teal-300`}><CheckCircleIcon className="w-3 h-3"/>اعتماد</span>;
+            case 'accept': return <span className={`${baseClasses} bg-teal-100 text-teal-800 border-teal-300`}><CheckCircleIcon className="w-3 h-3"/>قبول</span>;
             case 'reject': return <span className={`${baseClasses} bg-orange-100 text-orange-800 border-orange-300`}><XCircleIcon className="w-3 h-3"/>رفض</span>;
             default: return <span className={`${baseClasses} bg-gray-100 text-gray-800 border-gray-300`}><ActivityIcon className="w-3 h-3"/>{action}</span>;
         }
@@ -195,7 +195,7 @@ const AuditLogReport: React.FC<AuditLogReportProps> = ({ title }) => {
                         <option value="create">إضافة</option>
                         <option value="update">تعديل</option>
                         <option value="delete">حذف</option>
-                        <option value="approve">اعتماد</option>
+                        <option value="accept">قبول</option>
                         <option value="reject">رفض</option>
                     </select>
                 </div>
