@@ -253,9 +253,10 @@ const InvoicePrintPreview: React.FC<InvoicePrintPreviewProps> = ({
             <tr>
               <th style="width:50px;">م</th>
               <th>الصنف</th>
+              <th style="width:90px;">الوحدة</th>
               <th style="width:80px;">الكمية</th>
               <th style="width:100px;">السعر</th>
-              ${isVatEnabled ? '<th style="width:100px;">الضريبة</th>' : ""}
+              ${isVatEnabled ? `<th style="width:120px;">الضريبة (${vatRate})</th>` : ""}
               <th style="width:120px;">الاجمالي</th>
             </tr>
           </thead>
@@ -266,9 +267,14 @@ const InvoicePrintPreview: React.FC<InvoicePrintPreviewProps> = ({
               <tr>
                 <td>${i + 1}</td>
                 <td class="text-right">${item.name}</td>
+                <td>${item.unit || ""}</td>
                 <td>${item.qty}</td>
                 <td>${item.price.toFixed(2)}</td>
-                ${isVatEnabled ? `<td>${(item.taxAmount || 0).toFixed(2)}</td>` : ""}
+                ${
+                  isVatEnabled
+                    ? `<td>${(item.taxAmount || 0).toFixed(2)}</td>`
+                    : ""
+                }
                 <td>${item.total.toFixed(2)}</td>
               </tr>
             `,
@@ -277,9 +283,9 @@ const InvoicePrintPreview: React.FC<InvoicePrintPreviewProps> = ({
           </tbody>
         </table>
         <div style="display:flex; justify-content:space-between; align-items:start;">
-          <div style="width:50%;">
-            <div class="tafqeet-box">${tafqeet(totals.net, companyInfo.currency)}</div>
-            ${isVatEnabled ? `<div style="margin-top:20px;"><img src="${qrCodeUrl}" width="120" height="120"/></div>` : ""}
+          <div style="width:50%; display:flex; flex-direction:column; align-items:flex-start; gap:12px;">
+            ${isVatEnabled ? `<div><img src="${qrCodeUrl}" width="120" height="120"/></div>` : ""}
+            <div class="tafqeet-box" style="white-space: nowrap; width:100%; text-align:center;">${tafqeet(totals.net, companyInfo.currency)}</div>
           </div>
           <div class="totals-box">
             <div class="totals-row"><span>المجموع</span><span>${totals.subtotal.toFixed(

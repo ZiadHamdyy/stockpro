@@ -160,7 +160,7 @@ const PrintSettings: React.FC<PrintSettingsProps> = ({ title, settings, onSave }
                     <TemplatePreview 
                         id="default" 
                         name="الافتراضي (Default)" 
-                        description="التصميم القياسي للبرنامج. متوازن، عملي، ويحتوي على ألوان الهوية الأساسية."
+                        description="التصميم القياسي مع أعمدة الوحدة والضريبة (نسبة/قيمة)، متوازن ويحتوي على ألوان الهوية الأساسية."
                         selected={localSettings.template === 'default'}
                         onSelect={() => handleChange('template', 'default')}
                     />
