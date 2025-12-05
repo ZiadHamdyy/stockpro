@@ -92,6 +92,7 @@ const PriceQuotation: React.FC<PriceQuotationProps> = ({ title }) => {
     const [editingItemIndex, setEditingItemIndex] = useState<number | null>(null);
     const [highlightedIndex, setHighlightedIndex] = useState(-1);
     
+    const nameInputRefs = useRef<(HTMLInputElement | null)[]>([]);
     const qtyInputRefs = useRef<(HTMLInputElement | null)[]>([]);
     const priceInputRefs = useRef<(HTMLInputElement | null)[]>([]);
 
@@ -217,7 +218,85 @@ const PriceQuotation: React.FC<PriceQuotationProps> = ({ title }) => {
         newItems[index] = item;
         setItems(newItems);
         setActiveItemSearch(null);
-        setTimeout(() => { qtyInputRefs.current[index]?.focus(); }, 0);
+        setTimeout(() => { 
+            qtyInputRefs.current[index]?.focus();
+            qtyInputRefs.current[index]?.select();
+        }, 0);
+    };
+
+    const handleTableKeyDown = (
+        e: React.KeyboardEvent<HTMLInputElement>,
+        index: number,
+        field: 'id' | 'name' | 'qty' | 'price',
+    ) => {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            if (field === 'id') {
+                nameInputRefs.current[index]?.focus();
+            } else if (field === 'name') {
+                qtyInputRefs.current[index]?.focus();
+                qtyInputRefs.current[index]?.select();
+            } else if (field === 'qty') {
+                priceInputRefs.current[index]?.focus();
+                priceInputRefs.current[index]?.select();
+            } else if (field === 'price') {
+                if (index === items.length - 1) {
+                    setItems([...items, createEmptyItem()]);
+                    setTimeout(() => {
+                        const newIndex = items.length;
+                        nameInputRefs.current[newIndex]?.focus();
+                    }, 0);
+                } else {
+                    nameInputRefs.current[index + 1]?.focus();
+                }
+            }
+        }
+    };
+
+    const handleItemSearchKeyDown = (
+        e: React.KeyboardEvent<HTMLInputElement>,
+    ) => {
+        if (!activeItemSearch) return;
+
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            if (highlightedIndex > -1 && filteredItems[highlightedIndex]) {
+                handleSelectItem(
+                    activeItemSearch.index,
+                    filteredItems[highlightedIndex],
+                );
+            } else if (filteredItems.length === 0) {
+                // No search results, move to qty field
+                qtyInputRefs.current[activeItemSearch.index]?.focus();
+                qtyInputRefs.current[activeItemSearch.index]?.select();
+            } else {
+                // Has results but nothing highlighted, move to qty field
+                qtyInputRefs.current[activeItemSearch.index]?.focus();
+                qtyInputRefs.current[activeItemSearch.index]?.select();
+            }
+            return;
+        }
+
+        if (filteredItems.length === 0) return;
+
+        switch (e.key) {
+            case 'ArrowDown':
+                e.preventDefault();
+                setHighlightedIndex((prev) => (prev + 1) % filteredItems.length);
+                break;
+            case 'ArrowUp':
+                e.preventDefault();
+                setHighlightedIndex(
+                    (prev) => (prev - 1 + filteredItems.length) % filteredItems.length,
+                );
+                break;
+            case 'Escape':
+                e.preventDefault();
+                setActiveItemSearch(null);
+                break;
+            default:
+                break;
+        }
     };
 
     const handleSelectItemFromModal = (selectedItem: SelectableItem) => {
@@ -443,16 +522,44 @@ const PriceQuotation: React.FC<PriceQuotationProps> = ({ title }) => {
                                  <tr key={index} className="hover:bg-yellow-50 transition-colors duration-150">
                                     <td className="p-2 align-middle text-center border-x border-amber-200 w-10">{index + 1}</td>
                                     <td className="p-2 align-middle border-x border-amber-200 w-24">
-                                        <input type="text" value={item.id} onChange={(e) => handleItemChange(index, 'id', e.target.value)} className={tableInputStyle + " w-full"} disabled={isReadOnly}/>
+                                        <input 
+                                            type="text" 
+                                            value={item.id} 
+                                            onChange={(e) => handleItemChange(index, 'id', e.target.value)} 
+                                            onKeyDown={(e) => handleTableKeyDown(e, index, 'id')}
+                                            className={tableInputStyle + " w-full"} 
+                                            disabled={isReadOnly}
+                                        />
                                     </td>
                                     <td className="p-2 align-middle border-x border-amber-200 relative w-2/5">
                                         <div className="flex items-center">
-                                            <input type="text" placeholder="ابحث..." value={item.name} onChange={(e) => handleItemChange(index, 'name', e.target.value)} onFocus={() => setActiveItemSearch({ index, query: item.name })} className="bg-transparent w-full focus:outline-none p-1" disabled={isReadOnly}/>
+                                            <input 
+                                                type="text" 
+                                                placeholder="ابحث..." 
+                                                value={item.name} 
+                                                onChange={(e) => handleItemChange(index, 'name', e.target.value)} 
+                                                onFocus={() => setActiveItemSearch({ index, query: item.name })} 
+                                                onKeyDown={handleItemSearchKeyDown}
+                                                ref={(el) => {
+                                                    if (el) nameInputRefs.current[index] = el;
+                                                }}
+                                                className="bg-transparent w-full focus:outline-none p-1" 
+                                                disabled={isReadOnly}
+                                            />
                                             <button type="button" onClick={() => { setEditingItemIndex(index); setIsItemModalOpen(true); }} className="p-1 text-gray-400 hover:text-amber-600" disabled={isReadOnly}><ListIcon className="w-5 h-5" /></button>
                                         </div>
                                          {activeItemSearch?.index === index && filteredItems.length > 0 && !isReadOnly && (
                                             <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-y-auto">
-                                                {filteredItems.map((result, idx) => ( <div key={result.id} onClick={() => {handleSelectItem(index, result); setActiveItemSearch(null);}} className="p-2 cursor-pointer hover:bg-yellow-100">{result.name}</div>))}
+                                                {filteredItems.map((result, idx) => ( 
+                                                    <div 
+                                                        key={result.id} 
+                                                        onClick={() => {handleSelectItem(index, result); setActiveItemSearch(null);}} 
+                                                        className={`p-2 cursor-pointer ${idx === highlightedIndex ? 'bg-amber-500 text-white' : 'hover:bg-yellow-100'}`}
+                                                        onMouseEnter={() => setHighlightedIndex(idx)}
+                                                    >
+                                                        {result.name}
+                                                    </div>
+                                                ))}
                                             </div>
                                         )}
                                     </td>
@@ -460,10 +567,26 @@ const PriceQuotation: React.FC<PriceQuotationProps> = ({ title }) => {
                                         <input type="text" value={item.unit} onChange={(e) => handleItemChange(index, 'unit', e.target.value)} className={tableInputStyle + " w-full"} disabled={isReadOnly}/>
                                     </td>
                                     <td className="p-2 align-middle text-center border-x border-amber-200" style={{ minWidth: '100px' }}>
-                                        <input type="number" value={item.qty} onChange={(e) => handleItemChange(index, 'qty', e.target.value)} ref={el => { if (el) qtyInputRefs.current[index] = el; }} className={tableInputStyle} disabled={isReadOnly}/>
+                                        <input 
+                                            type="number" 
+                                            value={item.qty} 
+                                            onChange={(e) => handleItemChange(index, 'qty', e.target.value)} 
+                                            onKeyDown={(e) => handleTableKeyDown(e, index, 'qty')}
+                                            ref={el => { if (el) qtyInputRefs.current[index] = el; }} 
+                                            className={tableInputStyle} 
+                                            disabled={isReadOnly}
+                                        />
                                     </td>
                                     <td className="p-2 align-middle text-center border-x border-amber-200" style={{ minWidth: '100px' }}>
-                                        <input type="number" value={item.price} onChange={(e) => handleItemChange(index, 'price', e.target.value)} ref={el => { if (el) priceInputRefs.current[index] = el; }} className={tableInputStyle} disabled={isReadOnly}/>
+                                        <input 
+                                            type="number" 
+                                            value={item.price} 
+                                            onChange={(e) => handleItemChange(index, 'price', e.target.value)} 
+                                            onKeyDown={(e) => handleTableKeyDown(e, index, 'price')}
+                                            ref={el => { if (el) priceInputRefs.current[index] = el; }} 
+                                            className={tableInputStyle} 
+                                            disabled={isReadOnly}
+                                        />
                                     </td>
                                     {isVatEnabled && (
                                         <td className="p-2 align-middle text-center border-x border-amber-200 w-36">
