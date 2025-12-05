@@ -926,114 +926,133 @@ const InvoicePrintPreview: React.FC<InvoicePrintPreviewProps> = ({
     const printable = document.getElementById("printable-modern-invoice");
     if (!printable) return;
 
-    const headerHtml = `
-      <div class="flex justify-between items-start pb-4 border-b-2 border-brand-blue mb-3">
-        <div class="flex items-center gap-4">
-          ${companyInfo.logo ? `<img src="${companyInfo.logo}" alt="Company Logo" class="h-20 w-auto object-contain" />` : ""}
-          <div>
-            <div class="text-2xl font-bold text-black">${companyInfo.name || ""}</div>
-            <div class="text-sm text-gray-600">${companyInfo.address || ""}</div>
-            <div class="text-sm text-gray-600">الرقم الضريبي: ${companyInfo.taxNumber || ""}</div>
-            <div class="text-sm text-gray-600">السجل التجاري: ${companyInfo.commercialReg || ""}</div>
-          </div>
-        </div>
-        <div class="text-left">
-          <div class="text-3xl font-bold text-brand-blue">${
-            isReturn
-              ? "فاتورة ضريبية"
-              : !originalIsVatEnabled
-              ? "فاتورة مبيعات"
-              : customer?.taxNumber
-              ? "فاتورة ضريبية"
-              : "فاتورة ضريبية مبسطة"
-          }</div>
-          <div class="text-sm">Tax Invoice ${
-            isReturn ? '<span class="text-gray-700">إشغار دائن</span>' : ""
-          }</div>
-        </div>
-      </div>
-    `;
+    // Use requestAnimationFrame to ensure React has finished rendering
+    requestAnimationFrame(() => {
+      const styleNodes = Array.from(
+        document.querySelectorAll('link[rel="stylesheet"], style')
+      ) as HTMLElement[];
+      const stylesHtml = styleNodes.map((n) => n.outerHTML).join("\n");
 
-    const styleNodes = Array.from(
-      document.querySelectorAll('link[rel="stylesheet"], style')
-    ) as HTMLElement[];
-    const stylesHtml = styleNodes.map((n) => n.outerHTML).join("\n");
+      // Get computed styles for Tailwind classes to ensure they work in print
+      const extraPrintStyles = `
+        <style>
+          * { -webkit-print-color-adjust: exact !important; color-adjust: exact !important; print-color-adjust: exact !important; }
+          @page { size: A4; margin: 0; }
+          body { direction: rtl; margin: 0; background: #fff; font-family: 'Cairo', sans-serif; }
+          .page-break { page-break-after: always; }
+          .no-break-inside { break-inside: avoid; }
+          /* Ensure header and all elements are visible */
+          header { display: block !important; visibility: visible !important; opacity: 1 !important; }
+          section { display: block !important; visibility: visible !important; opacity: 1 !important; }
+          /* Tailwind utility classes for print */
+          .text-center { text-align: center !important; }
+          .text-right { text-align: right !important; }
+          .text-left { text-align: left !important; }
+          .font-bold { font-weight: bold !important; }
+          .font-semibold { font-weight: 600 !important; }
+          .text-3xl { font-size: 1.875rem !important; line-height: 2.25rem !important; }
+          .text-2xl { font-size: 1.5rem !important; line-height: 2rem !important; }
+          .text-base { font-size: 1rem !important; line-height: 1.5rem !important; }
+          .text-sm { font-size: 0.875rem !important; line-height: 1.25rem !important; }
+          .mb-6 { margin-bottom: 1.5rem !important; }
+          .mb-2 { margin-bottom: 0.5rem !important; }
+          .mb-1 { margin-bottom: 0.25rem !important; }
+          .mt-1 { margin-top: 0.25rem !important; }
+          .my-6 { margin-top: 1.5rem !important; margin-bottom: 1.5rem !important; }
+          .pb-4 { padding-bottom: 1rem !important; }
+          .p-3 { padding: 0.75rem !important; }
+          .p-8 { padding: 2rem !important; }
+          .gap-4 { gap: 1rem !important; }
+          .gap-x-8 { column-gap: 2rem !important; }
+          .border { border-width: 1px !important; }
+          .border-b { border-bottom-width: 1px !important; }
+          .border-b-2 { border-bottom-width: 2px !important; }
+          .border-gray-300 { border-color: #d1d5db !important; }
+          .border-brand-blue { border-color: #1E40AF !important; }
+          .rounded-md { border-radius: 0.375rem !important; }
+          .grid { display: grid !important; }
+          .grid-cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
+          .grid-cols-5 { grid-template-columns: repeat(5, minmax(0, 1fr)) !important; }
+          .flex { display: flex !important; }
+          .items-start { align-items: flex-start !important; }
+          .text-brand-blue { color: #1E40AF !important; }
+          .text-gray-600 { color: #4b5563 !important; }
+          .text-gray-700 { color: #374151 !important; }
+          .text-black { color: #000 !important; }
+          .bg-white { background-color: #fff !important; }
+          .h-16 { height: 4rem !important; }
+          .h-20 { height: 5rem !important; }
+          .w-auto { width: auto !important; }
+          .object-contain { object-fit: contain !important; }
+        </style>
+        <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet">
+      `;
 
-    const extraPrintStyles = `
-      <style>
-        * { -webkit-print-color-adjust: exact !important; color-adjust: exact !important; print-color-adjust: exact !important; }
-        @page { size: A4; margin: 0; }
-        body { direction: rtl; margin: 0; background: #fff; }
-        .page-break { page-break-after: always; }
-        .no-break-inside { break-inside: avoid; }
-      </style>
-      <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet">
-    `;
+      const html = `<!DOCTYPE html>
+        <html lang="ar" dir="rtl">
+          <head>
+            <meta charSet="utf-8" />
+            <title>طباعة الفاتورة</title>
+            ${stylesHtml}
+            ${extraPrintStyles}
+          </head>
+          <body>
+            <div class="print-root" style="margin:0 auto;max-width:23cm;padding:0.6cm;">${printable.innerHTML}</div>
+          </body>
+        </html>`;
 
-    const html = `<!DOCTYPE html>
-      <html lang="ar" dir="rtl">
-        <head>
-          <meta charSet="utf-8" />
-          <title>طباعة الفاتورة</title>
-          ${stylesHtml}
-          ${extraPrintStyles}
-        </head>
-        <body>
-          <div class="print-root" style="margin:0 auto;max-width:23cm;padding:0.6cm;">${headerHtml}${printable.innerHTML}</div>
-        </body>
-      </html>`;
+      const printWindow = window.open("", "printWindow", "width=900,height=850");
+      if (!printWindow) return;
+      printWindow.document.open();
+      printWindow.document.write(html);
+      printWindow.document.close();
 
-    const printWindow = window.open("", "printWindow", "width=900,height=850");
-    if (!printWindow) return;
-    printWindow.document.open();
-    printWindow.document.write(html);
-    printWindow.document.close();
-
-    const doPrint = () => {
-      try {
-        printWindow.focus();
-        printWindow.print();
-      } finally {
-        printWindow.close();
-        onClose();
-      }
-    };
-
-    const waitForImages = () => {
-      const imgs = Array.from(printWindow.document.images || []);
-      if (imgs.length === 0) {
-        setTimeout(doPrint, 200);
-        return;
-      }
-      let loaded = 0;
-      const done = () => {
-        loaded += 1;
-        if (loaded >= imgs.length) {
-          setTimeout(doPrint, 150);
+      const doPrint = () => {
+        try {
+          printWindow.focus();
+          printWindow.print();
+        } finally {
+          printWindow.close();
+          onClose();
         }
       };
-      imgs.forEach((img) => {
-        if (img.complete) {
-          done();
-        } else {
-          img.addEventListener("load", done);
-          img.addEventListener("error", done);
-        }
-      });
-      setTimeout(doPrint, 1200);
-    };
 
-    if (printWindow.document.readyState === "complete") {
-      setTimeout(waitForImages, 100);
-    } else {
-      printWindow.addEventListener("load", () =>
-        setTimeout(waitForImages, 100)
-      );
-    }
+      const waitForImages = () => {
+        const imgs = Array.from(printWindow.document.images || []);
+        if (imgs.length === 0) {
+          setTimeout(doPrint, 200);
+          return;
+        }
+        let loaded = 0;
+        const done = () => {
+          loaded += 1;
+          if (loaded >= imgs.length) {
+            setTimeout(doPrint, 150);
+          }
+        };
+        imgs.forEach((img) => {
+          if (img.complete) {
+            done();
+          } else {
+            img.addEventListener("load", done);
+            img.addEventListener("error", done);
+          }
+        });
+        setTimeout(doPrint, 1200);
+      };
+
+      if (printWindow.document.readyState === "complete") {
+        setTimeout(waitForImages, 100);
+      } else {
+        printWindow.addEventListener("load", () =>
+          setTimeout(waitForImages, 100)
+        );
+      }
+    });
   };
 
   const handlePrint = () => {
-    if (template === "modern") {
+    if (template === "modern" || template === "minimal") {
       guardPrint({
         hasData: items.length > 0,
         showToast,
@@ -1448,7 +1467,7 @@ const InvoicePrintPreview: React.FC<InvoicePrintPreviewProps> = ({
           </div>
         )}
 
-        {template === "modern" ? (
+        {template === "modern" || template === "minimal" ? (
           <div className="overflow-y-auto">
             <div id="printable-modern-invoice" className="p-8 bg-white">
               <style>
@@ -1479,109 +1498,233 @@ const InvoicePrintPreview: React.FC<InvoicePrintPreviewProps> = ({
                     >
                       {isFirstPage && (
                         <>
-                          <header className="flex justify-between items-start pb-4 border-b-2 border-brand-blue">
-                            <div className="flex items-center gap-4">
-                              {companyInfo.logo && (
-                                <img
-                                  src={companyInfo.logo}
-                                  alt="Company Logo"
-                                  className="h-20 w-auto object-contain"
-                                />
-                              )}
-                              <div>
-                                <h2 className="text-2xl font-bold text-black">
-                                  {companyInfo.name}
-                                </h2>
+                          {template === "minimal" ? (
+                            <>
+                              {/* Invoice Title - Centered at Top */}
+                              <header className="text-center pb-4 border-b-2 border-brand-blue mb-6">
+                                <h1 className="text-3xl font-bold text-brand-blue mb-2">
+                                  {isReturn
+                                    ? "فاتورة ضريبية"
+                                    : !originalIsVatEnabled
+                                    ? "فاتورة مبيعات"
+                                    : customer?.taxNumber
+                                    ? "فاتورة ضريبية"
+                                    : "فاتورة ضريبية مبسطة"}
+                                </h1>
                                 <p className="text-sm text-gray-600">
-                                  {companyInfo.address}
+                                  {isReturn && (
+                                    <span className="text-gray-700">
+                                      إشغار مدين{" "}
+                                    </span>
+                                  )}
+                                  Tax Invoice
                                 </p>
-                                <p className="text-sm text-gray-600">
-                                  الرقم الضريبي: {companyInfo.taxNumber}
-                                </p>
-                                <p className="text-sm text-gray-600">
-                                  السجل التجاري: {companyInfo.commercialReg}
-                                </p>
-                              </div>
-                            </div>
-                            <div className="text-left">
-                              <h1 className="text-3xl font-bold text-brand-blue">
-                                {isReturn
-                                  ? "فاتورة ضريبية"
-                                  : !originalIsVatEnabled
-                                  ? "فاتورة مبيعات"
-                                  : customer?.taxNumber
-                                  ? "فاتورة ضريبية"
-                                  : "فاتورة ضريبية مبسطة"}
-                              </h1>
-                              <p>
-                                {isReturn && (
-                                  <span className="text-sm text-gray-700">
-                                    إشغار مدين
-                                  </span>
-                                )}{" "}
-                                Tax Invoice
-                              </p>
-                            </div>
-                          </header>
+                              </header>
 
-                          <section className="grid grid-cols-2 gap-x-8 text-sm my-6">
-                            <div className="border border-gray-300 rounded-md p-3">
-                              <h3 className="font-bold text-base mb-2">
-                                بيانات العميل:
-                              </h3>
-                              <p>
-                                <span className="font-semibold">الاسم:</span>{" "}
-                                {customer?.name || "عميل نقدي"}
-                              </p>
-                              <p>
-                                <span className="font-semibold">العنوان:</span>{" "}
-                                {customer?.address ||
-                                  "--------------------------------"}
-                              </p>
-                              <p>
-                                <span className="font-semibold">
-                                  الرقم الضريبي:
-                                </span>{" "}
-                                {customer?.taxNumber ||
-                                  "--------------------------------"}
-                              </p>
-                              <p>
-                                <span className="font-semibold">
-                                  السجل التجاري:
-                                </span>{" "}
-                                {customer?.commercialReg ||
-                                  "--------------------------------"}
-                              </p>
-                            </div>
-                            <div className="border border-gray-300 rounded-md p-3">
-                              <p>
-                                <span className="font-semibold">
-                                  نوع الفاتورة:
-                                </span>{" "}
-                                {paymentMethod === "cash" ? "نقدا" : "اجل"}
-                              </p>
-                              <p>
-                                <span className="font-semibold">
-                                  رقم الفاتورة:
-                                </span>{" "}
-                                {details.invoiceNumber}
-                              </p>
-                              <p>
-                                <span className="font-semibold">
-                                  تاريخ الفاتورة:
-                                </span>{" "}
-                                {details.invoiceDate}
-                              </p>
-                              <p>
-                                <span className="font-semibold">الفرع:</span>{" "}
-                                {currentUser?.branch?.name || details.branchName}
-                              </p>
-                              <p>
-                                <span className="font-semibold">الموظف:</span>{" "}
-                                {currentUser?.name || details.userName}
-                              </p>
-                            </div>
-                          </section>
+                              {/* Invoice Info - Horizontal Layout */}
+                              <section className="grid grid-cols-5 gap-4 text-sm mb-6 pb-4 border-b border-gray-300">
+                                <div>
+                                  <span className="font-semibold">رقم الفاتورة:</span>
+                                  <p className="mt-1">{details.invoiceNumber}</p>
+                                </div>
+                                <div>
+                                  <span className="font-semibold">التاريخ:</span>
+                                  <p className="mt-1">{details.invoiceDate}</p>
+                                </div>
+                                <div>
+                                  <span className="font-semibold">النوع:</span>
+                                  <p className="mt-1">
+                                    {paymentMethod === "cash" ? "نقدا" : "اجل"}
+                                  </p>
+                                </div>
+                                <div>
+                                  <span className="font-semibold">الفرع:</span>
+                                  <p className="mt-1">
+                                    {currentUser?.branch?.name || details.branchName}
+                                  </p>
+                                </div>
+                                <div>
+                                  <span className="font-semibold">الموظف:</span>
+                                  <p className="mt-1">
+                                    {currentUser?.name || details.userName}
+                                  </p>
+                                </div>
+                              </section>
+
+                              {/* Two Columns: Seller (Right) and Buyer (Left) */}
+                              <section className="grid grid-cols-2 gap-x-8 text-sm my-6">
+                                {/* Right Column: Seller/Company Info */}
+                                <div className="border border-gray-300 rounded-md p-3">
+                                  <h3 className="font-bold text-base mb-2">
+                                    بيانات البائع:
+                                  </h3>
+                                  <div className="flex items-start gap-4">
+                                    {settings.showLogo && companyInfo.logo && (
+                                      <img
+                                        src={companyInfo.logo}
+                                        alt="Company Logo"
+                                        className="h-16 w-auto object-contain"
+                                      />
+                                    )}
+                                    <div className="flex-1">
+                                      <p className="font-semibold mb-1">
+                                        {companyInfo.name}
+                                      </p>
+                                      {settings.showAddress && (
+                                        <p className="text-sm text-gray-600">
+                                          {companyInfo.address}
+                                        </p>
+                                      )}
+                                      {settings.showTaxNumber && (
+                                        <p className="text-sm text-gray-600">
+                                          الرقم الضريبي: {companyInfo.taxNumber}
+                                        </p>
+                                      )}
+                                      <p className="text-sm text-gray-600">
+                                        السجل التجاري: {companyInfo.commercialReg}
+                                      </p>
+                                    </div>
+                                  </div>
+                                </div>
+
+                                {/* Left Column: Buyer/Customer Info */}
+                                <div className="border border-gray-300 rounded-md p-3">
+                                  <h3 className="font-bold text-base mb-2">
+                                    بيانات المشتري:
+                                  </h3>
+                                  <p>
+                                    <span className="font-semibold">الاسم:</span>{" "}
+                                    {customer?.name || "عميل نقدي"}
+                                  </p>
+                                  <p>
+                                    <span className="font-semibold">العنوان:</span>{" "}
+                                    {customer?.address ||
+                                      "--------------------------------"}
+                                  </p>
+                                  <p>
+                                    <span className="font-semibold">
+                                      الرقم الضريبي:
+                                    </span>{" "}
+                                    {customer?.taxNumber ||
+                                      "--------------------------------"}
+                                  </p>
+                                  <p>
+                                    <span className="font-semibold">
+                                      السجل التجاري:
+                                    </span>{" "}
+                                    {customer?.commercialReg ||
+                                      "--------------------------------"}
+                                  </p>
+                                </div>
+                              </section>
+                            </>
+                          ) : (
+                            <>
+                              <header className="flex justify-between items-start pb-4 border-b-2 border-brand-blue">
+                                <div className="flex items-center gap-4">
+                                  {companyInfo.logo && (
+                                    <img
+                                      src={companyInfo.logo}
+                                      alt="Company Logo"
+                                      className="h-20 w-auto object-contain"
+                                    />
+                                  )}
+                                  <div>
+                                    <h2 className="text-2xl font-bold text-black">
+                                      {companyInfo.name}
+                                    </h2>
+                                    <p className="text-sm text-gray-600">
+                                      {companyInfo.address}
+                                    </p>
+                                    <p className="text-sm text-gray-600">
+                                      الرقم الضريبي: {companyInfo.taxNumber}
+                                    </p>
+                                    <p className="text-sm text-gray-600">
+                                      السجل التجاري: {companyInfo.commercialReg}
+                                    </p>
+                                  </div>
+                                </div>
+                                <div className="text-left">
+                                  <h1 className="text-3xl font-bold text-brand-blue">
+                                    {isReturn
+                                      ? "فاتورة ضريبية"
+                                      : !originalIsVatEnabled
+                                      ? "فاتورة مبيعات"
+                                      : customer?.taxNumber
+                                      ? "فاتورة ضريبية"
+                                      : "فاتورة ضريبية مبسطة"}
+                                  </h1>
+                                  <p>
+                                    {isReturn && (
+                                      <span className="text-sm text-gray-700">
+                                        إشغار مدين
+                                      </span>
+                                    )}{" "}
+                                    Tax Invoice
+                                  </p>
+                                </div>
+                              </header>
+
+                              <section className="grid grid-cols-2 gap-x-8 text-sm my-6">
+                                <div className="border border-gray-300 rounded-md p-3">
+                                  <h3 className="font-bold text-base mb-2">
+                                    بيانات العميل:
+                                  </h3>
+                                  <p>
+                                    <span className="font-semibold">الاسم:</span>{" "}
+                                    {customer?.name || "عميل نقدي"}
+                                  </p>
+                                  <p>
+                                    <span className="font-semibold">العنوان:</span>{" "}
+                                    {customer?.address ||
+                                      "--------------------------------"}
+                                  </p>
+                                  <p>
+                                    <span className="font-semibold">
+                                      الرقم الضريبي:
+                                    </span>{" "}
+                                    {customer?.taxNumber ||
+                                      "--------------------------------"}
+                                  </p>
+                                  <p>
+                                    <span className="font-semibold">
+                                      السجل التجاري:
+                                    </span>{" "}
+                                    {customer?.commercialReg ||
+                                      "--------------------------------"}
+                                  </p>
+                                </div>
+                                <div className="border border-gray-300 rounded-md p-3">
+                                  <p>
+                                    <span className="font-semibold">
+                                      نوع الفاتورة:
+                                    </span>{" "}
+                                    {paymentMethod === "cash" ? "نقدا" : "اجل"}
+                                  </p>
+                                  <p>
+                                    <span className="font-semibold">
+                                      رقم الفاتورة:
+                                    </span>{" "}
+                                    {details.invoiceNumber}
+                                  </p>
+                                  <p>
+                                    <span className="font-semibold">
+                                      تاريخ الفاتورة:
+                                    </span>{" "}
+                                    {details.invoiceDate}
+                                  </p>
+                                  <p>
+                                    <span className="font-semibold">الفرع:</span>{" "}
+                                    {currentUser?.branch?.name || details.branchName}
+                                  </p>
+                                  <p>
+                                    <span className="font-semibold">الموظف:</span>{" "}
+                                    {currentUser?.name || details.userName}
+                                  </p>
+                                </div>
+                              </section>
+                            </>
+                          )}
                         </>
                       )}
 
