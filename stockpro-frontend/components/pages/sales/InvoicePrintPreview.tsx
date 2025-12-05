@@ -3,10 +3,16 @@ import type { CompanyInfo, InvoiceItem, PrintSettings } from "../../../types";
 import { tafqeet } from "../../../utils/tafqeet";
 import { generateZatcaBase64 } from "../../../utils/qrCodeGenerator";
 import { PrintIcon, XIcon } from "../../icons";
+import { formatMoney } from "../../../utils/formatting";
+import { guardPrint } from "../../utils/printGuard";
+import { useToast } from "../../common/ToastProvider";
+import { useSelector } from "react-redux";
+import type { RootState } from "../../store/store";
 
 interface InvoicePrintPreviewProps {
   isOpen: boolean;
   onClose: () => void;
+  isReturn?: boolean;
   invoiceData: {
     companyInfo: CompanyInfo;
     vatRate: number;
@@ -34,6 +40,7 @@ interface InvoicePrintPreviewProps {
 const InvoicePrintPreview: React.FC<InvoicePrintPreviewProps> = ({
   isOpen,
   onClose,
+  isReturn = false,
   invoiceData,
   printSettings,
 }) => {
@@ -41,6 +48,8 @@ const InvoicePrintPreview: React.FC<InvoicePrintPreviewProps> = ({
 
   const { companyInfo, vatRate, isVatEnabled, items, totals, paymentMethod, customer, details } =
     invoiceData;
+  const currentUser = useSelector((state: RootState) => state.auth.user);
+  const { showToast } = useToast();
 
   // Default settings if none provided
   const settings: PrintSettings = printSettings || {
@@ -52,6 +61,8 @@ const InvoicePrintPreview: React.FC<InvoicePrintPreviewProps> = ({
     footerText: "شكراً لتعاملكم معنا",
     termsText: "",
   };
+
+  const template = settings.template as string;
 
   // Preserve original Arabic title logic:
   // - If VAT was disabled when invoice was created => "فاتورة مبيعات"
@@ -659,12 +670,131 @@ const InvoicePrintPreview: React.FC<InvoicePrintPreviewProps> = ({
     </html>
   `;
 
+  const printReturnStyle = () => {
+    const printable = document.getElementById("printable-modern-invoice");
+    if (!printable) return;
+
+    const headerHtml = `
+      <div class="flex justify-between items-start pb-4 border-b-2 border-brand-blue mb-3">
+        <div class="flex items-center gap-4">
+          ${companyInfo.logo ? `<img src="${companyInfo.logo}" alt="Company Logo" class="h-20 w-auto object-contain" />` : ""}
+          <div>
+            <div class="text-2xl font-bold text-black">${companyInfo.name || ""}</div>
+            <div class="text-sm text-gray-600">${companyInfo.address || ""}</div>
+            <div class="text-sm text-gray-600">الرقم الضريبي: ${companyInfo.taxNumber || ""}</div>
+            <div class="text-sm text-gray-600">السجل التجاري: ${companyInfo.commercialReg || ""}</div>
+          </div>
+        </div>
+        <div class="text-left">
+          <div class="text-3xl font-bold text-brand-blue">${
+            isReturn
+              ? "فاتورة ضريبية"
+              : !originalIsVatEnabled
+              ? "فاتورة مبيعات"
+              : customer?.taxNumber
+              ? "فاتورة ضريبية"
+              : "فاتورة ضريبية مبسطة"
+          }</div>
+          <div class="text-sm">Tax Invoice ${
+            isReturn ? '<span class="text-gray-700">إشغار دائن</span>' : ""
+          }</div>
+        </div>
+      </div>
+    `;
+
+    const styleNodes = Array.from(
+      document.querySelectorAll('link[rel="stylesheet"], style')
+    ) as HTMLElement[];
+    const stylesHtml = styleNodes.map((n) => n.outerHTML).join("\n");
+
+    const extraPrintStyles = `
+      <style>
+        * { -webkit-print-color-adjust: exact !important; color-adjust: exact !important; print-color-adjust: exact !important; }
+        @page { size: A4; margin: 0; }
+        body { direction: rtl; margin: 0; background: #fff; }
+        .page-break { page-break-after: always; }
+        .no-break-inside { break-inside: avoid; }
+      </style>
+      <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet">
+    `;
+
+    const html = `<!DOCTYPE html>
+      <html lang="ar" dir="rtl">
+        <head>
+          <meta charSet="utf-8" />
+          <title>طباعة الفاتورة</title>
+          ${stylesHtml}
+          ${extraPrintStyles}
+        </head>
+        <body>
+          <div class="print-root" style="margin:0 auto;max-width:23cm;padding:0.6cm;">${headerHtml}${printable.innerHTML}</div>
+        </body>
+      </html>`;
+
+    const printWindow = window.open("", "printWindow", "width=900,height=850");
+    if (!printWindow) return;
+    printWindow.document.open();
+    printWindow.document.write(html);
+    printWindow.document.close();
+
+    const doPrint = () => {
+      try {
+        printWindow.focus();
+        printWindow.print();
+      } finally {
+        printWindow.close();
+        onClose();
+      }
+    };
+
+    const waitForImages = () => {
+      const imgs = Array.from(printWindow.document.images || []);
+      if (imgs.length === 0) {
+        setTimeout(doPrint, 200);
+        return;
+      }
+      let loaded = 0;
+      const done = () => {
+        loaded += 1;
+        if (loaded >= imgs.length) {
+          setTimeout(doPrint, 150);
+        }
+      };
+      imgs.forEach((img) => {
+        if (img.complete) {
+          done();
+        } else {
+          img.addEventListener("load", done);
+          img.addEventListener("error", done);
+        }
+      });
+      setTimeout(doPrint, 1200);
+    };
+
+    if (printWindow.document.readyState === "complete") {
+      setTimeout(waitForImages, 100);
+    } else {
+      printWindow.addEventListener("load", () =>
+        setTimeout(waitForImages, 100)
+      );
+    }
+  };
+
   const handlePrint = () => {
+    if (template === "modern") {
+      guardPrint({
+        hasData: items.length > 0,
+        showToast,
+        onAllowed: printReturnStyle,
+      });
+      return;
+    }
+
     const printWindow = window.open("", "", "height=800,width=800");
     if (!printWindow) return;
 
     let content = "";
-    switch (settings.template) {
+    switch (template) {
       case "thermal":
         content = renderThermalTemplate();
         break;
@@ -693,7 +823,7 @@ const InvoicePrintPreview: React.FC<InvoicePrintPreviewProps> = ({
     }, 500);
   };
 
-  const isThermal = settings.template === "thermal";
+  const isThermal = template === "thermal";
 
   return (
     <div
@@ -729,25 +859,318 @@ const InvoicePrintPreview: React.FC<InvoicePrintPreviewProps> = ({
           </div>
         </div>
 
-        <div className="overflow-y-auto flex justify-center bg-gray-200 p-8 h-full">
-          <iframe
-            srcDoc={
-              settings.template === "thermal"
-                ? renderThermalTemplate()
-                : settings.template === "classic"
-                ? renderClassicTemplate()
-                : settings.template === "modern"
-                ? renderModernTemplate()
-                : settings.template === "minimal"
-                ? renderMinimalTemplate()
-                : renderDefaultTemplate()
-            }
-            className={`bg-white shadow-2xl ${
-              isThermal ? "w-[80mm] h-[600px]" : "w-[210mm] min-h-[297mm]"
-            } border-none`}
-            title="Print Preview"
-          />
-        </div>
+        {template === "modern" ? (
+          <div className="overflow-y-auto">
+            <div id="printable-modern-invoice" className="p-8 bg-white">
+              <style>
+                {`
+                  @media print {
+                    .page-break { page-break-after: always; }
+                  }
+                  .page-break { page-break-after: always; }
+                  .no-break-inside { break-inside: avoid; }
+                `}
+              </style>
+              {(() => {
+                const rowsPerPage = 16;
+                const pages: InvoiceItem[][] = [];
+                for (let i = 0; i < items.length; i += rowsPerPage) {
+                  pages.push(items.slice(i, i + rowsPerPage));
+                }
+                const totalPages = Math.max(pages.length, 1);
+                const ensureAtLeastOnePage = pages.length === 0 ? [[]] : pages;
+                return ensureAtLeastOnePage.map((pageItems, pageIndex) => {
+                  const isFirstPage = pageIndex === 0;
+                  const isLastPage = pageIndex === totalPages - 1;
+                  const rowNumberOffset = pageIndex * rowsPerPage;
+                  return (
+                    <div
+                      key={pageIndex}
+                      className={!isLastPage ? "page-break" : undefined}
+                    >
+                      {isFirstPage && (
+                        <>
+                          <header className="flex justify-between items-start pb-4 border-b-2 border-brand-blue">
+                            <div className="flex items-center gap-4">
+                              {companyInfo.logo && (
+                                <img
+                                  src={companyInfo.logo}
+                                  alt="Company Logo"
+                                  className="h-20 w-auto object-contain"
+                                />
+                              )}
+                              <div>
+                                <h2 className="text-2xl font-bold text-black">
+                                  {companyInfo.name}
+                                </h2>
+                                <p className="text-sm text-gray-600">
+                                  {companyInfo.address}
+                                </p>
+                                <p className="text-sm text-gray-600">
+                                  الرقم الضريبي: {companyInfo.taxNumber}
+                                </p>
+                                <p className="text-sm text-gray-600">
+                                  السجل التجاري: {companyInfo.commercialReg}
+                                </p>
+                              </div>
+                            </div>
+                            <div className="text-left">
+                              <h1 className="text-3xl font-bold text-brand-blue">
+                                {isReturn
+                                  ? "فاتورة ضريبية"
+                                  : !originalIsVatEnabled
+                                  ? "فاتورة مبيعات"
+                                  : customer?.taxNumber
+                                  ? "فاتورة ضريبية"
+                                  : "فاتورة ضريبية مبسطة"}
+                              </h1>
+                              <p>
+                                {isReturn && (
+                                  <span className="text-sm text-gray-700">
+                                    إشغار مدين
+                                  </span>
+                                )}{" "}
+                                Tax Invoice
+                              </p>
+                            </div>
+                          </header>
+
+                          <section className="grid grid-cols-2 gap-x-8 text-sm my-6">
+                            <div className="border border-gray-300 rounded-md p-3">
+                              <h3 className="font-bold text-base mb-2">
+                                بيانات العميل:
+                              </h3>
+                              <p>
+                                <span className="font-semibold">الاسم:</span>{" "}
+                                {customer?.name || "عميل نقدي"}
+                              </p>
+                              <p>
+                                <span className="font-semibold">العنوان:</span>{" "}
+                                {customer?.address ||
+                                  "--------------------------------"}
+                              </p>
+                              <p>
+                                <span className="font-semibold">
+                                  الرقم الضريبي:
+                                </span>{" "}
+                                {customer?.taxNumber ||
+                                  "--------------------------------"}
+                              </p>
+                              <p>
+                                <span className="font-semibold">
+                                  السجل التجاري:
+                                </span>{" "}
+                                {customer?.commercialReg ||
+                                  "--------------------------------"}
+                              </p>
+                            </div>
+                            <div className="border border-gray-300 rounded-md p-3">
+                              <p>
+                                <span className="font-semibold">
+                                  نوع الفاتورة:
+                                </span>{" "}
+                                {paymentMethod === "cash" ? "نقدا" : "اجل"}
+                              </p>
+                              <p>
+                                <span className="font-semibold">
+                                  رقم الفاتورة:
+                                </span>{" "}
+                                {details.invoiceNumber}
+                              </p>
+                              <p>
+                                <span className="font-semibold">
+                                  تاريخ الفاتورة:
+                                </span>{" "}
+                                {details.invoiceDate}
+                              </p>
+                              <p>
+                                <span className="font-semibold">الفرع:</span>{" "}
+                                {currentUser?.branch?.name || details.branchName}
+                              </p>
+                              <p>
+                                <span className="font-semibold">الموظف:</span>{" "}
+                                {currentUser?.name || details.userName}
+                              </p>
+                            </div>
+                          </section>
+                        </>
+                      )}
+
+                      {!isFirstPage && totalPages > 1 && (
+                        <div className="text-center text-xs text-gray-500 mb-4 pb-2 border-b border-gray-300">
+                          صفحة {pageIndex + 1} من {totalPages} -{" "}
+                          {details.invoiceNumber}
+                        </div>
+                      )}
+
+                      <table className="w-full text-sm border-collapse border border-gray-300">
+                        <thead className="bg-brand-blue text-white">
+                          <tr>
+                            <th className="p-2 border border-blue-300">م</th>
+                            <th
+                              className="p-2 border border-blue-300 text-right"
+                              style={{ width: "35%" }}
+                            >
+                              الصنف
+                            </th>
+                            <th className="p-2 border border-blue-300">الوحدة</th>
+                            <th className="p-2 border border-blue-300">الكمية</th>
+                            <th className="p-2 border border-blue-300">السعر</th>
+                            {originalIsVatEnabled && (
+                              <th className="p-2 border border-blue-300">
+                                الضريبة {originalIsVatEnabled ? `(%${vatRate})` : "(%0)"}
+                              </th>
+                            )}
+                            <th className="p-2 border border-blue-300">
+                              الاجمالي
+                            </th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-300">
+                          {pageItems.map((item, index) => (
+                            <tr key={index}>
+                              <td className="p-2 border border-gray-300 text-center">
+                                {rowNumberOffset + index + 1}
+                              </td>
+                              <td
+                                className="p-2 border border-gray-300"
+                                style={{ width: "35%" }}
+                              >
+                                {item.name}
+                              </td>
+                              <td className="p-2 border border-gray-300 text-center">
+                                {item.unit}
+                              </td>
+                              <td className="p-2 border border-gray-300 text-center">
+                                {item.qty}
+                              </td>
+                              <td className="p-2 border border-gray-300 text-center">
+                                {formatMoney(item.price)}
+                              </td>
+                              {originalIsVatEnabled && (
+                                <td className="p-2 border border-gray-300 text-center">
+                                  {formatMoney(item.taxAmount || 0)}
+                                </td>
+                              )}
+                              <td className="p-2 border border-gray-300 text-center">
+                                {formatMoney(item.total)}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+
+                      {isLastPage ? (
+                        <>
+                          <section className="flex justify-between items-start mt-4 gap-4">
+                            <div className="w-1/2">
+                              {originalIsVatEnabled && qrData && (
+                                <img
+                                  src={qrCodeUrl}
+                                  alt="QR Code"
+                                  className="w-28 h-28"
+                                />
+                              )}
+                            </div>
+                            <div className="w-1/2 text-sm">
+                              <table className="w-full border-collapse border border-gray-300">
+                                <tbody>
+                                  <tr>
+                                    <td className="font-semibold p-2 border border-gray-300">
+                                      الاجمالي قبل الضريبة
+                                    </td>
+                                    <td className="p-2 border border-gray-300 text-left">
+                                      {formatMoney(totals.subtotal)}
+                                    </td>
+                                  </tr>
+                                  <tr>
+                                    <td className="font-semibold p-2 border border-gray-300">
+                                      الخصم
+                                    </td>
+                                    <td className="p-2 border border-gray-300 text-left">
+                                      {formatMoney(totals.discount)}
+                                    </td>
+                                  </tr>
+                                  {originalIsVatEnabled && (
+                                    <tr>
+                                      <td className="font-semibold p-2 border border-gray-300">
+                                        إجمالي الضريبة ({vatRate}%)
+                                      </td>
+                                      <td className="p-2 border border-gray-300 text-left">
+                                        {formatMoney(totals.tax)}
+                                      </td>
+                                    </tr>
+                                  )}
+                                  <tr className="bg-brand-blue text-white font-bold text-base">
+                                    <td className="p-2 border border-blue-300">
+                                      الصافي
+                                    </td>
+                                    <td className="p-2 border border-blue-300 text-left">
+                                      {formatMoney(totals.net)}
+                                    </td>
+                                  </tr>
+                                </tbody>
+                              </table>
+                            </div>
+                          </section>
+
+                          <div className="mt-4 p-2 bg-brand-blue-bg border border-brand-blue text-center font-semibold text-sm rounded-md">
+                            {tafqeet(totals.net, companyInfo.currency)}
+                          </div>
+
+                          <div className="mt-6 pt-4 text-center text-sm text-gray-600 font-semibold border-t-2 border-dashed border-gray-300">
+                            استلمت البضاعة كاملة و بجودة سليمة
+                          </div>
+
+                          <footer className="flex justify-around items-center mt-20 text-center text-sm">
+                            <div>
+                              <p className="font-bold">المستلم</p>
+                              <p className="mt-8 border-t border-gray-400 pt-1">
+                                الاسم: ..............................
+                              </p>
+                              <p>التوقيع: ..............................</p>
+                            </div>
+                            <div>
+                              <p className="font-bold">المحاسب</p>
+                              <p className="mt-8 border-t border-gray-400 pt-1">
+                                الاسم: ..............................
+                              </p>
+                              <p>التوقيع: ..............................</p>
+                            </div>
+                          </footer>
+                        </>
+                      ) : (
+                        <div className="text-center text-xs text-gray-500 mt-2">
+                          يتبع...
+                        </div>
+                      )}
+                    </div>
+                  );
+                });
+              })()}
+            </div>
+          </div>
+        ) : (
+          <div className="overflow-y-auto flex justify-center bg-gray-200 p-8 h-full">
+            <iframe
+              srcDoc={
+                template === "thermal"
+                  ? renderThermalTemplate()
+                  : template === "classic"
+                  ? renderClassicTemplate()
+                  : template === "modern"
+                  ? renderModernTemplate()
+                  : template === "minimal"
+                  ? renderMinimalTemplate()
+                  : renderDefaultTemplate()
+              }
+              className={`bg-white shadow-2xl ${
+                isThermal ? "w-[80mm] h-[600px]" : "w-[210mm] min-h-[297mm]"
+              } border-none`}
+              title="Print Preview"
+            />
+          </div>
+        )}
       </div>
     </div>
   );
