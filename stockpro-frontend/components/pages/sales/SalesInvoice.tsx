@@ -931,11 +931,13 @@ const SalesInvoice: React.FC<SalesInvoiceProps> = ({
   const handleTableKeyDown = (
     e: React.KeyboardEvent<HTMLInputElement>,
     index: number,
-    field: "qty" | "price",
+    field: "id" | "qty" | "price",
   ) => {
     if (e.key === "Enter") {
       e.preventDefault();
-      if (field === "qty") {
+      if (field === "id") {
+        nameInputRefs.current[index]?.focus();
+      } else if (field === "qty") {
         priceInputRefs.current[index]?.focus();
       } else if (field === "price") {
         if (index === invoiceItems.length - 1) {
@@ -959,7 +961,16 @@ const SalesInvoice: React.FC<SalesInvoiceProps> = ({
           activeItemSearch.index,
           filteredItems[highlightedIndex],
         );
+        // After selecting item, move to qty field
+        setTimeout(() => {
+          qtyInputRefs.current[activeItemSearch.index]?.focus();
+          qtyInputRefs.current[activeItemSearch.index]?.select();
+        }, 0);
+      } else if (filteredItems.length === 0) {
+        // No search results, move to qty field
+        qtyInputRefs.current[activeItemSearch.index]?.focus();
       } else {
+        // Has results but nothing highlighted, move to qty field
         qtyInputRefs.current[activeItemSearch.index]?.focus();
       }
       return;
@@ -1724,6 +1735,7 @@ const SalesInvoice: React.FC<SalesInvoiceProps> = ({
                       onChange={(e) =>
                         handleItemChange(index, "id", e.target.value)
                       }
+                      onKeyDown={(e) => handleTableKeyDown(e, index, "id")}
                       className={tableInputStyle + " w-full"}
                       disabled={isReadOnly}
                     />

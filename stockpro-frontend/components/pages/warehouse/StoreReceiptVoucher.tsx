@@ -168,6 +168,7 @@ const StoreReceiptVoucher: React.FC<StoreReceiptVoucherProps> = ({ title }) => {
 
   const nameInputRefs = useRef<(HTMLInputElement | null)[]>([]);
   const qtyInputRefs = useRef<(HTMLInputElement | null)[]>([]);
+  const priceInputRefs = useRef<(HTMLInputElement | null)[]>([]);
   const handleNewRef = useRef<(() => void) | undefined>(undefined);
 
   const [isSearchModalOpen, setIsSearchModalOpen] = useState(false);
@@ -387,13 +388,27 @@ const StoreReceiptVoucher: React.FC<StoreReceiptVoucherProps> = ({ title }) => {
   const handleTableKeyDown = (
     e: React.KeyboardEvent<HTMLInputElement>,
     index: number,
+    field?: "code" | "qty" | "price",
   ) => {
     if (e.key === "Enter") {
       e.preventDefault();
-      if (index === items.length - 1) {
-        handleAddItem();
+      if (field === "code") {
+        nameInputRefs.current[index]?.focus();
+      } else if (field === "qty") {
+        priceInputRefs.current[index]?.focus();
+      } else if (field === "price") {
+        if (index === items.length - 1) {
+          handleAddItem();
+        } else {
+          nameInputRefs.current[index + 1]?.focus();
+        }
       } else {
-        nameInputRefs.current[index + 1]?.focus();
+        // Default behavior for backward compatibility
+        if (index === items.length - 1) {
+          handleAddItem();
+        } else {
+          nameInputRefs.current[index + 1]?.focus();
+        }
       }
     }
   };
@@ -464,7 +479,16 @@ const StoreReceiptVoucher: React.FC<StoreReceiptVoucherProps> = ({ title }) => {
           activeItemSearch.index,
           filteredItems[highlightedIndex],
         );
+        // After selecting item, move to qty field
+        setTimeout(() => {
+          qtyInputRefs.current[activeItemSearch.index]?.focus();
+          qtyInputRefs.current[activeItemSearch.index]?.select();
+        }, 0);
+      } else if (filteredItems.length === 0) {
+        // No search results, move to qty field
+        qtyInputRefs.current[activeItemSearch.index]?.focus();
       } else {
+        // Has results but nothing highlighted, move to qty field
         qtyInputRefs.current[activeItemSearch.index]?.focus();
       }
       return;
@@ -851,6 +875,7 @@ const StoreReceiptVoucher: React.FC<StoreReceiptVoucherProps> = ({ title }) => {
                       onChange={(e) =>
                         handleItemChange(index, "code", e.target.value)
                       }
+                      onKeyDown={(e) => handleTableKeyDown(e, index, "code")}
                       className={tableInputStyle}
                       disabled={isReadOnly}
                     />
@@ -919,7 +944,7 @@ const StoreReceiptVoucher: React.FC<StoreReceiptVoucherProps> = ({ title }) => {
                       onChange={(e) =>
                         handleItemChange(index, "qty", e.target.value)
                       }
-                      onKeyDown={(e) => handleTableKeyDown(e, index)}
+                      onKeyDown={(e) => handleTableKeyDown(e, index, "qty")}
                       ref={(el) => {
                         if (el) qtyInputRefs.current[index] = el;
                       }}
@@ -936,6 +961,10 @@ const StoreReceiptVoucher: React.FC<StoreReceiptVoucherProps> = ({ title }) => {
                       onChange={(e) =>
                         handleItemChange(index, "price", e.target.value)
                       }
+                      onKeyDown={(e) => handleTableKeyDown(e, index, "price")}
+                      ref={(el) => {
+                        if (el) priceInputRefs.current[index] = el;
+                      }}
                       className={tableInputStyle}
                       disabled={isReadOnly}
                     />
