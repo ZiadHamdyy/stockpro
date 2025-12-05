@@ -8,6 +8,7 @@ import { guardPrint } from "../../utils/printGuard";
 import { useToast } from "../../common/ToastProvider";
 import { useSelector } from "react-redux";
 import type { RootState } from "../../store/store";
+import { savePrintSettings } from "../../../utils/printSettingsStorage";
 
 interface InvoicePrintPreviewProps {
   isOpen: boolean;
@@ -1503,9 +1504,15 @@ const InvoicePrintPreview: React.FC<InvoicePrintPreviewProps> = ({
   };
 
   const handleSaveEpsonPreview = () => {
-    if (printSettings) {
-      // This would need to be passed back to parent component
-      // For now, we'll just update local state
+    if (template === 'epson') {
+      // Save the current epson preview settings to localStorage
+      const updatedSettings: PrintSettings = {
+        ...settings,
+        epsonSettings: epsonPreviewSettings,
+      };
+      savePrintSettings(updatedSettings);
+      showToast('تم حفظ إعدادات إبسون.');
+    } else {
       showToast('تم حفظ إعدادات إبسون. استخدم زر الحفظ في صفحة الإعدادات لحفظ التغييرات الدائمة.');
     }
   };
@@ -1523,6 +1530,16 @@ const InvoicePrintPreview: React.FC<InvoicePrintPreviewProps> = ({
         current = current[path[i]];
       }
       current[path[path.length - 1]] = value;
+      
+      // Save to localStorage immediately when template is epson
+      if (template === 'epson') {
+        const updatedSettings: PrintSettings = {
+          ...settings,
+          epsonSettings: updated,
+        };
+        savePrintSettings(updatedSettings);
+      }
+      
       return updated;
     });
   };

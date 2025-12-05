@@ -147,6 +147,7 @@ import type {
   Notification,
   PrintSettings,
 } from "./types";
+import { loadPrintSettings } from "./utils/printSettingsStorage";
 import { ToastProvider, useToast } from "./components/common/ToastProvider";
 import { ModalProvider } from "./components/common/ModalProvider";
 import Toast from "./components/common/Toast";
@@ -512,14 +513,18 @@ const AppContent = () => {
     StoreTransferVoucher[]
   >(initialStoreTransferVouchers);
   const [notifications, setNotifications] = useState<Notification[]>([]);
-  const [printSettings, setPrintSettings] = useState<PrintSettings>({
-    template: "default",
-    showLogo: true,
-    showTaxNumber: true,
-    showAddress: true,
-    headerText: "",
-    footerText: "",
-    termsText: "",
+  const [printSettings, setPrintSettings] = useState<PrintSettings>(() => {
+    const defaultSettings: PrintSettings = {
+      template: "default",
+      showLogo: true,
+      showTaxNumber: true,
+      showAddress: true,
+      headerText: "",
+      footerText: "",
+      termsText: "",
+    };
+    const loaded = loadPrintSettings();
+    return loaded || defaultSettings;
   });
 
   const itemBalances = useMemo(() => {

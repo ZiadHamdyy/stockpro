@@ -3,6 +3,7 @@ import React from 'react';
 import type { PrintSettings as PrintSettingsType, EpsonSettings } from '../../../types';
 import { PrintIcon, CheckCircleIcon } from '../../icons';
 import { useToast } from '../../common/ToastProvider';
+import { savePrintSettings } from '../../../utils/printSettingsStorage';
 
 interface PrintSettingsProps {
     title: string;
@@ -278,6 +279,7 @@ const PrintSettings: React.FC<PrintSettingsProps> = ({ title, settings, onSave }
 
     const handleSave = () => {
         onSave(localSettings);
+        savePrintSettings(localSettings);
         showToast('تم حفظ إعدادات الطباعة وتطبيق النموذج الجديد.');
     };
 
