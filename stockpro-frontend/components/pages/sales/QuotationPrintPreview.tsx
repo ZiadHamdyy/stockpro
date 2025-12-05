@@ -12,7 +12,7 @@ interface QuotationPrintPreviewProps {
         items: InvoiceItem[];
         totals: { subtotal: number; discount: number; tax: number; net: number };
         customer: { id: string; name: string } | null;
-        details: { id: string; date: string; expiryDate: string; notes: string; userName: string; };
+        details: { id: string; date: string; expiryDate: string; notes: string; userName: string; branchName?: string; };
         isVatEnabled: boolean;
         vatRate: number;
     };
@@ -99,7 +99,12 @@ const QuotationPrintPreview: React.FC<QuotationPrintPreviewProps> = ({ isOpen, o
                                 <div>
                                     <h2 className="text-2xl font-bold text-black">{companyInfo.name}</h2>
                                     <p className="text-sm text-gray-600">{companyInfo.address}</p>
-                                    <p className="text-sm text-gray-600">هاتف: {companyInfo.phone}</p>
+                                    <p className="text-sm text-gray-600">
+                                        الرقم الضريبي: {companyInfo.taxNumber}
+                                    </p>
+                                    <p className="text-sm text-gray-600">
+                                        السجل التجاري: {companyInfo.commercialReg}
+                                    </p>
                                 </div>
                             </div>
                             <div className="text-left">
@@ -111,10 +116,9 @@ const QuotationPrintPreview: React.FC<QuotationPrintPreviewProps> = ({ isOpen, o
                         </header>
 
                         <section className="grid grid-cols-2 gap-x-8 text-sm my-6">
-                            <div className="border border-gray-300 rounded-md p-3">
-                                <h3 className="font-bold text-base mb-2 text-amber-700">مقدم إلى:</h3>
-                                <p className="text-lg font-bold mb-1">{customer?.name || 'عميل نقدي'}</p>
-                                <p className="text-gray-600 text-sm">عناية السيد/ مدير المشتريات</p>
+                            <div className="border border-gray-300 rounded-md p-3 flex">
+                                <h3 className="font-bold text-base mb-2 text-amber-700">مقدم الي : </h3>
+                                <p className="text-lg font-bold mb-1 mr-2">{customer?.name || 'عميل نقدي'}</p>
                             </div>
                             <div className="border border-gray-300 rounded-md p-3">
                                 <p>
@@ -128,6 +132,14 @@ const QuotationPrintPreview: React.FC<QuotationPrintPreviewProps> = ({ isOpen, o
                                 <p>
                                     <span className="font-semibold">صالح حتى:</span>{' '}
                                     <span className="font-mono text-red-600">{details.expiryDate}</span>
+                                </p>
+                                <p>
+                                    <span className="font-semibold">الفرع:</span>{' '}
+                                    {details.branchName || 'غير محدد'}
+                                </p>
+                                <p>
+                                    <span className="font-semibold">الموظف:</span>{' '}
+                                    {details.userName}
                                 </p>
                             </div>
                         </section>

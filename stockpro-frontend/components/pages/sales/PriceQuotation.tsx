@@ -749,6 +749,10 @@ const PriceQuotation: React.FC<PriceQuotationProps> = ({ title }) => {
                     details: {
                         ...quotationDetails,
                         userName: currentUser?.fullName || 'غير محدد',
+                        branchName:
+                            typeof currentUser?.branch === "string"
+                                ? currentUser.branch
+                                : (currentUser?.branch as any)?.name || "غير محدد",
                     },
                     isVatEnabled,
                     vatRate
