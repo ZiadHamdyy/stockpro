@@ -568,104 +568,163 @@ const InvoicePrintPreview: React.FC<InvoicePrintPreviewProps> = ({
         <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet">
         <style>
           ${getBaseStyles()}
-          @page { size: A4; margin: 0; }
-          body { padding: 60px; font-size: 14px; font-family: 'Helvetica Neue', 'Cairo', sans-serif; color: #000; }
-          .header { margin-bottom: 60px; display: flex; justify-content: space-between; align-items: flex-start; }
-          .logo-area { font-size: 24px; font-weight: bold; letter-spacing: -1px; }
-          .invoice-details { text-align: left; }
-          .bill-to { margin-bottom: 40px; }
-          .bill-to-label { font-size: 10px; text-transform: uppercase; letter-spacing: 2px; color: #999; margin-bottom: 10px; }
-          .line-items { width: 100%; border-collapse: collapse; margin-bottom: 40px; }
-          .line-items th { text-align: right; font-weight: normal; color: #999; padding-bottom: 15px; border-bottom: 1px solid #eee; }
-          .line-items td { padding: 15px 0; border-bottom: 1px solid #eee; }
-          .summary { display: flex; justify-content: flex-end; }
-          .summary-table { width: 250px; }
-          .summary-row { display: flex; justify-content: space-between; margin-bottom: 10px; }
-          .total { font-size: 20px; font-weight: bold; border-top: 2px solid #000; padding-top: 15px; margin-top: 15px; }
+          @page { size: A4; margin: 10mm; }
+          body { padding: 12mm; font-size: 13px; font-family: 'Cairo', 'Helvetica Neue', sans-serif; color: #000; background: #fff; }
+          h1,h2,h3,h4 { margin: 0; padding: 0; }
+          .title-box { text-align: center; font-weight: 700; font-size: 18px; border: 1px solid #000; padding: 10px; margin-bottom: 12px; }
+          .table { width: 100%; border-collapse: collapse; }
+          .table th, .table td { border: 1px solid #000; padding: 6px 8px; font-size: 12px; }
+          .table th { background: #f5f5f5; }
+          .label-en { display: block; font-size: 11px; color: #444; font-weight: 600; }
+          .info-table td { width: 25%; vertical-align: top; }
+          .section { margin-bottom: 14px; }
+          .totals { width: 55%; margin-left: auto; }
+          .totals td { font-weight: 600; }
+          .totals .value { text-align: left; }
+          .muted { color: #666; font-size: 12px; text-align: center; margin-top: 8px; }
+          .qr-box { margin-top: 12px; }
+          .tafqeet { margin-top: 12px; padding: 8px; border: 1px dashed #000; text-align: center; font-weight: 700; }
         </style>
       </head>
       <body>
-        <div class="header">
-          <div>
-            ${
-              settings.showLogo && companyInfo.logo
-                ? `<img src="${companyInfo.logo}" style="height: 50px; margin-bottom: 15px;"/>`
-                : `<div class="logo-area">${companyInfo.name}</div>`
-            }
-            <div style="color: #666; font-size: 12px;">
-              ${
-                settings.showAddress
-                  ? `${companyInfo.address}<br/>${companyInfo.phone}`
-                  : ""
-              }
-            </div>
-          </div>
-          <div class="invoice-details">
-            <h1 style="font-size: 32px; font-weight: 300; margin: 0 0 10px 0;">
-              ${settings.headerText || "Invoice"}
-            </h1>
-            <div>No. ${details.invoiceNumber}</div>
-            <div>${details.invoiceDate}</div>
-            <div style="margin-top: 5px; font-size: 12px; color: #666;">الموظف: ${details.userName || "غير محدد"}</div>
-            <div style="font-size: 12px; color: #666;">الفرع: ${details.branchName}</div>
-          </div>
-        </div>
-        <div class="bill-to">
-          <div class="bill-to-label">Bill To / العميل</div>
-          <div style="font-size: 18px;">${customer?.name || "Cash Customer"}</div>
-          ${isVatEnabled && qrData ? `<div style="margin-top: 20px;"><img src="${qrCodeUrl}" width="80" height="80"/></div>` : ""}
-        </div>
-        <table class="line-items">
-          <thead>
-            <tr>
-              <th width="50%">Item</th>
-              <th width="10%" style="text-align:center">Qty</th>
-              <th width="20%" style="text-align:center">Price</th>
-              <th width="20%" style="text-align:left">Total</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${items
-              .map(
-                (item) => `
+        <div class="title-box">${settings.headerText || defaultArabicTitle}</div>
+
+        <div class="section">
+          <table class="table info-table">
+            <tbody>
               <tr>
                 <td>
-                  ${item.name}
-                  <div style="font-size: 11px; color: #999;">${item.id}</div>
+                  الاسم
+                  <span class="label-en">Name</span>
                 </td>
-                <td style="text-align:center">${item.qty}</td>
-                <td style="text-align:center">${item.price.toFixed(2)}</td>
-                <td style="text-align:left">${item.total.toFixed(2)}</td>
+                <td>${companyInfo.name}</td>
+                <td>
+                  الرقم الضريبي
+                  <span class="label-en">VAT Number</span>
+                </td>
+                <td>${settings.showTaxNumber ? companyInfo.taxNumber || "-" : "-"}</td>
               </tr>
-            `,
-              )
-              .join("")}
-          </tbody>
-        </table>
-        <div class="summary">
-          <div class="summary-table">
-            <div class="summary-row"><span>Subtotal</span><span>${totals.subtotal.toFixed(
-              2,
-            )}</span></div>
-            <div class="summary-row"><span>Discount</span><span>${totals.discount.toFixed(
-              2,
-            )}</span></div>
-            ${
-              isVatEnabled
-                ? `<div class="summary-row"><span>VAT (${vatRate}%)</span><span>${totals.tax.toFixed(
-                    2,
-                  )}</span></div>`
-                : ""
-            }
-            <div class="summary-row total">
-              <span>Total</span>
-              <span>${totals.net.toFixed(2)}</span>
-            </div>
+              <tr>
+                <td>
+                  العنوان
+                  <span class="label-en">Address</span>
+                </td>
+                <td>${settings.showAddress ? companyInfo.address || "-" : "-"}</td>
+                <td>
+                  السجل التجاري
+                  <span class="label-en">Commercial Reg</span>
+                </td>
+                <td>${companyInfo.commercialReg || "-"}</td>
+              </tr>
+              <tr>
+                <td>
+                  الهاتف
+                  <span class="label-en">Phone</span>
+                </td>
+                <td>${companyInfo.phone || "-"}</td>
+                <td>
+                  العميل
+                  <span class="label-en">Customer</span>
+                </td>
+                <td>${customer?.name || "عميل نقدي"}</td>
+              </tr>
+              <tr>
+                <td>
+                  رقم الفاتورة
+                  <span class="label-en">Invoice No</span>
+                </td>
+                <td>${details.invoiceNumber}</td>
+                <td>
+                  التاريخ
+                  <span class="label-en">Date</span>
+                </td>
+                <td>${details.invoiceDate}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="section">
+          <table class="table">
+            <thead>
+              <tr>
+                <th width="5%">م<br/><span class="label-en">S</span></th>
+                <th width="22%">تفاصيل السلع أو الخدمات<br/><span class="label-en">Nature Of Goods Or Services</span></th>
+                <th width="10%">سعر الوحدة<br/><span class="label-en">Unit Price</span></th>
+                <th width="8%">الكمية<br/><span class="label-en">Quantity</span></th>
+                <th width="12%">المبلغ الخاضع للضريبة<br/><span class="label-en">Taxable Amount</span></th>
+                <th width="8%">خصومات<br/><span class="label-en">Discount</span></th>
+                <th width="8%">نسبة الضريبة<br/><span class="label-en">Tax Rate</span></th>
+                <th width="10%">مبلغ الضريبة<br/><span class="label-en">Tax Amount</span></th>
+                <th width="13%">المجموع شامل الضريبة<br/><span class="label-en">Subtotal Incl. VAT</span></th>
+              </tr>
+            </thead>
+            <tbody>
+              ${
+                items.length === 0
+                  ? `<tr><td colspan="9" style="text-align:center">لا توجد أصناف</td></tr>`
+                  : items
+                      .map((item, idx) => {
+                        const taxable = item.price * item.qty;
+                        const taxAmount = item.taxAmount || 0;
+                        const lineDiscount = 0;
+                        const lineTotal = originalIsVatEnabled ? taxable + taxAmount : taxable;
+                        return `
+                          <tr>
+                            <td style="text-align:center">${idx + 1}</td>
+                            <td style="text-align:right">${item.name}</td>
+                            <td style="text-align:center">${formatMoney(item.price)}</td>
+                            <td style="text-align:center">${item.qty}</td>
+                            <td style="text-align:center">${formatMoney(taxable)}</td>
+                            <td style="text-align:center">${formatMoney(lineDiscount)}</td>
+                            <td style="text-align:center">${isVatEnabled ? vatRate : 0}%</td>
+                            <td style="text-align:center">${formatMoney(taxAmount)}</td>
+                            <td style="text-align:center">${formatMoney(lineTotal)}</td>
+                          </tr>
+                        `;
+                      })
+                      .join("")
+              }
+            </tbody>
+          </table>
+        </div>
+
+        <div class="section" style="display:flex; justify-content:space-between; align-items:flex-start; gap:10px;">
+          <div class="qr-box">
+            ${isVatEnabled && qrData ? `<img src="${qrCodeUrl}" width="120" height="120"/>` : ""}
           </div>
+          <table class="table totals">
+            <tbody>
+              <tr>
+                <td>الإجمالي غير شامل الضريبة<br/><span class="label-en">Total Excluding VAT</span></td>
+                <td class="value">${formatMoney(totals.subtotal)}</td>
+              </tr>
+              <tr>
+                <td>مجموع الخصومات<br/><span class="label-en">Discount</span></td>
+                <td class="value">${formatMoney(totals.discount)}</td>
+              </tr>
+              <tr>
+                <td>الإجمالي الخاضع للضريبة<br/><span class="label-en">Total Taxable Amount</span></td>
+                <td class="value">${formatMoney(totals.subtotal - totals.discount)}</td>
+              </tr>
+              ${
+                isVatEnabled
+                  ? `<tr>
+                      <td>مجموع ضريبة القيمة المضافة<br/><span class="label-en">Total VAT</span></td>
+                      <td class="value">${formatMoney(totals.tax)}</td>
+                    </tr>`
+                  : ""
+              }
+              <tr style="font-weight:bold; background:#f5f5f5;">
+                <td>إجمالي المبلغ المستحق<br/><span class="label-en">Total Amount Due</span></td>
+                <td class="value">${formatMoney(totals.net)}</td>
+              </tr>
+            </tbody>
+          </table>
         </div>
-        <div style="position: absolute; bottom: 60px; left: 60px; right: 60px; font-size: 11px; color: #999;">
-          ${settings.footerText} &bull; ${settings.termsText}
-        </div>
+
+        <div class="tafqeet">${tafqeet(totals.net, companyInfo.currency)}</div>
+        <div class="muted">${settings.footerText} ${settings.footerText && settings.termsText ? "•" : ""} ${settings.termsText}</div>
       </body>
     </html>
   `;

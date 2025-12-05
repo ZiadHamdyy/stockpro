@@ -64,18 +64,31 @@ const TemplatePreview: React.FC<{
                 );
             case 'minimal':
                 return (
-                    <div className="w-full h-full bg-white p-3 flex flex-col gap-2">
-                        <div className="h-4 w-1/2 bg-gray-800 rounded-none"></div>
-                        <div className="h-px w-full bg-gray-200"></div>
-                        <div className="flex-1 flex flex-col gap-1">
-                            <div className="w-full h-1 bg-gray-100"></div>
-                            <div className="w-full h-1 bg-gray-100"></div>
-                            <div className="w-3/4 h-1 bg-gray-100"></div>
-                        </div>
-                        <div className="h-px w-full bg-gray-200"></div>
-                        <div className="flex justify-end"><div className="h-2 w-10 bg-black"></div></div>
-                    </div>
-                );
+          <div className="w-full h-full bg-white p-3 flex flex-col gap-2 border border-gray-300">
+            <div className="h-6 w-full border border-gray-800 flex items-center justify-center text-[10px] font-bold bg-gray-50">
+              Title
+            </div>
+            <div className="flex-1 grid grid-rows-2 gap-1">
+              <div className="grid grid-cols-4 gap-px text-[8px]">
+                {[...Array(8)].map((_, i) => (
+                  <div key={i} className="h-4 bg-gray-100 border border-gray-200"></div>
+                ))}
+              </div>
+              <div className="h-full bg-white border border-gray-200 grid grid-rows-2">
+                <div className="grid grid-cols-9 gap-px border-b border-gray-200">
+                  {[...Array(9)].map((_, i) => (
+                    <div key={i} className="h-3 bg-gray-100"></div>
+                  ))}
+                </div>
+                <div className="flex-1 bg-gray-50"></div>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-2 text-[8px]">
+              <div className="h-8 border border-dashed border-gray-300 bg-gray-50"></div>
+              <div className="h-8 border border-gray-300 bg-gray-50"></div>
+            </div>
+          </div>
+        );
             case 'thermal':
                 return (
                     <div className="w-2/3 h-full bg-white mx-auto shadow-md p-2 flex flex-col gap-1 items-center border border-gray-200">
@@ -181,7 +194,7 @@ const PrintSettings: React.FC<PrintSettingsProps> = ({ title, settings, onSave }
                     <TemplatePreview 
                         id="minimal" 
                         name="بسيط (Minimal)" 
-                        description="الأناقة في البساطة. تصميم أوروبي نظيف، مساحات بيضاء واسعة، وتركيز على المحتوى."
+                        description="تصميم رسمي أبيض وأسود بجدول تفصيلي (ثنائي اللغة) وتذييل إجمالي مشابه للنموذج المرفق."
                         selected={localSettings.template === 'minimal'}
                         onSelect={() => handleChange('template', 'minimal')}
                     />
