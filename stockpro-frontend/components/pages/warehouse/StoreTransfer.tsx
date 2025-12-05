@@ -913,7 +913,7 @@ const StoreTransfer: React.FC<StoreTransferProps> = ({ title }) => {
 
   return (
     <>
-      <style>{`@media print { .no-print { display: none !important; } .no-print-select { display: none !important; } .no-print-date { display: none !important; } .no-print-delete-col { display: none !important; } [role="alert"] { display: none !important; } .empty-row { display: none !important; } .print-only-date { display: block !important; } .print-only-fromstore { display: block !important; } .print-only-tostore { display: block !important; } .print-only-status { display: block !important; } .voucher-header-container { padding: 0.25rem !important; margin-bottom: 0.25rem !important; border-width: 1px !important; } .voucher-header-title { margin-bottom: 0.25rem !important; font-size: 1rem !important; padding-bottom: 0.125rem !important; } .voucher-header-grid { grid-template-columns: repeat(4, 1fr) !important; gap: 0.25rem !important; margin-bottom: 0.25rem !important; } .voucher-header-grid input, .voucher-header-grid select { padding: 0.125rem 0.25rem !important; font-size: 0.7rem !important; margin: 0 !important; } .voucher-header-grid input.bg-gray-200, .voucher-header-grid input:disabled, .voucher-header-grid select:disabled { background-color: white !important; color: black !important; opacity: 1 !important; -webkit-text-fill-color: black !important; } .voucher-header-grid select { appearance: none !important; -webkit-appearance: none !important; -moz-appearance: none !important; background: transparent !important; border: none !important; border-bottom: 1px solid transparent !important; background-image: none !important; cursor: default !important; } } @media screen { .print-only-date { display: none !important; } .print-only-fromstore { display: none !important; } .print-only-tostore { display: none !important; } .print-only-status { display: none !important; } }`}</style>
+      <style>{`@media print { .no-print { display: none !important; } .no-print-select { display: none !important; } .no-print-date { display: none !important; } .no-print-delete-col { display: none !important; } [role="alert"] { display: none !important; } .empty-row { display: none !important; } .print-only-date { display: block !important; } .print-only-fromstore { display: block !important; } .print-only-tostore { display: block !important; } .print-only-status { display: block !important; } .voucher-header-container { padding: 0.25rem !important; margin-bottom: 0.25rem !important; border-width: 1px !important; } .voucher-header-title { margin-bottom: 0.25rem !important; font-size: 1rem !important; padding-bottom: 0.125rem !important; } .voucher-header-grid { grid-template-columns: repeat(5, 1fr) !important; gap: 0.25rem !important; margin-bottom: 0.25rem !important; } .voucher-header-grid input, .voucher-header-grid select { padding: 0.125rem 0.25rem !important; font-size: 0.7rem !important; margin: 0 !important; } .voucher-header-grid input.bg-gray-200, .voucher-header-grid input:disabled, .voucher-header-grid select:disabled { background-color: white !important; color: black !important; opacity: 1 !important; -webkit-text-fill-color: black !important; } .voucher-header-grid select { appearance: none !important; -webkit-appearance: none !important; -moz-appearance: none !important; background: transparent !important; border: none !important; border-bottom: 1px solid transparent !important; background-image: none !important; cursor: default !important; } } @media screen { .print-only-date { display: none !important; } .print-only-fromstore { display: none !important; } .print-only-tostore { display: none !important; } .print-only-status { display: none !important; } }`}</style>
       <div className="bg-white p-6 rounded-lg shadow">
         <div className="border-2 border-amber-500 rounded-lg mb-4">
           <DocumentHeader companyInfo={companyInfo} />
@@ -964,7 +964,7 @@ const StoreTransfer: React.FC<StoreTransferProps> = ({ title }) => {
                 </>
               )}
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4 voucher-header-grid">
+            <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-4 voucher-header-grid">
               <input
                 type="text"
                 placeholder=""
@@ -1049,6 +1049,17 @@ const StoreTransfer: React.FC<StoreTransferProps> = ({ title }) => {
                   />
                 </>
               )}
+              <input
+                type="text"
+                className={inputStyle + " bg-gray-200"}
+                value={
+                  currentIndex >= 0 && vouchers[currentIndex]
+                    ? vouchers[currentIndex]?.user?.name || currentUser?.name || currentUser?.fullName || ""
+                    : currentUser?.name || currentUser?.fullName || ""
+                }
+                readOnly
+                disabled
+              />
             </div>
           </div>
         </div>

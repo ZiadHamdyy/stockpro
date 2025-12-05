@@ -496,7 +496,7 @@ const InventoryCountPage: React.FC<InventoryCountProps> = ({ title, companyInfo 
                     </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
                     <div>
                         <label className="block text-sm font-bold text-gray-700 mb-1">تاريخ الجرد</label>
                         <input type="date" value={date} onChange={(e) => setDate(e.target.value)} className={inputStyle} disabled={status === 'POSTED'} />
@@ -514,6 +514,16 @@ const InventoryCountPage: React.FC<InventoryCountProps> = ({ title, companyInfo 
                         >
                             {stores.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
                         </select>
+                    </div>
+                    <div>
+                        <label className="block text-sm font-bold text-gray-700 mb-1">الموظف</label>
+                        <input 
+                            type="text" 
+                            value={currentUser?.name || currentUser?.fullName || ""} 
+                            className={inputStyle} 
+                            readOnly 
+                            disabled 
+                        />
                     </div>
                     <div>
                         <label className="block text-sm font-bold text-gray-700 mb-1">ملاحظات</label>
