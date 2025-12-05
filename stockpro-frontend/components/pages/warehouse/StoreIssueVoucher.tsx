@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback, useMemo } from "react"
 import { useSelector, useDispatch } from "react-redux";
 import { useSearchParams } from "react-router-dom";
 import DataTableModal from "../../common/DataTableModal";
-import { ListIcon, PrintIcon, SearchIcon, TrashIcon } from "../../icons";
+import { ListIcon, PrintIcon, SearchIcon, TrashIcon, BarcodeIcon } from "../../icons";
 import PermissionWrapper from "../../common/PermissionWrapper";
 import {
   Resources,
@@ -17,6 +17,7 @@ import type {
 } from "../../../types";
 import { useModal } from "../../common/ModalProvider.tsx";
 import { useToast } from "../../common/ToastProvider.tsx";
+import BarcodeScannerModal from "../../common/BarcodeScannerModal";
 import { guardPrint } from "../../utils/printGuard";
 import { showApiErrorToast } from "../../../utils/errorToast";
 import { RootState } from "../../store/store";
@@ -39,6 +40,7 @@ type SelectableItem = {
   stock: number;
   code: string;
   purchasePrice: number;
+  barcode?: string;
 };
 
 interface StoreIssueVoucherProps {
@@ -149,6 +151,7 @@ const StoreIssueVoucher: React.FC<StoreIssueVoucherProps> = ({ title }) => {
           typeof item.lastPurchasePrice === "number"
             ? item.lastPurchasePrice
             : item.purchasePrice || 0,
+        barcode: item.barcode || undefined,
       }))
     : [];
   
@@ -170,6 +173,7 @@ const StoreIssueVoucher: React.FC<StoreIssueVoucherProps> = ({ title }) => {
   const handleNewRef = useRef<(() => void) | undefined>(undefined);
 
   const [isSearchModalOpen, setIsSearchModalOpen] = useState(false);
+  const [isScannerOpen, setIsScannerOpen] = useState(false);
   const [currentIndex, setCurrentIndex] = useState(-1);
   const [focusIndex, setFocusIndex] = useState<number | null>(null);
 
@@ -405,6 +409,49 @@ const StoreIssueVoucher: React.FC<StoreIssueVoucherProps> = ({ title }) => {
     handleSelectItem(editingItemIndex, selectedItem);
     setIsItemModalOpen(false);
     setEditingItemIndex(null);
+  };
+
+  const handleScanSuccess = (barcode: string) => {
+    const foundItem = allItems.find((item) => item.barcode === barcode);
+    if (foundItem) {
+      const emptyRowIndex = items.findIndex((i) => !i.id && !i.name);
+      const indexToFill = emptyRowIndex !== -1 ? emptyRowIndex : items.length;
+
+      const newItems = [...items];
+      if (emptyRowIndex === -1) {
+        newItems.push({
+          id: "",
+          name: "",
+          unit: "",
+          qty: 1,
+          code: "",
+          price: 0,
+        });
+      }
+
+      const defaultPrice =
+        typeof foundItem.purchasePrice === "number"
+          ? foundItem.purchasePrice
+          : 0;
+      const item = {
+        ...newItems[indexToFill],
+        id: foundItem.id,
+        name: foundItem.name,
+        unit: foundItem.unit,
+        qty: 1,
+        code: foundItem.code || "",
+        price: defaultPrice,
+      };
+      newItems[indexToFill] = item;
+      setItems(newItems);
+      showToast(`تم إضافة الصنف: ${foundItem.name}`);
+      setTimeout(() => {
+        qtyInputRefs.current[indexToFill]?.focus();
+        qtyInputRefs.current[indexToFill]?.select();
+      }, 0);
+    } else {
+      showToast("الصنف غير موجود. لم يتم العثور على باركود مطابق.", 'error');
+    }
   };
 
   const handleItemSearchKeyDown = (
@@ -965,20 +1012,38 @@ const StoreIssueVoucher: React.FC<StoreIssueVoucherProps> = ({ title }) => {
             </tfoot>
           </table>
         </div>
-        <PermissionWrapper
-          requiredPermission={buildPermission(
-            Resources.STORE_ISSUE_VOUCHER,
-            Actions.CREATE,
-          )}
-        >
-          <button
-            onClick={handleAddItem}
-            className="no-print mb-4 px-4 py-2 bg-gray-200 text-brand-dark rounded-md hover:bg-gray-300 font-semibold disabled:bg-gray-300 disabled:cursor-not-allowed"
-            disabled={isReadOnly}
+        <div className="no-print mb-4 flex gap-2">
+          <PermissionWrapper
+            requiredPermission={buildPermission(
+              Resources.STORE_ISSUE_VOUCHER,
+              Actions.CREATE,
+            )}
           >
-            اضافة سطر
-          </button>
-        </PermissionWrapper>
+            <button
+              onClick={handleAddItem}
+              className="px-4 py-2 bg-gray-200 text-brand-dark rounded-md hover:bg-gray-300 font-semibold disabled:bg-gray-300 disabled:cursor-not-allowed"
+              disabled={isReadOnly}
+            >
+              اضافة سطر
+            </button>
+          </PermissionWrapper>
+          <PermissionWrapper
+            requiredPermission={buildPermission(
+              Resources.STORE_ISSUE_VOUCHER,
+              Actions.CREATE,
+            )}
+          >
+            <button
+              type="button"
+              onClick={() => setIsScannerOpen(true)}
+              className="px-4 py-2 bg-brand-blue text-white rounded-md hover:bg-blue-800 font-semibold flex items-center gap-2 disabled:bg-gray-400 disabled:cursor-not-allowed"
+              disabled={isReadOnly}
+            >
+              <BarcodeIcon className="w-5 h-5" />
+              <span>مسح باركود</span>
+            </button>
+          </PermissionWrapper>
+        </div>
 
         <div className="bg-gray-50 -mx-6 -mb-6 mt-4 p-6 rounded-b-lg">
           <div className="flex justify-around items-center mt-8 text-center text-sm font-semibold">
@@ -1150,6 +1215,11 @@ const StoreIssueVoucher: React.FC<StoreIssueVoucherProps> = ({ title }) => {
         }))}
         onSelectRow={handleSelectVoucherFromSearch}
         colorTheme="green"
+      />
+      <BarcodeScannerModal
+        isOpen={isScannerOpen}
+        onClose={() => setIsScannerOpen(false)}
+        onScanSuccess={handleScanSuccess}
       />
     </>
   );
