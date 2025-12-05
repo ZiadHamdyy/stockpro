@@ -81,6 +81,9 @@ const InvoicePrintPreview: React.FC<InvoicePrintPreviewProps> = ({
       itemName: 0,
       itemQty: 0,
       itemPrice: 0,
+      itemTaxable: 0,
+      itemDiscount: 0,
+      itemTaxRate: 0,
       itemTax: 0,
       itemTotal: 0,
       totalsSubtotal: 0,
@@ -88,6 +91,28 @@ const InvoicePrintPreview: React.FC<InvoicePrintPreviewProps> = ({
       totalsNet: 0,
       qrCode: 0,
       footerText: 0,
+    },
+    visibility: {
+      branchName: true,
+      date: true,
+      customerType: true,
+      customerName: true,
+      employeeName: true,
+      itemName: true,
+      itemQty: true,
+      itemPrice: true,
+      itemTaxable: true,
+      itemDiscount: true,
+      itemTaxRate: true,
+      itemTax: true,
+      itemTotal: true,
+      totalsSubtotal: true,
+      totalsDiscount: true,
+      totalsTax: true,
+      totalsNet: true,
+      qrCode: true,
+      footerText: true,
+      tafqeet: true,
     },
   });
 
@@ -255,6 +280,11 @@ const InvoicePrintPreview: React.FC<InvoicePrintPreviewProps> = ({
       return offset !== 0 ? `transform: translateY(${offset}px);` : '';
     };
 
+    const getVisibility = (key: keyof NonNullable<typeof epson.visibility>) => {
+      const visibility = epson.visibility || {};
+      return visibility[key] !== false; // Default to true if not set
+    };
+
     return `
     <html>
     <head>
@@ -312,24 +342,29 @@ const InvoicePrintPreview: React.FC<InvoicePrintPreviewProps> = ({
       <div style="text-align: ${getAlignment('header')}; margin-bottom: ${epson.spacing.sectionGap}px; font-weight: bold; font-size: ${epson.fonts.header}px; border: 1px solid #000; padding: 3px;">
         ${settings.headerText || defaultArabicTitle}
       </div>
-      <div class="info-row" style="${getPosition('date')}">
+      ${getVisibility('branchName') ? `<div class="info-row" style="${getPosition('date')}">
         <span>${details.branchName || "الفرع الرئيسي"}</span>
         <span>${details.invoiceNumber}</span>
-      </div>
-      <div class="info-row" style="${getPosition('date')}">
-        <span>${details.invoiceDate}</span>
-        <span style="${getPosition('customerType')}">${paymentMethod === "cash" ? "نقدا" : "اجل"}</span>
-      </div>
-      <div class="info-row"><span>العميل:</span><span>${customer?.name || "عميل نقدا"}</span></div>
-      <div class="info-row"><span>الموظف:</span><span>${details.userName || "غير محدد"}</span></div>
+      </div>` : `<div class="info-row" style="${getPosition('date')}">
+        <span>${details.invoiceNumber}</span>
+      </div>`}
+      ${getVisibility('date') || getVisibility('customerType') ? `<div class="info-row" style="${getPosition('date')}">
+        ${getVisibility('date') ? `<span>${details.invoiceDate}</span>` : ''}
+        ${getVisibility('customerType') ? `<span style="${getPosition('customerType')}">${paymentMethod === "cash" ? "نقدا" : "اجل"}</span>` : ''}
+      </div>` : ''}
+      ${getVisibility('customerName') ? `<div class="info-row"><span>العميل:</span><span>${customer?.name || "عميل نقدا"}</span></div>` : ''}
+      ${getVisibility('employeeName') ? `<div class="info-row"><span>الموظف:</span><span>${details.userName || "غير محدد"}</span></div>` : ''}
       <table class="items-table">
         <thead>
           <tr>
-            <th style="text-align: ${getAlignment('items')}; ${getPosition('itemName')}">الصنف</th>
-            <th style="width: 20px; ${getPosition('itemQty')}">ك</th>
-            <th style="${getPosition('itemPrice')}">سعر</th>
-            ${isVatEnabled ? `<th style="${getPosition('itemTax')}">ض</th>` : ''}
-            <th style="${getPosition('itemTotal')}">مجموع</th>
+            ${getVisibility('itemName') ? `<th style="text-align: ${getAlignment('items')}; ${getPosition('itemName')}">الصنف</th>` : ''}
+            ${getVisibility('itemQty') ? `<th style="width: 15px; ${getPosition('itemQty')}">ك</th>` : ''}
+            ${getVisibility('itemPrice') ? `<th style="width: 50px; ${getPosition('itemPrice')}">سعر</th>` : ''}
+            ${getVisibility('itemTaxable') ? `<th style="width: 50px; ${getPosition('itemTaxable')}">قبل ض</th>` : ''}
+            ${getVisibility('itemDiscount') ? `<th style="width: 30px; ${getPosition('itemDiscount')}">خصم</th>` : ''}
+            ${getVisibility('itemTaxRate') ? `<th style="width: 30px; ${getPosition('itemTaxRate')}">نسبة</th>` : ''}
+            ${isVatEnabled && getVisibility('itemTax') ? `<th style="width: 40px; ${getPosition('itemTax')}">ضريبة</th>` : ''}
+            ${getVisibility('itemTotal') ? `<th style="width: 50px; ${getPosition('itemTotal')}">مجموع</th>` : ''}
           </tr>
         </thead>
         <tbody>
@@ -337,11 +372,14 @@ const InvoicePrintPreview: React.FC<InvoicePrintPreviewProps> = ({
             .map(
               (item) => `
             <tr>
-              <td style="text-align: ${getAlignment('items')}; ${getPosition('itemName')}">${item.name}</td>
-              <td style="text-align: center; ${getPosition('itemQty')}">${item.qty}</td>
-              <td style="text-align: center; ${getPosition('itemPrice')}">${item.price.toFixed(2)}</td>
-              ${isVatEnabled ? `<td style="text-align: center; ${getPosition('itemTax')}">${(item.taxAmount || 0).toFixed(2)}</td>` : ''}
-              <td style="text-align: center; ${getPosition('itemTotal')}">${item.total.toFixed(2)}</td>
+              ${getVisibility('itemName') ? `<td style="text-align: ${getAlignment('items')}; ${getPosition('itemName')}">${item.name}</td>` : ''}
+              ${getVisibility('itemQty') ? `<td style="text-align: center; ${getPosition('itemQty')}">${item.qty}</td>` : ''}
+              ${getVisibility('itemPrice') ? `<td style="text-align: center; ${getPosition('itemPrice')}">${item.price.toFixed(2)}</td>` : ''}
+              ${getVisibility('itemTaxable') ? `<td style="text-align: center; ${getPosition('itemTaxable')}">${(item.price * item.qty).toFixed(2)}</td>` : ''}
+              ${getVisibility('itemDiscount') ? `<td style="text-align: center; ${getPosition('itemDiscount')}">0.00</td>` : ''}
+              ${getVisibility('itemTaxRate') ? `<td style="text-align: center; ${getPosition('itemTaxRate')}">${isVatEnabled ? `${vatRate}%` : '0%'}</td>` : ''}
+              ${isVatEnabled && getVisibility('itemTax') ? `<td style="text-align: center; ${getPosition('itemTax')}">${(item.taxAmount || 0).toFixed(2)}</td>` : ''}
+              ${getVisibility('itemTotal') ? `<td style="text-align: center; ${getPosition('itemTotal')}">${item.total.toFixed(2)}</td>` : ''}
             </tr>
           `,
             )
@@ -349,37 +387,37 @@ const InvoicePrintPreview: React.FC<InvoicePrintPreviewProps> = ({
         </tbody>
       </table>
       <div class="totals">
-        <div class="info-row" style="text-align: ${getAlignment('totals')}; ${getPosition('totalsSubtotal')}">
+        ${getVisibility('totalsSubtotal') ? `<div class="info-row" style="text-align: ${getAlignment('totals')}; ${getPosition('totalsSubtotal')}">
           <span>المجموع:</span>
           <span>${totals.subtotal.toFixed(2)}</span>
-        </div>
-        <div class="info-row" style="text-align: ${getAlignment('totals')};">
+        </div>` : ''}
+        ${getVisibility('totalsDiscount') ? `<div class="info-row" style="text-align: ${getAlignment('totals')};">
           <span>الخصم:</span>
           <span>${totals.discount.toFixed(2)}</span>
-        </div>
+        </div>` : ''}
         ${
-          isVatEnabled
+          isVatEnabled && getVisibility('totalsTax')
             ? `<div class="info-row" style="text-align: ${getAlignment('totals')}; ${getPosition('totalsTax')}">
                 <span>الضريبة (${vatRate}%):</span>
                 <span>${totals.tax.toFixed(2)}</span>
               </div>`
             : ""
         }
-        <div class="total-row" style="text-align: ${getAlignment('totals')}; ${getPosition('totalsNet')}">
+        ${getVisibility('totalsNet') ? `<div class="total-row" style="text-align: ${getAlignment('totals')}; ${getPosition('totalsNet')}">
           <span>الصافي:</span>
           <span>${totals.net.toFixed(2)}</span>
-        </div>
+        </div>` : ''}
       </div>
-      <div class="qr-container" style="${getPosition('qrCode')}">
+      ${getVisibility('qrCode') ? `<div class="qr-container" style="${getPosition('qrCode')}">
         ${isVatEnabled ? `<img src="${qrCodeUrl}" width="80" height="80"/>` : ""}
-      </div>
-      <div style="text-align: center; margin-top: ${epson.spacing.sectionGap}px; font-weight: bold; font-size: ${epson.fonts.body}px;">
+      </div>` : ''}
+      ${getVisibility('tafqeet') ? `<div style="text-align: center; margin-top: ${epson.spacing.sectionGap}px; font-weight: bold; font-size: ${epson.fonts.body}px;">
         ${tafqeet(totals.net, companyInfo.currency)}
-      </div>
-      <div class="footer" style="${getPosition('footerText')}">
+      </div>` : ''}
+      ${getVisibility('footerText') ? `<div class="footer" style="${getPosition('footerText')}">
         <div>${settings.footerText}</div>
         ${settings.termsText ? `<div style="margin-top: 3px; font-size: ${epson.fonts.footer - 1}px;">${settings.termsText}</div>` : ''}
-      </div>
+      </div>` : ''}
     </body>
     </html>
   `;
@@ -975,6 +1013,9 @@ const InvoicePrintPreview: React.FC<InvoicePrintPreviewProps> = ({
           .grid { display: grid !important; }
           .grid-cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
           .grid-cols-5 { grid-template-columns: repeat(5, minmax(0, 1fr)) !important; }
+          /* Preserve Tailwind font-weight utilities */
+          .font-bold { font-weight: 700 !important; }
+          .font-semibold { font-weight: 600 !important; }
         </style>
         <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet">
       `;
@@ -1107,6 +1148,9 @@ const InvoicePrintPreview: React.FC<InvoicePrintPreviewProps> = ({
           .grid { display: grid !important; }
           .grid-cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
           .grid-cols-5 { grid-template-columns: repeat(5, minmax(0, 1fr)) !important; }
+          /* Preserve Tailwind font-weight utilities */
+          .font-bold { font-weight: 700 !important; }
+          .font-semibold { font-weight: 600 !important; }
         </style>
         <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet">
       `;
@@ -1235,16 +1279,34 @@ const InvoicePrintPreview: React.FC<InvoicePrintPreviewProps> = ({
   const isThermal = template === "thermal" || template === "epson";
 
   // Interactive controls state for epson template
-  const [epsonPreviewSettings, setEpsonPreviewSettings] = React.useState(
-    settings.epsonSettings || getDefaultEpsonSettings()
-  );
+  const [epsonPreviewSettings, setEpsonPreviewSettings] = React.useState(() => {
+    const base = settings.epsonSettings || getDefaultEpsonSettings();
+    // Ensure visibility is always present
+    return {
+      ...getDefaultEpsonSettings(),
+      ...base,
+      visibility: {
+        ...getDefaultEpsonSettings().visibility,
+        ...(base.visibility || {}),
+      },
+    };
+  });
   const [selectedElement, setSelectedElement] = React.useState<string | null>(null);
   const [showEpsonControls, setShowEpsonControls] = React.useState(false);
 
   // Update preview settings when settings change
   React.useEffect(() => {
     if (template === 'epson' && settings.epsonSettings) {
-      setEpsonPreviewSettings(settings.epsonSettings);
+      // Merge with defaults to ensure visibility is always present
+      const merged = {
+        ...getDefaultEpsonSettings(),
+        ...settings.epsonSettings,
+        visibility: {
+          ...getDefaultEpsonSettings().visibility,
+          ...(settings.epsonSettings.visibility || {}),
+        },
+      };
+      setEpsonPreviewSettings(merged);
     }
   }, [settings.epsonSettings, template]);
 
@@ -1263,6 +1325,11 @@ const InvoicePrintPreview: React.FC<InvoicePrintPreviewProps> = ({
     const getPosition = (key: keyof typeof epson.positioning) => {
       const offset = epson.positioning[key];
       return offset !== 0 ? `transform: translateY(${offset}px);` : '';
+    };
+
+    const getVisibility = (key: keyof NonNullable<typeof epson.visibility>) => {
+      const visibility = epson.visibility || {};
+      return visibility[key] !== false; // Default to true if not set
     };
 
     return `
@@ -1322,24 +1389,29 @@ const InvoicePrintPreview: React.FC<InvoicePrintPreviewProps> = ({
       <div style="text-align: ${getAlignment('header')}; margin-bottom: ${epson.spacing.sectionGap}px; font-weight: bold; font-size: ${epson.fonts.header}px; border: 1px solid #000; padding: 3px;">
         ${settings.headerText || defaultArabicTitle}
       </div>
-      <div class="info-row" style="${getPosition('date')}">
+      ${getVisibility('branchName') ? `<div class="info-row" style="${getPosition('date')}">
         <span>${details.branchName || "الفرع الرئيسي"}</span>
         <span>${details.invoiceNumber}</span>
-      </div>
-      <div class="info-row" style="${getPosition('date')}">
-        <span>${details.invoiceDate}</span>
-        <span style="${getPosition('customerType')}">${paymentMethod === "cash" ? "نقدا" : "اجل"}</span>
-      </div>
-      <div class="info-row"><span>العميل:</span><span>${customer?.name || "عميل نقدا"}</span></div>
-      <div class="info-row"><span>الموظف:</span><span>${details.userName || "غير محدد"}</span></div>
+      </div>` : `<div class="info-row" style="${getPosition('date')}">
+        <span>${details.invoiceNumber}</span>
+      </div>`}
+      ${getVisibility('date') || getVisibility('customerType') ? `<div class="info-row" style="${getPosition('date')}">
+        ${getVisibility('date') ? `<span>${details.invoiceDate}</span>` : ''}
+        ${getVisibility('customerType') ? `<span style="${getPosition('customerType')}">${paymentMethod === "cash" ? "نقدا" : "اجل"}</span>` : ''}
+      </div>` : ''}
+      ${getVisibility('customerName') ? `<div class="info-row"><span>العميل:</span><span>${customer?.name || "عميل نقدا"}</span></div>` : ''}
+      ${getVisibility('employeeName') ? `<div class="info-row"><span>الموظف:</span><span>${details.userName || "غير محدد"}</span></div>` : ''}
       <table class="items-table">
         <thead>
           <tr>
-            <th style="text-align: ${getAlignment('items')}; ${getPosition('itemName')}">الصنف</th>
-            <th style="width: 20px; ${getPosition('itemQty')}">ك</th>
-            <th style="${getPosition('itemPrice')}">سعر</th>
-            ${isVatEnabled ? `<th style="${getPosition('itemTax')}">ض</th>` : ''}
-            <th style="${getPosition('itemTotal')}">مجموع</th>
+            ${getVisibility('itemName') ? `<th style="text-align: ${getAlignment('items')}; ${getPosition('itemName')}">الصنف</th>` : ''}
+            ${getVisibility('itemQty') ? `<th style="width: 15px; ${getPosition('itemQty')}">ك</th>` : ''}
+            ${getVisibility('itemPrice') ? `<th style="width: 50px; ${getPosition('itemPrice')}">سعر</th>` : ''}
+            ${getVisibility('itemTaxable') ? `<th style="width: 50px; ${getPosition('itemTaxable')}">قبل ض</th>` : ''}
+            ${getVisibility('itemDiscount') ? `<th style="width: 30px; ${getPosition('itemDiscount')}">خصم</th>` : ''}
+            ${getVisibility('itemTaxRate') ? `<th style="width: 30px; ${getPosition('itemTaxRate')}">نسبة</th>` : ''}
+            ${isVatEnabled && getVisibility('itemTax') ? `<th style="width: 40px; ${getPosition('itemTax')}">ضريبة</th>` : ''}
+            ${getVisibility('itemTotal') ? `<th style="width: 50px; ${getPosition('itemTotal')}">مجموع</th>` : ''}
           </tr>
         </thead>
         <tbody>
@@ -1347,11 +1419,14 @@ const InvoicePrintPreview: React.FC<InvoicePrintPreviewProps> = ({
             .map(
               (item) => `
             <tr>
-              <td style="text-align: ${getAlignment('items')}; ${getPosition('itemName')}">${item.name}</td>
-              <td style="text-align: center; ${getPosition('itemQty')}">${item.qty}</td>
-              <td style="text-align: center; ${getPosition('itemPrice')}">${item.price.toFixed(2)}</td>
-              ${isVatEnabled ? `<td style="text-align: center; ${getPosition('itemTax')}">${(item.taxAmount || 0).toFixed(2)}</td>` : ''}
-              <td style="text-align: center; ${getPosition('itemTotal')}">${item.total.toFixed(2)}</td>
+              ${getVisibility('itemName') ? `<td style="text-align: ${getAlignment('items')}; ${getPosition('itemName')}">${item.name}</td>` : ''}
+              ${getVisibility('itemQty') ? `<td style="text-align: center; ${getPosition('itemQty')}">${item.qty}</td>` : ''}
+              ${getVisibility('itemPrice') ? `<td style="text-align: center; ${getPosition('itemPrice')}">${item.price.toFixed(2)}</td>` : ''}
+              ${getVisibility('itemTaxable') ? `<td style="text-align: center; ${getPosition('itemTaxable')}">${(item.price * item.qty).toFixed(2)}</td>` : ''}
+              ${getVisibility('itemDiscount') ? `<td style="text-align: center; ${getPosition('itemDiscount')}">0.00</td>` : ''}
+              ${getVisibility('itemTaxRate') ? `<td style="text-align: center; ${getPosition('itemTaxRate')}">${isVatEnabled ? `${vatRate}%` : '0%'}</td>` : ''}
+              ${isVatEnabled && getVisibility('itemTax') ? `<td style="text-align: center; ${getPosition('itemTax')}">${(item.taxAmount || 0).toFixed(2)}</td>` : ''}
+              ${getVisibility('itemTotal') ? `<td style="text-align: center; ${getPosition('itemTotal')}">${item.total.toFixed(2)}</td>` : ''}
             </tr>
           `,
             )
@@ -1359,37 +1434,37 @@ const InvoicePrintPreview: React.FC<InvoicePrintPreviewProps> = ({
         </tbody>
       </table>
       <div class="totals">
-        <div class="info-row" style="text-align: ${getAlignment('totals')}; ${getPosition('totalsSubtotal')}">
+        ${getVisibility('totalsSubtotal') ? `<div class="info-row" style="text-align: ${getAlignment('totals')}; ${getPosition('totalsSubtotal')}">
           <span>المجموع:</span>
           <span>${totals.subtotal.toFixed(2)}</span>
-        </div>
-        <div class="info-row" style="text-align: ${getAlignment('totals')};">
+        </div>` : ''}
+        ${getVisibility('totalsDiscount') ? `<div class="info-row" style="text-align: ${getAlignment('totals')};">
           <span>الخصم:</span>
           <span>${totals.discount.toFixed(2)}</span>
-        </div>
+        </div>` : ''}
         ${
-          isVatEnabled
+          isVatEnabled && getVisibility('totalsTax')
             ? `<div class="info-row" style="text-align: ${getAlignment('totals')}; ${getPosition('totalsTax')}">
                 <span>الضريبة (${vatRate}%):</span>
                 <span>${totals.tax.toFixed(2)}</span>
               </div>`
             : ""
         }
-        <div class="total-row" style="text-align: ${getAlignment('totals')}; ${getPosition('totalsNet')}">
+        ${getVisibility('totalsNet') ? `<div class="total-row" style="text-align: ${getAlignment('totals')}; ${getPosition('totalsNet')}">
           <span>الصافي:</span>
           <span>${totals.net.toFixed(2)}</span>
-        </div>
+        </div>` : ''}
       </div>
-      <div class="qr-container" style="${getPosition('qrCode')}">
+      ${getVisibility('qrCode') ? `<div class="qr-container" style="${getPosition('qrCode')}">
         ${isVatEnabled ? `<img src="${qrCodeUrl}" width="80" height="80"/>` : ""}
-      </div>
-      <div style="text-align: center; margin-top: ${epson.spacing.sectionGap}px; font-weight: bold; font-size: ${epson.fonts.body}px;">
+      </div>` : ''}
+      ${getVisibility('tafqeet') ? `<div style="text-align: center; margin-top: ${epson.spacing.sectionGap}px; font-weight: bold; font-size: ${epson.fonts.body}px;">
         ${tafqeet(totals.net, companyInfo.currency)}
-      </div>
-      <div class="footer" style="${getPosition('footerText')}">
+      </div>` : ''}
+      ${getVisibility('footerText') ? `<div class="footer" style="${getPosition('footerText')}">
         <div>${settings.footerText}</div>
         ${settings.termsText ? `<div style="margin-top: 3px; font-size: ${epson.fonts.footer - 1}px;">${settings.termsText}</div>` : ''}
-      </div>
+      </div>` : ''}
     </body>
     </html>
   `;
@@ -1406,6 +1481,10 @@ const InvoicePrintPreview: React.FC<InvoicePrintPreviewProps> = ({
   const updateEpsonPreviewSetting = (path: string[], value: any) => {
     setEpsonPreviewSettings(prev => {
       const updated = { ...prev };
+      // Ensure visibility object exists
+      if (!updated.visibility) {
+        updated.visibility = { ...getDefaultEpsonSettings().visibility };
+      }
       let current: any = updated;
       for (let i = 0; i < path.length - 1; i++) {
         if (!current[path[i]]) current[path[i]] = {};
@@ -1498,21 +1577,28 @@ const InvoicePrintPreview: React.FC<InvoicePrintPreviewProps> = ({
                     <option value="branchName">اسم الفرع</option>
                     <option value="date">التاريخ</option>
                     <option value="customerType">نوع العميل</option>
+                    <option value="customerName">اسم العميل</option>
+                    <option value="employeeName">اسم الموظف</option>
                   </optgroup>
                   <optgroup label="الأصناف">
                     <option value="itemName">اسم الصنف</option>
                     <option value="itemQty">الكمية</option>
                     <option value="itemPrice">السعر</option>
-                    <option value="itemTax">الضريبة</option>
+                    <option value="itemTaxable">المبلغ الخاضع للضريبة</option>
+                    <option value="itemDiscount">خصومات</option>
+                    <option value="itemTaxRate">نسبة الضريبة</option>
+                    <option value="itemTax">مبلغ الضريبة</option>
                     <option value="itemTotal">الإجمالي</option>
                   </optgroup>
                   <optgroup label="الإجماليات">
                     <option value="totalsSubtotal">المجموع</option>
+                    <option value="totalsDiscount">الخصم</option>
                     <option value="totalsTax">ضريبة الإجمالي</option>
                     <option value="totalsNet">الصافي</option>
                   </optgroup>
                   <optgroup label="أخرى">
                     <option value="qrCode">رمز QR</option>
+                    <option value="tafqeet">المبلغ كتابة</option>
                     <option value="footerText">نص التذييل</option>
                   </optgroup>
                 </select>
@@ -1557,7 +1643,7 @@ const InvoicePrintPreview: React.FC<InvoicePrintPreviewProps> = ({
                   </div>
 
                   {(['header', 'items', 'totals', 'footer'].some(s => selectedElement.includes(s)) || 
-                    ['branchName', 'date', 'customerType', 'itemName', 'itemQty', 'itemPrice', 'itemTax', 'itemTotal', 'totalsSubtotal', 'totalsTax', 'totalsNet', 'footerText'].includes(selectedElement)) && (
+                    ['branchName', 'date', 'customerType', 'itemName', 'itemQty', 'itemPrice', 'itemTaxable', 'itemDiscount', 'itemTaxRate', 'itemTax', 'itemTotal', 'totalsSubtotal', 'totalsTax', 'totalsNet', 'footerText'].includes(selectedElement)) && (
                     <div>
                       <label className="block text-sm font-semibold text-gray-700 mb-2">
                         محاذاة النص
@@ -1582,6 +1668,29 @@ const InvoicePrintPreview: React.FC<InvoicePrintPreviewProps> = ({
                           );
                         })}
                       </div>
+                    </div>
+                  )}
+
+                  {/* Visibility Toggle */}
+                  {['branchName', 'date', 'customerType', 'customerName', 'employeeName', 'itemName', 'itemQty', 'itemPrice', 'itemTaxable', 'itemDiscount', 'itemTaxRate', 'itemTax', 'itemTotal', 'totalsSubtotal', 'totalsDiscount', 'totalsTax', 'totalsNet', 'qrCode', 'footerText', 'tafqeet'].includes(selectedElement) && (
+                    <div>
+                      <label className="block text-sm font-semibold text-gray-700 mb-2">
+                        إظهار/إخفاء العنصر
+                      </label>
+                      <label className="flex items-center p-3 border border-gray-200 rounded-lg cursor-pointer hover:bg-blue-50 hover:border-blue-200 transition-all group">
+                        <div className="relative flex items-center">
+                          <input 
+                            type="checkbox" 
+                            className="peer sr-only"
+                            checked={(epsonPreviewSettings.visibility || {})[selectedElement as keyof typeof epsonPreviewSettings.visibility] !== false}
+                            onChange={(e) => updateEpsonPreviewSetting(['visibility', selectedElement], e.target.checked)}
+                          />
+                          <div className="w-10 h-5 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-blue-600"></div>
+                        </div>
+                        <span className="mr-3 text-sm font-semibold text-gray-700 group-hover:text-blue-700 transition-colors">
+                          {(epsonPreviewSettings.visibility || {})[selectedElement as keyof typeof epsonPreviewSettings.visibility] !== false ? 'مرئي' : 'مخفي'}
+                        </span>
+                      </label>
                     </div>
                   )}
                 </div>
@@ -1716,7 +1825,7 @@ const InvoicePrintPreview: React.FC<InvoicePrintPreviewProps> = ({
 
                               {/* Buyer and Seller Information - Side by Side */}
                               <section className="my-6 grid grid-cols-2 gap-4">
-                                <div className="border border-gray-300 rounded-md p-3">
+                                <div className="border border-blue-700 rounded-md p-3">
                                   <h3 className="font-bold text-base mb-2">
                                     بيانات البائع:
                                   </h3>
@@ -1752,7 +1861,7 @@ const InvoicePrintPreview: React.FC<InvoicePrintPreviewProps> = ({
                                     )}
                                   </div>
                                 </div>
-                                <div className="border border-gray-300 rounded-md p-3">
+                                <div className="border border-blue-700 rounded-md p-3">
                                   <h3 className="font-bold text-base mb-2">
                                     بيانات المشتري:
                                   </h3>
@@ -1905,7 +2014,7 @@ const InvoicePrintPreview: React.FC<InvoicePrintPreviewProps> = ({
                             <th className="p-2 border border-blue-300 text-center" style={{ width: "5%" }}>
                               م
                             </th>
-                            <th className="p-2 border border-blue-300 text-right" style={{ width: "22%" }}>
+                            <th className="p-2 border border-blue-300 text-right" style={{ width: template === "minimal" ? "22%" : "35%" }}>
                               الصنف
                             </th>
                             <th className="p-2 border border-blue-300 text-center" style={{ width: "8%" }}>
@@ -1917,19 +2026,25 @@ const InvoicePrintPreview: React.FC<InvoicePrintPreviewProps> = ({
                             <th className="p-2 border border-blue-300 text-center" style={{ width: "10%" }}>
                               السعر
                             </th>
-                            <th className="p-2 border border-blue-300 text-center" style={{ width: "12%" }}>
-                              المبلغ الخاضع للضريبة
-                            </th>
-                            <th className="p-2 border border-blue-300 text-center" style={{ width: "8%" }}>
-                              خصومات
-                            </th>
-                            <th className="p-2 border border-blue-300 text-center" style={{ width: "8%" }}>
-                              نسبة الضريبة
-                            </th>
-                            <th className="p-2 border border-blue-300 text-center" style={{ width: "10%" }}>
-                              {originalIsVatEnabled ? `الضريبة (${vatRate}%)` : "الضريبة"}
-                            </th>
-                            <th className="p-2 border border-blue-300 text-center" style={{ width: "13%" }}>
+                            {template === "minimal" && (
+                              <>
+                                <th className="p-2 border border-blue-300 text-center" style={{ width: "12%" }}>
+                                  المبلغ الخاضع للضريبة
+                                </th>
+                                <th className="p-2 border border-blue-300 text-center" style={{ width: "8%" }}>
+                                  خصومات
+                                </th>
+                                <th className="p-2 border border-blue-300 text-center" style={{ width: "8%" }}>
+                                  نسبة الضريبة
+                                </th>
+                              </>
+                            )}
+                            {originalIsVatEnabled && (
+                              <th className="p-2 border border-blue-300 text-center" style={{ width: template === "minimal" ? "10%" : "12%" }}>
+                                {template === "minimal" ? "مبلغ الضريبة" : `الضريبة (${vatRate}%)`}
+                              </th>
+                            )}
+                            <th className="p-2 border border-blue-300 text-center" style={{ width: template === "minimal" ? "13%" : "15%" }}>
                               الإجمالي
                             </th>
                           </tr>
@@ -1945,7 +2060,7 @@ const InvoicePrintPreview: React.FC<InvoicePrintPreviewProps> = ({
                                 <td className="p-2 border border-gray-300 text-center">
                                   {rowNumberOffset + index + 1}
                                 </td>
-                                <td className="p-2 border border-gray-300 text-right">
+                                <td className="p-2 border border-gray-300 text-right" style={{ width: template === "minimal" ? "22%" : "35%" }}>
                                   {item.name}
                                 </td>
                                 <td className="p-2 border border-gray-300 text-center">
@@ -1957,18 +2072,24 @@ const InvoicePrintPreview: React.FC<InvoicePrintPreviewProps> = ({
                                 <td className="p-2 border border-gray-300 text-center">
                                   {formatMoney(item.price)}
                                 </td>
-                                <td className="p-2 border border-gray-300 text-center">
-                                  {formatMoney(taxable)}
-                                </td>
-                                <td className="p-2 border border-gray-300 text-center">
-                                  {formatMoney(lineDiscount)}
-                                </td>
-                                <td className="p-2 border border-gray-300 text-center">
-                                  {originalIsVatEnabled ? `${vatRate}%` : "0%"}
-                                </td>
-                                <td className="p-2 border border-gray-300 text-center">
-                                  {formatMoney(taxAmount)}
-                                </td>
+                                {template === "minimal" && (
+                                  <>
+                                    <td className="p-2 border border-gray-300 text-center">
+                                      {formatMoney(taxable)}
+                                    </td>
+                                    <td className="p-2 border border-gray-300 text-center">
+                                      {formatMoney(lineDiscount)}
+                                    </td>
+                                    <td className="p-2 border border-gray-300 text-center">
+                                      {originalIsVatEnabled ? `${vatRate}%` : "0%"}
+                                    </td>
+                                  </>
+                                )}
+                                {originalIsVatEnabled && (
+                                  <td className="p-2 border border-gray-300 text-center">
+                                    {formatMoney(taxAmount)}
+                                  </td>
+                                )}
                                 <td className="p-2 border border-gray-300 text-center">
                                   {formatMoney(lineTotal)}
                                 </td>

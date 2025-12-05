@@ -159,7 +159,7 @@ const TemplatePreview: React.FC<{
 };
 
 const getDefaultEpsonSettings = (): EpsonSettings => ({
-    pageWidth: 80,
+    pageWidth: 150,
     fonts: {
         header: 14,
         body: 12,
@@ -187,6 +187,9 @@ const getDefaultEpsonSettings = (): EpsonSettings => ({
         itemName: 0,
         itemQty: 0,
         itemPrice: 0,
+        itemTaxable: 0,
+        itemDiscount: 0,
+        itemTaxRate: 0,
         itemTax: 0,
         itemTotal: 0,
         totalsSubtotal: 0,
@@ -194,6 +197,28 @@ const getDefaultEpsonSettings = (): EpsonSettings => ({
         totalsNet: 0,
         qrCode: 0,
         footerText: 0,
+    },
+    visibility: {
+        branchName: true,
+        date: true,
+        customerType: true,
+        customerName: true,
+        employeeName: true,
+        itemName: true,
+        itemQty: true,
+        itemPrice: true,
+        itemTaxable: true,
+        itemDiscount: true,
+        itemTaxRate: true,
+        itemTax: true,
+        itemTotal: true,
+        totalsSubtotal: true,
+        totalsDiscount: true,
+        totalsTax: true,
+        totalsNet: true,
+        qrCode: true,
+        footerText: true,
+        tafqeet: true,
     },
 });
 
@@ -479,7 +504,10 @@ const PrintSettings: React.FC<PrintSettingsProps> = ({ title, settings, onSave }
                                                          key === 'itemName' ? 'اسم الصنف' :
                                                          key === 'itemQty' ? 'الكمية' :
                                                          key === 'itemPrice' ? 'السعر' :
-                                                         key === 'itemTax' ? 'الضريبة' :
+                                                         key === 'itemTaxable' ? 'المبلغ الخاضع للضريبة' :
+                                                         key === 'itemDiscount' ? 'خصومات' :
+                                                         key === 'itemTaxRate' ? 'نسبة الضريبة' :
+                                                         key === 'itemTax' ? 'مبلغ الضريبة' :
                                                          key === 'itemTotal' ? 'الإجمالي' :
                                                          key === 'totalsSubtotal' ? 'المجموع' :
                                                          key === 'totalsTax' ? 'ضريبة الإجمالي' :
@@ -496,6 +524,48 @@ const PrintSettings: React.FC<PrintSettingsProps> = ({ title, settings, onSave }
                                                         step="1"
                                                     />
                                                 </div>
+                                            ))}
+                                        </div>
+                                    </div>
+
+                                    {/* Visibility Controls */}
+                                    <div className="mt-8">
+                                        <h3 className="text-lg font-bold text-gray-700 mb-4">إظهار/إخفاء العناصر</h3>
+                                        <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                                            {Object.entries(epson.visibility || getDefaultEpsonSettings().visibility || {}).map(([key, value]) => (
+                                                <label key={key} className="flex items-center p-3 border border-gray-200 rounded-lg cursor-pointer hover:bg-blue-50 hover:border-blue-200 transition-all group">
+                                                    <div className="relative flex items-center">
+                                                        <input 
+                                                            type="checkbox" 
+                                                            className="peer sr-only"
+                                                            checked={value !== false}
+                                                            onChange={(e) => handleEpsonSettingsChange(['visibility', key], e.target.checked)}
+                                                        />
+                                                        <div className="w-10 h-5 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-blue-600"></div>
+                                                    </div>
+                                                    <span className="mr-3 text-sm font-semibold text-gray-700 group-hover:text-blue-700 transition-colors">
+                                                        {key === 'branchName' ? 'اسم الفرع' :
+                                                         key === 'date' ? 'التاريخ' :
+                                                         key === 'customerType' ? 'نوع العميل' :
+                                                         key === 'customerName' ? 'اسم العميل' :
+                                                         key === 'employeeName' ? 'اسم الموظف' :
+                                                         key === 'itemName' ? 'اسم الصنف' :
+                                                         key === 'itemQty' ? 'الكمية' :
+                                                         key === 'itemPrice' ? 'السعر' :
+                                                         key === 'itemTaxable' ? 'المبلغ الخاضع للضريبة' :
+                                                         key === 'itemDiscount' ? 'خصومات' :
+                                                         key === 'itemTaxRate' ? 'نسبة الضريبة' :
+                                                         key === 'itemTax' ? 'مبلغ الضريبة' :
+                                                         key === 'itemTotal' ? 'الإجمالي' :
+                                                         key === 'totalsSubtotal' ? 'المجموع' :
+                                                         key === 'totalsDiscount' ? 'الخصم' :
+                                                         key === 'totalsTax' ? 'ضريبة الإجمالي' :
+                                                         key === 'totalsNet' ? 'الصافي' :
+                                                         key === 'qrCode' ? 'رمز QR' :
+                                                         key === 'footerText' ? 'نص التذييل' :
+                                                         key === 'tafqeet' ? 'المبلغ كتابة' : key}
+                                                    </span>
+                                                </label>
                                             ))}
                                         </div>
                                     </div>

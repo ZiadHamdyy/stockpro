@@ -351,6 +351,9 @@ export interface EpsonSettings {
     itemName: number;
     itemQty: number;
     itemPrice: number;
+    itemTaxable: number;
+    itemDiscount: number;
+    itemTaxRate: number;
     itemTax: number;
     itemTotal: number;
     totalsSubtotal: number;
@@ -358,6 +361,28 @@ export interface EpsonSettings {
     totalsNet: number;
     qrCode: number;
     footerText: number;
+  };
+  visibility?: {
+    branchName?: boolean;
+    date?: boolean;
+    customerType?: boolean;
+    customerName?: boolean;
+    employeeName?: boolean;
+    itemName?: boolean;
+    itemQty?: boolean;
+    itemPrice?: boolean;
+    itemTaxable?: boolean;
+    itemDiscount?: boolean;
+    itemTaxRate?: boolean;
+    itemTax?: boolean;
+    itemTotal?: boolean;
+    totalsSubtotal?: boolean;
+    totalsDiscount?: boolean;
+    totalsTax?: boolean;
+    totalsNet?: boolean;
+    qrCode?: boolean;
+    footerText?: boolean;
+    tafqeet?: boolean;
   };
 }
 
