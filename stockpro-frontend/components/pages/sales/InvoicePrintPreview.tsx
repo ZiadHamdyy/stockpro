@@ -922,68 +922,59 @@ const InvoicePrintPreview: React.FC<InvoicePrintPreviewProps> = ({
     </html>
   `;
 
-  const printReturnStyle = () => {
-    const printable = document.getElementById("printable-modern-invoice");
-    if (!printable) return;
+  // Separate print function for Modern template
+  const printModernTemplate = () => {
+    // Wait a bit to ensure React has fully rendered
+    setTimeout(() => {
+      const printable = document.getElementById("printable-modern-invoice");
+      if (!printable) {
+        showToast("خطأ: لم يتم العثور على محتوى الطباعة", "error");
+        return;
+      }
 
-    // Use requestAnimationFrame to ensure React has finished rendering
-    requestAnimationFrame(() => {
+      // Clone the element to ensure we get all rendered content
+      const clone = printable.cloneNode(true) as HTMLElement;
+      const printableContent = clone.innerHTML;
+
       const styleNodes = Array.from(
         document.querySelectorAll('link[rel="stylesheet"], style')
       ) as HTMLElement[];
       const stylesHtml = styleNodes.map((n) => n.outerHTML).join("\n");
 
-      // Get computed styles for Tailwind classes to ensure they work in print
       const extraPrintStyles = `
         <style>
           * { -webkit-print-color-adjust: exact !important; color-adjust: exact !important; print-color-adjust: exact !important; }
           @page { size: A4; margin: 0; }
-          body { direction: rtl; margin: 0; background: #fff; font-family: 'Cairo', sans-serif; }
+          body { direction: rtl; margin: 0; background: #fff; }
           .page-break { page-break-after: always; }
           .no-break-inside { break-inside: avoid; }
-          /* Ensure header and all elements are visible */
-          header { display: block !important; visibility: visible !important; opacity: 1 !important; }
-          section { display: block !important; visibility: visible !important; opacity: 1 !important; }
-          /* Tailwind utility classes for print */
-          .text-center { text-align: center !important; }
-          .text-right { text-align: right !important; }
-          .text-left { text-align: left !important; }
-          .font-bold { font-weight: bold !important; }
-          .font-semibold { font-weight: 600 !important; }
-          .text-3xl { font-size: 1.875rem !important; line-height: 2.25rem !important; }
-          .text-2xl { font-size: 1.5rem !important; line-height: 2rem !important; }
-          .text-base { font-size: 1rem !important; line-height: 1.5rem !important; }
-          .text-sm { font-size: 0.875rem !important; line-height: 1.25rem !important; }
-          .mb-6 { margin-bottom: 1.5rem !important; }
-          .mb-2 { margin-bottom: 0.5rem !important; }
-          .mb-1 { margin-bottom: 0.25rem !important; }
-          .mt-1 { margin-top: 0.25rem !important; }
-          .my-6 { margin-top: 1.5rem !important; margin-bottom: 1.5rem !important; }
-          .pb-4 { padding-bottom: 1rem !important; }
-          .p-3 { padding: 0.75rem !important; }
-          .p-8 { padding: 2rem !important; }
+          .print-root { 
+            margin: 0 auto; 
+            max-width: 100%; 
+            padding: 2rem !important; 
+            background: white;
+          }
+          header { 
+            display: flex !important; 
+            justify-content: space-between !important;
+            align-items: flex-start !important;
+            padding-bottom: 1rem !important;
+            border-bottom: 2px solid #1E40AF !important;
+            margin-bottom: 1.5rem !important;
+          }
+          /* Preserve all Tailwind flex utilities */
+          .flex { display: flex !important; }
+          .justify-between { justify-content: space-between !important; }
+          .items-start { align-items: flex-start !important; }
+          .items-center { align-items: center !important; }
           .gap-4 { gap: 1rem !important; }
-          .gap-x-8 { column-gap: 2rem !important; }
-          .border { border-width: 1px !important; }
-          .border-b { border-bottom-width: 1px !important; }
-          .border-b-2 { border-bottom-width: 2px !important; }
-          .border-gray-300 { border-color: #d1d5db !important; }
-          .border-brand-blue { border-color: #1E40AF !important; }
-          .rounded-md { border-radius: 0.375rem !important; }
+          .text-left { text-align: left !important; }
+          .text-right { text-align: right !important; }
+          .text-center { text-align: center !important; }
+          /* Preserve Tailwind grid utilities */
           .grid { display: grid !important; }
           .grid-cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
           .grid-cols-5 { grid-template-columns: repeat(5, minmax(0, 1fr)) !important; }
-          .flex { display: flex !important; }
-          .items-start { align-items: flex-start !important; }
-          .text-brand-blue { color: #1E40AF !important; }
-          .text-gray-600 { color: #4b5563 !important; }
-          .text-gray-700 { color: #374151 !important; }
-          .text-black { color: #000 !important; }
-          .bg-white { background-color: #fff !important; }
-          .h-16 { height: 4rem !important; }
-          .h-20 { height: 5rem !important; }
-          .w-auto { width: auto !important; }
-          .object-contain { object-fit: contain !important; }
         </style>
         <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet">
       `;
@@ -997,12 +988,15 @@ const InvoicePrintPreview: React.FC<InvoicePrintPreviewProps> = ({
             ${extraPrintStyles}
           </head>
           <body>
-            <div class="print-root" style="margin:0 auto;max-width:23cm;padding:0.6cm;">${printable.innerHTML}</div>
+            <div class="print-root">${printableContent}</div>
           </body>
         </html>`;
 
       const printWindow = window.open("", "printWindow", "width=900,height=850");
-      if (!printWindow) return;
+      if (!printWindow) {
+        showToast("خطأ: تم منع فتح نافذة الطباعة", "error");
+        return;
+      }
       printWindow.document.open();
       printWindow.document.write(html);
       printWindow.document.close();
@@ -1048,15 +1042,156 @@ const InvoicePrintPreview: React.FC<InvoicePrintPreviewProps> = ({
           setTimeout(waitForImages, 100)
         );
       }
-    });
+    }, 100);
+  };
+
+  // Separate print function for Minimal template
+  const printMinimalTemplate = () => {
+    // Wait a bit to ensure React has fully rendered
+    setTimeout(() => {
+      const printable = document.getElementById("printable-modern-invoice");
+      if (!printable) {
+        showToast("خطأ: لم يتم العثور على محتوى الطباعة", "error");
+        return;
+      }
+
+      // Get all content including header from the printable element
+      // Clone the element to ensure we get all rendered content
+      const clone = printable.cloneNode(true) as HTMLElement;
+      const printableContent = clone.innerHTML;
+
+      // Verify header is present (for minimal template, header should be in first page)
+      const hasHeader = printableContent.includes('border-b-2 border-brand-blue') || 
+                       printableContent.includes('text-3xl font-bold text-brand-blue');
+      
+      if (!hasHeader) {
+        console.warn("Header not found in printable content, but proceeding with print");
+      }
+
+      const styleNodes = Array.from(
+        document.querySelectorAll('link[rel="stylesheet"], style')
+      ) as HTMLElement[];
+      const stylesHtml = styleNodes.map((n) => n.outerHTML).join("\n");
+
+      const extraPrintStyles = `
+        <style>
+          * { -webkit-print-color-adjust: exact !important; color-adjust: exact !important; print-color-adjust: exact !important; }
+          @page { size: A4; margin: 0; }
+          body { direction: rtl; margin: 0; background: #fff; }
+          .page-break { page-break-after: always; }
+          .no-break-inside { break-inside: avoid; }
+          .print-root { 
+            margin: 0 auto; 
+            max-width: 100%; 
+            padding: 2rem !important; 
+            background: white;
+          }
+          header { 
+            display: flex !important; 
+            justify-content: space-between !important;
+            align-items: flex-start !important;
+            padding-bottom: 1rem !important;
+            border-bottom: 2px solid #1E40AF !important;
+            margin-bottom: 1.5rem !important;
+          }
+          /* Preserve all Tailwind flex utilities */
+          .flex { display: flex !important; }
+          .justify-between { justify-content: space-between !important; }
+          .items-start { align-items: flex-start !important; }
+          .items-center { align-items: center !important; }
+          .gap-4 { gap: 1rem !important; }
+          .text-left { text-align: left !important; }
+          .text-right { text-align: right !important; }
+          .text-center { text-align: center !important; }
+          /* Preserve Tailwind grid utilities */
+          .grid { display: grid !important; }
+          .grid-cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
+          .grid-cols-5 { grid-template-columns: repeat(5, minmax(0, 1fr)) !important; }
+        </style>
+        <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet">
+      `;
+
+      const html = `<!DOCTYPE html>
+        <html lang="ar" dir="rtl">
+          <head>
+            <meta charSet="utf-8" />
+            <title>طباعة الفاتورة</title>
+            ${stylesHtml}
+            ${extraPrintStyles}
+          </head>
+          <body>
+            <div class="print-root">${printableContent}</div>
+          </body>
+        </html>`;
+
+      const printWindow = window.open("", "printWindow", "width=900,height=850");
+      if (!printWindow) {
+        showToast("خطأ: تم منع فتح نافذة الطباعة", "error");
+        return;
+      }
+      printWindow.document.open();
+      printWindow.document.write(html);
+      printWindow.document.close();
+
+      const doPrint = () => {
+        try {
+          printWindow.focus();
+          printWindow.print();
+        } finally {
+          printWindow.close();
+          onClose();
+        }
+      };
+
+      const waitForImages = () => {
+        const imgs = Array.from(printWindow.document.images || []);
+        if (imgs.length === 0) {
+          setTimeout(doPrint, 200);
+          return;
+        }
+        let loaded = 0;
+        const done = () => {
+          loaded += 1;
+          if (loaded >= imgs.length) {
+            setTimeout(doPrint, 150);
+          }
+        };
+        imgs.forEach((img) => {
+          if (img.complete) {
+            done();
+          } else {
+            img.addEventListener("load", done);
+            img.addEventListener("error", done);
+          }
+        });
+        setTimeout(doPrint, 1200);
+      };
+
+      if (printWindow.document.readyState === "complete") {
+        setTimeout(waitForImages, 100);
+      } else {
+        printWindow.addEventListener("load", () =>
+          setTimeout(waitForImages, 100)
+        );
+      }
+    }, 100);
   };
 
   const handlePrint = () => {
-    if (template === "modern" || template === "minimal") {
+    if (template === "modern") {
       guardPrint({
         hasData: items.length > 0,
         showToast,
-        onAllowed: printReturnStyle,
+        onAllowed: printModernTemplate,
+      });
+      return;
+    }
+    
+    if (template === "minimal") {
+      guardPrint({
+        hasData: items.length > 0,
+        showToast,
+        onAllowed: printMinimalTemplate,
       });
       return;
     }
@@ -1500,25 +1635,53 @@ const InvoicePrintPreview: React.FC<InvoicePrintPreviewProps> = ({
                         <>
                           {template === "minimal" ? (
                             <>
-                              {/* Invoice Title - Centered at Top */}
-                              <header className="text-center pb-4 border-b-2 border-brand-blue mb-6">
-                                <h1 className="text-3xl font-bold text-brand-blue mb-2">
-                                  {isReturn
-                                    ? "فاتورة ضريبية"
-                                    : !originalIsVatEnabled
-                                    ? "فاتورة مبيعات"
-                                    : customer?.taxNumber
-                                    ? "فاتورة ضريبية"
-                                    : "فاتورة ضريبية مبسطة"}
-                                </h1>
-                                <p className="text-sm text-gray-600">
-                                  {isReturn && (
-                                    <span className="text-gray-700">
-                                      إشغار مدين{" "}
-                                    </span>
+                              <header className="flex justify-between items-start pb-4 border-b-2 border-brand-blue mb-6">
+                                <div className="flex items-center gap-4">
+                                  {settings.showLogo && companyInfo.logo && (
+                                    <img
+                                      src={companyInfo.logo}
+                                      alt="Company Logo"
+                                      className="h-20 w-auto object-contain"
+                                    />
                                   )}
-                                  Tax Invoice
-                                </p>
+                                  <div>
+                                    <h2 className="text-2xl font-bold text-black">
+                                      {companyInfo.name}
+                                    </h2>
+                                    {settings.showAddress && (
+                                      <p className="text-sm text-gray-600">
+                                        {companyInfo.address}
+                                      </p>
+                                    )}
+                                    {settings.showTaxNumber && (
+                                      <p className="text-sm text-gray-600">
+                                        الرقم الضريبي: {companyInfo.taxNumber}
+                                      </p>
+                                    )}
+                                    <p className="text-sm text-gray-600">
+                                      السجل التجاري: {companyInfo.commercialReg}
+                                    </p>
+                                  </div>
+                                </div>
+                                <div className="text-left">
+                                  <h1 className="text-3xl font-bold text-brand-blue">
+                                    {isReturn
+                                      ? "فاتورة ضريبية"
+                                      : !originalIsVatEnabled
+                                      ? "فاتورة مبيعات"
+                                      : customer?.taxNumber
+                                      ? "فاتورة ضريبية"
+                                      : "فاتورة ضريبية مبسطة"}
+                                  </h1>
+                                  <p>
+                                    {isReturn && (
+                                      <span className="text-sm text-gray-700">
+                                        إشغار مدين
+                                      </span>
+                                    )}{" "}
+                                    Tax Invoice
+                                  </p>
+                                </div>
                               </header>
 
                               {/* Invoice Info - Horizontal Layout */}
@@ -1551,43 +1714,44 @@ const InvoicePrintPreview: React.FC<InvoicePrintPreviewProps> = ({
                                 </div>
                               </section>
 
-                              {/* Two Columns: Seller (Right) and Buyer (Left) */}
-                              <section className="grid grid-cols-2 gap-x-8 text-sm my-6">
-                                {/* Right Column: Seller/Company Info */}
+                              {/* Buyer and Seller Information - Side by Side */}
+                              <section className="my-6 grid grid-cols-2 gap-4">
                                 <div className="border border-gray-300 rounded-md p-3">
                                   <h3 className="font-bold text-base mb-2">
                                     بيانات البائع:
                                   </h3>
-                                  <div className="flex items-start gap-4">
-                                    {settings.showLogo && companyInfo.logo && (
-                                      <img
-                                        src={companyInfo.logo}
-                                        alt="Company Logo"
-                                        className="h-16 w-auto object-contain"
-                                      />
-                                    )}
+                                  <div className="flex items-start gap-3">
                                     <div className="flex-1">
                                       <p className="font-semibold mb-1">
                                         {companyInfo.name}
                                       </p>
-                                      {settings.showAddress && (
-                                        <p className="text-sm text-gray-600">
-                                          {companyInfo.address}
-                                        </p>
-                                      )}
-                                      {settings.showTaxNumber && (
-                                        <p className="text-sm text-gray-600">
-                                          الرقم الضريبي: {companyInfo.taxNumber}
-                                        </p>
-                                      )}
-                                      <p className="text-sm text-gray-600">
-                                        السجل التجاري: {companyInfo.commercialReg}
+                                      <p className="mb-1">
+                                        {settings.showAddress ? companyInfo.address : "عنوان الشركة"}
+                                      </p>
+                                      <p className="mb-1">
+                                        <span className="font-semibold">
+                                          الرقم الضريبي:
+                                        </span>{" "}
+                                        {settings.showTaxNumber ? companyInfo.taxNumber : "--------------------------------"}
+                                      </p>
+                                      <p>
+                                        <span className="font-semibold">
+                                          السجل التجاري:
+                                        </span>{" "}
+                                        {companyInfo.commercialReg || "--------------------------------"}
                                       </p>
                                     </div>
+                                    {settings.showLogo && companyInfo.logo && (
+                                      <div className="flex-shrink-0 mt-1">
+                                        <img
+                                          src={companyInfo.logo}
+                                          alt="Company Logo"
+                                          className="h-14 w-auto object-contain"
+                                        />
+                                      </div>
+                                    )}
                                   </div>
                                 </div>
-
-                                {/* Left Column: Buyer/Customer Info */}
                                 <div className="border border-gray-300 rounded-md p-3">
                                   <h3 className="font-bold text-base mb-2">
                                     بيانات المشتري:
