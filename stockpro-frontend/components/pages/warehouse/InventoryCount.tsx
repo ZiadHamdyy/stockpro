@@ -5,6 +5,7 @@ import { ExcelIcon, PdfIcon, PrintIcon, SearchIcon, BoxIcon, DollarSignIcon, Dat
 import { useToast } from '../../common/ToastProvider';
 import { useModal } from '../../common/ModalProvider';
 import { formatNumber, exportToExcel, exportToPdf } from '../../../utils/formatting';
+import { guardPrint } from '../../utils/printGuard';
 import DataTableModal from '../../common/DataTableModal';
 import { useGetItemsQuery } from '../../store/slices/items/itemsApi';
 import { useGetStoresQuery } from '../../store/slices/store/storeApi';
@@ -108,6 +109,18 @@ const InventoryCountPage: React.FC<InventoryCountProps> = ({ title, companyInfo 
     const filteredItems = countItems.filter(item => 
         item.item.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
         item.item.code.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+
+    // Check if there are printable items
+    const hasPrintableItems = useMemo(
+        () => filteredItems.length > 0,
+        [filteredItems]
+    );
+
+    // Check if we can print (only if count is saved)
+    const canPrintExistingCount = useMemo(
+        () => Boolean(countId) && hasPrintableItems,
+        [countId, hasPrintableItems]
     );
 
     // Calculate Totals
@@ -260,6 +273,11 @@ const InventoryCountPage: React.FC<InventoryCountProps> = ({ title, companyInfo 
     };
 
     const handleExcelExport = () => {
+        if (!canPrintExistingCount) {
+            showToast("لا يمكن التصدير إلا بعد حفظ الجرد.", "error");
+            return;
+        }
+
         const selectedStore = stores.find(s => s.id === selectedStoreId);
         const data = filteredItems.map((item, index) => ({
             'م': index + 1,
@@ -277,6 +295,11 @@ const InventoryCountPage: React.FC<InventoryCountProps> = ({ title, companyInfo 
     };
 
     const handlePdfExport = () => {
+        if (!canPrintExistingCount) {
+            showToast("لا يمكن التصدير إلا بعد حفظ الجرد.", "error");
+            return;
+        }
+
         const selectedStore = stores.find(s => s.id === selectedStoreId);
         const head = [['قيمة الفرق', 'سعر التكلفة', 'الحالة', 'الفرق', 'الرصيد الفعلي', 'الرصيد الدفتري', 'الوحدة', 'اسم الصنف', 'كود الصنف', 'م']];
         const body = filteredItems.map((item, index) => [
@@ -302,10 +325,19 @@ const InventoryCountPage: React.FC<InventoryCountProps> = ({ title, companyInfo 
     };
 
     const handlePrint = () => {
-        const selectedStore = stores.find(s => s.id === selectedStoreId);
-        
-        const printWindow = window.open('', '', 'height=800,width=900');
-        if (!printWindow) return;
+        if (!canPrintExistingCount) {
+            showToast("لا يمكن الطباعة إلا بعد حفظ الجرد.", "error");
+            return;
+        }
+
+        guardPrint({
+            hasData: hasPrintableItems,
+            showToast,
+            onAllowed: () => {
+                const selectedStore = stores.find(s => s.id === selectedStoreId);
+                
+                const printWindow = window.open('', '', 'height=800,width=900');
+                if (!printWindow) return;
         
         // Build table rows manually to ensure all data is included
         const tableRows = filteredItems.map((item, index) => {
@@ -423,10 +455,12 @@ const InventoryCountPage: React.FC<InventoryCountProps> = ({ title, companyInfo 
         printWindow.document.close();
         printWindow.focus();
         
-        setTimeout(() => {
-            printWindow.print();
-            printWindow.close();
-        }, 500);
+                setTimeout(() => {
+                    printWindow.print();
+                    printWindow.close();
+                }, 500);
+            },
+        });
     };
 
     const inputStyle = "w-full p-2 bg-brand-blue-bg border-2 border-brand-blue rounded-md text-black placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-brand-blue disabled:bg-gray-200 disabled:cursor-not-allowed";
@@ -474,22 +508,25 @@ const InventoryCountPage: React.FC<InventoryCountProps> = ({ title, companyInfo 
                         )}
                         <button 
                             onClick={handleExcelExport} 
-                            title="تصدير Excel" 
-                            className="p-2 border border-gray-300 rounded-md hover:bg-gray-100 text-green-700 transition-colors"
+                            disabled={!canPrintExistingCount}
+                            title={!canPrintExistingCount ? "يجب حفظ الجرد أولاً" : "تصدير Excel"} 
+                            className="p-2 border border-gray-300 rounded-md hover:bg-gray-100 text-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                             <ExcelIcon className="w-5 h-5"/>
                         </button>
                         <button
                             onClick={handlePdfExport}
-                            title="تصدير PDF"
-                            className="p-2 border border-gray-300 rounded-md hover:bg-gray-100 text-red-700 transition-colors"
+                            disabled={!canPrintExistingCount}
+                            title={!canPrintExistingCount ? "يجب حفظ الجرد أولاً" : "تصدير PDF"}
+                            className="p-2 border border-gray-300 rounded-md hover:bg-gray-100 text-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                             <PdfIcon className="w-5 h-5" />
                         </button>
                         <button 
                             onClick={handlePrint} 
-                            title="طباعة" 
-                            className="p-2 border border-gray-300 rounded-md hover:bg-gray-100 text-gray-700 transition-colors"
+                            disabled={!canPrintExistingCount}
+                            title={!canPrintExistingCount ? "يجب حفظ الجرد أولاً" : "طباعة"} 
+                            className="p-2 border border-gray-300 rounded-md hover:bg-gray-100 text-gray-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                             <PrintIcon className="w-5 h-5"/>
                         </button>
