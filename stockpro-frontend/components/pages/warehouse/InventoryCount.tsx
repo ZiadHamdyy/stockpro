@@ -19,6 +19,7 @@ import {
 } from '../../store/slices/inventoryCount/inventoryCountApi';
 import { useAppSelector } from '../../store/hooks';
 import { selectCurrentUser } from '../../store/slices/auth/auth';
+import { useGetCompanyQuery } from '../../store/slices/companyApiSlice';
 
 interface InventoryCountProps {
     title: string;
@@ -40,6 +41,10 @@ const InventoryCountPage: React.FC<InventoryCountProps> = ({ title, companyInfo 
     const { showToast } = useToast();
     const { showModal } = useModal();
     const currentUser = useAppSelector(selectCurrentUser);
+
+    // Fetch company info from Redux
+    const { data: companyInfoFromApi } = useGetCompanyQuery();
+    const effectiveCompanyInfo = companyInfoFromApi || companyInfo;
 
     // Fetch data from Redux
     const { data: items = [], isLoading: itemsLoading } = useGetItemsQuery(selectedStoreId ? { storeId: selectedStoreId } : undefined);
@@ -321,7 +326,7 @@ const InventoryCountPage: React.FC<InventoryCountProps> = ({ title, companyInfo 
             ['', '', '', '', '', '', '', '', 'صافي التسوية', formatNumber(stats.netSettlementValue)],
         ];
 
-        exportToPdf(`تقرير جرد مخزن ${selectedStore?.name || 'مخزن'}`, head, body, `جرد_${date}`, companyInfo, footer);
+        exportToPdf(`تقرير جرد مخزن ${selectedStore?.name || 'مخزن'}`, head, body, `جرد_${date}`, effectiveCompanyInfo, footer);
     };
 
     const handlePrint = () => {
@@ -370,10 +375,18 @@ const InventoryCountPage: React.FC<InventoryCountProps> = ({ title, companyInfo 
                     font-size: 12px; 
                     padding: 15px;
                 }
-                .header { text-align: center; margin-bottom: 15px; }
-                .header img { height: 50px; margin-bottom: 8px; }
-                .header h1 { font-size: 20px; font-weight: bold; margin-bottom: 5px; }
-                .header p { font-size: 12px; color: #666; margin: 3px 0; }
+                .header { margin-bottom: 20px; padding-bottom: 15px; border-bottom: 2px solid #1E40AF; }
+                .header-content { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 15px; }
+                .header-left { flex: 1; text-align: right; }
+                .header-right { flex: 1; text-align: left; }
+                .header img { height: 60px; margin-bottom: 8px; }
+                .header h1 { font-size: 28px; font-weight: bold; margin-bottom: 5px; color: #1E40AF; }
+                .header h2 { font-size: 20px; font-weight: bold; margin-bottom: 5px; color: #1F2937; }
+                .header p { font-size: 11px; color: #666; margin: 2px 0; }
+                .info-section { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin: 20px 0; }
+                .info-box { border: 1px solid #D1D5DB; border-radius: 4px; padding: 12px; background-color: #FAFAFA; }
+                .info-box h3 { font-weight: bold; font-size: 14px; margin-bottom: 8px; color: #1F2937; }
+                .info-box p { font-size: 12px; margin: 4px 0; }
                 .table-container { overflow-x: auto; margin: 15px 0; }
                 table { width: 95%; border-collapse: collapse; margin: 0 auto; font-size: 10px; }
                 th { background-color: #1E40AF !important; color: white !important; padding: 8px 4px; text-align: center; border: 1px solid #1E3A8A; font-size: 10px; font-weight: bold; }
@@ -396,25 +409,53 @@ const InventoryCountPage: React.FC<InventoryCountProps> = ({ title, companyInfo 
                     table { width: 95% !important; border-collapse: collapse; font-size: 9px !important; }
                     th { font-size: 9px !important; font-weight: bold !important; background-color: #1E40AF !important; color: white !important; padding: 6px 3px !important; }
                     td { font-size: 9px !important; padding: 5px 3px !important; }
-                    .header h1 { font-size: 18px !important; }
-                    .header p { font-size: 11px !important; }
+                    .header h1 { font-size: 24px !important; }
+                    .header h2 { font-size: 18px !important; }
+                    .header p { font-size: 10px !important; }
+                    .info-box { padding: 8px !important; }
+                    .info-box h3 { font-size: 12px !important; }
+                    .info-box p { font-size: 10px !important; }
                 }
             </style>
         `);
         printWindow.document.write('</head><body dir="rtl">');
+        
+        // Get branch and user information
+        const branchName = selectedStore?.branch?.name || 'غير محدد';
+        const userName = currentUser?.name || currentUser?.fullName || 'غير محدد';
+        
         printWindow.document.write(`
             <div class="header">
-                ${companyInfo.logo ? `<img src="${companyInfo.logo}" alt="Logo" />` : ''}
-                <h1>${title}</h1>
-                <p>${selectedStore?.name || 'مخزن'} - ${date}</p>
-                ${countCode ? `<p style="font-size: 11px; color: #999;">رقم الجرد: ${countCode}</p>` : ''}
+                <div class="header-content">
+                    <div class="header-left">
+                        ${effectiveCompanyInfo?.logo ? `<img src="${effectiveCompanyInfo.logo}" alt="Company Logo" style="height: 60px; margin-bottom: 8px;" />` : ''}
+                        <h2>${effectiveCompanyInfo?.name || 'اسم الشركة'}</h2>
+                        ${effectiveCompanyInfo?.address ? `<p>${effectiveCompanyInfo.address}</p>` : ''}
+                        ${effectiveCompanyInfo?.phone ? `<p>هاتف: ${effectiveCompanyInfo.phone}</p>` : ''}
+                        ${effectiveCompanyInfo?.taxNumber ? `<p>الرقم الضريبي: ${effectiveCompanyInfo.taxNumber}</p>` : ''}
+                        ${effectiveCompanyInfo?.commercialReg ? `<p>السجل التجاري: ${effectiveCompanyInfo.commercialReg}</p>` : ''}
+                    </div>
+                    <div class="header-right">
+                        <h1 style="font-size: 28px; font-weight: bold; color: #1E40AF; margin-bottom: 5px;">${title}</h1>
+                        <p style="font-size: 12px; color: #666;">Inventory Count Report</p>
+                    </div>
+                </div>
+                <div class="info-section">
+                    <div class="info-box">
+                        <h3>بيانات الجرد:</h3>
+                        <p><span style="font-weight: bold;">رقم الجرد:</span> ${countCode || 'غير محدد'}</p>
+                        <p><span style="font-weight: bold;">التاريخ:</span> ${date}</p>
+                        <p><span style="font-weight: bold;">المخزن:</span> ${selectedStore?.name || 'مخزن'}</p>
+                        ${status === 'POSTED' ? '<p><span style="font-weight: bold;">الحالة:</span> معتمد (مرحل)</p>' : '<p><span style="font-weight: bold;">الحالة:</span> مسودة</p>'}
+                    </div>
+                    <div class="info-box">
+                        <h3>معلومات إضافية:</h3>
+                        <p><span style="font-weight: bold;">الفرع:</span> ${branchName}</p>
+                        <p><span style="font-weight: bold;">الموظف:</span> ${userName}</p>
+                        ${notes && notes.trim() ? `<p><span style="font-weight: bold;">ملاحظات:</span> ${notes}</p>` : ''}
+                    </div>
+                </div>
             </div>
-            ${notes && notes.trim() ? `
-            <div class="notes">
-                <div class="notes-title">ملاحظات:</div>
-                <div class="notes-content">${notes}</div>
-            </div>
-            ` : ''}
             <div class="table-container">
                 <table>
                     <thead>
@@ -478,7 +519,7 @@ const InventoryCountPage: React.FC<InventoryCountProps> = ({ title, companyInfo 
             <div className="bg-white p-6 rounded-lg shadow flex-shrink-0">
                 <div className="flex justify-between items-center mb-6 border-b pb-4">
                     <div className="flex items-center gap-4">
-                        {companyInfo.logo && <img src={companyInfo.logo} alt="Logo" className="h-14 w-auto" />}
+                        {effectiveCompanyInfo?.logo && <img src={effectiveCompanyInfo.logo} alt="Logo" className="h-14 w-auto" />}
                         <div>
                             <h1 className="text-2xl font-bold text-brand-dark">{title}</h1>
                             <div className="flex items-center gap-2 mt-1">
