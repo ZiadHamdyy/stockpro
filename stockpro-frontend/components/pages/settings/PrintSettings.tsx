@@ -175,15 +175,33 @@ const getDefaultEpsonSettings = (): EpsonSettings => ({
         sectionGap: 5,
     },
     alignment: {
-        header: 'center',
-        items: 'right',
-        totals: 'right',
-        footer: 'center',
+        branchName: 'center',
+        date: 'center',
+        customerType: 'center',
+        customerName: 'center',
+        employeeName: 'center',
+        itemName: 'right',
+        itemQty: 'right',
+        itemPrice: 'right',
+        itemTaxable: 'right',
+        itemDiscount: 'right',
+        itemTaxRate: 'right',
+        itemTax: 'right',
+        itemTotal: 'right',
+        totalsSubtotal: 'right',
+        totalsDiscount: 'right',
+        totalsTax: 'right',
+        totalsNet: 'right',
+        qrCode: 'center',
+        footerText: 'center',
+        tafqeet: 'center',
     },
     positioning: {
         branchName: 0,
         date: 0,
         customerType: 0,
+        customerName: 0,
+        employeeName: 0,
         itemName: 0,
         itemQty: 0,
         itemPrice: 0,
@@ -193,10 +211,12 @@ const getDefaultEpsonSettings = (): EpsonSettings => ({
         itemTax: 0,
         itemTotal: 0,
         totalsSubtotal: 0,
+        totalsDiscount: 0,
         totalsTax: 0,
         totalsNet: 0,
         qrCode: 0,
         footerText: 0,
+        tafqeet: 0,
     },
     visibility: {
         branchName: true,
@@ -470,16 +490,33 @@ const PrintSettings: React.FC<PrintSettingsProps> = ({ title, settings, onSave }
                                     <div className="border-b border-gray-200 pb-6">
                                         <h3 className="text-lg font-bold text-gray-700 mb-4">محاذاة النص</h3>
                                         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                                            {Object.entries(epson.alignment).map(([key, value]) => (
+                                            {Object.entries(epson.alignment || {}).map(([key, value]) => (
                                                 <div key={key}>
                                                     <label className={labelStyle}>
-                                                        {key === 'header' ? 'الترويسة' :
-                                                         key === 'items' ? 'الأصناف' :
-                                                         key === 'totals' ? 'الإجماليات' : 'التذييل'}
+                                                        {key === 'branchName' ? 'اسم الفرع' :
+                                                         key === 'date' ? 'التاريخ' :
+                                                         key === 'customerType' ? 'نوع العميل' :
+                                                         key === 'customerName' ? 'اسم العميل' :
+                                                         key === 'employeeName' ? 'اسم الموظف' :
+                                                         key === 'itemName' ? 'اسم الصنف' :
+                                                         key === 'itemQty' ? 'الكمية' :
+                                                         key === 'itemPrice' ? 'السعر' :
+                                                         key === 'itemTaxable' ? 'المبلغ الخاضع للضريبة' :
+                                                         key === 'itemDiscount' ? 'خصومات' :
+                                                         key === 'itemTaxRate' ? 'نسبة الضريبة' :
+                                                         key === 'itemTax' ? 'مبلغ الضريبة' :
+                                                         key === 'itemTotal' ? 'الإجمالي' :
+                                                         key === 'totalsSubtotal' ? 'المجموع' :
+                                                         key === 'totalsDiscount' ? 'الخصم' :
+                                                         key === 'totalsTax' ? 'ضريبة الإجمالي' :
+                                                         key === 'totalsNet' ? 'الصافي' :
+                                                         key === 'qrCode' ? 'رمز QR' :
+                                                         key === 'footerText' ? 'نص التذييل' :
+                                                         key === 'tafqeet' ? 'المبلغ كتابة' : key}
                                                     </label>
                                                     <select 
                                                         className={inputStyle}
-                                                        value={value}
+                                                        value={value || 'right'}
                                                         onChange={(e) => handleEpsonSettingsChange(['alignment', key], e.target.value as 'left' | 'center' | 'right')}
                                                     >
                                                         <option value="right">يمين</option>

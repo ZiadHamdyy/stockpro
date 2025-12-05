@@ -339,15 +339,33 @@ export interface EpsonSettings {
     sectionGap: number;     // mm
   };
   alignment: {
-    header: 'left' | 'center' | 'right';
-    items: 'left' | 'center' | 'right';
-    totals: 'left' | 'center' | 'right';
-    footer: 'left' | 'center' | 'right';
+    branchName?: 'left' | 'center' | 'right';
+    date?: 'left' | 'center' | 'right';
+    customerType?: 'left' | 'center' | 'right';
+    customerName?: 'left' | 'center' | 'right';
+    employeeName?: 'left' | 'center' | 'right';
+    itemName?: 'left' | 'center' | 'right';
+    itemQty?: 'left' | 'center' | 'right';
+    itemPrice?: 'left' | 'center' | 'right';
+    itemTaxable?: 'left' | 'center' | 'right';
+    itemDiscount?: 'left' | 'center' | 'right';
+    itemTaxRate?: 'left' | 'center' | 'right';
+    itemTax?: 'left' | 'center' | 'right';
+    itemTotal?: 'left' | 'center' | 'right';
+    totalsSubtotal?: 'left' | 'center' | 'right';
+    totalsDiscount?: 'left' | 'center' | 'right';
+    totalsTax?: 'left' | 'center' | 'right';
+    totalsNet?: 'left' | 'center' | 'right';
+    qrCode?: 'left' | 'center' | 'right';
+    footerText?: 'left' | 'center' | 'right';
+    tafqeet?: 'left' | 'center' | 'right';
   };
   positioning: {
     branchName: number;     // px offset
     date: number;
     customerType: number;
+    customerName: number;
+    employeeName: number;
     itemName: number;
     itemQty: number;
     itemPrice: number;
@@ -357,10 +375,12 @@ export interface EpsonSettings {
     itemTax: number;
     itemTotal: number;
     totalsSubtotal: number;
+    totalsDiscount: number;
     totalsTax: number;
     totalsNet: number;
     qrCode: number;
     footerText: number;
+    tafqeet: number;
   };
   visibility?: {
     branchName?: boolean;
