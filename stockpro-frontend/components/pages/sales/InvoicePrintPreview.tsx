@@ -1902,57 +1902,79 @@ const InvoicePrintPreview: React.FC<InvoicePrintPreviewProps> = ({
                       <table className="w-full text-sm border-collapse border border-gray-300">
                         <thead className="bg-brand-blue text-white">
                           <tr>
-                            <th className="p-2 border border-blue-300">م</th>
-                            <th
-                              className="p-2 border border-blue-300 text-right"
-                              style={{ width: "35%" }}
-                            >
+                            <th className="p-2 border border-blue-300 text-center" style={{ width: "5%" }}>
+                              م
+                            </th>
+                            <th className="p-2 border border-blue-300 text-right" style={{ width: "22%" }}>
                               الصنف
                             </th>
-                            <th className="p-2 border border-blue-300">الوحدة</th>
-                            <th className="p-2 border border-blue-300">الكمية</th>
-                            <th className="p-2 border border-blue-300">السعر</th>
-                            {originalIsVatEnabled && (
-                              <th className="p-2 border border-blue-300">
-                                الضريبة {originalIsVatEnabled ? `(%${vatRate})` : "(%0)"}
-                              </th>
-                            )}
-                            <th className="p-2 border border-blue-300">
-                              الاجمالي
+                            <th className="p-2 border border-blue-300 text-center" style={{ width: "8%" }}>
+                              الوحدة
+                            </th>
+                            <th className="p-2 border border-blue-300 text-center" style={{ width: "8%" }}>
+                              الكمية
+                            </th>
+                            <th className="p-2 border border-blue-300 text-center" style={{ width: "10%" }}>
+                              السعر
+                            </th>
+                            <th className="p-2 border border-blue-300 text-center" style={{ width: "12%" }}>
+                              المبلغ الخاضع للضريبة
+                            </th>
+                            <th className="p-2 border border-blue-300 text-center" style={{ width: "8%" }}>
+                              خصومات
+                            </th>
+                            <th className="p-2 border border-blue-300 text-center" style={{ width: "8%" }}>
+                              نسبة الضريبة
+                            </th>
+                            <th className="p-2 border border-blue-300 text-center" style={{ width: "10%" }}>
+                              {originalIsVatEnabled ? `الضريبة (${vatRate}%)` : "الضريبة"}
+                            </th>
+                            <th className="p-2 border border-blue-300 text-center" style={{ width: "13%" }}>
+                              الإجمالي
                             </th>
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-300">
-                          {pageItems.map((item, index) => (
-                            <tr key={index}>
-                              <td className="p-2 border border-gray-300 text-center">
-                                {rowNumberOffset + index + 1}
-                              </td>
-                              <td
-                                className="p-2 border border-gray-300"
-                                style={{ width: "35%" }}
-                              >
-                                {item.name}
-                              </td>
-                              <td className="p-2 border border-gray-300 text-center">
-                                {item.unit}
-                              </td>
-                              <td className="p-2 border border-gray-300 text-center">
-                                {item.qty}
-                              </td>
-                              <td className="p-2 border border-gray-300 text-center">
-                                {formatMoney(item.price)}
-                              </td>
-                              {originalIsVatEnabled && (
+                          {pageItems.map((item, index) => {
+                            const taxable = item.price * item.qty;
+                            const taxAmount = item.taxAmount || 0;
+                            const lineDiscount = 0;
+                            const lineTotal = originalIsVatEnabled ? taxable + taxAmount : taxable;
+                            return (
+                              <tr key={index}>
                                 <td className="p-2 border border-gray-300 text-center">
-                                  {formatMoney(item.taxAmount || 0)}
+                                  {rowNumberOffset + index + 1}
                                 </td>
-                              )}
-                              <td className="p-2 border border-gray-300 text-center">
-                                {formatMoney(item.total)}
-                              </td>
-                            </tr>
-                          ))}
+                                <td className="p-2 border border-gray-300 text-right">
+                                  {item.name}
+                                </td>
+                                <td className="p-2 border border-gray-300 text-center">
+                                  {item.unit || "-"}
+                                </td>
+                                <td className="p-2 border border-gray-300 text-center">
+                                  {item.qty}
+                                </td>
+                                <td className="p-2 border border-gray-300 text-center">
+                                  {formatMoney(item.price)}
+                                </td>
+                                <td className="p-2 border border-gray-300 text-center">
+                                  {formatMoney(taxable)}
+                                </td>
+                                <td className="p-2 border border-gray-300 text-center">
+                                  {formatMoney(lineDiscount)}
+                                </td>
+                                <td className="p-2 border border-gray-300 text-center">
+                                  {originalIsVatEnabled ? `${vatRate}%` : "0%"}
+                                </td>
+                                <td className="p-2 border border-gray-300 text-center">
+                                  {formatMoney(taxAmount)}
+                                </td>
+                                <td className="p-2 border border-gray-300 text-center">
+                                  {formatMoney(lineTotal)}
+                                </td>
+                              </tr>
+                            );
+                          })}
                         </tbody>
                       </table>
 
