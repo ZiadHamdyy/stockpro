@@ -321,12 +321,53 @@ export interface Quotation {
   branchName: string;
 }
 
+export interface EpsonSettings {
+  pageWidth: number;        // mm, default 80
+  pageHeight?: number;       // mm, auto if undefined
+  fonts: {
+    header: number;          // px, default 14
+    body: number;           // px, default 12
+    items: number;          // px, default 11
+    totals: number;         // px, default 13
+    footer: number;         // px, default 10
+  };
+  spacing: {
+    marginTop: number;      // mm
+    marginBottom: number;   // mm
+    marginLeft: number;     // mm
+    marginRight: number;    // mm
+    sectionGap: number;     // mm
+  };
+  alignment: {
+    header: 'left' | 'center' | 'right';
+    items: 'left' | 'center' | 'right';
+    totals: 'left' | 'center' | 'right';
+    footer: 'left' | 'center' | 'right';
+  };
+  positioning: {
+    branchName: number;     // px offset
+    date: number;
+    customerType: number;
+    itemName: number;
+    itemQty: number;
+    itemPrice: number;
+    itemTax: number;
+    itemTotal: number;
+    totalsSubtotal: number;
+    totalsTax: number;
+    totalsNet: number;
+    qrCode: number;
+    footerText: number;
+  };
+}
+
 export interface PrintSettings {
-  template: 'default' | 'classic' | 'modern' | 'minimal' | 'thermal';
+  template: 'default' | 'classic' | 'modern' | 'minimal' | 'thermal' | 'epson';
   showLogo: boolean;
   showTaxNumber: boolean;
   showAddress: boolean;
   headerText: string;
   footerText: string;
   termsText: string;
+  epsonSettings?: EpsonSettings;
 }

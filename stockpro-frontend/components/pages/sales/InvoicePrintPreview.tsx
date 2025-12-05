@@ -51,16 +51,61 @@ const InvoicePrintPreview: React.FC<InvoicePrintPreviewProps> = ({
   const currentUser = useSelector((state: RootState) => state.auth.user);
   const { showToast } = useToast();
 
-  // Default settings if none provided
-  const settings: PrintSettings = printSettings || {
-    template: "default",
-    showLogo: true,
-    showTaxNumber: true,
-    showAddress: true,
-    headerText: "",
-    footerText: "شكراً لتعاملكم معنا",
-    termsText: "",
-  };
+  // Default settings if none provided - optimized for page fitting
+  const getDefaultEpsonSettings = (): import("../../../types").EpsonSettings => ({
+    pageWidth: 80,
+    fonts: {
+      header: 13,
+      body: 11,
+      items: 10,
+      totals: 12,
+      footer: 9,
+    },
+    spacing: {
+      marginTop: 1,
+      marginBottom: 1,
+      marginLeft: 1,
+      marginRight: 1,
+      sectionGap: 2,
+    },
+    alignment: {
+      header: 'center' as const,
+      items: 'right' as const,
+      totals: 'right' as const,
+      footer: 'center' as const,
+    },
+    positioning: {
+      branchName: 0,
+      date: 0,
+      customerType: 0,
+      itemName: 0,
+      itemQty: 0,
+      itemPrice: 0,
+      itemTax: 0,
+      itemTotal: 0,
+      totalsSubtotal: 0,
+      totalsTax: 0,
+      totalsNet: 0,
+      qrCode: 0,
+      footerText: 0,
+    },
+  });
+
+  const settings: PrintSettings = (() => {
+    const base = printSettings || {
+      template: "default",
+      showLogo: true,
+      showTaxNumber: true,
+      showAddress: true,
+      headerText: "",
+      footerText: "شكراً لتعاملكم معنا",
+      termsText: "",
+    };
+    if (base.template === 'epson' && !base.epsonSettings) {
+      base.epsonSettings = getDefaultEpsonSettings();
+    }
+    return base;
+  })();
 
   const template = settings.template as string;
 
@@ -191,6 +236,154 @@ const InvoicePrintPreview: React.FC<InvoicePrintPreviewProps> = ({
     </body>
     </html>
   `;
+
+  // 1.5. EPSON TEMPLATE (Customizable thermal) - Optimized for page fitting
+  const renderEpsonTemplate = () => {
+    const epson = settings.epsonSettings || getDefaultEpsonSettings();
+
+    const pageSize = epson.pageHeight !== undefined
+      ? `${epson.pageWidth}mm ${epson.pageHeight}mm`
+      : `${epson.pageWidth}mm auto`;
+
+    const getAlignment = (section: 'header' | 'items' | 'totals' | 'footer') => {
+      const align = epson.alignment[section];
+      return align === 'left' ? 'left' : align === 'center' ? 'center' : 'right';
+    };
+
+    const getPosition = (key: keyof typeof epson.positioning) => {
+      const offset = epson.positioning[key];
+      return offset !== 0 ? `transform: translateY(${offset}px);` : '';
+    };
+
+    return `
+    <html>
+    <head>
+      <title>إيصال إبسون</title>
+      <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet">
+      <style>
+        ${getBaseStyles()}
+        @page { size: ${pageSize}; margin: 0; }
+        body { 
+          width: ${epson.pageWidth}mm; 
+          max-width: ${epson.pageWidth}mm;
+          margin: 0 auto; 
+          padding: ${epson.spacing.marginTop}mm ${epson.spacing.marginRight}mm ${epson.spacing.marginBottom}mm ${epson.spacing.marginLeft}mm; 
+          font-size: ${epson.fonts.body}px; 
+          font-family: 'Courier New', 'Cairo', monospace; 
+          line-height: 1.2;
+          box-sizing: border-box;
+          overflow-wrap: break-word;
+          word-wrap: break-word;
+        }
+        .header { 
+          text-align: ${getAlignment('header')}; 
+          border-bottom: 1px dashed #000; 
+          padding-bottom: ${epson.spacing.sectionGap}px; 
+          margin-bottom: ${epson.spacing.sectionGap}px; 
+        }
+        .logo { max-width: 50px; margin-bottom: 2px; filter: grayscale(100%); }
+        .info-row { display: flex; justify-content: space-between; margin-bottom: 1px; font-size: ${epson.fonts.body}px; }
+        .info-row span { max-width: 48%; overflow-wrap: break-word; word-wrap: break-word; }
+        .items-table { width: 100%; border-collapse: collapse; margin-top: ${epson.spacing.sectionGap}px; table-layout: fixed; }
+        .items-table th { border-bottom: 1px solid #000; text-align: ${getAlignment('items')}; font-size: ${epson.fonts.items}px; font-weight: bold; padding: 2px 0; }
+        .items-table td { padding: 2px 0; font-size: ${epson.fonts.items}px; overflow-wrap: break-word; word-wrap: break-word; }
+        .totals { margin-top: ${epson.spacing.sectionGap}px; border-top: 1px dashed #000; padding-top: 3px; }
+        .total-row { display: flex; justify-content: space-between; font-weight: bold; font-size: ${epson.fonts.totals}px; margin-top: 3px; }
+        .qr-container { text-align: center; margin-top: ${epson.spacing.sectionGap}px; }
+        .qr-container img { max-width: 80px; height: auto; }
+        .footer { text-align: ${getAlignment('footer')}; margin-top: ${epson.spacing.sectionGap}px; font-size: ${epson.fonts.footer}px; border-top: 1px solid #000; padding-top: 3px; }
+      </style>
+    </head>
+    <body>
+      <div class="header">
+        ${settings.showLogo && companyInfo.logo ? `<img src="${companyInfo.logo}" class="logo"/>` : ""}
+        <div style="font-size: ${epson.fonts.header}px; font-weight: bold; ${getPosition('branchName')}">${companyInfo.name}</div>
+        ${
+          settings.showAddress
+            ? `<div style="${getPosition('date')}; font-size: ${epson.fonts.body - 1}px;">${companyInfo.address}</div><div style="font-size: ${epson.fonts.body - 1}px;">${companyInfo.phone}</div>`
+            : ""
+        }
+        ${
+          settings.showTaxNumber
+            ? `<div style="${getPosition('date')}; font-size: ${epson.fonts.body - 1}px;">الرقم الضريبي: ${companyInfo.taxNumber}</div>`
+            : ""
+        }
+      </div>
+      <div style="text-align: ${getAlignment('header')}; margin-bottom: ${epson.spacing.sectionGap}px; font-weight: bold; font-size: ${epson.fonts.header}px; border: 1px solid #000; padding: 3px;">
+        ${settings.headerText || defaultArabicTitle}
+      </div>
+      <div class="info-row" style="${getPosition('date')}">
+        <span>${details.branchName || "الفرع الرئيسي"}</span>
+        <span>${details.invoiceNumber}</span>
+      </div>
+      <div class="info-row" style="${getPosition('date')}">
+        <span>${details.invoiceDate}</span>
+        <span style="${getPosition('customerType')}">${paymentMethod === "cash" ? "نقدا" : "اجل"}</span>
+      </div>
+      <div class="info-row"><span>العميل:</span><span>${customer?.name || "عميل نقدا"}</span></div>
+      <div class="info-row"><span>الموظف:</span><span>${details.userName || "غير محدد"}</span></div>
+      <table class="items-table">
+        <thead>
+          <tr>
+            <th style="text-align: ${getAlignment('items')}; ${getPosition('itemName')}">الصنف</th>
+            <th style="width: 20px; ${getPosition('itemQty')}">ك</th>
+            <th style="${getPosition('itemPrice')}">سعر</th>
+            ${isVatEnabled ? `<th style="${getPosition('itemTax')}">ض</th>` : ''}
+            <th style="${getPosition('itemTotal')}">مجموع</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${items
+            .map(
+              (item) => `
+            <tr>
+              <td style="text-align: ${getAlignment('items')}; ${getPosition('itemName')}">${item.name}</td>
+              <td style="text-align: center; ${getPosition('itemQty')}">${item.qty}</td>
+              <td style="text-align: center; ${getPosition('itemPrice')}">${item.price.toFixed(2)}</td>
+              ${isVatEnabled ? `<td style="text-align: center; ${getPosition('itemTax')}">${(item.taxAmount || 0).toFixed(2)}</td>` : ''}
+              <td style="text-align: center; ${getPosition('itemTotal')}">${item.total.toFixed(2)}</td>
+            </tr>
+          `,
+            )
+            .join("")}
+        </tbody>
+      </table>
+      <div class="totals">
+        <div class="info-row" style="text-align: ${getAlignment('totals')}; ${getPosition('totalsSubtotal')}">
+          <span>المجموع:</span>
+          <span>${totals.subtotal.toFixed(2)}</span>
+        </div>
+        <div class="info-row" style="text-align: ${getAlignment('totals')};">
+          <span>الخصم:</span>
+          <span>${totals.discount.toFixed(2)}</span>
+        </div>
+        ${
+          isVatEnabled
+            ? `<div class="info-row" style="text-align: ${getAlignment('totals')}; ${getPosition('totalsTax')}">
+                <span>الضريبة (${vatRate}%):</span>
+                <span>${totals.tax.toFixed(2)}</span>
+              </div>`
+            : ""
+        }
+        <div class="total-row" style="text-align: ${getAlignment('totals')}; ${getPosition('totalsNet')}">
+          <span>الصافي:</span>
+          <span>${totals.net.toFixed(2)}</span>
+        </div>
+      </div>
+      <div class="qr-container" style="${getPosition('qrCode')}">
+        ${isVatEnabled ? `<img src="${qrCodeUrl}" width="80" height="80"/>` : ""}
+      </div>
+      <div style="text-align: center; margin-top: ${epson.spacing.sectionGap}px; font-weight: bold; font-size: ${epson.fonts.body}px;">
+        ${tafqeet(totals.net, companyInfo.currency)}
+      </div>
+      <div class="footer" style="${getPosition('footerText')}">
+        <div>${settings.footerText}</div>
+        ${settings.termsText ? `<div style="margin-top: 3px; font-size: ${epson.fonts.footer - 1}px;">${settings.termsText}</div>` : ''}
+      </div>
+    </body>
+    </html>
+  `;
+  };
 
   // 2. DEFAULT TEMPLATE (current app style)
   const renderDefaultTemplate = () => `
@@ -857,6 +1050,9 @@ const InvoicePrintPreview: React.FC<InvoicePrintPreviewProps> = ({
       case "thermal":
         content = renderThermalTemplate();
         break;
+      case "epson":
+        content = renderEpsonTemplate();
+        break;
       case "classic":
         content = renderClassicTemplate();
         break;
@@ -882,7 +1078,189 @@ const InvoicePrintPreview: React.FC<InvoicePrintPreviewProps> = ({
     }, 500);
   };
 
-  const isThermal = template === "thermal";
+  const isThermal = template === "thermal" || template === "epson";
+
+  // Interactive controls state for epson template
+  const [epsonPreviewSettings, setEpsonPreviewSettings] = React.useState(
+    settings.epsonSettings || getDefaultEpsonSettings()
+  );
+  const [selectedElement, setSelectedElement] = React.useState<string | null>(null);
+  const [showEpsonControls, setShowEpsonControls] = React.useState(false);
+
+  // Update preview settings when settings change
+  React.useEffect(() => {
+    if (template === 'epson' && settings.epsonSettings) {
+      setEpsonPreviewSettings(settings.epsonSettings);
+    }
+  }, [settings.epsonSettings, template]);
+
+  // Render epson template with preview settings - Optimized for page fitting
+  const renderEpsonTemplateWithPreview = () => {
+    const epson = epsonPreviewSettings;
+    const pageSize = epson.pageHeight !== undefined
+      ? `${epson.pageWidth}mm ${epson.pageHeight}mm`
+      : `${epson.pageWidth}mm auto`;
+
+    const getAlignment = (section: 'header' | 'items' | 'totals' | 'footer') => {
+      const align = epson.alignment[section];
+      return align === 'left' ? 'left' : align === 'center' ? 'center' : 'right';
+    };
+
+    const getPosition = (key: keyof typeof epson.positioning) => {
+      const offset = epson.positioning[key];
+      return offset !== 0 ? `transform: translateY(${offset}px);` : '';
+    };
+
+    return `
+    <html>
+    <head>
+      <title>إيصال إبسون</title>
+      <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet">
+      <style>
+        ${getBaseStyles()}
+        @page { size: ${pageSize}; margin: 0; }
+        body { 
+          width: ${epson.pageWidth}mm; 
+          max-width: ${epson.pageWidth}mm;
+          margin: 0 auto; 
+          padding: ${epson.spacing.marginTop}mm ${epson.spacing.marginRight}mm ${epson.spacing.marginBottom}mm ${epson.spacing.marginLeft}mm; 
+          font-size: ${epson.fonts.body}px; 
+          font-family: 'Courier New', 'Cairo', monospace; 
+          line-height: 1.2;
+          box-sizing: border-box;
+          overflow-wrap: break-word;
+          word-wrap: break-word;
+        }
+        .header { 
+          text-align: ${getAlignment('header')}; 
+          border-bottom: 1px dashed #000; 
+          padding-bottom: ${epson.spacing.sectionGap}px; 
+          margin-bottom: ${epson.spacing.sectionGap}px; 
+        }
+        .logo { max-width: 50px; margin-bottom: 2px; filter: grayscale(100%); }
+        .info-row { display: flex; justify-content: space-between; margin-bottom: 1px; font-size: ${epson.fonts.body}px; }
+        .info-row span { max-width: 48%; overflow-wrap: break-word; word-wrap: break-word; }
+        .items-table { width: 100%; border-collapse: collapse; margin-top: ${epson.spacing.sectionGap}px; table-layout: fixed; }
+        .items-table th { border-bottom: 1px solid #000; text-align: ${getAlignment('items')}; font-size: ${epson.fonts.items}px; font-weight: bold; padding: 2px 0; }
+        .items-table td { padding: 2px 0; font-size: ${epson.fonts.items}px; overflow-wrap: break-word; word-wrap: break-word; }
+        .totals { margin-top: ${epson.spacing.sectionGap}px; border-top: 1px dashed #000; padding-top: 3px; }
+        .total-row { display: flex; justify-content: space-between; font-weight: bold; font-size: ${epson.fonts.totals}px; margin-top: 3px; }
+        .qr-container { text-align: center; margin-top: ${epson.spacing.sectionGap}px; }
+        .qr-container img { max-width: 80px; height: auto; }
+        .footer { text-align: ${getAlignment('footer')}; margin-top: ${epson.spacing.sectionGap}px; font-size: ${epson.fonts.footer}px; border-top: 1px solid #000; padding-top: 3px; }
+      </style>
+    </head>
+    <body>
+      <div class="header">
+        ${settings.showLogo && companyInfo.logo ? `<img src="${companyInfo.logo}" class="logo"/>` : ""}
+        <div style="font-size: ${epson.fonts.header}px; font-weight: bold; ${getPosition('branchName')}">${companyInfo.name}</div>
+        ${
+          settings.showAddress
+            ? `<div style="${getPosition('date')}; font-size: ${epson.fonts.body - 1}px;">${companyInfo.address}</div><div style="font-size: ${epson.fonts.body - 1}px;">${companyInfo.phone}</div>`
+            : ""
+        }
+        ${
+          settings.showTaxNumber
+            ? `<div style="${getPosition('date')}; font-size: ${epson.fonts.body - 1}px;">الرقم الضريبي: ${companyInfo.taxNumber}</div>`
+            : ""
+        }
+      </div>
+      <div style="text-align: ${getAlignment('header')}; margin-bottom: ${epson.spacing.sectionGap}px; font-weight: bold; font-size: ${epson.fonts.header}px; border: 1px solid #000; padding: 3px;">
+        ${settings.headerText || defaultArabicTitle}
+      </div>
+      <div class="info-row" style="${getPosition('date')}">
+        <span>${details.branchName || "الفرع الرئيسي"}</span>
+        <span>${details.invoiceNumber}</span>
+      </div>
+      <div class="info-row" style="${getPosition('date')}">
+        <span>${details.invoiceDate}</span>
+        <span style="${getPosition('customerType')}">${paymentMethod === "cash" ? "نقدا" : "اجل"}</span>
+      </div>
+      <div class="info-row"><span>العميل:</span><span>${customer?.name || "عميل نقدا"}</span></div>
+      <div class="info-row"><span>الموظف:</span><span>${details.userName || "غير محدد"}</span></div>
+      <table class="items-table">
+        <thead>
+          <tr>
+            <th style="text-align: ${getAlignment('items')}; ${getPosition('itemName')}">الصنف</th>
+            <th style="width: 20px; ${getPosition('itemQty')}">ك</th>
+            <th style="${getPosition('itemPrice')}">سعر</th>
+            ${isVatEnabled ? `<th style="${getPosition('itemTax')}">ض</th>` : ''}
+            <th style="${getPosition('itemTotal')}">مجموع</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${items
+            .map(
+              (item) => `
+            <tr>
+              <td style="text-align: ${getAlignment('items')}; ${getPosition('itemName')}">${item.name}</td>
+              <td style="text-align: center; ${getPosition('itemQty')}">${item.qty}</td>
+              <td style="text-align: center; ${getPosition('itemPrice')}">${item.price.toFixed(2)}</td>
+              ${isVatEnabled ? `<td style="text-align: center; ${getPosition('itemTax')}">${(item.taxAmount || 0).toFixed(2)}</td>` : ''}
+              <td style="text-align: center; ${getPosition('itemTotal')}">${item.total.toFixed(2)}</td>
+            </tr>
+          `,
+            )
+            .join("")}
+        </tbody>
+      </table>
+      <div class="totals">
+        <div class="info-row" style="text-align: ${getAlignment('totals')}; ${getPosition('totalsSubtotal')}">
+          <span>المجموع:</span>
+          <span>${totals.subtotal.toFixed(2)}</span>
+        </div>
+        <div class="info-row" style="text-align: ${getAlignment('totals')};">
+          <span>الخصم:</span>
+          <span>${totals.discount.toFixed(2)}</span>
+        </div>
+        ${
+          isVatEnabled
+            ? `<div class="info-row" style="text-align: ${getAlignment('totals')}; ${getPosition('totalsTax')}">
+                <span>الضريبة (${vatRate}%):</span>
+                <span>${totals.tax.toFixed(2)}</span>
+              </div>`
+            : ""
+        }
+        <div class="total-row" style="text-align: ${getAlignment('totals')}; ${getPosition('totalsNet')}">
+          <span>الصافي:</span>
+          <span>${totals.net.toFixed(2)}</span>
+        </div>
+      </div>
+      <div class="qr-container" style="${getPosition('qrCode')}">
+        ${isVatEnabled ? `<img src="${qrCodeUrl}" width="80" height="80"/>` : ""}
+      </div>
+      <div style="text-align: center; margin-top: ${epson.spacing.sectionGap}px; font-weight: bold; font-size: ${epson.fonts.body}px;">
+        ${tafqeet(totals.net, companyInfo.currency)}
+      </div>
+      <div class="footer" style="${getPosition('footerText')}">
+        <div>${settings.footerText}</div>
+        ${settings.termsText ? `<div style="margin-top: 3px; font-size: ${epson.fonts.footer - 1}px;">${settings.termsText}</div>` : ''}
+      </div>
+    </body>
+    </html>
+  `;
+  };
+
+  const handleSaveEpsonPreview = () => {
+    if (printSettings) {
+      // This would need to be passed back to parent component
+      // For now, we'll just update local state
+      showToast('تم حفظ إعدادات إبسون. استخدم زر الحفظ في صفحة الإعدادات لحفظ التغييرات الدائمة.');
+    }
+  };
+
+  const updateEpsonPreviewSetting = (path: string[], value: any) => {
+    setEpsonPreviewSettings(prev => {
+      const updated = { ...prev };
+      let current: any = updated;
+      for (let i = 0; i < path.length - 1; i++) {
+        if (!current[path[i]]) current[path[i]] = {};
+        current = current[path[i]];
+      }
+      current[path[path.length - 1]] = value;
+      return updated;
+    });
+  };
 
   return (
     <div
@@ -891,8 +1269,20 @@ const InvoicePrintPreview: React.FC<InvoicePrintPreviewProps> = ({
     >
       <div
         className={`bg-white rounded-lg shadow-xl flex flex-col my-auto transition-all ${
-          isThermal ? "w-[400px]" : "w-full max-w-4xl max-h-[95vh]"
+          template === "epson"
+            ? "w-auto"
+            : isThermal 
+            ? "w-[400px]" 
+            : "w-full max-w-4xl max-h-[95vh]"
         }`}
+        style={
+          template === "epson" && settings.epsonSettings?.pageWidth
+            ? { 
+                maxWidth: `${Math.ceil(settings.epsonSettings.pageWidth * 3.779527559) + 100}px`,
+                width: "fit-content"
+              }
+            : undefined
+        }
         onClick={(e) => e.stopPropagation()}
       >
         <div className="p-4 border-b flex justify-between items-center print:hidden bg-gray-50 rounded-t-lg">
@@ -903,6 +1293,14 @@ const InvoicePrintPreview: React.FC<InvoicePrintPreviewProps> = ({
             </span>
           </div>
           <div className="flex items-center gap-2">
+            {template === "epson" && (
+              <button
+                onClick={() => setShowEpsonControls(!showEpsonControls)}
+                className="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 font-semibold flex items-center"
+              >
+                تخصيص إبسون
+              </button>
+            )}
             <button
               onClick={handlePrint}
               className="px-4 py-2 bg-brand-blue text-white rounded-md hover:bg-blue-800 font-semibold flex items-center"
@@ -917,6 +1315,138 @@ const InvoicePrintPreview: React.FC<InvoicePrintPreviewProps> = ({
             </button>
           </div>
         </div>
+
+        {/* Epson Interactive Controls */}
+        {template === "epson" && showEpsonControls && (
+          <div className="fixed bottom-4 left-4 bg-white rounded-lg shadow-2xl border-2 border-blue-500 z-50 p-4 w-80 max-h-[80vh] overflow-y-auto">
+            <div className="flex justify-between items-center mb-4 pb-2 border-b">
+              <h3 className="font-bold text-lg text-gray-800">تخصيص إبسون</h3>
+              <button
+                onClick={() => setShowEpsonControls(false)}
+                className="text-gray-500 hover:text-gray-700 text-sm"
+              >
+                إغلاق
+              </button>
+            </div>
+            
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  اختر العنصر للتعديل
+                </label>
+                <select
+                  className="w-full p-2 border border-gray-300 rounded-lg text-sm"
+                  value={selectedElement || ""}
+                  onChange={(e) => setSelectedElement(e.target.value || null)}
+                >
+                  <option value="">-- اختر عنصر --</option>
+                  <optgroup label="الترويسة">
+                    <option value="branchName">اسم الفرع</option>
+                    <option value="date">التاريخ</option>
+                    <option value="customerType">نوع العميل</option>
+                  </optgroup>
+                  <optgroup label="الأصناف">
+                    <option value="itemName">اسم الصنف</option>
+                    <option value="itemQty">الكمية</option>
+                    <option value="itemPrice">السعر</option>
+                    <option value="itemTax">الضريبة</option>
+                    <option value="itemTotal">الإجمالي</option>
+                  </optgroup>
+                  <optgroup label="الإجماليات">
+                    <option value="totalsSubtotal">المجموع</option>
+                    <option value="totalsTax">ضريبة الإجمالي</option>
+                    <option value="totalsNet">الصافي</option>
+                  </optgroup>
+                  <optgroup label="أخرى">
+                    <option value="qrCode">رمز QR</option>
+                    <option value="footerText">نص التذييل</option>
+                  </optgroup>
+                </select>
+              </div>
+
+              {selectedElement && (
+                <div className="border-t pt-4 space-y-3">
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">
+                      الموضع العمودي (بكسل)
+                    </label>
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => {
+                          const current = epsonPreviewSettings.positioning[selectedElement as keyof typeof epsonPreviewSettings.positioning];
+                          updateEpsonPreviewSetting(['positioning', selectedElement], current - 1);
+                        }}
+                        className="px-3 py-1 bg-gray-200 hover:bg-gray-300 rounded text-sm"
+                      >
+                        ↑
+                      </button>
+                      <input
+                        type="number"
+                        className="flex-1 p-2 border border-gray-300 rounded text-sm"
+                        value={epsonPreviewSettings.positioning[selectedElement as keyof typeof epsonPreviewSettings.positioning]}
+                        onChange={(e) => updateEpsonPreviewSetting(['positioning', selectedElement], parseFloat(e.target.value) || 0)}
+                        min="-50"
+                        max="50"
+                        step="1"
+                      />
+                      <button
+                        onClick={() => {
+                          const current = epsonPreviewSettings.positioning[selectedElement as keyof typeof epsonPreviewSettings.positioning];
+                          updateEpsonPreviewSetting(['positioning', selectedElement], current + 1);
+                        }}
+                        className="px-3 py-1 bg-gray-200 hover:bg-gray-300 rounded text-sm"
+                      >
+                        ↓
+                      </button>
+                    </div>
+                    <p className="text-xs text-gray-500 mt-1">قيمة موجبة للأعلى، سالبة للأسفل</p>
+                  </div>
+
+                  {(['header', 'items', 'totals', 'footer'].some(s => selectedElement.includes(s)) || 
+                    ['branchName', 'date', 'customerType', 'itemName', 'itemQty', 'itemPrice', 'itemTax', 'itemTotal', 'totalsSubtotal', 'totalsTax', 'totalsNet', 'footerText'].includes(selectedElement)) && (
+                    <div>
+                      <label className="block text-sm font-semibold text-gray-700 mb-2">
+                        محاذاة النص
+                      </label>
+                      <div className="flex gap-2">
+                        {(['right', 'center', 'left'] as const).map((align) => {
+                          const section = selectedElement.includes('item') ? 'items' :
+                                         selectedElement.includes('total') ? 'totals' :
+                                         selectedElement.includes('header') || ['branchName', 'date', 'customerType'].includes(selectedElement) ? 'header' : 'footer';
+                          return (
+                            <button
+                              key={align}
+                              onClick={() => updateEpsonPreviewSetting(['alignment', section], align)}
+                              className={`flex-1 p-2 rounded text-sm ${
+                                epsonPreviewSettings.alignment[section] === align
+                                  ? 'bg-blue-500 text-white'
+                                  : 'bg-gray-200 hover:bg-gray-300'
+                              }`}
+                            >
+                              {align === 'right' ? 'يمين' : align === 'center' ? 'وسط' : 'يسار'}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              <div className="border-t pt-4">
+                <button
+                  onClick={handleSaveEpsonPreview}
+                  className="w-full py-2 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700"
+                >
+                  حفظ التغييرات
+                </button>
+                <p className="text-xs text-gray-500 mt-2 text-center">
+                  ملاحظة: استخدم صفحة الإعدادات لحفظ التغييرات الدائمة
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
 
         {template === "modern" ? (
           <div className="overflow-y-auto">
@@ -1210,11 +1740,15 @@ const InvoicePrintPreview: React.FC<InvoicePrintPreviewProps> = ({
             </div>
           </div>
         ) : (
-          <div className="overflow-y-auto flex justify-center bg-gray-200 p-8 h-full">
+          <div className={`overflow-y-auto flex justify-center items-start bg-gray-200 h-full ${
+            template === "epson" ? "p-4" : "p-8"
+          }`}>
             <iframe
               srcDoc={
                 template === "thermal"
                   ? renderThermalTemplate()
+                  : template === "epson"
+                  ? renderEpsonTemplateWithPreview()
                   : template === "classic"
                   ? renderClassicTemplate()
                   : template === "modern"
@@ -1224,8 +1758,21 @@ const InvoicePrintPreview: React.FC<InvoicePrintPreviewProps> = ({
                   : renderDefaultTemplate()
               }
               className={`bg-white shadow-2xl ${
-                isThermal ? "w-[80mm] h-[600px]" : "w-[210mm] min-h-[297mm]"
+                isThermal ? "h-[600px]" : "w-[210mm] min-h-[297mm]"
               } border-none`}
+              style={
+                template === "epson" && settings.epsonSettings?.pageWidth
+                  ? { 
+                      width: `${settings.epsonSettings.pageWidth}mm`,
+                      maxWidth: `${settings.epsonSettings.pageWidth}mm`,
+                      minWidth: `${settings.epsonSettings.pageWidth}mm`,
+                      height: "600px",
+                      flexShrink: 0
+                    }
+                  : isThermal
+                  ? { width: "80mm", maxWidth: "80mm", minWidth: "80mm" }
+                  : undefined
+              }
               title="Print Preview"
             />
           </div>

@@ -1,6 +1,6 @@
 
 import React from 'react';
-import type { PrintSettings as PrintSettingsType } from '../../../types';
+import type { PrintSettings as PrintSettingsType, EpsonSettings } from '../../../types';
 import { PrintIcon, CheckCircleIcon } from '../../icons';
 import { useToast } from '../../common/ToastProvider';
 
@@ -102,6 +102,31 @@ const TemplatePreview: React.FC<{
                         <div className="h-4 w-12 bg-black rounded mt-auto"></div>
                     </div>
                 );
+            case 'epson':
+                return (
+                    <div className="w-2/3 h-full bg-white mx-auto shadow-md p-2 flex flex-col gap-1 items-center border-2 border-blue-300">
+                        <div className="h-3 w-10 bg-blue-600 rounded-sm mb-1"></div>
+                        <div className="h-1 w-full bg-gray-200"></div>
+                        <div className="flex justify-between w-full text-[6px] px-1">
+                            <div className="h-1 w-6 bg-gray-300"></div>
+                            <div className="h-1 w-8 bg-gray-300"></div>
+                        </div>
+                        <div className="h-1 w-full bg-gray-200"></div>
+                        <div className="w-full border-t border-dashed border-gray-400 my-1"></div>
+                        <div className="flex justify-between w-full text-[6px] px-1">
+                            <div className="h-1 w-5 bg-gray-300"></div>
+                            <div className="h-1 w-4 bg-gray-300"></div>
+                            <div className="h-1 w-5 bg-gray-300"></div>
+                            <div className="h-1 w-4 bg-gray-300"></div>
+                        </div>
+                        <div className="w-full border-t border-dashed border-gray-400 my-1"></div>
+                        <div className="flex justify-between w-full text-[6px] px-1">
+                            <div className="h-1 w-4 bg-gray-300"></div>
+                            <div className="h-1 w-4 bg-gray-300"></div>
+                        </div>
+                        <div className="h-3 w-10 bg-blue-600 rounded mt-auto"></div>
+                    </div>
+                );
         }
     };
 
@@ -133,12 +158,77 @@ const TemplatePreview: React.FC<{
     );
 };
 
+const getDefaultEpsonSettings = (): EpsonSettings => ({
+    pageWidth: 80,
+    fonts: {
+        header: 14,
+        body: 12,
+        items: 11,
+        totals: 13,
+        footer: 10,
+    },
+    spacing: {
+        marginTop: 5,
+        marginBottom: 5,
+        marginLeft: 5,
+        marginRight: 5,
+        sectionGap: 5,
+    },
+    alignment: {
+        header: 'center',
+        items: 'right',
+        totals: 'right',
+        footer: 'center',
+    },
+    positioning: {
+        branchName: 0,
+        date: 0,
+        customerType: 0,
+        itemName: 0,
+        itemQty: 0,
+        itemPrice: 0,
+        itemTax: 0,
+        itemTotal: 0,
+        totalsSubtotal: 0,
+        totalsTax: 0,
+        totalsNet: 0,
+        qrCode: 0,
+        footerText: 0,
+    },
+});
+
 const PrintSettings: React.FC<PrintSettingsProps> = ({ title, settings, onSave }) => {
     const { showToast } = useToast();
-    const [localSettings, setLocalSettings] = React.useState<PrintSettingsType>(settings);
+    const [localSettings, setLocalSettings] = React.useState<PrintSettingsType>(() => {
+        const base = { ...settings };
+        if (base.template === 'epson' && !base.epsonSettings) {
+            base.epsonSettings = getDefaultEpsonSettings();
+        }
+        return base;
+    });
 
     const handleChange = (field: keyof PrintSettingsType, value: any) => {
-        setLocalSettings(prev => ({ ...prev, [field]: value }));
+        setLocalSettings(prev => {
+            const updated = { ...prev, [field]: value };
+            if (field === 'template' && value === 'epson' && !updated.epsonSettings) {
+                updated.epsonSettings = getDefaultEpsonSettings();
+            }
+            return updated;
+        });
+    };
+
+    const handleEpsonSettingsChange = (path: string[], value: any) => {
+        setLocalSettings(prev => {
+            const epsonSettings = prev.epsonSettings || getDefaultEpsonSettings();
+            const updated = { ...epsonSettings };
+            let current: any = updated;
+            for (let i = 0; i < path.length - 1; i++) {
+                if (!current[path[i]]) current[path[i]] = {};
+                current = current[path[i]];
+            }
+            current[path[path.length - 1]] = value;
+            return { ...prev, epsonSettings: updated };
+        });
     };
 
     const handleSave = () => {
@@ -169,7 +259,7 @@ const PrintSettings: React.FC<PrintSettingsProps> = ({ title, settings, onSave }
                     اختر نموذج الفاتورة
                 </h2>
                 
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-6">
                     <TemplatePreview 
                         id="default" 
                         name="الافتراضي (Default)" 
@@ -204,6 +294,13 @@ const PrintSettings: React.FC<PrintSettingsProps> = ({ title, settings, onSave }
                         description="مخصص لطابعات الكاشير الحرارية (80mm). مثالي لنقاط البيع، المطاعم، والبقالات."
                         selected={localSettings.template === 'thermal'}
                         onSelect={() => handleChange('template', 'thermal')}
+                    />
+                    <TemplatePreview 
+                        id="epson" 
+                        name="إبسون (Epson)" 
+                        description="نموذج قابل للتخصيص بالكامل مع تحكم في الحجم، الخطوط، المحاذاة، والمواضع. مثالي لطابعات Epson الحرارية."
+                        selected={localSettings.template === 'epson'}
+                        onSelect={() => handleChange('template', 'epson')}
                     />
                 </div>
             </section>
@@ -253,6 +350,160 @@ const PrintSettings: React.FC<PrintSettingsProps> = ({ title, settings, onSave }
                         </div>
                     </div>
                 </section>
+
+                {/* Epson Customization */}
+                {localSettings.template === 'epson' && (
+                    <section className="lg:col-span-2 bg-white p-8 rounded-2xl shadow-sm border border-gray-100 mt-8">
+                        <h2 className="text-xl font-bold text-gray-800 mb-6 flex items-center gap-3">
+                            <span className="w-8 h-8 rounded-full bg-green-100 text-green-600 flex items-center justify-center text-sm">⚙️</span>
+                            تخصيص نموذج إبسون
+                        </h2>
+                        
+                        {(() => {
+                            const epson = localSettings.epsonSettings || getDefaultEpsonSettings();
+                            return (
+                                <div className="space-y-8">
+                                    {/* Page Size */}
+                                    <div className="border-b border-gray-200 pb-6">
+                                        <h3 className="text-lg font-bold text-gray-700 mb-4">حجم الصفحة</h3>
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                            <div>
+                                                <label className={labelStyle}>العرض (مم)</label>
+                                                <input 
+                                                    type="number" 
+                                                    className={inputStyle}
+                                                    value={epson.pageWidth}
+                                                    onChange={(e) => handleEpsonSettingsChange(['pageWidth'], parseFloat(e.target.value) || 80)}
+                                                    min="50"
+                                                    max="200"
+                                                />
+                                            </div>
+                                            <div>
+                                                <label className={labelStyle}>الارتفاع (مم) - اتركه فارغاً للتلقائي</label>
+                                                <input 
+                                                    type="number" 
+                                                    className={inputStyle}
+                                                    value={epson.pageHeight || ''}
+                                                    onChange={(e) => handleEpsonSettingsChange(['pageHeight'], e.target.value ? parseFloat(e.target.value) : undefined)}
+                                                    min="100"
+                                                />
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Font Sizes */}
+                                    <div className="border-b border-gray-200 pb-6">
+                                        <h3 className="text-lg font-bold text-gray-700 mb-4">أحجام الخطوط (بكسل)</h3>
+                                        <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+                                            {Object.entries(epson.fonts).map(([key, value]) => (
+                                                <div key={key}>
+                                                    <label className={labelStyle}>
+                                                        {key === 'header' ? 'الترويسة' : 
+                                                         key === 'body' ? 'النص' :
+                                                         key === 'items' ? 'الأصناف' :
+                                                         key === 'totals' ? 'الإجماليات' : 'التذييل'}
+                                                    </label>
+                                                    <input 
+                                                        type="number" 
+                                                        className={inputStyle}
+                                                        value={value}
+                                                        onChange={(e) => handleEpsonSettingsChange(['fonts', key], parseInt(e.target.value) || 10)}
+                                                        min="8"
+                                                        max="24"
+                                                    />
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+
+                                    {/* Spacing */}
+                                    <div className="border-b border-gray-200 pb-6">
+                                        <h3 className="text-lg font-bold text-gray-700 mb-4">المسافات والهوامش (مم)</h3>
+                                        <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
+                                            {Object.entries(epson.spacing).map(([key, value]) => (
+                                                <div key={key}>
+                                                    <label className={labelStyle}>
+                                                        {key === 'marginTop' ? 'هامش علوي' :
+                                                         key === 'marginBottom' ? 'هامش سفلي' :
+                                                         key === 'marginLeft' ? 'هامش أيسر' :
+                                                         key === 'marginRight' ? 'هامش أيمن' : 'فجوة بين الأقسام'}
+                                                    </label>
+                                                    <input 
+                                                        type="number" 
+                                                        className={inputStyle}
+                                                        value={value}
+                                                        onChange={(e) => handleEpsonSettingsChange(['spacing', key], parseFloat(e.target.value) || 0)}
+                                                        min="0"
+                                                        max="50"
+                                                    />
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+
+                                    {/* Alignment */}
+                                    <div className="border-b border-gray-200 pb-6">
+                                        <h3 className="text-lg font-bold text-gray-700 mb-4">محاذاة النص</h3>
+                                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                                            {Object.entries(epson.alignment).map(([key, value]) => (
+                                                <div key={key}>
+                                                    <label className={labelStyle}>
+                                                        {key === 'header' ? 'الترويسة' :
+                                                         key === 'items' ? 'الأصناف' :
+                                                         key === 'totals' ? 'الإجماليات' : 'التذييل'}
+                                                    </label>
+                                                    <select 
+                                                        className={inputStyle}
+                                                        value={value}
+                                                        onChange={(e) => handleEpsonSettingsChange(['alignment', key], e.target.value as 'left' | 'center' | 'right')}
+                                                    >
+                                                        <option value="right">يمين</option>
+                                                        <option value="center">وسط</option>
+                                                        <option value="left">يسار</option>
+                                                    </select>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+
+                                    {/* Positioning */}
+                                    <div>
+                                        <h3 className="text-lg font-bold text-gray-700 mb-4">مواضع العناصر (بكسل - موجب للأعلى، سالب للأسفل)</h3>
+                                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                                            {Object.entries(epson.positioning).map(([key, value]) => (
+                                                <div key={key}>
+                                                    <label className={labelStyle}>
+                                                        {key === 'branchName' ? 'اسم الفرع' :
+                                                         key === 'date' ? 'التاريخ' :
+                                                         key === 'customerType' ? 'نوع العميل' :
+                                                         key === 'itemName' ? 'اسم الصنف' :
+                                                         key === 'itemQty' ? 'الكمية' :
+                                                         key === 'itemPrice' ? 'السعر' :
+                                                         key === 'itemTax' ? 'الضريبة' :
+                                                         key === 'itemTotal' ? 'الإجمالي' :
+                                                         key === 'totalsSubtotal' ? 'المجموع' :
+                                                         key === 'totalsTax' ? 'ضريبة الإجمالي' :
+                                                         key === 'totalsNet' ? 'الصافي' :
+                                                         key === 'qrCode' ? 'رمز QR' : 'نص التذييل'}
+                                                    </label>
+                                                    <input 
+                                                        type="number" 
+                                                        className={inputStyle}
+                                                        value={value}
+                                                        onChange={(e) => handleEpsonSettingsChange(['positioning', key], parseFloat(e.target.value) || 0)}
+                                                        min="-50"
+                                                        max="50"
+                                                        step="1"
+                                                    />
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                </div>
+                            );
+                        })()}
+                    </section>
+                )}
 
                 {/* Toggles */}
                 <section className="lg:col-span-1 bg-white p-8 rounded-2xl shadow-sm border border-gray-100 h-fit">
