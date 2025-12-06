@@ -1875,37 +1875,26 @@ const InvoicePrintPreview: React.FC<InvoicePrintPreviewProps> = ({
                                   <h3 className="font-bold text-base mb-2">
                                     بيانات البائع:
                                   </h3>
-                                  <div className="flex items-start gap-3">
-                                    <div className="flex-1">
-                                      <p className="font-semibold mb-1">
-                                        {companyInfo.name}
-                                      </p>
-                                      <p className="mb-1">
-                                        {settings.showAddress ? companyInfo.address : "عنوان الشركة"}
-                                      </p>
-                                      <p className="mb-1">
-                                        <span className="font-semibold">
-                                          الرقم الضريبي:
-                                        </span>{" "}
-                                        {settings.showTaxNumber ? companyInfo.taxNumber : "--------------------------------"}
-                                      </p>
-                                      <p>
-                                        <span className="font-semibold">
-                                          السجل التجاري:
-                                        </span>{" "}
-                                        {companyInfo.commercialReg || "--------------------------------"}
-                                      </p>
-                                    </div>
-                                    {settings.showLogo && companyInfo.logo && (
-                                      <div className="flex-shrink-0 mt-1">
-                                        <img
-                                          src={companyInfo.logo}
-                                          alt="Company Logo"
-                                          className="h-14 w-auto object-contain"
-                                        />
-                                      </div>
-                                    )}
-                                  </div>
+                                  <p>
+                                    <span className="font-semibold">الاسم:</span>{" "}
+                                    {companyInfo.name}
+                                  </p>
+                                  <p>
+                                    <span className="font-semibold">العنوان:</span>{" "}
+                                    {settings.showAddress ? companyInfo.address : "--------------------------------"}
+                                  </p>
+                                  <p>
+                                    <span className="font-semibold">
+                                      الرقم الضريبي:
+                                    </span>{" "}
+                                    {settings.showTaxNumber ? companyInfo.taxNumber : "--------------------------------"}
+                                  </p>
+                                  <p>
+                                    <span className="font-semibold">
+                                      السجل التجاري:
+                                    </span>{" "}
+                                    {companyInfo.commercialReg || "--------------------------------"}
+                                  </p>
                                 </div>
                                 <div className="border border-blue-700 rounded-md p-3">
                                   <h3 className="font-bold text-base mb-2">
