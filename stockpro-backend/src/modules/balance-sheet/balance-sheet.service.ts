@@ -1003,10 +1003,33 @@ export class BalanceSheetService {
     startDate: string,
     endDate: string,
   ): Promise<number> {
-    // Get net profit from income statement for the period
+    // Get net profit from income statement for the current period
     const incomeStatement =
       await this.incomeStatementService.getIncomeStatement(startDate, endDate);
-    return incomeStatement.netProfit || 0;
+    const currentPeriodNetProfit = incomeStatement.netProfit || 0;
+
+    // Find all closed fiscal years that ended before the current period start date
+    const periodStartDate = new Date(startDate);
+    const previousClosedFiscalYears = await this.prisma.fiscalYear.findMany({
+      where: {
+        status: 'CLOSED',
+        endDate: {
+          lt: periodStartDate,
+        },
+      },
+      select: {
+        retainedEarnings: true,
+      },
+    });
+
+    // Sum retained earnings from all previous closed fiscal years
+    const previousRetainedEarnings = previousClosedFiscalYears.reduce(
+      (sum, fiscalYear) => sum + (fiscalYear.retainedEarnings || 0),
+      0,
+    );
+
+    // Return accumulated retained earnings (previous years + current period)
+    return previousRetainedEarnings + currentPeriodNetProfit;
   }
 
   private async getCapital(): Promise<number> {
