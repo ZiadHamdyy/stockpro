@@ -1,14 +1,18 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
 import { DatabaseService } from '../../configs/database/database.service';
 import { CreatePriceQuotationRequest } from './dtos/request/create-price-quotation.request';
 import { UpdatePriceQuotationRequest } from './dtos/request/update-price-quotation.request';
 import { PriceQuotationResponse } from './dtos/response/price-quotation.response';
 import { throwHttp } from '../../common/utils/http-error';
 import { ERROR_CODES } from '../../common/constants/error-codes';
+import { FiscalYearService } from '../fiscal-year/fiscal-year.service';
 
 @Injectable()
 export class PriceQuotationService {
-  constructor(private readonly prisma: DatabaseService) {}
+  constructor(
+    private readonly prisma: DatabaseService,
+    private readonly fiscalYearService: FiscalYearService,
+  ) {}
 
   async create(
     data: CreatePriceQuotationRequest,
@@ -29,6 +33,21 @@ export class PriceQuotationService {
         ERROR_CODES.QUOTATION_TOTALS_REQUIRED,
         'Totals are required for quotations',
       );
+    }
+
+    // Check financial period status
+    const quotationDate = data.date ? new Date(data.date) : new Date();
+    
+    // Check if there is an open period for this date
+    const hasOpenPeriod = await this.fiscalYearService.hasOpenPeriodForDate(quotationDate);
+    if (!hasOpenPeriod) {
+      throw new ForbiddenException('لا يمكن إنشاء عرض سعر: لا توجد فترة محاسبية مفتوحة لهذا التاريخ');
+    }
+
+    // Check if date is in a closed period
+    const isInClosedPeriod = await this.fiscalYearService.isDateInClosedPeriod(quotationDate);
+    if (isInClosedPeriod) {
+      throw new ForbiddenException('لا يمكن إنشاء عرض سعر: الفترة المحاسبية مغلقة');
     }
 
     const code = await this.generateNextCode();

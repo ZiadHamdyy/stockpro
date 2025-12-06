@@ -2,6 +2,7 @@ import {
   Injectable,
   NotFoundException,
   BadRequestException,
+  ForbiddenException,
 } from '@nestjs/common';
 import { DatabaseService } from '../../configs/database/database.service';
 import { CreateInventoryCountDto } from './dtos/create-inventory-count.dto';
@@ -10,6 +11,7 @@ import { InventoryCountResponse } from './dtos/response/inventory-count.response
 import { StoreReceiptVoucherService } from '../store-receipt-voucher/store-receipt-voucher.service';
 import { StoreIssueVoucherService } from '../store-issue-voucher/store-issue-voucher.service';
 import { StockService } from '../store/services/stock.service';
+import { FiscalYearService } from '../fiscal-year/fiscal-year.service';
 
 @Injectable()
 export class InventoryCountService {
@@ -18,6 +20,7 @@ export class InventoryCountService {
     private readonly storeReceiptVoucherService: StoreReceiptVoucherService,
     private readonly storeIssueVoucherService: StoreIssueVoucherService,
     private readonly stockService: StockService,
+    private readonly fiscalYearService: FiscalYearService,
   ) {}
 
   async create(
@@ -28,6 +31,21 @@ export class InventoryCountService {
     // Validate items array
     if (!items || items.length === 0) {
       throw new BadRequestException('Inventory count must contain at least one item');
+    }
+
+    // Check financial period status
+    const countDate = date ? new Date(date) : new Date();
+    
+    // Check if there is an open period for this date
+    const hasOpenPeriod = await this.fiscalYearService.hasOpenPeriodForDate(countDate);
+    if (!hasOpenPeriod) {
+      throw new ForbiddenException('لا يمكن إنشاء جرد: لا توجد فترة محاسبية مفتوحة لهذا التاريخ');
+    }
+
+    // Check if date is in a closed period
+    const isInClosedPeriod = await this.fiscalYearService.isDateInClosedPeriod(countDate);
+    if (isInClosedPeriod) {
+      throw new ForbiddenException('لا يمكن إنشاء جرد: الفترة المحاسبية مغلقة');
     }
 
     // Generate code

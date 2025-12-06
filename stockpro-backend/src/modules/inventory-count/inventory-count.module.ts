@@ -4,12 +4,14 @@ import { InventoryCountService } from './inventory-count.service';
 import { StoreReceiptVoucherModule } from '../store-receipt-voucher/store-receipt-voucher.module';
 import { StoreIssueVoucherModule } from '../store-issue-voucher/store-issue-voucher.module';
 import { StoreModule } from '../store/store.module';
+import { FiscalYearModule } from '../fiscal-year/fiscal-year.module';
 
 @Module({
   imports: [
     StoreReceiptVoucherModule,
     StoreIssueVoucherModule,
     StoreModule,
+    FiscalYearModule,
   ],
   controllers: [InventoryCountController],
   providers: [InventoryCountService],

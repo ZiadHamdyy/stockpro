@@ -2,17 +2,37 @@ import {
   Injectable,
   NotFoundException,
   ConflictException,
+  ForbiddenException,
 } from '@nestjs/common';
 import { DatabaseService } from '../../configs/database/database.service';
 import { CreateCustomerRequest } from './dtos/request/create-customer.request';
 import { UpdateCustomerRequest } from './dtos/request/update-customer.request';
 import { CustomerResponse } from './dtos/response/customer.response';
+import { FiscalYearService } from '../fiscal-year/fiscal-year.service';
 
 @Injectable()
 export class CustomerService {
-  constructor(private readonly prisma: DatabaseService) {}
+  constructor(
+    private readonly prisma: DatabaseService,
+    private readonly fiscalYearService: FiscalYearService,
+  ) {}
 
   async create(data: CreateCustomerRequest): Promise<CustomerResponse> {
+    // Check financial period status (use current date for customers without date field)
+    const customerDate = new Date();
+    
+    // Check if there is an open period for this date
+    const hasOpenPeriod = await this.fiscalYearService.hasOpenPeriodForDate(customerDate);
+    if (!hasOpenPeriod) {
+      throw new ForbiddenException('لا يمكن إضافة عميل: لا توجد فترة محاسبية مفتوحة لهذا التاريخ');
+    }
+
+    // Check if date is in a closed period
+    const isInClosedPeriod = await this.fiscalYearService.isDateInClosedPeriod(customerDate);
+    if (isInClosedPeriod) {
+      throw new ForbiddenException('لا يمكن إضافة عميل: الفترة المحاسبية مغلقة');
+    }
+
     const code = await this.generateNextCode();
     const openingBalance = data.openingBalance || 0;
 

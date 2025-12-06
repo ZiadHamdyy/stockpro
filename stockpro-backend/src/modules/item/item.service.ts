@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, HttpStatus } from '@nestjs/common';
+import { Injectable, NotFoundException, HttpStatus, ForbiddenException } from '@nestjs/common';
 import { DatabaseService } from '../../configs/database/database.service';
 import { CreateItemRequest } from './dtos/request/create-item.request';
 import { UpdateItemRequest } from './dtos/request/update-item.request';
@@ -7,6 +7,7 @@ import { StoreService } from '../store/store.service';
 import { StockService } from '../store/services/stock.service';
 import type { currentUserType } from '../../common/types/current-user.type';
 import { GenericHttpException } from '../../common/application/exceptions/generic-http-exception';
+import { FiscalYearService } from '../fiscal-year/fiscal-year.service';
 
 @Injectable()
 export class ItemService {
@@ -14,12 +15,28 @@ export class ItemService {
     private readonly prisma: DatabaseService,
     private readonly storeService: StoreService,
     private readonly stockService: StockService,
+    private readonly fiscalYearService: FiscalYearService,
   ) {}
 
   async create(
     data: CreateItemRequest,
     currentUser: currentUserType,
   ): Promise<ItemResponse> {
+    // Check financial period status (use current date for items without date field)
+    const itemDate = new Date();
+    
+    // Check if there is an open period for this date
+    const hasOpenPeriod = await this.fiscalYearService.hasOpenPeriodForDate(itemDate);
+    if (!hasOpenPeriod) {
+      throw new ForbiddenException('لا يمكن إضافة صنف: لا توجد فترة محاسبية مفتوحة لهذا التاريخ');
+    }
+
+    // Check if date is in a closed period
+    const isInClosedPeriod = await this.fiscalYearService.isDateInClosedPeriod(itemDate);
+    if (isInClosedPeriod) {
+      throw new ForbiddenException('لا يمكن إضافة صنف: الفترة المحاسبية مغلقة');
+    }
+
     // Generate next code automatically
     const nextCode = await this.generateNextCode();
 

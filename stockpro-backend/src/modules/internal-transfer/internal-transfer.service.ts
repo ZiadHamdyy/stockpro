@@ -3,16 +3,21 @@ import {
   NotFoundException,
   BadRequestException,
   ConflictException,
+  ForbiddenException,
 } from '@nestjs/common';
 import { DatabaseService } from '../../configs/database/database.service';
 import { CreateInternalTransferRequest } from './dtos/request/create-internal-transfer.request';
 import { UpdateInternalTransferRequest } from './dtos/request/update-internal-transfer.request';
 import { InternalTransferResponse } from './dtos/response/internal-transfer.response';
 import { AccountingService } from '../../common/services/accounting.service';
+import { FiscalYearService } from '../fiscal-year/fiscal-year.service';
 
 @Injectable()
 export class InternalTransferService {
-  constructor(private readonly prisma: DatabaseService) {}
+  constructor(
+    private readonly prisma: DatabaseService,
+    private readonly fiscalYearService: FiscalYearService,
+  ) {}
 
   // ==================== CRUD Operations ====================
 
@@ -20,6 +25,21 @@ export class InternalTransferService {
     data: CreateInternalTransferRequest,
     userId: string,
   ): Promise<InternalTransferResponse> {
+    // Check financial period status
+    const transferDate = new Date(data.date);
+    
+    // Check if there is an open period for this date
+    const hasOpenPeriod = await this.fiscalYearService.hasOpenPeriodForDate(transferDate);
+    if (!hasOpenPeriod) {
+      throw new ForbiddenException('لا يمكن إنشاء تحويل داخلي: لا توجد فترة محاسبية مفتوحة لهذا التاريخ');
+    }
+
+    // Check if date is in a closed period
+    const isInClosedPeriod = await this.fiscalYearService.isDateInClosedPeriod(transferDate);
+    if (isInClosedPeriod) {
+      throw new ForbiddenException('لا يمكن إنشاء تحويل داخلي: الفترة المحاسبية مغلقة');
+    }
+
     const code = await this.generateNextCode();
 
     // Validate that from and to are different
