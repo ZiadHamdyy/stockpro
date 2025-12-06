@@ -330,7 +330,7 @@ const PrintSettings: React.FC<PrintSettingsProps> = ({ title, settings, onSave }
                     />
                     <TemplatePreview 
                         id="minimal" 
-                        name="بسيط (Minimal)" 
+                        name="الضريبي (Minimal)" 
                         description="تصميم رسمي أبيض وأسود بجدول تفصيلي (ثنائي اللغة) وتذييل إجمالي مشابه للنموذج المرفق."
                         selected={localSettings.template === 'minimal'}
                         onSelect={() => handleChange('template', 'minimal')}
