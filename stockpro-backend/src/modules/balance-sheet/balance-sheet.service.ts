@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { PrismaClient } from '@prisma/client';
 import { DatabaseService } from '../../configs/database/database.service';
 import { BalanceSheetResponse } from './dtos/response/balance-sheet.response';
 import { IncomeStatementService } from '../income-statement/income-statement.service';
@@ -27,7 +28,8 @@ export class BalanceSheetService {
 
     const payables = await this.calculatePayables(targetDate);
     const otherPayables = await this.calculateOtherPayables(targetDate);
-    const vatPayable = await this.calculateVatPayable(targetDate);
+    const periodStartDate = new Date(startDate);
+    const vatPayable = await this.calculateVatPayable(periodStartDate, targetDate);
     const totalLiabilities = payables + otherPayables + vatPayable;
 
     const capital = await this.getCapital();
@@ -861,7 +863,10 @@ export class BalanceSheetService {
     return totalBalance;
   }
 
-  private async calculateVatPayable(endDate: Date): Promise<number> {
+  private async calculateVatPayable(
+    startDate: Date,
+    endDate: Date,
+  ): Promise<number> {
     // Get company VAT settings
     const company = await this.prisma.company.findFirst();
     const isVatEnabled = company?.isVatEnabled || false;
@@ -871,12 +876,25 @@ export class BalanceSheetService {
       return 0;
     }
 
-    // Calculate Output VAT (VAT collected on sales)
-    // Sum tax from SalesInvoices (before or on endDate)
+    // Calculate opening VAT balance (all transactions before startDate)
+    const openingVatBalance = await this.calculateVatBalanceUpToDate(startDate);
+
+    // Calculate current period VAT (transactions between startDate and endDate)
+    const currentPeriodVat = await this.calculateVatForPeriod(
+      startDate,
+      endDate,
+    );
+
+    // Return opening balance + current period VAT (carry forward)
+    return openingVatBalance + currentPeriodVat;
+  }
+
+  private async calculateVatBalanceUpToDate(cutoffDate: Date): Promise<number> {
+    // Calculate Output VAT (VAT collected on sales) - before cutoffDate
     const salesInvoicesTax = await this.prisma.salesInvoice.aggregate({
       where: {
         date: {
-          lte: endDate,
+          lt: cutoffDate,
         },
       },
       _sum: {
@@ -885,11 +903,11 @@ export class BalanceSheetService {
     });
     const outputVat = salesInvoicesTax._sum.tax || 0;
 
-    // Subtract tax from SalesReturns (before or on endDate)
+    // Subtract tax from SalesReturns - before cutoffDate
     const salesReturnsTax = await this.prisma.salesReturn.aggregate({
       where: {
         date: {
-          lte: endDate,
+          lt: cutoffDate,
         },
       },
       _sum: {
@@ -898,12 +916,11 @@ export class BalanceSheetService {
     });
     const netOutputVat = outputVat - (salesReturnsTax._sum.tax || 0);
 
-    // Calculate Input VAT (VAT paid on purchases)
-    // Sum tax from PurchaseInvoices (before or on endDate)
+    // Calculate Input VAT (VAT paid on purchases) - before cutoffDate
     const purchaseInvoicesTax = await this.prisma.purchaseInvoice.aggregate({
       where: {
         date: {
-          lte: endDate,
+          lt: cutoffDate,
         },
       },
       _sum: {
@@ -911,8 +928,7 @@ export class BalanceSheetService {
       },
     });
 
-    // Sum taxable expenses (payment vouchers with expense codes, before or on endDate)
-    // These are considered as input VAT
+    // Sum taxable expenses (payment vouchers with expense codes) - before cutoffDate
     const taxableExpenses = await this.prisma.paymentVoucher.aggregate({
       where: {
         entityType: {
@@ -922,6 +938,92 @@ export class BalanceSheetService {
           not: null,
         },
         date: {
+          lt: cutoffDate,
+        },
+      },
+      _sum: {
+        amount: true,
+      },
+    });
+
+    const inputVatFromPurchases = purchaseInvoicesTax._sum.tax || 0;
+    const inputVatFromExpenses = taxableExpenses._sum.amount || 0;
+    const totalInputVat = inputVatFromPurchases + inputVatFromExpenses;
+
+    // Subtract tax from PurchaseReturns - before cutoffDate
+    const purchaseReturnsTax = await this.prisma.purchaseReturn.aggregate({
+      where: {
+        date: {
+          lt: cutoffDate,
+        },
+      },
+      _sum: {
+        tax: true,
+      },
+    });
+    const netInputVat = totalInputVat - (purchaseReturnsTax._sum.tax || 0);
+
+    // VAT Payable = Output VAT - Input VAT
+    // Positive means we owe VAT (liability), negative means we have VAT credit
+    return netOutputVat - netInputVat;
+  }
+
+  private async calculateVatForPeriod(
+    startDate: Date,
+    endDate: Date,
+  ): Promise<number> {
+    // Calculate Output VAT (VAT collected on sales) - between startDate and endDate
+    const salesInvoicesTax = await this.prisma.salesInvoice.aggregate({
+      where: {
+        date: {
+          gte: startDate,
+          lte: endDate,
+        },
+      },
+      _sum: {
+        tax: true,
+      },
+    });
+    const outputVat = salesInvoicesTax._sum.tax || 0;
+
+    // Subtract tax from SalesReturns - between startDate and endDate
+    const salesReturnsTax = await this.prisma.salesReturn.aggregate({
+      where: {
+        date: {
+          gte: startDate,
+          lte: endDate,
+        },
+      },
+      _sum: {
+        tax: true,
+      },
+    });
+    const netOutputVat = outputVat - (salesReturnsTax._sum.tax || 0);
+
+    // Calculate Input VAT (VAT paid on purchases) - between startDate and endDate
+    const purchaseInvoicesTax = await this.prisma.purchaseInvoice.aggregate({
+      where: {
+        date: {
+          gte: startDate,
+          lte: endDate,
+        },
+      },
+      _sum: {
+        tax: true,
+      },
+    });
+
+    // Sum taxable expenses (payment vouchers with expense codes) - between startDate and endDate
+    const taxableExpenses = await this.prisma.paymentVoucher.aggregate({
+      where: {
+        entityType: {
+          in: ['expense', 'expense-Type'],
+        },
+        expenseCodeId: {
+          not: null,
+        },
+        date: {
+          gte: startDate,
           lte: endDate,
         },
       },
@@ -934,10 +1036,11 @@ export class BalanceSheetService {
     const inputVatFromExpenses = taxableExpenses._sum.amount || 0;
     const totalInputVat = inputVatFromPurchases + inputVatFromExpenses;
 
-    // Subtract tax from PurchaseReturns (before or on endDate)
+    // Subtract tax from PurchaseReturns - between startDate and endDate
     const purchaseReturnsTax = await this.prisma.purchaseReturn.aggregate({
       where: {
         date: {
+          gte: startDate,
           lte: endDate,
         },
       },
@@ -949,9 +1052,7 @@ export class BalanceSheetService {
 
     // VAT Payable = Output VAT - Input VAT
     // Positive means we owe VAT (liability), negative means we have VAT credit
-    const vatPayable = netOutputVat - netInputVat;
-
-    return vatPayable;
+    return netOutputVat - netInputVat;
   }
 
   private async calculatePartnersBalance(endDate: Date): Promise<number> {
@@ -1010,7 +1111,7 @@ export class BalanceSheetService {
 
     // Find all closed fiscal years that ended before the current period start date
     const periodStartDate = new Date(startDate);
-    const previousClosedFiscalYears = await this.prisma.fiscalYear.findMany({
+    const previousClosedFiscalYears = await (this.prisma as PrismaClient).fiscalYear.findMany({
       where: {
         status: 'CLOSED',
         endDate: {
