@@ -99,6 +99,24 @@ const PriceQuotation: React.FC<PriceQuotationProps> = ({ title }) => {
     const [isPreviewOpen, setIsPreviewOpen] = useState(false);
     const [isSearchModalOpen, setIsSearchModalOpen] = useState(false);
     const [currentIndex, setCurrentIndex] = useState(-1);
+    const justSavedRef = useRef(false); // Flag to prevent resetting state after save
+    const shouldOpenPreviewRef = useRef(false); // Flag to indicate we want to open preview after data is set
+    const [previewData, setPreviewData] = useState<{
+        companyInfo: CompanyInfo;
+        items: InvoiceItem[];
+        totals: { subtotal: number; discount: number; tax: number; net: number };
+        customer: { id: string; name: string } | null;
+        details: {
+            id: string;
+            date: string;
+            expiryDate: string;
+            notes: string;
+            userName: string;
+            branchName: string;
+        };
+        isVatEnabled: boolean;
+        vatRate: number;
+    } | null>(null);
 
     const filteredCustomers = customerQuery ? allCustomers.filter(c => c.name.toLowerCase().includes(customerQuery.toLowerCase())) : allCustomers;
     const filteredItems = (activeItemSearch && typeof activeItemSearch.query === 'string') ? selectableItems.filter(item => 
@@ -128,6 +146,7 @@ const PriceQuotation: React.FC<PriceQuotationProps> = ({ title }) => {
         setCustomerQuery('');
         setIsReadOnly(false);
         setPendingSelectionId(null);
+        setPreviewData(null); // Clear preview data
     };
 
     useEffect(() => {
@@ -163,8 +182,21 @@ const PriceQuotation: React.FC<PriceQuotationProps> = ({ title }) => {
             setCustomerQuery(quote.customer?.name || '');
             setItems(quote.items as InvoiceItem[]);
             setTotals(quote.totals || { subtotal: 0, discount: 0, tax: 0, net: 0 });
+            
+            // Always ensure it's read-only when loading a quotation
             setIsReadOnly(true);
-        } else {
+            
+            // Clear preview data and flags when loading a quotation (unless we just saved)
+            if (!justSavedRef.current) {
+                setPreviewData(null);
+                shouldOpenPreviewRef.current = false;
+                setIsPreviewOpen(false);
+            } else {
+                // After save, keep the flag set until preview opens
+                // The preview useEffect will handle clearing the flag
+            }
+        } else if (!justSavedRef.current) {
+            // Only call handleNew if we haven't just saved
             handleNew();
         }
     }, [currentIndex, quotations]);
@@ -192,6 +224,28 @@ const PriceQuotation: React.FC<PriceQuotationProps> = ({ title }) => {
         document.addEventListener("mousedown", handleClickOutside);
         return () => document.removeEventListener("mousedown", handleClickOutside);
     }, []);
+
+    // Ensure isReadOnly stays true after save until preview opens
+    useEffect(() => {
+        if (justSavedRef.current && !isReadOnly) {
+            setIsReadOnly(true);
+        }
+    }, [isReadOnly]);
+
+    // Open preview when previewData is set and we have a flag to open it
+    useEffect(() => {
+        if (shouldOpenPreviewRef.current && previewData && previewData.items.length > 0) {
+            setIsPreviewOpen(true);
+            shouldOpenPreviewRef.current = false; // Reset flag
+            // Ensure it stays read-only when preview opens
+            setIsReadOnly(true);
+            // Clear justSavedRef after preview opens to allow normal behavior
+            // Use a small delay to ensure preview is fully open
+            setTimeout(() => {
+                justSavedRef.current = false;
+            }, 500);
+        }
+    }, [previewData]);
 
     const handleItemChange = (index: number, field: keyof InvoiceItem, value: any) => {
         const newItems = [...items];
@@ -334,25 +388,99 @@ const PriceQuotation: React.FC<PriceQuotationProps> = ({ title }) => {
 
         try {
             if (currentIndex >= 0 && quotations[currentIndex]) {
-                const targetId = quotations[currentIndex].id;
-                await updatePriceQuotation({ id: targetId, data: payload }).unwrap();
-                setPendingSelectionId(targetId);
+                // Update existing quotation
+                await updatePriceQuotation({ id: quotations[currentIndex].id, data: payload }).unwrap();
+                showToast('تم حفظ عرض السعر بنجاح!');
+                setIsReadOnly(true);
+                
+                // Set flag to prevent useEffect from resetting state
+                justSavedRef.current = true;
+                
+                // Store preview data in state before opening preview
+                const previewDataToStore = {
+                    companyInfo,
+                    items: finalItems,
+                    totals,
+                    customer: selectedCustomer,
+                    details: {
+                        ...quotationDetails,
+                        userName: currentUser?.fullName || 'غير محدد',
+                        branchName:
+                            typeof currentUser?.branch === "string"
+                                ? currentUser.branch
+                                : (currentUser?.branch as any)?.name || "غير محدد",
+                    },
+                    isVatEnabled,
+                    vatRate
+                };
+                
+                // Set preview data and flag to open preview
+                // useEffect will open preview once data is set
+                setPreviewData(previewDataToStore);
+                shouldOpenPreviewRef.current = true;
             } else {
-                const created = await createPriceQuotation(payload).unwrap();
-                setPendingSelectionId(created.id);
-                setQuotationDetails({
-                    id: created.code,
-                    date: created.date ? created.date.substring(0, 10) : quotationDetails.date,
-                    expiryDate: created.expiryDate ? created.expiryDate.substring(0, 10) : quotationDetails.expiryDate,
-                    notes: created.notes || quotationDetails.notes,
-                });
-                setItems((created.items as InvoiceItem[]) ?? finalItems);
-                setTotals((created.totals as typeof totals) ?? totals);
-                setSelectedCustomer(created.customer ? { id: created.customer.id, name: created.customer.name } : null);
-                setCustomerQuery(created.customer?.name || '');
+                // Create new quotation
+                const savedQuotation = await createPriceQuotation(payload).unwrap();
+                showToast('تم حفظ عرض السعر بنجاح!');
+                
+                // Set flag to prevent useEffect from resetting state
+                justSavedRef.current = true;
+                
+                // Update quotation details with the saved quotation data (especially quotation number)
+                const updatedQuotationDetails = {
+                    id: savedQuotation.code,
+                    date: savedQuotation.date ? savedQuotation.date.substring(0, 10) : quotationDetails.date,
+                    expiryDate: savedQuotation.expiryDate ? savedQuotation.expiryDate.substring(0, 10) : quotationDetails.expiryDate,
+                    notes: savedQuotation.notes || quotationDetails.notes,
+                };
+                const updatedCustomer = savedQuotation.customer ? { id: savedQuotation.customer.id, name: savedQuotation.customer.name } : null;
+                setQuotationDetails(updatedQuotationDetails);
+                setItems((savedQuotation.items as InvoiceItem[]) ?? finalItems);
+                setTotals((savedQuotation.totals as typeof totals) ?? totals);
+                setSelectedCustomer(updatedCustomer);
+                setCustomerQuery(savedQuotation.customer?.name || '');
+                
+                // Store preview data in state before opening preview
+                // This ensures the preview has data even if state is reset by useEffect
+                const previewDataToStore = {
+                    companyInfo,
+                    items: finalItems,
+                    totals,
+                    customer: updatedCustomer,
+                    details: {
+                        ...updatedQuotationDetails,
+                        userName: currentUser?.fullName || 'غير محدد',
+                        branchName:
+                            typeof currentUser?.branch === "string"
+                                ? currentUser.branch
+                                : (currentUser?.branch as any)?.name || "غير محدد",
+                    },
+                    isVatEnabled,
+                    vatRate
+                };
+                
+                setIsReadOnly(true);
+                
+                // Set preview data and flag to open preview
+                // useEffect will open preview once data is set
+                setPreviewData(previewDataToStore);
+                shouldOpenPreviewRef.current = true;
+                setPendingSelectionId(savedQuotation.id);
+                
+                // Wait for quotation list to refresh, then find and load the saved quotation
+                // This ensures the quotation is properly tracked for navigation
+                setTimeout(() => {
+                    const savedIndex = quotations.findIndex(
+                        (q) => q.id === savedQuotation.id
+                    );
+                    if (savedIndex >= 0) {
+                        setCurrentIndex(savedIndex);
+                    } else {
+                        // If quotation not found, clear flag (preview already open with stored data)
+                        justSavedRef.current = false;
+                    }
+                }, 300);
             }
-            showToast('تم حفظ عرض السعر بنجاح!');
-            setIsReadOnly(true);
         } catch (error) {
             console.error(error);
             showToast('حدث خطأ أثناء حفظ عرض السعر.');
@@ -653,7 +781,12 @@ const PriceQuotation: React.FC<PriceQuotationProps> = ({ title }) => {
                     <div className="flex justify-center gap-2 flex-wrap">
                         <button onClick={handleNew} disabled={isMutating} className="px-4 py-2 bg-brand-blue text-white rounded-md hover:bg-blue-800 font-semibold disabled:bg-gray-400">جديد</button>
                         <button onClick={handleSave} disabled={isReadOnly || isMutating} className="px-4 py-2 bg-brand-green text-white rounded-md hover:bg-green-700 font-semibold disabled:bg-gray-400">حفظ</button>
-                        <button onClick={() => setIsReadOnly(false)} disabled={currentIndex < 0 || !isReadOnly || isMutating} className="px-4 py-2 bg-yellow-500 text-white rounded-md hover:bg-yellow-600 font-semibold disabled:bg-gray-400">تعديل</button>
+                        <button onClick={() => {
+                            setIsReadOnly(false);
+                            setPreviewData(null);
+                            shouldOpenPreviewRef.current = false;
+                            setIsPreviewOpen(false);
+                        }} disabled={currentIndex < 0 || !isReadOnly || isMutating} className="px-4 py-2 bg-yellow-500 text-white rounded-md hover:bg-yellow-600 font-semibold disabled:bg-gray-400">تعديل</button>
                         <button onClick={handleDelete} disabled={currentIndex < 0 || isMutating} className="px-4 py-2 bg-red-500 text-white rounded-md hover:bg-red-600 font-semibold disabled:bg-gray-400">حذف</button>
                         <button onClick={() => setIsSearchModalOpen(true)} className="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 font-semibold">بحث</button>
                         <button onClick={handleOpenPreview} className="px-4 py-2 bg-gray-200 text-brand-dark rounded-md hover:bg-gray-300 font-semibold flex items-center"><PrintIcon className="mr-2 w-5 h-5"/>معاينة الطباعة</button>
@@ -738,12 +871,11 @@ const PriceQuotation: React.FC<PriceQuotationProps> = ({ title }) => {
                     setIsSearchModalOpen(false);
                 }}
             />
-            <QuotationPrintPreview
-                isOpen={isPreviewOpen}
-                onClose={() => setIsPreviewOpen(false)}
-                quotationData={{
+            {(() => {
+                // Use preview data from state if available, otherwise use current state
+                const dataToPreview = previewData || {
                     companyInfo,
-                    items,
+                    items: items.filter((i) => i.id && i.name && i.qty > 0),
                     totals,
                     customer: selectedCustomer,
                     details: {
@@ -756,8 +888,26 @@ const PriceQuotation: React.FC<PriceQuotationProps> = ({ title }) => {
                     },
                     isVatEnabled,
                     vatRate
-                }}
-            />
+                };
+                
+                // Only render preview if we have data
+                if (!isPreviewOpen || !dataToPreview || dataToPreview.items.length === 0) {
+                    return null;
+                }
+                
+                return (
+                    <QuotationPrintPreview
+                        isOpen={isPreviewOpen}
+                        onClose={() => {
+                            setIsPreviewOpen(false);
+                            setPreviewData(null); // Clear preview data when closing
+                            shouldOpenPreviewRef.current = false; // Reset flag
+                            handleNew();
+                        }}
+                        quotationData={dataToPreview}
+                    />
+                );
+            })()}
         </>
     );
 };
