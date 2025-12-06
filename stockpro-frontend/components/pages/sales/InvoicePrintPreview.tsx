@@ -663,9 +663,9 @@ const InvoicePrintPreview: React.FC<InvoicePrintPreviewProps> = ({
           </tbody>
         </table>
         <div style="overflow: hidden;">
-          <div style="float: right; width: 50%;">
-            <p><strong>المبلغ كتابة:</strong> ${tafqeet(totals.net, companyInfo.currency)}</p>
-            ${isVatEnabled ? `<br/><img src="${qrCodeUrl}" width="100" height="100"/>` : ""}
+          <div style="float: right; width: 50%; text-align: center;">
+            ${isVatEnabled ? `<img src="${qrCodeUrl}" width="100" height="100"/><br/>` : ""}
+            <p style="white-space: nowrap; overflow: visible; margin-top: 10px;">${tafqeet(totals.net, companyInfo.currency)}</p>
           </div>
           <table class="totals-table">
             <tr><td>المجموع</td><td class="text-left">${totals.subtotal.toFixed(2)}</td></tr>
