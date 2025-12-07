@@ -97,6 +97,13 @@ const SalesReturnPrintPreview: React.FC<SalesReturnPrintPreviewProps> = ({
     const printable = document.getElementById("printable-invoice");
     if (!printable) return;
 
+    // Clone the printable content and remove the header to avoid duplication
+    const printableClone = printable.cloneNode(true) as HTMLElement;
+    const previewHeader = printableClone.querySelector('[data-print-exclude="header"]');
+    if (previewHeader) {
+      previewHeader.remove();
+    }
+
     // Build a minimal header for print to guarantee company info appears
     const headerHtml = `
       <div class="flex justify-between items-start pb-4 border-b-2 border-brand-blue mb-3">
@@ -118,18 +125,8 @@ const SalesReturnPrintPreview: React.FC<SalesReturnPrintPreviewProps> = ({
           </div>
         </div>
         <div class="text-left">
-          <div class="text-3xl font-bold text-brand-blue">${
-            isReturn
-              ? "فاتورة ضريبية"
-              : !originalIsVatEnabled
-              ? "فاتورة مبيعات"
-              : customer?.taxNumber
-              ? "فاتورة ضريبية"
-              : "فاتورة ضريبية مبسطة"
-          }</div>
-          <div class="text-sm">Tax Invoice ${
-            isReturn ? '<span class="text-gray-700">إشغار مدين</span>' : ""
-          }</div>
+          <div class="text-3xl font-bold text-brand-blue">فاتورة مرتجع</div>
+          <div class="text-sm">Tax Invoice <span class="text-gray-700">إشغار مدين</span></div>
         </div>
       </div>
     `;
@@ -160,7 +157,7 @@ const SalesReturnPrintPreview: React.FC<SalesReturnPrintPreviewProps> = ({
           ${extraPrintStyles}
         </head>
         <body>
-          <div class="print-root" style="margin:0 auto;max-width:23cm;padding:0.6cm;">${headerHtml}${printable.innerHTML}</div>
+          <div class="print-root" style="margin:0 auto;max-width:23cm;padding:0.6cm;">${headerHtml}${printableClone.innerHTML}</div>
         </body>
       </html>`;
 
@@ -292,7 +289,7 @@ const SalesReturnPrintPreview: React.FC<SalesReturnPrintPreviewProps> = ({
                   >
                     {isFirstPage && (
                       <>
-                        <header className="flex justify-between items-start pb-4 border-b-2 border-brand-blue">
+                        <header className="flex justify-between items-start pb-4 border-b-2 border-brand-blue" data-print-exclude="header">
                           <div className="flex items-center gap-4">
                             {companyInfo.logo && (
                               <img
@@ -318,20 +315,12 @@ const SalesReturnPrintPreview: React.FC<SalesReturnPrintPreviewProps> = ({
                           </div>
                           <div className="text-left">
                             <h1 className="text-3xl font-bold text-brand-blue">
-                              {isReturn
-                                ? "فاتورة ضريبية"
-                                : !originalIsVatEnabled
-                                ? "فاتورة مبيعات"
-                                : customer?.taxNumber
-                                ? "فاتورة ضريبية"
-                                : "فاتورة ضريبية مبسطة"}
+                              فاتورة مرتجع
                             </h1>
                             <p>
-                              {isReturn && (
-                                <span className="text-sm text-gray-700">
-                                  إشغار مدين
-                                </span>
-                              )}{" "}
+                              <span className="text-sm text-gray-700">
+                                إشغار مدين
+                              </span>{" "}
                               Tax Invoice
                             </p>
                           </div>
