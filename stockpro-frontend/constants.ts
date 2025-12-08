@@ -415,11 +415,6 @@ export const MENU_ITEMS: MenuItem[] = [
             icon: BoxIcon,
           },
           {
-            key: "debt_aging_report",
-            label: "تحليل أعمار الديون",
-            icon: ClockIcon,
-          },
-          {
             key: "stagnant_items_report",
             label: "تحليل المخزون الراكد",
             icon: TrendingDownIcon,
@@ -428,6 +423,11 @@ export const MENU_ITEMS: MenuItem[] = [
             key: "vip_customers_report",
             label: "كبار العملاء (VIP)",
             icon: TrophyIcon,
+          },
+          {
+            key: "debt_aging_report",
+            label: "تحليل أعمار الديون",
+            icon: ClockIcon,
           },
         ],
       },
