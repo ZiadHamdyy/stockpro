@@ -12,6 +12,7 @@ import { useGetStoresQuery } from '../../store/slices/store/storeApi';
 import { 
   useGetInventoryCountsQuery, 
   useCreateInventoryCountMutation, 
+  useUpdateInventoryCountMutation,
   usePostInventoryCountMutation,
   useDeleteInventoryCountMutation,
   type InventoryCount as InventoryCountType,
@@ -63,6 +64,7 @@ const InventoryCountPage: React.FC<InventoryCountProps> = ({ title, companyInfo 
     const { data: inventoryCounts = [], isLoading: countsLoading } = useGetInventoryCountsQuery();
     const [createInventoryCount, { isLoading: isCreating }] = useCreateInventoryCountMutation();
     const [postInventoryCount, { isLoading: isPosting }] = usePostInventoryCountMutation();
+    const [updateInventoryCount, { isLoading: isUpdating }] = useUpdateInventoryCountMutation();
     const [deleteInventoryCount, { isLoading: isDeleting }] = useDeleteInventoryCountMutation();
 
     // Get user's branch ID and find their store
@@ -245,6 +247,28 @@ const InventoryCountPage: React.FC<InventoryCountProps> = ({ title, companyInfo 
                         finalCountId = result.id;
                         setCountId(result.id);
                         setCountCode(result.code);
+                    } else {
+                        // Update existing draft before posting to ensure latest edits are saved
+                        const updated = await updateInventoryCount({
+                            id: finalCountId,
+                            data: {
+                                storeId: selectedStoreId,
+                                userId: currentUser!.id,
+                                branchId: currentUser!.branchId,
+                                date,
+                                notes,
+                                items: countItems.map(item => ({
+                                    itemId: item.item.id,
+                                    systemStock: item.systemStock,
+                                    actualStock: item.actualStock,
+                                    difference: item.difference,
+                                    cost: item.cost,
+                                })),
+                            }
+                        }).unwrap();
+
+                        setCountCode(updated.code);
+                        setCountItems(updated.items);
                     }
                     
                     // Now post the count
@@ -776,10 +800,10 @@ const InventoryCountPage: React.FC<InventoryCountProps> = ({ title, companyInfo 
                         </button>
                         <button 
                             onClick={handlePostSettlement}
-                            disabled={status === 'POSTED' || isPosting || !selectedStoreId}
+                            disabled={status === 'POSTED' || isPosting || isUpdating || !selectedStoreId}
                             className="w-full px-4 py-3 bg-brand-blue text-white rounded-lg hover:bg-blue-800 font-bold text-lg shadow-md flex items-center justify-center gap-3 transition-transform active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
                         >
-                            <span>{isPosting ? 'جاري الاعتماد...' : 'اعتماد التسوية وترحيل القيود'}</span>
+                            <span>{(isPosting || isUpdating) ? 'جاري الاعتماد...' : 'اعتماد التسوية وترحيل القيود'}</span>
                         </button>
                     </div>
                 </div>

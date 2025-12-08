@@ -198,7 +198,8 @@ export class InventoryCountService {
       );
     }
 
-    const { items, ...countData } = updateInventoryCountDto;
+    const { items, date, ...countData } = updateInventoryCountDto;
+    const parsedDate = date ? new Date(date) : undefined;
 
     // Calculate total variance value if items are provided
     const totalVarianceValue = items
@@ -211,6 +212,7 @@ export class InventoryCountService {
         where: { id },
         data: {
           ...countData,
+          ...(parsedDate && { date: parsedDate }),
           ...(totalVarianceValue !== undefined && { totalVarianceValue }),
           ...(items && {
             items: {
