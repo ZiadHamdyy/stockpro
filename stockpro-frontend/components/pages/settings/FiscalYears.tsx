@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import { useToast } from '../../common/ToastProvider';
 import { useModal } from '../../common/ModalProvider';
 import { LockIcon, EyeIcon, CheckIcon, XIcon } from '../../icons';
+import PermissionWrapper from '../../common/PermissionWrapper';
+import { Actions, Resources, buildPermission } from '../../../enums/permissions.enum';
 import {
   useGetFiscalYearsQuery,
   useCreateFiscalYearMutation,
@@ -152,13 +154,20 @@ const FiscalYears: React.FC<FiscalYearsProps> = ({ title }) => {
         <div className="bg-white p-6 rounded-lg shadow">
             <div className="flex justify-between items-center mb-6 border-b pb-4">
                 <h1 className="text-2xl font-bold text-brand-dark">{title ?? "الفترات المحاسبية"}</h1>
-                <button 
-                    onClick={() => setIsModalOpen(true)} 
-                    className="px-6 py-2 bg-brand-blue text-white rounded-md hover:bg-blue-800 font-semibold"
-                    disabled={isCreating}
+                <PermissionWrapper
+                    requiredPermission={buildPermission(
+                        Resources.FISCAL_YEARS,
+                        Actions.CREATE
+                    )}
                 >
-                    {isCreating ? "جاري الإضافة..." : "سنة مالية جديدة"}
-                </button>
+                    <button 
+                        onClick={() => setIsModalOpen(true)} 
+                        className="px-6 py-2 bg-brand-blue text-white rounded-md hover:bg-blue-800 font-semibold"
+                        disabled={isCreating}
+                    >
+                        {isCreating ? "جاري الإضافة..." : "سنة مالية جديدة"}
+                    </button>
+                </PermissionWrapper>
             </div>
 
             {/* Information Banner */}
@@ -198,30 +207,53 @@ const FiscalYears: React.FC<FiscalYearsProps> = ({ title }) => {
                                     {year.retainedEarnings !== null ? formatNumber(year.retainedEarnings) : '---'}
                                 </p>
                             </div>
-                            <button 
-                                onClick={() => confirmToggleStatus(year)}
-                                disabled={
-                                    isClosing || 
-                                    isReopening || 
-                                    (year.status === 'CLOSED' && new Date(year.startDate).getFullYear() > new Date().getFullYear())
-                                }
-                                title={
-                                    year.status === 'CLOSED' && new Date(year.startDate).getFullYear() > new Date().getFullYear()
-                                        ? "لا يمكن إعادة فتح فترة محاسبية لسنة مستقبلية"
-                                        : undefined
-                                }
-                                className={`px-4 py-2 rounded-md font-semibold text-sm transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed ${
-                                    year.status === 'OPEN' 
-                                    ? 'bg-red-100 text-red-700 hover:bg-red-200' 
-                                    : 'bg-green-100 text-green-700 hover:bg-green-200'
-                                }`}
-                            >
-                                {year.status === 'OPEN' ? (
-                                    <> <LockIcon className="w-4 h-4"/> إغلاق السنة </>
-                                ) : (
-                                    <> <CheckIcon className="w-4 h-4"/> إعادة فتح </>
+                            <PermissionWrapper
+                                requiredPermission={buildPermission(
+                                    Resources.FISCAL_YEARS,
+                                    Actions.UPDATE
                                 )}
-                            </button>
+                                fallback={
+                                    <button
+                                        disabled
+                                        className={`px-4 py-2 rounded-md font-semibold text-sm transition-colors flex items-center gap-2 cursor-not-allowed opacity-50 ${
+                                            year.status === 'OPEN'
+                                            ? 'bg-red-100 text-red-700'
+                                            : 'bg-green-100 text-green-700'
+                                        }`}
+                                    >
+                                        {year.status === 'OPEN' ? (
+                                            <> <LockIcon className="w-4 h-4"/> إغلاق السنة </>
+                                        ) : (
+                                            <> <CheckIcon className="w-4 h-4"/> إعادة فتح </>
+                                        )}
+                                    </button>
+                                }
+                            >
+                                <button 
+                                    onClick={() => confirmToggleStatus(year)}
+                                    disabled={
+                                        isClosing || 
+                                        isReopening || 
+                                        (year.status === 'CLOSED' && new Date(year.startDate).getFullYear() > new Date().getFullYear())
+                                    }
+                                    title={
+                                        year.status === 'CLOSED' && new Date(year.startDate).getFullYear() > new Date().getFullYear()
+                                            ? "لا يمكن إعادة فتح فترة محاسبية لسنة مستقبلية"
+                                            : undefined
+                                    }
+                                    className={`px-4 py-2 rounded-md font-semibold text-sm transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed ${
+                                        year.status === 'OPEN' 
+                                        ? 'bg-red-100 text-red-700 hover:bg-red-200' 
+                                        : 'bg-green-100 text-green-700 hover:bg-green-200'
+                                    }`}
+                                >
+                                    {year.status === 'OPEN' ? (
+                                        <> <LockIcon className="w-4 h-4"/> إغلاق السنة </>
+                                    ) : (
+                                        <> <CheckIcon className="w-4 h-4"/> إعادة فتح </>
+                                    )}
+                                </button>
+                            </PermissionWrapper>
                         </div>
                     </div>
                 ))}
