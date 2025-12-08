@@ -308,7 +308,7 @@ const CustomersList: React.FC<CustomersListProps> = ({
         title="قائمة العملاء"
         companyInfo={companyInfo}
         columns={[
-          { Header: "#", accessor: "sn" },
+          { Header: "م", accessor: "sn" },
           { Header: "اسم العميل", accessor: "name" },
           { Header: "العنوان", accessor: "nationalAddress" },
           { Header: "الهاتف", accessor: "phone" },

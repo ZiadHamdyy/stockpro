@@ -310,7 +310,7 @@ const SuppliersList: React.FC<SuppliersListProps> = ({
         companyInfo={companyInfo}
         colorTheme="green"
         columns={[
-          { Header: "#", accessor: "sn" },
+          { Header: "م", accessor: "sn" },
           { Header: "اسم المورد", accessor: "name" },
           { Header: "العنوان", accessor: "nationalAddress" },
           { Header: "الهاتف", accessor: "phone" },

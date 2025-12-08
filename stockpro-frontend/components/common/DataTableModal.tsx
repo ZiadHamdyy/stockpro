@@ -346,7 +346,7 @@ const DataTableModal: React.FC<DataTableModalProps> = ({
                   ))}
                 </tbody>
                 {totalableColumns.length > 0 && (
-                  <tfoot className="bg-gray-100 font-bold">
+                  <tfoot className={`${headerBgClass} text-white font-bold`}>
                     <tr>
                       <td
                         colSpan={firstTotalColIndex}
