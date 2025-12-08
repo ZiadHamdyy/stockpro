@@ -5,6 +5,8 @@ import { SearchIcon, ActivityIcon, UserIcon, ClockIcon, CalendarIcon, CheckCircl
 import { useGetAuditLogsQuery } from '../../store/slices/auditLog/auditLogApiSlice';
 import { useGetUsersQuery } from '../../store/slices/user/userApi';
 import { useGetBranchesQuery } from '../../store/slices/branch/branchApi';
+import PermissionWrapper from '../../common/PermissionWrapper';
+import { Actions, Resources, buildPermission } from '../../../enums/permissions.enum';
 
 interface AuditLogReportProps {
     title: string;
@@ -107,7 +109,7 @@ const AuditLogReport: React.FC<AuditLogReportProps> = ({ title }) => {
             {/* Top Stats Bar - Deep Royal Blue Gradient (Darker) */}
             <div className="bg-gradient-to-r from-blue-950 to-blue-900 rounded-xl p-4 md:p-6 shadow-xl text-white relative overflow-hidden border border-blue-800 flex items-center">
                 <div className="absolute right-0 top-0 h-full w-1/3 bg-white/5 skew-x-12 transform origin-bottom-right"></div>
-                <div className="relative z-10 flex flex-col md:flex-row justify-between items-center gap-4 md:gap-6 w-full">
+                <div className="relative z-10 flex flex-col md:flex-row justify-between items-center gap-4 md:gap-6 w-full py-24">
                     <div className="flex justify-center md:justify-start items-center gap-4">
                         <div className="p-3 bg-blue-800/50 rounded-lg border border-blue-700 backdrop-blur-sm shadow-inner">
                             <ShieldIcon className="w-8 h-8 text-blue-200" />
@@ -133,18 +135,40 @@ const AuditLogReport: React.FC<AuditLogReportProps> = ({ title }) => {
 
             {/* Filters - White Card with Stronger Borders */}
             <div className="bg-white p-4 rounded-xl shadow-md border-l-4 border-blue-900 flex flex-col xl:flex-row gap-4 items-center justify-between ring-1 ring-gray-200">
-                <div className="relative w-full xl:w-1/3">
-                    <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
-                        <SearchIcon className="w-5 h-5 text-gray-400" />
+                <PermissionWrapper
+                    requiredPermission={buildPermission(
+                        Resources.AUDIT_LOG,
+                        Actions.SEARCH,
+                    )}
+                    fallback={
+                        <div className="relative w-full xl:w-1/3">
+                            <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                                <SearchIcon className="w-5 h-5 text-gray-400" />
+                            </div>
+                            <input
+                                type="text"
+                                className={`${inputStyle} pl-10 cursor-not-allowed opacity-50`}
+                                placeholder="بحث في السجل (رقم، تفاصيل...)"
+                                value=""
+                                disabled
+                                readOnly
+                            />
+                        </div>
+                    }
+                >
+                    <div className="relative w-full xl:w-1/3">
+                        <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                            <SearchIcon className="w-5 h-5 text-gray-400" />
+                        </div>
+                        <input 
+                            type="text" 
+                            className={`${inputStyle} pl-10`} 
+                            placeholder="بحث في السجل (رقم، تفاصيل...)" 
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                        />
                     </div>
-                    <input 
-                        type="text" 
-                        className={`${inputStyle} pl-10`} 
-                        placeholder="بحث في السجل (رقم، تفاصيل...)" 
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                    />
-                </div>
+                </PermissionWrapper>
                 
                 {/* Filter Controls - All in One Line */}
                 <div className="flex flex-wrap gap-2 w-full xl:w-auto">
