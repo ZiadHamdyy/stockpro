@@ -5,6 +5,7 @@ import { tafqeet } from "../../../utils/tafqeet";
 import DocumentHeader from "../../common/DocumentHeader";
 import { useGetCompanyQuery } from "../../store/slices/companyApiSlice";
 import PermissionWrapper from "../../common/PermissionWrapper";
+import { useToast } from "../../common/ToastProvider";
 import {
   buildPermission,
   Resources,
@@ -22,6 +23,7 @@ interface InternalTransfersProps {
 const InternalTransfers: React.FC<InternalTransfersProps> = ({ title }) => {
   const { data: companyInfo } = useGetCompanyQuery();
   const { User } = useAuth();
+  const { showToast } = useToast();
   const [searchParams, setSearchParams] = useSearchParams();
   
   const {
@@ -118,6 +120,16 @@ const InternalTransfers: React.FC<InternalTransfersProps> = ({ title }) => {
     "mt-1 block w-full bg-yellow-100 border-2 border-amber-500 rounded-md shadow-sm text-black placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-amber-500 py-3 px-4 disabled:bg-gray-200 disabled:cursor-not-allowed";
 
   const isExistingTransfer = currentIndex > -1;
+  const canPrintExistingTransfer = isExistingTransfer && isReadOnly;
+
+  const handleOpenPreview = () => {
+    if (!canPrintExistingTransfer) {
+      showToast("لا يمكن الطباعة إلا بعد حفظ السند.", "error");
+      return;
+    }
+    setShouldResetOnClose(false);
+    setIsPreviewOpen(true);
+  };
 
   const navigateToVoucher = (direction: "first" | "prev" | "next" | "last") => {
     if (!Array.isArray(vouchers) || vouchers.length === 0) return;
@@ -566,10 +578,7 @@ const InternalTransfers: React.FC<InternalTransfersProps> = ({ title }) => {
                 )}
               >
                 <button
-                  onClick={() => {
-                    setShouldResetOnClose(false);
-                    setIsPreviewOpen(true);
-                  }}
+                onClick={handleOpenPreview}
                   className="px-4 py-2 bg-gray-200 text-brand-dark rounded-md hover:bg-gray-300 font-semibold flex items-center"
                 >
                   <PrintIcon className="mr-2 w-5 h-5" /> معاينة وطباعة

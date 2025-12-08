@@ -6,6 +6,7 @@ import DocumentHeader from "../../common/DocumentHeader";
 import { useGetCompanyQuery } from "../../store/slices/companyApiSlice";
 import { usePaymentVouchers } from "../../hook/usePaymentVouchers";
 import PermissionWrapper from "../../common/PermissionWrapper";
+import { useToast } from "../../common/ToastProvider";
 import {
   buildPermission,
   Resources,
@@ -35,6 +36,7 @@ interface PaymentVoucherProps {
 const PaymentVoucher: React.FC<PaymentVoucherProps> = ({ title }) => {
   const { data: companyInfo } = useGetCompanyQuery();
   const { User } = useAuth();
+  const { showToast } = useToast();
   const { data: receivableAccounts = [] } = useGetReceivableAccountsQuery();
   const { data: payableAccounts = [] } = useGetPayableAccountsQuery();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -343,6 +345,16 @@ const PaymentVoucher: React.FC<PaymentVoucherProps> = ({ title }) => {
 
   const voucher = currentIndex > -1 ? vouchers[currentIndex] : null;
   const isExistingVoucher = currentIndex > -1;
+  const canPrintExistingVoucher = isExistingVoucher && isReadOnly;
+
+  const handleOpenPreview = () => {
+    if (!canPrintExistingVoucher) {
+      showToast("لا يمكن الطباعة إلا بعد حفظ السند.", "error");
+      return;
+    }
+    setShouldResetOnClose(false);
+    setIsPreviewOpen(true);
+  };
 
   if (isLoading) {
     return <div className="text-center p-6">جاري التحميل...</div>;
@@ -729,10 +741,7 @@ const PaymentVoucher: React.FC<PaymentVoucherProps> = ({ title }) => {
               )}
             >
               <button
-                onClick={() => {
-                  setShouldResetOnClose(false);
-                  setIsPreviewOpen(true);
-                }}
+                onClick={handleOpenPreview}
                 className="px-4 py-2 bg-gray-200 text-brand-dark rounded-md hover:bg-gray-300 font-semibold flex items-center"
               >
                 <PrintIcon className="mr-2 w-5 h-5" /> معاينة وطباعة
