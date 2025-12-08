@@ -58,6 +58,7 @@ export class PriceQuotationService {
         date: data.date ? new Date(data.date) : new Date(),
         expiryDate: data.expiryDate ? new Date(data.expiryDate) : null,
         customerId: data.customerId,
+        customerName: data.customerName,
         notes: data.notes,
         status: data.status || 'sent',
         // Cast DTOs to JSON to satisfy Prisma's InputJsonValue type
@@ -127,6 +128,10 @@ export class PriceQuotationService {
       payload.customerId = data.customerId || null;
     }
 
+    if (typeof data.customerName !== 'undefined') {
+      payload.customerName = data.customerName || null;
+    }
+
     if (typeof data.date !== 'undefined') {
       payload.date = data.date ? new Date(data.date) : new Date();
     }
@@ -191,6 +196,7 @@ export class PriceQuotationService {
       items: quotation.items || [],
       totals: quotation.totals || {},
       customerId: quotation.customerId,
+      customerName: quotation.customerName,
       customer: quotation.customer || null,
       userId: quotation.userId,
       user: quotation.user || null,

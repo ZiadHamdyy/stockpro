@@ -573,22 +573,23 @@ model SalesInvoice {
 }
 
 model PriceQuotation {
-  id         String    @id @default(uuid())
-  code       String    @unique
-  date       DateTime  @default(now())
-  expiryDate DateTime?
-  status     String    @default("draft")
-  notes      String?
-  items      Json
-  totals     Json
-  customerId String?
-  userId     String
-  branchId   String?
-  createdAt  DateTime  @default(now())
-  updatedAt  DateTime  @updatedAt
-  branch     Branch?   @relation(fields: [branchId], references: [id])
-  customer   Customer? @relation(fields: [customerId], references: [id])
-  user       User      @relation(fields: [userId], references: [id])
+  id           String    @id @default(uuid())
+  code         String    @unique
+  date         DateTime  @default(now())
+  expiryDate   DateTime?
+  status       String    @default("draft")
+  notes        String?
+  items        Json
+  totals       Json
+  customerId   String?
+  customerName String?
+  userId       String
+  branchId     String?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  branch       Branch?   @relation(fields: [branchId], references: [id])
+  customer     Customer? @relation(fields: [customerId], references: [id])
+  user         User      @relation(fields: [userId], references: [id])
 
   @@index([code])
   @@index([date])

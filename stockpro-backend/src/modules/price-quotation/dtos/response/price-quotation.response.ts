@@ -8,6 +8,7 @@ export class PriceQuotationResponse {
   items: any[];
   totals: Record<string, any>;
   customerId?: string | null;
+  customerName?: string | null;
   customer?: { id: string; name: string } | null;
   userId: string;
   user?: { id: string; name: string } | null;

@@ -179,7 +179,8 @@ const PriceQuotation: React.FC<PriceQuotationProps> = ({ title }) => {
                 notes: quote.notes || 'عرض السعر صالح لمدة أسبوع من تاريخه.'
             });
             setSelectedCustomer(quote.customer ? { id: quote.customer.id, name: quote.customer.name } : null);
-            setCustomerQuery(quote.customer?.name || '');
+            // If customerId exists, show customer name; otherwise show customerName if it exists
+            setCustomerQuery(quote.customer?.name || quote.customerName || '');
             setItems(quote.items as InvoiceItem[]);
             setTotals(quote.totals || { subtotal: 0, discount: 0, tax: 0, net: 0 });
             
@@ -378,6 +379,7 @@ const PriceQuotation: React.FC<PriceQuotationProps> = ({ title }) => {
 
         const payload = {
             customerId: selectedCustomer?.id,
+            customerName: selectedCustomer ? undefined : (customerQuery.trim() || undefined),
             date: quotationDetails.date,
             expiryDate: quotationDetails.expiryDate,
             items: sanitizedItems,
@@ -397,11 +399,12 @@ const PriceQuotation: React.FC<PriceQuotationProps> = ({ title }) => {
                 justSavedRef.current = true;
                 
                 // Store preview data in state before opening preview
+                const previewCustomer = selectedCustomer || (customerQuery.trim() ? { id: '', name: customerQuery.trim() } : null);
                 const previewDataToStore = {
                     companyInfo,
                     items: finalItems,
                     totals,
-                    customer: selectedCustomer,
+                    customer: previewCustomer,
                     details: {
                         ...quotationDetails,
                         userName: currentUser?.fullName || 'غير محدد',
@@ -438,15 +441,16 @@ const PriceQuotation: React.FC<PriceQuotationProps> = ({ title }) => {
                 setItems((savedQuotation.items as InvoiceItem[]) ?? finalItems);
                 setTotals((savedQuotation.totals as typeof totals) ?? totals);
                 setSelectedCustomer(updatedCustomer);
-                setCustomerQuery(savedQuotation.customer?.name || '');
+                setCustomerQuery(savedQuotation.customerName || savedQuotation.customer?.name || '');
                 
                 // Store preview data in state before opening preview
                 // This ensures the preview has data even if state is reset by useEffect
+                const previewCustomer = updatedCustomer || (savedQuotation.customerName ? { id: '', name: savedQuotation.customerName } : null);
                 const previewDataToStore = {
                     companyInfo,
                     items: finalItems,
                     totals,
-                    customer: updatedCustomer,
+                    customer: previewCustomer,
                     details: {
                         ...updatedQuotationDetails,
                         userName: currentUser?.fullName || 'غير محدد',
@@ -873,11 +877,12 @@ const PriceQuotation: React.FC<PriceQuotationProps> = ({ title }) => {
             />
             {(() => {
                 // Use preview data from state if available, otherwise use current state
+                const fallbackCustomer = selectedCustomer || (customerQuery.trim() ? { id: '', name: customerQuery.trim() } : null);
                 const dataToPreview = previewData || {
                     companyInfo,
                     items: items.filter((i) => i.id && i.name && i.qty > 0),
                     totals,
-                    customer: selectedCustomer,
+                    customer: fallbackCustomer,
                     details: {
                         ...quotationDetails,
                         userName: currentUser?.fullName || 'غير محدد',

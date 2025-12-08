@@ -55,6 +55,10 @@ export class CreatePriceQuotationRequest {
 
   @IsString()
   @IsOptional()
+  customerName?: string;
+
+  @IsString()
+  @IsOptional()
   date?: string;
 
   @IsString()

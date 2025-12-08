@@ -28,6 +28,7 @@ export interface PriceQuotation {
   items: PriceQuotationItem[];
   totals: PriceQuotationTotals;
   customerId?: string | null;
+  customerName?: string | null;
   customer?: { id: string; name: string } | null;
   userId: string;
   user?: { id: string; name: string } | null;
@@ -39,6 +40,7 @@ export interface PriceQuotation {
 
 export interface CreatePriceQuotationRequest {
   customerId?: string;
+  customerName?: string;
   date?: string;
   expiryDate?: string;
   items: PriceQuotationItem[];
@@ -49,6 +51,7 @@ export interface CreatePriceQuotationRequest {
 
 export interface UpdatePriceQuotationRequest {
   customerId?: string | null;
+  customerName?: string | null;
   date?: string;
   expiryDate?: string;
   items?: PriceQuotationItem[];
