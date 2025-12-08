@@ -323,9 +323,13 @@ const InventoryValuationReport: React.FC<InventoryValuationReportProps> = ({
   }, [transformedSalesInvoices, selectedBranchId, branches, normalizeDate]);
 
   // Helper function to calculate weighted average cost up to a reference date
-  const calculateWeightedAverageCost = useCallback((itemCode: string, referenceDate: string): number | null => {
+  const calculateWeightedAverageCost = useCallback((item: any, referenceDate: string): number | null => {
     const normalizedReferenceDate = normalizeDate(referenceDate);
     if (!normalizedReferenceDate) return null;
+
+    const itemCode = item.code;
+    const openingBalance = toNumber((item as any).openingBalance ?? 0);
+    const initialPurchasePrice = toNumber(item.initialPurchasePrice ?? item.purchasePrice ?? 0);
 
     const selectedBranchName = selectedBranchId === "all" 
       ? "all"
@@ -345,10 +349,11 @@ const InventoryValuationReport: React.FC<InventoryValuationReportProps> = ({
         return txDate && txDate <= normalizedReferenceDate;
       });
 
-    let totalCost = 0;
-    let totalQty = 0;
+    // Start with opening balance at initialPurchasePrice
+    let totalCost = openingBalance > 0 ? openingBalance * initialPurchasePrice : 0;
+    let totalQty = openingBalance;
 
-    // Calculate weighted average: Total invoice value (price) per item / Total quantities of the item
+    // Add purchase invoices to the weighted average
     for (const inv of relevantInvoices) {
       for (const invItem of inv.items) {
         if (invItem.id === itemCode && invItem.total && invItem.qty) {
@@ -358,9 +363,13 @@ const InventoryValuationReport: React.FC<InventoryValuationReportProps> = ({
       }
     }
 
-    if (totalQty === 0) return null;
+    // If no purchases and no opening balance, return initialPurchasePrice if it exists
+    if (totalQty === 0) {
+      return initialPurchasePrice > 0 ? initialPurchasePrice : null;
+    }
+    
     return totalCost / totalQty;
-  }, [transformedPurchaseInvoices, selectedBranchId, branches, normalizeDate]);
+  }, [transformedPurchaseInvoices, selectedBranchId, branches, normalizeDate, toNumber]);
 
   const handleViewReport = useCallback(() => {
     if (isLoading) return;
@@ -456,7 +465,7 @@ const InventoryValuationReport: React.FC<InventoryValuationReportProps> = ({
           break;
         }
         case "averageCost": {
-          const avgCost = calculateWeightedAverageCost(item.code, priceReferenceDate);
+          const avgCost = calculateWeightedAverageCost(item, priceReferenceDate);
           // Fallback to last purchase price if no purchases found
           if (avgCost === null) {
             const lastPurchasePrice = getLastPurchasePriceBeforeDate(item.code, priceReferenceDate);
