@@ -11,14 +11,21 @@ import { useGetSuppliersQuery } from '../../../store/slices/supplier/supplierApi
 import { useGetItemsQuery } from '../../../store/slices/items/itemsApi';
 import { useGetSalesInvoicesQuery } from '../../../store/slices/salesInvoice/salesInvoiceApiSlice';
 import { useGetPurchaseInvoicesQuery } from '../../../store/slices/purchaseInvoice/purchaseInvoiceApiSlice';
+import { useGetSalesReturnsQuery } from '../../../store/slices/salesReturn/salesReturnApiSlice';
+import { useGetPurchaseReturnsQuery } from '../../../store/slices/purchaseReturn/purchaseReturnApiSlice';
 import { useGetReceiptVouchersQuery } from '../../../store/slices/receiptVoucherApiSlice';
 import { useGetPaymentVouchersQuery } from '../../../store/slices/paymentVoucherApiSlice';
+import { useGetBalanceSheetQuery } from '../../../store/slices/balanceSheet/balanceSheetApiSlice';
 
 interface LiquidityReportProps {
     title: string;
 }
 
 const LiquidityReport: React.FC<LiquidityReportProps> = ({ title }) => {
+    const currentYear = new Date().getFullYear();
+    const defaultStartDate = `${currentYear}-01-01`;
+    const defaultEndDate = `${currentYear}-12-31`;
+
     // Fetch data from Redux
     const { data: apiSafes = [], isLoading: safesLoading } = useGetSafesQuery();
     const { data: apiBanks = [], isLoading: banksLoading } = useGetBanksQuery();
@@ -27,10 +34,13 @@ const LiquidityReport: React.FC<LiquidityReportProps> = ({ title }) => {
     const { data: apiItems = [], isLoading: itemsLoading } = useGetItemsQuery(undefined);
     const { data: apiSalesInvoices = [], isLoading: salesLoading } = useGetSalesInvoicesQuery();
     const { data: apiPurchaseInvoices = [], isLoading: purchasesLoading } = useGetPurchaseInvoicesQuery();
+    const { data: apiSalesReturns = [], isLoading: salesReturnsLoading } = useGetSalesReturnsQuery();
+    const { data: apiPurchaseReturns = [], isLoading: purchaseReturnsLoading } = useGetPurchaseReturnsQuery();
     const { data: apiReceiptVouchers = [], isLoading: receiptsLoading } = useGetReceiptVouchersQuery();
     const { data: apiPaymentVouchers = [], isLoading: paymentsLoading } = useGetPaymentVouchersQuery();
+    const { data: balanceSheetData, isLoading: balanceSheetLoading } = useGetBalanceSheetQuery({ startDate: defaultStartDate, endDate: defaultEndDate });
 
-    const isLoading = safesLoading || banksLoading || customersLoading || suppliersLoading || itemsLoading || salesLoading || purchasesLoading || receiptsLoading || paymentsLoading;
+    const isLoading = safesLoading || banksLoading || customersLoading || suppliersLoading || itemsLoading || salesLoading || purchasesLoading || salesReturnsLoading || purchaseReturnsLoading || receiptsLoading || paymentsLoading || balanceSheetLoading;
 
     // Transform API data to match component expectations
     const safes = useMemo<Safe[]>(() => {
@@ -200,11 +210,78 @@ const LiquidityReport: React.FC<LiquidityReportProps> = ({ title }) => {
         }));
     }, [apiPaymentVouchers]);
 
+    const normalizeDate = useMemo(() => {
+        return (date: any): string => {
+            if (!date) return "";
+            if (typeof date === "string") {
+                if (/^\d{4}-\d{2}-\d{2}$/.test(date)) return date;
+                return date.substring(0, 10);
+            }
+            if (date instanceof Date) {
+                return date.toISOString().split("T")[0];
+            }
+            try {
+                const parsed = new Date(date);
+                if (!isNaN(parsed.getTime())) {
+                    return parsed.toISOString().split("T")[0];
+                }
+            } catch {
+                // ignore
+            }
+            return "";
+        };
+    }, []);
+
     const analysis = useMemo(() => {
-        const today = new Date().toISOString().substring(0, 10);
-        
+        const normalizedStartDate = normalizeDate(defaultStartDate);
+        const normalizedEndDate = normalizeDate(defaultEndDate);
+
+        const filterByDate = (record: any) => {
+            const recordDate = normalizeDate(record?.date);
+            return recordDate >= normalizedStartDate && recordDate <= normalizedEndDate;
+        };
+
+        // VAT position (same logic as BalanceSheet/VAT statement)
+        let vatDebit = 0;
+        let vatCredit = 0;
+
+        (apiSalesInvoices as any[]).filter(filterByDate).forEach((inv) => {
+            const tax = inv.tax ?? inv.totals?.tax ?? 0;
+            vatDebit += tax;
+        });
+
+        (apiPurchaseReturns as any[]).filter(filterByDate).forEach((inv) => {
+            const tax = inv.tax ?? inv.totals?.tax ?? 0;
+            vatDebit += tax;
+        });
+
+        (apiPurchaseInvoices as any[]).filter(filterByDate).forEach((inv) => {
+            const tax = inv.tax ?? inv.totals?.tax ?? 0;
+            vatCredit += tax;
+        });
+
+        (apiSalesReturns as any[]).filter(filterByDate).forEach((inv) => {
+            const tax = inv.tax ?? inv.totals?.tax ?? 0;
+            vatCredit += tax;
+        });
+
+        (apiPaymentVouchers as any[]).filter((v) => v.entityType === "expense-Type" && v.taxPrice && v.taxPrice > 0).filter(filterByDate).forEach((v) => {
+            vatCredit += v.taxPrice ?? 0;
+        });
+
+        (apiReceiptVouchers as any[]).filter((v) => v.entityType === "vat" && v.amount && v.amount > 0).filter(filterByDate).forEach((v) => {
+            vatDebit += v.amount ?? 0;
+        });
+
+        (apiPaymentVouchers as any[]).filter((v) => v.entityType === "vat" && v.amount && v.amount > 0).filter(filterByDate).forEach((v) => {
+            vatCredit += v.amount ?? 0;
+        });
+
+        const vatNet = vatCredit - vatDebit;
+        const vatAsset = vatNet > 0 ? vatNet : 0;
+        const vatLiabilityFromNet = vatNet < 0 ? Math.abs(vatNet) : 0;
+
         // 1. Current Assets (الأصول المتداولة)
-        // Cash + Bank
         const totalCash = safes.reduce((sum, s) => sum + (s.openingBalance ?? 0), 0) 
             + receiptVouchers.filter(v => v.paymentMethod === 'safe').reduce((sum, v) => sum + (v.amount ?? 0), 0)
             - paymentVouchers.filter(v => v.paymentMethod === 'safe').reduce((sum, v) => sum + (v.amount ?? 0), 0)
@@ -215,31 +292,31 @@ const LiquidityReport: React.FC<LiquidityReportProps> = ({ title }) => {
              - paymentVouchers.filter(v => v.paymentMethod === 'bank').reduce((sum, v) => sum + (v.amount ?? 0), 0)
              + salesInvoices.filter(i => i.paymentMethod === 'cash' && i.paymentTargetType === 'bank').reduce((sum, i) => sum + (i.totals?.net ?? 0), 0);
 
-        // Accounts Receivable (Customers)
+        const totalOtherReceivables = balanceSheetData?.otherReceivables ?? 0;
+
         const totalReceivables = customers.reduce((sum, c) => sum + (c.openingBalance ?? 0), 0)
             + salesInvoices.filter(i => i.paymentMethod === 'credit').reduce((sum, i) => sum + (i.totals?.net ?? 0), 0)
             - receiptVouchers.filter(v => v.entity?.type === 'customer').reduce((sum, v) => sum + (v.amount ?? 0), 0);
 
-        // Inventory Value (Simplified Logic - assumes current stock * purchase price)
         const totalInventory = items.reduce((sum, item) => sum + ((item.stock ?? 0) * (item.purchasePrice ?? 0)), 0);
 
-        const currentAssets = totalCash + totalBank + totalReceivables + totalInventory;
-        const liquidAssets = totalCash + totalBank + totalReceivables; // Excluding inventory (Quick Ratio)
+        const currentAssets = totalCash + totalBank + totalReceivables + totalOtherReceivables + totalInventory + vatAsset;
+        const liquidAssets = totalCash + totalBank + totalReceivables + totalOtherReceivables + vatAsset;
 
         // 2. Current Liabilities (الالتزامات المتداولة)
-        // Accounts Payable (Suppliers)
+        const totalOtherPayables = balanceSheetData?.otherPayables ?? 0;
+
         const totalPayables = Math.abs(suppliers.reduce((sum, s) => sum + (s.openingBalance ?? 0), 0))
             + purchaseInvoices.filter(i => i.paymentMethod === 'credit').reduce((sum, i) => sum + (i.totals?.net ?? 0), 0)
             - paymentVouchers.filter(v => v.entity?.type === 'supplier').reduce((sum, v) => sum + (v.amount ?? 0), 0);
 
-        // VAT Payable (Simplified)
-        const vatPayable = (salesInvoices.reduce((sum, i) => sum + (i.totals?.tax ?? 0), 0)) - (purchaseInvoices.reduce((sum, i) => sum + (i.totals?.tax ?? 0), 0));
+        const vatLiability = vatLiabilityFromNet > 0 ? vatLiabilityFromNet : Math.max(balanceSheetData?.vatPayable ?? 0, 0);
         
-        const currentLiabilities = totalPayables + (vatPayable > 0 ? vatPayable : 0);
+        const currentLiabilities = totalPayables + totalOtherPayables + vatLiability;
 
         // 3. Ratios
         const currentRatio = currentLiabilities > 0 ? (currentAssets / currentLiabilities) : (currentAssets > 0 ? 999 : 0);
-        const quickRatio = currentLiabilities > 0 ? (liquidAssets / currentLiabilities) : (liquidAssets > 0 ? 999 : 0);
+        const quickRatio = currentLiabilities > 0 ? ((currentAssets - totalInventory) / currentLiabilities) : ((currentAssets - totalInventory) > 0 ? 999 : 0);
         const cashRatio = currentLiabilities > 0 ? ((totalCash + totalBank) / currentLiabilities) : ((totalCash + totalBank) > 0 ? 999 : 0);
 
         // 4. Safety Status Assessment
@@ -261,12 +338,12 @@ const LiquidityReport: React.FC<LiquidityReportProps> = ({ title }) => {
         }
 
         return {
-            totalCash, totalBank, totalReceivables, totalInventory, currentAssets,
-            totalPayables, vatPayable, currentLiabilities,
+            totalCash, totalBank, totalReceivables, totalOtherReceivables, totalInventory, vatAsset, currentAssets,
+            totalPayables, totalOtherPayables, vatLiability, currentLiabilities,
             currentRatio, quickRatio, cashRatio,
             safetyStatus, safetyMessage
         };
-    }, [safes, banks, customers, suppliers, items, salesInvoices, purchaseInvoices, receiptVouchers, paymentVouchers]);
+    }, [balanceSheetData, banks, customers, defaultEndDate, defaultStartDate, items, normalizeDate, paymentVouchers, purchaseInvoices, apiPurchaseReturns, receiptVouchers, safes, salesInvoices, apiSalesReturns, suppliers]);
 
     const getStatusColor = (status: string) => {
         switch(status) {
@@ -276,6 +353,14 @@ const LiquidityReport: React.FC<LiquidityReportProps> = ({ title }) => {
             case 'critical': return 'bg-red-100 text-red-800 border-red-500';
             default: return 'bg-gray-100 text-gray-800';
         }
+    };
+
+    const getRatioStatus = (ratio: number) => {
+        if (ratio > 2) return { label: 'ممتاز جدًا', classes: 'bg-emerald-100 text-emerald-800 border-emerald-500' };
+        if (ratio >= 1.5) return { label: 'جيد جدًا', classes: 'bg-blue-100 text-blue-800 border-blue-500' };
+        if (ratio >= 1.0) return { label: 'مقبول', classes: 'bg-yellow-100 text-yellow-800 border-yellow-500' };
+        if (ratio >= 0.8) return { label: 'ضعيف', classes: 'bg-orange-100 text-orange-800 border-orange-500' };
+        return { label: 'خطر شديد', classes: 'bg-red-100 text-red-800 border-red-500' };
     };
 
     const handlePrint = () => window.print();
@@ -292,6 +377,9 @@ const LiquidityReport: React.FC<LiquidityReportProps> = ({ title }) => {
             </div>
         );
     }
+
+    const quickStatus = getRatioStatus(analysis.quickRatio);
+    const cashStatus = getRatioStatus(analysis.cashRatio);
 
     return (
         <div className="bg-white p-6 rounded-lg shadow space-y-8">
@@ -338,8 +426,11 @@ const LiquidityReport: React.FC<LiquidityReportProps> = ({ title }) => {
                         <h3 className="font-bold text-gray-600">نسبة السيولة السريعة (Quick)</h3>
                         <TrendingUpIcon className="text-purple-500 w-6 h-6"/>
                     </div>
-                    <p className="text-3xl font-bold text-brand-dark">{analysis.quickRatio.toFixed(2)}</p>
-                    <p className="text-xs text-gray-500 mt-2">المعيار المقبول: {'>'} 1.0</p>
+                    <div className="flex items-center gap-3 mt-1">
+                        <p className="text-3xl font-bold text-brand-dark">{analysis.quickRatio.toFixed(2)}</p>
+                        <span className={`px-3 py-1 text-xs font-bold rounded-full border ${quickStatus.classes}`}>{quickStatus.label}</span>
+                    </div>
+                    <p className="text-xs text-gray-500 mt-2">المعيار المقبول: {'>'} 1.0 (مع تدرج الألوان حسب النتيجة)</p>
                     <p className="text-sm text-gray-600 mt-4 bg-gray-50 p-2 rounded">القدرة على السداد دون الحاجة لبيع المخزون (النقد + الذمم المدينة).</p>
                 </div>
 
@@ -349,8 +440,11 @@ const LiquidityReport: React.FC<LiquidityReportProps> = ({ title }) => {
                         <h3 className="font-bold text-gray-600">نسبة النقدية (Cash Ratio)</h3>
                         <ShieldIcon className="text-green-500 w-6 h-6"/>
                     </div>
-                    <p className="text-3xl font-bold text-brand-dark">{analysis.cashRatio.toFixed(2)}</p>
-                    <p className="text-xs text-gray-500 mt-2">المعيار: يعتمد على النشاط</p>
+                    <div className="flex items-center gap-3 mt-1">
+                        <p className="text-3xl font-bold text-brand-dark">{analysis.cashRatio.toFixed(2)}</p>
+                        <span className={`px-3 py-1 text-xs font-bold rounded-full border ${cashStatus.classes}`}>{cashStatus.label}</span>
+                    </div>
+                    <p className="text-xs text-gray-500 mt-2">المعيار: يعتمد على النشاط (مع تدرج الألوان حسب النتيجة)</p>
                     <p className="text-sm text-gray-600 mt-4 bg-gray-50 p-2 rounded">السيولة النقدية الفورية المتوفرة لتغطية الالتزامات الحالية.</p>
                 </div>
             </div>
@@ -375,9 +469,17 @@ const LiquidityReport: React.FC<LiquidityReportProps> = ({ title }) => {
                             <span className="text-gray-600">الذمم المدينة (العملاء)</span>
                             <span className="font-bold">{formatNumber(analysis.totalReceivables)}</span>
                         </div>
+                        <div className="flex justify-between text-sm border-b border-gray-100 pb-2">
+                            <span className="text-gray-600">أرصدة مدينة أخرى</span>
+                            <span className="font-bold">{formatNumber(analysis.totalOtherReceivables)}</span>
+                        </div>
                         <div className="flex justify-between text-sm pb-2">
                             <span className="text-gray-600">قيمة المخزون (بسعر الشراء)</span>
                             <span className="font-bold">{formatNumber(analysis.totalInventory)}</span>
+                        </div>
+                        <div className="flex justify-between text-sm pb-2">
+                            <span className="text-gray-600">ضريبة القيمة المضافة المدفوعة</span>
+                            <span className="font-bold">{formatNumber(analysis.vatAsset)}</span>
                         </div>
                     </div>
                 </div>
@@ -392,9 +494,13 @@ const LiquidityReport: React.FC<LiquidityReportProps> = ({ title }) => {
                             <span className="text-gray-600">الذمم الدائنة (الموردين)</span>
                             <span className="font-bold">{formatNumber(analysis.totalPayables)}</span>
                         </div>
+                        <div className="flex justify-between text-sm border-b border-gray-100 pb-2">
+                            <span className="text-gray-600">أرصدة دائنة أخرى</span>
+                            <span className="font-bold">{formatNumber(analysis.totalOtherPayables)}</span>
+                        </div>
                         <div className="flex justify-between text-sm pb-2">
                             <span className="text-gray-600">الضريبة المستحقة</span>
-                            <span className="font-bold">{formatNumber(analysis.vatPayable > 0 ? analysis.vatPayable : 0)}</span>
+                            <span className="font-bold">{formatNumber(analysis.vatLiability)}</span>
                         </div>
                     </div>
                 </div>

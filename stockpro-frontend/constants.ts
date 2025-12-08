@@ -236,43 +236,6 @@ export const MENU_ITEMS: MenuItem[] = [
     icon: BarChartIcon,
     children: [
       {
-        key: "financial_analysis",
-        label: "التحليل المالي الذكي",
-        icon: TrendingUpIcon,
-        children: [
-          {
-            key: "liquidity_report",
-            label: "مؤشر السيولة والأمان",
-            icon: ActivityIcon,
-          },
-          {
-            key: "financial_performance_report",
-            label: "التحليل المالي المقارن",
-            icon: BarChartIcon,
-          },
-          {
-            key: "item_profitability_report",
-            label: "تحليل ربحية الأصناف",
-            icon: BoxIcon,
-          },
-          {
-            key: "debt_aging_report",
-            label: "تحليل أعمار الديون",
-            icon: ClockIcon,
-          },
-          {
-            key: "stagnant_items_report",
-            label: "تحليل المخزون الراكد",
-            icon: TrendingDownIcon,
-          },
-          {
-            key: "vip_customers_report",
-            label: "كبار العملاء (VIP)",
-            icon: TrophyIcon,
-          },
-        ],
-      },
-      {
         key: "item_reports",
         label: "تقارير الأصناف",
         icon: BarChartIcon,
@@ -430,7 +393,44 @@ export const MENU_ITEMS: MenuItem[] = [
             icon: BarChartIcon,
           },
         ],
-      }
+      },
+      {
+        key: "financial_analysis",
+        label: "التحليل المالي الذكي",
+        icon: TrendingUpIcon,
+        children: [
+          {
+            key: "liquidity_report",
+            label: "مؤشر السيولة والأمان",
+            icon: ActivityIcon,
+          },
+          {
+            key: "financial_performance_report",
+            label: "التحليل المالي المقارن",
+            icon: BarChartIcon,
+          },
+          {
+            key: "item_profitability_report",
+            label: "تحليل ربحية الأصناف",
+            icon: BoxIcon,
+          },
+          {
+            key: "debt_aging_report",
+            label: "تحليل أعمار الديون",
+            icon: ClockIcon,
+          },
+          {
+            key: "stagnant_items_report",
+            label: "تحليل المخزون الراكد",
+            icon: TrendingDownIcon,
+          },
+          {
+            key: "vip_customers_report",
+            label: "كبار العملاء (VIP)",
+            icon: TrophyIcon,
+          },
+        ],
+      },
     ],
   },
   {
