@@ -20,11 +20,22 @@ import {
 import { useAppSelector } from '../../store/hooks';
 import { selectCurrentUser } from '../../store/slices/auth/auth';
 import { useGetCompanyQuery } from '../../store/slices/companyApiSlice';
+import type { User } from '../../store/slices/user/userApi';
 
 interface InventoryCountProps {
     title: string;
     companyInfo: CompanyInfo;
 }
+
+// Helper function to get user's branch ID
+const getUserBranchId = (user: User | null): string | null => {
+    if (!user) return null;
+    if (user.branchId) return user.branchId;
+    const branch = (user as any)?.branch;
+    if (typeof branch === "string") return branch;
+    if (branch && typeof branch === "object") return branch.id || null;
+    return null;
+};
 
 const InventoryCountPage: React.FC<InventoryCountProps> = ({ title, companyInfo }) => {
     const [countId, setCountId] = useState<string>('');
@@ -47,22 +58,36 @@ const InventoryCountPage: React.FC<InventoryCountProps> = ({ title, companyInfo 
     const effectiveCompanyInfo = companyInfoFromApi || companyInfo;
 
     // Fetch data from Redux
-    const { data: items = [], isLoading: itemsLoading } = useGetItemsQuery(selectedStoreId ? { storeId: selectedStoreId } : undefined);
     const { data: stores = [], isLoading: storesLoading } = useGetStoresQuery();
+    const { data: items = [], isLoading: itemsLoading } = useGetItemsQuery(selectedStoreId ? { storeId: selectedStoreId } : undefined);
     const { data: inventoryCounts = [], isLoading: countsLoading } = useGetInventoryCountsQuery();
     const [createInventoryCount, { isLoading: isCreating }] = useCreateInventoryCountMutation();
     const [postInventoryCount, { isLoading: isPosting }] = usePostInventoryCountMutation();
     const [deleteInventoryCount, { isLoading: isDeleting }] = useDeleteInventoryCountMutation();
 
-    // Set default store when stores are loaded
+    // Get user's branch ID and find their store
+    const userBranchId = getUserBranchId(currentUser);
+    const userStore = useMemo(() => 
+        stores.find((store) => store.branchId === userBranchId),
+        [stores, userBranchId]
+    );
+
+    // Set user's store as default when stores are loaded
     useEffect(() => {
-        if (stores.length > 0 && !selectedStoreId) {
-            setSelectedStoreId(stores[0].id);
+        if (stores.length > 0 && userStore && !selectedStoreId) {
+            setSelectedStoreId(userStore.id);
         }
-    }, [stores, selectedStoreId]);
+    }, [stores, userStore, selectedStoreId]);
 
     // Initialize new count
     const initializeCount = () => {
+        // Reset to user's store when creating new count
+        if (userStore && selectedStoreId !== userStore.id) {
+            setSelectedStoreId(userStore.id);
+            setCountItems([]);
+            return; // Will re-run when store changes and items load
+        }
+
         if (!selectedStoreId || items.length === 0) return;
 
         setCountId('');
@@ -588,9 +613,14 @@ const InventoryCountPage: React.FC<InventoryCountProps> = ({ title, companyInfo 
                                 setCountItems([]); // Reset items when store changes
                             }} 
                             className={inputStyle} 
-                            disabled={status === 'POSTED'}
+                            disabled={status === 'POSTED' || !userStore}
+                            title={!userStore ? "يجب أن يكون لديك مخزن مرتبط بفرعك" : (status === 'POSTED' ? "لا يمكن تغيير المخزن بعد الاعتماد" : "")}
                         >
-                            {stores.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                            {userStore ? (
+                                <option value={userStore.id}>{userStore.name}</option>
+                            ) : (
+                                <option value="">لا يوجد مخزن متاح</option>
+                            )}
                         </select>
                     </div>
                     <div>
