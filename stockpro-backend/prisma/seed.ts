@@ -55,6 +55,7 @@ const MENU_ITEMS: MenuItem[] = [
     key: 'sales',
     label: 'المبيعات',
     children: [
+      { key: 'pos', label: 'نقطة بيع (POS)' },
       { key: 'price_quotation', label: 'عرض أسعار' },
       { key: 'sales_invoice', label: 'فاتورة مبيعات' },
       { key: 'sales_return', label: 'مرتجع مبيعات' },
@@ -383,6 +384,7 @@ async function main() {
       (p) =>
         p.resource === 'dashboard' ||
         p.resource === 'sales' ||
+        p.resource === 'pos' ||
         p.resource === 'price_quotation' ||
         p.resource === 'sales_invoice' ||
         p.resource === 'sales_return' ||

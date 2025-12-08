@@ -16,6 +16,7 @@ import StoreReceiptVoucher from "../components/pages/warehouse/StoreReceiptVouch
 import StoreIssueVoucher from "../components/pages/warehouse/StoreIssueVoucher";
 import StoreTransfer from "../components/pages/warehouse/StoreTransfer";
 import InventoryCount from "../components/pages/warehouse/InventoryCount";
+import POS from "../components/pages/sales/POS";
 import SalesInvoice from "../components/pages/sales/SalesInvoice";
 import PriceQuotation from "../components/pages/sales/PriceQuotation";
 import SalesReturn from "../components/pages/sales/SalesReturn";
@@ -208,6 +209,12 @@ export const routeConfig = [
   },
 
   // Sales
+  {
+    path: "/sales/pos",
+    component: POS,
+    requiredPermission: "pos-read",
+    label: "نقطة بيع (POS)",
+  },
   {
     path: "/sales/invoice",
     component: SalesInvoice,

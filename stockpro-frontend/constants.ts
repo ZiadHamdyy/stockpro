@@ -20,6 +20,7 @@ import {
   TrendingUpIcon,
   TrendingDownIcon,
   PrintIcon,
+  GridIcon,
 } from "./components/icons";
 import type { MenuItem } from "./types";
 
@@ -87,6 +88,7 @@ export const MENU_ITEMS: MenuItem[] = [
     label: "المبيعات",
     icon: ShoppingCartIcon,
     children: [
+      { key: 'pos', label: 'نقطة بيع (POS)', icon: GridIcon },
       { key: "price_quotation", label: "عرض أسعار", icon: ListIcon },
       { key: "sales_invoice", label: "فاتورة مبيعات", icon: ShoppingCartIcon },
       { key: "sales_return", label: "مرتجع مبيعات", icon: ShoppingCartIcon },

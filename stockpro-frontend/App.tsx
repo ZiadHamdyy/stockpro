@@ -23,6 +23,7 @@ import { TitleProvider } from "./components/context/TitleContext";
 import Dashboard from "./components/pages/Dashboard";
 import Placeholder from "./components/pages/Placeholder";
 import Login from "./components/pages/Login";
+import POS from "./components/pages/sales/POS";
 import CompanyData from "./components/pages/settings/CompanyData";
 import FiscalYears from "./components/pages/settings/FiscalYears";
 import BranchesData from "./components/pages/settings/BranchesData";
@@ -160,6 +161,7 @@ const rolePermissions: Record<string, string[]> = {
   محاسب: [
     "dashboard",
     "sales",
+    "pos",
     "purchases",
     "customers",
     "suppliers",
@@ -174,6 +176,7 @@ const rolePermissions: Record<string, string[]> = {
   ],
   بائع: [
     "dashboard",
+    "pos",
     "sales_invoice",
     "sales_return",
     "daily_sales",
@@ -906,6 +909,37 @@ const AppContent = () => {
                   <SalesReturnWrapper
                     title={currentPageTitle}
                     currentUser={currentUser}
+                  />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/sales/pos"
+              element={
+                <ProtectedRoute requiredPermission="pos-read">
+                  <POS
+                    title={currentPageTitle}
+                    items={items}
+                    itemGroups={itemGroups}
+                    onSaveInvoice={(invoice) => {
+                      setInvoices((prev) => [...prev, invoice]);
+                      setReceipts((prev) => [
+                        ...prev,
+                        {
+                          id: `RV-${Date.now()}`,
+                          date: invoice.date,
+                          amount: invoice.totals.net,
+                          description: `POS Invoice ${invoice.id}`,
+                        },
+                      ]);
+                    }}
+                    currentUser={currentUser}
+                    safes={safes}
+                    banks={banks}
+                    vatRate={companyInfo.vatRate}
+                    isVatEnabled={companyInfo.isVatEnabled}
+                    customers={customers}
+                    companyInfo={companyInfo}
                   />
                 </ProtectedRoute>
               }
