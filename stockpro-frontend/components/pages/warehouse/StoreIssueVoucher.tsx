@@ -15,6 +15,7 @@ import type {
   Branch,
   StoreIssueVoucher as StoreIssueVoucherType,
 } from "../../../types";
+import type { User } from "../../store/slices/user/userApi";
 import { useModal } from "../../common/ModalProvider.tsx";
 import { useToast } from "../../common/ToastProvider.tsx";
 import BarcodeScannerModal from "../../common/BarcodeScannerModal";
@@ -46,6 +47,16 @@ type SelectableItem = {
 interface StoreIssueVoucherProps {
   title: string;
 }
+
+// Helper function to get user's branch ID
+const getUserBranchId = (user: User | null): string | null => {
+  if (!user) return null;
+  if (user.branchId) return user.branchId;
+  const branch = (user as any)?.branch;
+  if (typeof branch === "string") return branch;
+  if (branch && typeof branch === "object") return branch.id || null;
+  return null;
+};
 
 const DocumentHeader: React.FC<{ companyInfo: CompanyInfo }> = ({
   companyInfo,
@@ -90,13 +101,30 @@ const StoreIssueVoucher: React.FC<StoreIssueVoucherProps> = ({ title }) => {
   const { data: allVouchers = [], isLoading: isLoadingVouchers, refetch: refetchVouchers } =
     useGetStoreIssueVouchersQuery();
   
-  // Filter out system-generated vouchers (marked with [نظام] in notes)
+  // Get current user from auth state
+  const currentUser = useSelector((state: RootState) => state.auth.user);
+  
+  // Get current user's branch ID
+  const userBranchId = getUserBranchId(currentUser);
+  
+  // Filter vouchers: exclude system-generated ones, and show only current branch + current user
   const vouchers = useMemo(() => {
     return allVouchers.filter((v: any) => {
+      // Filter out system-generated vouchers (marked with [نظام] in notes)
       const notes = v.notes || "";
-      return !notes.includes("[نظام]");
+      if (notes.includes("[نظام]")) return false;
+      
+      // Filter by current branch
+      const voucherBranchId = v.store?.branch?.id;
+      if (userBranchId && voucherBranchId !== userBranchId) return false;
+      
+      // Filter by current user
+      const voucherUserId = v.user?.id || v.userId;
+      if (currentUser?.id && voucherUserId !== currentUser.id) return false;
+      
+      return true;
     });
-  }, [allVouchers]);
+  }, [allVouchers, userBranchId, currentUser?.id]);
   const [createVoucher, { isLoading: isCreating }] =
     useCreateStoreIssueVoucherMutation();
   const [updateVoucher, { isLoading: isUpdating }] =
@@ -104,9 +132,6 @@ const StoreIssueVoucher: React.FC<StoreIssueVoucherProps> = ({ title }) => {
   const [deleteVoucher, { isLoading: isDeleting }] =
     useDeleteStoreIssueVoucherMutation();
   const [getStoreItemBalance] = useLazyGetStoreItemBalanceQuery();
-
-  // Get current user from auth state
-  const currentUser = useSelector((state: RootState) => state.auth.user);
 
   const getEmptyItems = (count: number = 5): StoreVoucherItem[] =>
     Array.from({ length: count }, () => ({

@@ -109,8 +109,30 @@ const StoreTransfer: React.FC<StoreTransferProps> = ({ title }) => {
   const { data: companyInfo } = useGetCompanyQuery();
   const { data: branches = [] } = useGetBranchesQuery();
   const { data: stores = [] } = useGetStoresQuery();
-  const { data: vouchers = [], isLoading: isLoadingVouchers, refetch: refetchVouchers } =
+  const { data: allVouchers = [], isLoading: isLoadingVouchers, refetch: refetchVouchers } =
     useGetStoreTransferVouchersQuery();
+  
+  // Filter vouchers: show only current branch + current user
+  const vouchers = useMemo(() => {
+    return allVouchers.filter((v: any) => {
+      // Filter by current branch - check if either fromStore or toStore branch matches
+      const fromStoreBranchId = v.fromStore?.branch?.id;
+      const toStoreBranchId = v.toStore?.branch?.id;
+      if (userBranchId) {
+        if (fromStoreBranchId !== userBranchId && toStoreBranchId !== userBranchId) {
+          return false;
+        }
+      }
+      
+      // Filter by current user
+      const voucherUserId = v.user?.id || v.userId;
+      if (currentUser?.id && voucherUserId !== currentUser.id) {
+        return false;
+      }
+      
+      return true;
+    });
+  }, [allVouchers, userBranchId, currentUser?.id]);
   const [createVoucher, { isLoading: isCreating }] =
     useCreateStoreTransferVoucherMutation();
   const [updateVoucher, { isLoading: isUpdating }] =

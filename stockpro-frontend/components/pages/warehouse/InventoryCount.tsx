@@ -63,14 +63,29 @@ const InventoryCountPage: React.FC<InventoryCountProps> = ({ title, companyInfo 
     // Fetch data from Redux
     const { data: stores = [], isLoading: storesLoading } = useGetStoresQuery();
     const { data: items = [], isLoading: itemsLoading } = useGetItemsQuery(selectedStoreId ? { storeId: selectedStoreId } : undefined);
-    const { data: inventoryCounts = [], isLoading: countsLoading } = useGetInventoryCountsQuery();
+    const { data: allInventoryCounts = [], isLoading: countsLoading } = useGetInventoryCountsQuery();
+    
+    // Get user's branch ID and filter inventory counts
+    const userBranchId = getUserBranchId(currentUser);
+    const inventoryCounts = useMemo(() => {
+        return allInventoryCounts.filter((count: any) => {
+            // Filter by current branch
+            const countBranchId = count.store?.branch?.id;
+            if (userBranchId && countBranchId !== userBranchId) return false;
+            
+            // Filter by current user
+            const countUserId = count.user?.id || count.userId;
+            if (currentUser?.id && countUserId !== currentUser.id) return false;
+            
+            return true;
+        });
+    }, [allInventoryCounts, userBranchId, currentUser?.id]);
     const [createInventoryCount, { isLoading: isCreating }] = useCreateInventoryCountMutation();
     const [postInventoryCount, { isLoading: isPosting }] = usePostInventoryCountMutation();
     const [updateInventoryCount, { isLoading: isUpdating }] = useUpdateInventoryCountMutation();
     const [deleteInventoryCount, { isLoading: isDeleting }] = useDeleteInventoryCountMutation();
 
-    // Get user's branch ID and find their store
-    const userBranchId = getUserBranchId(currentUser);
+    // Find user's store
     const userStore = useMemo(() => 
         stores.find((store) => store.branchId === userBranchId),
         [stores, userBranchId]
