@@ -104,10 +104,12 @@ const BalanceSheet: React.FC = () => {
   }, []);
 
   // Compute VAT net from مدين/دائن totals (same logic as VATStatementReport)
+  // Includes opening balance (transactions before startDate) to carry forward to future
   const vatNetFromStatement = useMemo(() => {
     const normalizedStartDate = normalizeDate(startDate);
     const normalizedEndDate = normalizeDate(endDate);
 
+    // Filters for current period (between startDate and endDate)
     const filterByDate = (inv: any) => {
       const invDate = normalizeDate(inv.date);
       return invDate >= normalizedStartDate && invDate <= normalizedEndDate;
@@ -123,6 +125,85 @@ const BalanceSheet: React.FC = () => {
       return vDate >= normalizedStartDate && vDate <= normalizedEndDate;
     };
 
+    // Filters for opening balance (before startDate)
+    const filterBeforeStartDate = (inv: any) => {
+      const invDate = normalizeDate(inv.date);
+      return invDate < normalizedStartDate;
+    };
+
+    const filterVoucherBeforeStartDate = (v: PaymentVoucher) => {
+      const vDate = normalizeDate(v.date);
+      return vDate < normalizedStartDate;
+    };
+
+    const filterReceiptVoucherBeforeStartDate = (v: ReceiptVoucher) => {
+      const vDate = normalizeDate(v.date);
+      return vDate < normalizedStartDate;
+    };
+
+    // Calculate opening balance (before startDate)
+    let openingDebit = 0;
+    let openingCredit = 0;
+
+    // Opening Debit (مدين): Sales Invoices + Purchase Returns
+    (apiSalesInvoices as any[])
+      .filter(filterBeforeStartDate)
+      .forEach((inv) => {
+        const tax = inv.tax || 0;
+        openingDebit += tax;
+      });
+
+    (apiPurchaseReturns as any[])
+      .filter(filterBeforeStartDate)
+      .forEach((inv) => {
+        const tax = inv.tax || 0;
+        openingDebit += tax;
+      });
+
+    // Opening Credit (دائن): Purchase Invoices + Sales Returns + Expense-Type Tax from Payment Vouchers
+    (apiPurchaseInvoices as any[])
+      .filter(filterBeforeStartDate)
+      .forEach((inv) => {
+        const tax = inv.tax || 0;
+        openingCredit += tax;
+      });
+
+    (apiSalesReturns as any[])
+      .filter(filterBeforeStartDate)
+      .forEach((inv) => {
+        const tax = inv.tax || 0;
+        openingCredit += tax;
+      });
+
+    (apiPaymentVouchers as PaymentVoucher[])
+      .filter(
+        (v) => v.entityType === "expense-Type" && v.taxPrice && v.taxPrice > 0,
+      )
+      .filter(filterVoucherBeforeStartDate)
+      .forEach((v) => {
+        const tax = v.taxPrice || 0;
+        openingCredit += tax;
+      });
+
+    // Opening VAT from Receipt Vouchers (Debit - VAT collected)
+    (apiReceiptVouchers as ReceiptVoucher[])
+      .filter((v) => v.entityType === "vat" && v.amount && v.amount > 0)
+      .filter(filterReceiptVoucherBeforeStartDate)
+      .forEach((v) => {
+        const tax = v.amount || 0;
+        openingDebit += tax;
+      });
+
+    // Opening VAT from Payment Vouchers (Credit - VAT paid)
+    (apiPaymentVouchers as PaymentVoucher[])
+      .filter((v) => v.entityType === "vat" && v.amount && v.amount > 0)
+      .filter(filterVoucherBeforeStartDate)
+      .forEach((v) => {
+        const tax = v.amount || 0;
+        openingCredit += tax;
+      });
+
+    // Calculate current period (between startDate and endDate)
     let totalDebit = 0;
     let totalCredit = 0;
 
@@ -184,8 +265,14 @@ const BalanceSheet: React.FC = () => {
         totalCredit += tax;
       });
 
-    // Same formula used in VATStatementReport: netTax = totalCredit - totalDebit
-    return totalCredit - totalDebit;
+    // Calculate opening net VAT
+    const openingNetVat = openingCredit - openingDebit;
+    
+    // Calculate current period net VAT
+    const currentPeriodNetVat = totalCredit - totalDebit;
+    
+    // Total cumulative VAT (opening + current period) - continues to future
+    return openingNetVat + currentPeriodNetVat;
   }, [
     apiSalesInvoices,
     apiSalesReturns,
