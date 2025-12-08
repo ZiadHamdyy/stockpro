@@ -919,27 +919,6 @@ const AppContent = () => {
                 <ProtectedRoute requiredPermission="pos-read">
                   <POS
                     title={currentPageTitle}
-                    items={items}
-                    itemGroups={itemGroups}
-                    onSaveInvoice={(invoice) => {
-                      setInvoices((prev) => [...prev, invoice]);
-                      setReceipts((prev) => [
-                        ...prev,
-                        {
-                          id: `RV-${Date.now()}`,
-                          date: invoice.date,
-                          amount: invoice.totals.net,
-                          description: `POS Invoice ${invoice.id}`,
-                        },
-                      ]);
-                    }}
-                    currentUser={currentUser}
-                    safes={safes}
-                    banks={banks}
-                    vatRate={companyInfo.vatRate}
-                    isVatEnabled={companyInfo.isVatEnabled}
-                    customers={customers}
-                    companyInfo={companyInfo}
                   />
                 </ProtectedRoute>
               }

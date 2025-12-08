@@ -2,11 +2,8 @@ import React, { useState, useEffect, useMemo, useRef } from "react";
 import type {
   Item,
   ItemGroup,
-  Invoice,
   InvoiceItem,
   User,
-  Safe,
-  Bank,
   Customer,
   CompanyInfo,
 } from "../../../types";
@@ -40,22 +37,27 @@ import {
   UsersIcon,
 } from "../../icons";
 import { useToast } from "../../common/ToastProvider";
-import { useModal } from "../../common/ModalProvider";
 import { formatNumber } from "../../../utils/formatting";
 import InvoicePrintPreview from "./InvoicePrintPreview";
+import { useAppSelector } from "../../store/hooks";
+import {
+  useGetItemsQuery,
+  useGetItemGroupsQuery,
+} from "../../store/slices/items/itemsApi";
+import { useGetCustomersQuery } from "../../store/slices/customer/customerApiSlice";
+import { useGetSafesQuery } from "../../store/slices/safe/safeApiSlice";
+import { useGetBanksQuery } from "../../store/slices/bank/bankApiSlice";
+import { useGetCompanyQuery } from "../../store/slices/companyApiSlice";
+import { useGetStoresQuery } from "../../store/slices/store/storeApi";
+import {
+  useCreateSalesInvoiceMutation,
+  type CreateSalesInvoiceRequest,
+} from "../../store/slices/salesInvoice/salesInvoiceApiSlice";
+import { showApiErrorToast } from "../../../utils/errorToast";
 
-interface POSProps {
-  items: Item[];
-  itemGroups: ItemGroup[];
-  onSaveInvoice: (invoice: Invoice) => void;
-  currentUser: User | null;
-  safes: Safe[];
-  banks: Bank[];
-  vatRate: number;
-  isVatEnabled: boolean;
-  customers?: Customer[];
-  companyInfo: CompanyInfo;
-}
+type POSProps = {
+  title?: string;
+};
 
 // Visual Card for Product - Professional Design with Bottom Info Footer
 const ProductCard: React.FC<{ item: Item; onAdd: (item: Item) => void }> = ({
@@ -180,18 +182,98 @@ const CartItemRow: React.FC<{
   );
 };
 
-const POS: React.FC<POSProps> = ({
-  items,
-  itemGroups,
-  onSaveInvoice,
-  currentUser,
-  safes,
-  banks,
-  vatRate,
-  isVatEnabled,
-  customers = [],
-  companyInfo,
-}) => {
+const getUserBranchId = (user: User | null): string | null => {
+  if (!user) return null;
+  return (user as any)?.branchId || (user as any)?.branch || null;
+};
+
+const POS: React.FC<POSProps> = () => {
+  const currentUser = useAppSelector((state) => state.auth.user);
+
+  // --- Data from API / Redux ---
+  const { data: company } = useGetCompanyQuery();
+  const vatRate = company?.vatRate ?? 0;
+  const isVatEnabled = company?.isVatEnabled ?? false;
+  const companyInfo: CompanyInfo = {
+    name: company?.name ?? "",
+    activity: company?.activity ?? "",
+    address: company?.address ?? "",
+    phone: company?.phone ?? "",
+    taxNumber: company?.taxNumber ?? "",
+    commercialReg: (company as any)?.commercialReg ?? "",
+    currency: company?.currency ?? "SAR",
+    logo: (company as any)?.logo ?? null,
+    capital: (company as any)?.capital ?? 0,
+    vatRate,
+    isVatEnabled,
+  };
+
+  const { data: stores = [] } = useGetStoresQuery();
+  const userBranchId = getUserBranchId(currentUser);
+  const userStore = stores.find((store) => store.branchId === userBranchId);
+
+  const { data: itemsData = [] } = useGetItemsQuery(
+    userStore ? { storeId: userStore.id } : undefined,
+  );
+  const { data: itemGroupsData = [] } = useGetItemGroupsQuery(undefined);
+  const { data: customersData = [] } = useGetCustomersQuery();
+  const { data: safesData = [] } = useGetSafesQuery();
+  const { data: banks = [] } = useGetBanksQuery();
+
+  const filteredSafes = useMemo(
+    () =>
+      userBranchId
+        ? safesData.filter((safe) => safe.branchId === userBranchId)
+        : safesData,
+    [safesData, userBranchId],
+  );
+
+  const items: Item[] = useMemo(
+    () =>
+      (itemsData as any[]).map((item) => ({
+        id: item.id ?? item.code ?? 0,
+        code: item.code ?? String(item.id ?? ""),
+        barcode: item.barcode ?? "",
+        name: item.name ?? "",
+        group:
+          item.group?.name || item.group?.title || item.groupName || "غير مصنف",
+        unit: item.unit?.name || item.unitName || item.unit || "",
+        purchasePrice: Number(item.purchasePrice ?? item.cost ?? 0),
+        salePrice: Number(item.salePrice ?? item.price ?? 0),
+        stock: Number(item.stock ?? item.balance ?? 0),
+        reorderLimit: item.reorderLimit ?? 0,
+      })),
+    [itemsData],
+  );
+
+  const itemGroups: ItemGroup[] = useMemo(
+    () =>
+      (itemGroupsData as any[]).map((group) => ({
+        id: group.id ?? group.code ?? 0,
+        name: group.name ?? group.title ?? "",
+      })),
+    [itemGroupsData],
+  );
+
+  const customers: Customer[] = useMemo(
+    () =>
+      (customersData as any[]).map((cust) => ({
+        id: cust.id?.toString() ?? "",
+        code: cust.code ?? "",
+        name: cust.name ?? "",
+        commercialReg: cust.commercialReg ?? "",
+        taxNumber: cust.taxNumber ?? "",
+        nationalAddress: cust.nationalAddress ?? "",
+        phone: cust.phone ?? "",
+        openingBalance: Number(cust.openingBalance ?? 0),
+        currentBalance: Number(cust.currentBalance ?? 0),
+      })),
+    [customersData],
+  );
+
+  const [createSalesInvoice, { isLoading: isCreatingInvoice }] =
+    useCreateSalesInvoiceMutation();
+
   // --- State ---
   const [cart, setCart] = useState<InvoiceItem[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
@@ -251,10 +333,11 @@ const POS: React.FC<POSProps> = ({
   >([]);
   const [paymentAmount, setPaymentAmount] = useState<string>("");
   const [paymentMethod, setPaymentMethod] = useState<"cash" | "credit">("cash");
-  const [invoiceNumber] = useState(`POS-${Date.now().toString().slice(-6)}`);
+  const [invoiceNumber, setInvoiceNumber] = useState(
+    `POS-${Date.now().toString().slice(-6)}`,
+  );
 
   const { showToast } = useToast();
-  const { showModal } = useModal();
 
   // --- Effects ---
   useEffect(() => {
@@ -395,33 +478,50 @@ const POS: React.FC<POSProps> = ({
     setIsCheckoutOpen(true);
   };
 
-  const handleConfirmPayment = () => {
-    const safeId = safes[0]?.id !== undefined ? Number(safes[0].id) : null;
-    const bankId = banks[0]?.id !== undefined ? Number(banks[0].id) : null;
-    const invoice: Invoice = {
-      id: `POS-${Date.now()}`,
+  const handleConfirmPayment = async () => {
+    if (cart.length === 0) return;
+
+    const safeId = filteredSafes[0]?.id?.toString();
+    const bankId = banks[0]?.id?.toString();
+
+    const payload: CreateSalesInvoiceRequest = {
+      customerId: selectedCustomer.id !== "cash" ? selectedCustomer.id : undefined,
       date: new Date().toISOString().substring(0, 10),
-      customerOrSupplier: selectedCustomer,
-      items: cart,
-      totals: totals,
-      paymentMethod: paymentMethod,
+      items: cart.map((i) => ({
+        id: i.id,
+        name: i.name,
+        unit: i.unit,
+        qty: i.qty,
+        price: i.price,
+        taxAmount: i.taxAmount,
+        total: i.total,
+      })),
+      discount,
+      paymentMethod,
       paymentTargetType: paymentMethod === "cash" ? "safe" : "bank",
-      paymentTargetId: paymentMethod === "cash" ? safeId : bankId,
-      userName: currentUser?.fullName || "Cashier",
-      branchName:
-        (currentUser as any)?.branch?.name || currentUser?.branch || "Main",
+      paymentTargetId:
+        paymentMethod === "cash" ? safeId ?? undefined : bankId ?? undefined,
+      bankTransactionType: paymentMethod === "credit" ? "POS" : undefined,
+      notes,
     };
 
-    onSaveInvoice(invoice);
+    try {
+      const created = await createSalesInvoice(payload).unwrap();
+      if (created?.code) {
+        setInvoiceNumber(created.code);
+      }
 
-    setCart([]);
-    setDiscount(0);
-    setSearchQuery("");
-    setNotes("");
-    setSelectedCustomer({ id: "cash", name: "عميل نقدي" });
-    setIsReturnMode(false);
-    setIsCheckoutOpen(false);
-    showToast("تم إصدار الفاتورة بنجاح");
+      setCart([]);
+      setDiscount(0);
+      setSearchQuery("");
+      setNotes("");
+      setSelectedCustomer({ id: "cash", name: "عميل نقدي" });
+      setIsReturnMode(false);
+      setIsCheckoutOpen(false);
+      showToast("تم إصدار الفاتورة بنجاح");
+    } catch (error: any) {
+      showApiErrorToast(error);
+    }
   };
 
   const handleHold = () => {
@@ -932,7 +1032,8 @@ const POS: React.FC<POSProps> = ({
             <div className="p-6 border-t bg-gray-50">
               <button
                 onClick={handleConfirmPayment}
-                className="w-full py-5 bg-slate-900 hover:bg-slate-800 text-white rounded-xl font-bold text-xl shadow-lg transition-all flex items-center justify-center gap-3 active:scale-[0.99]"
+                disabled={isCreatingInvoice}
+                className="w-full py-5 bg-slate-900 hover:bg-slate-800 disabled:opacity-60 disabled:cursor-not-allowed text-white rounded-xl font-bold text-xl shadow-lg transition-all flex items-center justify-center gap-3 active:scale-[0.99]"
               >
                 <CheckIcon className="w-6 h-6" />
                 إتمام العملية وطباعة
