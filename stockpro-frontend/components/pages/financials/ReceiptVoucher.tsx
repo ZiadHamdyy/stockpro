@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useMemo } from "react";
 import { useSearchParams } from "react-router-dom";
 import { PrintIcon } from "../../icons";
 import { tafqeet } from "../../../utils/tafqeet";
@@ -41,7 +41,7 @@ const ReceiptVoucher: React.FC<ReceiptVoucherProps> = ({ title }) => {
   const { data: payableAccounts = [] } = useGetPayableAccountsQuery();
   const [searchParams, setSearchParams] = useSearchParams();
   const {
-    vouchers,
+    vouchers: allVouchers,
     customers,
     suppliers,
     currentAccounts,
@@ -60,6 +60,34 @@ const ReceiptVoucher: React.FC<ReceiptVoucherProps> = ({ title }) => {
     currentIndex,
     setCurrentIndex,
   } = useReceiptVouchers();
+  
+  // Helper function to get user's branch ID
+  const getUserBranchId = (user: any): string | null => {
+    if (!user) return null;
+    if (user.branchId) return user.branchId;
+    const branch = user?.branch;
+    if (typeof branch === "string") return branch;
+    if (branch && typeof branch === "object") return branch.id || null;
+    return null;
+  };
+  
+  // Get current user's branch ID
+  const userBranchId = getUserBranchId(User);
+  
+  // Filter vouchers: show only current branch + current user
+  const vouchers = useMemo(() => {
+    return allVouchers.filter((voucher: any) => {
+      // Filter by current branch
+      const voucherBranchId = voucher.branch?.id || voucher.branchId;
+      if (userBranchId && voucherBranchId !== userBranchId) return false;
+      
+      // Filter by current user
+      const voucherUserId = voucher.user?.id || voucher.userId;
+      if (User?.id && voucherUserId !== User.id) return false;
+      
+      return true;
+    });
+  }, [allVouchers, userBranchId, User?.id]);
 
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [isSearchModalOpen, setIsSearchModalOpen] = useState(false);
