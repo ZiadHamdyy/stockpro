@@ -3,6 +3,7 @@ import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import DataTableModal from '../../common/DataTableModal';
 import DocumentHeader from '../../common/DocumentHeader';
+import PermissionWrapper from '../../common/PermissionWrapper';
 import { BarcodeIcon, ListIcon, PrintIcon, TrashIcon } from '../../icons';
 import { tafqeet } from '../../../utils/tafqeet';
 import type { CompanyInfo, InvoiceItem, Customer } from '../../../types';
@@ -20,6 +21,11 @@ import {
     type PriceQuotation as PriceQuotationRecord,
 } from '../../store/slices/priceQuotation/priceQuotationApiSlice';
 import { useAppSelector } from '../../store/hooks';
+import {
+    Actions,
+    Resources,
+    buildPermission,
+} from '../../../enums/permissions.enum';
 
 type SelectableItem = {id: string, name: string, unit: string, price: number, stock: number, barcode?: string};
 
@@ -131,6 +137,7 @@ const PriceQuotation: React.FC<PriceQuotationProps> = ({ title }) => {
         () => currentIndex >= 0 && isReadOnly,
         [currentIndex, isReadOnly]
     );
+    const isExistingQuotation = currentIndex >= 0;
 
     const handleNew = () => {
         setCurrentIndex(-1);
@@ -591,45 +598,93 @@ const PriceQuotation: React.FC<PriceQuotationProps> = ({ title }) => {
                                     readOnly
                                 />
                             </div>
-                            <div className="flex flex-col">
-                                <label className="text-xs text-gray-500 mb-1">تاريخ العرض</label>
-                                <input type="date" className={inputStyle} value={quotationDetails.date} onChange={e => setQuotationDetails({...quotationDetails, date: e.target.value})} disabled={isReadOnly} />
-                            </div>
-                            <div className="flex flex-col">
-                                <label className="text-xs text-gray-500 mb-1">تاريخ الانتهاء</label>
-                                <input type="date" className={inputStyle} value={quotationDetails.expiryDate} onChange={e => setQuotationDetails({...quotationDetails, expiryDate: e.target.value})} disabled={isReadOnly} />
-                            </div>
-                            <div className="flex flex-col" ref={customerRef}>
-                                <label className="text-xs text-gray-500 mb-1">العميل</label>
-                                <div className="relative">
-                                    <input
-                                      type="text"
-                                      placeholder="ابحث عن عميل..."
-                                      className={inputStyle}
-                                      value={customerQuery}
-                                      onChange={(e) => {
-                                        setCustomerQuery(e.target.value);
-                                        setIsCustomerDropdownOpen(true);
-                                        setSelectedCustomer(null);
-                                      }}
-                                      onFocus={() => setIsCustomerDropdownOpen(true)}
-                                      disabled={isReadOnly}
-                                    />
-                                    {isCustomerDropdownOpen && !isReadOnly && (
-                                      <div className="absolute z-20 w-full top-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-y-auto overscroll-contain">
-                                        {filteredCustomers.map((customer) => (
-                                          <div
-                                            key={customer.id}
-                                            onClick={() => handleSelectCustomer(customer)}
-                                            className="p-2 cursor-pointer hover:bg-brand-blue-bg"
-                                          >
-                                            {customer.name}
-                                          </div>
-                                        ))}
-                                      </div>
-                                    )}
+                            <PermissionWrapper
+                                requiredPermission={buildPermission(
+                                    Resources.PRICE_QUOTATION,
+                                    Actions.UPDATE
+                                )}
+                                fallback={
+                                    <div className="flex flex-col">
+                                        <label className="text-xs text-gray-500 mb-1">تاريخ العرض</label>
+                                        <input type="date" className={inputStyle} value={quotationDetails.date} disabled readOnly />
+                                    </div>
+                                }
+                            >
+                                <div className="flex flex-col">
+                                    <label className="text-xs text-gray-500 mb-1">تاريخ العرض</label>
+                                    <input type="date" className={inputStyle} value={quotationDetails.date} onChange={e => setQuotationDetails({...quotationDetails, date: e.target.value})} disabled={isReadOnly} />
                                 </div>
-                            </div>
+                            </PermissionWrapper>
+                            <PermissionWrapper
+                                requiredPermission={buildPermission(
+                                    Resources.PRICE_QUOTATION,
+                                    Actions.UPDATE
+                                )}
+                                fallback={
+                                    <div className="flex flex-col">
+                                        <label className="text-xs text-gray-500 mb-1">تاريخ الانتهاء</label>
+                                        <input type="date" className={inputStyle} value={quotationDetails.expiryDate} disabled readOnly />
+                                    </div>
+                                }
+                            >
+                                <div className="flex flex-col">
+                                    <label className="text-xs text-gray-500 mb-1">تاريخ الانتهاء</label>
+                                    <input type="date" className={inputStyle} value={quotationDetails.expiryDate} onChange={e => setQuotationDetails({...quotationDetails, expiryDate: e.target.value})} disabled={isReadOnly} />
+                                </div>
+                            </PermissionWrapper>
+                            <PermissionWrapper
+                                requiredPermission={buildPermission(
+                                    Resources.PRICE_QUOTATION,
+                                    Actions.READ
+                                )}
+                                fallback={
+                                    <div className="flex flex-col" ref={customerRef}>
+                                        <label className="text-xs text-gray-500 mb-1">العميل</label>
+                                        <div className="relative">
+                                            <input
+                                                type="text"
+                                                placeholder="ابحث عن عميل..."
+                                                className={inputStyle}
+                                                value={customerQuery}
+                                                disabled
+                                                readOnly
+                                            />
+                                        </div>
+                                    </div>
+                                }
+                            >
+                                <div className="flex flex-col" ref={customerRef}>
+                                    <label className="text-xs text-gray-500 mb-1">العميل</label>
+                                    <div className="relative">
+                                        <input
+                                          type="text"
+                                          placeholder="ابحث عن عميل..."
+                                          className={inputStyle}
+                                          value={customerQuery}
+                                          onChange={(e) => {
+                                            setCustomerQuery(e.target.value);
+                                            setIsCustomerDropdownOpen(true);
+                                            setSelectedCustomer(null);
+                                          }}
+                                          onFocus={() => setIsCustomerDropdownOpen(true)}
+                                          disabled={isReadOnly}
+                                        />
+                                        {isCustomerDropdownOpen && !isReadOnly && (
+                                          <div className="absolute z-20 w-full top-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-y-auto overscroll-contain">
+                                            {filteredCustomers.map((customer) => (
+                                              <div
+                                                key={customer.id}
+                                                onClick={() => handleSelectCustomer(customer)}
+                                                className="p-2 cursor-pointer hover:bg-brand-blue-bg"
+                                              >
+                                                {customer.name}
+                                              </div>
+                                            ))}
+                                          </div>
+                                        )}
+                                    </div>
+                                </div>
+                            </PermissionWrapper>
                         </div>
                     </div>
                 </div>
@@ -654,32 +709,76 @@ const PriceQuotation: React.FC<PriceQuotationProps> = ({ title }) => {
                                  <tr key={index} className="hover:bg-yellow-50 transition-colors duration-150">
                                     <td className="p-2 align-middle text-center border-x border-amber-200 w-10">{index + 1}</td>
                                     <td className="p-2 align-middle border-x border-amber-200 w-24">
-                                        <input 
-                                            type="text" 
-                                            value={item.id} 
-                                            onChange={(e) => handleItemChange(index, 'id', e.target.value)} 
-                                            onKeyDown={(e) => handleTableKeyDown(e, index, 'id')}
-                                            className={tableInputStyle + " w-full"} 
-                                            disabled={isReadOnly}
-                                        />
-                                    </td>
-                                    <td className="p-2 align-middle border-x border-amber-200 relative w-2/5">
-                                        <div className="flex items-center">
+                                        <PermissionWrapper
+                                            requiredPermission={buildPermission(
+                                                Resources.PRICE_QUOTATION,
+                                                Actions.UPDATE
+                                            )}
+                                            fallback={
+                                                <input 
+                                                    type="text" 
+                                                    value={item.id} 
+                                                    className={tableInputStyle + " w-full"} 
+                                                    disabled
+                                                    readOnly
+                                                />
+                                            }
+                                        >
                                             <input 
                                                 type="text" 
-                                                placeholder="ابحث..." 
-                                                value={item.name} 
-                                                onChange={(e) => handleItemChange(index, 'name', e.target.value)} 
-                                                onFocus={() => setActiveItemSearch({ index, query: item.name })} 
-                                                onKeyDown={handleItemSearchKeyDown}
-                                                ref={(el) => {
-                                                    if (el) nameInputRefs.current[index] = el;
-                                                }}
-                                                className="bg-transparent w-full focus:outline-none p-1" 
+                                                value={item.id} 
+                                                onChange={(e) => handleItemChange(index, 'id', e.target.value)} 
+                                                onKeyDown={(e) => handleTableKeyDown(e, index, 'id')}
+                                                className={tableInputStyle + " w-full"} 
                                                 disabled={isReadOnly}
                                             />
-                                            <button type="button" onClick={() => { setEditingItemIndex(index); setIsItemModalOpen(true); }} className="p-1 text-gray-400 hover:text-amber-600" disabled={isReadOnly}><ListIcon className="w-5 h-5" /></button>
-                                        </div>
+                                        </PermissionWrapper>
+                                    </td>
+                                    <td className="p-2 align-middle border-x border-amber-200 relative w-2/5">
+                                        <PermissionWrapper
+                                            requiredPermission={buildPermission(
+                                                Resources.PRICE_QUOTATION,
+                                                Actions.UPDATE
+                                            )}
+                                            fallback={
+                                                <div className="flex items-center">
+                                                    <input 
+                                                        type="text" 
+                                                        placeholder="ابحث..." 
+                                                        value={item.name} 
+                                                        className="bg-transparent w-full focus:outline-none p-1" 
+                                                        disabled
+                                                        readOnly
+                                                    />
+                                                    <button type="button" disabled className="p-1 text-gray-300 cursor-not-allowed"><ListIcon className="w-5 h-5" /></button>
+                                                </div>
+                                            }
+                                        >
+                                            <div className="flex items-center">
+                                                <input 
+                                                    type="text" 
+                                                    placeholder="ابحث..." 
+                                                    value={item.name} 
+                                                    onChange={(e) => handleItemChange(index, 'name', e.target.value)} 
+                                                    onFocus={() => setActiveItemSearch({ index, query: item.name })} 
+                                                    onKeyDown={handleItemSearchKeyDown}
+                                                    ref={(el) => {
+                                                        if (el) nameInputRefs.current[index] = el;
+                                                    }}
+                                                    className="bg-transparent w-full focus:outline-none p-1" 
+                                                    disabled={isReadOnly}
+                                                />
+                                                <PermissionWrapper
+                                                    requiredPermission={buildPermission(
+                                                        Resources.PRICE_QUOTATION,
+                                                        Actions.READ
+                                                    )}
+                                                    fallback={null}
+                                                >
+                                                    <button type="button" onClick={() => { setEditingItemIndex(index); setIsItemModalOpen(true); }} className="p-1 text-gray-400 hover:text-amber-600" disabled={isReadOnly}><ListIcon className="w-5 h-5" /></button>
+                                                </PermissionWrapper>
+                                            </div>
+                                        </PermissionWrapper>
                                          {activeItemSearch?.index === index && filteredItems.length > 0 && !isReadOnly && (
                                             <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-y-auto">
                                                 {filteredItems.map((result, idx) => ( 
@@ -696,29 +795,71 @@ const PriceQuotation: React.FC<PriceQuotationProps> = ({ title }) => {
                                         )}
                                     </td>
                                     <td className="p-2 align-middle text-center border-x border-amber-200 w-20">
-                                        <input type="text" value={item.unit} onChange={(e) => handleItemChange(index, 'unit', e.target.value)} className={tableInputStyle + " w-full"} disabled={isReadOnly}/>
+                                        <PermissionWrapper
+                                            requiredPermission={buildPermission(
+                                                Resources.PRICE_QUOTATION,
+                                                Actions.UPDATE
+                                            )}
+                                            fallback={
+                                                <input type="text" value={item.unit} className={tableInputStyle + " w-full"} disabled readOnly/>
+                                            }
+                                        >
+                                            <input type="text" value={item.unit} onChange={(e) => handleItemChange(index, 'unit', e.target.value)} className={tableInputStyle + " w-full"} disabled={isReadOnly}/>
+                                        </PermissionWrapper>
                                     </td>
                                     <td className="p-2 align-middle text-center border-x border-amber-200" style={{ minWidth: '100px' }}>
-                                        <input 
-                                            type="number" 
-                                            value={item.qty} 
-                                            onChange={(e) => handleItemChange(index, 'qty', e.target.value)} 
-                                            onKeyDown={(e) => handleTableKeyDown(e, index, 'qty')}
-                                            ref={el => { if (el) qtyInputRefs.current[index] = el; }} 
-                                            className={tableInputStyle} 
-                                            disabled={isReadOnly}
-                                        />
+                                        <PermissionWrapper
+                                            requiredPermission={buildPermission(
+                                                Resources.PRICE_QUOTATION,
+                                                Actions.UPDATE
+                                            )}
+                                            fallback={
+                                                <input 
+                                                    type="number" 
+                                                    value={item.qty} 
+                                                    className={tableInputStyle} 
+                                                    disabled
+                                                    readOnly
+                                                />
+                                            }
+                                        >
+                                            <input 
+                                                type="number" 
+                                                value={item.qty} 
+                                                onChange={(e) => handleItemChange(index, 'qty', e.target.value)} 
+                                                onKeyDown={(e) => handleTableKeyDown(e, index, 'qty')}
+                                                ref={el => { if (el) qtyInputRefs.current[index] = el; }} 
+                                                className={tableInputStyle} 
+                                                disabled={isReadOnly}
+                                            />
+                                        </PermissionWrapper>
                                     </td>
                                     <td className="p-2 align-middle text-center border-x border-amber-200" style={{ minWidth: '100px' }}>
-                                        <input 
-                                            type="number" 
-                                            value={item.price} 
-                                            onChange={(e) => handleItemChange(index, 'price', e.target.value)} 
-                                            onKeyDown={(e) => handleTableKeyDown(e, index, 'price')}
-                                            ref={el => { if (el) priceInputRefs.current[index] = el; }} 
-                                            className={tableInputStyle} 
-                                            disabled={isReadOnly}
-                                        />
+                                        <PermissionWrapper
+                                            requiredPermission={buildPermission(
+                                                Resources.PRICE_QUOTATION,
+                                                Actions.UPDATE
+                                            )}
+                                            fallback={
+                                                <input 
+                                                    type="number" 
+                                                    value={item.price} 
+                                                    className={tableInputStyle} 
+                                                    disabled
+                                                    readOnly
+                                                />
+                                            }
+                                        >
+                                            <input 
+                                                type="number" 
+                                                value={item.price} 
+                                                onChange={(e) => handleItemChange(index, 'price', e.target.value)} 
+                                                onKeyDown={(e) => handleTableKeyDown(e, index, 'price')}
+                                                ref={el => { if (el) priceInputRefs.current[index] = el; }} 
+                                                className={tableInputStyle} 
+                                                disabled={isReadOnly}
+                                            />
+                                        </PermissionWrapper>
                                     </td>
                                     {isVatEnabled && (
                                         <td className="p-2 align-middle text-center border-x border-amber-200 w-36">
@@ -727,22 +868,48 @@ const PriceQuotation: React.FC<PriceQuotationProps> = ({ title }) => {
                                     )}
                                     <td className="p-2 align-middle text-center border-x border-amber-200 w-36">{item.total.toFixed(2)}</td>
                                     <td className="p-2 align-middle text-center border-x border-amber-200 w-16">
-                                        <button onClick={() => {const newItems = items.filter((_, i) => i !== index); setItems(newItems);}} className="text-red-500 hover:text-red-700" disabled={isReadOnly}>
-                                            <TrashIcon className="w-5 h-5" />
-                                        </button>
+                                        <PermissionWrapper
+                                            requiredPermission={buildPermission(
+                                                Resources.PRICE_QUOTATION,
+                                                Actions.UPDATE
+                                            )}
+                                            fallback={null}
+                                        >
+                                            <button onClick={() => {const newItems = items.filter((_, i) => i !== index); setItems(newItems);}} className="text-red-500 hover:text-red-700" disabled={isReadOnly}>
+                                                <TrashIcon className="w-5 h-5" />
+                                            </button>
+                                        </PermissionWrapper>
                                     </td>
                                 </tr>
                             ))}
                         </tbody>
                     </table>
                 </div>
-                <button onClick={() => setItems([...items, createEmptyItem()])} className="mb-4 px-4 py-2 bg-gray-200 text-brand-dark rounded-md hover:bg-gray-300" disabled={isReadOnly || isMutating}>اضافة سطر</button>
+                <PermissionWrapper
+                    requiredPermission={buildPermission(
+                        Resources.PRICE_QUOTATION,
+                        Actions.CREATE
+                    )}
+                    fallback={null}
+                >
+                    <button onClick={() => setItems([...items, createEmptyItem()])} className="mb-4 px-4 py-2 bg-gray-200 text-brand-dark rounded-md hover:bg-gray-300" disabled={isReadOnly || isMutating}>اضافة سطر</button>
+                </PermissionWrapper>
 
                 <div className="bg-yellow-50 -mx-6 -mb-6 mt-4 p-6 rounded-b-lg">
                     <div className="flex flex-col md:flex-row justify-between items-start gap-6">
                         <div className="w-full md:w-1/2">
                             <label className="block text-sm font-bold mb-2">شروط وملاحظات:</label>
-                            <textarea className="w-full p-3 border-2 border-amber-400 rounded-md focus:outline-none focus:ring-2 focus:ring-amber-500 bg-white shadow-inner" rows={4} value={quotationDetails.notes} onChange={e => setQuotationDetails({...quotationDetails, notes: e.target.value})} disabled={isReadOnly}></textarea>
+                            <PermissionWrapper
+                                requiredPermission={buildPermission(
+                                    Resources.PRICE_QUOTATION,
+                                    Actions.UPDATE
+                                )}
+                                fallback={
+                                    <textarea className="w-full p-3 border-2 border-amber-400 rounded-md bg-gray-100 shadow-inner opacity-50 cursor-not-allowed" rows={4} value={quotationDetails.notes} disabled readOnly></textarea>
+                                }
+                            >
+                                <textarea className="w-full p-3 border-2 border-amber-400 rounded-md focus:outline-none focus:ring-2 focus:ring-amber-500 bg-white shadow-inner" rows={4} value={quotationDetails.notes} onChange={e => setQuotationDetails({...quotationDetails, notes: e.target.value})} disabled={isReadOnly}></textarea>
+                            </PermissionWrapper>
                             <div className="mt-6 pt-4 text-center text-sm text-gray-600 font-semibold border-t-2 border-dashed border-amber-200">
                                 استلمت البضاعة كاملة و بجودة سليمة
                             </div>
@@ -755,10 +922,20 @@ const PriceQuotation: React.FC<PriceQuotationProps> = ({ title }) => {
                                 </div>
                                 <div className="flex justify-between items-center p-3 border-t-2 border-dashed border-amber-100">
                                     <span className="font-semibold text-gray-600">خصم</span>
-                                    <input type="number" value={totals.discount} onChange={(e) => {
-                                        const discount = parseFloat(e.target.value) || 0;
-                                        setTotals(prev => ({ ...prev, discount, net: prev.subtotal + prev.tax - discount }));
-                                    }} className="w-28 text-left p-1 rounded border-2 border-amber-400 bg-amber-600 text-white font-bold focus:ring-amber-500 focus:border-amber-500" disabled={isReadOnly}/>
+                                    <PermissionWrapper
+                                        requiredPermission={buildPermission(
+                                            Resources.PRICE_QUOTATION,
+                                            Actions.UPDATE
+                                        )}
+                                        fallback={
+                                            <input type="number" value={totals.discount} className="w-28 text-left p-1 rounded border-2 border-amber-400 bg-gray-400 text-white font-bold opacity-50 cursor-not-allowed" disabled readOnly/>
+                                        }
+                                    >
+                                        <input type="number" value={totals.discount} onChange={(e) => {
+                                            const discount = parseFloat(e.target.value) || 0;
+                                            setTotals(prev => ({ ...prev, discount, net: prev.subtotal + prev.tax - discount }));
+                                        }} className="w-28 text-left p-1 rounded border-2 border-amber-400 bg-amber-600 text-white font-bold focus:ring-amber-500 focus:border-amber-500" disabled={isReadOnly}/>
+                                    </PermissionWrapper>
                                 </div>
                                 {isVatEnabled && (
                                     <div className="flex justify-between p-3 border-t-2 border-dashed border-amber-100">
@@ -783,25 +960,74 @@ const PriceQuotation: React.FC<PriceQuotationProps> = ({ title }) => {
 
                 <div className="mt-6 pt-4 border-t-2 border-gray-200 flex flex-col items-center space-y-4">
                     <div className="flex justify-center gap-2 flex-wrap">
-                        <button onClick={handleNew} disabled={isMutating} className="px-4 py-2 bg-brand-blue text-white rounded-md hover:bg-blue-800 font-semibold disabled:bg-gray-400">جديد</button>
-                        <button onClick={handleSave} disabled={isReadOnly || isMutating} className="px-4 py-2 bg-brand-green text-white rounded-md hover:bg-green-700 font-semibold disabled:bg-gray-400">حفظ</button>
-                        <button onClick={() => {
-                            setIsReadOnly(false);
-                            setPreviewData(null);
-                            shouldOpenPreviewRef.current = false;
-                            setIsPreviewOpen(false);
-                        }} disabled={currentIndex < 0 || !isReadOnly || isMutating} className="px-4 py-2 bg-yellow-500 text-white rounded-md hover:bg-yellow-600 font-semibold disabled:bg-gray-400">تعديل</button>
-                        <button onClick={handleDelete} disabled={currentIndex < 0 || isMutating} className="px-4 py-2 bg-red-500 text-white rounded-md hover:bg-red-600 font-semibold disabled:bg-gray-400">حذف</button>
-                        <button onClick={() => setIsSearchModalOpen(true)} className="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 font-semibold">بحث</button>
-                        <button onClick={handleOpenPreview} className="px-4 py-2 bg-gray-200 text-brand-dark rounded-md hover:bg-gray-300 font-semibold flex items-center"><PrintIcon className="mr-2 w-5 h-5"/>معاينة الطباعة</button>
-                        {/* Killer Feature: Convert to Invoice */}
-                        <button 
-                            onClick={handleConvertToInvoice} 
-                            disabled={currentIndex < 0 || isReadOnly === false || isMutating} 
-                            className="px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 font-semibold disabled:bg-gray-400 flex items-center shadow-lg transform transition hover:-translate-y-1"
+                        <PermissionWrapper
+                            requiredPermission={buildPermission(
+                                Resources.PRICE_QUOTATION,
+                                Actions.CREATE,
+                            )}
                         >
-                            <ListIcon className="ml-2 w-5 h-5"/> تحويل إلى فاتورة
-                        </button>
+                            <button onClick={handleNew} disabled={isMutating} className="px-4 py-2 bg-brand-blue text-white rounded-md hover:bg-blue-800 font-semibold disabled:bg-gray-400">جديد</button>
+                        </PermissionWrapper>
+                        <PermissionWrapper
+                            requiredPermission={buildPermission(
+                                Resources.PRICE_QUOTATION,
+                                isExistingQuotation ? Actions.UPDATE : Actions.CREATE,
+                            )}
+                        >
+                            <button onClick={handleSave} disabled={isReadOnly || isMutating} className="px-4 py-2 bg-brand-green text-white rounded-md hover:bg-green-700 font-semibold disabled:bg-gray-400">حفظ</button>
+                        </PermissionWrapper>
+                        <PermissionWrapper
+                            requiredPermission={buildPermission(
+                                Resources.PRICE_QUOTATION,
+                                Actions.UPDATE,
+                            )}
+                        >
+                            <button onClick={() => {
+                                setIsReadOnly(false);
+                                setPreviewData(null);
+                                shouldOpenPreviewRef.current = false;
+                                setIsPreviewOpen(false);
+                            }} disabled={currentIndex < 0 || !isReadOnly || isMutating} className="px-4 py-2 bg-yellow-500 text-white rounded-md hover:bg-yellow-600 font-semibold disabled:bg-gray-400">تعديل</button>
+                        </PermissionWrapper>
+                        <PermissionWrapper
+                            requiredPermission={buildPermission(
+                                Resources.PRICE_QUOTATION,
+                                Actions.DELETE,
+                            )}
+                        >
+                            <button onClick={handleDelete} disabled={currentIndex < 0 || isMutating} className="px-4 py-2 bg-red-500 text-white rounded-md hover:bg-red-600 font-semibold disabled:bg-gray-400">حذف</button>
+                        </PermissionWrapper>
+                        <PermissionWrapper
+                            requiredPermission={buildPermission(
+                                Resources.PRICE_QUOTATION,
+                                Actions.SEARCH,
+                            )}
+                        >
+                            <button onClick={() => setIsSearchModalOpen(true)} className="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 font-semibold">بحث</button>
+                        </PermissionWrapper>
+                        <PermissionWrapper
+                            requiredPermission={buildPermission(
+                                Resources.PRICE_QUOTATION,
+                                Actions.PRINT,
+                            )}
+                        >
+                            <button onClick={handleOpenPreview} className="px-4 py-2 bg-gray-200 text-brand-dark rounded-md hover:bg-gray-300 font-semibold flex items-center"><PrintIcon className="mr-2 w-5 h-5"/>معاينة الطباعة</button>
+                        </PermissionWrapper>
+                        {/* Killer Feature: Convert to Invoice */}
+                        <PermissionWrapper
+                            requiredPermission={buildPermission(
+                                Resources.SALES_INVOICE,
+                                Actions.CREATE,
+                            )}
+                        >
+                            <button 
+                                onClick={handleConvertToInvoice} 
+                                disabled={currentIndex < 0 || isReadOnly === false || isMutating} 
+                                className="px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 font-semibold disabled:bg-gray-400 flex items-center shadow-lg transform transition hover:-translate-y-1"
+                            >
+                                <ListIcon className="ml-2 w-5 h-5"/> تحويل إلى فاتورة
+                            </button>
+                        </PermissionWrapper>
                     </div>
                     <div className="flex items-center justify-center gap-2">
                         <button
@@ -874,6 +1100,10 @@ const PriceQuotation: React.FC<PriceQuotationProps> = ({ title }) => {
                     setPendingSelectionId(row.id);
                     setIsSearchModalOpen(false);
                 }}
+                exportPermission={buildPermission(
+                    Resources.PRICE_QUOTATION,
+                    Actions.PRINT
+                )}
             />
             {(() => {
                 // Use preview data from state if available, otherwise use current state
