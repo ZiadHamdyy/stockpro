@@ -288,33 +288,33 @@ const LiquidityReport: React.FC<LiquidityReportProps> = ({ title }) => {
         const vatLiabilityFromNet = vatNet < 0 ? Math.abs(vatNet) : 0;
 
         // 1. Current Assets (الأصول المتداولة)
-        const totalCash = safes.reduce((sum, s) => sum + (s.openingBalance ?? 0), 0) 
+        const totalCash = Math.abs(safes.reduce((sum, s) => sum + (s.openingBalance ?? 0), 0) 
             + receiptVouchers.filter(v => v.paymentMethod === 'safe').reduce((sum, v) => sum + (v.amount ?? 0), 0)
             - paymentVouchers.filter(v => v.paymentMethod === 'safe').reduce((sum, v) => sum + (v.amount ?? 0), 0)
-            + salesInvoices.filter(i => i.paymentMethod === 'cash' && i.paymentTargetType === 'safe').reduce((sum, i) => sum + (i.totals?.net ?? 0), 0); 
+            + salesInvoices.filter(i => i.paymentMethod === 'cash' && i.paymentTargetType === 'safe').reduce((sum, i) => sum + (i.totals?.net ?? 0), 0)); 
 
-        const totalBank = banks.reduce((sum, b) => sum + (b.openingBalance ?? 0), 0)
+        const totalBank = Math.abs(banks.reduce((sum, b) => sum + (b.openingBalance ?? 0), 0)
              + receiptVouchers.filter(v => v.paymentMethod === 'bank').reduce((sum, v) => sum + (v.amount ?? 0), 0)
              - paymentVouchers.filter(v => v.paymentMethod === 'bank').reduce((sum, v) => sum + (v.amount ?? 0), 0)
-             + salesInvoices.filter(i => i.paymentMethod === 'cash' && i.paymentTargetType === 'bank').reduce((sum, i) => sum + (i.totals?.net ?? 0), 0);
+             + salesInvoices.filter(i => i.paymentMethod === 'cash' && i.paymentTargetType === 'bank').reduce((sum, i) => sum + (i.totals?.net ?? 0), 0));
 
-        const totalOtherReceivables = balanceSheetData?.otherReceivables ?? 0;
+        const totalOtherReceivables = Math.abs(balanceSheetData?.otherReceivables ?? 0);
 
-        const totalReceivables = customers.reduce((sum, c) => sum + (c.openingBalance ?? 0), 0)
+        const totalReceivables = Math.abs(customers.reduce((sum, c) => sum + (c.openingBalance ?? 0), 0)
             + salesInvoices.filter(i => i.paymentMethod === 'credit').reduce((sum, i) => sum + (i.totals?.net ?? 0), 0)
-            - receiptVouchers.filter(v => v.entity?.type === 'customer').reduce((sum, v) => sum + (v.amount ?? 0), 0);
+            - receiptVouchers.filter(v => v.entity?.type === 'customer').reduce((sum, v) => sum + (v.amount ?? 0), 0));
 
-        const totalInventory = items.reduce((sum, item) => sum + ((item.stock ?? 0) * (item.purchasePrice ?? 0)), 0);
+        const totalInventory = Math.abs(items.reduce((sum, item) => sum + ((item.stock ?? 0) * (item.purchasePrice ?? 0)), 0));
 
         const currentAssets = totalCash + totalBank + totalReceivables + totalOtherReceivables + totalInventory + vatAsset;
         const liquidAssets = totalCash + totalBank + totalReceivables + totalOtherReceivables + vatAsset;
 
         // 2. Current Liabilities (الالتزامات المتداولة)
-        const totalOtherPayables = balanceSheetData?.otherPayables ?? 0;
+        const totalOtherPayables = Math.abs(balanceSheetData?.otherPayables ?? 0);
 
-        const totalPayables = Math.abs(suppliers.reduce((sum, s) => sum + (s.openingBalance ?? 0), 0))
+        const totalPayables = Math.abs(suppliers.reduce((sum, s) => sum + (s.openingBalance ?? 0), 0)
             + purchaseInvoices.filter(i => i.paymentMethod === 'credit').reduce((sum, i) => sum + (i.totals?.net ?? 0), 0)
-            - paymentVouchers.filter(v => v.entity?.type === 'supplier').reduce((sum, v) => sum + (v.amount ?? 0), 0);
+            - paymentVouchers.filter(v => v.entity?.type === 'supplier').reduce((sum, v) => sum + (v.amount ?? 0), 0));
 
         const vatLiability = vatLiabilityFromNet > 0 ? vatLiabilityFromNet : Math.max(balanceSheetData?.vatPayable ?? 0, 0);
         
