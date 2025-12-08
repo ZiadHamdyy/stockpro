@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useMemo } from "react";
 import {
   useGetReceiptVouchersQuery,
   useCreateReceiptVoucherMutation,
@@ -35,6 +35,9 @@ export const useReceiptVouchers = () => {
   const { showToast } = useToast();
   const { showModal } = useModal();
   const { User } = useAuth();
+  const branchId =
+    User?.branchId ||
+    (typeof User?.branch === "string" ? User.branch : (User?.branch as any)?.id);
 
   // Fetch receipt vouchers
   const {
@@ -50,6 +53,11 @@ export const useReceiptVouchers = () => {
   const { data: currentAccounts = [] } = useGetCurrentAccountsQuery();
   const { data: safes = [] } = useGetSafesQuery();
   const { data: banks = [] } = useGetBanksQuery();
+
+  const branchSafes = useMemo(() => {
+    if (!branchId) return safes;
+    return safes.filter((s) => String(s.branchId) === String(branchId));
+  }, [branchId, safes]);
 
   // Mutations
   const [createReceiptVoucher, { isLoading: isCreating }] =
@@ -112,11 +120,23 @@ export const useReceiptVouchers = () => {
       entity: { type: "customer", id: null, name: "" },
       amount: "" as any,
       paymentMethod: "safe",
-      safeOrBankId: safes.length > 0 ? safes[0].id : null,
+      safeOrBankId: branchSafes.length > 0 ? branchSafes[0].id : null,
       description: "",
     });
     setIsReadOnly(false);
-  }, [safes]);
+  }, [branchSafes]);
+
+  useEffect(() => {
+    if (voucherData.paymentMethod !== "safe") return;
+    const defaultSafeId = branchSafes[0]?.id || null;
+    const hasCurrentSafe = branchSafes.some(
+      (safe) => safe.id === voucherData.safeOrBankId,
+    );
+
+    if (!hasCurrentSafe && voucherData.safeOrBankId !== defaultSafeId) {
+      setVoucherData((prev) => ({ ...prev, safeOrBankId: defaultSafeId }));
+    }
+  }, [branchSafes, voucherData.paymentMethod, voucherData.safeOrBankId]);
 
   const handleSave = useCallback(async () => {
     // Normalize amount to number before validation
@@ -267,6 +287,7 @@ export const useReceiptVouchers = () => {
     suppliers,
     currentAccounts,
     safes,
+    branchSafes,
     banks,
     isLoading,
     error,

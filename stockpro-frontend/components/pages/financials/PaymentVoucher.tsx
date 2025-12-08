@@ -45,6 +45,7 @@ const PaymentVoucher: React.FC<PaymentVoucherProps> = ({ title }) => {
     currentAccounts,
     expenseCodes,
     safes,
+    branchSafes,
     banks,
     isLoading,
     voucherData,
@@ -534,7 +535,8 @@ const PaymentVoucher: React.FC<PaymentVoucherProps> = ({ title }) => {
                     setVoucherData((prev) => ({
                       ...prev,
                       paymentMethod: "safe",
-                      safeOrBankId: safes.length > 0 ? safes[0].id : null,
+                      safeOrBankId:
+                        branchSafes.length > 0 ? branchSafes[0].id : null,
                     }))
                   }
                   className={`w-1/2 py-2 rounded ${voucherData.paymentMethod === "safe" ? "bg-brand-green text-white shadow" : "text-gray-600"} transition-all duration-200`}
@@ -570,7 +572,7 @@ const PaymentVoucher: React.FC<PaymentVoucherProps> = ({ title }) => {
                   }))
                 }
                 className={inputStyle}
-                disabled={isReadOnly}
+                disabled={isReadOnly || voucherData.paymentMethod === "safe"}
               >
                 <option value="">
                   {voucherData.paymentMethod === "safe"
@@ -578,7 +580,7 @@ const PaymentVoucher: React.FC<PaymentVoucherProps> = ({ title }) => {
                     : "اختر بنك..."}
                 </option>
                 {voucherData.paymentMethod === "safe"
-                  ? safes.map((s) => (
+                  ? branchSafes.map((s) => (
                       <option key={s.id} value={s.id}>
                         {s.name}
                       </option>
