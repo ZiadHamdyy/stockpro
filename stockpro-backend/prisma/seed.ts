@@ -247,6 +247,10 @@ const MENU_ITEMS: MenuItem[] = [
       { key: 'balance_sheet', label: 'قائمة المركز المالي' },
     ],
   },
+  {
+    key: 'help_center',
+    label: 'مركز المساعدة',
+  },
 ];
 
 // Actions available for each resource
@@ -455,7 +459,8 @@ async function main() {
         p.resource === 'tax_declaration_report' ||
         p.resource === 'final_accounts' ||
         p.resource === 'income_statement' ||
-        p.resource === 'balance_sheet',
+        p.resource === 'balance_sheet' ||
+        p.resource === 'help_center',
     );
 
     for (const permission of accountantPermissions) {
@@ -495,7 +500,8 @@ async function main() {
         (p.resource === 'items' && p.action === 'read') || // Can only read items, not modify
         (p.resource === 'items_list' && p.action === 'read') ||
         (p.resource === 'item_groups' && p.action === 'read') ||
-        (p.resource === 'units' && p.action === 'read'),
+        (p.resource === 'units' && p.action === 'read') ||
+        p.resource === 'help_center',
     );
 
     for (const permission of salespersonPermissions) {
@@ -533,7 +539,8 @@ async function main() {
         p.resource === 'store_receipt_voucher' ||
         p.resource === 'store_issue_voucher' ||
         p.resource === 'store_transfer' ||
-        p.resource === 'inventory_count',
+        p.resource === 'inventory_count' ||
+        p.resource === 'help_center',
     );
 
     for (const permission of dataEntryPermissions) {

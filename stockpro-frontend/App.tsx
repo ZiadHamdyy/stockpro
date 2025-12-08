@@ -97,6 +97,7 @@ import VATStatementReport from "./components/pages/reports/financials/VATStateme
 import IncomeStatement from "./components/pages/final_accounts/IncomeStatement";
 import BalanceSheet from "./components/pages/final_accounts/BalanceSheet";
 import PrintSettingsPage from "./components/pages/settings/PrintSettings";
+import HelpCenter from "./components/pages/support/HelpCenter";
 
 import {
   initialBranches,
@@ -162,6 +163,7 @@ const rolePermissions: Record<string, string[]> = {
     "dashboard",
     "sales",
     "pos",
+    "help_center",
     "purchases",
     "customers",
     "suppliers",
@@ -177,6 +179,7 @@ const rolePermissions: Record<string, string[]> = {
   بائع: [
     "dashboard",
     "pos",
+    "help_center",
     "sales_invoice",
     "sales_return",
     "daily_sales",
@@ -185,6 +188,7 @@ const rolePermissions: Record<string, string[]> = {
   ],
   "مدخل بيانات": [
     "dashboard",
+    "help_center",
     "items",
     "warehouse_operations",
     "add_item",
@@ -1630,6 +1634,16 @@ const AppContent = () => {
                     companyInfo={companyInfo}
                     currentUser={currentUser}
                   />
+                </ProtectedRoute>
+              }
+            />
+
+            {/* Support */}
+            <Route
+              path="/support/help-center"
+              element={
+                <ProtectedRoute requiredPermission="help_center-read">
+                  <HelpCenter title={currentPageTitle} />
                 </ProtectedRoute>
               }
             />

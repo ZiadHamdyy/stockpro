@@ -36,6 +36,7 @@ export const getPathFromMenuKey = (key: string): string => {
     daily_sales: "/sales/daily",
     daily_sales_returns: "/sales/daily-returns",
     pos: "/sales/pos",
+    help_center: "/support/help-center",
 
     // Purchases
     purchase_invoice: "/purchases/invoice",
@@ -157,6 +158,7 @@ export const getMenuKeyFromPath = (path: string): string => {
     "/sales/daily": "daily_sales",
     "/sales/daily-returns": "daily_sales_returns",
     "/sales/pos": "pos",
+    "/support/help-center": "help_center",
     "/purchases/invoice": "purchase_invoice",
     "/purchases/return": "purchase_return",
     "/purchases/daily": "daily_purchases",

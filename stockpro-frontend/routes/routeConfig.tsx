@@ -17,6 +17,7 @@ import StoreIssueVoucher from "../components/pages/warehouse/StoreIssueVoucher";
 import StoreTransfer from "../components/pages/warehouse/StoreTransfer";
 import InventoryCount from "../components/pages/warehouse/InventoryCount";
 import POS from "../components/pages/sales/POS";
+import HelpCenter from "../components/pages/support/HelpCenter";
 import SalesInvoice from "../components/pages/sales/SalesInvoice";
 import PriceQuotation from "../components/pages/sales/PriceQuotation";
 import SalesReturn from "../components/pages/sales/SalesReturn";
@@ -92,6 +93,12 @@ export const routeConfig = [
     component: Dashboard,
     requiredPermission: "dashboard-read", // or: buildPermission(Resources.DASHBOARD, Actions.READ)
     label: "الرئيسية",
+  },
+  {
+    path: "/support/help-center",
+    component: HelpCenter,
+    requiredPermission: "help_center-read",
+    label: "مركز المساعدة",
   },
 
   // Settings

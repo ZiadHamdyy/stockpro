@@ -21,6 +21,7 @@ import {
   TrendingDownIcon,
   PrintIcon,
   GridIcon,
+  HelpIcon,
 } from "./components/icons";
 import type { MenuItem } from "./types";
 
@@ -452,6 +453,7 @@ export const MENU_ITEMS: MenuItem[] = [
       },
     ],
   },
+  { key: 'help_center', label: 'مركز المساعدة', icon: HelpIcon },
 ];
 
 // Permission mappings between Arabic frontend and English backend
