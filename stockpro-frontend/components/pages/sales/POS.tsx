@@ -329,6 +329,14 @@ const POS: React.FC<POSProps> = () => {
   const [isNoteModalOpen, setIsNoteModalOpen] = useState(false);
   const [isCalculatorOpen, setIsCalculatorOpen] = useState(false);
   const [priceCheckItem, setPriceCheckItem] = useState<Item | null>(null);
+  
+  // Calculator state
+  const [calcDisplay, setCalcDisplay] = useState("0");
+  const [calcEquation, setCalcEquation] = useState("");
+  const [calcPreviousValue, setCalcPreviousValue] = useState<number | null>(null);
+  const [calcOperator, setCalcOperator] = useState<string | null>(null);
+  const [calcWaitingForNewValue, setCalcWaitingForNewValue] = useState(false);
+  const [calcLastOperand, setCalcLastOperand] = useState<number | null>(null);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [isMobile, setIsMobile] = useState(false);
   const [isCategoryDropdownOpen, setIsCategoryDropdownOpen] = useState(false);
@@ -601,6 +609,207 @@ const POS: React.FC<POSProps> = () => {
   const handleLock = () => {
     showToast("تم قفل الشاشة (محاكاة)");
   };
+
+  // Calculator functions
+  const formatDisplay = (value: number | string): string => {
+    const num = typeof value === "string" ? parseFloat(value) : value;
+    if (isNaN(num)) return "0";
+    // Remove trailing zeros for whole numbers, but keep decimals if needed
+    const str = num.toString();
+    if (str.includes(".")) {
+      return str.replace(/\.?0+$/, "") || "0";
+    }
+    return str;
+  };
+
+  const handleCalculatorNumber = (num: string) => {
+    if (calcWaitingForNewValue) {
+      setCalcDisplay(num);
+      // Start new operand after operator
+      if (calcEquation && calcOperator) {
+        // Replace operator and start new number
+        const parts = calcEquation.split(/[\+\-\*\/]/);
+        if (parts.length > 0) {
+          setCalcEquation(parts[0].trim() + " " + calcOperator + " " + num);
+        } else {
+          setCalcEquation(calcEquation + " " + num);
+        }
+      } else {
+        setCalcEquation(num);
+      }
+      setCalcWaitingForNewValue(false);
+    } else {
+      const newDisplay = calcDisplay === "0" ? num : calcDisplay + num;
+      setCalcDisplay(newDisplay);
+      // Update equation: replace the current number being typed
+      if (calcEquation && calcOperator) {
+        // If we have an operator, update the second operand
+        const parts = calcEquation.split(/[\+\-\*\/]/);
+        if (parts.length >= 2) {
+          setCalcEquation(parts[0].trim() + " " + calcOperator + " " + newDisplay);
+        } else if (parts.length === 1) {
+          setCalcEquation(parts[0].trim() + " " + calcOperator + " " + newDisplay);
+        }
+      } else {
+        // No operator yet, just building the first number
+        setCalcEquation(newDisplay);
+      }
+    }
+  };
+
+  const handleCalculatorOperator = (op: string) => {
+    const inputValue = parseFloat(calcDisplay);
+
+    if (calcPreviousValue === null) {
+      setCalcPreviousValue(inputValue);
+      setCalcLastOperand(inputValue);
+      setCalcEquation(formatDisplay(inputValue) + " " + op);
+    } else if (calcOperator && !calcWaitingForNewValue) {
+      // Calculate previous operation if operator was already set
+      const result = calculate(calcPreviousValue, inputValue, calcOperator);
+      const formattedResult = formatDisplay(result);
+      setCalcDisplay(formattedResult);
+      setCalcPreviousValue(result);
+      setCalcLastOperand(inputValue);
+      setCalcEquation(formattedResult + " " + op);
+    } else {
+      // Just update the operator if we're waiting for new value
+      setCalcPreviousValue(inputValue);
+      setCalcLastOperand(inputValue);
+      // Update operator in equation (replace old operator)
+      const parts = calcEquation.split(/[\+\-\*\/]/);
+      if (parts.length > 0) {
+        setCalcEquation(parts[0].trim() + " " + op);
+      }
+    }
+
+    setCalcWaitingForNewValue(true);
+    setCalcOperator(op);
+  };
+
+  const calculate = (prev: number, current: number, operator: string): number => {
+    switch (operator) {
+      case "+":
+        return prev + current;
+      case "-":
+        return prev - current;
+      case "*":
+        return prev * current;
+      case "/":
+        return current !== 0 ? prev / current : 0;
+      default:
+        return current;
+    }
+  };
+
+  const handleCalculatorEquals = () => {
+    if (calcPreviousValue !== null && calcOperator) {
+      const inputValue = calcWaitingForNewValue && calcLastOperand !== null 
+        ? calcLastOperand 
+        : parseFloat(calcDisplay);
+      const result = calculate(calcPreviousValue, inputValue, calcOperator);
+      const formattedResult = formatDisplay(result);
+      setCalcDisplay(formattedResult);
+      
+      // Show full equation with result
+      let fullEquation = calcEquation;
+      // If equation already has result (from previous equals), use current display as starting point
+      if (calcEquation.includes("=")) {
+        // Repeated equals - use last result
+        const lastResult = parseFloat(calcDisplay);
+        const operand = calcLastOperand || inputValue;
+        const newResult = calculate(lastResult, operand, calcOperator);
+        const newFormattedResult = formatDisplay(newResult);
+        fullEquation = formatDisplay(lastResult) + " " + calcOperator + " " + formatDisplay(operand) + " = " + newFormattedResult;
+        setCalcDisplay(newFormattedResult);
+        setCalcPreviousValue(newResult);
+      } else {
+        // First equals press - build equation from current state
+        if (calcWaitingForNewValue && calcLastOperand !== null) {
+          fullEquation = formatDisplay(calcPreviousValue) + " " + calcOperator + " " + formatDisplay(calcLastOperand);
+        } else {
+          // Ensure equation has both operands
+          const parts = calcEquation.split(/[\+\-\*\/]/);
+          if (parts.length < 2) {
+            fullEquation = formatDisplay(calcPreviousValue) + " " + calcOperator + " " + formatDisplay(inputValue);
+          }
+        }
+        setCalcEquation(fullEquation + " = " + formattedResult);
+        setCalcPreviousValue(result);
+        if (calcLastOperand === null) {
+          setCalcLastOperand(inputValue);
+        }
+      }
+      
+      setCalcWaitingForNewValue(true);
+    }
+  };
+
+  const handleCalculatorClear = () => {
+    setCalcDisplay("0");
+    setCalcEquation("");
+    setCalcPreviousValue(null);
+    setCalcOperator(null);
+    setCalcWaitingForNewValue(false);
+    setCalcLastOperand(null);
+  };
+
+  const handleCalculatorDecimal = () => {
+    if (calcWaitingForNewValue) {
+      setCalcDisplay("0.");
+      if (calcEquation && calcOperator) {
+        const parts = calcEquation.split(/[\+\-\*\/]/);
+        if (parts.length > 0) {
+          setCalcEquation(parts[0].trim() + " " + calcOperator + " 0.");
+        } else {
+          setCalcEquation(calcEquation + " 0.");
+        }
+      } else {
+        setCalcEquation("0.");
+      }
+      setCalcWaitingForNewValue(false);
+    } else if (calcDisplay.indexOf(".") === -1) {
+      const newDisplay = calcDisplay + ".";
+      setCalcDisplay(newDisplay);
+      // Update equation: replace the current number being typed
+      if (calcEquation && calcOperator) {
+        const parts = calcEquation.split(/[\+\-\*\/]/);
+        if (parts.length >= 2) {
+          setCalcEquation(parts[0].trim() + " " + calcOperator + " " + newDisplay);
+        } else if (parts.length === 1) {
+          setCalcEquation(parts[0].trim() + " " + calcOperator + " " + newDisplay);
+        }
+      } else {
+        setCalcEquation(newDisplay);
+      }
+    }
+  };
+
+  const handleCalculatorButton = (value: string) => {
+    if (value === "C") {
+      handleCalculatorClear();
+    } else if (value === "=") {
+      handleCalculatorEquals();
+    } else if (["+", "-", "*", "/"].includes(value)) {
+      handleCalculatorOperator(value);
+    } else if (value === ".") {
+      handleCalculatorDecimal();
+    } else {
+      handleCalculatorNumber(value);
+    }
+  };
+
+  // Reset calculator when modal opens
+  useEffect(() => {
+    if (isCalculatorOpen) {
+      setCalcDisplay("0");
+      setCalcEquation("");
+      setCalcPreviousValue(null);
+      setCalcOperator(null);
+      setCalcWaitingForNewValue(false);
+      setCalcLastOperand(null);
+    }
+  }, [isCalculatorOpen]);
 
   return (
     <div
@@ -1413,15 +1622,22 @@ const POS: React.FC<POSProps> = () => {
                 <XIcon className="w-5 h-5" />
               </button>
             </div>
-            {/* Simple Calculator Mockup */}
-            <div className="bg-gray-100 p-4 rounded-lg text-right text-2xl font-mono font-bold mb-4 border border-gray-300 h-16 flex items-center justify-end">
-              0
+            {/* Calculator Equation Display */}
+            {calcEquation && (
+              <div className="bg-gray-50 p-3 rounded-lg text-right text-sm font-mono text-gray-600 mb-2 border border-gray-200 min-h-[32px] flex items-center justify-end overflow-x-auto">
+                {calcEquation}
+              </div>
+            )}
+            {/* Calculator Result Display */}
+            <div className="bg-gray-100 p-4 rounded-lg text-right text-2xl font-mono font-bold mb-4 border border-gray-300 min-h-[64px] flex items-center justify-end overflow-x-auto">
+              {calcDisplay}
             </div>
             <div className="grid grid-cols-4 gap-2">
               {["C", "/", "*", "-"].map((k) => (
                 <button
                   key={k}
-                  className="p-3 bg-gray-200 rounded font-bold hover:bg-gray-300"
+                  onClick={() => handleCalculatorButton(k)}
+                  className="p-3 bg-gray-200 rounded font-bold hover:bg-gray-300 active:scale-95 transition-transform"
                 >
                   {k}
                 </button>
@@ -1429,7 +1645,8 @@ const POS: React.FC<POSProps> = () => {
               {["7", "8", "9", "+"].map((k) => (
                 <button
                   key={k}
-                  className={`p-3 rounded font-bold hover:opacity-80 ${k === "+" ? "bg-orange-500 text-white row-span-2" : "bg-white border border-gray-200"}`}
+                  onClick={() => handleCalculatorButton(k)}
+                  className={`p-3 rounded font-bold hover:opacity-80 active:scale-95 transition-transform ${k === "+" ? "bg-orange-500 text-white row-span-2" : "bg-white border border-gray-200"}`}
                 >
                   {k}
                 </button>
@@ -1437,7 +1654,8 @@ const POS: React.FC<POSProps> = () => {
               {["4", "5", "6"].map((k) => (
                 <button
                   key={k}
-                  className="p-3 bg-white border border-gray-200 rounded font-bold hover:bg-gray-50"
+                  onClick={() => handleCalculatorButton(k)}
+                  className="p-3 bg-white border border-gray-200 rounded font-bold hover:bg-gray-50 active:scale-95 transition-transform"
                 >
                   {k}
                 </button>
@@ -1445,15 +1663,22 @@ const POS: React.FC<POSProps> = () => {
               {["1", "2", "3", "="].map((k) => (
                 <button
                   key={k}
-                  className={`p-3 rounded font-bold hover:opacity-80 ${k === "=" ? "bg-blue-600 text-white" : "bg-white border border-gray-200"}`}
+                  onClick={() => handleCalculatorButton(k)}
+                  className={`p-3 rounded font-bold hover:opacity-80 active:scale-95 transition-transform ${k === "=" ? "bg-blue-600 text-white" : "bg-white border border-gray-200"}`}
                 >
                   {k}
                 </button>
               ))}
-              <button className="col-span-2 p-3 bg-white border border-gray-200 rounded font-bold hover:bg-gray-50">
+              <button
+                onClick={() => handleCalculatorButton("0")}
+                className="col-span-2 p-3 bg-white border border-gray-200 rounded font-bold hover:bg-gray-50 active:scale-95 transition-transform"
+              >
                 0
               </button>
-              <button className="p-3 bg-white border border-gray-200 rounded font-bold hover:bg-gray-50">
+              <button
+                onClick={() => handleCalculatorButton(".")}
+                className="p-3 bg-white border border-gray-200 rounded font-bold hover:bg-gray-50 active:scale-95 transition-transform"
+              >
                 .
               </button>
             </div>
