@@ -7,6 +7,8 @@ import { useModal } from '../../common/ModalProvider';
 import { formatNumber, exportToExcel, exportToPdf } from '../../../utils/formatting';
 import { guardPrint } from '../../utils/printGuard';
 import DataTableModal from '../../common/DataTableModal';
+import PermissionWrapper from '../../common/PermissionWrapper';
+import { Resources, Actions, buildPermission } from '../../../enums/permissions.enum';
 import { useGetItemsQuery } from '../../store/slices/items/itemsApi';
 import { useGetStoresQuery } from '../../store/slices/store/storeApi';
 import { 
@@ -580,72 +582,154 @@ const InventoryCountPage: React.FC<InventoryCountProps> = ({ title, companyInfo 
                         </div>
                     </div>
                     <div className="flex gap-2">
-                        <button onClick={() => setIsHistoryOpen(true)} className="px-4 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 flex items-center gap-2 border border-gray-300 font-medium">
-                            <DatabaseIcon className="w-5 h-5"/>
-                            <span>سجل الجرد</span>
-                        </button>
-                        <button onClick={initializeCount} className="px-4 py-2 bg-brand-blue text-white rounded-md hover:bg-blue-800 font-medium">جرد جديد</button>
-                        {status === 'PENDING' && countId && (
-                            <button 
-                                onClick={handleDelete} 
-                                disabled={isDeleting}
-                                className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 flex items-center gap-2 font-medium disabled:opacity-50 disabled:cursor-not-allowed"
-                                title="حذف المسودة"
-                            >
-                                <TrashIcon className="w-5 h-5"/>
-                                <span>{isDeleting ? 'جاري الحذف...' : 'حذف المسودة'}</span>
+                        <PermissionWrapper
+                            requiredPermission={buildPermission(
+                                Resources.INVENTORY_COUNT,
+                                Actions.SEARCH
+                            )}
+                            fallback={null}
+                        >
+                            <button onClick={() => setIsHistoryOpen(true)} className="px-4 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 flex items-center gap-2 border border-gray-300 font-medium">
+                                <DatabaseIcon className="w-5 h-5"/>
+                                <span>سجل الجرد</span>
                             </button>
+                        </PermissionWrapper>
+                        <PermissionWrapper
+                            requiredPermission={buildPermission(
+                                Resources.INVENTORY_COUNT,
+                                Actions.CREATE
+                            )}
+                        >
+                            <button onClick={initializeCount} className="px-4 py-2 bg-brand-blue text-white rounded-md hover:bg-blue-800 font-medium">جرد جديد</button>
+                        </PermissionWrapper>
+                        {status === 'PENDING' && countId && (
+                            <PermissionWrapper
+                                requiredPermission={buildPermission(
+                                    Resources.INVENTORY_COUNT,
+                                    Actions.DELETE
+                                )}
+                            >
+                                <button 
+                                    onClick={handleDelete} 
+                                    disabled={isDeleting}
+                                    className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 flex items-center gap-2 font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                                    title="حذف المسودة"
+                                >
+                                    <TrashIcon className="w-5 h-5"/>
+                                    <span>{isDeleting ? 'جاري الحذف...' : 'حذف المسودة'}</span>
+                                </button>
+                            </PermissionWrapper>
                         )}
-                        <button 
-                            onClick={handleExcelExport} 
-                            disabled={!canPrintExistingCount}
-                            title={!canPrintExistingCount ? "يجب حفظ الجرد أولاً" : "تصدير Excel"} 
-                            className="p-2 border border-gray-300 rounded-md hover:bg-gray-100 text-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        <PermissionWrapper
+                            requiredPermission={buildPermission(
+                                Resources.INVENTORY_COUNT,
+                                Actions.PRINT,
+                            )}
+                            fallback={
+                                <div className="no-print flex items-center gap-2">
+                                    <button
+                                        title="تصدير Excel"
+                                        disabled
+                                        className="p-3 border-2 border-gray-200 rounded-md cursor-not-allowed opacity-50"
+                                    >
+                                        <ExcelIcon className="w-6 h-6" />
+                                    </button>
+                                    <button
+                                        title="تصدير PDF"
+                                        disabled
+                                        className="p-3 border-2 border-gray-200 rounded-md cursor-not-allowed opacity-50"
+                                    >
+                                        <PdfIcon className="w-6 h-6" />
+                                    </button>
+                                    <button
+                                        title="طباعة"
+                                        disabled
+                                        className="p-3 border-2 border-gray-200 rounded-md cursor-not-allowed opacity-50"
+                                    >
+                                        <PrintIcon className="w-6 h-6" />
+                                    </button>
+                                </div>
+                            }
                         >
-                            <ExcelIcon className="w-5 h-5"/>
-                        </button>
-                        <button
-                            onClick={handlePdfExport}
-                            disabled={!canPrintExistingCount}
-                            title={!canPrintExistingCount ? "يجب حفظ الجرد أولاً" : "تصدير PDF"}
-                            className="p-2 border border-gray-300 rounded-md hover:bg-gray-100 text-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                        >
-                            <PdfIcon className="w-5 h-5" />
-                        </button>
-                        <button 
-                            onClick={handlePrint} 
-                            disabled={!canPrintExistingCount}
-                            title={!canPrintExistingCount ? "يجب حفظ الجرد أولاً" : "طباعة"} 
-                            className="p-2 border border-gray-300 rounded-md hover:bg-gray-100 text-gray-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                        >
-                            <PrintIcon className="w-5 h-5"/>
-                        </button>
+                            <div className="no-print flex items-center gap-2">
+                                <button
+                                    onClick={handleExcelExport}
+                                    disabled={!canPrintExistingCount}
+                                    title={!canPrintExistingCount ? "يجب حفظ الجرد أولاً" : "تصدير Excel"}
+                                    className="p-3 border-2 border-gray-200 rounded-md hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
+                                >
+                                    <ExcelIcon className="w-6 h-6" />
+                                </button>
+                                <button
+                                    onClick={handlePdfExport}
+                                    disabled={!canPrintExistingCount}
+                                    title={!canPrintExistingCount ? "يجب حفظ الجرد أولاً" : "تصدير PDF"}
+                                    className="p-3 border-2 border-gray-200 rounded-md hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
+                                >
+                                    <PdfIcon className="w-6 h-6" />
+                                </button>
+                                <button
+                                    onClick={handlePrint}
+                                    disabled={!canPrintExistingCount}
+                                    title={!canPrintExistingCount ? "يجب حفظ الجرد أولاً" : "طباعة"}
+                                    className="p-3 border-2 border-gray-200 rounded-md hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
+                                >
+                                    <PrintIcon className="w-6 h-6" />
+                                </button>
+                            </div>
+                        </PermissionWrapper>
                     </div>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
                     <div>
                         <label className="block text-sm font-bold text-gray-700 mb-1">تاريخ الجرد</label>
-                        <input type="date" value={date} onChange={(e) => setDate(e.target.value)} className={inputStyle} disabled={status === 'POSTED'} />
+                        <PermissionWrapper
+                            requiredPermission={buildPermission(
+                                Resources.INVENTORY_COUNT,
+                                Actions.UPDATE
+                            )}
+                            fallback={
+                                <input type="date" value={date} className={inputStyle} disabled readOnly />
+                            }
+                        >
+                            <input type="date" value={date} onChange={(e) => setDate(e.target.value)} className={inputStyle} disabled={status === 'POSTED'} />
+                        </PermissionWrapper>
                     </div>
                     <div>
                         <label className="block text-sm font-bold text-gray-700 mb-1">المخزن</label>
-                        <select 
-                            value={selectedStoreId} 
-                            onChange={(e) => {
-                                setSelectedStoreId(e.target.value);
-                                setCountItems([]); // Reset items when store changes
-                            }} 
-                            className={inputStyle} 
-                            disabled={status === 'POSTED' || !userStore}
-                            title={!userStore ? "يجب أن يكون لديك مخزن مرتبط بفرعك" : (status === 'POSTED' ? "لا يمكن تغيير المخزن بعد الاعتماد" : "")}
-                        >
-                            {userStore ? (
-                                <option value={userStore.id}>{userStore.name}</option>
-                            ) : (
-                                <option value="">لا يوجد مخزن متاح</option>
+                        <PermissionWrapper
+                            requiredPermission={buildPermission(
+                                Resources.INVENTORY_COUNT,
+                                Actions.UPDATE
                             )}
-                        </select>
+                            fallback={
+                                <select className={inputStyle} disabled>
+                                    {userStore ? (
+                                        <option value={userStore.id}>{userStore.name}</option>
+                                    ) : (
+                                        <option value="">لا يوجد مخزن متاح</option>
+                                    )}
+                                </select>
+                            }
+                        >
+                            <select 
+                                value={selectedStoreId} 
+                                onChange={(e) => {
+                                    setSelectedStoreId(e.target.value);
+                                    setCountItems([]); // Reset items when store changes
+                                }} 
+                                className={inputStyle} 
+                                disabled={status === 'POSTED' || !userStore}
+                                title={!userStore ? "يجب أن يكون لديك مخزن مرتبط بفرعك" : (status === 'POSTED' ? "لا يمكن تغيير المخزن بعد الاعتماد" : "")}
+                            >
+                                {userStore ? (
+                                    <option value={userStore.id}>{userStore.name}</option>
+                                ) : (
+                                    <option value="">لا يوجد مخزن متاح</option>
+                                )}
+                            </select>
+                        </PermissionWrapper>
                     </div>
                     <div>
                         <label className="block text-sm font-bold text-gray-700 mb-1">الموظف</label>
@@ -659,7 +743,17 @@ const InventoryCountPage: React.FC<InventoryCountProps> = ({ title, companyInfo 
                     </div>
                     <div>
                         <label className="block text-sm font-bold text-gray-700 mb-1">ملاحظات</label>
-                        <input type="text" value={notes} onChange={(e) => setNotes(e.target.value)} className={inputStyle} placeholder="ملاحظات عامة على الجرد" disabled={status === 'POSTED'} />
+                        <PermissionWrapper
+                            requiredPermission={buildPermission(
+                                Resources.INVENTORY_COUNT,
+                                Actions.UPDATE
+                            )}
+                            fallback={
+                                <input type="text" value={notes} className={inputStyle} placeholder="ملاحظات عامة على الجرد" disabled readOnly />
+                            }
+                        >
+                            <input type="text" value={notes} onChange={(e) => setNotes(e.target.value)} className={inputStyle} placeholder="ملاحظات عامة على الجرد" disabled={status === 'POSTED'} />
+                        </PermissionWrapper>
                     </div>
                 </div>
             </div>
@@ -722,15 +816,32 @@ const InventoryCountPage: React.FC<InventoryCountProps> = ({ title, companyInfo 
                                         <td className="px-4 py-2 text-center text-sm text-gray-500">{item.item.unit.name}</td>
                                         <td className="px-4 py-2 text-center text-sm font-bold bg-blue-50 text-blue-900">{item.systemStock}</td>
                                         <td className="px-4 py-2 text-center">
-                                            <input 
-                                                type="number" 
-                                                value={item.actualStock || 0} 
-                                                onChange={(e) => handleActualChange(item.item.id, e.target.value)}
-                                                className="w-24 p-1.5 text-center border border-gray-300 rounded bg-white focus:ring-2 focus:ring-brand-green focus:border-brand-green font-bold text-gray-900 shadow-inner"
-                                                onFocus={(e) => e.target.select()}
-                                                disabled={status === 'POSTED'}
-                                                placeholder="0"
-                                            />
+                                            <PermissionWrapper
+                                                requiredPermission={buildPermission(
+                                                    Resources.INVENTORY_COUNT,
+                                                    Actions.UPDATE
+                                                )}
+                                                fallback={
+                                                    <input 
+                                                        type="number" 
+                                                        value={item.actualStock || 0} 
+                                                        className="w-24 p-1.5 text-center border border-gray-300 rounded bg-gray-100 font-bold text-gray-500 shadow-inner cursor-not-allowed"
+                                                        disabled
+                                                        readOnly
+                                                        placeholder="0"
+                                                    />
+                                                }
+                                            >
+                                                <input 
+                                                    type="number" 
+                                                    value={item.actualStock || 0} 
+                                                    onChange={(e) => handleActualChange(item.item.id, e.target.value)}
+                                                    className="w-24 p-1.5 text-center border border-gray-300 rounded bg-white focus:ring-2 focus:ring-brand-green focus:border-brand-green font-bold text-gray-900 shadow-inner"
+                                                    onFocus={(e) => e.target.select()}
+                                                    disabled={status === 'POSTED'}
+                                                    placeholder="0"
+                                                />
+                                            </PermissionWrapper>
                                         </td>
                                         <td className={`px-4 py-2 text-center font-bold text-sm ${item.difference < 0 ? 'text-red-600' : item.difference > 0 ? 'text-green-600' : 'text-gray-400'}`}>
                                             {item.difference > 0 ? '+' : ''}{item.difference}
@@ -791,20 +902,50 @@ const InventoryCountPage: React.FC<InventoryCountProps> = ({ title, companyInfo 
 
                     {/* Action Buttons */}
                     <div className="flex flex-col gap-2">
-                        <button 
-                            onClick={handleSaveDraft}
-                            disabled={status === 'POSTED' || isCreating || !selectedStoreId}
-                            className="w-full px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 font-semibold text-sm shadow flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                        <PermissionWrapper
+                            requiredPermission={buildPermission(
+                                Resources.INVENTORY_COUNT,
+                                Actions.CREATE
+                            )}
+                            fallback={
+                                <button 
+                                    disabled
+                                    className="w-full px-4 py-2 bg-gray-400 text-white rounded-lg font-semibold text-sm shadow flex items-center justify-center gap-2 cursor-not-allowed opacity-50"
+                                >
+                                    <span>حفظ مؤقت (مسودة)</span>
+                                </button>
+                            }
                         >
-                            <span>{isCreating ? 'جاري الحفظ...' : 'حفظ مؤقت (مسودة)'}</span>
-                        </button>
-                        <button 
-                            onClick={handlePostSettlement}
-                            disabled={status === 'POSTED' || isPosting || isUpdating || !selectedStoreId}
-                            className="w-full px-4 py-3 bg-brand-blue text-white rounded-lg hover:bg-blue-800 font-bold text-lg shadow-md flex items-center justify-center gap-3 transition-transform active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+                            <button 
+                                onClick={handleSaveDraft}
+                                disabled={status === 'POSTED' || isCreating || !selectedStoreId}
+                                className="w-full px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 font-semibold text-sm shadow flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                                <span>{isCreating ? 'جاري الحفظ...' : 'حفظ مؤقت (مسودة)'}</span>
+                            </button>
+                        </PermissionWrapper>
+                        <PermissionWrapper
+                            requiredPermission={buildPermission(
+                                Resources.INVENTORY_COUNT,
+                                Actions.UPDATE
+                            )}
+                            fallback={
+                                <button 
+                                    disabled
+                                    className="w-full px-4 py-3 bg-gray-400 text-white rounded-lg font-bold text-lg shadow-md flex items-center justify-center gap-3 cursor-not-allowed opacity-50"
+                                >
+                                    <span>اعتماد التسوية وترحيل القيود</span>
+                                </button>
+                            }
                         >
-                            <span>{(isPosting || isUpdating) ? 'جاري الاعتماد...' : 'اعتماد التسوية وترحيل القيود'}</span>
-                        </button>
+                            <button 
+                                onClick={handlePostSettlement}
+                                disabled={status === 'POSTED' || isPosting || isUpdating || !selectedStoreId}
+                                className="w-full px-4 py-3 bg-brand-blue text-white rounded-lg hover:bg-blue-800 font-bold text-lg shadow-md flex items-center justify-center gap-3 transition-transform active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                                <span>{(isPosting || isUpdating) ? 'جاري الاعتماد...' : 'اعتماد التسوية وترحيل القيود'}</span>
+                            </button>
+                        </PermissionWrapper>
                     </div>
                 </div>
             </div>
@@ -829,6 +970,10 @@ const InventoryCountPage: React.FC<InventoryCountProps> = ({ title, companyInfo 
                     totalVarianceValue: formatNumber(c.totalVarianceValue)
                 }))}
                 onSelectRow={loadHistoricalCount}
+                exportPermission={buildPermission(
+                    Resources.INVENTORY_COUNT,
+                    Actions.PRINT
+                )}
             />
         </div>
     );
