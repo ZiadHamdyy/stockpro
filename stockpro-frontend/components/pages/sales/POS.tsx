@@ -219,6 +219,35 @@ const getUserBranchId = (user: User | null): string | null => {
   return (user as any)?.branchId || (user as any)?.branch || null;
 };
 
+// Compute line amounts with tax logic (supports price includes tax)
+const computeLineAmounts = (
+  qty: number | string,
+  price: number | string,
+  includesTax: boolean,
+  vatEnabled: boolean,
+  vatRatePercent: number,
+) => {
+  const quantity = Number(qty) || 0;
+  const unitPrice = Number(price) || 0;
+  const baseAmount = quantity * unitPrice;
+
+  if (!vatEnabled || vatRatePercent <= 0) {
+    return { total: baseAmount, taxAmount: 0 };
+  }
+
+  if (includesTax) {
+    // When price includes tax: net = total / (1 + taxRate), tax = total - net
+    const net = baseAmount / (1 + vatRatePercent / 100);
+    const taxAmount = baseAmount - net;
+    return { total: baseAmount, taxAmount };
+  }
+
+  // When price excludes tax: tax = base * taxRate, total = base + tax
+  const taxAmount = baseAmount * (vatRatePercent / 100);
+  const total = baseAmount + taxAmount;
+  return { total, taxAmount };
+};
+
 const POS: React.FC<POSProps> = () => {
   const currentUser = useAppSelector((state) => state.auth.user);
 
@@ -260,6 +289,12 @@ const POS: React.FC<POSProps> = () => {
     [safesData, userBranchId],
   );
 
+  // Read salePriceIncludesTax setting from localStorage
+  const salePriceIncludesTaxSetting = (() => {
+    const stored = localStorage.getItem('salePriceIncludesTax');
+    return stored ? JSON.parse(stored) : false;
+  })();
+
   const items: Item[] = useMemo(
     () =>
       (itemsData as any[]).map((item) => ({
@@ -274,8 +309,12 @@ const POS: React.FC<POSProps> = () => {
         salePrice: Number(item.salePrice ?? item.price ?? 0),
         stock: Number(item.stock ?? item.balance ?? 0),
         reorderLimit: item.reorderLimit ?? 0,
+        salePriceIncludesTax:
+          typeof item.salePriceIncludesTax === "boolean"
+            ? item.salePriceIncludesTax
+            : salePriceIncludesTaxSetting,
       })),
-    [itemsData],
+    [itemsData, salePriceIncludesTaxSetting],
   );
 
   const itemGroups: ItemGroup[] = useMemo(
@@ -438,6 +477,12 @@ const POS: React.FC<POSProps> = () => {
       return;
     }
 
+    // Get salePriceIncludesTax value from item or setting
+    const itemSalePriceIncludesTax = 
+      typeof (item as any).salePriceIncludesTax === "boolean"
+        ? (item as any).salePriceIncludesTax
+        : salePriceIncludesTaxSetting;
+
     setCart((prev) => {
       const existing = prev.find((i) => i.id === item.code);
       const quantityModifier = isReturnMode ? -1 : 1;
@@ -446,22 +491,37 @@ const POS: React.FC<POSProps> = () => {
         const newQty = existing.qty + quantityModifier;
         if (newQty === 0) return prev.filter((i) => i.id !== item.code);
 
+        // Calculate amounts using tax logic
+        const { total, taxAmount } = computeLineAmounts(
+          newQty,
+          item.salePrice,
+          Boolean((existing as any).salePriceIncludesTax ?? itemSalePriceIncludesTax),
+          isVatEnabled,
+          vatRate,
+        );
+
         return prev.map((i) =>
           i.id === item.code
             ? {
                 ...i,
                 qty: newQty,
-                total: newQty * i.price,
-                taxAmount: isVatEnabled
-                  ? newQty * i.price * (vatRate / 100)
-                  : 0,
+                total,
+                taxAmount,
+                salePriceIncludesTax: (existing as any).salePriceIncludesTax ?? itemSalePriceIncludesTax,
               }
             : i
         );
       }
 
-      const total = item.salePrice * quantityModifier;
-      const taxAmount = isVatEnabled ? total * (vatRate / 100) : 0;
+      // Calculate amounts for new item
+      const { total, taxAmount } = computeLineAmounts(
+        quantityModifier,
+        item.salePrice,
+        itemSalePriceIncludesTax,
+        isVatEnabled,
+        vatRate,
+      );
+
       return [
         ...prev,
         {
@@ -470,9 +530,10 @@ const POS: React.FC<POSProps> = () => {
           unit: item.unit,
           qty: quantityModifier,
           price: item.salePrice,
-          taxAmount: taxAmount,
-          total: total,
-        },
+          taxAmount,
+          total,
+          salePriceIncludesTax: itemSalePriceIncludesTax,
+        } as InvoiceItem & { salePriceIncludesTax?: boolean },
       ];
     });
 
@@ -486,11 +547,20 @@ const POS: React.FC<POSProps> = () => {
           const newQty = item.qty + delta;
           if (newQty === 0) return item;
 
+          // Calculate amounts using tax logic
+          const { total, taxAmount } = computeLineAmounts(
+            newQty,
+            item.price,
+            Boolean((item as any).salePriceIncludesTax ?? salePriceIncludesTaxSetting),
+            isVatEnabled,
+            vatRate,
+          );
+
           return {
             ...item,
             qty: newQty,
-            total: newQty * item.price,
-            taxAmount: isVatEnabled ? newQty * item.price * (vatRate / 100) : 0,
+            total,
+            taxAmount,
           };
         }
         return item;
@@ -502,12 +572,20 @@ const POS: React.FC<POSProps> = () => {
     setCart((prev) => prev.filter((i) => i.id !== id));
 
   const totals = useMemo(() => {
-    const subtotal = cart.reduce((sum, i) => sum + i.total, 0);
+    // Calculate tax total
     const tax = isVatEnabled
-      ? cart.reduce((sum, i) => sum + i.taxAmount, 0)
+      ? cart.reduce((sum, i) => sum + (Number(i.taxAmount) || 0), 0)
       : 0;
-    const totalBeforeDiscount = subtotal + tax;
-    const net = totalBeforeDiscount - discount;
+    
+    // Calculate subtotal (total - tax for each item, works for both tax-included and tax-excluded prices)
+    const subtotal = cart.reduce((acc, item) => {
+      const lineTotal = Number(item.total) || 0;
+      const lineTax = isVatEnabled ? Number(item.taxAmount) || 0 : 0;
+      return acc + (lineTotal - lineTax);
+    }, 0);
+    
+    // Net = subtotal + tax - discount
+    const net = subtotal + tax - discount;
     return { subtotal, tax, discount, net };
   }, [cart, isVatEnabled, discount]);
 
@@ -521,8 +599,34 @@ const POS: React.FC<POSProps> = () => {
   const handleConfirmPayment = async () => {
     if (cart.length === 0) return;
 
-    const safeId = filteredSafes[0]?.id?.toString();
-    const bankId = banks[0]?.id?.toString();
+    // Validate that credit payments require a real customer (not cash customer)
+    if (paymentMethod === "credit" && selectedCustomer.id === "cash") {
+      showToast("يجب اختيار عميل حقيقي للدفع بالشبكة (البطاقة)", "error");
+      return;
+    }
+
+    // Get branch ID for safe selection (matches SalesInvoice approach)
+    const safeBranchId = userBranchId;
+
+    // For cash payments, use the first safe from user's branch if available
+    // Otherwise, use branchId as paymentTargetId (backend will find safe by branchId)
+    const safeId = paymentMethod === "cash" && filteredSafes.length > 0 
+      ? filteredSafes[0].id?.toString() 
+      : undefined;
+
+    // For cash payments, paymentTargetId is required for validation (must be a string)
+    // Backend will automatically find the safe by branchId, so we can use:
+    // - The safe ID if available, or
+    // - The branchId as fallback (converted to string, backend will still find safe by branchId)
+    const paymentTargetId = paymentMethod === "cash" 
+      ? (safeId ?? (safeBranchId ? String(safeBranchId) : undefined))
+      : undefined;
+
+    // Validate that cash payments have a paymentTargetId
+    if (paymentMethod === "cash" && !paymentTargetId) {
+      showToast("لا يمكن إتمام العملية: يرجى التأكد من وجود فرع مرتبط بحسابك", "error");
+      return;
+    }
 
     const payload: CreateSalesInvoiceRequest = {
       customerId: selectedCustomer.id !== "cash" ? selectedCustomer.id : undefined,
@@ -535,12 +639,13 @@ const POS: React.FC<POSProps> = () => {
         price: i.price,
         taxAmount: i.taxAmount,
         total: i.total,
+        salePriceIncludesTax: Boolean((i as any).salePriceIncludesTax ?? salePriceIncludesTaxSetting),
       })),
       discount,
       paymentMethod,
-      paymentTargetType: paymentMethod === "cash" ? "safe" : "bank",
-      paymentTargetId:
-        paymentMethod === "cash" ? safeId ?? undefined : bankId ?? undefined,
+      // For cash payments: require safe, for credit payments: no payment target
+      paymentTargetType: paymentMethod === "cash" ? "safe" : undefined,
+      paymentTargetId,
       bankTransactionType: paymentMethod === "credit" ? "POS" : undefined,
       notes,
     };
