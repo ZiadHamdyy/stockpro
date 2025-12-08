@@ -2,8 +2,14 @@
 import React, { useMemo } from 'react';
 import type { Safe, Bank, Customer, Supplier, Item, Invoice, Voucher } from '../../../../types';
 import { PrintIcon, ShieldIcon, ActivityIcon, TrendingUpIcon, AlertTriangleIcon } from '../../../icons';
+import PermissionWrapper from '../../../common/PermissionWrapper';
 import ReportHeader from '../ReportHeader';
 import { formatNumber } from '../../../../utils/formatting';
+import {
+    Actions,
+    Resources,
+    buildPermission,
+} from '../../../../enums/permissions.enum';
 import { useGetSafesQuery } from '../../../store/slices/safe/safeApiSlice';
 import { useGetBanksQuery } from '../../../store/slices/bank/bankApiSlice';
 import { useGetCustomersQuery } from '../../../store/slices/customer/customerApiSlice';
@@ -385,7 +391,17 @@ const LiquidityReport: React.FC<LiquidityReportProps> = ({ title }) => {
         <div className="bg-white p-6 rounded-lg shadow space-y-8">
             <div className="flex justify-between items-center border-b pb-4 no-print">
                 <h1 className="text-2xl font-bold text-brand-dark">{title}</h1>
-                <button onClick={handlePrint} className="p-2 bg-gray-100 rounded hover:bg-gray-200"><PrintIcon/></button>
+                <PermissionWrapper
+                    requiredPermission={buildPermission(
+                        Resources.LIQUIDITY_REPORT,
+                        Actions.PRINT,
+                    )}
+                    fallback={
+                        <button disabled className="p-2 bg-gray-100 rounded cursor-not-allowed opacity-50"><PrintIcon/></button>
+                    }
+                >
+                    <button onClick={handlePrint} className="p-2 bg-gray-100 rounded hover:bg-gray-200"><PrintIcon/></button>
+                </PermissionWrapper>
             </div>
 
             {/* Safety Indicator Banner */}

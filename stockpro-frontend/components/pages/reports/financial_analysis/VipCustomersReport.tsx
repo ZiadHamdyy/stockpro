@@ -2,8 +2,14 @@
 import React, { useState, useMemo } from 'react';
 import type { Customer, Invoice } from '../../../../types';
 import { ExcelIcon, PdfIcon, PrintIcon, SearchIcon, TrophyIcon, MedalIcon, StarIcon } from '../../../icons';
+import PermissionWrapper from '../../../common/PermissionWrapper';
 import ReportHeader from '../ReportHeader';
 import { formatNumber, exportToExcel } from '../../../../utils/formatting';
+import {
+    Actions,
+    Resources,
+    buildPermission,
+} from '../../../../enums/permissions.enum';
 import { useGetCustomersQuery } from '../../../store/slices/customer/customerApiSlice';
 import { useGetSalesInvoicesQuery } from '../../../store/slices/salesInvoice/salesInvoiceApiSlice';
 import { useGetSalesReturnsQuery } from '../../../store/slices/salesReturn/salesReturnApiSlice';
@@ -191,10 +197,23 @@ const VIPCustomersReport: React.FC<VIPCustomersReportProps> = ({ title }) => {
                             <input type="date" className="p-2 border border-gray-300 rounded-lg text-sm" value={endDate} onChange={e => setEndDate(e.target.value)} />
                         </div>
                     </div>
-                    <div className="flex gap-2">
-                        <button onClick={handleExcelExport} className="p-2 border rounded hover:bg-gray-100 text-green-700"><ExcelIcon/></button>
-                        <button onClick={handlePrint} className="p-2 border rounded hover:bg-gray-100 text-gray-700"><PrintIcon/></button>
-                    </div>
+                    <PermissionWrapper
+                        requiredPermission={buildPermission(
+                            Resources.VIP_CUSTOMERS_REPORT,
+                            Actions.PRINT,
+                        )}
+                        fallback={
+                            <div className="flex gap-2">
+                                <button disabled className="p-2 border rounded cursor-not-allowed opacity-50 text-gray-400"><ExcelIcon/></button>
+                                <button disabled className="p-2 border rounded cursor-not-allowed opacity-50 text-gray-400"><PrintIcon/></button>
+                            </div>
+                        }
+                    >
+                        <div className="flex gap-2">
+                            <button onClick={handleExcelExport} className="p-2 border rounded hover:bg-gray-100 text-green-700"><ExcelIcon/></button>
+                            <button onClick={handlePrint} className="p-2 border rounded hover:bg-gray-100 text-gray-700"><PrintIcon/></button>
+                        </div>
+                    </PermissionWrapper>
                 </div>
 
                 {/* Podium / Hall of Fame */}

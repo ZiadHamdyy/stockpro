@@ -2,8 +2,14 @@
 import React, { useState, useMemo } from 'react';
 import type { Item, Invoice, StoreIssueVoucher } from '../../../../types';
 import { ExcelIcon, PdfIcon, PrintIcon, SearchIcon, AlertTriangleIcon } from '../../../icons';
+import PermissionWrapper from '../../../common/PermissionWrapper';
 import ReportHeader from '../ReportHeader';
 import { formatNumber, exportToExcel } from '../../../../utils/formatting';
+import {
+    Actions,
+    Resources,
+    buildPermission,
+} from '../../../../enums/permissions.enum';
 import { useGetItemsQuery } from '../../../store/slices/items/itemsApi';
 import { useGetSalesInvoicesQuery } from '../../../store/slices/salesInvoice/salesInvoiceApiSlice';
 import { useGetStoreIssueVouchersQuery } from '../../../store/slices/storeIssueVoucher/storeIssueVoucherApi';
@@ -186,8 +192,21 @@ const StagnantItemsReport: React.FC<StagnantItemsReportProps> = ({ title }) => {
                         </div>
                     </div>
                     <div className="flex gap-2">
-                        <button onClick={handleExcelExport} className="p-2 border rounded hover:bg-gray-100 text-green-700"><ExcelIcon/></button>
-                        <button onClick={handlePrint} className="p-2 border rounded hover:bg-gray-100 text-gray-700"><PrintIcon/></button>
+                        <PermissionWrapper
+                            requiredPermission={buildPermission(
+                                Resources.STAGNANT_ITEMS_REPORT,
+                                Actions.PRINT,
+                            )}
+                            fallback={
+                                <>
+                                    <button disabled className="p-2 border rounded cursor-not-allowed opacity-50 text-gray-400"><ExcelIcon/></button>
+                                    <button disabled className="p-2 border rounded cursor-not-allowed opacity-50 text-gray-400"><PrintIcon/></button>
+                                </>
+                            }
+                        >
+                            <button onClick={handleExcelExport} className="p-2 border rounded hover:bg-gray-100 text-green-700"><ExcelIcon/></button>
+                            <button onClick={handlePrint} className="p-2 border rounded hover:bg-gray-100 text-gray-700"><PrintIcon/></button>
+                        </PermissionWrapper>
                     </div>
                 </div>
 
