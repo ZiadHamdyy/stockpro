@@ -796,7 +796,7 @@ const AppContent = () => {
             <Route
               path="/settings/print-settings"
               element={
-                <ProtectedRoute requiredPermission="print_settings-read">
+                <ProtectedRoute requiredPermission={['print_settings-read', 'print_settings-update']}>
                   <PrintSettingsPage
                     title={currentPageTitle}
                     settings={printSettings}

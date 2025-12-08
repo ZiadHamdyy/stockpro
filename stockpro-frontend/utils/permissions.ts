@@ -101,6 +101,12 @@ export const hasReadPermissionForKey = (
   if (!permissionSet || permissionSet.size === 0) {
     return false;
   }
+  
+  // Special case: print_settings requires both read and update permissions
+  if (menuKey === 'print_settings') {
+    return permissionSet.has('print_settings-read') && permissionSet.has('print_settings-update');
+  }
+  
   return permissionSet.has(`${menuKey}-read`);
 };
 
