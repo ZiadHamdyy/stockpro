@@ -25,7 +25,6 @@ import {
   HistoryIcon,
   MaximizeIcon,
   RefreshCwIcon,
-  RotateCcwIcon,
   TagIcon,
   WifiIcon,
   WifiOffIcon,
@@ -127,15 +126,12 @@ const CartItemRow: React.FC<{
   onUpdateQty: (id: string, delta: number) => void;
   onRemove: (id: string) => void;
 }> = ({ item, onUpdateQty, onRemove }) => {
-  const isReturn = item.qty < 0;
   return (
     <div
-      className={`p-3 rounded-xl border flex items-center justify-between mb-2 group transition-all shadow-sm ${isReturn ? "bg-red-900/40 border-red-700/50" : "bg-white/5 hover:bg-white/10 border-white/10"}`}
+      className="p-3 rounded-xl border flex items-center justify-between mb-2 group transition-all shadow-sm bg-white/5 hover:bg-white/10 border-white/10"
     >
       <div className="flex-1 min-w-0 pr-3">
-        <h4
-          className={`font-bold text-sm truncate ${isReturn ? "text-red-200" : "text-white"}`}
-        >
+        <h4 className="font-bold text-sm truncate text-white">
           {item.name}
         </h4>
         <div className="flex items-center gap-2 mt-1 text-xs text-slate-400">
@@ -157,9 +153,7 @@ const CartItemRow: React.FC<{
               <button disabled className="w-8 h-8 flex items-center justify-center rounded text-slate-500 cursor-not-allowed">
                 <MinusIcon className="w-4 h-4" />
               </button>
-              <span
-                className={`w-8 text-center font-bold text-sm font-mono ${isReturn ? "text-red-400" : "text-white"}`}
-              >
+              <span className="w-8 text-center font-bold text-sm font-mono text-white">
                 {Math.abs(item.qty)}
               </span>
               <button disabled className="w-8 h-8 flex items-center justify-center rounded text-slate-500 cursor-not-allowed">
@@ -175,9 +169,7 @@ const CartItemRow: React.FC<{
             >
               <MinusIcon className="w-4 h-4" />
             </button>
-            <span
-              className={`w-8 text-center font-bold text-sm font-mono ${isReturn ? "text-red-400" : "text-white"}`}
-            >
+            <span className="w-8 text-center font-bold text-sm font-mono text-white">
               {Math.abs(item.qty)}
             </span>
             <button
@@ -189,9 +181,7 @@ const CartItemRow: React.FC<{
           </div>
         </PermissionWrapper>
         <div className="flex flex-col items-end min-w-[70px]">
-          <span
-            className={`font-bold text-base font-mono ${isReturn ? "text-red-400" : "text-emerald-400"}`}
-          >
+          <span className="font-bold text-base font-mono text-emerald-400">
             {formatNumber(item.total)}
           </span>
           <PermissionWrapper
@@ -355,7 +345,6 @@ const POS: React.FC<POSProps> = () => {
   }>({ id: "cash", name: "عميل نقدي" });
   const [discount, setDiscount] = useState(0);
   const [currentTime, setCurrentTime] = useState(new Date());
-  const [isReturnMode, setIsReturnMode] = useState(false);
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [notes, setNotes] = useState("");
 
@@ -485,11 +474,9 @@ const POS: React.FC<POSProps> = () => {
 
     setCart((prev) => {
       const existing = prev.find((i) => i.id === item.code);
-      const quantityModifier = isReturnMode ? -1 : 1;
 
       if (existing) {
-        const newQty = existing.qty + quantityModifier;
-        if (newQty === 0) return prev.filter((i) => i.id !== item.code);
+        const newQty = existing.qty + 1;
 
         // Calculate amounts using tax logic
         const { total, taxAmount } = computeLineAmounts(
@@ -515,7 +502,7 @@ const POS: React.FC<POSProps> = () => {
 
       // Calculate amounts for new item
       const { total, taxAmount } = computeLineAmounts(
-        quantityModifier,
+        1,
         item.salePrice,
         itemSalePriceIncludesTax,
         isVatEnabled,
@@ -528,7 +515,7 @@ const POS: React.FC<POSProps> = () => {
           id: item.code,
           name: item.name,
           unit: item.unit,
-          qty: quantityModifier,
+          qty: 1,
           price: item.salePrice,
           taxAmount,
           total,
@@ -536,8 +523,6 @@ const POS: React.FC<POSProps> = () => {
         } as InvoiceItem & { salePriceIncludesTax?: boolean },
       ];
     });
-
-    if (isReturnMode) showToast("تم إضافة صنف كمرتجع");
   };
 
   const updateQty = (id: string, delta: number) => {
@@ -661,7 +646,6 @@ const POS: React.FC<POSProps> = () => {
       setSearchQuery("");
       setNotes("");
       setSelectedCustomer({ id: "cash", name: "عميل نقدي" });
-      setIsReturnMode(false);
       setIsCheckoutOpen(false);
       showToast("تم إصدار الفاتورة بنجاح");
     } catch (error: any) {
@@ -687,7 +671,6 @@ const POS: React.FC<POSProps> = () => {
     setCart([]);
     setDiscount(0);
     setSelectedCustomer({ id: "cash", name: "عميل نقدي" });
-    setIsReturnMode(false);
     showToast("تم تعليق الفاتورة");
   };
 
@@ -1148,9 +1131,7 @@ const POS: React.FC<POSProps> = () => {
         </div>
 
         {/* 2. Transaction Header */}
-        <div
-          className={`p-4 border-b border-slate-700 transition-colors relative z-10 ${isReturnMode ? "bg-red-900/20" : "bg-slate-800"}`}
-        >
+        <div className="p-4 border-b border-slate-700 transition-colors relative z-10 bg-slate-800">
           <div className="flex justify-between items-center mb-3">
             <div className="flex items-center gap-2">
               <button className="p-1.5 rounded-lg bg-slate-700 hover:bg-slate-600 text-slate-300 border border-slate-600">
@@ -1184,21 +1165,6 @@ const POS: React.FC<POSProps> = () => {
                   title="معاينة"
                 >
                   <EyeIcon className="w-3 h-3" />
-                </button>
-              </PermissionWrapper>
-              <PermissionWrapper
-                requiredPermission={buildPermission(
-                  Resources.SALES_INVOICE,
-                  Actions.UPDATE
-                )}
-                fallback={null}
-              >
-                <button
-                  onClick={() => setIsReturnMode(!isReturnMode)}
-                  className={`flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-bold transition-all border shadow-sm ${isReturnMode ? "bg-red-600 border-red-500 text-white animate-pulse" : "bg-slate-700 border-slate-600 text-slate-300 hover:bg-slate-600"}`}
-                >
-                  <RotateCcwIcon className="w-3 h-3" />
-                  {isReturnMode ? "وضع المرتجع" : "بيع جديد"}
                 </button>
               </PermissionWrapper>
             </div>
@@ -1430,7 +1396,7 @@ const POS: React.FC<POSProps> = () => {
                             disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-slate-700 disabled:from-transparent disabled:to-transparent
                         `}
             >
-              <span>{totals.net < 0 ? "استرجاع" : "دفع"}</span>
+              <span>دفع</span>
               <div className="flex items-center gap-2 bg-black/20 px-4 py-1.5 rounded-lg">
                 <BanknoteIcon className="w-7 h-7" />
               </div>
