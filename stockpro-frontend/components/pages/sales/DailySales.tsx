@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from "react";
+import { useNavigate } from "react-router-dom";
 import type { CompanyInfo } from "../../../types";
 import { ExcelIcon, PdfIcon, PrintIcon, SearchIcon } from "../../icons";
 import { exportToExcel, exportToPdf, formatMoney } from "../../../utils/formatting";
@@ -21,6 +22,7 @@ interface DailySalesProps {
 }
 
 const DailySales: React.FC<DailySalesProps> = ({ title }) => {
+  const navigate = useNavigate();
   // Redux hooks
   const { data: salesInvoices = [] } = useGetSalesInvoicesQuery();
   const { data: company } = useGetCompanyQuery();
@@ -353,8 +355,14 @@ const DailySales: React.FC<DailySalesProps> = ({ title }) => {
               <tr key={sale.id} className="hover:bg-brand-blue-bg">
                 <td className="px-6 py-4 whitespace-nowrap">{index + 1}</td>
                 <td className="px-6 py-4 whitespace-nowrap">{new Date(sale.date).toLocaleDateString()}</td>
-                <td className="px-6 py-4 whitespace-nowrap font-medium text-brand-dark">
-                  {sale.code}
+                <td className="px-6 py-4 whitespace-nowrap">
+                  <button
+                    onClick={() => navigate(`/sales/invoice?invoiceId=${sale.id}`)}
+                    className="text-brand-blue hover:underline font-semibold no-print cursor-pointer"
+                  >
+                    {sale.code}
+                  </button>
+                  <span className="print:inline hidden">{sale.code}</span>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   {sale.customer?.name || "عميل نقدي"}
