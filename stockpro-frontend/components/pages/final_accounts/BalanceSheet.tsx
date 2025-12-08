@@ -22,6 +22,8 @@ import { useGetPaymentVouchersQuery } from "../../store/slices/paymentVoucherApi
 import type { PaymentVoucher } from "../../store/slices/paymentVoucherApiSlice";
 import { useGetReceiptVouchersQuery } from "../../store/slices/receiptVoucherApiSlice";
 import type { ReceiptVoucher } from "../../store/slices/receiptVoucherApiSlice";
+import { useGetFiscalYearsQuery } from "../../store/slices/fiscalYear/fiscalYearApiSlice";
+import { useGetIncomeStatementQuery } from "../../store/slices/incomeStatement/incomeStatementApiSlice";
 
 const flipSign = (value: number) => (value === 0 ? 0 : value * -1);
 
@@ -43,42 +45,19 @@ const BalanceSheet: React.FC = () => {
   const { data: apiReceiptVouchers = [] } =
     useGetReceiptVouchersQuery(undefined);
 
+  // Fiscal year and income statement data for retained earnings calculation
+  const { data: fiscalYears = [] } = useGetFiscalYearsQuery();
+  const { data: incomeStatementData } = useGetIncomeStatementQuery(
+    { startDate, endDate },
+    { skip: !startDate || !endDate }
+  );
+
   const {
     data: balanceSheetData,
     companyInfo,
     isLoading,
     error,
   } = useBalanceSheet(startDate, endDate);
-
-  const displayData = useMemo(() => {
-    if (!balanceSheetData) {
-      return null;
-    }
-
-    const payables = flipSign(balanceSheetData.payables);
-    const otherPayables = flipSign(balanceSheetData.otherPayables);
-    const vatPayable = flipSign(balanceSheetData.vatPayable);
-    const partnersBalance = flipSign(balanceSheetData.partnersBalance);
-    // Keep retained earnings with its original sign from backend
-    const retainedEarnings = balanceSheetData.retainedEarnings;
-
-    const totalLiabilities = payables + otherPayables + vatPayable;
-    const totalEquity =
-      balanceSheetData.capital + partnersBalance + retainedEarnings;
-    const totalLiabilitiesAndEquity = totalLiabilities + totalEquity;
-
-    return {
-      ...balanceSheetData,
-      payables,
-      otherPayables,
-      vatPayable,
-      partnersBalance,
-      retainedEarnings,
-      totalLiabilities,
-      totalEquity,
-      totalLiabilitiesAndEquity,
-    };
-  }, [balanceSheetData]);
 
   // Helper to normalize date to YYYY-MM-DD (copied from VATStatementReport)
   const normalizeDate = useMemo(() => {
@@ -102,6 +81,61 @@ const BalanceSheet: React.FC = () => {
       return "";
     };
   }, []);
+
+  // Calculate retained earnings with fiscal year logic
+  const calculatedRetainedEarnings = useMemo(() => {
+    const normalizedStartDate = normalizeDate(startDate);
+    const periodStartDate = new Date(normalizedStartDate);
+
+    // Find all CLOSED fiscal years that ended before the current period start date
+    const previousClosedFiscalYears = fiscalYears.filter((fy) => {
+      if (fy.status !== "CLOSED") return false;
+      const fyEndDate = new Date(normalizeDate(fy.endDate));
+      return fyEndDate < periodStartDate;
+    });
+
+    // Sum retained earnings from all previous closed fiscal years
+    const previousRetainedEarnings = previousClosedFiscalYears.reduce(
+      (sum, fiscalYear) => sum + (fiscalYear.retainedEarnings || 0),
+      0,
+    );
+
+    // Get current period net profit from income statement
+    const currentPeriodNetProfit = incomeStatementData?.netProfit || 0;
+
+    // Return accumulated retained earnings (previous years + current period)
+    return previousRetainedEarnings + currentPeriodNetProfit;
+  }, [fiscalYears, incomeStatementData, normalizeDate, startDate]);
+
+  const displayData = useMemo(() => {
+    if (!balanceSheetData) {
+      return null;
+    }
+
+    const payables = flipSign(balanceSheetData.payables);
+    const otherPayables = flipSign(balanceSheetData.otherPayables);
+    const vatPayable = flipSign(balanceSheetData.vatPayable);
+    const partnersBalance = flipSign(balanceSheetData.partnersBalance);
+    // Use calculated retained earnings with fiscal year logic
+    const retainedEarnings = calculatedRetainedEarnings;
+
+    const totalLiabilities = payables + otherPayables + vatPayable;
+    const totalEquity =
+      balanceSheetData.capital + partnersBalance + retainedEarnings;
+    const totalLiabilitiesAndEquity = totalLiabilities + totalEquity;
+
+    return {
+      ...balanceSheetData,
+      payables,
+      otherPayables,
+      vatPayable,
+      partnersBalance,
+      retainedEarnings,
+      totalLiabilities,
+      totalEquity,
+      totalLiabilitiesAndEquity,
+    };
+  }, [balanceSheetData, calculatedRetainedEarnings]);
 
   // Compute VAT net from مدين/دائن totals (same logic as VATStatementReport)
   // Includes opening balance (transactions before startDate) to carry forward to future
