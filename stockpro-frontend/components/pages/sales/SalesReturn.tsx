@@ -71,8 +71,36 @@ const SalesReturn: React.FC<SalesReturnProps> = ({
   onClearViewingId,
 }) => {
   // Redux hooks
-  const { data: returns = [], isLoading: returnsLoading } =
+  const { data: allReturns = [], isLoading: returnsLoading } =
     useGetSalesReturnsQuery();
+  
+  // Helper function to get user's branch ID
+  const getUserBranchId = (user: User | null): string | null => {
+    if (!user) return null;
+    if (user.branchId) return user.branchId;
+    const branch = (user as any)?.branch;
+    if (typeof branch === "string") return branch;
+    if (branch && typeof branch === "object") return branch.id || null;
+    return null;
+  };
+  
+  // Get current user's branch ID
+  const userBranchId = getUserBranchId(currentUser);
+  
+  // Filter returns: show only current branch + current user
+  const returns = useMemo(() => {
+    return allReturns.filter((returnRecord: any) => {
+      // Filter by current branch
+      const returnBranchId = returnRecord.branch?.id || returnRecord.branchId;
+      if (userBranchId && returnBranchId !== userBranchId) return false;
+      
+      // Filter by current user
+      const returnUserId = returnRecord.user?.id || returnRecord.userId;
+      if (currentUser?.id && returnUserId !== currentUser.id) return false;
+      
+      return true;
+    });
+  }, [allReturns, userBranchId, currentUser?.id]);
   const [createSalesReturn, { isLoading: isCreating }] =
     useCreateSalesReturnMutation();
   const [updateSalesReturn, { isLoading: isUpdating }] =
@@ -88,7 +116,6 @@ const SalesReturn: React.FC<SalesReturnProps> = ({
   const { data: stores = [] } = useGetStoresQuery();
 
   // Filter safes by current user's branch
-  const userBranchId = currentUser?.branchId || currentUser?.branch;
   const filteredSafes = userBranchId
     ? safes.filter((safe) => safe.branchId === userBranchId)
     : safes;

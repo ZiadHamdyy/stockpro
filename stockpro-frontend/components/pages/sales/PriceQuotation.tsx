@@ -71,7 +71,35 @@ const PriceQuotation: React.FC<PriceQuotationProps> = ({ title }) => {
     const { data: customersData = [] } = useGetCustomersQuery();
     const allCustomers: Customer[] = customersData;
     const { data: quotationsData } = useGetPriceQuotationsQuery();
-    const quotations: PriceQuotationRecord[] = quotationsData ?? [];
+    
+    // Helper function to get user's branch ID
+    const getUserBranchId = (user: any): string | null => {
+        if (!user) return null;
+        if (user.branchId) return user.branchId;
+        const branch = user?.branch;
+        if (typeof branch === "string") return branch;
+        if (branch && typeof branch === "object") return branch.id || null;
+        return null;
+    };
+    
+    // Get current user's branch ID
+    const userBranchId = getUserBranchId(currentUser);
+    
+    // Filter quotations: show only current branch + current user
+    const quotations: PriceQuotationRecord[] = useMemo(() => {
+        const allQuotations = quotationsData ?? [];
+        return allQuotations.filter((quotation: any) => {
+            // Filter by current branch
+            const quotationBranchId = quotation.branch?.id || quotation.branchId;
+            if (userBranchId && quotationBranchId !== userBranchId) return false;
+            
+            // Filter by current user
+            const quotationUserId = quotation.user?.id || quotation.userId;
+            if (currentUser?.id && quotationUserId !== currentUser.id) return false;
+            
+            return true;
+        });
+    }, [quotationsData, userBranchId, currentUser?.id]);
     const [createPriceQuotation, { isLoading: isCreatingQuotation }] = useCreatePriceQuotationMutation();
     const [updatePriceQuotation, { isLoading: isUpdatingQuotation }] = useUpdatePriceQuotationMutation();
     const [deletePriceQuotation, { isLoading: isDeletingQuotation }] = useDeletePriceQuotationMutation();

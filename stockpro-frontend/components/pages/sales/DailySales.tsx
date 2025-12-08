@@ -24,10 +24,38 @@ interface DailySalesProps {
 const DailySales: React.FC<DailySalesProps> = ({ title }) => {
   const navigate = useNavigate();
   // Redux hooks
-  const { data: salesInvoices = [] } = useGetSalesInvoicesQuery();
+  const { data: allSalesInvoices = [] } = useGetSalesInvoicesQuery();
   const { data: company } = useGetCompanyQuery();
   const { data: branches = [] } = useGetBranchesQuery();
   const currentUser = useAppSelector(selectCurrentUser);
+  
+  // Helper function to get user's branch ID
+  const getUserBranchId = (user: any): string | null => {
+    if (!user) return null;
+    if (user.branchId) return user.branchId;
+    const branch = user?.branch;
+    if (typeof branch === "string") return branch;
+    if (branch && typeof branch === "object") return branch.id || null;
+    return null;
+  };
+  
+  // Get current user's branch ID
+  const userBranchId = getUserBranchId(currentUser);
+  
+  // Filter invoices: show only current branch + current user
+  const salesInvoices = useMemo(() => {
+    return allSalesInvoices.filter((invoice: any) => {
+      // Filter by current branch
+      const invoiceBranchId = invoice.branch?.id || invoice.branchId;
+      if (userBranchId && invoiceBranchId !== userBranchId) return false;
+      
+      // Filter by current user
+      const invoiceUserId = invoice.user?.id || invoice.userId;
+      if (currentUser?.id && invoiceUserId !== currentUser.id) return false;
+      
+      return true;
+    });
+  }, [allSalesInvoices, userBranchId, currentUser?.id]);
 
   const companyInfo: CompanyInfo = company || {
     name: "",
