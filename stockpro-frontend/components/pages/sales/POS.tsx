@@ -40,6 +40,8 @@ import { useToast } from "../../common/ToastProvider";
 import { formatNumber } from "../../../utils/formatting";
 import InvoicePrintPreview from "./InvoicePrintPreview";
 import { useAppSelector } from "../../store/hooks";
+import PermissionWrapper from "../../common/PermissionWrapper";
+import { Resources, Actions, buildPermission } from "../../../enums/permissions.enum";
 import {
   useGetItemsQuery,
   useGetItemGroupsQuery,
@@ -145,37 +147,67 @@ const CartItemRow: React.FC<{
       </div>
 
       <div className="flex items-center gap-3">
-        <div className="flex items-center bg-black/20 rounded-lg p-0.5 border border-white/10 shadow-inner">
-          <button
-            onClick={() => onUpdateQty(item.id, -1)}
-            className="w-8 h-8 flex items-center justify-center hover:bg-white/10 rounded text-slate-300 hover:text-white transition-all"
-          >
-            <MinusIcon className="w-4 h-4" />
-          </button>
-          <span
-            className={`w-8 text-center font-bold text-sm font-mono ${isReturn ? "text-red-400" : "text-white"}`}
-          >
-            {Math.abs(item.qty)}
-          </span>
-          <button
-            onClick={() => onUpdateQty(item.id, 1)}
-            className="w-8 h-8 flex items-center justify-center hover:bg-white/10 rounded text-slate-300 hover:text-white transition-all"
-          >
-            <PlusIcon className="w-4 h-4" />
-          </button>
-        </div>
+        <PermissionWrapper
+          requiredPermission={buildPermission(
+            Resources.SALES_INVOICE,
+            Actions.UPDATE
+          )}
+          fallback={
+            <div className="flex items-center bg-black/20 rounded-lg p-0.5 border border-white/10 shadow-inner opacity-50 cursor-not-allowed">
+              <button disabled className="w-8 h-8 flex items-center justify-center rounded text-slate-500 cursor-not-allowed">
+                <MinusIcon className="w-4 h-4" />
+              </button>
+              <span
+                className={`w-8 text-center font-bold text-sm font-mono ${isReturn ? "text-red-400" : "text-white"}`}
+              >
+                {Math.abs(item.qty)}
+              </span>
+              <button disabled className="w-8 h-8 flex items-center justify-center rounded text-slate-500 cursor-not-allowed">
+                <PlusIcon className="w-4 h-4" />
+              </button>
+            </div>
+          }
+        >
+          <div className="flex items-center bg-black/20 rounded-lg p-0.5 border border-white/10 shadow-inner">
+            <button
+              onClick={() => onUpdateQty(item.id, -1)}
+              className="w-8 h-8 flex items-center justify-center hover:bg-white/10 rounded text-slate-300 hover:text-white transition-all"
+            >
+              <MinusIcon className="w-4 h-4" />
+            </button>
+            <span
+              className={`w-8 text-center font-bold text-sm font-mono ${isReturn ? "text-red-400" : "text-white"}`}
+            >
+              {Math.abs(item.qty)}
+            </span>
+            <button
+              onClick={() => onUpdateQty(item.id, 1)}
+              className="w-8 h-8 flex items-center justify-center hover:bg-white/10 rounded text-slate-300 hover:text-white transition-all"
+            >
+              <PlusIcon className="w-4 h-4" />
+            </button>
+          </div>
+        </PermissionWrapper>
         <div className="flex flex-col items-end min-w-[70px]">
           <span
             className={`font-bold text-base font-mono ${isReturn ? "text-red-400" : "text-emerald-400"}`}
           >
             {formatNumber(item.total)}
           </span>
-          <button
-            onClick={() => onRemove(item.id)}
-            className="text-[10px] text-red-400 hover:text-red-300 opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1 mt-0.5"
+          <PermissionWrapper
+            requiredPermission={buildPermission(
+              Resources.SALES_INVOICE,
+              Actions.UPDATE
+            )}
+            fallback={null}
           >
-            <TrashIcon className="w-3 h-3" /> حذف
-          </button>
+            <button
+              onClick={() => onRemove(item.id)}
+              className="text-[10px] text-red-400 hover:text-red-300 opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1 mt-0.5"
+            >
+              <TrashIcon className="w-3 h-3" /> حذف
+            </button>
+          </PermissionWrapper>
         </div>
       </div>
     </div>
@@ -596,17 +628,37 @@ const POS: React.FC<POSProps> = () => {
         {/* Header Bar */}
         <div className="h-auto lg:h-20 bg-white border-b border-slate-200 px-4 md:px-6 py-3 lg:py-0 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between flex-shrink-0 shadow-sm z-10">
           <div className="flex flex-col sm:flex-row items-start lg:items-center gap-3 lg:gap-4 flex-1 w-full">
-            <div className="relative w-full sm:flex-1 sm:min-w-[180px] md:min-w-[220px] lg:min-w-[260px] max-w-full lg:max-w-[420px] group">
-              <SearchIcon className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5 group-focus-within:text-blue-600 transition-colors" />
-              <input
-                type="text"
-                className="w-full min-w-0 pl-3 pr-10 sm:pl-4 sm:pr-12 py-2.5 sm:py-3 bg-slate-50 border border-slate-200 focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-100 rounded-xl text-sm transition-all outline-none font-medium shadow-sm"
-                placeholder="بحث عن صنف (الاسم / الباركود)..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                autoFocus
-              />
-            </div>
+            <PermissionWrapper
+              requiredPermission={buildPermission(
+                Resources.SALES_INVOICE,
+                Actions.SEARCH
+              )}
+              fallback={
+                <div className="relative w-full sm:flex-1 sm:min-w-[180px] md:min-w-[220px] lg:min-w-[260px] max-w-full lg:max-w-[420px] group">
+                  <SearchIcon className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
+                  <input
+                    type="text"
+                    className="w-full min-w-0 pl-3 pr-10 sm:pl-4 sm:pr-12 py-2.5 sm:py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium shadow-sm cursor-not-allowed opacity-50"
+                    placeholder="بحث عن صنف (الاسم / الباركود)..."
+                    value=""
+                    disabled
+                    readOnly
+                  />
+                </div>
+              }
+            >
+              <div className="relative w-full sm:flex-1 sm:min-w-[180px] md:min-w-[220px] lg:min-w-[260px] max-w-full lg:max-w-[420px] group">
+                <SearchIcon className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5 group-focus-within:text-blue-600 transition-colors" />
+                <input
+                  type="text"
+                  className="w-full min-w-0 pl-3 pr-10 sm:pl-4 sm:pr-12 py-2.5 sm:py-3 bg-slate-50 border border-slate-200 focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-100 rounded-xl text-sm transition-all outline-none font-medium shadow-sm"
+                  placeholder="بحث عن صنف (الاسم / الباركود)..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  autoFocus
+                />
+              </div>
+            </PermissionWrapper>
 
             <div className="hidden md:block h-8 w-px bg-gray-300 mx-2"></div>
 
@@ -670,13 +722,29 @@ const POS: React.FC<POSProps> = () => {
 
             {/* INTERACTIVE ICONS */}
             <div className="flex items-center gap-2 bg-slate-100 p-1.5 rounded-xl border border-slate-200">
-              <button
-                onClick={() => setIsNoteModalOpen(true)}
-                className="p-2.5 bg-white border border-slate-200 rounded-lg text-amber-600 hover:bg-amber-50 hover:border-amber-200 transition-all shadow-sm tooltip"
-                title="ملاحظة"
+              <PermissionWrapper
+                requiredPermission={buildPermission(
+                  Resources.SALES_INVOICE,
+                  Actions.UPDATE
+                )}
+                fallback={
+                  <button
+                    disabled
+                    className="p-2.5 bg-white border border-slate-200 rounded-lg text-amber-300 opacity-50 cursor-not-allowed shadow-sm"
+                    title="ملاحظة"
+                  >
+                    <EditIcon className="w-5 h-5" />
+                  </button>
+                }
               >
-                <EditIcon className="w-5 h-5" />
-              </button>
+                <button
+                  onClick={() => setIsNoteModalOpen(true)}
+                  className="p-2.5 bg-white border border-slate-200 rounded-lg text-amber-600 hover:bg-amber-50 hover:border-amber-200 transition-all shadow-sm tooltip"
+                  title="ملاحظة"
+                >
+                  <EditIcon className="w-5 h-5" />
+                </button>
+              </PermissionWrapper>
               <button
                 onClick={() => setIsCalculatorOpen(true)}
                 className="p-2.5 bg-white border border-slate-200 rounded-lg text-blue-600 hover:bg-blue-50 hover:border-blue-200 transition-all shadow-sm"
@@ -705,7 +773,15 @@ const POS: React.FC<POSProps> = () => {
           {filteredItems.length > 0 ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4 md:gap-5 pb-24 justify-items-stretch">
               {filteredItems.map((item) => (
-                <ProductCard key={item.id} item={item} onAdd={addToCart} />
+                <PermissionWrapper
+                  key={item.id}
+                  requiredPermission={buildPermission(
+                    Resources.SALES_INVOICE,
+                    Actions.CREATE
+                  )}
+                >
+                  <ProductCard item={item} onAdd={addToCart} />
+                </PermissionWrapper>
               ))}
             </div>
           ) : (
@@ -781,42 +857,83 @@ const POS: React.FC<POSProps> = () => {
               >
                 <XIcon className="w-4 h-4" />
               </button>
-              <button
-                onClick={() => setIsPreviewOpen(true)}
-                className="flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-bold bg-slate-700 border border-slate-600 text-blue-300 hover:text-white hover:bg-slate-600 transition-all"
-                title="معاينة"
+              <PermissionWrapper
+                requiredPermission={buildPermission(
+                  Resources.SALES_INVOICE,
+                  Actions.READ
+                )}
+                fallback={null}
               >
-                <EyeIcon className="w-3 h-3" />
-              </button>
-              <button
-                onClick={() => setIsReturnMode(!isReturnMode)}
-                className={`flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-bold transition-all border shadow-sm ${isReturnMode ? "bg-red-600 border-red-500 text-white animate-pulse" : "bg-slate-700 border-slate-600 text-slate-300 hover:bg-slate-600"}`}
+                <button
+                  onClick={() => setIsPreviewOpen(true)}
+                  className="flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-bold bg-slate-700 border border-slate-600 text-blue-300 hover:text-white hover:bg-slate-600 transition-all"
+                  title="معاينة"
+                >
+                  <EyeIcon className="w-3 h-3" />
+                </button>
+              </PermissionWrapper>
+              <PermissionWrapper
+                requiredPermission={buildPermission(
+                  Resources.SALES_INVOICE,
+                  Actions.UPDATE
+                )}
+                fallback={null}
               >
-                <RotateCcwIcon className="w-3 h-3" />
-                {isReturnMode ? "وضع المرتجع" : "بيع جديد"}
-              </button>
+                <button
+                  onClick={() => setIsReturnMode(!isReturnMode)}
+                  className={`flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-bold transition-all border shadow-sm ${isReturnMode ? "bg-red-600 border-red-500 text-white animate-pulse" : "bg-slate-700 border-slate-600 text-slate-300 hover:bg-slate-600"}`}
+                >
+                  <RotateCcwIcon className="w-3 h-3" />
+                  {isReturnMode ? "وضع المرتجع" : "بيع جديد"}
+                </button>
+              </PermissionWrapper>
             </div>
           </div>
 
-          <div
-            onClick={() => setIsCustomerModalOpen(true)}
-            className="flex items-center justify-between bg-slate-700 hover:bg-slate-600 cursor-pointer p-3 rounded-xl border border-slate-600 transition-all group"
+          <PermissionWrapper
+            requiredPermission={buildPermission(
+              Resources.SALES_INVOICE,
+              Actions.READ
+            )}
+            fallback={
+              <div className="flex items-center justify-between bg-slate-700 cursor-not-allowed p-3 rounded-xl border border-slate-600 opacity-50">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-slate-600 flex items-center justify-center border border-slate-500">
+                    <UserIcon className="w-5 h-5 text-slate-500" />
+                  </div>
+                  <div>
+                    <p className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">
+                      العميل
+                    </p>
+                    <p className="text-sm font-bold text-slate-400 truncate w-40">
+                      {selectedCustomer.name}
+                    </p>
+                  </div>
+                </div>
+                <ChevronLeftIcon className="w-4 h-4 text-slate-600" />
+              </div>
+            }
           >
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-slate-600 flex items-center justify-center group-hover:bg-blue-600 transition-colors border border-slate-500 group-hover:border-blue-500">
-                <UserIcon className="w-5 h-5 text-slate-300 group-hover:text-white" />
+            <div
+              onClick={() => setIsCustomerModalOpen(true)}
+              className="flex items-center justify-between bg-slate-700 hover:bg-slate-600 cursor-pointer p-3 rounded-xl border border-slate-600 transition-all group"
+            >
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-slate-600 flex items-center justify-center group-hover:bg-blue-600 transition-colors border border-slate-500 group-hover:border-blue-500">
+                  <UserIcon className="w-5 h-5 text-slate-300 group-hover:text-white" />
+                </div>
+                <div>
+                  <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">
+                    العميل
+                  </p>
+                  <p className="text-sm font-bold text-white truncate w-40">
+                    {selectedCustomer.name}
+                  </p>
+                </div>
               </div>
-              <div>
-                <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">
-                  العميل
-                </p>
-                <p className="text-sm font-bold text-white truncate w-40">
-                  {selectedCustomer.name}
-                </p>
-              </div>
+              <ChevronLeftIcon className="w-4 h-4 text-slate-500 group-hover:text-white transition-colors" />
             </div>
-            <ChevronLeftIcon className="w-4 h-4 text-slate-500 group-hover:text-white transition-colors" />
-          </div>
+          </PermissionWrapper>
         </div>
 
         {/* 3. Cart Items List */}
@@ -873,43 +990,124 @@ const POS: React.FC<POSProps> = () => {
 
           {/* Quick Actions Grid */}
           <div className="grid grid-cols-4 gap-2 mb-3">
-            <button
-              onClick={() => {
-                setCart([]);
-                setDiscount(0);
-              }}
-              className="col-span-1 bg-red-900/20 hover:bg-red-900/40 text-red-400 border border-red-900/30 rounded-lg p-2 flex flex-col items-center justify-center gap-1 transition-all"
+            <PermissionWrapper
+              requiredPermission={buildPermission(
+                Resources.SALES_INVOICE,
+                Actions.UPDATE
+              )}
+              fallback={
+                <button
+                  disabled
+                  className="col-span-1 bg-red-900/10 text-red-600 border border-red-900/20 rounded-lg p-2 flex flex-col items-center justify-center gap-1 opacity-50 cursor-not-allowed"
+                >
+                  <TrashIcon className="w-5 h-5" />
+                  <span className="text-[10px] font-bold">إلغاء</span>
+                </button>
+              }
             >
-              <TrashIcon className="w-5 h-5" />
-              <span className="text-[10px] font-bold">إلغاء</span>
-            </button>
-            <button
-              onClick={handleHold}
-              className="col-span-1 bg-orange-900/20 hover:bg-orange-900/40 text-orange-400 border border-orange-900/30 rounded-lg p-2 flex flex-col items-center justify-center gap-1 transition-all"
+              <button
+                onClick={() => {
+                  setCart([]);
+                  setDiscount(0);
+                }}
+                className="col-span-1 bg-red-900/20 hover:bg-red-900/40 text-red-400 border border-red-900/30 rounded-lg p-2 flex flex-col items-center justify-center gap-1 transition-all"
+              >
+                <TrashIcon className="w-5 h-5" />
+                <span className="text-[10px] font-bold">إلغاء</span>
+              </button>
+            </PermissionWrapper>
+            <PermissionWrapper
+              requiredPermission={buildPermission(
+                Resources.SALES_INVOICE,
+                Actions.CREATE
+              )}
+              fallback={
+                <button
+                  disabled
+                  className="col-span-1 bg-orange-900/10 text-orange-600 border border-orange-900/20 rounded-lg p-2 flex flex-col items-center justify-center gap-1 opacity-50 cursor-not-allowed"
+                >
+                  <PauseIcon className="w-5 h-5" />
+                  <span className="text-[10px] font-bold">تعليق</span>
+                </button>
+              }
             >
-              <PauseIcon className="w-5 h-5" />
-              <span className="text-[10px] font-bold">تعليق</span>
-            </button>
-            <button
-              onClick={() => setIsHoldModalOpen(true)}
-              className="col-span-1 bg-slate-700 hover:bg-slate-600 text-blue-400 border border-slate-600 rounded-lg p-2 flex flex-col items-center justify-center gap-1 transition-all"
+              <button
+                onClick={handleHold}
+                className="col-span-1 bg-orange-900/20 hover:bg-orange-900/40 text-orange-400 border border-orange-900/30 rounded-lg p-2 flex flex-col items-center justify-center gap-1 transition-all"
+              >
+                <PauseIcon className="w-5 h-5" />
+                <span className="text-[10px] font-bold">تعليق</span>
+              </button>
+            </PermissionWrapper>
+            <PermissionWrapper
+              requiredPermission={buildPermission(
+                Resources.SALES_INVOICE,
+                Actions.READ
+              )}
+              fallback={
+                <button
+                  disabled
+                  className="col-span-1 bg-slate-700 text-slate-500 border border-slate-600 rounded-lg p-2 flex flex-col items-center justify-center gap-1 opacity-50 cursor-not-allowed"
+                >
+                  <HistoryIcon className="w-5 h-5" />
+                  <span className="text-[10px] font-bold">استعادة</span>
+                </button>
+              }
             >
-              <HistoryIcon className="w-5 h-5" />
-              <span className="text-[10px] font-bold">استعادة</span>
-            </button>
-            <button
-              onClick={() => setIsPriceCheckOpen(true)}
-              className="col-span-1 bg-slate-700 hover:bg-slate-600 text-purple-400 border border-slate-600 rounded-lg p-2 flex flex-col items-center justify-center gap-1 transition-all"
+              <button
+                onClick={() => setIsHoldModalOpen(true)}
+                className="col-span-1 bg-slate-700 hover:bg-slate-600 text-blue-400 border border-slate-600 rounded-lg p-2 flex flex-col items-center justify-center gap-1 transition-all"
+              >
+                <HistoryIcon className="w-5 h-5" />
+                <span className="text-[10px] font-bold">استعادة</span>
+              </button>
+            </PermissionWrapper>
+            <PermissionWrapper
+              requiredPermission={buildPermission(
+                Resources.SALES_INVOICE,
+                Actions.READ
+              )}
+              fallback={
+                <button
+                  disabled
+                  className="col-span-1 bg-slate-700 text-slate-500 border border-slate-600 rounded-lg p-2 flex flex-col items-center justify-center gap-1 opacity-50 cursor-not-allowed"
+                >
+                  <TagIcon className="w-5 h-5" />
+                  <span className="text-[10px] font-bold">سعر</span>
+                </button>
+              }
             >
-              <TagIcon className="w-5 h-5" />
-              <span className="text-[10px] font-bold">سعر</span>
-            </button>
+              <button
+                onClick={() => setIsPriceCheckOpen(true)}
+                className="col-span-1 bg-slate-700 hover:bg-slate-600 text-purple-400 border border-slate-600 rounded-lg p-2 flex flex-col items-center justify-center gap-1 transition-all"
+              >
+                <TagIcon className="w-5 h-5" />
+                <span className="text-[10px] font-bold">سعر</span>
+              </button>
+            </PermissionWrapper>
           </div>
 
-          <button
-            onClick={handleCheckoutOpen}
-            disabled={cart.length === 0}
-            className={`w-full h-16 rounded-xl font-bold text-2xl shadow-lg flex justify-between px-8 items-center transition-all active:scale-[0.98] border border-white/5
+          <PermissionWrapper
+            requiredPermission={buildPermission(
+              Resources.SALES_INVOICE,
+              Actions.CREATE
+            )}
+            fallback={
+              <button
+                disabled
+                className="w-full h-16 rounded-xl font-bold text-2xl shadow-lg flex justify-between px-8 items-center border border-white/5 bg-slate-700 opacity-50 cursor-not-allowed"
+              >
+                <span>دفع</span>
+                <div className="flex items-center gap-2 bg-black/20 px-4 py-1.5 rounded-lg">
+                  <BanknoteIcon className="w-7 h-7" />
+                </div>
+              </button>
+            }
+          >
+            <button
+              onClick={handleCheckoutOpen}
+              disabled={cart.length === 0}
+              className={`w-full h-16 rounded-xl font-bold text-2xl shadow-lg flex justify-between px-8 items-center transition-all active:scale-[0.98] border border-white/5
                             ${
                               totals.net < 0
                                 ? "bg-gradient-to-r from-red-700 to-red-600 hover:from-red-600 hover:to-red-500 text-white shadow-red-900/30"
@@ -917,12 +1115,13 @@ const POS: React.FC<POSProps> = () => {
                             }
                             disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-slate-700 disabled:from-transparent disabled:to-transparent
                         `}
-          >
-            <span>{totals.net < 0 ? "استرجاع" : "دفع"}</span>
-            <div className="flex items-center gap-2 bg-black/20 px-4 py-1.5 rounded-lg">
-              <BanknoteIcon className="w-7 h-7" />
-            </div>
-          </button>
+            >
+              <span>{totals.net < 0 ? "استرجاع" : "دفع"}</span>
+              <div className="flex items-center gap-2 bg-black/20 px-4 py-1.5 rounded-lg">
+                <BanknoteIcon className="w-7 h-7" />
+              </div>
+            </button>
+          </PermissionWrapper>
         </div>
       </div>
 
