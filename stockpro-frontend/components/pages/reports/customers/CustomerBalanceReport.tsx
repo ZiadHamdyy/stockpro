@@ -209,6 +209,11 @@ const CustomerBalanceReport: React.FC<CustomerBalanceReportProps> = ({
   const [hideZeroBalance, setHideZeroBalance] = useState(false);
 
   const handleViewReport = useCallback(() => {
+    const toNumber = (value: any): number => {
+      const parsed = Number(value);
+      return Number.isFinite(parsed) ? parsed : 0;
+    };
+
     const customerBalanceData = customers.map((customer) => {
       const customerIdStr = customer.id.toString();
       const customerId = customer.id;
@@ -232,6 +237,19 @@ const CustomerBalanceReport: React.FC<CustomerBalanceReportProps> = ({
           }
         )
         .reduce((sum, inv) => sum + (inv.totals?.net || inv.net || 0), 0);
+
+      // Cash invoices are already paid, so they should reduce receivables (credit)
+      const totalCashInvoices = salesInvoices
+        .filter(
+          (inv) => {
+            const invDate = normalizeDate(inv.date);
+            const invCustomerId = inv.customerOrSupplier?.id || inv.customerId?.toString() || (inv.customer?.id?.toString());
+            return inv.paymentMethod === "cash" &&
+              (invCustomerId === customerIdStr || invCustomerId == customerId) &&
+              invDate <= endDate;
+          }
+        )
+        .reduce((sum, inv) => sum + toNumber(inv.totals?.net || inv.net || 0), 0);
 
       const totalReceipts = receiptVouchers
         .filter(
@@ -260,8 +278,8 @@ const CustomerBalanceReport: React.FC<CustomerBalanceReportProps> = ({
       const opening = customer.openingBalance;
       // Total Debit: sales invoices, payment vouchers (all increase what customer owes)
       const totalDebit = totalSales + totalPayments;
-      // Total Credit: sales returns, receipt vouchers (all decrease what customer owes)
-      const totalCredit = totalReturns + totalReceipts;
+      // Total Credit: sales returns, receipt vouchers, cash invoices (all decrease what customer owes)
+      const totalCredit = totalReturns + totalReceipts + totalCashInvoices;
       // Balance = Beginning Balance + Total Debit - Total Credit
       const balance = opening + totalDebit - totalCredit;
 
