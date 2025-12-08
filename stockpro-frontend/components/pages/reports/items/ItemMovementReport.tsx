@@ -195,18 +195,20 @@ const ItemMovementReport: React.FC<ItemMovementReportProps> = ({
   }, [storeIssueVouchers]);
 
   const transformedStoreTransferVouchers = useMemo(() => {
-    return (storeTransferVouchers as any[]).map((voucher) => ({
-      ...voucher,
-      fromStore: voucher.fromStore?.name || "",
-      toStore: voucher.toStore?.name || "",
-      items: voucher.items.map((item) => ({
-        ...item,
-        id: item.item?.code || item.itemId,
-        name: item.item?.name || "",
-        unit: item.item?.unit?.name || "",
-        qty: item.quantity,
-      })),
-    }));
+    return (storeTransferVouchers as any[])
+      .filter((v) => v.status === 'ACCEPTED')
+      .map((voucher) => ({
+        ...voucher,
+        fromStore: voucher.fromStore?.name || "",
+        toStore: voucher.toStore?.name || "",
+        items: voucher.items.map((item) => ({
+          ...item,
+          id: item.item?.code || item.itemId,
+          name: item.item?.name || "",
+          unit: item.item?.unit?.name || "",
+          qty: item.quantity,
+        })),
+      }));
   }, [storeTransferVouchers]);
 
   const isLoading =
