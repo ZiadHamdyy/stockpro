@@ -89,6 +89,12 @@ const InventoryValuationReport: React.FC<InventoryValuationReportProps> = ({
     [],
   );
 
+  // Safely convert any numeric-like value to a finite number (keeps negatives)
+  const toNumber = useCallback((value: any): number => {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : 0;
+  }, []);
+
   // Transform API data to match expected format
   const items = useMemo(() => {
     return (apiItems as any[])
@@ -363,7 +369,7 @@ const InventoryValuationReport: React.FC<InventoryValuationReportProps> = ({
 
     const valuationData = items.map((item) => {
       // Use StoreItem's openingBalance as base, or 0 if not available
-      let balance = (item as any).openingBalance ?? 0;
+      let balance = toNumber((item as any).openingBalance ?? 0);
 
       const selectedBranchName = selectedBranchId === "all" 
         ? "all"
@@ -388,33 +394,33 @@ const InventoryValuationReport: React.FC<InventoryValuationReportProps> = ({
       };
       transformedPurchaseInvoices.filter(filterByBranch).filter(filterByDate).forEach((inv) =>
         inv.items.forEach((i) => {
-          if (i.id === item.code) balance += i.qty;
+          if (i.id === item.code) balance += toNumber(i.qty);
         }),
       );
       transformedSalesReturns.filter(filterByBranch).filter(filterByDate).forEach((inv) =>
         inv.items.forEach((i) => {
-          if (i.id === item.code) balance += i.qty;
+          if (i.id === item.code) balance += toNumber(i.qty);
         }),
       );
       transformedStoreReceiptVouchers.filter(filterByBranch).filter(filterByDate).forEach((v) =>
         v.items.forEach((i) => {
-          if (i.id === item.code) balance += i.qty;
+          if (i.id === item.code) balance += toNumber(i.qty);
         }),
       );
 
       transformedSalesInvoices.filter(filterByBranch).filter(filterByDate).forEach((inv) =>
         inv.items.forEach((i) => {
-          if (i.id === item.code) balance -= i.qty;
+          if (i.id === item.code) balance -= toNumber(i.qty);
         }),
       );
       transformedPurchaseReturns.filter(filterByBranch).filter(filterByDate).forEach((inv) =>
         inv.items.forEach((i) => {
-          if (i.id === item.code) balance -= i.qty;
+          if (i.id === item.code) balance -= toNumber(i.qty);
         }),
       );
       transformedStoreIssueVouchers.filter(filterByBranch).filter(filterByDate).forEach((v) =>
         v.items.forEach((i) => {
-          if (i.id === item.code) balance -= i.qty;
+          if (i.id === item.code) balance -= toNumber(i.qty);
         }),
       );
 
@@ -424,8 +430,9 @@ const InventoryValuationReport: React.FC<InventoryValuationReportProps> = ({
           const toStore = stores.find((s) => s.name === v.toStore);
           v.items.forEach((i) => {
             if (i.id === item.code) {
-              if (fromStore?.branchId === selectedBranchId) balance -= i.qty;
-              if (toStore?.branchId === selectedBranchId) balance += i.qty;
+              const qty = toNumber(i.qty);
+              if (fromStore?.branchId === selectedBranchId) balance -= qty;
+              if (toStore?.branchId === selectedBranchId) balance += qty;
             }
           });
         });
@@ -436,7 +443,7 @@ const InventoryValuationReport: React.FC<InventoryValuationReportProps> = ({
       let cost = 0;
       const priceReferenceDate = endDate;
       const fallbackPrice =
-        item.initialPurchasePrice ?? item.purchasePrice ?? 0;
+        toNumber(item.initialPurchasePrice ?? item.purchasePrice ?? 0);
       switch (valuationMethod) {
         case "purchasePrice": {
           const lastPurchasePrice = getLastPurchasePriceBeforeDate(item.code, priceReferenceDate);
@@ -494,6 +501,7 @@ const InventoryValuationReport: React.FC<InventoryValuationReportProps> = ({
     getLastSalePriceBeforeDate,
     calculateWeightedAverageCost,
     startDate,
+    toNumber,
   ]);
 
   useEffect(() => {
