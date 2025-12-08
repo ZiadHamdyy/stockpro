@@ -27,6 +27,7 @@ const InternalTransfers: React.FC<InternalTransfersProps> = ({ title }) => {
   const {
     vouchers,
     safes,
+    branchSafes,
     banks,
     isLoading,
     currentIndex,
@@ -231,7 +232,7 @@ const InternalTransfers: React.FC<InternalTransfersProps> = ({ title }) => {
                       setTransferData((prev) => ({
                         ...prev,
                         fromType: "safe",
-                        fromId: null,
+                        fromId: branchSafes.length > 0 ? branchSafes[0].id : null,
                       }))
                     }
                     className={`w-1/2 py-2 rounded ${
@@ -275,7 +276,7 @@ const InternalTransfers: React.FC<InternalTransfersProps> = ({ title }) => {
                     }))
                   }
                   className={inputStyle}
-                  disabled={isReadOnly}
+                  disabled={isReadOnly || transferData.fromType === "safe"}
                 >
                   <option value="">
                     {transferData.fromType === "safe"
@@ -283,7 +284,7 @@ const InternalTransfers: React.FC<InternalTransfersProps> = ({ title }) => {
                       : "اختر بنك..."}
                   </option>
                   {transferData.fromType === "safe"
-                    ? safes.map((s) => (
+                    ? branchSafes.map((s) => (
                         <option key={s.id} value={s.id}>
                           {s.name}
                         </option>
@@ -313,7 +314,7 @@ const InternalTransfers: React.FC<InternalTransfersProps> = ({ title }) => {
                       setTransferData((prev) => ({
                         ...prev,
                         toType: "safe",
-                        toId: null,
+                        toId: branchSafes.length > 0 ? branchSafes[0].id : null,
                       }))
                     }
                     className={`w-1/2 py-2 rounded ${
@@ -357,7 +358,7 @@ const InternalTransfers: React.FC<InternalTransfersProps> = ({ title }) => {
                     }))
                   }
                   className={inputStyle}
-                  disabled={isReadOnly}
+                  disabled={isReadOnly || transferData.toType === "safe"}
                 >
                   <option value="">
                     {transferData.toType === "safe"
@@ -365,7 +366,7 @@ const InternalTransfers: React.FC<InternalTransfersProps> = ({ title }) => {
                       : "اختر بنك..."}
                   </option>
                   {transferData.toType === "safe"
-                    ? safes.map((s) => (
+                    ? branchSafes.map((s) => (
                         <option key={s.id} value={s.id}>
                           {s.name}
                         </option>

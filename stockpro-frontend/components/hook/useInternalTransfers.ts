@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useMemo } from "react";
 import {
   useGetInternalTransfersQuery,
   useCreateInternalTransferMutation,
@@ -31,6 +31,9 @@ export const useInternalTransfers = () => {
   const { showToast } = useToast();
   const { showModal } = useModal();
   const { User } = useAuth();
+  const branchId =
+    User?.branchId ||
+    (typeof User?.branch === "string" ? User.branch : (User?.branch as any)?.id);
 
   // Fetch internal transfers
   const {
@@ -43,6 +46,11 @@ export const useInternalTransfers = () => {
   // Fetch related data
   const { data: safes = [] } = useGetSafesQuery();
   const { data: banks = [] } = useGetBanksQuery();
+
+  const branchSafes = useMemo(() => {
+    if (!branchId) return safes;
+    return safes.filter((s) => String(s.branchId) === String(branchId));
+  }, [branchId, safes]);
 
   // Mutations
   const [createInternalTransfer, { isLoading: isCreating }] =
@@ -104,14 +112,38 @@ export const useInternalTransfers = () => {
       number: "",
       date: new Date().toISOString().substring(0, 10),
       fromType: "safe",
-      fromId: null,
+      fromId: branchSafes.length > 0 ? branchSafes[0].id : null,
       toType: "bank",
-      toId: null,
+      toId: banks.length > 0 ? banks[0].id : null,
       amount: "",
       description: "",
     });
     setIsReadOnly(false);
-  }, []);
+  }, [branchSafes, banks]);
+
+  useEffect(() => {
+    if (transferData.fromType !== "safe") return;
+    const defaultSafeId = branchSafes[0]?.id || null;
+    const hasCurrentSafe = branchSafes.some(
+      (safe) => safe.id === transferData.fromId,
+    );
+
+    if (!hasCurrentSafe && transferData.fromId !== defaultSafeId) {
+      setTransferData((prev) => ({ ...prev, fromId: defaultSafeId }));
+    }
+  }, [branchSafes, transferData.fromType, transferData.fromId]);
+
+  useEffect(() => {
+    if (transferData.toType !== "safe") return;
+    const defaultSafeId = branchSafes[0]?.id || null;
+    const hasCurrentSafe = branchSafes.some(
+      (safe) => safe.id === transferData.toId,
+    );
+
+    if (!hasCurrentSafe && transferData.toId !== defaultSafeId) {
+      setTransferData((prev) => ({ ...prev, toId: defaultSafeId }));
+    }
+  }, [branchSafes, transferData.toType, transferData.toId]);
 
   const handleSave = useCallback(async () => {
     // Normalize amount to number before validation
@@ -242,6 +274,7 @@ export const useInternalTransfers = () => {
   return {
     vouchers,
     safes,
+    branchSafes,
     banks,
     isLoading,
     error,
