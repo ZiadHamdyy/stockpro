@@ -95,7 +95,25 @@ const PurchaseInvoice: React.FC<PurchaseInvoiceProps> = ({
   onClearViewingId,
 }) => {
   // Redux hooks
-  const { data: invoices = [] } = useGetPurchaseInvoicesQuery();
+  const { data: allInvoices = [] } = useGetPurchaseInvoicesQuery();
+  
+  // Get current user's branch ID
+  const userBranchId = getUserBranchId(currentUser);
+  
+  // Filter invoices: show only current branch + current user
+  const invoices = useMemo(() => {
+    return allInvoices.filter((invoice: any) => {
+      // Filter by current branch
+      const invoiceBranchId = invoice.branch?.id || invoice.branchId;
+      if (userBranchId && invoiceBranchId !== userBranchId) return false;
+      
+      // Filter by current user
+      const invoiceUserId = invoice.user?.id || invoice.userId;
+      if (currentUser?.id && invoiceUserId !== currentUser.id) return false;
+      
+      return true;
+    });
+  }, [allInvoices, userBranchId, currentUser?.id]);
   const [createPurchaseInvoice] = useCreatePurchaseInvoiceMutation();
   const [updatePurchaseInvoice] = useUpdatePurchaseInvoiceMutation();
   const [deletePurchaseInvoice] = useDeletePurchaseInvoiceMutation();
@@ -107,7 +125,6 @@ const PurchaseInvoice: React.FC<PurchaseInvoiceProps> = ({
   const { data: fiscalYears = [] } = useGetFiscalYearsQuery();
   
   // Get store for current user's branch
-  const userBranchId = getUserBranchId(currentUser);
   const userStore = stores.find((store) => store.branchId === userBranchId);
   
   // Get items with store-specific balances

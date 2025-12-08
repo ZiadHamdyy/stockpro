@@ -26,10 +26,38 @@ const DailyPurchaseReturns: React.FC<DailyPurchaseReturnsProps> = ({
 }) => {
   const navigate = useNavigate();
   // Redux hooks
-  const { data: purchaseReturns = [] } = useGetPurchaseReturnsQuery();
+  const { data: allPurchaseReturns = [] } = useGetPurchaseReturnsQuery();
   const { data: company } = useGetCompanyQuery();
   const { data: branches = [] } = useGetBranchesQuery();
   const currentUser = useAppSelector(selectCurrentUser);
+  
+  // Helper function to get user's branch ID
+  const getUserBranchId = (user: any): string | null => {
+    if (!user) return null;
+    if (user.branchId) return user.branchId;
+    const branch = user?.branch;
+    if (typeof branch === "string") return branch;
+    if (branch && typeof branch === "object") return branch.id || null;
+    return null;
+  };
+  
+  // Get current user's branch ID
+  const userBranchId = getUserBranchId(currentUser);
+  
+  // Filter returns: show only current branch + current user
+  const purchaseReturns = useMemo(() => {
+    return allPurchaseReturns.filter((returnRecord: any) => {
+      // Filter by current branch
+      const returnBranchId = returnRecord.branch?.id || returnRecord.branchId;
+      if (userBranchId && returnBranchId !== userBranchId) return false;
+      
+      // Filter by current user
+      const returnUserId = returnRecord.user?.id || returnRecord.userId;
+      if (currentUser?.id && returnUserId !== currentUser.id) return false;
+      
+      return true;
+    });
+  }, [allPurchaseReturns, userBranchId, currentUser?.id]);
 
   const companyInfo: CompanyInfo = company || {
     name: "",
