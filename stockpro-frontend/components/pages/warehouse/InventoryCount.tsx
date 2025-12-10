@@ -86,22 +86,30 @@ const InventoryCountPage: React.FC<InventoryCountProps> = ({ title, companyInfo 
     const [deleteInventoryCount, { isLoading: isDeleting }] = useDeleteInventoryCountMutation();
 
     // Find user's store
-    const userStore = useMemo(() => 
-        stores.find((store) => store.branchId === userBranchId),
-        [stores, userBranchId]
+    const userStore = useMemo(
+        () => stores.find((store) => store.branchId === userBranchId),
+        [stores, userBranchId],
     );
+    const storeName = useMemo(() => {
+        const store = stores.find((s) => s.id === selectedStoreId) || userStore;
+        return store?.name || '';
+    }, [stores, selectedStoreId, userStore]);
 
-    // Set user's store as default when stores are loaded
+    // Set user's store as default when stores are loaded (new/unsaved)
     useEffect(() => {
-        if (stores.length > 0 && userStore && !selectedStoreId) {
+        if (!userStore) return;
+        if (countId) return; // don't override when viewing saved count
+        if (selectedStoreId !== userStore.id) {
             setSelectedStoreId(userStore.id);
+            setCountItems([]); // reset items to reload for current store
         }
-    }, [stores, userStore, selectedStoreId]);
+    }, [userStore, selectedStoreId, countId]);
 
     // Initialize new count
     const initializeCount = () => {
         // Reset to user's store when creating new count
-        if (userStore && selectedStoreId !== userStore.id) {
+        if (!userStore) return;
+        if (selectedStoreId !== userStore.id) {
             setSelectedStoreId(userStore.id);
             setCountItems([]);
             return; // Will re-run when store changes and items load
@@ -333,6 +341,7 @@ const InventoryCountPage: React.FC<InventoryCountProps> = ({ title, companyInfo 
                     setNotes('');
                     setStatus('PENDING');
                     setDate(new Date().toISOString().substring(0, 10));
+                    setSelectedStoreId(userStore?.id || '');
                     showToast('تم حذف الجرد بنجاح.');
                 } catch (error: any) {
                     showToast(error?.data?.message || 'حدث خطأ أثناء حذف الجرد', 'error');
@@ -696,7 +705,7 @@ const InventoryCountPage: React.FC<InventoryCountProps> = ({ title, companyInfo 
                     </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                     <div>
                         <label className="block text-sm font-bold text-gray-700 mb-1">تاريخ الجرد</label>
                         <PermissionWrapper
@@ -713,45 +722,21 @@ const InventoryCountPage: React.FC<InventoryCountProps> = ({ title, companyInfo 
                     </div>
                     <div>
                         <label className="block text-sm font-bold text-gray-700 mb-1">المخزن</label>
-                        <PermissionWrapper
-                            requiredPermission={buildPermission(
-                                Resources.INVENTORY_COUNT,
-                                Actions.UPDATE
-                            )}
-                            fallback={
-                                <select className={inputStyle} disabled>
-                                    {userStore ? (
-                                        <option value={userStore.id}>{userStore.name}</option>
-                                    ) : (
-                                        <option value="">لا يوجد مخزن متاح</option>
-                                    )}
-                                </select>
-                            }
-                        >
-                            <select 
-                                value={selectedStoreId} 
-                                onChange={(e) => {
-                                    setSelectedStoreId(e.target.value);
-                                    setCountItems([]); // Reset items when store changes
-                                }} 
-                                className={inputStyle} 
-                                disabled={status === 'POSTED' || !userStore}
-                                title={!userStore ? "يجب أن يكون لديك مخزن مرتبط بفرعك" : (status === 'POSTED' ? "لا يمكن تغيير المخزن بعد الاعتماد" : "")}
-                            >
-                                {userStore ? (
-                                    <option value={userStore.id}>{userStore.name}</option>
-                                ) : (
-                                    <option value="">لا يوجد مخزن متاح</option>
-                                )}
-                            </select>
-                        </PermissionWrapper>
+                        <input
+                            type="text"
+                            className={inputStyle}
+                            value={storeName || (userStore ? userStore.name : '')}
+                            readOnly
+                            disabled
+                            title="المخزن الحالي الخاص بفرعك"
+                        />
                     </div>
-                    <div>
+                    <div className="hidden print:block">
                         <label className="block text-sm font-bold text-gray-700 mb-1">الموظف</label>
                         <input 
                             type="text" 
                             value={currentUser?.name || currentUser?.fullName || ""} 
-                            className={inputStyle} 
+                            className={inputStyle + " bg-gray-200"} 
                             readOnly 
                             disabled 
                         />
