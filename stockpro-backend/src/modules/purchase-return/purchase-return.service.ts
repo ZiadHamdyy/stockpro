@@ -248,8 +248,8 @@ export class PurchaseReturnService {
         });
       }
 
-      // Update supplier balance for credit purchase returns (decreases what we owe, increases balance)
-      if (data.paymentMethod === 'credit' && data.supplierId) {
+      // Update supplier balance for credit and cash purchase returns (decreases what we owe, increases balance)
+      if (data.supplierId && (data.paymentMethod === 'credit' || data.paymentMethod === 'cash')) {
         await tx.supplier.update({
           where: { id: data.supplierId },
           data: { currentBalance: { increment: net } },
@@ -490,8 +490,9 @@ export class PurchaseReturnService {
       }
       // Reverse previous supplier balance update if needed
       if (
-        existingReturn.paymentMethod === 'credit' &&
-        existingReturn.supplierId
+        existingReturn.supplierId &&
+        (existingReturn.paymentMethod === 'credit' ||
+          existingReturn.paymentMethod === 'cash')
       ) {
         await tx.supplier.update({
           where: { id: existingReturn.supplierId },
@@ -514,7 +515,11 @@ export class PurchaseReturnService {
         });
       }
       // Apply new supplier balance update if applicable
-      if ((ret as any).paymentMethod === 'credit' && (ret as any).supplierId) {
+      if (
+        (ret as any).supplierId &&
+        ((ret as any).paymentMethod === 'credit' ||
+          (ret as any).paymentMethod === 'cash')
+      ) {
         await tx.supplier.update({
           where: { id: (ret as any).supplierId },
           data: { currentBalance: { increment: (ret as any).net } },
@@ -595,8 +600,9 @@ export class PurchaseReturnService {
       }
       // Reverse supplier balance update if applicable
       if (
-        (returnRecord as any).paymentMethod === 'credit' &&
-        (returnRecord as any).supplierId
+        (returnRecord as any).supplierId &&
+        ((returnRecord as any).paymentMethod === 'credit' ||
+          (returnRecord as any).paymentMethod === 'cash')
       ) {
         await tx.supplier.update({
           where: { id: (returnRecord as any).supplierId },
