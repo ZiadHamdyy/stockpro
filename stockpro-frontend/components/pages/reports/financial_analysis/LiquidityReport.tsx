@@ -1320,9 +1320,117 @@ const LiquidityReport: React.FC<LiquidityReportProps> = ({ title }) => {
 
         const totalOtherReceivables = Math.abs(balanceSheetData?.otherReceivables ?? 0);
 
-        const totalReceivables = Math.abs(customers.reduce((sum, c) => sum + (c.openingBalance ?? 0), 0)
-            + salesInvoices.filter(i => i.paymentMethod === 'credit').reduce((sum, i) => sum + (i.totals?.net ?? 0), 0)
-            - receiptVouchers.filter(v => v.entity?.type === 'customer').reduce((sum, v) => sum + (v.amount ?? 0), 0));
+        // Calculate total receivables for all customers using the same logic as CustomerBalanceReport
+        const calculateCustomerFinalBalance = (customer: Customer): number => {
+            const customerIdStr = customer.id.toString();
+            const customerId = customer.id;
+
+            const toNumber = (value: any): number => {
+                const parsed = Number(value);
+                return Number.isFinite(parsed) ? parsed : 0;
+            };
+
+            // Total Sales (all sales invoices up to endDate) - Debit (increases what customer owes)
+            const totalSales = (apiSalesInvoices as any[])
+                .filter(
+                    (inv) => {
+                        const invDate = normalizeDate(inv.date);
+                        const invCustomerId = inv.customerOrSupplier?.id || 
+                                             inv.customerId?.toString() || 
+                                             (inv.customer?.id?.toString());
+                        return (invCustomerId === customerIdStr || invCustomerId == customerId) && 
+                               invDate <= normalizedEndDate;
+                    }
+                )
+                .reduce((sum, inv) => sum + toNumber(inv.totals?.net || inv.net || 0), 0);
+
+            // Total Returns (all sales returns up to endDate) - Credit (decreases what customer owes)
+            const totalReturns = (apiSalesReturns as any[])
+                .filter(
+                    (inv) => {
+                        const invDate = normalizeDate(inv.date);
+                        const invCustomerId = inv.customerOrSupplier?.id || 
+                                             inv.customerId?.toString() || 
+                                             (inv.customer?.id?.toString());
+                        return (invCustomerId === customerIdStr || invCustomerId == customerId) && 
+                               invDate <= normalizedEndDate;
+                    }
+                )
+                .reduce((sum, inv) => sum + toNumber(inv.totals?.net || inv.net || 0), 0);
+
+            // Cash sales returns are counted in both debit and credit (like cash invoices)
+            const totalCashReturns = (apiSalesReturns as any[])
+                .filter(
+                    (inv) => {
+                        const invDate = normalizeDate(inv.date);
+                        const invCustomerId = inv.customerOrSupplier?.id || 
+                                             inv.customerId?.toString() || 
+                                             (inv.customer?.id?.toString());
+                        return inv.paymentMethod === "cash" &&
+                               (invCustomerId === customerIdStr || invCustomerId == customerId) && 
+                               invDate <= normalizedEndDate;
+                    }
+                )
+                .reduce((sum, inv) => sum + toNumber(inv.totals?.net || inv.net || 0), 0);
+
+            // Cash invoices are already paid, so they should reduce receivables (credit)
+            const totalCashInvoices = (apiSalesInvoices as any[])
+                .filter(
+                    (inv) => {
+                        const invDate = normalizeDate(inv.date);
+                        const invCustomerId = inv.customerOrSupplier?.id || 
+                                             inv.customerId?.toString() || 
+                                             (inv.customer?.id?.toString());
+                        return inv.paymentMethod === "cash" &&
+                               (invCustomerId === customerIdStr || invCustomerId == customerId) && 
+                               invDate <= normalizedEndDate;
+                    }
+                )
+                .reduce((sum, inv) => sum + toNumber(inv.totals?.net || inv.net || 0), 0);
+
+            // Receipt vouchers from customer - Credit (decreases what customer owes)
+            const totalReceipts = (apiReceiptVouchers as any[])
+                .filter(
+                    (v) => {
+                        const vDate = normalizeDate(v.date);
+                        const voucherCustomerId = v.customerId?.toString() || 
+                                                 v.entity?.id?.toString() || 
+                                                 v.entity?.id;
+                        return (v.entityType === "customer" || v.entity?.type === "customer") &&
+                               (voucherCustomerId === customerIdStr || voucherCustomerId == customerId) &&
+                               vDate <= normalizedEndDate;
+                    }
+                )
+                .reduce((sum, v) => sum + toNumber(v.amount || 0), 0);
+
+            // Payment vouchers to customer (refunds) - Debit (increases what customer owes)
+            const totalPayments = (apiPaymentVouchers as any[])
+                .filter(
+                    (v) => {
+                        const vDate = normalizeDate(v.date);
+                        const voucherCustomerId = v.customerId?.toString() || 
+                                                 v.entity?.id?.toString() || 
+                                                 v.entity?.id;
+                        return (v.entityType === "customer" || v.entity?.type === "customer") &&
+                               (voucherCustomerId === customerIdStr || voucherCustomerId == customerId) &&
+                               vDate <= normalizedEndDate;
+                    }
+                )
+                .reduce((sum, v) => sum + toNumber(v.amount || 0), 0);
+
+            const opening = customer.openingBalance || 0;
+            // Total Debit: all sales invoices, cash sales returns, payment vouchers (all increase what customer owes)
+            const totalDebit = totalSales + totalCashReturns + totalPayments;
+            // Total Credit: cash sales invoices, all sales returns, receipt vouchers (all decrease what customer owes)
+            const totalCredit = totalCashInvoices + totalReturns + totalReceipts;
+            // Balance = Beginning Balance + Total Debit - Total Credit
+            const balance = opening + totalDebit - totalCredit;
+
+            return balance;
+        };
+
+        // Calculate total receivables as sum of final balances for all customers
+        const totalReceivables = customers.reduce((sum, customer) => sum + calculateCustomerFinalBalance(customer), 0);
 
         // Use calculated inventory value (already calculated outside this useMemo)
         const totalInventory = calculatedInventoryValue;
