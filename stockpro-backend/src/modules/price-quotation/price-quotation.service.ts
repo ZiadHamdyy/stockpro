@@ -90,7 +90,7 @@ export class PriceQuotationService {
 
     const quotations = await this.prisma.priceQuotation.findMany({
       where,
-      orderBy: { date: 'desc' },
+      orderBy: { date: 'asc' },
       include: this.defaultInclude,
     });
 
