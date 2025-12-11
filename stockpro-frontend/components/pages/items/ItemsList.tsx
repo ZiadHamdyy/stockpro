@@ -97,9 +97,9 @@ const ItemsList: React.FC<ItemsListProps> = ({ title, onNavigate }) => {
       ? stores.find((store) => store.branchId === currentUser?.branchId)
       : stores.find((store) => store.branchId === selectedBranchId);
 
-  // Get data from Redux state
-  const items = useAppSelector((state) => state.items.items);
-  const isLoading = useAppSelector((state) => state.items.isLoading);
+  // Get data from Redux state (with proper typing)
+  const items = useAppSelector((state: RootState) => state.items.items);
+  const isLoading = useAppSelector((state: RootState) => state.items.isLoading);
 
   // API hooks - pass storeId to get store-specific balances
   const {
