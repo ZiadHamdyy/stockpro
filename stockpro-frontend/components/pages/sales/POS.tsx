@@ -400,7 +400,8 @@ const POS: React.FC<POSProps> = () => {
     }[]
   >([]);
   const [paymentAmount, setPaymentAmount] = useState<string>("");
-  const [paymentMethod, setPaymentMethod] = useState<"cash" | "credit">("cash");
+  const [paymentMethod, setPaymentMethod] = useState<"cash" | "card">("cash");
+  const [cardBankId, setCardBankId] = useState<string | null>(null);
   const [invoiceNumber, setInvoiceNumber] = useState(
     `POS-${Date.now().toString().slice(-6)}`,
   );
@@ -420,6 +421,14 @@ const POS: React.FC<POSProps> = () => {
       window.removeEventListener("offline", offlineListener);
     };
   }, []);
+
+  useEffect(() => {
+    // Auto-select the first bank when switching to card payments to mirror SalesInvoice behavior
+    if (paymentMethod === "card") {
+      const defaultBankId = banks[0]?.id ? banks[0].id.toString() : null;
+      setCardBankId((prev) => prev ?? defaultBankId);
+    }
+  }, [paymentMethod, banks]);
 
   useEffect(() => {
     const handleResize = () => {
@@ -584,9 +593,8 @@ const POS: React.FC<POSProps> = () => {
   const handleConfirmPayment = async () => {
     if (cart.length === 0) return;
 
-    // Validate that credit payments require a real customer (not cash customer)
-    if (paymentMethod === "credit" && selectedCustomer.id === "cash") {
-      showToast("يجب اختيار عميل حقيقي للدفع بالشبكة (البطاقة)", "error");
+    if (paymentMethod === "card" && !cardBankId) {
+      showToast("يرجى اختيار البنك لمدفوعات البطاقة", "error");
       return;
     }
 
@@ -627,11 +635,12 @@ const POS: React.FC<POSProps> = () => {
         salePriceIncludesTax: Boolean((i as any).salePriceIncludesTax ?? salePriceIncludesTaxSetting),
       })),
       discount,
-      paymentMethod,
-      // For cash payments: require safe, for credit payments: no payment target
-      paymentTargetType: paymentMethod === "cash" ? "safe" : undefined,
-      paymentTargetId,
-      bankTransactionType: paymentMethod === "credit" ? "POS" : undefined,
+      // Treat both cash and card as cash invoices; card maps to bank POS
+      paymentMethod: "cash",
+      // For cash payments: require safe, for card payments: require bank
+      paymentTargetType: paymentMethod === "cash" ? "safe" : "bank",
+      paymentTargetId: paymentMethod === "cash" ? paymentTargetId : cardBankId ?? undefined,
+      bankTransactionType: paymentMethod === "card" ? "POS" : undefined,
       notes,
     };
 
@@ -646,6 +655,8 @@ const POS: React.FC<POSProps> = () => {
       setSearchQuery("");
       setNotes("");
       setSelectedCustomer({ id: "cash", name: "عميل نقدي" });
+      setPaymentMethod("cash");
+      setCardBankId(banks[0]?.id ? banks[0].id.toString() : null);
       setIsCheckoutOpen(false);
       showToast("تم إصدار الفاتورة بنجاح");
     } catch (error: any) {
@@ -1444,13 +1455,45 @@ const POS: React.FC<POSProps> = () => {
                   <span className="font-bold text-lg">نقداً (Cash)</span>
                 </button>
                 <button
-                  onClick={() => setPaymentMethod("credit")}
-                  className={`p-6 rounded-2xl border-2 flex flex-col items-center gap-3 transition-all ${paymentMethod === "credit" ? "border-blue-500 bg-blue-50 text-blue-700 shadow-md ring-2 ring-blue-200" : "border-gray-100 bg-gray-50 text-gray-500 hover:bg-white"}`}
+                  onClick={() => setPaymentMethod("card")}
+                  className={`p-6 rounded-2xl border-2 flex flex-col items-center gap-3 transition-all ${paymentMethod === "card" ? "border-blue-500 bg-blue-50 text-blue-700 shadow-md ring-2 ring-blue-200" : "border-gray-100 bg-gray-50 text-gray-500 hover:bg-white"}`}
                 >
                   <CreditCardIcon className="w-10 h-10" />
                   <span className="font-bold text-lg">شبكة (Card)</span>
                 </button>
               </div>
+
+              {paymentMethod === "card" && (
+                <div className="mb-8 animate-slide-up">
+                  <div className="bg-blue-50 border border-blue-200 rounded-2xl p-4 shadow-sm">
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="flex items-center gap-2">
+                        <div className="w-2 h-2 rounded-full bg-blue-500 shadow-[0_0_6px_rgba(37,99,235,0.6)]" />
+                        <p className="text-sm font-bold text-blue-800">
+                          اختر البنك (POS)
+                        </p>
+                      </div>
+                      <span className="text-xs text-blue-600 font-semibold">
+                        سيتم الإرسال كنقاط بيع مثل صفحة الفاتورة
+                      </span>
+                    </div>
+                    <select
+                      className="w-full h-12 px-3 rounded-xl border-2 border-blue-200 bg-white text-blue-900 font-semibold focus:ring-4 focus:ring-blue-100 focus:border-blue-500 outline-none"
+                      value={cardBankId || ""}
+                      onChange={(e) =>
+                        setCardBankId(e.target.value ? e.target.value : null)
+                      }
+                    >
+                      <option value="">اختر البنك...</option>
+                      {banks.map((bank) => (
+                        <option key={bank.id} value={bank.id}>
+                          {bank.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+              )}
 
               {paymentMethod === "cash" && (
                 <div className="space-y-6 animate-slide-up">
@@ -1832,7 +1875,7 @@ const POS: React.FC<POSProps> = () => {
           isVatEnabled,
           items: cart,
           totals,
-          paymentMethod,
+          paymentMethod: paymentMethod === "card" ? "cash" : paymentMethod,
           customer: selectedCustomer,
           details: {
             invoiceNumber,
