@@ -240,8 +240,8 @@ export class SalesReturnService {
         });
       }
 
-      // Update customer balance for credit and cash returns (customer owes less)
-      if (data.customerId && (data.paymentMethod === 'credit' || data.paymentMethod === 'cash')) {
+      // Update customer balance for credit returns (customer owes less)
+      if (data.paymentMethod === 'credit' && data.customerId) {
         await tx.customer.update({
           where: { id: data.customerId },
           data: { currentBalance: { decrement: net } },
@@ -513,8 +513,7 @@ export class SalesReturnService {
         // Reverse previous customer balance update if needed
         if (
           existingReturn &&
-          ((existingReturn as any).paymentMethod === 'credit' ||
-            (existingReturn as any).paymentMethod === 'cash') &&
+          (existingReturn as any).paymentMethod === 'credit' &&
           (existingReturn as any).customerId
         ) {
           await tx.customer.update({
@@ -541,9 +540,8 @@ export class SalesReturnService {
         }
         // Apply new customer balance update if applicable
         if (
-          (ret as any).customerId &&
-          ((ret as any).paymentMethod === 'credit' ||
-            (ret as any).paymentMethod === 'cash')
+          (ret as any).paymentMethod === 'credit' &&
+          (ret as any).customerId
         ) {
           await tx.customer.update({
             where: { id: (ret as any).customerId },
@@ -598,9 +596,8 @@ export class SalesReturnService {
 
         // Reverse customer balance update if applicable
         if (
-          (return_ as any).customerId &&
-          ((return_ as any).paymentMethod === 'credit' ||
-            (return_ as any).paymentMethod === 'cash')
+          (return_ as any).paymentMethod === 'credit' &&
+          (return_ as any).customerId
         ) {
           await this.prisma.customer.update({
             where: { id: (return_ as any).customerId },
