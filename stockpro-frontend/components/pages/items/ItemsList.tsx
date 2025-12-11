@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   ExcelIcon,
@@ -40,6 +40,7 @@ interface ItemsListProps {
 }
 
 const ItemsList: React.FC<ItemsListProps> = ({ title, onNavigate }) => {
+  const PRINT_PAGE_SIZE = 20;
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState("");
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
@@ -149,6 +150,14 @@ const ItemsList: React.FC<ItemsListProps> = ({ title, onNavigate }) => {
       )
     : [];
 
+  const printPages = useMemo(() => {
+    const pages: typeof filteredItems[] = [];
+    for (let i = 0; i < filteredItems.length; i += PRINT_PAGE_SIZE) {
+      pages.push(filteredItems.slice(i, i + PRINT_PAGE_SIZE));
+    }
+    return pages;
+  }, [filteredItems]);
+
   const handleExcelExport = () => {
     const dataToExport = filteredItems.map(
       ({ code, name, group, unit, purchasePrice, salePrice, stock }) => ({
@@ -212,6 +221,101 @@ const ItemsList: React.FC<ItemsListProps> = ({ title, onNavigate }) => {
     }
   };
 
+  const handlePrint = () => {
+    const printWindow = window.open("", "_blank", "width=1200,height=800");
+    if (!printWindow) return;
+
+    const headerCells = `
+      <tr>
+        <th>الكود</th>
+        <th>الاسم</th>
+        <th>المجموعة</th>
+        <th>الوحدة</th>
+        <th>سعر الشراء</th>
+        <th>سعر البيع</th>
+        <th>الرصيد</th>
+      </tr>
+    `;
+
+    const bodyPages = printPages
+      .map(
+        (pageItems, idx) => `
+        <div class="page">
+          <h2 class="title">${title}</h2>
+          <table>
+            <thead>${headerCells}</thead>
+            <tbody>
+              ${pageItems
+                .map(
+                  (item) => `
+                  <tr>
+                    <td>${item.code}</td>
+                    <td>${item.name}</td>
+                    <td>${item.group.name}</td>
+                    <td>${item.unit.name}</td>
+                    <td>${formatMoney(item.purchasePrice)}</td>
+                    <td>${formatMoney(item.salePrice)}</td>
+                    <td class="${item.stock < 0 ? "neg" : ""}">${item.stock}</td>
+                  </tr>
+                `
+                )
+                .join("")}
+            </tbody>
+          </table>
+        </div>`
+      )
+      .join("");
+
+    const html = `
+      <!DOCTYPE html>
+      <html dir="rtl" lang="ar">
+      <head>
+        <meta charset="UTF-8" />
+        <title>${title}</title>
+        <style>
+          @page { size: A4 landscape; margin: 10mm; }
+          body {
+            font-family: 'Cairo', sans-serif;
+            margin: 0;
+            padding: 10mm;
+            color: #1F2937;
+            background: #FFFFFF;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+          }
+          .title {
+            text-align: center;
+            margin: 0 0 12px 0;
+            font-size: 16px;
+            color: #1F2937;
+          }
+          table { width: 100%; border-collapse: collapse; font-size: 12px; }
+          th, td { border: 1px solid #E5E7EB; padding: 6px 8px; text-align: right; }
+          thead { background: #1E40AF !important; color: #FFFFFF !important; }
+          tbody tr:nth-child(odd) { background: #F8FAFC !important; }
+          tbody tr:nth-child(even) { background: #FFFFFF !important; }
+          tr { page-break-inside: avoid; break-inside: avoid; }
+          .page { page-break-after: always; break-after: page; }
+          .page:last-of-type { page-break-after: auto; break-after: auto; }
+          .neg { color: #DC2626; font-weight: bold; }
+        </style>
+      </head>
+      <body>
+        ${bodyPages}
+      </body>
+      </html>
+    `;
+
+    printWindow.document.open();
+    printWindow.document.write(html);
+    printWindow.document.close();
+    printWindow.focus();
+    setTimeout(() => {
+      printWindow.print();
+      printWindow.close();
+    }, 200);
+  };
+
   return (
     <>
       <style>
@@ -220,12 +324,30 @@ const ItemsList: React.FC<ItemsListProps> = ({ title, onNavigate }) => {
             @page { size: A4 landscape; margin: 10mm; }
             .no-print { display: none !important; }
             .overflow-x-auto { overflow: visible !important; }
-            table { font-size: 12px !important; }
+            .print-wrapper { overflow: visible !important; }
+            .print-only-table { display: block !important; }
+            .print-only-table table { width: 100% !important; }
+            table {
+              font-size: 12px !important;
+              width: 100% !important;
+              border-collapse: collapse !important;
+              page-break-after: auto;
+            }
+            thead { display: table-header-group; }
+            tfoot { display: table-footer-group; }
+            tr { page-break-inside: avoid; page-break-after: auto; break-inside: avoid; }
             th, td { padding: 4px 6px !important; }
+            .print-page {
+              page-break-after: always;
+              break-after: page;
+              page-break-inside: avoid;
+              break-inside: avoid;
+            }
+            .print-page:last-of-type { page-break-after: auto; break-after: auto; }
           }
         `}
       </style>
-      <div className="bg-white p-6 rounded-lg shadow">
+      <div className="bg-white p-6 rounded-lg shadow print-wrapper">
         <div className="flex justify-between items-center mb-4 border-b pb-4 no-print">
           <h1 className="text-2xl font-bold text-brand-dark">{title}</h1>
           <div className="flex items-center gap-3">
@@ -401,7 +523,7 @@ const ItemsList: React.FC<ItemsListProps> = ({ title, onNavigate }) => {
             >
               <button
                 title="طباعة"
-                onClick={() => window.print()}
+                onClick={handlePrint}
                 className="p-3 border-2 border-gray-200 rounded-md hover:bg-gray-100"
               >
                 <PrintIcon className="w-6 h-6" />
@@ -409,7 +531,7 @@ const ItemsList: React.FC<ItemsListProps> = ({ title, onNavigate }) => {
             </PermissionWrapper>
           </div>
         </div>
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto no-print">
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-brand-blue">
               <tr>
@@ -548,6 +670,84 @@ const ItemsList: React.FC<ItemsListProps> = ({ title, onNavigate }) => {
               )}
             </tbody>
           </table>
+        </div>
+        <div className="hidden print:block print-only-table">
+          {printPages.map((pageItems, pageIndex) => (
+            <div className="print-page" key={`print-page-${pageIndex}`}>
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-brand-blue">
+                  <tr>
+                    <th className="px-6 py-3 text-right text-sm font-semibold text-white uppercase">
+                      الكود
+                    </th>
+                    <th className="px-6 py-3 text-right text-sm font-semibold text-white uppercase min-w-[200px]">
+                      الاسم
+                    </th>
+                    <th className="px-6 py-3 text-right text-sm font-semibold text-white uppercase">
+                      المجموعة
+                    </th>
+                    <th className="px-6 py-3 text-right text-sm font-semibold text-white uppercase">
+                      الوحدة
+                    </th>
+                    <th className="px-6 py-3 text-right text-sm font-semibold text-white uppercase">
+                      سعر الشراء
+                    </th>
+                    <th className="px-6 py-3 text-right text-sm font-semibold text-white uppercase">
+                      سعر البيع
+                    </th>
+                    <th className="px-6 py-3 text-right text-sm font-semibold text-white uppercase">
+                      الرصيد
+                    </th>
+                    <th className="px-6 py-3 text-right text-sm font-semibold text-white uppercase no-print">
+                      اجراءات
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {pageItems.length === 0 ? (
+                    <tr>
+                      <td colSpan={8} className="px-6 py-8 text-center">
+                        {apiLoading
+                          ? "جاري تحميل البيانات..."
+                          : filteredItems.length === 0
+                          ? searchTerm
+                            ? "لا توجد أصناف تطابق البحث"
+                            : "لا توجد أصناف متاحة"
+                          : ""}
+                      </td>
+                    </tr>
+                  ) : (
+                    pageItems.map((item) => (
+                      <tr key={item.id}>
+                        <td className="px-6 py-4">{item.code}</td>
+                        <td className="px-6 py-4 font-medium text-brand-dark min-w-[200px]">
+                          {item.name}
+                        </td>
+                        <td className="px-6 py-4">{item.group.name}</td>
+                        <td className="px-6 py-4">{item.unit.name}</td>
+                        <td className="px-6 py-4">
+                          {formatMoney(item.purchasePrice)}
+                        </td>
+                        <td className="px-6 py-4">
+                          {formatMoney(item.salePrice)}
+                        </td>
+                        <td
+                          className={`px-6 py-4 font-bold ${
+                            item.stock < 0 ? "text-red-600" : ""
+                          }`}
+                        >
+                          {item.stock}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium no-print">
+                          {/* Actions hidden in print */}
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+          ))}
         </div>
       </div>
 
