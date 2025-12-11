@@ -107,6 +107,9 @@ const VIPCustomersReport: React.FC<VIPCustomersReportProps> = ({ title }) => {
     }, [apiSalesReturns]);
 
     const reportData = useMemo(() => {
+        const DEFAULT_CUSTOMER_NAME = 'عميل نقدي';
+        const DEFAULT_CUSTOMER_ID = '__DEFAULT_CASH_CUSTOMER__';
+
         const customerSales = customers.map(customer => {
             const customerIdStr = (customer.id ?? '').toString();
             
@@ -134,6 +137,34 @@ const VIPCustomersReport: React.FC<VIPCustomersReportProps> = ({ title }) => {
                 netRevenue
             };
         });
+
+        // Handle default cash customer (invoices without a customer)
+        const defaultCustomerInvoices = salesInvoices.filter(inv => 
+            !inv.customerOrSupplier && 
+            inv.date && inv.date >= startDate && 
+            inv.date <= endDate
+        );
+
+        const defaultCustomerReturns = salesReturns.filter(inv => 
+            !inv.customerOrSupplier && 
+            inv.date && inv.date >= startDate && 
+            inv.date <= endDate
+        );
+
+        const defaultCustomerTotalSales = defaultCustomerInvoices.reduce((sum, inv) => sum + (inv.totals?.net ?? 0), 0);
+        const defaultCustomerTotalReturns = defaultCustomerReturns.reduce((sum, inv) => sum + (inv.totals?.net ?? 0), 0);
+        const defaultCustomerNetRevenue = defaultCustomerTotalSales - defaultCustomerTotalReturns;
+        const defaultCustomerInvoicesCount = defaultCustomerInvoices.length;
+
+        // Add default customer if it has sales
+        if (defaultCustomerNetRevenue > 0) {
+            customerSales.push({
+                id: DEFAULT_CUSTOMER_ID,
+                name: DEFAULT_CUSTOMER_NAME,
+                invoicesCount: defaultCustomerInvoicesCount,
+                netRevenue: defaultCustomerNetRevenue
+            });
+        }
 
         // Filter out customers with zero sales and sort by revenue descending
         const activeCustomers = customerSales
