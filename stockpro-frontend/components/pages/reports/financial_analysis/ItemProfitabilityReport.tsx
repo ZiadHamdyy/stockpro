@@ -120,7 +120,7 @@ const ItemProfitabilityReport: React.FC<ItemProfitabilityReportProps> = ({ title
                     if (invItem) {
                         return {
                             qty: acc.qty + (invItem.qty ?? 0),
-                            revenue: acc.revenue + (invItem.total ?? 0) // Using line total before tax
+                            revenue: acc.revenue + ((invItem.qty ?? 0) * (invItem.price ?? 0)) // Using price before tax
                         };
                     }
                     return acc;
@@ -137,7 +137,7 @@ const ItemProfitabilityReport: React.FC<ItemProfitabilityReportProps> = ({ title
                     if (invItem) {
                         return {
                             qty: acc.qty + (invItem.qty ?? 0),
-                            value: acc.value + (invItem.total ?? 0)
+                            value: acc.value + ((invItem.qty ?? 0) * (invItem.price ?? 0)) // Using price before tax
                         };
                     }
                     return acc;
@@ -163,7 +163,7 @@ const ItemProfitabilityReport: React.FC<ItemProfitabilityReportProps> = ({ title
         }).filter(item => 
             (item.netQty !== 0) && 
             ((item.name ?? '').toLowerCase().includes(searchTerm.toLowerCase()) || (item.code ?? '').toLowerCase().includes(searchTerm.toLowerCase()))
-        ).sort((a, b) => b.grossProfit - a.grossProfit); // Sort by profit descending
+        ).sort((a, b) => b.marginPercent - a.marginPercent); // Sort by margin % descending
     }, [items, salesInvoices, salesReturns, startDate, endDate, searchTerm]);
 
     const handlePrint = () => {
