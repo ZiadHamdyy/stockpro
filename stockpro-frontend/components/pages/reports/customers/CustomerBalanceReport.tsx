@@ -238,6 +238,19 @@ const CustomerBalanceReport: React.FC<CustomerBalanceReportProps> = ({
         )
         .reduce((sum, inv) => sum + (inv.totals?.net || inv.net || 0), 0);
 
+      // Cash sales returns are counted in both debit and credit (like cash invoices)
+      const totalCashReturns = salesReturns
+        .filter(
+          (inv) => {
+            const invDate = normalizeDate(inv.date);
+            const invCustomerId = inv.customerOrSupplier?.id || inv.customerId?.toString() || (inv.customer?.id?.toString());
+            return inv.paymentMethod === "cash" &&
+              (invCustomerId === customerIdStr || invCustomerId == customerId) &&
+              invDate <= endDate;
+          }
+        )
+        .reduce((sum, inv) => sum + toNumber(inv.totals?.net || inv.net || 0), 0);
+
       // Cash invoices are already paid, so they should reduce receivables (credit)
       const totalCashInvoices = salesInvoices
         .filter(
@@ -276,10 +289,10 @@ const CustomerBalanceReport: React.FC<CustomerBalanceReportProps> = ({
         .reduce((sum, v) => sum + v.amount, 0);
 
       const opening = customer.openingBalance;
-      // Total Debit: sales invoices, payment vouchers (all increase what customer owes)
-      const totalDebit = totalSales + totalPayments;
-      // Total Credit: sales returns, receipt vouchers, cash invoices (all decrease what customer owes)
-      const totalCredit = totalReturns + totalReceipts + totalCashInvoices;
+      // Total Debit: all sales invoices, cash sales returns, payment vouchers (all increase what customer owes)
+      const totalDebit = totalSales + totalCashReturns + totalPayments;
+      // Total Credit: cash sales invoices, all sales returns, receipt vouchers (all decrease what customer owes)
+      const totalCredit = totalCashInvoices + totalReturns + totalReceipts;
       // Balance = Beginning Balance + Total Debit - Total Credit
       const balance = opening + totalDebit - totalCredit;
 

@@ -272,6 +272,21 @@ const SupplierBalanceReport: React.FC<SupplierBalanceReportProps> = ({
         )
         .reduce((sum, inv) => sum + (inv.totals?.net || inv.net || 0), 0);
 
+      // Cash purchase returns are counted in both debit and credit (like cash purchases)
+      const totalCashReturns = purchaseReturns
+        .filter(
+          (inv) => {
+            const invDate = normalizeDate(inv.date);
+            const invSupplierId = inv.customerOrSupplier?.id?.toString() || 
+                                 inv.supplierId?.toString() || 
+                                 (inv.supplier?.id?.toString());
+            return inv.paymentMethod === "cash" &&
+                   (invSupplierId === supplierIdStr || invSupplierId == supplierId) && 
+                   invDate <= normalizedEndDate;
+          }
+        )
+        .reduce((sum, inv) => sum + toNumber(inv.totals?.net || inv.net || 0), 0);
+
       const totalPayments = paymentVouchers
         .filter(
           (v) => {
@@ -297,10 +312,11 @@ const SupplierBalanceReport: React.FC<SupplierBalanceReportProps> = ({
         .reduce((sum, v) => sum + v.amount, 0);
 
       const opening = supplier.openingBalance || 0;
-      // Total Debit: purchase returns, payment vouchers, receipt vouchers, cash purchases (all decrease what we owe)
-      const totalDebit = totalReturns + totalPayments + totalReceipts + totalCashPurchases;
-      // Total Credit: purchase invoices (increases what we owe)
-      const totalCredit = totalPurchases;
+      // Total Debit: cash purchases, all purchase returns, payment vouchers, receipt vouchers (all decrease what we owe)
+      const totalDebit = totalCashPurchases + totalReturns + totalPayments + totalReceipts;
+      // Total Credit: all purchase invoices plus cash purchase returns (both increase what we owe)
+      // Cash purchases are already counted in both debit and credit via totalCashPurchases
+      const totalCredit = totalPurchases + totalCashReturns;
       // Balance = Beginning Balance + Total Debit - Total Credit
       const balance = opening + totalDebit - totalCredit;
 
