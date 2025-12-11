@@ -171,6 +171,7 @@ const BankStatementReport: React.FC<BankStatementReportProps> = ({
   const [startDate, setStartDate] = useState(defaultStartDate);
   const [endDate, setEndDate] = useState(defaultEndDate);
   const [selectedBankId, setSelectedBankId] = useState<string | null>(null);
+  const [transactionType, setTransactionType] = useState<"all" | "pos" | "transfer">("all");
 
   // Set initial selected bank when data loads
   useEffect(() => {
@@ -405,6 +406,7 @@ const BankStatementReport: React.FC<BankStatementReportProps> = ({
       credit: number;
       link: { page: string; label: string } | null;
       sortKey: number;
+      category: "pos" | "transfer" | "other";
     }[] = [];
 
     const buildSortKey = (record: any) => {
@@ -437,6 +439,7 @@ const BankStatementReport: React.FC<BankStatementReportProps> = ({
           credit: 0,
           link: { page: "receipt_voucher", label: "سند قبض" },
           sortKey: buildSortKey(v),
+        category: "other",
         });
       }
     });
@@ -463,6 +466,7 @@ const BankStatementReport: React.FC<BankStatementReportProps> = ({
           credit: 0,
           link: { page: "sales_invoice", label: "فاتورة مبيعات" },
           sortKey: buildSortKey(inv),
+        category: (inv as any).bankTransactionType === "POS" ? "pos" : "other",
         });
       }
     });
@@ -488,6 +492,7 @@ const BankStatementReport: React.FC<BankStatementReportProps> = ({
             credit: 0,
             link: { page: "sales_invoice", label: "فاتورة مبيعات" },
             sortKey: buildSortKey(inv),
+          category: (inv as any).bankTransactionType === "POS" ? "pos" : "other",
           });
         }
       }
@@ -515,6 +520,7 @@ const BankStatementReport: React.FC<BankStatementReportProps> = ({
           credit: 0,
           link: { page: "purchase_return", label: "مرتجع مشتريات" },
           sortKey: buildSortKey(ret),
+        category: "other",
         });
       }
     });
@@ -540,6 +546,7 @@ const BankStatementReport: React.FC<BankStatementReportProps> = ({
             credit: 0,
             link: { page: "purchase_return", label: "مرتجع مشتريات" },
             sortKey: buildSortKey(ret),
+          category: "other",
           });
         }
       }
@@ -565,6 +572,7 @@ const BankStatementReport: React.FC<BankStatementReportProps> = ({
           credit: 0,
           link: { page: "internal_transfer", label: "تحويل داخلي" },
           sortKey: buildSortKey(t),
+        category: "transfer",
         });
       }
     });
@@ -591,6 +599,7 @@ const BankStatementReport: React.FC<BankStatementReportProps> = ({
           credit: amount,
           link: { page: "purchase_invoice", label: "فاتورة مشتريات" },
           sortKey: buildSortKey(inv),
+        category: "other",
         });
       }
     });
@@ -616,6 +625,7 @@ const BankStatementReport: React.FC<BankStatementReportProps> = ({
             credit: amount,
             link: { page: "purchase_invoice", label: "فاتورة مشتريات" },
             sortKey: buildSortKey(inv),
+          category: "other",
           });
         }
       }
@@ -643,6 +653,7 @@ const BankStatementReport: React.FC<BankStatementReportProps> = ({
           credit: amount,
           link: { page: "sales_return", label: "مرتجع مبيعات" },
           sortKey: buildSortKey(ret),
+          category: "other",
         });
       }
     });
@@ -668,6 +679,7 @@ const BankStatementReport: React.FC<BankStatementReportProps> = ({
             credit: amount,
             link: { page: "sales_return", label: "مرتجع مبيعات" },
             sortKey: buildSortKey(ret),
+          category: "other",
           });
         }
       }
@@ -691,6 +703,7 @@ const BankStatementReport: React.FC<BankStatementReportProps> = ({
           credit: v.amount,
           link: { page: "payment_voucher", label: "سند صرف" },
           sortKey: buildSortKey(v),
+        category: "other",
         });
       }
     });
@@ -715,6 +728,7 @@ const BankStatementReport: React.FC<BankStatementReportProps> = ({
           credit: t.amount,
           link: { page: "internal_transfer", label: "تحويل داخلي" },
           sortKey: buildSortKey(t),
+        category: "transfer",
         });
       }
     });
@@ -722,14 +736,23 @@ const BankStatementReport: React.FC<BankStatementReportProps> = ({
     // Sort ascending to compute running balance correctly
     transactions.sort((a, b) => (a.sortKey || 0) - (b.sortKey || 0));
 
+    const filteredTransactions =
+      transactionType === "all"
+        ? transactions
+        : transactions.filter((t) => {
+            if (transactionType === "pos") return t.category === "pos";
+            if (transactionType === "transfer") return t.category === "transfer";
+            return true;
+          });
+
     let balance = openingBalance;
-    const withBalance = transactions.map((t) => {
+    const withBalance = filteredTransactions.map((t) => {
       balance = balance + t.debit - t.credit;
       return { ...t, balance };
     });
 
     // Return data in ascending order (oldest first) without the helper sort key
-    return withBalance.map(({ sortKey, ...rest }) => rest);
+    return withBalance.map(({ sortKey, category, ...rest }) => rest);
   }, [
     selectedBankId,
     receiptVouchers,
@@ -742,6 +765,7 @@ const BankStatementReport: React.FC<BankStatementReportProps> = ({
     startDate,
     endDate,
     openingBalance,
+    transactionType,
   ]);
 
   const totalDebit = reportData.reduce((sum, item) => sum + item.debit, 0);
@@ -913,6 +937,18 @@ const BankStatementReport: React.FC<BankStatementReportProps> = ({
               value={endDate}
               onChange={(e) => setEndDate(e.target.value)}
             />
+            <label className="font-semibold">نوع العملية:</label>
+            <select
+              className={inputStyle}
+              value={transactionType}
+              onChange={(e) =>
+                setTransactionType(e.target.value as "all" | "pos" | "transfer")
+              }
+            >
+              <option value="all">الكل</option>
+              <option value="pos">POS</option>
+              <option value="transfer">تحويل</option>
+            </select>
             <button className="px-6 py-2 bg-brand-blue text-white rounded-md hover:bg-blue-800 font-semibold flex items-center gap-2">
               <SearchIcon className="w-5 h-5" />
               <span>عرض التقرير</span>
