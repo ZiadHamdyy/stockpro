@@ -22,6 +22,27 @@ import { useGetPurchaseReturnsQuery } from '../../../store/slices/purchaseReturn
 import { useGetReceiptVouchersQuery } from '../../../store/slices/receiptVoucherApiSlice';
 import { useGetPaymentVouchersQuery } from '../../../store/slices/paymentVoucherApiSlice';
 import { useGetBalanceSheetQuery } from '../../../store/slices/balanceSheet/balanceSheetApiSlice';
+import { useGetInternalTransfersQuery } from '../../../store/slices/internalTransferApiSlice';
+
+const resolveRecordAmount = (record: any): number => {
+    if (!record) return 0;
+    const totals = record.totals;
+    const rawAmount =
+        (totals &&
+            (totals.net ??
+                totals.total ??
+                totals.amount ??
+                totals.debit ??
+                totals.credit)) ??
+        record.net ??
+        record.total ??
+        record.amount ??
+        record.debit ??
+        record.credit ??
+        0;
+    const amountNumber = Number(rawAmount);
+    return Number.isFinite(amountNumber) ? amountNumber : 0;
+};
 
 interface LiquidityReportProps {
     title: string;
@@ -44,6 +65,7 @@ const LiquidityReport: React.FC<LiquidityReportProps> = ({ title }) => {
     const { data: apiPurchaseReturns = [], isLoading: purchaseReturnsLoading } = useGetPurchaseReturnsQuery();
     const { data: apiReceiptVouchers = [], isLoading: receiptsLoading } = useGetReceiptVouchersQuery();
     const { data: apiPaymentVouchers = [], isLoading: paymentsLoading } = useGetPaymentVouchersQuery();
+    const { data: apiInternalTransfers = [] } = useGetInternalTransfersQuery();
     const { data: balanceSheetData, isLoading: balanceSheetLoading } = useGetBalanceSheetQuery({ startDate: defaultStartDate, endDate: defaultEndDate });
 
     const isLoading = safesLoading || banksLoading || customersLoading || suppliersLoading || itemsLoading || salesLoading || purchasesLoading || salesReturnsLoading || purchaseReturnsLoading || receiptsLoading || paymentsLoading || balanceSheetLoading;
@@ -287,11 +309,384 @@ const LiquidityReport: React.FC<LiquidityReportProps> = ({ title }) => {
         const vatAsset = vatNet > 0 ? vatNet : 0;
         const vatLiabilityFromNet = vatNet < 0 ? Math.abs(vatNet) : 0;
 
-        // 1. Current Assets (الأصول المتداولة)
-        const totalCash = Math.abs(safes.reduce((sum, s) => sum + (s.openingBalance ?? 0), 0) 
-            + receiptVouchers.filter(v => v.paymentMethod === 'safe').reduce((sum, v) => sum + (v.amount ?? 0), 0)
-            - paymentVouchers.filter(v => v.paymentMethod === 'safe').reduce((sum, v) => sum + (v.amount ?? 0), 0)
-            + salesInvoices.filter(i => i.paymentMethod === 'cash' && i.paymentTargetType === 'safe').reduce((sum, i) => sum + (i.totals?.net ?? 0), 0)); 
+        // Calculate total cash for all safes using the same logic as SafeStatementReport
+        const calculateSafeFinalBalance = (safe: Safe): number => {
+            const safeId = safe.id?.toString() || "";
+            const matchesSafeValue = (value: any) => value?.toString() === safeId;
+            const branchId = safe.branchId?.toString() || "";
+            const matchesBranchValue = (value: any) =>
+                branchId && value?.toString() === branchId;
+            const matchesSafeRecord = (record: any) => {
+                if (!record) return false;
+                // 1) Explicit link to this safe (legacy / direct safeId usage)
+                if (matchesSafeValue(record.safeId)) return true;
+
+                // 2) For invoices / returns we ONLY consider cash payments that target a safe.
+                //    These records use branchId as the paymentTargetId when paymentTargetType === "safe".
+                if (
+                    record.paymentMethod === "cash" &&
+                    record.paymentTargetType === "safe" &&
+                    (matchesBranchValue(record.paymentTargetId) ||
+                        matchesSafeValue(record.paymentTargetId))
+                ) {
+                    return true;
+                }
+
+                return false;
+            };
+
+            // Calculate opening balance (transactions before startDate)
+            const receiptsBefore = (apiReceiptVouchers as any[])
+                .filter(
+                    (v) => {
+                        const vDate = normalizeDate(v.date);
+                        return v.paymentMethod === "safe" &&
+                            matchesSafeValue(v.safeId) &&
+                            vDate < normalizedStartDate;
+                    }
+                )
+                .reduce((sum, v) => sum + (v.amount ?? 0), 0);
+
+            const paymentsBefore = (apiPaymentVouchers as any[])
+                .filter(
+                    (v) => {
+                        const vDate = normalizeDate(v.date);
+                        return v.paymentMethod === "safe" &&
+                            matchesSafeValue(v.safeId) &&
+                            vDate < normalizedStartDate;
+                    }
+                )
+                .reduce((sum, v) => sum + (v.amount ?? 0), 0);
+
+            const salesInvoicesBefore = (apiSalesInvoices as any[])
+                .filter(
+                    (inv) => {
+                        const invDate = normalizeDate(inv.date);
+                        if (
+                            inv.paymentMethod !== "cash" ||
+                            inv.isSplitPayment === true ||
+                            inv.paymentTargetType !== "safe" ||
+                            !matchesSafeRecord(inv)
+                        ) {
+                            return false;
+                        }
+                        return invDate < normalizedStartDate;
+                    }
+                )
+                .reduce((sum, inv) => sum + resolveRecordAmount(inv), 0);
+
+            const splitSalesInvoicesBefore = (apiSalesInvoices as any[])
+                .filter(
+                    (inv) => {
+                        const invDate = normalizeDate(inv.date);
+                        return inv.paymentMethod === "cash" &&
+                            inv.isSplitPayment === true &&
+                            matchesSafeValue(inv.splitSafeId) &&
+                            invDate < normalizedStartDate;
+                    }
+                )
+                .reduce((sum, inv) => sum + (Number(inv.splitCashAmount) || 0), 0);
+
+            const purchaseInvoicesBefore = (apiPurchaseInvoices as any[])
+                .filter(
+                    (inv) => {
+                        const invDate = normalizeDate(inv.date);
+                        if (
+                            inv.paymentMethod !== "cash" ||
+                            inv.isSplitPayment === true ||
+                            inv.paymentTargetType !== "safe" ||
+                            !matchesSafeRecord(inv)
+                        ) {
+                            return false;
+                        }
+                        return invDate < normalizedStartDate;
+                    }
+                )
+                .reduce((sum, inv) => sum + resolveRecordAmount(inv), 0);
+
+            const splitPurchaseInvoicesBefore = (apiPurchaseInvoices as any[])
+                .filter(
+                    (inv) => {
+                        const invDate = normalizeDate(inv.date);
+                        return inv.paymentMethod === "cash" &&
+                            inv.isSplitPayment === true &&
+                            matchesSafeValue(inv.splitSafeId) &&
+                            invDate < normalizedStartDate;
+                    }
+                )
+                .reduce((sum, inv) => sum + (Number(inv.splitCashAmount) || 0), 0);
+
+            const salesReturnsBefore = (apiSalesReturns as any[])
+                .filter(
+                    (ret) => {
+                        const retDate = normalizeDate(ret.date);
+                        if (
+                            ret.paymentMethod !== "cash" ||
+                            ret.isSplitPayment === true ||
+                            ret.paymentTargetType !== "safe" ||
+                            !matchesSafeRecord(ret)
+                        ) {
+                            return false;
+                        }
+                        return retDate < normalizedStartDate;
+                    }
+                )
+                .reduce((sum, ret) => sum + resolveRecordAmount(ret), 0);
+
+            const splitSalesReturnsBefore = (apiSalesReturns as any[])
+                .filter(
+                    (ret) => {
+                        const retDate = normalizeDate(ret.date);
+                        return ret.paymentMethod === "cash" &&
+                            ret.isSplitPayment === true &&
+                            matchesSafeValue(ret.splitSafeId) &&
+                            retDate < normalizedStartDate;
+                    }
+                )
+                .reduce((sum, ret) => sum + (Number(ret.splitCashAmount) || 0), 0);
+
+            const purchaseReturnsBefore = (apiPurchaseReturns as any[])
+                .filter(
+                    (ret) => {
+                        const retDate = normalizeDate(ret.date);
+                        if (
+                            ret.paymentMethod !== "cash" ||
+                            ret.isSplitPayment === true ||
+                            ret.paymentTargetType !== "safe" ||
+                            !matchesSafeRecord(ret)
+                        ) {
+                            return false;
+                        }
+                        return retDate < normalizedStartDate;
+                    }
+                )
+                .reduce((sum, ret) => sum + resolveRecordAmount(ret), 0);
+
+            const splitPurchaseReturnsBefore = (apiPurchaseReturns as any[])
+                .filter(
+                    (ret) => {
+                        const retDate = normalizeDate(ret.date);
+                        return ret.paymentMethod === "cash" &&
+                            ret.isSplitPayment === true &&
+                            matchesSafeValue(ret.splitSafeId) &&
+                            retDate < normalizedStartDate;
+                    }
+                )
+                .reduce((sum, ret) => sum + (Number(ret.splitCashAmount) || 0), 0);
+
+            const outgoingBefore = (apiInternalTransfers as any[])
+                .filter(
+                    (t) => {
+                        const tDate = normalizeDate(t.date);
+                        return t.fromType === "safe" &&
+                            matchesSafeValue(t.fromSafeId) &&
+                            tDate < normalizedStartDate;
+                    }
+                )
+                .reduce((sum, t) => sum + (t.amount ?? 0), 0);
+
+            const incomingBefore = (apiInternalTransfers as any[])
+                .filter(
+                    (t) => {
+                        const tDate = normalizeDate(t.date);
+                        return t.toType === "safe" &&
+                            matchesSafeValue(t.toSafeId) &&
+                            tDate < normalizedStartDate;
+                    }
+                )
+                .reduce((sum, t) => sum + (t.amount ?? 0), 0);
+
+            const openingBalance = (safe.openingBalance ?? 0)
+                + receiptsBefore
+                + salesInvoicesBefore
+                + splitSalesInvoicesBefore
+                + purchaseReturnsBefore
+                + splitPurchaseReturnsBefore
+                + incomingBefore
+                - paymentsBefore
+                - purchaseInvoicesBefore
+                - splitPurchaseInvoicesBefore
+                - salesReturnsBefore
+                - splitSalesReturnsBefore
+                - outgoingBefore;
+
+            // Calculate transactions in the period (between startDate and endDate)
+            const receiptsInPeriod = (apiReceiptVouchers as any[])
+                .filter(
+                    (v) => {
+                        const vDate = normalizeDate(v.date);
+                        return v.paymentMethod === "safe" &&
+                            matchesSafeValue(v.safeId) &&
+                            vDate >= normalizedStartDate &&
+                            vDate <= normalizedEndDate;
+                    }
+                )
+                .reduce((sum, v) => sum + (v.amount ?? 0), 0);
+
+            const paymentsInPeriod = (apiPaymentVouchers as any[])
+                .filter(
+                    (v) => {
+                        const vDate = normalizeDate(v.date);
+                        return v.paymentMethod === "safe" &&
+                            matchesSafeValue(v.safeId) &&
+                            vDate >= normalizedStartDate &&
+                            vDate <= normalizedEndDate;
+                    }
+                )
+                .reduce((sum, v) => sum + (v.amount ?? 0), 0);
+
+            const salesInvoicesInPeriod = (apiSalesInvoices as any[])
+                .filter(
+                    (inv) => {
+                        const invoiceDate = normalizeDate(inv.date);
+                        return inv.paymentMethod === "cash" &&
+                            !inv.isSplitPayment &&
+                            inv.paymentTargetType === "safe" &&
+                            matchesSafeRecord(inv) &&
+                            invoiceDate >= normalizedStartDate &&
+                            invoiceDate <= normalizedEndDate;
+                    }
+                )
+                .reduce((sum, inv) => sum + resolveRecordAmount(inv), 0);
+
+            const splitSalesInvoicesInPeriod = (apiSalesInvoices as any[])
+                .filter(
+                    (inv) => {
+                        const invoiceDate = normalizeDate(inv.date);
+                        return inv.paymentMethod === "cash" &&
+                            inv.isSplitPayment === true &&
+                            matchesSafeValue(inv.splitSafeId) &&
+                            invoiceDate >= normalizedStartDate &&
+                            invoiceDate <= normalizedEndDate;
+                    }
+                )
+                .reduce((sum, inv) => sum + (Number(inv.splitCashAmount) || 0), 0);
+
+            const purchaseReturnsInPeriod = (apiPurchaseReturns as any[])
+                .filter(
+                    (ret) => {
+                        const returnDate = normalizeDate(ret.date);
+                        return ret.paymentMethod === "cash" &&
+                            !ret.isSplitPayment &&
+                            ret.paymentTargetType === "safe" &&
+                            matchesSafeRecord(ret) &&
+                            returnDate >= normalizedStartDate &&
+                            returnDate <= normalizedEndDate;
+                    }
+                )
+                .reduce((sum, ret) => sum + resolveRecordAmount(ret), 0);
+
+            const splitPurchaseReturnsInPeriod = (apiPurchaseReturns as any[])
+                .filter(
+                    (ret) => {
+                        const returnDate = normalizeDate(ret.date);
+                        return ret.paymentMethod === "cash" &&
+                            ret.isSplitPayment === true &&
+                            matchesSafeValue(ret.splitSafeId) &&
+                            returnDate >= normalizedStartDate &&
+                            returnDate <= normalizedEndDate;
+                    }
+                )
+                .reduce((sum, ret) => sum + (Number(ret.splitCashAmount) || 0), 0);
+
+            const incomingInPeriod = (apiInternalTransfers as any[])
+                .filter(
+                    (t) => {
+                        const transferDate = normalizeDate(t.date);
+                        return t.toType === "safe" &&
+                            matchesSafeValue(t.toSafeId) &&
+                            transferDate >= normalizedStartDate &&
+                            transferDate <= normalizedEndDate;
+                    }
+                )
+                .reduce((sum, t) => sum + (t.amount ?? 0), 0);
+
+            const purchaseInvoicesInPeriod = (apiPurchaseInvoices as any[])
+                .filter(
+                    (inv) => {
+                        const invoiceDate = normalizeDate(inv.date);
+                        return inv.paymentMethod === "cash" &&
+                            !inv.isSplitPayment &&
+                            inv.paymentTargetType === "safe" &&
+                            matchesSafeRecord(inv) &&
+                            invoiceDate >= normalizedStartDate &&
+                            invoiceDate <= normalizedEndDate;
+                    }
+                )
+                .reduce((sum, inv) => sum + resolveRecordAmount(inv), 0);
+
+            const splitPurchaseInvoicesInPeriod = (apiPurchaseInvoices as any[])
+                .filter(
+                    (inv) => {
+                        const invoiceDate = normalizeDate(inv.date);
+                        return inv.paymentMethod === "cash" &&
+                            inv.isSplitPayment === true &&
+                            matchesSafeValue(inv.splitSafeId) &&
+                            invoiceDate >= normalizedStartDate &&
+                            invoiceDate <= normalizedEndDate;
+                    }
+                )
+                .reduce((sum, inv) => sum + (Number(inv.splitCashAmount) || 0), 0);
+
+            const salesReturnsInPeriod = (apiSalesReturns as any[])
+                .filter(
+                    (ret) => {
+                        const returnDate = normalizeDate(ret.date);
+                        return ret.paymentMethod === "cash" &&
+                            !ret.isSplitPayment &&
+                            ret.paymentTargetType === "safe" &&
+                            matchesSafeRecord(ret) &&
+                            returnDate >= normalizedStartDate &&
+                            returnDate <= normalizedEndDate;
+                    }
+                )
+                .reduce((sum, ret) => sum + resolveRecordAmount(ret), 0);
+
+            const splitSalesReturnsInPeriod = (apiSalesReturns as any[])
+                .filter(
+                    (ret) => {
+                        const returnDate = normalizeDate(ret.date);
+                        return ret.paymentMethod === "cash" &&
+                            ret.isSplitPayment === true &&
+                            matchesSafeValue(ret.splitSafeId) &&
+                            returnDate >= normalizedStartDate &&
+                            returnDate <= normalizedEndDate;
+                    }
+                )
+                .reduce((sum, ret) => sum + (Number(ret.splitCashAmount) || 0), 0);
+
+            const outgoingInPeriod = (apiInternalTransfers as any[])
+                .filter(
+                    (t) => {
+                        const transferDate = normalizeDate(t.date);
+                        return t.fromType === "safe" &&
+                            matchesSafeValue(t.fromSafeId) &&
+                            transferDate >= normalizedStartDate &&
+                            transferDate <= normalizedEndDate;
+                    }
+                )
+                .reduce((sum, t) => sum + (t.amount ?? 0), 0);
+
+            // Calculate final balance: opening balance + debits - credits
+            const totalDebit = receiptsInPeriod +
+                salesInvoicesInPeriod +
+                splitSalesInvoicesInPeriod +
+                purchaseReturnsInPeriod +
+                splitPurchaseReturnsInPeriod +
+                incomingInPeriod;
+
+            const totalCredit = paymentsInPeriod +
+                purchaseInvoicesInPeriod +
+                splitPurchaseInvoicesInPeriod +
+                salesReturnsInPeriod +
+                splitSalesReturnsInPeriod +
+                outgoingInPeriod;
+
+            return openingBalance + totalDebit - totalCredit;
+        };
+
+        // Calculate total cash as sum of final balances for all safes
+        const totalCash = safes.reduce((sum, safe) => sum + calculateSafeFinalBalance(safe), 0); 
 
         const totalBank = Math.abs(banks.reduce((sum, b) => sum + (b.openingBalance ?? 0), 0)
              + receiptVouchers.filter(v => v.paymentMethod === 'bank').reduce((sum, v) => sum + (v.amount ?? 0), 0)
@@ -349,7 +744,7 @@ const LiquidityReport: React.FC<LiquidityReportProps> = ({ title }) => {
             currentRatio, quickRatio, cashRatio,
             safetyStatus, safetyMessage
         };
-    }, [balanceSheetData, banks, customers, defaultEndDate, defaultStartDate, items, normalizeDate, paymentVouchers, purchaseInvoices, apiPurchaseReturns, receiptVouchers, safes, salesInvoices, apiSalesReturns, suppliers]);
+    }, [balanceSheetData, banks, customers, defaultEndDate, defaultStartDate, items, normalizeDate, paymentVouchers, purchaseInvoices, apiPurchaseReturns, receiptVouchers, safes, salesInvoices, apiSalesReturns, suppliers, apiInternalTransfers, apiSalesInvoices, apiPurchaseInvoices, apiReceiptVouchers, apiPaymentVouchers]);
 
     const getStatusColor = (status: string) => {
         switch(status) {
