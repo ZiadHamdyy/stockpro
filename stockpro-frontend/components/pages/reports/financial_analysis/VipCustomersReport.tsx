@@ -20,7 +20,7 @@ interface VIPCustomersReportProps {
 
 const VIPCustomersReport: React.FC<VIPCustomersReportProps> = ({ title }) => {
     const [startDate, setStartDate] = useState(new Date().getFullYear() + '-01-01');
-    const [endDate, setEndDate] = useState(new Date().toISOString().substring(0, 10));
+    const [endDate, setEndDate] = useState(new Date(new Date().getFullYear(), 11, 31).toISOString().substring(0, 10));
 
     // Fetch data from Redux
     const { data: apiCustomers = [], isLoading: customersLoading } = useGetCustomersQuery();
