@@ -825,8 +825,8 @@ const BalanceSheet: React.FC = () => {
                 </Td>
               </tr>
               <tr
-                className={`font-bold text-brand-dark ${
-                  hasDiscrepancy ? "bg-yellow-100" : "bg-blue-100"
+                className={`font-bold text-white text-lg border-2 border-gray-400 ${
+                  hasDiscrepancy ? "bg-yellow-600" : "bg-gray-700"
                 }`}
               >
                 <Td>إجمالي الأصول</Td>
@@ -923,13 +923,13 @@ const BalanceSheet: React.FC = () => {
 
               {/* Total Liabilities & Equity */}
               <tr
-                className={`font-bold text-white text-lg ${
+                className={`font-bold text-white text-lg border-4 border-gray-400 ${
                   hasDiscrepancy ? "bg-yellow-600" : "bg-gray-700"
                 }`}
               >
                 <Td>إجمالي الالتزامات وحقوق الملكية</Td>
                 <Td
-                  className={`text-left font-mono ${getNegativeNumberClass(
+                  className={`text-left font-mono text-lg ${getNegativeNumberClass(
                     displayData.payables +
                       displayData.otherPayables +
                       vatLiability +
