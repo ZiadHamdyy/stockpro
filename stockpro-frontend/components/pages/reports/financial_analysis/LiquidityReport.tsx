@@ -1043,9 +1043,118 @@ const LiquidityReport: React.FC<LiquidityReportProps> = ({ title }) => {
         // 2. Current Liabilities (الالتزامات المتداولة)
         const totalOtherPayables = Math.abs(balanceSheetData?.otherPayables ?? 0);
 
-        const totalPayables = Math.abs(suppliers.reduce((sum, s) => sum + (s.openingBalance ?? 0), 0)
-            + purchaseInvoices.filter(i => i.paymentMethod === 'credit').reduce((sum, i) => sum + (i.totals?.net ?? 0), 0)
-            - paymentVouchers.filter(v => v.entity?.type === 'supplier').reduce((sum, v) => sum + (v.amount ?? 0), 0));
+        // Calculate total payables for all suppliers using the same logic as SupplierBalanceReport
+        const calculateSupplierFinalBalance = (supplier: Supplier): number => {
+            const supplierIdStr = supplier.id.toString();
+            const supplierId = supplier.id;
+
+            const toNumber = (value: any): number => {
+                const parsed = Number(value);
+                return Number.isFinite(parsed) ? parsed : 0;
+            };
+
+            // Total Purchases (all purchase invoices up to endDate) - Credit (increases what we owe)
+            const totalPurchases = (apiPurchaseInvoices as any[])
+                .filter(
+                    (inv) => {
+                        const invDate = normalizeDate(inv.date);
+                        const invSupplierId = inv.customerOrSupplier?.id?.toString() || 
+                                             inv.supplierId?.toString() || 
+                                             (inv.supplier?.id?.toString());
+                        return (invSupplierId === supplierIdStr || invSupplierId == supplierId) && 
+                               invDate <= normalizedEndDate;
+                    }
+                )
+                .reduce((sum, inv) => sum + toNumber(inv.totals?.net || inv.net || 0), 0);
+
+            // Cash purchase invoices are already paid, so they reduce what we owe (debit)
+            const totalCashPurchases = (apiPurchaseInvoices as any[])
+                .filter(
+                    (inv) => {
+                        const invDate = normalizeDate(inv.date);
+                        const invSupplierId = inv.customerOrSupplier?.id?.toString() || 
+                                             inv.supplierId?.toString() || 
+                                             (inv.supplier?.id?.toString());
+                        return inv.paymentMethod === "cash" &&
+                               (invSupplierId === supplierIdStr || invSupplierId == supplierId) && 
+                               invDate <= normalizedEndDate;
+                    }
+                )
+                .reduce((sum, inv) => sum + toNumber(inv.totals?.net || inv.net || 0), 0);
+
+            // Total Returns (all purchase returns up to endDate) - Debit (reduces what we owe)
+            const totalReturns = (apiPurchaseReturns as any[])
+                .filter(
+                    (inv) => {
+                        const invDate = normalizeDate(inv.date);
+                        const invSupplierId = inv.customerOrSupplier?.id?.toString() || 
+                                             inv.supplierId?.toString() || 
+                                             (inv.supplier?.id?.toString());
+                        return (invSupplierId === supplierIdStr || invSupplierId == supplierId) && 
+                               invDate <= normalizedEndDate;
+                    }
+                )
+                .reduce((sum, inv) => sum + toNumber(inv.totals?.net || inv.net || 0), 0);
+
+            // Cash purchase returns are counted in both debit and credit (like cash purchases)
+            const totalCashReturns = (apiPurchaseReturns as any[])
+                .filter(
+                    (inv) => {
+                        const invDate = normalizeDate(inv.date);
+                        const invSupplierId = inv.customerOrSupplier?.id?.toString() || 
+                                             inv.supplierId?.toString() || 
+                                             (inv.supplier?.id?.toString());
+                        return inv.paymentMethod === "cash" &&
+                               (invSupplierId === supplierIdStr || invSupplierId == supplierId) && 
+                               invDate <= normalizedEndDate;
+                    }
+                )
+                .reduce((sum, inv) => sum + toNumber(inv.totals?.net || inv.net || 0), 0);
+
+            // Payment vouchers to supplier - Debit (reduces what we owe)
+            const totalPayments = (apiPaymentVouchers as any[])
+                .filter(
+                    (v) => {
+                        const vDate = normalizeDate(v.date);
+                        const voucherSupplierId = v.supplierId?.toString() || 
+                                                v.entity?.id?.toString() || 
+                                                v.entity?.id;
+                        return (v.entityType === "supplier" || v.entity?.type === "supplier") &&
+                               (voucherSupplierId === supplierIdStr || voucherSupplierId == supplierId) &&
+                               vDate <= normalizedEndDate;
+                    }
+                )
+                .reduce((sum, v) => sum + toNumber(v.amount || 0), 0);
+
+            // Receipt vouchers from supplier - Debit (reduces what we owe)
+            const totalReceipts = (apiReceiptVouchers as any[])
+                .filter(
+                    (v) => {
+                        const vDate = normalizeDate(v.date);
+                        const voucherSupplierId = v.supplierId?.toString() || 
+                                                v.entity?.id?.toString() || 
+                                                v.entity?.id;
+                        return (v.entityType === "supplier" || v.entity?.type === "supplier") &&
+                               (voucherSupplierId === supplierIdStr || voucherSupplierId == supplierId) &&
+                               vDate <= normalizedEndDate;
+                    }
+                )
+                .reduce((sum, v) => sum + toNumber(v.amount || 0), 0);
+
+            const opening = supplier.openingBalance || 0;
+            // Total Debit: cash purchases, all purchase returns, payment vouchers, receipt vouchers (all decrease what we owe)
+            const totalDebit = totalCashPurchases + totalReturns + totalPayments + totalReceipts;
+            // Total Credit: all purchase invoices plus cash purchase returns (both increase what we owe)
+            // Cash purchases are already counted in both debit and credit via totalCashPurchases
+            const totalCredit = totalPurchases + totalCashReturns;
+            // Balance = Beginning Balance + Total Debit - Total Credit
+            const balance = opening + totalDebit - totalCredit;
+
+            return balance;
+        };
+
+        // Calculate total payables as sum of final balances for all suppliers
+        const totalPayables = suppliers.reduce((sum, supplier) => sum + calculateSupplierFinalBalance(supplier), 0);
 
         const vatLiability = vatLiabilityFromNet > 0 ? vatLiabilityFromNet : Math.max(balanceSheetData?.vatPayable ?? 0, 0);
         
