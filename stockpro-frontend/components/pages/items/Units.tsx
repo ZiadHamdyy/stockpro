@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { PrintIcon, SearchIcon } from "../../icons";
 import UnitModal from "./UnitModal";
 import { useModal } from "../../common/ModalProvider";
@@ -23,6 +23,7 @@ interface UnitsProps {
 }
 
 const Units: React.FC<UnitsProps> = ({ title }) => {
+  const PRINT_PAGE_SIZE = 20;
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [unitToEdit, setUnitToEdit] = useState<Unit | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
@@ -97,6 +98,118 @@ const Units: React.FC<UnitsProps> = ({ title }) => {
       )
     : [];
 
+  const printPages = useMemo(() => {
+    const pages: typeof filteredUnits[] = [];
+    for (let i = 0; i < filteredUnits.length; i += PRINT_PAGE_SIZE) {
+      pages.push(filteredUnits.slice(i, i + PRINT_PAGE_SIZE));
+    }
+    return pages.length ? pages : [[]];
+  }, [filteredUnits]);
+
+  const handlePrint = () => {
+    const printWindow = window.open("", "_blank", "width=1200,height=800");
+    if (!printWindow) return;
+
+    const totalPages = Math.max(printPages.length, 1);
+
+    const headerCells = `
+      <tr>
+        <th>كود الوحدة</th>
+        <th>اسم الوحدة</th>
+      </tr>
+    `;
+
+    const bodyPages = printPages
+      .map(
+        (pageItems, idx) => `
+        <div class="page">
+          <div class="page-header">
+            <h2 class="title">${title}</h2>
+            <div class="page-number">(${totalPages} / ${idx + 1})</div>
+          </div>
+          <table>
+            <thead>${headerCells}</thead>
+            <tbody>
+              ${
+                pageItems.length === 0
+                  ? `<tr><td colspan="2" class="empty">لا توجد وحدات متاحة</td></tr>`
+                  : pageItems
+                      .map(
+                        (unit) => `
+                  <tr>
+                    <td>${unit.code}</td>
+                    <td>${unit.name}</td>
+                  </tr>
+                `,
+                      )
+                      .join("")
+              }
+            </tbody>
+          </table>
+        </div>`
+      )
+      .join("");
+
+    const html = `
+      <!DOCTYPE html>
+      <html dir="rtl" lang="ar">
+      <head>
+        <meta charset="UTF-8" />
+        <title>${title}</title>
+        <style>
+          @page { size: A4 landscape; margin: 10mm; }
+          body {
+            font-family: 'Cairo', sans-serif;
+            margin: 0;
+            padding: 10mm;
+            color: #1F2937;
+            background: #FFFFFF;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+          }
+          .page-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin: 0 0 12px 0;
+          }
+          .title {
+            margin: 0;
+            font-size: 16px;
+            color: #1F2937;
+          }
+          .page-number {
+            font-size: 12px;
+            font-weight: 700;
+            color: #1F2937;
+          }
+          table { width: 100%; border-collapse: collapse; font-size: 12px; }
+          th, td { border: 1px solid #E5E7EB; padding: 6px 8px; text-align: right; }
+          thead { background: #1E40AF !important; color: #FFFFFF !important; }
+          tbody tr:nth-child(odd) { background: #F8FAFC !important; }
+          tbody tr:nth-child(even) { background: #FFFFFF !important; }
+          tr { page-break-inside: avoid; break-inside: avoid; }
+          .page { page-break-after: always; break-after: page; }
+          .page:last-of-type { page-break-after: auto; break-after: auto; }
+          .empty { text-align: center; color: #6B7280; }
+        </style>
+      </head>
+      <body>
+        ${bodyPages}
+      </body>
+      </html>
+    `;
+
+    printWindow.document.open();
+    printWindow.document.write(html);
+    printWindow.document.close();
+    printWindow.focus();
+    setTimeout(() => {
+      printWindow.print();
+      printWindow.close();
+    }, 200);
+  };
+
   const inputStyle =
     "w-64 pr-10 pl-4 py-3 bg-brand-blue-bg border-2 border-brand-blue rounded-md text-black placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-brand-blue";
 
@@ -152,7 +265,7 @@ const Units: React.FC<UnitsProps> = ({ title }) => {
               }
             >
               <button
-                onClick={() => window.print()}
+                onClick={handlePrint}
                 className="p-3 border-2 border-gray-200 rounded-md hover:bg-gray-100"
               >
                 <PrintIcon className="w-6 h-6" />
