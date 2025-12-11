@@ -111,6 +111,22 @@ const StoreTransfer: React.FC<StoreTransferProps> = ({ title }) => {
   const { data: stores = [] } = useGetStoresQuery();
   const { data: allVouchers = [], isLoading: isLoadingVouchers, refetch: refetchVouchers } =
     useGetStoreTransferVouchersQuery();
+
+  // Current user and derived store/branch info
+  const currentUser = useSelector((state: RootState) => state.auth.user);
+  const userBranchId = getUserBranchId(currentUser);
+  const userStore = useMemo(
+    () => stores.find((store) => store.branchId === userBranchId),
+    [stores, userBranchId],
+  );
+
+  // Find default toStore (any store except user's store)
+  const defaultToStore = useMemo(() => {
+    if (!userStore || stores.length <= 1) return "";
+    // Find first store that is not the user's store
+    const otherStore = stores.find((store) => store.id !== userStore.id);
+    return otherStore?.name || "";
+  }, [stores, userStore]);
   
   // Filter vouchers: show only current branch + current user
   const vouchers = useMemo(() => {
@@ -156,24 +172,6 @@ const StoreTransfer: React.FC<StoreTransferProps> = ({ title }) => {
   const { data: purchaseReturns = [] } = useGetPurchaseReturnsQuery();
   const { data: salesReturns = [] } = useGetSalesReturnsQuery();
   const { data: invoices = [] } = useGetSalesInvoicesQuery();
-
-  // Get current user from auth state
-  const currentUser = useSelector((state: RootState) => state.auth.user);
-
-  // Get current user's store
-  const userBranchId = getUserBranchId(currentUser);
-  const userStore = useMemo(() => 
-    stores.find((store) => store.branchId === userBranchId),
-    [stores, userBranchId]
-  );
-
-  // Find default toStore (any store except user's store)
-  const defaultToStore = useMemo(() => {
-    if (!userStore || stores.length <= 1) return "";
-    // Find first store that is not the user's store
-    const otherStore = stores.find((store) => store.id !== userStore.id);
-    return otherStore?.name || "";
-  }, [stores, userStore]);
 
   const getEmptyItems = (count: number = 5): StoreVoucherItem[] =>
     Array.from({ length: count }, () => ({
