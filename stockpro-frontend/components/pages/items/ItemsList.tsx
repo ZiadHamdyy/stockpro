@@ -225,6 +225,8 @@ const ItemsList: React.FC<ItemsListProps> = ({ title, onNavigate }) => {
     const printWindow = window.open("", "_blank", "width=1200,height=800");
     if (!printWindow) return;
 
+    const totalPages = Math.max(printPages.length, 1);
+
     const headerCells = `
       <tr>
         <th>الكود</th>
@@ -241,7 +243,10 @@ const ItemsList: React.FC<ItemsListProps> = ({ title, onNavigate }) => {
       .map(
         (pageItems, idx) => `
         <div class="page">
-          <h2 class="title">${title}</h2>
+          <div class="page-header">
+            <h2 class="title">${title}</h2>
+            <div class="page-number">(${totalPages} / ${idx + 1})</div>
+          </div>
           <table>
             <thead>${headerCells}</thead>
             <tbody>
@@ -283,10 +288,20 @@ const ItemsList: React.FC<ItemsListProps> = ({ title, onNavigate }) => {
             -webkit-print-color-adjust: exact;
             print-color-adjust: exact;
           }
-          .title {
-            text-align: center;
+          .page-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
             margin: 0 0 12px 0;
+          }
+          .title {
+            margin: 0;
             font-size: 16px;
+            color: #1F2937;
+          }
+          .page-number {
+            font-size: 12px;
+            font-weight: 700;
             color: #1F2937;
           }
           table { width: 100%; border-collapse: collapse; font-size: 12px; }
