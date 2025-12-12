@@ -164,7 +164,8 @@ const TaxDeclarationReport: React.FC<TaxDeclarationReportProps> = ({
       .filter(filterByDate)
       .filter(filterByBranch);
 
-    // Filter payment vouchers (expenses) by date and branch
+    // Filter payment vouchers (expense-Type only) by date and branch
+    // Only include "expense-Type" vouchers, exclude regular "expense" vouchers
     const filteredExpenses = (apiPaymentVouchers as any[])
       .filter((v) => {
         const voucherDate = new Date(v.date).toISOString().substring(0, 10);
@@ -172,13 +173,9 @@ const TaxDeclarationReport: React.FC<TaxDeclarationReportProps> = ({
         const branchMatch = selectedBranch === "all" || 
           (v.branch?.name === selectedBranch) ||
           (branches.find((b) => b.id === v.branchId)?.name === selectedBranch);
-        // Only include payment vouchers with expense codes (expenses)
-        return dateMatch && branchMatch && v.expenseCodeId;
+        // Only include "expense-Type" payment vouchers with expense codes
+        return dateMatch && branchMatch && v.entityType === "expense-Type" && v.expenseCodeId;
       });
-    // Keep only tax-deductible expense vouchers
-    const filteredExpenseTypes = filteredExpenses.filter(
-      (v) => v.entityType === "expense-Type",
-    );
 
     // Get VAT rate from company info (default to 15% if not available)
     const vatRate = (companyInfo.vatRate || 15) / 100;
@@ -209,14 +206,15 @@ const TaxDeclarationReport: React.FC<TaxDeclarationReportProps> = ({
       0,
     );
 
-    // 3. Total taxable expenses (only expense-Type vouchers) before tax
-    const expenseTypeSubtotal = filteredExpenseTypes.reduce(
+    // 3. Total taxable expenses (payment vouchers tagged with expense codes)
+    // Use priceBeforeTax if available (for expense-Type vouchers), otherwise use amount
+    const taxableExpensesTotal = filteredExpenses.reduce(
       (sum, v) => sum + ((v.priceBeforeTax ?? v.amount) || 0),
       0,
     );
     
-    // 4. Calculate expense tax (only expense-Type vouchers)
-    const expenseTax = filteredExpenseTypes.reduce(
+    // 4. Calculate expense tax (taxPrice from vouchers, or amount - priceBeforeTax if taxPrice not available)
+    const expenseTax = filteredExpenses.reduce(
       (sum, v) => {
         if (v.taxPrice !== null && v.taxPrice !== undefined) {
           return sum + (v.taxPrice || 0);
@@ -232,8 +230,8 @@ const TaxDeclarationReport: React.FC<TaxDeclarationReportProps> = ({
     // 5. Purchase tax column = invoice VAT + expense tax
     const purchasesTax = purchaseInvoicesTax + expenseTax;
     
-    // 6. Calculate purchases value: expense-Type vouchers before tax only
-    const purchasesValue = expenseTypeSubtotal;
+    // 6. Calculate purchases value: Purchases before tax + Taxable expenses
+    const purchasesValue = purchasesSubtotal + taxableExpensesTotal;
 
     // 7. Purchase returns subtotal (before tax) from search date
     const purchaseReturnsSubtotal = filteredPurchaseReturns.reduce(
