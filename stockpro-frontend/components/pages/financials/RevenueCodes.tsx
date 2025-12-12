@@ -156,7 +156,7 @@ const RevenueCodes: React.FC<RevenueCodesProps> = ({ title }) => {
               onChange={(e) => setSearchTerm(e.target.value)}
             />
           </div>
-          <div>
+          <div className="flex items-center gap-2">
             <PermissionWrapper
               requiredPermission={buildPermission(
                 Resources.REVENUE_CODES,
@@ -166,7 +166,7 @@ const RevenueCodes: React.FC<RevenueCodesProps> = ({ title }) => {
                 <button
                   type="button"
                   disabled
-                  className="px-6 py-3 bg-gray-400 text-white rounded-md ml-2 font-semibold cursor-not-allowed opacity-50"
+                  className="px-6 py-3 bg-gray-400 text-white rounded-md font-semibold cursor-not-allowed opacity-50"
                 >
                   اضافة بند جديد
                 </button>
@@ -174,7 +174,7 @@ const RevenueCodes: React.FC<RevenueCodesProps> = ({ title }) => {
             >
               <button
                 onClick={() => handleOpenModal()}
-                className="px-6 py-3 bg-brand-blue text-white rounded-md hover:bg-blue-800 ml-2 font-semibold"
+                className="px-6 py-3 bg-brand-blue text-white rounded-md hover:bg-blue-800 font-semibold"
               >
                 اضافة بند جديد
               </button>
