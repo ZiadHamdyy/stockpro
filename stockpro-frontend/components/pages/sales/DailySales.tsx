@@ -49,21 +49,16 @@ const DailySales: React.FC<DailySalesProps> = ({ title }) => {
     [hasPermission],
   );
   
-  // Filter invoices: show only current branch + current user
+  // Filter invoices: show only current branch if user doesn't have SEARCH permission
   const salesInvoices = useMemo(() => {
     return allSalesInvoices.filter((invoice: any) => {
-      // Filter by current branch
+      // Filter by current branch if user doesn't have SEARCH permission
       const invoiceBranchId = invoice.branch?.id || invoice.branchId;
       if (!canSearchAllBranches && userBranchId && invoiceBranchId !== userBranchId) return false;
       
-      // Filter by current user
-      const invoiceUserId = invoice.user?.id || invoice.userId;
-      if (!canSearchAllBranches && currentUser?.id && invoiceUserId !== currentUser.id)
-        return false;
-      
       return true;
     });
-  }, [allSalesInvoices, canSearchAllBranches, userBranchId, currentUser?.id]);
+  }, [allSalesInvoices, canSearchAllBranches, userBranchId]);
 
   const companyInfo: CompanyInfo = company || {
     name: "",

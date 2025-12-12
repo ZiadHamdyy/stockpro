@@ -94,21 +94,17 @@ const PriceQuotation: React.FC<PriceQuotationProps> = ({ title }) => {
         [hasPermission],
     );
     
-    // Filter quotations: show only current branch + current user
+    // Filter quotations: show only current branch if user doesn't have SEARCH permission
     const quotations: PriceQuotationRecord[] = useMemo(() => {
         const allQuotations = quotationsData ?? [];
         return allQuotations.filter((quotation: any) => {
-            // Filter by current branch
+            // Filter by current branch if user doesn't have SEARCH permission
             const quotationBranchId = quotation.branch?.id || quotation.branchId;
             if (!canSearchAllBranches && userBranchId && quotationBranchId !== userBranchId) return false;
             
-            // Filter by current user
-            const quotationUserId = quotation.user?.id || quotation.userId;
-            if (!canSearchAllBranches && currentUser?.id && quotationUserId !== currentUser.id) return false;
-            
             return true;
         });
-    }, [quotationsData, canSearchAllBranches, userBranchId, currentUser?.id]);
+    }, [quotationsData, canSearchAllBranches, userBranchId]);
     const [createPriceQuotation, { isLoading: isCreatingQuotation }] = useCreatePriceQuotationMutation();
     const [updatePriceQuotation, { isLoading: isUpdatingQuotation }] = useUpdatePriceQuotationMutation();
     const [deletePriceQuotation, { isLoading: isDeletingQuotation }] = useDeletePriceQuotationMutation();
