@@ -32,6 +32,13 @@ const MENU_ITEMS: MenuItem[] = [
     ],
   },
   {
+    key: 'zatca',
+    label: 'الفوترة الإلكترونية',
+    children: [
+      { key: 'zatca_upload', label: 'رفع الفواتير (ZATCA)' },
+    ],
+  },
+  {
     key: 'items',
     label: 'الأصناف',
     children: [
@@ -100,6 +107,13 @@ const MENU_ITEMS: MenuItem[] = [
           { key: 'expenses_list', label: 'قائمة المصروفات' },
           { key: 'expense_codes', label: 'أكواد المصروفات' },
           { key: 'expense_types', label: 'أنواع المصروفات' },
+        ],
+      },
+      {
+        key: 'revenues_management',
+        label: 'الإيرادات الأخرى',
+        children: [
+          { key: 'revenue_codes', label: 'أنواع الإيرادات' },
         ],
       },
       {
@@ -411,6 +425,10 @@ async function main() {
         p.resource === 'expenses_list' ||
         p.resource === 'expense_codes' ||
         p.resource === 'expense_types' ||
+        p.resource === 'revenues_management' ||
+        p.resource === 'revenue_codes' ||
+        p.resource === 'zatca' ||
+        p.resource === 'zatca_upload' ||
         p.resource === 'current_accounts' ||
         p.resource === 'add_current_account' ||
         p.resource === 'current_accounts_list' ||

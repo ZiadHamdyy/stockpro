@@ -134,7 +134,7 @@ export interface StoreTransferVoucher {
   date: string;
   fromStore: string;
   toStore: string;
-  status?: 'PENDING' | 'ACCEPTED' | 'REJECTED';
+  status?: "PENDING" | "ACCEPTED" | "REJECTED";
   items: StoreVoucherItem[];
 }
 
@@ -267,10 +267,10 @@ export interface AssignPermissionsRequest {
 
 export interface FiscalYear {
   id: string;
-  name: string; 
+  name: string;
   startDate: string;
   endDate: string;
-  status: 'OPEN' | 'CLOSED'; 
+  status: "OPEN" | "CLOSED";
   retainedEarnings?: number | null;
   createdAt?: string;
   updatedAt?: string;
@@ -282,20 +282,28 @@ export interface AuditLogEntry {
   userId: number;
   userName: string;
   branchName?: string;
-  action: 'create' | 'update' | 'delete' | 'login' | 'logout' | 'approve' | 'reject' | 'other';
+  action:
+    | "create"
+    | "update"
+    | "delete"
+    | "login"
+    | "logout"
+    | "approve"
+    | "reject"
+    | "other";
   targetType: string;
   targetId?: string | number;
   details: string;
 }
 
 export interface InventoryCountItem {
-  id: string; 
+  id: string;
   name: string;
   unit: string;
   systemStock: number;
   actualStock: number;
   difference: number;
-  cost: number; 
+  cost: number;
 }
 
 export interface InventoryCount {
@@ -304,8 +312,8 @@ export interface InventoryCount {
   storeName: string;
   branchName: string;
   items: InventoryCountItem[];
-  totalVarianceValue: number; 
-  status: 'pending' | 'posted'; 
+  totalVarianceValue: number;
+  status: "pending" | "posted";
   notes: string;
 }
 export interface Quotation {
@@ -316,52 +324,52 @@ export interface Quotation {
   items: InvoiceItem[];
   totals: { subtotal: number; discount: number; tax: number; net: number };
   notes: string;
-  status: 'draft' | 'sent' | 'converted' | 'expired';
+  status: "draft" | "sent" | "converted" | "expired";
   userName: string;
   branchName: string;
 }
 
 export interface EpsonSettings {
-  pageWidth: number;        // mm, default 80
-  pageHeight?: number;       // mm, auto if undefined
+  pageWidth: number; // mm, default 80
+  pageHeight?: number; // mm, auto if undefined
   fonts: {
-    header: number;          // px, default 14
-    body: number;           // px, default 12
-    items: number;          // px, default 11
-    totals: number;         // px, default 13
-    footer: number;         // px, default 10
+    header: number; // px, default 14
+    body: number; // px, default 12
+    items: number; // px, default 11
+    totals: number; // px, default 13
+    footer: number; // px, default 10
   };
   spacing: {
-    marginTop: number;      // mm
-    marginBottom: number;   // mm
-    marginLeft: number;     // mm
-    marginRight: number;    // mm
-    sectionGap: number;     // mm
+    marginTop: number; // mm
+    marginBottom: number; // mm
+    marginLeft: number; // mm
+    marginRight: number; // mm
+    sectionGap: number; // mm
   };
   alignment: {
-    branchName?: 'left' | 'center' | 'right';
-    date?: 'left' | 'center' | 'right';
-    customerType?: 'left' | 'center' | 'right';
-    customerName?: 'left' | 'center' | 'right';
-    employeeName?: 'left' | 'center' | 'right';
-    itemName?: 'left' | 'center' | 'right';
-    itemQty?: 'left' | 'center' | 'right';
-    itemPrice?: 'left' | 'center' | 'right';
-    itemTaxable?: 'left' | 'center' | 'right';
-    itemDiscount?: 'left' | 'center' | 'right';
-    itemTaxRate?: 'left' | 'center' | 'right';
-    itemTax?: 'left' | 'center' | 'right';
-    itemTotal?: 'left' | 'center' | 'right';
-    totalsSubtotal?: 'left' | 'center' | 'right';
-    totalsDiscount?: 'left' | 'center' | 'right';
-    totalsTax?: 'left' | 'center' | 'right';
-    totalsNet?: 'left' | 'center' | 'right';
-    qrCode?: 'left' | 'center' | 'right';
-    footerText?: 'left' | 'center' | 'right';
-    tafqeet?: 'left' | 'center' | 'right';
+    branchName?: "left" | "center" | "right";
+    date?: "left" | "center" | "right";
+    customerType?: "left" | "center" | "right";
+    customerName?: "left" | "center" | "right";
+    employeeName?: "left" | "center" | "right";
+    itemName?: "left" | "center" | "right";
+    itemQty?: "left" | "center" | "right";
+    itemPrice?: "left" | "center" | "right";
+    itemTaxable?: "left" | "center" | "right";
+    itemDiscount?: "left" | "center" | "right";
+    itemTaxRate?: "left" | "center" | "right";
+    itemTax?: "left" | "center" | "right";
+    itemTotal?: "left" | "center" | "right";
+    totalsSubtotal?: "left" | "center" | "right";
+    totalsDiscount?: "left" | "center" | "right";
+    totalsTax?: "left" | "center" | "right";
+    totalsNet?: "left" | "center" | "right";
+    qrCode?: "left" | "center" | "right";
+    footerText?: "left" | "center" | "right";
+    tafqeet?: "left" | "center" | "right";
   };
   positioning: {
-    branchName: number;     // px offset
+    branchName: number; // px offset
     date: number;
     customerType: number;
     customerName: number;
@@ -407,7 +415,7 @@ export interface EpsonSettings {
 }
 
 export interface PrintSettings {
-  template: 'default' | 'classic' | 'modern' | 'minimal' | 'thermal' | 'epson';
+  template: "default" | "classic" | "modern" | "minimal" | "thermal" | "epson";
   showLogo: boolean;
   showTaxNumber: boolean;
   showAddress: boolean;
@@ -415,4 +423,11 @@ export interface PrintSettings {
   footerText: string;
   termsText: string;
   epsonSettings?: EpsonSettings;
+}
+
+// NEW: Revenue Code Interface
+export interface RevenueCode {
+  id: number;
+  code: string;
+  name: string;
 }

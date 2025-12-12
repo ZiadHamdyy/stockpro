@@ -22,6 +22,8 @@ import {
   PrintIcon,
   GridIcon,
   HelpIcon,
+  ServerIcon,
+  CloudUploadIcon,
 } from "./components/icons";
 import type { MenuItem } from "./types";
 
@@ -39,7 +41,7 @@ export const MENU_ITEMS: MenuItem[] = [
       { key: "users_data", label: "بيانات المستخدمين", icon: DatabaseIcon },
       { key: "permissions", label: "الصلاحيات", icon: DatabaseIcon },
       { key: "audit_log", label: "سجل العمليات", icon: ActivityIcon },
-      { key: 'print_settings', label: 'إعدادات الطباعة', icon: PrintIcon },
+      { key: "print_settings", label: "إعدادات الطباعة", icon: PrintIcon },
       {
         key: "database",
         label: "قاعدة البيانات",
@@ -51,6 +53,18 @@ export const MENU_ITEMS: MenuItem[] = [
             icon: DatabaseBackupIcon,
           },
         ],
+      },
+    ],
+  },
+  {
+    key: "zatca",
+    label: "الفوترة الإلكترونية",
+    icon: ServerIcon,
+    children: [
+      {
+        key: "zatca_upload",
+        label: "رفع الفواتير (ZATCA)",
+        icon: CloudUploadIcon,
       },
     ],
   },
@@ -89,7 +103,7 @@ export const MENU_ITEMS: MenuItem[] = [
     label: "المبيعات",
     icon: ShoppingCartIcon,
     children: [
-      { key: 'pos', label: 'نقطة بيع (POS)', icon: GridIcon },
+      { key: "pos", label: "نقطة بيع (POS)", icon: GridIcon },
       { key: "price_quotation", label: "عرض أسعار", icon: ListIcon },
       { key: "sales_invoice", label: "فاتورة مبيعات", icon: ShoppingCartIcon },
       { key: "sales_return", label: "مرتجع مبيعات", icon: ShoppingCartIcon },
@@ -162,6 +176,14 @@ export const MENU_ITEMS: MenuItem[] = [
         ],
       },
       {
+        key: "revenues_management",
+        label: "الإيرادات الأخرى",
+        icon: TrendingUpIcon,
+        children: [
+          { key: "revenue_codes", label: "أنواع الإيرادات", icon: ListIcon },
+        ],
+      },
+      {
         key: "current_accounts",
         label: "الحسابات الجارية",
         icon: LandmarkIcon,
@@ -230,7 +252,11 @@ export const MENU_ITEMS: MenuItem[] = [
     children: [
       { key: "receipt_voucher", label: "سند قبض", icon: DollarSignIcon },
       { key: "payment_voucher", label: "سند صرف", icon: DollarSignIcon },
-      { key: "internal_transfers", label: "تحويلات بينية", icon: DollarSignIcon },
+      {
+        key: "internal_transfers",
+        label: "تحويلات بينية",
+        icon: DollarSignIcon,
+      },
     ],
   },
   {
@@ -453,7 +479,7 @@ export const MENU_ITEMS: MenuItem[] = [
       },
     ],
   },
-  { key: 'help_center', label: 'مركز المساعدة', icon: HelpIcon },
+  { key: "help_center", label: "مركز المساعدة", icon: HelpIcon },
 ];
 
 // Permission mappings between Arabic frontend and English backend

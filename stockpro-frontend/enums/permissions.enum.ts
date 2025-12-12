@@ -19,6 +19,10 @@ export enum Resources {
   DATABASE = "database",
   DATABASE_BACKUP = "database_backup",
 
+  // ZATCA
+  ZATCA = "zatca",
+  ZATCA_UPLOAD = "zatca_upload",
+
   // Items
   ITEMS = "items",
   ADD_ITEM = "add_item",
@@ -64,6 +68,8 @@ export enum Resources {
   EXPENSES_LIST = "expenses_list",
   EXPENSE_CODES = "expense_codes",
   EXPENSE_TYPES = "expense_types",
+  REVENUES_MANAGEMENT = "revenues_management",
+  REVENUE_CODES = "revenue_codes",
   CURRENT_ACCOUNTS = "current_accounts",
   ADD_CURRENT_ACCOUNT = "add_current_account",
   CURRENT_ACCOUNTS_LIST = "current_accounts_list",

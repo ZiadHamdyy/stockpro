@@ -58,6 +58,8 @@ import InternalTransfers from "./components/pages/financials/InternalTransfers";
 import ExpensesList from "./components/pages/financials/ExpensesList";
 import ExpenseCodes from "./components/pages/financials/ExpenseCodes";
 import ExpenseTypes from "./components/pages/financials/ExpenseTypes";
+import RevenueCodes from "./components/pages/financials/RevenueCodes";
+import ZatcaInvoiceUpload from "./components/pages/zatca/ZatcaInvoiceUpload";
 import AddCurrentAccount from "./components/pages/financials/AddCurrentAccount";
 import CurrentAccountsList from "./components/pages/financials/CurrentAccountsList";
 import AddReceivableAccount from "./components/pages/financials/AddReceivableAccount";
@@ -1124,6 +1126,14 @@ const AppContent = () => {
               }
             />
             <Route
+              path="/financials/revenue-codes"
+              element={
+                <ProtectedRoute requiredPermission="revenue_codes-read">
+                  <RevenueCodes title={currentPageTitle} />
+                </ProtectedRoute>
+              }
+            />
+            <Route
               path="/financials/current-accounts/add"
               element={
                 <ProtectedRoute requiredPermission="add_current_account-read">
@@ -1633,6 +1643,20 @@ const AppContent = () => {
                     title={currentPageTitle}
                     companyInfo={companyInfo}
                     currentUser={currentUser}
+                  />
+                </ProtectedRoute>
+              }
+            />
+
+            {/* ZATCA */}
+            <Route
+              path="/zatca/upload"
+              element={
+                <ProtectedRoute requiredPermission="zatca_upload-read">
+                  <ZatcaInvoiceUpload
+                    title={currentPageTitle}
+                    companyInfo={companyInfo}
+                    invoices={[]}
                   />
                 </ProtectedRoute>
               }

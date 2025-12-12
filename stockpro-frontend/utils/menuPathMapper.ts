@@ -17,6 +17,9 @@ export const getPathFromMenuKey = (key: string): string => {
     print_settings: "/settings/print-settings",
     database_backup: "/dashboard", // Special handling - trigger backup
 
+    // ZATCA
+    zatca_upload: "/zatca/upload",
+
     // Items
     add_item: "/items/add",
     items_list: "/items/list",
@@ -56,6 +59,9 @@ export const getPathFromMenuKey = (key: string): string => {
     expenses_list: "/financials/expenses/list",
     expense_codes: "/financials/expenses/codes",
     expense_types: "/financials/expenses/types",
+
+    // Financials - Revenues
+    revenue_codes: "/financials/revenue-codes",
 
     // Financials - Current Accounts
     add_current_account: "/financials/current-accounts/add",
@@ -159,6 +165,7 @@ export const getMenuKeyFromPath = (path: string): string => {
     "/sales/daily-returns": "daily_sales_returns",
     "/sales/pos": "pos",
     "/support/help-center": "help_center",
+    "/zatca/upload": "zatca_upload",
     "/purchases/invoice": "purchase_invoice",
     "/purchases/return": "purchase_return",
     "/purchases/daily": "daily_purchases",
@@ -170,6 +177,7 @@ export const getMenuKeyFromPath = (path: string): string => {
     "/financials/expenses/list": "expenses_list",
     "/financials/expenses/codes": "expense_codes",
     "/financials/expenses/types": "expense_types",
+    "/financials/revenue-codes": "revenue_codes",
     "/financials/current-accounts/add": "add_current_account",
     "/financials/current-accounts/list": "current_accounts_list",
     "/financials/receivable-accounts/add": "add_receivable_account",
