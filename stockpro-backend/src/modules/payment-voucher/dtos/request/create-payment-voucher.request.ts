@@ -21,6 +21,7 @@ export class CreatePaymentVoucherRequest {
     'expense-Type',
     'revenue',
     'vat',
+    'profit_and_loss',
   ])
   entityType: string;
 

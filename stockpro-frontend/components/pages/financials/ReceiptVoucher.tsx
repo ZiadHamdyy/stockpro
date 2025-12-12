@@ -31,7 +31,8 @@ type AllEntityType =
   | "expense"
   | "expense-Type"
   | "revenue"
-  | "vat";
+  | "vat"
+  | "profit_and_loss";
 import DataTableModal from "../../common/DataTableModal";
 import { formatNumber } from "../../../utils/formatting";
 
@@ -192,6 +193,8 @@ const ReceiptVoucher: React.FC<ReceiptVoucherProps> = ({ title }) => {
         newEntity.id = null;
         if (value === "vat") {
           newEntity.name = "ضريبة القيمة المضافة";
+        } else if (value === "profit_and_loss") {
+          newEntity.name = "الارباح والخسائر المبقاه";
         } else {
           newEntity.name = "";
         }
@@ -221,7 +224,7 @@ const ReceiptVoucher: React.FC<ReceiptVoucherProps> = ({ title }) => {
     const entityType = voucherData.entity.type as AllEntityType;
     const entityId = voucherData.entity.id ? String(voucherData.entity.id) : "";
     
-    if (entityType === "vat") {
+    if (entityType === "vat" || entityType === "profit_and_loss") {
       return null;
     }
     
@@ -660,9 +663,11 @@ const ReceiptVoucher: React.FC<ReceiptVoucherProps> = ({ title }) => {
                 <option value="current_account">حساب جاري</option>
                 <option value="revenue">إيراد</option>
                 <option value="vat">ضريبة القيمة المضافة</option>
+                <option value="profit_and_loss">الارباح والخسائر المبقاه</option>
               </select>
             </div>
-            {(voucherData.entity.type as AllEntityType) !== "vat" && (
+            {(voucherData.entity.type as AllEntityType) !== "vat" &&
+              (voucherData.entity.type as AllEntityType) !== "profit_and_loss" && (
               <div>
                 <label className="block text-sm font-medium text-gray-700">
                   الاسم

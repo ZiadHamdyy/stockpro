@@ -23,6 +23,7 @@ export class UpdatePaymentVoucherRequest {
     'expense-Type',
     'revenue',
     'vat',
+    'profit_and_loss',
   ])
   entityType?: string;
 

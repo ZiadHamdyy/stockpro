@@ -89,9 +89,9 @@ export class PaymentVoucherService {
         });
       }
 
-      // Apply entity balance effects (skip for VAT type)
-      if (data.entityType === 'vat') {
-        // VAT vouchers don't affect entity balances
+      // Apply entity balance effects (skip for VAT and profit_and_loss types)
+      if (data.entityType === 'vat' || data.entityType === 'profit_and_loss') {
+        // VAT and profit_and_loss vouchers don't affect entity balances
       } else if (data.entityType === 'supplier' && data.supplierId) {
         // Supplier: decrement (we paid supplier)
         await tx.supplier.update({
@@ -273,8 +273,8 @@ export class PaymentVoucherService {
         }
 
         // Reverse previous entity effect (skip for VAT type)
-        if (existing.entityType === 'vat') {
-          // VAT vouchers don't affect entity balances
+        if (existing.entityType === 'vat' || existing.entityType === 'profit_and_loss') {
+          // VAT and profit_and_loss vouchers don't affect entity balances
         } else if (existing.entityType === 'supplier' && existing.supplierId) {
           await tx.supplier.update({
             where: { id: existing.supplierId },
@@ -486,8 +486,8 @@ export class PaymentVoucherService {
         }
 
         // Reverse entity effect (skip for VAT type)
-        if (existingInTx.entityType === 'vat') {
-          // VAT vouchers don't affect entity balances
+        if (existingInTx.entityType === 'vat' || existingInTx.entityType === 'profit_and_loss') {
+          // VAT and profit_and_loss vouchers don't affect entity balances
         } else if (existingInTx.entityType === 'supplier' && existingInTx.supplierId) {
           await tx.supplier.update({
             where: { id: existingInTx.supplierId },
@@ -596,6 +596,9 @@ export class PaymentVoucherService {
 
       case 'vat':
         return 'ضريبة القيمة المضافة';
+
+      case 'profit_and_loss':
+        return 'الارباح والخسائر المبقاه';
 
       default:
         return '';

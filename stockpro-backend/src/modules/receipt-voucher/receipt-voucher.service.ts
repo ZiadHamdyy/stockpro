@@ -92,9 +92,9 @@ export class ReceiptVoucherService {
         });
       }
 
-      // Apply entity balance effects (skip for VAT type)
-      if (data.entityType === 'vat') {
-        // VAT vouchers don't affect entity balances
+      // Apply entity balance effects (skip for VAT and profit_and_loss types)
+      if (data.entityType === 'vat' || data.entityType === 'profit_and_loss') {
+        // VAT and profit_and_loss vouchers don't affect entity balances
       } else if (data.entityType === 'customer' && data.customerId) {
         // Customer: decrement (customer paid us)
         await tx.customer.update({
@@ -241,9 +241,9 @@ export class ReceiptVoucherService {
           });
         }
 
-        // Reverse previous entity effect (skip for VAT type)
-        if (existing.entityType === 'vat') {
-          // VAT vouchers don't affect entity balances
+        // Reverse previous entity effect (skip for VAT and profit_and_loss types)
+        if (existing.entityType === 'vat' || existing.entityType === 'profit_and_loss') {
+          // VAT and profit_and_loss vouchers don't affect entity balances
         } else if (existing.entityType === 'customer' && existing.customerId) {
           await tx.customer.update({
             where: { id: existing.customerId },
@@ -430,9 +430,9 @@ export class ReceiptVoucherService {
           });
         }
 
-        // Reverse entity effect (skip for VAT type)
-        if (existingInTx.entityType === 'vat') {
-          // VAT vouchers don't affect entity balances
+        // Reverse entity effect (skip for VAT and profit_and_loss types)
+        if (existingInTx.entityType === 'vat' || existingInTx.entityType === 'profit_and_loss') {
+          // VAT and profit_and_loss vouchers don't affect entity balances
         } else if (existingInTx.entityType === 'customer' && existingInTx.customerId) {
           await tx.customer.update({
             where: { id: existingInTx.customerId },
@@ -527,6 +527,9 @@ export class ReceiptVoucherService {
 
       case 'vat':
         return 'ضريبة القيمة المضافة';
+
+      case 'profit_and_loss':
+        return 'الارباح والخسائر المبقاه';
 
       default:
         return '';

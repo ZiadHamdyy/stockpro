@@ -580,6 +580,7 @@ const BalanceSheet: React.FC = () => {
   // Calculate retained earnings with fiscal year logic
   const calculatedRetainedEarnings = useMemo(() => {
     const normalizedStartDate = normalizeDate(startDate);
+    const normalizedEndDate = normalizeDate(endDate);
     const periodStartDate = new Date(normalizedStartDate);
 
     // Find all CLOSED fiscal years that ended before the current period start date
@@ -598,9 +599,39 @@ const BalanceSheet: React.FC = () => {
     // Get current period net profit from income statement
     const currentPeriodNetProfit = incomeStatementData?.netProfit || 0;
 
-    // Return accumulated retained earnings (previous years + current period)
-    return previousRetainedEarnings + currentPeriodNetProfit;
-  }, [fiscalYears, incomeStatementData, normalizeDate, startDate]);
+    // Include profit_and_loss vouchers in retained earnings calculation
+    const profitAndLossReceipts = apiReceiptVouchers
+      .filter((v) => v.entityType === "profit_and_loss")
+      .filter((v) => {
+        const vDate = normalizeDate(v.date);
+        return vDate >= normalizedStartDate && vDate <= normalizedEndDate;
+      })
+      .reduce((sum, v) => sum + (v.amount || 0), 0);
+
+    const profitAndLossPayments = apiPaymentVouchers
+      .filter((v) => v.entityType === "profit_and_loss")
+      .filter((v) => {
+        const vDate = normalizeDate(v.date);
+        return vDate >= normalizedStartDate && vDate <= normalizedEndDate;
+      })
+      .reduce((sum, v) => sum + (v.amount || 0), 0);
+
+    // Return accumulated retained earnings (previous years + current period + P&L vouchers)
+    return (
+      previousRetainedEarnings +
+      currentPeriodNetProfit +
+      profitAndLossReceipts -
+      profitAndLossPayments
+    );
+  }, [
+    fiscalYears,
+    incomeStatementData,
+    normalizeDate,
+    startDate,
+    endDate,
+    apiReceiptVouchers,
+    apiPaymentVouchers,
+  ]);
 
   const displayData = useMemo(() => {
     if (!balanceSheetData) {

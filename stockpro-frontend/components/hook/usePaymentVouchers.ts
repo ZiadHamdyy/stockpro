@@ -160,8 +160,12 @@ export const usePaymentVouchers = () => {
         ? parseFloat(voucherData.amount) || 0
         : voucherData.amount || 0;
 
-    // Skip entity name validation for VAT type
-    if (voucherData.entity.type !== "vat" && !voucherData.entity.name) {
+    // Skip entity name validation for VAT and profit_and_loss types
+    if (
+      voucherData.entity.type !== "vat" &&
+      voucherData.entity.type !== "profit_and_loss" &&
+      !voucherData.entity.name
+    ) {
       showToast("الرجاء تعبئة جميع الحقول المطلوبة.", 'error');
       return null;
     }
@@ -198,7 +202,7 @@ export const usePaymentVouchers = () => {
       const entityId = voucherData.entity.id ? String(voucherData.entity.id) : undefined;
       entityFields.payableAccountId = entityId;
     }
-    // For VAT type, don't set any entity ID fields
+    // For VAT and profit_and_loss types, don't set any entity ID fields
 
     // Build payment target foreign key based on payment method
     const paymentFields: Partial<CreatePaymentVoucherRequest> = {};
