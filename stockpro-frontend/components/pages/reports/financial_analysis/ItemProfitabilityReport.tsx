@@ -266,10 +266,25 @@ const ItemProfitabilityReport: React.FC<ItemProfitabilityReportProps> = ({ title
                         </PermissionWrapper>
                     </div>
                 </div>
+                {/* Print-only period display */}
+                <div className="hidden print:flex w-full justify-start items-center my-4 text-right gap-4">
+                    <div className="flex items-center gap-2">
+                        <span className="font-bold text-gray-800">من:</span>
+                        <span className="px-3 py-2 border border-gray-300 rounded-lg bg-white font-bold text-gray-900">
+                            {startDate}
+                        </span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <span className="font-bold text-gray-800">إلى:</span>
+                        <span className="px-3 py-2 border border-gray-300 rounded-lg bg-white font-bold text-gray-900">
+                            {endDate}
+                        </span>
+                    </div>
+                </div>
 
                 {/* Top Performers Summary */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8 no-print">
-                    <div className="bg-emerald-50 border border-emerald-200 p-4 rounded-xl shadow-sm">
+                <div className="grid grid-cols-1 md:grid-cols-3 print:grid-cols-3 gap-6 print:gap-3 mb-8 print:mb-4 print:text-sm">
+                    <div className="bg-emerald-50 border border-emerald-200 p-4 print:p-3 rounded-xl shadow-sm">
                         <h3 className="text-emerald-800 font-bold mb-3 flex items-center gap-2">
                             <div className="p-1 bg-emerald-200 rounded-full"><TrendingUpIcon className="w-4 h-4 text-emerald-800"/></div>
                             الأعلى ربحية (Top 3)
@@ -281,13 +296,13 @@ const ItemProfitabilityReport: React.FC<ItemProfitabilityReportProps> = ({ title
                             </div>
                         ))}
                     </div>
-                    <div className="bg-blue-50 border border-blue-200 p-4 rounded-xl shadow-sm flex flex-col justify-center">
+                    <div className="bg-blue-50 border border-blue-200 p-4 print:p-3 rounded-xl shadow-sm flex flex-col justify-center">
                         <h3 className="text-blue-800 font-bold mb-1">إجمالي المبيعات (للفترة)</h3>
                         <p className="text-3xl font-bold text-blue-600 mt-2 tracking-tight">
                             {formatNumber(reportData.reduce((sum, i) => sum + i.netRevenue, 0))}
                         </p>
                     </div>
-                    <div className="bg-indigo-50 border border-indigo-200 p-4 rounded-xl shadow-sm flex flex-col justify-center">
+                    <div className="bg-indigo-50 border border-indigo-200 p-4 print:p-3 rounded-xl shadow-sm flex flex-col justify-center">
                         <h3 className="text-indigo-800 font-bold mb-1">إجمالي الربح (للفترة)</h3>
                         <p className="text-3xl font-bold text-indigo-600 mt-2 tracking-tight">
                             {formatNumber(reportData.reduce((sum, i) => sum + i.grossProfit, 0))}
