@@ -6,6 +6,14 @@ import {
     RefreshCwIcon, CheckIcon, BoxIcon, ShieldIcon, XCircleIcon, ArrowLeftIcon, FilterIcon, CalendarIcon
 } from '../../icons';
 import { useToast } from '../../common/ToastProvider';
+import { useGetSalesInvoicesQuery } from '../../store/slices/salesInvoice/salesInvoiceApiSlice';
+import { useGetPurchaseInvoicesQuery } from '../../store/slices/purchaseInvoice/purchaseInvoiceApiSlice';
+import { useGetSalesReturnsQuery } from '../../store/slices/salesReturn/salesReturnApiSlice';
+import { useGetPurchaseReturnsQuery } from '../../store/slices/purchaseReturn/purchaseReturnApiSlice';
+import type { SalesInvoice } from '../../store/slices/salesInvoice/salesInvoiceApiSlice';
+import type { PurchaseInvoice } from '../../store/slices/purchaseInvoice/purchaseInvoiceApiSlice';
+import type { SalesReturn } from '../../store/slices/salesReturn/salesReturnApiSlice';
+import type { PurchaseReturn } from '../../store/slices/purchaseReturn/purchaseReturnApiSlice';
 
 interface ZatcaInvoiceUploadProps {
     title: string;
@@ -38,6 +46,12 @@ const IconFrame: React.FC<{ children: React.ReactNode, bgColor?: string, shadowC
 const ZatcaInvoiceUpload: React.FC<ZatcaInvoiceUploadProps> = ({ title, companyInfo, invoices, onUpdateStatus }) => {
     const { showToast } = useToast();
     
+    // --- Data Fetching ---
+    const { data: salesInvoices = [] } = useGetSalesInvoicesQuery();
+    const { data: purchaseInvoices = [] } = useGetPurchaseInvoicesQuery();
+    const { data: salesReturns = [] } = useGetSalesReturnsQuery();
+    const { data: purchaseReturns = [] } = useGetPurchaseReturnsQuery();
+    
     // --- State ---
     const [startDate, setStartDate] = useState(() => {
         const d = new Date();
@@ -54,28 +68,73 @@ const ZatcaInvoiceUpload: React.FC<ZatcaInvoiceUploadProps> = ({ title, companyI
     const startDateRef = useRef<HTMLInputElement>(null);
     const endDateRef = useRef<HTMLInputElement>(null);
 
-    // --- Initialize Realistic Mock Data ---
+    // --- Transformation Functions ---
+    const transformSalesInvoice = (invoice: SalesInvoice): SimulatedInvoice => {
+        const hasCustomer = !!invoice.customer;
+        return {
+            id: invoice.code,
+            date: invoice.date.substring(0, 10), // Ensure YYYY-MM-DD format
+            customerName: invoice.customer?.name || 'عميل نقدي',
+            amount: invoice.subtotal,
+            vat: invoice.tax,
+            total: invoice.net,
+            status: 'pending',
+            type: hasCustomer ? 'Standard' : 'Simplified',
+        };
+    };
+
+    const transformPurchaseInvoice = (invoice: PurchaseInvoice): SimulatedInvoice => {
+        const hasSupplier = !!invoice.supplier;
+        return {
+            id: invoice.code,
+            date: invoice.date.substring(0, 10), // Ensure YYYY-MM-DD format
+            customerName: invoice.supplier?.name || 'مورد نقدي',
+            amount: invoice.subtotal,
+            vat: invoice.tax,
+            total: invoice.net,
+            status: 'pending',
+            type: hasSupplier ? 'Standard' : 'Simplified',
+        };
+    };
+
+    const transformSalesReturn = (returnRecord: SalesReturn): SimulatedInvoice => {
+        const hasCustomer = !!returnRecord.customer;
+        return {
+            id: returnRecord.code,
+            date: returnRecord.date.substring(0, 10), // Ensure YYYY-MM-DD format
+            customerName: returnRecord.customer?.name || 'عميل نقدي',
+            amount: returnRecord.subtotal,
+            vat: returnRecord.tax,
+            total: returnRecord.net,
+            status: 'pending',
+            type: hasCustomer ? 'Standard' : 'Simplified',
+        };
+    };
+
+    const transformPurchaseReturn = (returnRecord: PurchaseReturn): SimulatedInvoice => {
+        const hasSupplier = !!returnRecord.supplier;
+        return {
+            id: returnRecord.code,
+            date: returnRecord.date.substring(0, 10), // Ensure YYYY-MM-DD format
+            customerName: returnRecord.supplier?.name || 'مورد نقدي',
+            amount: returnRecord.subtotal,
+            vat: returnRecord.tax,
+            total: returnRecord.net,
+            status: 'pending',
+            type: hasSupplier ? 'Standard' : 'Simplified',
+        };
+    };
+
+    // --- Combine All Data Sources ---
     useEffect(() => {
-        const mockData: SimulatedInvoice[] = [];
-        const today = new Date();
-        const subDays = (days: number) => new Date(today.getTime() - days * 86400000).toISOString().substring(0, 10);
-
-        // 1. Reported Invoices (Cleared/Reported)
-        mockData.push({ id: 'INV-001020', date: subDays(0), customerName: 'شركة الأفق الرقمي', amount: 15000, vat: 2250, total: 17250, status: 'reported', type: 'Standard', uuid: 'f81d4fae-7dec-11d0-a765-00a0c91e6bf6', submissionTime: '08:30 ص' });
-        mockData.push({ id: 'INV-001021', date: subDays(0), customerName: 'عميل نقدي', amount: 250, vat: 37.5, total: 287.5, status: 'reported', type: 'Simplified', uuid: '123e4567-e89b-12d3-a456-426614174000', submissionTime: '09:15 ص' });
-        
-        // 2. Failed Invoice
-        mockData.push({ id: 'INV-001022', date: subDays(0), customerName: 'مؤسسة البناء الحديث', amount: 4500, vat: 675, total: 5175, status: 'failed', type: 'Standard', error: 'BR-KSA-EN-169: الرقم الضريبي للمشتري غير صحيح أو لا يتبع صيغة الارقام الضريبية في المملكة.', submissionTime: '10:05 ص' });
-
-        // 3. Pending Invoices (Waiting for upload)
-        mockData.push({ id: 'INV-001023', date: subDays(0), customerName: 'سوبر ماركت الوفاء', amount: 1200, vat: 180, total: 1380, status: 'pending', type: 'Simplified' });
-        mockData.push({ id: 'INV-001024', date: subDays(0), customerName: 'شركة الإمداد اللوجستي', amount: 8500, vat: 1275, total: 9775, status: 'pending', type: 'Standard' });
-        mockData.push({ id: 'INV-001025', date: subDays(1), customerName: 'عميل نقدي', amount: 150, vat: 22.5, total: 172.5, status: 'pending', type: 'Simplified' });
-        mockData.push({ id: 'INV-001026', date: subDays(1), customerName: 'مطاعم القمة', amount: 3200, vat: 480, total: 3680, status: 'pending', type: 'Standard' });
-        mockData.push({ id: 'INV-001027', date: subDays(2), customerName: 'مكتبة المعرفة', amount: 450, vat: 67.5, total: 517.5, status: 'pending', type: 'Simplified' });
-
-        setDataList(mockData);
-    }, []);
+        const transformedData: SimulatedInvoice[] = [
+            ...salesInvoices.map(transformSalesInvoice),
+            ...purchaseInvoices.map(transformPurchaseInvoice),
+            ...salesReturns.map(transformSalesReturn),
+            ...purchaseReturns.map(transformPurchaseReturn),
+        ];
+        setDataList(transformedData);
+    }, [salesInvoices, purchaseInvoices, salesReturns, purchaseReturns]);
 
     // --- Computed Values ---
     const filteredData = useMemo(() => {
