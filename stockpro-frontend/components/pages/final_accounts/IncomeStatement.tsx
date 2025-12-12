@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useCallback } from "react";
 import { ExcelIcon, PdfIcon, PrintIcon } from "../../icons";
 import ReportHeader from "../reports/ReportHeader";
 import {
@@ -15,6 +15,15 @@ import {
   Actions,
   buildPermission,
 } from "../../../enums/permissions.enum";
+import { useGetItemsQuery } from "../../store/slices/items/itemsApi";
+import { useGetSalesInvoicesQuery } from "../../store/slices/salesInvoice/salesInvoiceApiSlice";
+import { useGetPurchaseInvoicesQuery } from "../../store/slices/purchaseInvoice/purchaseInvoiceApiSlice";
+import { useGetSalesReturnsQuery } from "../../store/slices/salesReturn/salesReturnApiSlice";
+import { useGetPurchaseReturnsQuery } from "../../store/slices/purchaseReturn/purchaseReturnApiSlice";
+import { useGetStoreReceiptVouchersQuery } from "../../store/slices/storeReceiptVoucher/storeReceiptVoucherApi";
+import { useGetStoreIssueVouchersQuery } from "../../store/slices/storeIssueVoucher/storeIssueVoucherApi";
+import { useGetStoreTransferVouchersQuery } from "../../store/slices/storeTransferVoucher/storeTransferVoucherApi";
+import { useGetStoresQuery } from "../../store/slices/store/storeApi";
 
 type StatementRow = {
   statement: string;
@@ -39,6 +48,17 @@ const IncomeStatement: React.FC = () => {
 
   // Fetch expense types to display dynamically
   const { data: expenseTypes = [] } = useGetExpenseTypesQuery();
+
+  // Fetch data for inventory calculation
+  const { data: apiItems = [] } = useGetItemsQuery(undefined);
+  const { data: apiSalesInvoices = [] } = useGetSalesInvoicesQuery();
+  const { data: apiPurchaseInvoices = [] } = useGetPurchaseInvoicesQuery();
+  const { data: apiSalesReturns = [] } = useGetSalesReturnsQuery();
+  const { data: apiPurchaseReturns = [] } = useGetPurchaseReturnsQuery();
+  const { data: storeReceiptVouchers = [] } = useGetStoreReceiptVouchersQuery(undefined);
+  const { data: storeIssueVouchers = [] } = useGetStoreIssueVouchersQuery(undefined);
+  const { data: storeTransferVouchers = [] } = useGetStoreTransferVouchersQuery(undefined);
+  const { data: stores = [] } = useGetStoresQuery(undefined);
 
   // Define the original order of expense types as they were hardcoded
   const expenseTypeOrder = [
@@ -93,6 +113,308 @@ const IncomeStatement: React.FC = () => {
       });
   }, [expenseTypes]);
 
+  // Helper function to normalize dates
+  const normalizeDate = useMemo(() => {
+    return (date: any): string => {
+      if (!date) return "";
+      if (typeof date === "string") {
+        if (/^\d{4}-\d{2}-\d{2}$/.test(date)) return date;
+        return date.substring(0, 10);
+      }
+      if (date instanceof Date) {
+        return date.toISOString().split("T")[0];
+      }
+      try {
+        const parsed = new Date(date);
+        if (!isNaN(parsed.getTime())) {
+          return parsed.toISOString().split("T")[0];
+        }
+      } catch {
+        // ignore
+      }
+      return "";
+    };
+  }, []);
+
+  // Safely convert any numeric-like value to a finite number
+  const toNumber = useCallback((value: any): number => {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : 0;
+  }, []);
+
+  // Transform items to filter out services and include necessary fields
+  const transformedItems = useMemo(() => {
+    return (apiItems as any[])
+      .filter((item) => {
+        const itemType = (item.type || item.itemType || "").toUpperCase();
+        return itemType !== "SERVICE";
+      })
+      .map((item) => ({
+        ...item,
+        unit: item.unit?.name || "",
+        group: item.group?.name || "",
+      }));
+  }, [apiItems]);
+
+  // Transform sales invoices for inventory calculation
+  const transformedSalesInvoices = useMemo(() => {
+    return (apiSalesInvoices as any[]).map((invoice) => ({
+      ...invoice,
+      branchName: invoice.branch?.name || "",
+      items: invoice.items.map((item) => ({
+        ...item,
+        id: item.id,
+        name: item.name,
+        unit: item.unit,
+        qty: item.qty,
+        price: item.price,
+        taxAmount: item.taxAmount,
+        total: item.total,
+      })),
+    }));
+  }, [apiSalesInvoices]);
+
+  // Transform sales returns for inventory calculation
+  const transformedSalesReturns = useMemo(() => {
+    return (apiSalesReturns as any[]).map((invoice) => ({
+      ...invoice,
+      branchName: invoice.branch?.name || "",
+      items: invoice.items.map((item) => ({
+        ...item,
+        id: item.id,
+        name: item.name,
+        unit: item.unit,
+        qty: item.qty,
+        price: item.price,
+        taxAmount: item.taxAmount,
+        total: item.total,
+      })),
+    }));
+  }, [apiSalesReturns]);
+
+  // Transform purchase invoices for inventory calculation
+  const transformedPurchaseInvoices = useMemo(() => {
+    return (apiPurchaseInvoices as any[]).map((invoice) => ({
+      ...invoice,
+      branchName: invoice.branch?.name || "",
+      items: invoice.items.map((item) => ({
+        ...item,
+        id: item.id,
+        name: item.name,
+        unit: item.unit,
+        qty: item.qty,
+        price: item.price,
+        taxAmount: item.taxAmount,
+        total: item.total,
+      })),
+    }));
+  }, [apiPurchaseInvoices]);
+
+  // Transform purchase returns for inventory calculation
+  const transformedPurchaseReturns = useMemo(() => {
+    return (apiPurchaseReturns as any[]).map((invoice) => ({
+      ...invoice,
+      branchName: invoice.branch?.name || "",
+      items: invoice.items.map((item) => ({
+        ...item,
+        id: item.id,
+        name: item.name,
+        unit: item.unit,
+        qty: item.qty,
+        price: item.price,
+        taxAmount: item.taxAmount,
+        total: item.total,
+      })),
+    }));
+  }, [apiPurchaseReturns]);
+
+  // Transform store receipt vouchers for inventory calculation
+  const transformedStoreReceiptVouchers = useMemo(() => {
+    return (storeReceiptVouchers as any[]).map((voucher) => ({
+      ...voucher,
+      branch: voucher.store?.branch?.name || "",
+      items: voucher.items.map((item) => ({
+        ...item,
+        id: item.item?.code || item.itemId,
+        name: item.item?.name || "",
+        unit: item.item?.unit?.name || "",
+        qty: item.quantity,
+      })),
+    }));
+  }, [storeReceiptVouchers]);
+
+  // Transform store issue vouchers for inventory calculation
+  const transformedStoreIssueVouchers = useMemo(() => {
+    return (storeIssueVouchers as any[]).map((voucher) => ({
+      ...voucher,
+      branch: voucher.store?.branch?.name || "",
+      items: voucher.items.map((item) => ({
+        ...item,
+        id: item.item?.code || item.itemId,
+        name: item.item?.name || "",
+        unit: item.item?.unit?.name || "",
+        qty: item.quantity,
+      })),
+    }));
+  }, [storeIssueVouchers]);
+
+  // Transform store transfer vouchers for inventory calculation
+  const transformedStoreTransferVouchers = useMemo(() => {
+    return (storeTransferVouchers as any[])
+      .filter((v) => v.status === 'ACCEPTED')
+      .map((voucher) => ({
+        ...voucher,
+        fromStore: voucher.fromStore?.name || "",
+        toStore: voucher.toStore?.name || "",
+        items: voucher.items.map((item) => ({
+          ...item,
+          id: item.item?.code || item.itemId,
+          name: item.item?.name || "",
+          unit: item.item?.unit?.name || "",
+          qty: item.quantity,
+        })),
+      }));
+  }, [storeTransferVouchers]);
+
+  // Helper function to get last purchase price before or on a reference date
+  const getLastPurchasePriceBeforeDate = useCallback((itemCode: string, referenceDate: string): number | null => {
+    const normalizedReferenceDate = normalizeDate(referenceDate);
+    if (!normalizedReferenceDate) return null;
+
+    // Get all purchase invoices up to the reference date, sorted by date descending
+    const relevantInvoices = transformedPurchaseInvoices
+      .filter((inv) => {
+        const txDate = normalizeDate(inv.date) || normalizeDate(inv.invoiceDate);
+        return txDate && txDate <= normalizedReferenceDate;
+      })
+      .sort((a, b) => {
+        const dateA = normalizeDate(a.date) || normalizeDate(a.invoiceDate) || "";
+        const dateB = normalizeDate(b.date) || normalizeDate(b.invoiceDate) || "";
+        return dateB.localeCompare(dateA); // Descending order
+      });
+
+    // Find the most recent purchase price for this item
+    for (const inv of relevantInvoices) {
+      for (const invItem of inv.items) {
+        if (invItem.id === itemCode && invItem.price) {
+          return invItem.price;
+        }
+      }
+    }
+
+    return null;
+  }, [transformedPurchaseInvoices, normalizeDate]);
+
+  // Calculate inventory value using the same logic as LiquidityReport
+  const calculatedEndingInventory = useMemo(() => {
+    const normalizedEndDate = normalizeDate(endDate);
+    if (!normalizedEndDate || transformedItems.length === 0) return 0;
+
+    const valuationMethod = "purchasePrice"; // Use purchase price valuation method
+
+    const valuationData = transformedItems.map((item) => {
+      // Use StoreItem's openingBalance as base, or 0 if not available
+      let balance = toNumber((item as any).openingBalance ?? 0);
+
+      // Filter transactions up to and including endDate
+      const filterByDate = (tx: any) => {
+        if (!normalizedEndDate) return false;
+        const txDate =
+          normalizeDate(tx.date) ||
+          normalizeDate(tx.invoiceDate) ||
+          normalizeDate(tx.transactionDate);
+        if (!txDate) return false;
+        return txDate <= normalizedEndDate;
+      };
+
+      // Calculate balance across all branches
+      transformedPurchaseInvoices.filter(filterByDate).forEach((inv) =>
+        inv.items.forEach((i) => {
+          if (i.id === item.code) balance += toNumber(i.qty);
+        }),
+      );
+      transformedSalesReturns.filter(filterByDate).forEach((inv) =>
+        inv.items.forEach((i) => {
+          if (i.id === item.code) balance += toNumber(i.qty);
+        }),
+      );
+      transformedStoreReceiptVouchers.filter(filterByDate).forEach((v) =>
+        v.items.forEach((i) => {
+          if (i.id === item.code) balance += toNumber(i.qty);
+        }),
+      );
+
+      transformedSalesInvoices.filter(filterByDate).forEach((inv) =>
+        inv.items.forEach((i) => {
+          if (i.id === item.code) balance -= toNumber(i.qty);
+        }),
+      );
+      transformedPurchaseReturns.filter(filterByDate).forEach((inv) =>
+        inv.items.forEach((i) => {
+          if (i.id === item.code) balance -= toNumber(i.qty);
+        }),
+      );
+      transformedStoreIssueVouchers.filter(filterByDate).forEach((v) =>
+        v.items.forEach((i) => {
+          if (i.id === item.code) balance -= toNumber(i.qty);
+        }),
+      );
+
+      // Handle store transfers (all branches)
+      transformedStoreTransferVouchers.filter(filterByDate).forEach((v) => {
+        const fromStore = stores.find((s) => s.name === v.fromStore);
+        const toStore = stores.find((s) => s.name === v.toStore);
+        v.items.forEach((i) => {
+          if (i.id === item.code) {
+            const qty = toNumber(i.qty);
+            // For all branches, transfers between stores don't affect total balance
+            // Since we're calculating for all branches, transfers are neutral
+          }
+        });
+      });
+
+      // Calculate cost based on valuation method at end of the period (end date)
+      let cost = 0;
+      const priceReferenceDate = endDate;
+      const fallbackPrice =
+        toNumber(item.initialPurchasePrice ?? item.purchasePrice ?? 0);
+      
+      if (valuationMethod === "purchasePrice") {
+        const lastPurchasePrice = getLastPurchasePriceBeforeDate(item.code, priceReferenceDate);
+        cost = lastPurchasePrice ?? fallbackPrice;
+      } else {
+        cost = fallbackPrice;
+      }
+
+      const value = balance * cost;
+
+      return {
+        ...item,
+        balance,
+        cost,
+        value,
+      };
+    });
+
+    // Calculate total inventory value
+    const totalValue = valuationData.reduce((acc, item) => acc + item.value, 0);
+    return totalValue;
+  }, [
+    transformedItems,
+    endDate,
+    transformedSalesInvoices,
+    transformedSalesReturns,
+    transformedPurchaseInvoices,
+    transformedPurchaseReturns,
+    transformedStoreReceiptVouchers,
+    transformedStoreIssueVouchers,
+    transformedStoreTransferVouchers,
+    stores,
+    normalizeDate,
+    toNumber,
+    getLastPurchasePriceBeforeDate,
+  ]);
+
   const statementRows = useMemo<StatementRow[]>(() => {
     if (!financialData) return [];
 
@@ -113,15 +435,17 @@ const IncomeStatement: React.FC = () => {
     addRow("(+) صافي المشتريات", financialData.netPurchases);
     addRow(
       "(-) رصيد مخزون آخر المدة",
-      asNegative(financialData.endingInventory),
+      asNegative(calculatedEndingInventory),
     );
+    const calculatedCogs = financialData.beginningInventory + financialData.netPurchases - calculatedEndingInventory;
     addRow(
       "تكلفة البضاعة المباعة",
       undefined,
-      asNegative(financialData.cogs),
+      asNegative(calculatedCogs),
     );
 
-    addRow("مجمل الربح", undefined, financialData.grossProfit);
+    const calculatedGrossProfit = financialData.netSales - calculatedCogs;
+    addRow("مجمل الربح", undefined, calculatedGrossProfit);
 
     addRow("المصروفات");
     sortedExpenseTypes.forEach((expenseType) => {
@@ -136,10 +460,11 @@ const IncomeStatement: React.FC = () => {
       asNegative(financialData.totalExpenses),
     );
 
-    addRow("صافي الربح / (الخسارة)", undefined, financialData.netProfit);
+    const calculatedNetProfit = calculatedGrossProfit - financialData.totalExpenses;
+    addRow("صافي الربح / (الخسارة)", undefined, calculatedNetProfit);
 
     return rows;
-  }, [financialData, sortedExpenseTypes]);
+  }, [financialData, sortedExpenseTypes, calculatedEndingInventory]);
 
   const formatExportValue = (value?: number | null): string => {
     if (value === null || value === undefined) return "";
@@ -370,24 +695,24 @@ const IncomeStatement: React.FC = () => {
               </tr>
               <tr>
                 <Td className="text-red-600">(-) رصيد مخزون آخر المدة</Td>
-                <Td className={`font-mono text-left text-red-600 ${getNegativeNumberClass(financialData.endingInventory)}`}>
-                  ({formatNumber(financialData.endingInventory)})
+                <Td className={`font-mono text-left text-red-600 ${getNegativeNumberClass(calculatedEndingInventory)}`}>
+                  ({formatNumber(calculatedEndingInventory)})
                 </Td>
                 <Td></Td>
               </tr>
               <tr className="font-bold bg-gray-100">
                 <Td>تكلفة البضاعة المباعة</Td>
                 <Td></Td>
-                <Td className={`font-mono text-left text-lg text-red-600 ${getNegativeNumberClass(financialData.cogs)}`}>
-                  ({formatNumber(financialData.cogs)})
+                <Td className={`font-mono text-left text-lg text-red-600 ${getNegativeNumberClass(financialData.beginningInventory + financialData.netPurchases - calculatedEndingInventory)}`}>
+                  ({formatNumber(financialData.beginningInventory + financialData.netPurchases - calculatedEndingInventory)})
                 </Td>
               </tr>
 
               <tr className="font-bold text-xl bg-green-100 text-green-800">
                 <Td>مجمل الربح</Td>
                 <Td></Td>
-                <Td className={`font-mono text-left ${getNegativeNumberClass(financialData.grossProfit)}`}>
-                  {formatNumber(financialData.grossProfit)}
+                <Td className={`font-mono text-left ${getNegativeNumberClass(financialData.netSales - (financialData.beginningInventory + financialData.netPurchases - calculatedEndingInventory))}`}>
+                  {formatNumber(financialData.netSales - (financialData.beginningInventory + financialData.netPurchases - calculatedEndingInventory))}
                 </Td>
               </tr>
 
@@ -418,12 +743,12 @@ const IncomeStatement: React.FC = () => {
               </tr>
 
               <tr
-                className={`font-bold text-2xl ${financialData.netProfit >= 0 ? "bg-brand-green" : "bg-red-200"}`}
+                className={`font-bold text-2xl ${(financialData.netSales - (financialData.beginningInventory + financialData.netPurchases - calculatedEndingInventory) - financialData.totalExpenses) >= 0 ? "bg-brand-green" : "bg-red-200"}`}
               >
                 <Td>صافي الربح / (الخسارة)</Td>
                 <Td></Td>
-                <Td className={`font-mono text-left ${getNegativeNumberClass(financialData.netProfit)}`}>
-                  {formatNumber(financialData.netProfit)}
+                <Td className={`font-mono text-left ${getNegativeNumberClass(financialData.netSales - (financialData.beginningInventory + financialData.netPurchases - calculatedEndingInventory) - financialData.totalExpenses)}`}>
+                  {formatNumber(financialData.netSales - (financialData.beginningInventory + financialData.netPurchases - calculatedEndingInventory) - financialData.totalExpenses)}
                 </Td>
               </tr>
             </tbody>
