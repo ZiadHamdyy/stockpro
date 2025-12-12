@@ -128,27 +128,10 @@ const StoreTransfer: React.FC<StoreTransferProps> = ({ title }) => {
     return otherStore?.name || "";
   }, [stores, userStore]);
   
-  // Filter vouchers: show only current branch + current user
+  // Show all vouchers without any filters
   const vouchers = useMemo(() => {
-    return allVouchers.filter((v: any) => {
-      // Filter by current branch - check if either fromStore or toStore branch matches
-      const fromStoreBranchId = v.fromStore?.branch?.id;
-      const toStoreBranchId = v.toStore?.branch?.id;
-      if (userBranchId) {
-        if (fromStoreBranchId !== userBranchId && toStoreBranchId !== userBranchId) {
-          return false;
-        }
-      }
-      
-      // Filter by current user
-      const voucherUserId = v.user?.id || v.userId;
-      if (currentUser?.id && voucherUserId !== currentUser.id) {
-        return false;
-      }
-      
-      return true;
-    });
-  }, [allVouchers, userBranchId, currentUser?.id]);
+    return allVouchers;
+  }, [allVouchers]);
   const [createVoucher, { isLoading: isCreating }] =
     useCreateStoreTransferVoucherMutation();
   const [updateVoucher, { isLoading: isUpdating }] =
@@ -326,7 +309,7 @@ const StoreTransfer: React.FC<StoreTransferProps> = ({ title }) => {
         date: v.date
           ? new Date(v.date).toISOString().substring(0, 10)
           : new Date().toISOString().substring(0, 10),
-        fromStore: userStore?.name || v.fromStore?.name || "",
+        fromStore: v.fromStore?.name || userStore?.name || "",
         toStore: v.toStore?.name || "",
       });
       // Set read-only based on status - only pending transfers can be edited by sender
