@@ -19,8 +19,9 @@ interface ItemProfitabilityReportProps {
 }
 
 const ItemProfitabilityReport: React.FC<ItemProfitabilityReportProps> = ({ title }) => {
-    const [startDate, setStartDate] = useState(new Date().getFullYear() + '-01-01');
-    const [endDate, setEndDate] = useState(new Date(new Date().getFullYear(), 11, 31).toISOString().substring(0, 10));
+    const currentYear = new Date().getFullYear();
+    const [startDate, setStartDate] = useState(`${currentYear}-01-01`);
+    const [endDate, setEndDate] = useState(`${currentYear}-12-31`);
     const [searchTerm, setSearchTerm] = useState('');
 
     // Fetch data from Redux
@@ -31,6 +32,29 @@ const ItemProfitabilityReport: React.FC<ItemProfitabilityReportProps> = ({ title
     const isLoading = itemsLoading || salesLoading || returnsLoading;
 
     // Transform API data to match component expectations
+    // Normalize any date value to yyyy-MM-dd
+    const normalizeDate = useMemo(() => {
+        return (date: any): string => {
+            if (!date) return '';
+            if (typeof date === 'string') {
+                if (/^\d{4}-\d{2}-\d{2}$/.test(date)) return date;
+                return date.substring(0, 10);
+            }
+            if (date instanceof Date) {
+                return date.toISOString().split('T')[0];
+            }
+            try {
+                const parsed = new Date(date);
+                if (!isNaN(parsed.getTime())) {
+                    return parsed.toISOString().split('T')[0];
+                }
+            } catch {
+                // ignore parse errors
+            }
+            return '';
+        };
+    }, []);
+
     const items = useMemo<Item[]>(() => {
         return apiItems.map((item) => ({
             id: parseInt(item.id) || 0,
@@ -48,7 +72,7 @@ const ItemProfitabilityReport: React.FC<ItemProfitabilityReportProps> = ({ title
     const salesInvoices = useMemo<Invoice[]>(() => {
         return apiSalesInvoices.map((inv) => ({
             id: inv.id,
-            date: inv.date,
+            date: normalizeDate((inv as any).date || (inv as any).invoiceDate || (inv as any).transactionDate),
             customerOrSupplier: inv.customer ? {
                 id: inv.customer.id,
                 name: inv.customer.name
@@ -74,12 +98,12 @@ const ItemProfitabilityReport: React.FC<ItemProfitabilityReportProps> = ({ title
             userName: inv.user?.name || '',
             branchName: inv.branch?.name || ''
         }));
-    }, [apiSalesInvoices]);
+    }, [apiSalesInvoices, normalizeDate]);
 
     const salesReturns = useMemo<Invoice[]>(() => {
         return apiSalesReturns.map((ret) => ({
             id: ret.id,
-            date: ret.date,
+            date: normalizeDate((ret as any).date || (ret as any).invoiceDate || (ret as any).transactionDate),
             customerOrSupplier: ret.customer ? {
                 id: ret.customer.id,
                 name: ret.customer.name
@@ -105,15 +129,16 @@ const ItemProfitabilityReport: React.FC<ItemProfitabilityReportProps> = ({ title
             userName: ret.user?.name || '',
             branchName: ret.branch?.name || ''
         }));
-    }, [apiSalesReturns]);
+    }, [apiSalesReturns, normalizeDate]);
 
     const reportData = useMemo(() => {
         return items.map(item => {
             // Sales
             const itemSales = salesInvoices
                 .filter(inv => {
-                    if (!inv?.date) return false;
-                    return inv.date >= startDate && inv.date <= endDate;
+                    const invDate = normalizeDate(inv?.date);
+                    if (!invDate) return false;
+                    return invDate >= startDate && invDate <= endDate;
                 })
                 .reduce((acc, inv) => {
                     const invItem = inv.items?.find(i => i.id === item.code);
@@ -129,8 +154,9 @@ const ItemProfitabilityReport: React.FC<ItemProfitabilityReportProps> = ({ title
             // Returns
             const itemReturns = salesReturns
                 .filter(inv => {
-                    if (!inv?.date) return false;
-                    return inv.date >= startDate && inv.date <= endDate;
+                    const invDate = normalizeDate(inv?.date);
+                    if (!invDate) return false;
+                    return invDate >= startDate && invDate <= endDate;
                 })
                 .reduce((acc, inv) => {
                     const invItem = inv.items?.find(i => i.id === item.code);
@@ -164,7 +190,7 @@ const ItemProfitabilityReport: React.FC<ItemProfitabilityReportProps> = ({ title
             (item.netQty !== 0) && 
             ((item.name ?? '').toLowerCase().includes(searchTerm.toLowerCase()) || (item.code ?? '').toLowerCase().includes(searchTerm.toLowerCase()))
         ).sort((a, b) => b.marginPercent - a.marginPercent); // Sort by margin % descending
-    }, [items, salesInvoices, salesReturns, startDate, endDate, searchTerm]);
+    }, [items, salesInvoices, salesReturns, startDate, endDate, searchTerm, normalizeDate]);
 
     const handlePrint = () => {
         window.print();

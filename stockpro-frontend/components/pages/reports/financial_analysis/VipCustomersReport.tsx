@@ -19,8 +19,9 @@ interface VIPCustomersReportProps {
 }
 
 const VIPCustomersReport: React.FC<VIPCustomersReportProps> = ({ title }) => {
-    const [startDate, setStartDate] = useState(new Date().getFullYear() + '-01-01');
-    const [endDate, setEndDate] = useState(new Date(new Date().getFullYear(), 11, 31).toISOString().substring(0, 10));
+    const currentYear = new Date().getFullYear();
+    const [startDate, setStartDate] = useState(`${currentYear}-01-01`);
+    const [endDate, setEndDate] = useState(`${currentYear}-12-31`);
 
     // Fetch data from Redux
     const { data: apiCustomers = [], isLoading: customersLoading } = useGetCustomersQuery();
@@ -28,6 +29,29 @@ const VIPCustomersReport: React.FC<VIPCustomersReportProps> = ({ title }) => {
     const { data: apiSalesReturns = [], isLoading: returnsLoading } = useGetSalesReturnsQuery();
 
     const isLoading = customersLoading || salesLoading || returnsLoading;
+
+    // Normalize any date value to yyyy-MM-dd
+    const normalizeDate = useMemo(() => {
+        return (date: any): string => {
+            if (!date) return '';
+            if (typeof date === 'string') {
+                if (/^\d{4}-\d{2}-\d{2}$/.test(date)) return date;
+                return date.substring(0, 10);
+            }
+            if (date instanceof Date) {
+                return date.toISOString().split('T')[0];
+            }
+            try {
+                const parsed = new Date(date);
+                if (!isNaN(parsed.getTime())) {
+                    return parsed.toISOString().split('T')[0];
+                }
+            } catch {
+                // ignore parse errors
+            }
+            return '';
+        };
+    }, []);
 
     // Transform API data to match component expectations
     const customers = useMemo<Customer[]>(() => {
@@ -47,7 +71,7 @@ const VIPCustomersReport: React.FC<VIPCustomersReportProps> = ({ title }) => {
     const salesInvoices = useMemo<Invoice[]>(() => {
         return apiSalesInvoices.map((inv) => ({
             id: inv.id,
-            date: inv.date,
+            date: normalizeDate((inv as any).date || (inv as any).invoiceDate || (inv as any).transactionDate),
             customerOrSupplier: inv.customer ? {
                 id: inv.customer.id,
                 name: inv.customer.name
@@ -73,12 +97,12 @@ const VIPCustomersReport: React.FC<VIPCustomersReportProps> = ({ title }) => {
             userName: inv.user?.name || '',
             branchName: inv.branch?.name || ''
         }));
-    }, [apiSalesInvoices]);
+    }, [apiSalesInvoices, normalizeDate]);
 
     const salesReturns = useMemo<Invoice[]>(() => {
         return apiSalesReturns.map((ret) => ({
             id: ret.id,
-            date: ret.date,
+            date: normalizeDate((ret as any).date || (ret as any).invoiceDate || (ret as any).transactionDate),
             customerOrSupplier: ret.customer ? {
                 id: ret.customer.id,
                 name: ret.customer.name
@@ -104,7 +128,7 @@ const VIPCustomersReport: React.FC<VIPCustomersReportProps> = ({ title }) => {
             userName: ret.user?.name || '',
             branchName: ret.branch?.name || ''
         }));
-    }, [apiSalesReturns]);
+    }, [apiSalesReturns, normalizeDate]);
 
     const reportData = useMemo(() => {
         const DEFAULT_CUSTOMER_NAME = 'عميل نقدي';
@@ -113,17 +137,21 @@ const VIPCustomersReport: React.FC<VIPCustomersReportProps> = ({ title }) => {
         const customerSales = customers.map(customer => {
             const customerIdStr = (customer.id ?? '').toString();
             
-            const invoices = salesInvoices.filter(inv => 
-                inv.customerOrSupplier?.id === customerIdStr && 
-                inv.date && inv.date >= startDate && 
-                inv.date <= endDate
-            );
+            const invoices = salesInvoices.filter(inv => {
+                const invDate = normalizeDate(inv?.date);
+                return inv.customerOrSupplier?.id === customerIdStr &&
+                    invDate &&
+                    invDate >= startDate &&
+                    invDate <= endDate;
+            });
 
-            const returns = salesReturns.filter(inv => 
-                inv.customerOrSupplier?.id === customerIdStr && 
-                inv.date && inv.date >= startDate && 
-                inv.date <= endDate
-            );
+            const returns = salesReturns.filter(inv => {
+                const invDate = normalizeDate(inv?.date);
+                return inv.customerOrSupplier?.id === customerIdStr &&
+                    invDate &&
+                    invDate >= startDate &&
+                    invDate <= endDate;
+            });
 
             const totalSales = invoices.reduce((sum, inv) => sum + (inv.totals?.net ?? 0), 0);
             const totalReturns = returns.reduce((sum, inv) => sum + (inv.totals?.net ?? 0), 0);
@@ -139,17 +167,21 @@ const VIPCustomersReport: React.FC<VIPCustomersReportProps> = ({ title }) => {
         });
 
         // Handle default cash customer (invoices without a customer)
-        const defaultCustomerInvoices = salesInvoices.filter(inv => 
-            !inv.customerOrSupplier && 
-            inv.date && inv.date >= startDate && 
-            inv.date <= endDate
-        );
+        const defaultCustomerInvoices = salesInvoices.filter(inv => {
+            const invDate = normalizeDate(inv?.date);
+            return !inv.customerOrSupplier &&
+                invDate &&
+                invDate >= startDate &&
+                invDate <= endDate;
+        });
 
-        const defaultCustomerReturns = salesReturns.filter(inv => 
-            !inv.customerOrSupplier && 
-            inv.date && inv.date >= startDate && 
-            inv.date <= endDate
-        );
+        const defaultCustomerReturns = salesReturns.filter(inv => {
+            const invDate = normalizeDate(inv?.date);
+            return !inv.customerOrSupplier &&
+                invDate &&
+                invDate >= startDate &&
+                invDate <= endDate;
+        });
 
         const defaultCustomerTotalSales = defaultCustomerInvoices.reduce((sum, inv) => sum + (inv.totals?.net ?? 0), 0);
         const defaultCustomerTotalReturns = defaultCustomerReturns.reduce((sum, inv) => sum + (inv.totals?.net ?? 0), 0);
@@ -179,7 +211,7 @@ const VIPCustomersReport: React.FC<VIPCustomersReportProps> = ({ title }) => {
             percentage: totalRevenueAll > 0 ? (c.netRevenue / totalRevenueAll) * 100 : 0
         }));
 
-    }, [customers, salesInvoices, salesReturns, startDate, endDate]);
+    }, [customers, salesInvoices, salesReturns, startDate, endDate, normalizeDate]);
 
     const handlePrint = () => window.print();
 
