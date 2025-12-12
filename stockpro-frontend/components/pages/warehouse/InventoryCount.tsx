@@ -61,21 +61,27 @@ const InventoryCountPage: React.FC<InventoryCountProps> = ({ title, companyInfo 
     const { data: companyInfoFromApi } = useGetCompanyQuery();
     const effectiveCompanyInfo = companyInfoFromApi || companyInfo;
 
+    // Get permissions first (needed for conditional queries)
+    const { hasPermission } = useUserPermissions();
+    
+    // Get user's branch ID
+    const userBranchId = getUserBranchId(currentUser);
+    
+    // Check if user can search all branches
+    const canSearchAllBranches = useMemo(
+        () =>
+            hasPermission(buildPermission(Resources.INVENTORY_COUNT, Actions.SEARCH)),
+        [hasPermission],
+    );
+
     // Fetch data from Redux
     const { data: stores = [], isLoading: storesLoading } = useGetStoresQuery();
     const { data: items = [], isLoading: itemsLoading } = useGetItemsQuery(
         !canSearchAllBranches && selectedStoreId ? { storeId: selectedStoreId } : undefined,
     );
     const { data: allInventoryCounts = [], isLoading: countsLoading } = useGetInventoryCountsQuery();
-    const { hasPermission } = useUserPermissions();
     
-    // Get user's branch ID and filter inventory counts
-    const userBranchId = getUserBranchId(currentUser);
-    const canSearchAllBranches = useMemo(
-        () =>
-            hasPermission(buildPermission(Resources.INVENTORY_COUNT, Actions.SEARCH)),
-        [hasPermission],
-    );
+    // Filter inventory counts
     const inventoryCounts = useMemo(() => {
         return allInventoryCounts.filter((count: any) => {
             // Filter by current branch
