@@ -101,20 +101,15 @@ const PaymentVoucher: React.FC<PaymentVoucherProps> = ({ title }) => {
 
   const vouchers = useMemo(() => {
     return allVouchers.filter((voucher: any) => {
-      // Filter by current branch only when search permission is absent
+      // Filter by current branch if user doesn't have SEARCH permission
       const voucherBranchId = voucher.branch?.id || voucher.branchId;
       if (!canSearchAllBranches && userBranchId && voucherBranchId !== userBranchId) {
         return false;
       }
       
-      // Filter by current user
-      const voucherUserId = voucher.user?.id || voucher.userId;
-      if (!canSearchAllBranches && User?.id && voucherUserId !== User.id)
-        return false;
-      
       return true;
     });
-  }, [allVouchers, canSearchAllBranches, userBranchId, User?.id]);
+  }, [allVouchers, canSearchAllBranches, userBranchId]);
 
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [isSearchModalOpen, setIsSearchModalOpen] = useState(false);
