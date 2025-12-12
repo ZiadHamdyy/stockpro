@@ -92,20 +92,16 @@ const PurchaseReturn: React.FC<PurchaseReturnProps> = ({
     [hasPermission],
   );
   
-  // Filter returns: show only current branch + current user
+  // Filter returns: show only current branch if user doesn't have SEARCH permission
   const returns = useMemo(() => {
     return allReturns.filter((returnRecord: any) => {
-      // Filter by current branch
+      // Filter by current branch if user doesn't have SEARCH permission
       const returnBranchId = returnRecord.branch?.id || returnRecord.branchId;
       if (!canSearchAllBranches && userBranchId && returnBranchId !== userBranchId) return false;
       
-      // Filter by current user
-      const returnUserId = returnRecord.user?.id || returnRecord.userId;
-      if (!canSearchAllBranches && currentUser?.id && returnUserId !== currentUser.id) return false;
-      
       return true;
     });
-  }, [allReturns, canSearchAllBranches, userBranchId, currentUser?.id]);
+  }, [allReturns, canSearchAllBranches, userBranchId]);
   const [createPurchaseReturn] = useCreatePurchaseReturnMutation();
   const [updatePurchaseReturn] = useUpdatePurchaseReturnMutation();
   const [deletePurchaseReturn] = useDeletePurchaseReturnMutation();

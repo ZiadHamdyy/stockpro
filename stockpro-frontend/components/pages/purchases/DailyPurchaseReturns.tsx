@@ -53,23 +53,18 @@ const DailyPurchaseReturns: React.FC<DailyPurchaseReturnsProps> = ({
     [hasPermission],
   );
   
-  // Filter returns: show only current branch + current user
+  // Filter returns: show only current branch if user doesn't have SEARCH permission
   const purchaseReturns = useMemo(() => {
     return allPurchaseReturns.filter((returnRecord: any) => {
-      // Filter by current branch
+      // Filter by current branch if user doesn't have SEARCH permission
       const returnBranchId = returnRecord.branch?.id || returnRecord.branchId;
       if (!canSearchAllBranches && userBranchId && returnBranchId !== userBranchId) {
         return false;
       }
       
-      // Filter by current user
-      const returnUserId = returnRecord.user?.id || returnRecord.userId;
-      if (!canSearchAllBranches && currentUser?.id && returnUserId !== currentUser.id)
-        return false;
-      
       return true;
     });
-  }, [allPurchaseReturns, canSearchAllBranches, userBranchId, currentUser?.id]);
+  }, [allPurchaseReturns, canSearchAllBranches, userBranchId]);
 
   const companyInfo: CompanyInfo = company || {
     name: "",
