@@ -97,8 +97,8 @@ const StoreIssueVoucher: React.FC<StoreIssueVoucherProps> = ({ title }) => {
   
   // Redux API hooks
   const { data: companyInfo } = useGetCompanyQuery();
-  const { data: branches = [] } = useGetBranchesQuery();
-  const { data: stores = [] } = useGetStoresQuery();
+  const { data: allBranches = [] } = useGetBranchesQuery();
+  const { data: allStores = [] } = useGetStoresQuery();
   const { data: allVouchers = [], isLoading: isLoadingVouchers, refetch: refetchVouchers } =
     useGetStoreIssueVouchersQuery();
   const { hasPermission } = useUserPermissions();
@@ -115,6 +115,19 @@ const StoreIssueVoucher: React.FC<StoreIssueVoucherProps> = ({ title }) => {
       ),
     [hasPermission],
   );
+  
+  // Filter branches and stores by user's branch if user doesn't have permission
+  const branches = useMemo(() => {
+    if (canSearchAllBranches) return allBranches;
+    if (!userBranchId) return [];
+    return allBranches.filter((branch: any) => branch.id === userBranchId);
+  }, [allBranches, canSearchAllBranches, userBranchId]);
+  
+  const stores = useMemo(() => {
+    if (canSearchAllBranches) return allStores;
+    if (!userBranchId) return [];
+    return allStores.filter((store: any) => store.branchId === userBranchId);
+  }, [allStores, canSearchAllBranches, userBranchId]);
   
   // Filter vouchers: exclude system-generated ones, and show only current branch + current user
   const vouchers = useMemo(() => {
@@ -334,18 +347,30 @@ const StoreIssueVoucher: React.FC<StoreIssueVoucherProps> = ({ title }) => {
   }, [currentIndex, vouchers, isLoadingVouchers, branches, userBranch?.name]);
 
   // Ensure branch defaults to current user's branch when available for new vouchers
+  // Also lock branch to user's branch if user doesn't have permission
   useEffect(() => {
     if (currentIndex !== -1) return;
     if (!userBranch?.name && !branches[0]?.name) return;
 
     setVoucherDetails((prev) => {
+      // If user doesn't have permission, always set to user's branch
+      if (!canSearchAllBranches && userBranch?.name) {
+        if (prev.branch !== userBranch.name) {
+          return {
+            ...prev,
+            branch: userBranch.name,
+          };
+        }
+        return prev;
+      }
+      // If user has permission, only set if not already set
       if (prev.branch) return prev;
       return {
         ...prev,
         branch: userBranch?.name || branches[0]?.name || "",
       };
     });
-  }, [currentIndex, userBranch?.name, branches]);
+  }, [currentIndex, userBranch?.name, branches, canSearchAllBranches]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {

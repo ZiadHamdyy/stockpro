@@ -75,26 +75,30 @@ const InventoryCountPage: React.FC<InventoryCountProps> = ({ title, companyInfo 
     );
 
     // Fetch data from Redux
-    const { data: stores = [], isLoading: storesLoading } = useGetStoresQuery();
+    const { data: allStores = [], isLoading: storesLoading } = useGetStoresQuery();
+    
+    // Filter stores by user's branch if user doesn't have permission
+    const stores = useMemo(() => {
+        if (canSearchAllBranches) return allStores;
+        if (!userBranchId) return [];
+        return allStores.filter((store: any) => store.branchId === userBranchId);
+    }, [allStores, canSearchAllBranches, userBranchId]);
+    
     const { data: items = [], isLoading: itemsLoading } = useGetItemsQuery(
         !canSearchAllBranches && selectedStoreId ? { storeId: selectedStoreId } : undefined,
     );
     const { data: allInventoryCounts = [], isLoading: countsLoading } = useGetInventoryCountsQuery();
     
-    // Filter inventory counts
+    // Filter inventory counts based on branch and search permission
     const inventoryCounts = useMemo(() => {
         return allInventoryCounts.filter((count: any) => {
-            // Filter by current branch
+            // Filter by current branch if user doesn't have SEARCH permission
             const countBranchId = count.store?.branch?.id;
             if (!canSearchAllBranches && userBranchId && countBranchId !== userBranchId) return false;
             
-            // Filter by current user
-            const countUserId = count.user?.id || count.userId;
-            if (currentUser?.id && countUserId !== currentUser.id) return false;
-            
             return true;
         });
-    }, [allInventoryCounts, canSearchAllBranches, userBranchId, currentUser?.id]);
+    }, [allInventoryCounts, canSearchAllBranches, userBranchId]);
     const [createInventoryCount, { isLoading: isCreating }] = useCreateInventoryCountMutation();
     const [postInventoryCount, { isLoading: isPosting }] = usePostInventoryCountMutation();
     const [updateInventoryCount, { isLoading: isUpdating }] = useUpdateInventoryCountMutation();
@@ -236,7 +240,7 @@ const InventoryCountPage: React.FC<InventoryCountProps> = ({ title, companyInfo 
             const result = await createInventoryCount({
                 storeId: selectedStoreId,
                 userId: currentUser.id,
-                branchId: currentUser.branchId,
+                branchId: userBranchId || currentUser.branchId || null,
                 date,
                 notes,
                 items: countItems.map(item => ({
@@ -275,7 +279,7 @@ const InventoryCountPage: React.FC<InventoryCountProps> = ({ title, companyInfo 
                         const result = await createInventoryCount({
                             storeId: selectedStoreId,
                             userId: currentUser!.id,
-                            branchId: currentUser!.branchId,
+                            branchId: userBranchId || currentUser!.branchId || null,
                             date,
                             notes,
                             items: countItems.map(item => ({
@@ -297,7 +301,7 @@ const InventoryCountPage: React.FC<InventoryCountProps> = ({ title, companyInfo 
                             data: {
                                 storeId: selectedStoreId,
                                 userId: currentUser!.id,
-                                branchId: currentUser!.branchId,
+                                branchId: userBranchId || currentUser!.branchId || null,
                                 date,
                                 notes,
                                 items: countItems.map(item => ({
@@ -624,18 +628,10 @@ const InventoryCountPage: React.FC<InventoryCountProps> = ({ title, companyInfo 
                         </div>
                     </div>
                     <div className="flex gap-2">
-                        <PermissionWrapper
-                            requiredPermission={buildPermission(
-                                Resources.INVENTORY_COUNT,
-                                Actions.SEARCH
-                            )}
-                            fallback={null}
-                        >
                             <button onClick={() => setIsHistoryOpen(true)} className="px-4 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 flex items-center gap-2 border border-gray-300 font-medium">
                                 <DatabaseIcon className="w-5 h-5"/>
                                 <span>سجل الجرد</span>
                             </button>
-                        </PermissionWrapper>
                         <PermissionWrapper
                             requiredPermission={buildPermission(
                                 Resources.INVENTORY_COUNT,
