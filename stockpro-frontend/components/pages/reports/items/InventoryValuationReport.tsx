@@ -20,6 +20,17 @@ import {
   Resources,
   buildPermission,
 } from "../../../../enums/permissions.enum";
+import { useUserPermissions } from "../../../hook/usePermissions";
+
+// Helper function to get user's branch ID
+const getUserBranchId = (user: User | null): string | null => {
+  if (!user) return null;
+  if (user.branchId) return user.branchId;
+  const branch = (user as any)?.branch;
+  if (typeof branch === "string") return branch;
+  if (branch && typeof branch === "object") return branch.id || null;
+  return null;
+};
 
 interface InventoryValuationReportProps {
   title: string;
@@ -32,9 +43,15 @@ const InventoryValuationReport: React.FC<InventoryValuationReportProps> = ({
   companyInfo,
   currentUser,
 }) => {
-  // Branch filter state - default to current user's branch or "all"
-  const [selectedBranchId, setSelectedBranchId] = useState<string>(
-    currentUser?.branchId || "all"
+  const { hasPermission } = useUserPermissions();
+  
+  // Check if user has SEARCH permission to view all branches
+  const canSearchAllBranches = useMemo(
+    () =>
+      hasPermission(
+        buildPermission(Resources.INVENTORY_VALUATION_REPORT, Actions.SEARCH),
+      ),
+    [hasPermission],
   );
   
   // Get store for selected branch
@@ -43,8 +60,35 @@ const InventoryValuationReport: React.FC<InventoryValuationReportProps> = ({
   const { data: stores = [], isLoading: storesLoading } =
     useGetStoresQuery(undefined);
   
+  // Get current user's branch ID
+  const userBranchId = useMemo(() => getUserBranchId(currentUser), [currentUser]);
+  
+  // Branch filter state - default based on permission
+  const [selectedBranchId, setSelectedBranchId] = useState<string>(() => {
+    // Compute initial value based on permission check
+    const hasSearchPermission = hasPermission(
+      buildPermission(Resources.INVENTORY_VALUATION_REPORT, Actions.SEARCH),
+    );
+    return hasSearchPermission 
+      ? (userBranchId || "all") 
+      : (userBranchId || "");
+  });
+  
+  // Sync selectedBranchId when permission changes or branches load
+  useEffect(() => {
+    if (!canSearchAllBranches && branches.length > 0 && userBranchId) {
+      // Verify the user's branch exists in branches list
+      const userBranchExists = branches.some(b => b.id === userBranchId);
+      if (userBranchExists && selectedBranchId !== userBranchId) {
+        setSelectedBranchId(userBranchId);
+      }
+    } else if (!canSearchAllBranches && !userBranchId && selectedBranchId !== "") {
+      setSelectedBranchId("");
+    }
+  }, [canSearchAllBranches, userBranchId, selectedBranchId, branches]);
+  
   const selectedStore = selectedBranchId === "all" 
-    ? stores.find((store) => store.branchId === currentUser?.branchId)
+    ? stores.find((store) => store.branchId === userBranchId)
     : stores.find((store) => store.branchId === selectedBranchId);
   
   // API hooks - get items with store-specific balances
@@ -625,13 +669,19 @@ const InventoryValuationReport: React.FC<InventoryValuationReportProps> = ({
               className="p-2 border-2 border-brand-blue rounded-md bg-brand-blue-bg"
               value={selectedBranchId}
               onChange={(e) => setSelectedBranchId(e.target.value)}
+              disabled={!canSearchAllBranches}
             >
-              <option value="all">جميع الفروع</option>
+              {canSearchAllBranches && <option value="all">جميع الفروع</option>}
               {branches.map((branch) => (
                 <option key={branch.id} value={branch.id}>
                   {branch.name}
                 </option>
               ))}
+              {!canSearchAllBranches && !branches.find(b => b.id === selectedBranchId) && userBranchId && (
+                <option value={userBranchId}>
+                  {branches.find(b => b.id === userBranchId)?.name || "الفرع الحالي"}
+                </option>
+              )}
             </select>
             <label className="font-semibold">تقييم حسب سعر:</label>
             <select
