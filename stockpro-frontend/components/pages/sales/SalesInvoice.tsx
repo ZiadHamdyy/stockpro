@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useMemo } from "react";
+import React, { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import DataTableModal from "../../common/DataTableModal";
 import DocumentHeader from "../../common/DocumentHeader";
 import PermissionWrapper from "../../common/PermissionWrapper";
@@ -224,6 +224,12 @@ const SalesInvoice: React.FC<SalesInvoiceProps> = ({
     return stored ? JSON.parse(stored) : false;
   })();
 
+  // Read allowSellingLessThanCost setting from localStorage
+  const allowSellingLessThanCost = (() => {
+    const stored = localStorage.getItem('allowSellingLessThanCost');
+    return stored ? JSON.parse(stored) : false;
+  })();
+
   // Transform data for component
   const allItems: SelectableItem[] = (items as any[]).map((item) => ({
     id: item.code,
@@ -251,6 +257,55 @@ const SalesInvoice: React.FC<SalesInvoiceProps> = ({
     openingBalance: customer.openingBalance,
     currentBalance: customer.currentBalance,
   }));
+
+  // Helper function to normalize dates for comparison
+  const normalizeDate = useMemo(
+    () => (date: any): string => {
+      if (!date) return "";
+      if (typeof date === "string") {
+        const parsed = new Date(date);
+        if (!Number.isNaN(parsed.getTime())) {
+          return parsed.toISOString().substring(0, 10);
+        }
+        return date.substring(0, 10);
+      }
+      if (date instanceof Date) {
+        return date.toISOString().substring(0, 10);
+      }
+      return "";
+    },
+    []
+  );
+
+  // Helper function to get last purchase price before or on a reference date
+  const getLastPurchasePriceBeforeDate = useCallback((itemCode: string, referenceDate: string): number | null => {
+    const normalizedReferenceDate = normalizeDate(referenceDate);
+    if (!normalizedReferenceDate) return null;
+
+    // Get all purchase invoices up to the reference date, sorted by date descending
+    const relevantInvoices = (purchaseInvoices as any[])
+      .filter((inv) => {
+        const txDate = normalizeDate(inv.date) || normalizeDate((inv as any).invoiceDate);
+        return txDate && txDate <= normalizedReferenceDate;
+      })
+      .sort((a, b) => {
+        const dateA = normalizeDate(a.date) || normalizeDate((a as any).invoiceDate) || "";
+        const dateB = normalizeDate(b.date) || normalizeDate((b as any).invoiceDate) || "";
+        return dateB.localeCompare(dateA); // Descending order
+      });
+
+    // Find the most recent purchase price for this item
+    for (const inv of relevantInvoices) {
+      const items = Array.isArray(inv.items) ? inv.items : [];
+      for (const invItem of items) {
+        if (invItem.id === itemCode && invItem.price) {
+          return invItem.price;
+        }
+      }
+    }
+
+    return null;
+  }, [purchaseInvoices, normalizeDate]);
 
   const companyInfo: CompanyInfo = company || {
     name: "",
@@ -1086,6 +1141,24 @@ const SalesInvoice: React.FC<SalesInvoiceProps> = ({
             showToast(`الرصيد غير كافي لهذا الصنف: ${item.name}`, 'error');
             return;
           }
+        }
+      }
+    }
+
+    // Validate sale price against last purchase price if allowSellingLessThanCost is enabled
+    if (allowSellingLessThanCost) {
+      for (const item of finalItems) {
+        const lastPurchasePrice = getLastPurchasePriceBeforeDate(
+          item.id,
+          invoiceDetails.invoiceDate
+        );
+        // If last purchase price exists and sale price is less than it, prevent the sale
+        if (lastPurchasePrice !== null && item.price < lastPurchasePrice) {
+          showToast(
+            `لا يمكن البيع: سعر البيع (${formatMoney(item.price)}) أقل من آخر سعر شراء (${formatMoney(lastPurchasePrice)}) للصنف: ${item.name}`,
+            'error'
+          );
+          return;
         }
       }
     }

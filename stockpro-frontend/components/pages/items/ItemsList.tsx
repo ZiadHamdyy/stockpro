@@ -58,6 +58,12 @@ const ItemsList: React.FC<ItemsListProps> = ({ title, onNavigate }) => {
     return stored ? JSON.parse(stored) : false;
   });
 
+  // Load allowSellingLessThanCost flag from localStorage, default to false
+  const [allowSellingLessThanCost, setAllowSellingLessThanCost] = useState(() => {
+    const stored = localStorage.getItem("allowSellingLessThanCost");
+    return stored ? JSON.parse(stored) : false;
+  });
+
   // Save to localStorage whenever it changes
   useEffect(() => {
     localStorage.setItem(
@@ -72,6 +78,13 @@ const ItemsList: React.FC<ItemsListProps> = ({ title, onNavigate }) => {
       JSON.stringify(salePriceIncludesTax)
     );
   }, [salePriceIncludesTax]);
+
+  useEffect(() => {
+    localStorage.setItem(
+      "allowSellingLessThanCost",
+      JSON.stringify(allowSellingLessThanCost)
+    );
+  }, [allowSellingLessThanCost]);
 
   const inputStyle =
     "w-64 pr-10 pl-4 py-3 bg-brand-blue-bg border-2 border-brand-blue rounded-md text-black placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-brand-blue";
@@ -470,6 +483,21 @@ const ItemsList: React.FC<ItemsListProps> = ({ title, onNavigate }) => {
                   className="text-sm font-medium text-gray-700"
                 >
                   سعر البيع يشمل الضريبة
+                </label>
+              </div>
+              <div className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  id="allowSellingLessThanCost"
+                  checked={allowSellingLessThanCost}
+                  onChange={(e) => setAllowSellingLessThanCost(e.target.checked)}
+                  className="h-5 w-5 rounded border-gray-300 text-brand-blue focus:ring-brand-blue"
+                />
+                <label
+                  htmlFor="allowSellingLessThanCost"
+                  className="text-sm font-medium text-gray-700"
+                >
+                  سعر البيع اقل من التكلفة
                 </label>
               </div>
             </div>
