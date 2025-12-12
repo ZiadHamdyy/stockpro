@@ -278,6 +278,21 @@ const VIPCustomersReport: React.FC<VIPCustomersReportProps> = ({ title }) => {
                         </div>
                     </PermissionWrapper>
                 </div>
+                {/* Print-only period display */}
+                <div className="hidden print:flex w-full justify-start items-center my-4 text-right gap-4">
+                    <div className="flex items-center gap-2">
+                        <span className="font-bold text-gray-800">من:</span>
+                        <span className="px-3 py-2 border border-gray-300 rounded-lg bg-white font-bold text-gray-900">
+                            {startDate}
+                        </span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <span className="font-bold text-gray-800">إلى:</span>
+                        <span className="px-3 py-2 border border-gray-300 rounded-lg bg-white font-bold text-gray-900">
+                            {endDate}
+                        </span>
+                    </div>
+                </div>
 
                 {/* Podium / Hall of Fame */}
                 {top1 && (
