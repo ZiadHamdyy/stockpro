@@ -34,11 +34,34 @@ const FinancialPerformanceReport: React.FC<FinancialPerformanceReportProps> = ({
 
     const isLoading = salesLoading || purchasesLoading || vouchersLoading;
 
-    // Transform API data to match component expectations
+    // Normalize any date value to yyyy-MM-dd
+    const normalizeDate = useMemo(() => {
+        return (date: any): string => {
+            if (!date) return '';
+            if (typeof date === 'string') {
+                if (/^\d{4}-\d{2}-\d{2}$/.test(date)) return date;
+                return date.substring(0, 10);
+            }
+            if (date instanceof Date) {
+                return date.toISOString().split('T')[0];
+            }
+            try {
+                const parsed = new Date(date);
+                if (!isNaN(parsed.getTime())) {
+                    return parsed.toISOString().split('T')[0];
+                }
+            } catch {
+                // ignore
+            }
+            return '';
+        };
+    }, []);
+
+    // Transform API data to match component expectations (and normalize dates)
     const salesInvoices = useMemo<Invoice[]>(() => {
         return apiSalesInvoices.map((inv) => ({
             id: inv.id,
-            date: inv.date,
+            date: normalizeDate((inv as any).date || (inv as any).invoiceDate || (inv as any).transactionDate),
             customerOrSupplier: inv.customer ? {
                 id: inv.customer.id,
                 name: inv.customer.name
@@ -64,12 +87,12 @@ const FinancialPerformanceReport: React.FC<FinancialPerformanceReportProps> = ({
             userName: inv.user?.name || '',
             branchName: inv.branch?.name || ''
         }));
-    }, [apiSalesInvoices]);
+    }, [apiSalesInvoices, normalizeDate]);
 
     const purchaseInvoices = useMemo<Invoice[]>(() => {
         return apiPurchaseInvoices.map((inv) => ({
             id: inv.id,
-            date: inv.date,
+            date: normalizeDate((inv as any).date || (inv as any).invoiceDate || (inv as any).transactionDate),
             customerOrSupplier: inv.supplier ? {
                 id: inv.supplier.id,
                 name: inv.supplier.name
@@ -95,13 +118,13 @@ const FinancialPerformanceReport: React.FC<FinancialPerformanceReportProps> = ({
             userName: inv.user?.name || '',
             branchName: inv.branch?.name || ''
         }));
-    }, [apiPurchaseInvoices]);
+    }, [apiPurchaseInvoices, normalizeDate]);
 
     const paymentVouchers = useMemo<Voucher[]>(() => {
         return apiPaymentVouchers.map((v) => ({
             id: v.id,
             type: 'payment' as const,
-            date: v.date,
+            date: normalizeDate((v as any).date || (v as any).transactionDate),
             entity: {
                 type: v.entityType as any,
                 id: v.customerId || v.supplierId || v.currentAccountId || v.expenseCodeId || null,
@@ -114,7 +137,7 @@ const FinancialPerformanceReport: React.FC<FinancialPerformanceReportProps> = ({
             userName: '',
             branchName: v.branch?.name || ''
         }));
-    }, [apiPaymentVouchers]);
+    }, [apiPaymentVouchers, normalizeDate]);
 
     const reportData = useMemo(() => {
         const data = months.map((monthName, index) => {
@@ -122,14 +145,20 @@ const FinancialPerformanceReport: React.FC<FinancialPerformanceReportProps> = ({
             
             const filterByMonth = (dateStr?: string) => {
                 if (!dateStr) return false;
-                const d = new Date(dateStr);
+                const normalized = normalizeDate(dateStr);
+                if (!normalized) return false;
+                const d = new Date(normalized);
                 return d.getFullYear() === year && d.getMonth() === monthIndex;
             };
 
             const sales = salesInvoices.filter(inv => filterByMonth(inv.date)).reduce((sum, inv) => sum + (inv.totals?.net ?? 0), 0);
             const purchases = purchaseInvoices.filter(inv => filterByMonth(inv.date)).reduce((sum, inv) => sum + (inv.totals?.net ?? 0), 0);
             const expenses = paymentVouchers
-                .filter(v => v.entity?.type === 'expense' && filterByMonth(v.date))
+                .filter(v => {
+                    const entityType = (v.entity?.type || '').toString().toLowerCase();
+                    const isExpense = entityType.includes('expense');
+                    return isExpense && filterByMonth(v.date);
+                })
                 .reduce((sum, v) => sum + (v.amount ?? 0), 0);
             
             // Simplified cash flow net
@@ -144,7 +173,7 @@ const FinancialPerformanceReport: React.FC<FinancialPerformanceReportProps> = ({
             };
         });
         return data;
-    }, [year, salesInvoices, purchaseInvoices, paymentVouchers]);
+    }, [year, salesInvoices, purchaseInvoices, paymentVouchers, normalizeDate]);
 
     useEffect(() => {
         if (chartRef.current) {
@@ -265,15 +294,13 @@ const FinancialPerformanceReport: React.FC<FinancialPerformanceReportProps> = ({
             <div id="printable-area">
                 <ReportHeader title={title} />
                 
-                <div className="flex justify-between items-center my-4 bg-gray-50 p-4 rounded-lg border border-gray-200 no-print">
-                    <div className="flex items-center gap-4">
-                        <label className="font-bold text-gray-700">السنة المالية:</label>
-                        <input 
-                            type="number" 
-                            className="p-2 border border-gray-300 rounded-lg w-32 text-center font-bold focus:ring-2 focus:ring-brand-blue focus:outline-none" 
-                            value={year} 
-                            onChange={e => setYear(parseInt(e.target.value) || new Date().getFullYear())} 
-                        />
+                {/* Controls (screen only) */}
+                <div className="flex justify-between items-center my-4 bg-gray-50 p-4 rounded-lg border border-gray-200 print:hidden">
+                    <div className="flex items-center gap-2">
+                        <span className="font-bold text-gray-700">السنة المالية:</span>
+                        <span className="px-3 py-2 border border-gray-300 rounded-lg bg-white font-bold text-gray-900">
+                            {year}
+                        </span>
                     </div>
                     <div className="flex gap-2">
                         <PermissionWrapper
@@ -293,9 +320,16 @@ const FinancialPerformanceReport: React.FC<FinancialPerformanceReportProps> = ({
                         </PermissionWrapper>
                     </div>
                 </div>
+                {/* Print-only year display */}
+                <div className="hidden print:flex w-full justify-start items-center my-4 text-right gap-2">
+                    <span className="font-bold text-gray-800 ml-2">السنة المالية:</span>
+                    <span className="px-3 py-2 border border-gray-300 rounded-lg bg-white font-bold text-gray-900">
+                        {year}
+                    </span>
+                </div>
 
                 {/* Vibrant Summary Cards */}
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6 no-print">
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
                     <div className="bg-gradient-to-br from-blue-600 to-blue-700 text-white p-5 rounded-xl shadow-lg transform transition hover:-translate-y-1">
                         <p className="text-blue-100 text-xs font-bold uppercase tracking-wider opacity-80">إجمالي المبيعات</p>
                         <p className="text-3xl font-bold mt-2">{formatNumber(reportData.reduce((s, i) => s + i.sales, 0))}</p>
@@ -344,13 +378,13 @@ const FinancialPerformanceReport: React.FC<FinancialPerformanceReportProps> = ({
                                 </tr>
                             ))}
                         </tbody>
-                        <tfoot className="bg-gray-100 font-bold">
+                        <tfoot className="bg-blue-900 text-white font-bold">
                             <tr>
-                                <td className="p-3">الإجمالي السنوي</td>
-                                <td className="p-3 text-blue-800">{formatNumber(reportData.reduce((s, i) => s + i.sales, 0))}</td>
-                                <td className="p-3">{formatNumber(reportData.reduce((s, i) => s + i.purchases, 0))}</td>
-                                <td className="p-3">{formatNumber(reportData.reduce((s, i) => s + i.expenses, 0))}</td>
-                                <td className="p-3 text-lg text-emerald-700">{formatNumber(reportData.reduce((s, i) => s + i.net, 0))}</td>
+                                <td className="p-3 border-l border-blue-800">الإجمالي السنوي</td>
+                                <td className="p-3 border-l border-blue-800">{formatNumber(reportData.reduce((s, i) => s + i.sales, 0))}</td>
+                                <td className="p-3 border-l border-blue-800">{formatNumber(reportData.reduce((s, i) => s + i.purchases, 0))}</td>
+                                <td className="p-3 border-l border-blue-800">{formatNumber(reportData.reduce((s, i) => s + i.expenses, 0))}</td>
+                                <td className="p-3 bg-emerald-700 text-lg">{formatNumber(reportData.reduce((s, i) => s + i.net, 0))}</td>
                             </tr>
                         </tfoot>
                     </table>

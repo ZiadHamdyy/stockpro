@@ -30,6 +30,7 @@ import { useGetStoresQuery } from "../../store/slices/store/storeApi";
 import { useGetStoreReceiptVouchersQuery } from "../../store/slices/storeReceiptVoucher/storeReceiptVoucherApi";
 import { useGetStoreIssueVouchersQuery } from "../../store/slices/storeIssueVoucher/storeIssueVoucherApi";
 import { useGetStoreTransferVouchersQuery } from "../../store/slices/storeTransferVoucher/storeTransferVoucherApi";
+import { useGetSuppliersQuery } from "../../store/slices/supplier/supplierApiSlice";
 
 const flipSign = (value: number) => (value === 0 ? 0 : value * -1);
 
@@ -65,6 +66,7 @@ const BalanceSheet: React.FC = () => {
   const { data: storeReceiptVouchers = [] } = useGetStoreReceiptVouchersQuery(undefined);
   const { data: storeIssueVouchers = [] } = useGetStoreIssueVouchersQuery(undefined);
   const { data: storeTransferVouchers = [] } = useGetStoreTransferVouchersQuery(undefined);
+  const { data: apiSuppliers = [] } = useGetSuppliersQuery(undefined);
 
   const {
     data: balanceSheetData,
@@ -154,6 +156,25 @@ const BalanceSheet: React.FC = () => {
     return (apiPurchaseInvoices as any[]).map((invoice) => ({
       ...invoice,
       branchName: invoice.branch?.name || "",
+      // Transform nested supplier data - API uses 'supplier' field
+      customerOrSupplier: invoice.supplier
+        ? {
+            id: invoice.supplier.id.toString(),
+            name: invoice.supplier.name,
+          }
+        : invoice.customerOrSupplier
+        ? {
+            id: invoice.customerOrSupplier.id.toString(),
+            name: invoice.customerOrSupplier.name,
+          }
+        : null,
+      // Transform totals structure - API uses direct fields, not nested totals object
+      totals: invoice.totals || {
+        subtotal: invoice.subtotal || 0,
+        discount: invoice.discount || 0,
+        tax: invoice.tax || 0,
+        net: invoice.net || 0,
+      },
       items: invoice.items.map((item) => ({
         ...item,
         id: item.id,
@@ -171,6 +192,25 @@ const BalanceSheet: React.FC = () => {
     return (apiPurchaseReturns as any[]).map((invoice) => ({
       ...invoice,
       branchName: invoice.branch?.name || "",
+      // Transform nested supplier data - API uses 'supplier' field
+      customerOrSupplier: invoice.supplier
+        ? {
+            id: invoice.supplier.id.toString(),
+            name: invoice.supplier.name,
+          }
+        : invoice.customerOrSupplier
+        ? {
+            id: invoice.customerOrSupplier.id.toString(),
+            name: invoice.customerOrSupplier.name,
+          }
+        : null,
+      // Transform totals structure - API uses direct fields, not nested totals object
+      totals: invoice.totals || {
+        subtotal: invoice.subtotal || 0,
+        discount: invoice.discount || 0,
+        tax: invoice.tax || 0,
+        net: invoice.net || 0,
+      },
       items: invoice.items.map((item) => ({
         ...item,
         id: item.id,
@@ -369,6 +409,174 @@ const BalanceSheet: React.FC = () => {
     getLastPurchasePriceBeforeDate,
   ]);
 
+  // Transform vouchers to match expected structure for payables calculation
+  const receiptVouchers = useMemo(() => {
+    return (apiReceiptVouchers as any[]).map((voucher: any) => {
+      // Transform to match expected structure
+      const entity = voucher.entity || {
+        type: voucher.entityType,
+        id: voucher.customerId || voucher.supplierId || voucher.currentAccountId || "",
+        name: voucher.entityName || "",
+      };
+      
+      return {
+        id: voucher.id,
+        code: voucher.code || voucher.id,
+        date: normalizeDate(voucher.date),
+        entity: entity,
+        amount: voucher.amount,
+        description: voucher.description || "",
+        paymentMethod: voucher.paymentMethod,
+        safeOrBankId: voucher.safeId || voucher.bankId,
+      };
+    });
+  }, [apiReceiptVouchers, normalizeDate]);
+
+  const paymentVouchers = useMemo(() => {
+    return (apiPaymentVouchers as any[]).map((voucher: any) => {
+      // Transform to match expected structure
+      const entity = voucher.entity || {
+        type: voucher.entityType,
+        id: voucher.customerId || voucher.supplierId || voucher.currentAccountId || "",
+        name: voucher.entityName || "",
+      };
+      
+      return {
+        id: voucher.id,
+        code: voucher.code || voucher.id,
+        date: normalizeDate(voucher.date),
+        entity: entity,
+        amount: voucher.amount,
+        description: voucher.description || "",
+        paymentMethod: voucher.paymentMethod,
+        safeOrBankId: voucher.safeId || voucher.bankId,
+      };
+    });
+  }, [apiPaymentVouchers, normalizeDate]);
+
+  // Calculate payables using the same logic as SupplierBalanceReport
+  const calculatedPayables = useMemo(() => {
+    const normalizedEndDate = normalizeDate(endDate);
+    if (!normalizedEndDate) return 0;
+
+    const suppliers = (apiSuppliers as any[]).map((supplier) => ({
+      ...supplier,
+    }));
+
+    const supplierBalanceData = suppliers.map((supplier) => {
+      const supplierIdStr = supplier.id.toString();
+      const supplierId = supplier.id;
+
+      // Total Purchases (all purchase invoices up to endDate) - Credit (increases what we owe)
+      const totalPurchases = transformedPurchaseInvoices
+        .filter(
+          (inv) => {
+            const invDate = normalizeDate(inv.date);
+            const invSupplierId = inv.customerOrSupplier?.id?.toString() || 
+                                 inv.supplierId?.toString() || 
+                                 (inv.supplier?.id?.toString());
+            return (invSupplierId === supplierIdStr || invSupplierId == supplierId) && 
+                   invDate <= normalizedEndDate;
+          }
+        )
+        .reduce((sum, inv) => sum + toNumber(inv.totals?.net || inv.net || 0), 0);
+
+      // Cash purchase invoices are already paid, so they reduce what we owe (debit)
+      const totalCashPurchases = transformedPurchaseInvoices
+        .filter(
+          (inv) => {
+            const invDate = normalizeDate(inv.date);
+            const invSupplierId = inv.customerOrSupplier?.id?.toString() || 
+                                 inv.supplierId?.toString() || 
+                                 (inv.supplier?.id?.toString());
+            return inv.paymentMethod === "cash" &&
+                   (invSupplierId === supplierIdStr || invSupplierId == supplierId) && 
+                   invDate <= normalizedEndDate;
+          }
+        )
+        .reduce((sum, inv) => sum + toNumber(inv.totals?.net || inv.net || 0), 0);
+
+      // Total Returns (all purchase returns up to endDate) - Debit (reduces what we owe)
+      const totalReturns = transformedPurchaseReturns
+        .filter(
+          (inv) => {
+            const invDate = normalizeDate(inv.date);
+            const invSupplierId = inv.customerOrSupplier?.id?.toString() || 
+                                 inv.supplierId?.toString() || 
+                                 (inv.supplier?.id?.toString());
+            return (invSupplierId === supplierIdStr || invSupplierId == supplierId) && 
+                   invDate <= normalizedEndDate;
+          }
+        )
+        .reduce((sum, inv) => sum + toNumber(inv.totals?.net || inv.net || 0), 0);
+
+      // Cash purchase returns are counted in both debit and credit (like cash purchases)
+      const totalCashReturns = transformedPurchaseReturns
+        .filter(
+          (inv) => {
+            const invDate = normalizeDate(inv.date);
+            const invSupplierId = inv.customerOrSupplier?.id?.toString() || 
+                                 inv.supplierId?.toString() || 
+                                 (inv.supplier?.id?.toString());
+            return inv.paymentMethod === "cash" &&
+                   (invSupplierId === supplierIdStr || invSupplierId == supplierId) && 
+                   invDate <= normalizedEndDate;
+          }
+        )
+        .reduce((sum, inv) => sum + toNumber(inv.totals?.net || inv.net || 0), 0);
+
+      // Payment vouchers to supplier - Debit (reduces what we owe)
+      const totalPayments = paymentVouchers
+        .filter(
+          (v) => {
+            const vDate = normalizeDate(v.date);
+            const voucherSupplierId = v.entity?.id?.toString() || v.entity?.id;
+            return v.entity?.type === "supplier" &&
+                   (voucherSupplierId === supplierIdStr || voucherSupplierId == supplierId) &&
+                   vDate <= normalizedEndDate;
+          }
+        )
+        .reduce((sum, v) => sum + toNumber(v.amount || 0), 0);
+
+      // Receipt vouchers from supplier - Debit (reduces what we owe)
+      const totalReceipts = receiptVouchers
+        .filter(
+          (v) => {
+            const vDate = normalizeDate(v.date);
+            const voucherSupplierId = v.entity?.id?.toString() || v.entity?.id;
+            return v.entity?.type === "supplier" &&
+                   (voucherSupplierId === supplierIdStr || voucherSupplierId == supplierId) &&
+                   vDate <= normalizedEndDate;
+          }
+        )
+        .reduce((sum, v) => sum + toNumber(v.amount || 0), 0);
+
+      const opening = supplier.openingBalance || 0;
+      // Total Debit: cash purchases, all purchase returns, payment vouchers, receipt vouchers (all decrease what we owe)
+      const totalDebit = totalCashPurchases + totalReturns + totalPayments + totalReceipts;
+      // Total Credit: all purchase invoices plus cash purchase returns (both increase what we owe)
+      // Cash purchases are already counted in both debit and credit via totalCashPurchases
+      const totalCredit = totalPurchases + totalCashReturns;
+      // Balance = Beginning Balance + Total Debit - Total Credit
+      const balance = opening + totalDebit - totalCredit;
+
+      return balance;
+    });
+
+    // Sum all supplier balances
+    const totalPayables = supplierBalanceData.reduce((sum, balance) => sum + balance, 0);
+    return totalPayables;
+  }, [
+    apiSuppliers,
+    transformedPurchaseInvoices,
+    transformedPurchaseReturns,
+    paymentVouchers,
+    receiptVouchers,
+    endDate,
+    normalizeDate,
+    toNumber,
+  ]);
+
   // Calculate retained earnings with fiscal year logic
   const calculatedRetainedEarnings = useMemo(() => {
     const normalizedStartDate = normalizeDate(startDate);
@@ -399,7 +607,8 @@ const BalanceSheet: React.FC = () => {
       return null;
     }
 
-    const payables = flipSign(balanceSheetData.payables);
+    // Use calculated payables (same calculation as SupplierBalanceReport)
+    const payables = flipSign(calculatedPayables);
     const otherPayables = flipSign(balanceSheetData.otherPayables);
     const vatPayable = flipSign(balanceSheetData.vatPayable);
     const partnersBalance = flipSign(balanceSheetData.partnersBalance);
@@ -433,7 +642,7 @@ const BalanceSheet: React.FC = () => {
       totalLiabilitiesAndEquity,
       totalAssets,
     };
-  }, [balanceSheetData, calculatedRetainedEarnings, calculatedInventoryValue]);
+  }, [balanceSheetData, calculatedRetainedEarnings, calculatedInventoryValue, calculatedPayables]);
 
   // Compute VAT net from مدين/دائن totals (same logic as VATStatementReport)
   // Includes opening balance (transactions before startDate) to carry forward to future
