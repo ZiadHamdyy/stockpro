@@ -213,13 +213,14 @@ export class IncomeStatementService {
     for (const voucher of vouchers) {
       if (voucher.expenseCode?.expenseType?.name) {
         const typeName = voucher.expenseCode.expenseType.name;
-        // For tax-deductible expenses, use amount before tax when available
-        const amountToUse =
-          voucher.entityType === 'expense-Type'
-            ? voucher.priceBeforeTax ?? voucher.amount
+        // For "expense-Type" vouchers, use priceBeforeTax if available, otherwise use amount
+        // For regular "expense" vouchers, use amount
+        const expenseAmount = 
+          voucher.entityType === 'expense-Type' && voucher.priceBeforeTax !== null
+            ? voucher.priceBeforeTax
             : voucher.amount;
         expensesByType[typeName] =
-          (expensesByType[typeName] || 0) + amountToUse;
+          (expensesByType[typeName] || 0) + expenseAmount;
       }
     }
 

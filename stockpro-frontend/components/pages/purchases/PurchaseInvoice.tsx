@@ -45,6 +45,7 @@ import {
   Resources,
   buildPermission,
 } from "../../../enums/permissions.enum";
+import { useUserPermissions } from "../../hook/usePermissions";
 import { guardPrint } from "../../utils/printGuard";
 
 type SelectableItem = {
@@ -96,24 +97,31 @@ const PurchaseInvoice: React.FC<PurchaseInvoiceProps> = ({
 }) => {
   // Redux hooks
   const { data: allInvoices = [] } = useGetPurchaseInvoicesQuery();
+  const { hasPermission } = useUserPermissions();
   
   // Get current user's branch ID
   const userBranchId = getUserBranchId(currentUser);
+  const canSearchAllBranches = useMemo(
+    () =>
+      hasPermission(buildPermission(Resources.PURCHASE_INVOICE, Actions.SEARCH)),
+    [hasPermission],
+  );
   
   // Filter invoices: show only current branch + current user
   const invoices = useMemo(() => {
     return allInvoices.filter((invoice: any) => {
       // Filter by current branch
       const invoiceBranchId = invoice.branch?.id || invoice.branchId;
-      if (userBranchId && invoiceBranchId !== userBranchId) return false;
+      if (!canSearchAllBranches && userBranchId && invoiceBranchId !== userBranchId) return false;
       
       // Filter by current user
       const invoiceUserId = invoice.user?.id || invoice.userId;
-      if (currentUser?.id && invoiceUserId !== currentUser.id) return false;
+      if (!canSearchAllBranches && currentUser?.id && invoiceUserId !== currentUser.id)
+        return false;
       
       return true;
     });
-  }, [allInvoices, userBranchId, currentUser?.id]);
+  }, [allInvoices, canSearchAllBranches, userBranchId, currentUser?.id]);
   const [createPurchaseInvoice] = useCreatePurchaseInvoiceMutation();
   const [updatePurchaseInvoice] = useUpdatePurchaseInvoiceMutation();
   const [deletePurchaseInvoice] = useDeletePurchaseInvoiceMutation();
@@ -127,8 +135,10 @@ const PurchaseInvoice: React.FC<PurchaseInvoiceProps> = ({
   // Get store for current user's branch
   const userStore = stores.find((store) => store.branchId === userBranchId);
   
-  // Get items with store-specific balances
-  const { data: items = [] } = useGetItemsQuery(userStore ? { storeId: userStore.id } : undefined);
+  // Get items with store-specific balances (skip branch restriction if search permission exists)
+  const itemsQueryParams =
+    !canSearchAllBranches && userStore ? { storeId: userStore.id } : undefined;
+  const { data: items = [] } = useGetItemsQuery(itemsQueryParams);
 
   // Transform data
   const allItems: SelectableItem[] = (items as any[]).map((item) => ({

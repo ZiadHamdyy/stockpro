@@ -9,6 +9,7 @@ import { guardPrint } from '../../utils/printGuard';
 import DataTableModal from '../../common/DataTableModal';
 import PermissionWrapper from '../../common/PermissionWrapper';
 import { Resources, Actions, buildPermission } from '../../../enums/permissions.enum';
+import { useUserPermissions } from "../../hook/usePermissions";
 import { useGetItemsQuery } from '../../store/slices/items/itemsApi';
 import { useGetStoresQuery } from '../../store/slices/store/storeApi';
 import { 
@@ -62,16 +63,24 @@ const InventoryCountPage: React.FC<InventoryCountProps> = ({ title, companyInfo 
 
     // Fetch data from Redux
     const { data: stores = [], isLoading: storesLoading } = useGetStoresQuery();
-    const { data: items = [], isLoading: itemsLoading } = useGetItemsQuery(selectedStoreId ? { storeId: selectedStoreId } : undefined);
+    const { data: items = [], isLoading: itemsLoading } = useGetItemsQuery(
+        !canSearchAllBranches && selectedStoreId ? { storeId: selectedStoreId } : undefined,
+    );
     const { data: allInventoryCounts = [], isLoading: countsLoading } = useGetInventoryCountsQuery();
+    const { hasPermission } = useUserPermissions();
     
     // Get user's branch ID and filter inventory counts
     const userBranchId = getUserBranchId(currentUser);
+    const canSearchAllBranches = useMemo(
+        () =>
+            hasPermission(buildPermission(Resources.INVENTORY_COUNT, Actions.SEARCH)),
+        [hasPermission],
+    );
     const inventoryCounts = useMemo(() => {
         return allInventoryCounts.filter((count: any) => {
             // Filter by current branch
             const countBranchId = count.store?.branch?.id;
-            if (userBranchId && countBranchId !== userBranchId) return false;
+            if (!canSearchAllBranches && userBranchId && countBranchId !== userBranchId) return false;
             
             // Filter by current user
             const countUserId = count.user?.id || count.userId;
@@ -79,7 +88,7 @@ const InventoryCountPage: React.FC<InventoryCountProps> = ({ title, companyInfo 
             
             return true;
         });
-    }, [allInventoryCounts, userBranchId, currentUser?.id]);
+    }, [allInventoryCounts, canSearchAllBranches, userBranchId, currentUser?.id]);
     const [createInventoryCount, { isLoading: isCreating }] = useCreateInventoryCountMutation();
     const [postInventoryCount, { isLoading: isPosting }] = usePostInventoryCountMutation();
     const [updateInventoryCount, { isLoading: isUpdating }] = useUpdateInventoryCountMutation();
@@ -95,24 +104,27 @@ const InventoryCountPage: React.FC<InventoryCountProps> = ({ title, companyInfo 
         return store?.name || '';
     }, [stores, selectedStoreId, userStore]);
 
-    // Set user's store as default when stores are loaded (new/unsaved)
+    // Set user's store as default when stores are loaded (new/unsaved) if branch-restricted
     useEffect(() => {
+        if (canSearchAllBranches) return;
         if (!userStore) return;
         if (countId) return; // don't override when viewing saved count
         if (selectedStoreId !== userStore.id) {
             setSelectedStoreId(userStore.id);
             setCountItems([]); // reset items to reload for current store
         }
-    }, [userStore, selectedStoreId, countId]);
+    }, [canSearchAllBranches, userStore, selectedStoreId, countId]);
 
     // Initialize new count
     const initializeCount = () => {
-        // Reset to user's store when creating new count
-        if (!userStore) return;
-        if (selectedStoreId !== userStore.id) {
-            setSelectedStoreId(userStore.id);
-            setCountItems([]);
-            return; // Will re-run when store changes and items load
+        // Reset to user's store when creating new count (only when branch-restricted)
+        if (!canSearchAllBranches) {
+            if (!userStore) return;
+            if (selectedStoreId !== userStore.id) {
+                setSelectedStoreId(userStore.id);
+                setCountItems([]);
+                return; // Will re-run when store changes and items load
+            }
         }
 
         if (!selectedStoreId || items.length === 0) return;

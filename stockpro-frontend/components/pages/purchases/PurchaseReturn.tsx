@@ -31,6 +31,7 @@ import {
   Resources,
   buildPermission,
 } from "../../../enums/permissions.enum";
+import { useUserPermissions } from "../../hook/usePermissions";
 import {
   useGetPurchaseReturnsQuery,
   useCreatePurchaseReturnMutation,
@@ -71,6 +72,7 @@ const PurchaseReturn: React.FC<PurchaseReturnProps> = ({
 }) => {
   // Redux hooks
   const { data: allReturns = [] } = useGetPurchaseReturnsQuery();
+  const { hasPermission } = useUserPermissions();
   
   // Helper function to get user's branch ID
   const getUserBranchId = (user: User | null): string | null => {
@@ -84,21 +86,26 @@ const PurchaseReturn: React.FC<PurchaseReturnProps> = ({
   
   // Get current user's branch ID
   const userBranchId = getUserBranchId(currentUser);
+  const canSearchAllBranches = useMemo(
+    () =>
+      hasPermission(buildPermission(Resources.PURCHASE_RETURN, Actions.SEARCH)),
+    [hasPermission],
+  );
   
   // Filter returns: show only current branch + current user
   const returns = useMemo(() => {
     return allReturns.filter((returnRecord: any) => {
       // Filter by current branch
       const returnBranchId = returnRecord.branch?.id || returnRecord.branchId;
-      if (userBranchId && returnBranchId !== userBranchId) return false;
+      if (!canSearchAllBranches && userBranchId && returnBranchId !== userBranchId) return false;
       
       // Filter by current user
       const returnUserId = returnRecord.user?.id || returnRecord.userId;
-      if (currentUser?.id && returnUserId !== currentUser.id) return false;
+      if (!canSearchAllBranches && currentUser?.id && returnUserId !== currentUser.id) return false;
       
       return true;
     });
-  }, [allReturns, userBranchId, currentUser?.id]);
+  }, [allReturns, canSearchAllBranches, userBranchId, currentUser?.id]);
   const [createPurchaseReturn] = useCreatePurchaseReturnMutation();
   const [updatePurchaseReturn] = useUpdatePurchaseReturnMutation();
   const [deletePurchaseReturn] = useDeletePurchaseReturnMutation();
@@ -110,15 +117,18 @@ const PurchaseReturn: React.FC<PurchaseReturnProps> = ({
   const { data: stores = [] } = useGetStoresQuery();
 
   // Filter safes by current user's branch
-  const filteredSafes = userBranchId
-    ? safes.filter((safe) => safe.branchId === userBranchId)
-    : safes;
+  const filteredSafes =
+    !canSearchAllBranches && userBranchId
+      ? safes.filter((safe) => safe.branchId === userBranchId)
+      : safes;
   
   // Get store for current user's branch
   const userStore = stores.find((store) => store.branchId === userBranchId);
   
   // Get items with store-specific balances
-  const { data: items = [] } = useGetItemsQuery(userStore ? { storeId: userStore.id } : undefined);
+  const itemsQueryParams =
+    !canSearchAllBranches && userStore ? { storeId: userStore.id } : undefined;
+  const { data: items = [] } = useGetItemsQuery(itemsQueryParams);
 
   // Transform data
   const allItems: SelectableItem[] = (items as any[]).map((item) => ({

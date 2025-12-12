@@ -15,6 +15,7 @@ import { useInternalTransfers } from "../../hook/useInternalTransfers";
 import DataTableModal from "../../common/DataTableModal";
 import InternalTransferPrintPreview from "./InternalTransferPrintPreview";
 import { useAuth } from "../../hook/Auth";
+import { useUserPermissions } from "../../hook/usePermissions";
 
 interface InternalTransfersProps {
   title: string;
@@ -25,6 +26,7 @@ const InternalTransfers: React.FC<InternalTransfersProps> = ({ title }) => {
   const { User } = useAuth();
   const { showToast } = useToast();
   const [searchParams, setSearchParams] = useSearchParams();
+  const { hasPermission } = useUserPermissions();
   
   const {
     vouchers: allVouchers,
@@ -60,21 +62,36 @@ const InternalTransfers: React.FC<InternalTransfersProps> = ({ title }) => {
   
   // Get current user's branch ID
   const userBranchId = getUserBranchId(User);
+  const canSearchAllBranches = useMemo(
+    () =>
+      hasPermission(
+        buildPermission(Resources.INTERNAL_TRANSFER, Actions.SEARCH),
+      ),
+    [hasPermission],
+  );
   
   // Filter vouchers: show only current branch + current user
+  const visibleBranchSafes = useMemo(
+    () => (canSearchAllBranches ? safes : branchSafes),
+    [branchSafes, canSearchAllBranches, safes],
+  );
+
   const vouchers = useMemo(() => {
     return allVouchers.filter((voucher: any) => {
-      // Filter by current branch
+      // Filter by current branch only when search permission is absent
       const voucherBranchId = voucher.branch?.id || voucher.branchId;
-      if (userBranchId && voucherBranchId !== userBranchId) return false;
+      if (!canSearchAllBranches && userBranchId && voucherBranchId !== userBranchId) {
+        return false;
+      }
       
       // Filter by current user
       const voucherUserId = voucher.user?.id || voucher.userId;
-      if (User?.id && voucherUserId !== User.id) return false;
+      if (!canSearchAllBranches && User?.id && voucherUserId !== User.id)
+        return false;
       
       return true;
     });
-  }, [allVouchers, userBranchId, User?.id]);
+  }, [allVouchers, canSearchAllBranches, userBranchId, User?.id]);
 
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [isSearchModalOpen, setIsSearchModalOpen] = useState(false);
@@ -272,7 +289,7 @@ const InternalTransfers: React.FC<InternalTransfersProps> = ({ title }) => {
                       setTransferData((prev) => ({
                         ...prev,
                         fromType: "safe",
-                        fromId: branchSafes.length > 0 ? branchSafes[0].id : null,
+                        fromId: visibleBranchSafes.length > 0 ? visibleBranchSafes[0].id : null,
                       }))
                     }
                     className={`w-1/2 py-2 rounded ${
@@ -324,7 +341,7 @@ const InternalTransfers: React.FC<InternalTransfersProps> = ({ title }) => {
                       : "اختر بنك..."}
                   </option>
                   {transferData.fromType === "safe"
-                    ? branchSafes.map((s) => (
+                    ? visibleBranchSafes.map((s) => (
                         <option key={s.id} value={s.id}>
                           {s.name}
                         </option>
@@ -354,7 +371,7 @@ const InternalTransfers: React.FC<InternalTransfersProps> = ({ title }) => {
                       setTransferData((prev) => ({
                         ...prev,
                         toType: "safe",
-                        toId: branchSafes.length > 0 ? branchSafes[0].id : null,
+                        toId: visibleBranchSafes.length > 0 ? visibleBranchSafes[0].id : null,
                       }))
                     }
                     className={`w-1/2 py-2 rounded ${
@@ -406,7 +423,7 @@ const InternalTransfers: React.FC<InternalTransfersProps> = ({ title }) => {
                       : "اختر بنك..."}
                   </option>
                   {transferData.toType === "safe"
-                    ? branchSafes.map((s) => (
+                    ? visibleBranchSafes.map((s) => (
                         <option key={s.id} value={s.id}>
                           {s.name}
                         </option>

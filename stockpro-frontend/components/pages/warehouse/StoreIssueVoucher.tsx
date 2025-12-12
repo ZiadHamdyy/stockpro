@@ -32,6 +32,7 @@ import {
   useUpdateStoreIssueVoucherMutation,
   useDeleteStoreIssueVoucherMutation,
 } from "../../store/slices/storeIssueVoucher/storeIssueVoucherApi";
+import { useUserPermissions } from "../../hook/usePermissions";
 import { useLazyGetStoreItemBalanceQuery } from "../../store/slices/store/storeApi";
 
 type SelectableItem = {
@@ -100,12 +101,20 @@ const StoreIssueVoucher: React.FC<StoreIssueVoucherProps> = ({ title }) => {
   const { data: stores = [] } = useGetStoresQuery();
   const { data: allVouchers = [], isLoading: isLoadingVouchers, refetch: refetchVouchers } =
     useGetStoreIssueVouchersQuery();
+  const { hasPermission } = useUserPermissions();
   
   // Get current user from auth state
   const currentUser = useSelector((state: RootState) => state.auth.user);
   
   // Get current user's branch ID
   const userBranchId = getUserBranchId(currentUser);
+  const canSearchAllBranches = useMemo(
+    () =>
+      hasPermission(
+        buildPermission(Resources.STORE_ISSUE_VOUCHER, Actions.SEARCH),
+      ),
+    [hasPermission],
+  );
   
   // Filter vouchers: exclude system-generated ones, and show only current branch + current user
   const vouchers = useMemo(() => {
@@ -116,15 +125,15 @@ const StoreIssueVoucher: React.FC<StoreIssueVoucherProps> = ({ title }) => {
       
       // Filter by current branch
       const voucherBranchId = v.store?.branch?.id;
-      if (userBranchId && voucherBranchId !== userBranchId) return false;
+      if (!canSearchAllBranches && userBranchId && voucherBranchId !== userBranchId) return false;
       
       // Filter by current user
       const voucherUserId = v.user?.id || v.userId;
-      if (currentUser?.id && voucherUserId !== currentUser.id) return false;
+      if (!canSearchAllBranches && currentUser?.id && voucherUserId !== currentUser.id) return false;
       
       return true;
     });
-  }, [allVouchers, userBranchId, currentUser?.id]);
+  }, [allVouchers, canSearchAllBranches, userBranchId, currentUser?.id]);
   const [createVoucher, { isLoading: isCreating }] =
     useCreateStoreIssueVoucherMutation();
   const [updateVoucher, { isLoading: isUpdating }] =

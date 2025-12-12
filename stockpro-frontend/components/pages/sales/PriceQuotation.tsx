@@ -26,6 +26,7 @@ import {
     Resources,
     buildPermission,
 } from '../../../enums/permissions.enum';
+import { useUserPermissions } from '../../hook/usePermissions';
 
 type SelectableItem = {id: string, name: string, unit: string, price: number, stock: number, barcode?: string};
 
@@ -36,6 +37,7 @@ interface PriceQuotationProps {
 const PriceQuotation: React.FC<PriceQuotationProps> = ({ title }) => {
     const routerNavigate = useNavigate();
     const currentUser = useAppSelector(state => state.auth.user);
+    const { hasPermission } = useUserPermissions();
     const { data: company } = useGetCompanyQuery();
     const computedVatRate = company?.vatRate ?? 0;
     const computedIsVatEnabled = company?.isVatEnabled ?? false;
@@ -84,6 +86,13 @@ const PriceQuotation: React.FC<PriceQuotationProps> = ({ title }) => {
     
     // Get current user's branch ID
     const userBranchId = getUserBranchId(currentUser);
+    const canSearchAllBranches = useMemo(
+        () =>
+            hasPermission(
+                buildPermission(Resources.PRICE_QUOTATION, Actions.SEARCH),
+            ),
+        [hasPermission],
+    );
     
     // Filter quotations: show only current branch + current user
     const quotations: PriceQuotationRecord[] = useMemo(() => {
@@ -91,15 +100,15 @@ const PriceQuotation: React.FC<PriceQuotationProps> = ({ title }) => {
         return allQuotations.filter((quotation: any) => {
             // Filter by current branch
             const quotationBranchId = quotation.branch?.id || quotation.branchId;
-            if (userBranchId && quotationBranchId !== userBranchId) return false;
+            if (!canSearchAllBranches && userBranchId && quotationBranchId !== userBranchId) return false;
             
             // Filter by current user
             const quotationUserId = quotation.user?.id || quotation.userId;
-            if (currentUser?.id && quotationUserId !== currentUser.id) return false;
+            if (!canSearchAllBranches && currentUser?.id && quotationUserId !== currentUser.id) return false;
             
             return true;
         });
-    }, [quotationsData, userBranchId, currentUser?.id]);
+    }, [quotationsData, canSearchAllBranches, userBranchId, currentUser?.id]);
     const [createPriceQuotation, { isLoading: isCreatingQuotation }] = useCreatePriceQuotationMutation();
     const [updatePriceQuotation, { isLoading: isUpdatingQuotation }] = useUpdatePriceQuotationMutation();
     const [deletePriceQuotation, { isLoading: isDeletingQuotation }] = useDeletePriceQuotationMutation();

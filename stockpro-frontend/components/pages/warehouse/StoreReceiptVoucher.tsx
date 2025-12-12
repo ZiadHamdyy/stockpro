@@ -32,6 +32,7 @@ import {
   useUpdateStoreReceiptVoucherMutation,
   useDeleteStoreReceiptVoucherMutation,
 } from "../../store/slices/storeReceiptVoucher/storeReceiptVoucherApi";
+import { useUserPermissions } from "../../hook/usePermissions";
 
 type SelectableItem = {
   id: string;
@@ -99,12 +100,20 @@ const StoreReceiptVoucher: React.FC<StoreReceiptVoucherProps> = ({ title }) => {
   const { data: stores = [] } = useGetStoresQuery();
   const { data: allVouchers = [], isLoading: isLoadingVouchers, refetch: refetchVouchers } =
     useGetStoreReceiptVouchersQuery();
+  const { hasPermission } = useUserPermissions();
   
   // Get current user from auth state
   const currentUser = useSelector((state: RootState) => state.auth.user);
   
   // Get current user's branch ID
   const userBranchId = getUserBranchId(currentUser);
+  const canSearchAllBranches = useMemo(
+    () =>
+      hasPermission(
+        buildPermission(Resources.STORE_RECEIPT_VOUCHER, Actions.SEARCH),
+      ),
+    [hasPermission],
+  );
   
   // Filter vouchers: exclude system-generated ones, and show only current branch + current user
   const vouchers = useMemo(() => {
@@ -115,15 +124,15 @@ const StoreReceiptVoucher: React.FC<StoreReceiptVoucherProps> = ({ title }) => {
       
       // Filter by current branch
       const voucherBranchId = v.store?.branch?.id;
-      if (userBranchId && voucherBranchId !== userBranchId) return false;
+      if (!canSearchAllBranches && userBranchId && voucherBranchId !== userBranchId) return false;
       
       // Filter by current user
       const voucherUserId = v.user?.id || v.userId;
-      if (currentUser?.id && voucherUserId !== currentUser.id) return false;
+      if (!canSearchAllBranches && currentUser?.id && voucherUserId !== currentUser.id) return false;
       
       return true;
     });
-  }, [allVouchers, userBranchId, currentUser?.id]);
+  }, [allVouchers, canSearchAllBranches, userBranchId, currentUser?.id]);
   const [createVoucher, { isLoading: isCreating }] =
     useCreateStoreReceiptVoucherMutation();
   const [updateVoucher, { isLoading: isUpdating }] =

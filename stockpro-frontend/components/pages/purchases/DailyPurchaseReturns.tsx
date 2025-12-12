@@ -16,6 +16,7 @@ import {
   Resources,
   buildPermission,
 } from "../../../enums/permissions.enum";
+import { useUserPermissions } from "../../hook/usePermissions";
 
 interface DailyPurchaseReturnsProps {
   title: string;
@@ -30,6 +31,7 @@ const DailyPurchaseReturns: React.FC<DailyPurchaseReturnsProps> = ({
   const { data: company } = useGetCompanyQuery();
   const { data: branches = [] } = useGetBranchesQuery();
   const currentUser = useAppSelector(selectCurrentUser);
+  const { hasPermission } = useUserPermissions();
   
   // Helper function to get user's branch ID
   const getUserBranchId = (user: any): string | null => {
@@ -43,21 +45,31 @@ const DailyPurchaseReturns: React.FC<DailyPurchaseReturnsProps> = ({
   
   // Get current user's branch ID
   const userBranchId = getUserBranchId(currentUser);
+  const canSearchAllBranches = useMemo(
+    () =>
+      hasPermission(
+        buildPermission(Resources.DAILY_PURCHASE_RETURNS, Actions.SEARCH),
+      ),
+    [hasPermission],
+  );
   
   // Filter returns: show only current branch + current user
   const purchaseReturns = useMemo(() => {
     return allPurchaseReturns.filter((returnRecord: any) => {
       // Filter by current branch
       const returnBranchId = returnRecord.branch?.id || returnRecord.branchId;
-      if (userBranchId && returnBranchId !== userBranchId) return false;
+      if (!canSearchAllBranches && userBranchId && returnBranchId !== userBranchId) {
+        return false;
+      }
       
       // Filter by current user
       const returnUserId = returnRecord.user?.id || returnRecord.userId;
-      if (currentUser?.id && returnUserId !== currentUser.id) return false;
+      if (!canSearchAllBranches && currentUser?.id && returnUserId !== currentUser.id)
+        return false;
       
       return true;
     });
-  }, [allPurchaseReturns, userBranchId, currentUser?.id]);
+  }, [allPurchaseReturns, canSearchAllBranches, userBranchId, currentUser?.id]);
 
   const companyInfo: CompanyInfo = company || {
     name: "",

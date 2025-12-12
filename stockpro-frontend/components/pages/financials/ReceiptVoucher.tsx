@@ -16,6 +16,7 @@ import ReceiptVoucherPrintPreview from "./ReceiptVoucherPrintPreview";
 import { useAuth } from "../../hook/Auth";
 import { useGetReceivableAccountsQuery } from "../../store/slices/receivableAccounts/receivableAccountsApi";
 import { useGetPayableAccountsQuery } from "../../store/slices/payableAccounts/payableAccountsApi";
+import { useUserPermissions } from "../../hook/usePermissions";
 
 type AllEntityType =
   | "customer"
@@ -39,6 +40,7 @@ const ReceiptVoucher: React.FC<ReceiptVoucherProps> = ({ title }) => {
   const { showToast } = useToast();
   const { data: receivableAccounts = [] } = useGetReceivableAccountsQuery();
   const { data: payableAccounts = [] } = useGetPayableAccountsQuery();
+  const { hasPermission } = useUserPermissions();
   const [searchParams, setSearchParams] = useSearchParams();
   const {
     vouchers: allVouchers,
@@ -73,21 +75,36 @@ const ReceiptVoucher: React.FC<ReceiptVoucherProps> = ({ title }) => {
   
   // Get current user's branch ID
   const userBranchId = getUserBranchId(User);
+  const canSearchAllBranches = useMemo(
+    () =>
+      hasPermission(
+        buildPermission(Resources.RECEIPT_VOUCHER, Actions.SEARCH),
+      ),
+    [hasPermission],
+  );
   
   // Filter vouchers: show only current branch + current user
+  const visibleBranchSafes = useMemo(
+    () => (canSearchAllBranches ? safes : branchSafes),
+    [branchSafes, canSearchAllBranches, safes],
+  );
+
   const vouchers = useMemo(() => {
     return allVouchers.filter((voucher: any) => {
-      // Filter by current branch
+      // Filter by current branch only when search permission is absent
       const voucherBranchId = voucher.branch?.id || voucher.branchId;
-      if (userBranchId && voucherBranchId !== userBranchId) return false;
+      if (!canSearchAllBranches && userBranchId && voucherBranchId !== userBranchId) {
+        return false;
+      }
       
       // Filter by current user
       const voucherUserId = voucher.user?.id || voucher.userId;
-      if (User?.id && voucherUserId !== User.id) return false;
+      if (!canSearchAllBranches && User?.id && voucherUserId !== User.id)
+        return false;
       
       return true;
     });
-  }, [allVouchers, userBranchId, User?.id]);
+  }, [allVouchers, canSearchAllBranches, userBranchId, User?.id]);
 
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [isSearchModalOpen, setIsSearchModalOpen] = useState(false);
@@ -458,7 +475,7 @@ const ReceiptVoucher: React.FC<ReceiptVoucherProps> = ({ title }) => {
                       ...prev,
                       paymentMethod: "safe",
                       safeOrBankId:
-                        branchSafes.length > 0 ? branchSafes[0].id : null,
+                        visibleBranchSafes.length > 0 ? visibleBranchSafes[0].id : null,
                     }))
                   }
                   className={`w-1/2 py-2 rounded ${voucherData.paymentMethod === "safe" ? "bg-brand-blue text-white shadow" : "text-gray-600"} transition-all duration-200`}
@@ -502,7 +519,7 @@ const ReceiptVoucher: React.FC<ReceiptVoucherProps> = ({ title }) => {
                     : "اختر بنك..."}
                 </option>
                 {voucherData.paymentMethod === "safe"
-                  ? branchSafes.map((s) => (
+                  ? visibleBranchSafes.map((s) => (
                       <option key={s.id} value={s.id}>
                         {s.name}
                       </option>

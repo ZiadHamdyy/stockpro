@@ -41,6 +41,7 @@ import InvoicePrintPreview from "./InvoicePrintPreview";
 import { useAppSelector } from "../../store/hooks";
 import PermissionWrapper from "../../common/PermissionWrapper";
 import { Resources, Actions, buildPermission } from "../../../enums/permissions.enum";
+import { useUserPermissions } from "../../hook/usePermissions";
 import {
   useGetItemsQuery,
   useGetItemGroupsQuery,
@@ -260,11 +261,17 @@ const POS: React.FC<POSProps> = () => {
   };
 
   const { data: stores = [] } = useGetStoresQuery();
+  const { hasPermission } = useUserPermissions();
   const userBranchId = getUserBranchId(currentUser);
   const userStore = stores.find((store) => store.branchId === userBranchId);
+  const canSearchAllBranches = useMemo(
+    () =>
+      hasPermission(buildPermission(Resources.SALES_INVOICE, Actions.SEARCH)),
+    [hasPermission],
+  );
 
   const { data: itemsData = [] } = useGetItemsQuery(
-    userStore ? { storeId: userStore.id } : undefined,
+    !canSearchAllBranches && userStore ? { storeId: userStore.id } : undefined,
   );
   const { data: itemGroupsData = [] } = useGetItemGroupsQuery(undefined);
   const { data: customersData = [] } = useGetCustomersQuery();
@@ -273,10 +280,10 @@ const POS: React.FC<POSProps> = () => {
 
   const filteredSafes = useMemo(
     () =>
-      userBranchId
+      !canSearchAllBranches && userBranchId
         ? safesData.filter((safe) => safe.branchId === userBranchId)
         : safesData,
-    [safesData, userBranchId],
+    [canSearchAllBranches, safesData, userBranchId],
   );
 
   // Read salePriceIncludesTax setting from localStorage

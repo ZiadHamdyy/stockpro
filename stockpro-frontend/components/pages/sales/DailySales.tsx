@@ -16,6 +16,7 @@ import {
   Resources,
   buildPermission,
 } from "../../../enums/permissions.enum";
+import { useUserPermissions } from "../../hook/usePermissions";
 
 interface DailySalesProps {
   title: string;
@@ -28,6 +29,7 @@ const DailySales: React.FC<DailySalesProps> = ({ title }) => {
   const { data: company } = useGetCompanyQuery();
   const { data: branches = [] } = useGetBranchesQuery();
   const currentUser = useAppSelector(selectCurrentUser);
+  const { hasPermission } = useUserPermissions();
   
   // Helper function to get user's branch ID
   const getUserBranchId = (user: any): string | null => {
@@ -41,21 +43,27 @@ const DailySales: React.FC<DailySalesProps> = ({ title }) => {
   
   // Get current user's branch ID
   const userBranchId = getUserBranchId(currentUser);
+  const canSearchAllBranches = useMemo(
+    () =>
+      hasPermission(buildPermission(Resources.DAILY_SALES, Actions.SEARCH)),
+    [hasPermission],
+  );
   
   // Filter invoices: show only current branch + current user
   const salesInvoices = useMemo(() => {
     return allSalesInvoices.filter((invoice: any) => {
       // Filter by current branch
       const invoiceBranchId = invoice.branch?.id || invoice.branchId;
-      if (userBranchId && invoiceBranchId !== userBranchId) return false;
+      if (!canSearchAllBranches && userBranchId && invoiceBranchId !== userBranchId) return false;
       
       // Filter by current user
       const invoiceUserId = invoice.user?.id || invoice.userId;
-      if (currentUser?.id && invoiceUserId !== currentUser.id) return false;
+      if (!canSearchAllBranches && currentUser?.id && invoiceUserId !== currentUser.id)
+        return false;
       
       return true;
     });
-  }, [allSalesInvoices, userBranchId, currentUser?.id]);
+  }, [allSalesInvoices, canSearchAllBranches, userBranchId, currentUser?.id]);
 
   const companyInfo: CompanyInfo = company || {
     name: "",

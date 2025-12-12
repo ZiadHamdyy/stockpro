@@ -42,6 +42,7 @@ import {
   Resources,
   buildPermission,
 } from "../../../enums/permissions.enum";
+import { useUserPermissions } from "../../hook/usePermissions";
 
 type SelectableItem = {
   id: string;
@@ -73,6 +74,7 @@ const SalesReturn: React.FC<SalesReturnProps> = ({
   // Redux hooks
   const { data: allReturns = [], isLoading: returnsLoading } =
     useGetSalesReturnsQuery();
+  const { hasPermission } = useUserPermissions();
   
   // Helper function to get user's branch ID
   const getUserBranchId = (user: User | null): string | null => {
@@ -86,21 +88,26 @@ const SalesReturn: React.FC<SalesReturnProps> = ({
   
   // Get current user's branch ID
   const userBranchId = getUserBranchId(currentUser);
+  const canSearchAllBranches = useMemo(
+    () =>
+      hasPermission(buildPermission(Resources.SALES_RETURN, Actions.SEARCH)),
+    [hasPermission],
+  );
   
   // Filter returns: show only current branch + current user
   const returns = useMemo(() => {
     return allReturns.filter((returnRecord: any) => {
       // Filter by current branch
       const returnBranchId = returnRecord.branch?.id || returnRecord.branchId;
-      if (userBranchId && returnBranchId !== userBranchId) return false;
+      if (!canSearchAllBranches && userBranchId && returnBranchId !== userBranchId) return false;
       
       // Filter by current user
       const returnUserId = returnRecord.user?.id || returnRecord.userId;
-      if (currentUser?.id && returnUserId !== currentUser.id) return false;
+      if (!canSearchAllBranches && currentUser?.id && returnUserId !== currentUser.id) return false;
       
       return true;
     });
-  }, [allReturns, userBranchId, currentUser?.id]);
+  }, [allReturns, canSearchAllBranches, userBranchId, currentUser?.id]);
   const [createSalesReturn, { isLoading: isCreating }] =
     useCreateSalesReturnMutation();
   const [updateSalesReturn, { isLoading: isUpdating }] =
@@ -116,15 +123,18 @@ const SalesReturn: React.FC<SalesReturnProps> = ({
   const { data: stores = [] } = useGetStoresQuery();
 
   // Filter safes by current user's branch
-  const filteredSafes = userBranchId
-    ? safes.filter((safe) => safe.branchId === userBranchId)
-    : safes;
+  const filteredSafes =
+    !canSearchAllBranches && userBranchId
+      ? safes.filter((safe) => safe.branchId === userBranchId)
+      : safes;
   
   // Get store for current user's branch
   const userStore = stores.find((store) => store.branchId === userBranchId);
   
   // Get items with store-specific balances
-  const { data: items = [] } = useGetItemsQuery(userStore ? { storeId: userStore.id } : undefined);
+  const itemsQueryParams =
+    !canSearchAllBranches && userStore ? { storeId: userStore.id } : undefined;
+  const { data: items = [] } = useGetItemsQuery(itemsQueryParams);
 
   // Company-level sale price includes tax setting
   const salePriceIncludesTaxSetting = (() => {

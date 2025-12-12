@@ -54,6 +54,7 @@ import {
   Resources,
   buildPermission,
 } from "../../../enums/permissions.enum";
+import { useUserPermissions } from "../../hook/usePermissions";
 
 type SelectableItem = {
   id: string;
@@ -159,24 +160,30 @@ const SalesInvoice: React.FC<SalesInvoiceProps> = ({
   // Redux hooks
   const { data: allInvoices = [], isLoading: invoicesLoading } =
     useGetSalesInvoicesQuery();
+  const { hasPermission } = useUserPermissions();
   
   // Get current user's branch ID
   const userBranchId = getUserBranchId(currentUser);
+  const canSearchAllBranches = useMemo(
+    () =>
+      hasPermission(buildPermission(Resources.SALES_INVOICE, Actions.SEARCH)),
+    [hasPermission],
+  );
   
   // Filter invoices: show only current branch + current user
   const invoices = useMemo(() => {
     return allInvoices.filter((invoice: any) => {
       // Filter by current branch
       const invoiceBranchId = invoice.branch?.id || invoice.branchId;
-      if (userBranchId && invoiceBranchId !== userBranchId) return false;
+      if (!canSearchAllBranches && userBranchId && invoiceBranchId !== userBranchId) return false;
       
       // Filter by current user
       const invoiceUserId = invoice.user?.id || invoice.userId;
-      if (currentUser?.id && invoiceUserId !== currentUser.id) return false;
+      if (!canSearchAllBranches && currentUser?.id && invoiceUserId !== currentUser.id) return false;
       
       return true;
     });
-  }, [allInvoices, userBranchId, currentUser?.id]);
+  }, [allInvoices, canSearchAllBranches, userBranchId, currentUser?.id]);
   const [createSalesInvoice, { isLoading: isCreating }] =
     useCreateSalesInvoiceMutation();
   const [updateSalesInvoice, { isLoading: isUpdating }] =
@@ -194,8 +201,10 @@ const SalesInvoice: React.FC<SalesInvoiceProps> = ({
   // Get store for current user's branch
   const userStore = stores.find((store) => store.branchId === userBranchId);
   
-  // Get items with store-specific balances
-  const { data: items = [] } = useGetItemsQuery(userStore ? { storeId: userStore.id } : undefined);
+  // Get items with store-specific balances (skip branch restriction if search permission exists)
+  const itemsQueryParams =
+    !canSearchAllBranches && userStore ? { storeId: userStore.id } : undefined;
+  const { data: items = [] } = useGetItemsQuery(itemsQueryParams);
 
   // Get data for ItemContextBar
   const { data: branches = [] } = useGetBranchesQuery();
@@ -208,9 +217,10 @@ const SalesInvoice: React.FC<SalesInvoiceProps> = ({
   const { data: salesReturns = [] } = useGetSalesReturnsQuery();
 
   // Filter safes by current user's branch
-  const filteredSafes = userBranchId
-    ? safes.filter((safe) => safe.branchId === userBranchId)
-    : safes;
+  const filteredSafes =
+    !canSearchAllBranches && userBranchId
+      ? safes.filter((safe) => safe.branchId === userBranchId)
+      : safes;
 
   // Read allowSellingLessThanStock setting from localStorage
   const allowSellingLessThanStock = (() => {
