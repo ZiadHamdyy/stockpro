@@ -17,6 +17,17 @@ import { useGetExpensePaymentVouchersQuery } from "../../../store/slices/payment
 import { useGetBranchesQuery } from "../../../store/slices/branch/branchApi";
 import { useAuth } from "../../../hook/Auth";
 import { getCurrentYearRange } from "../dateUtils";
+import { useUserPermissions } from "../../../hook/usePermissions";
+
+// Helper function to get user's branch ID
+const getUserBranchId = (user: User | null): string | null => {
+  if (!user) return null;
+  if (user.branchId) return user.branchId;
+  const branch = (user as any)?.branch;
+  if (typeof branch === "string") return branch;
+  if (branch && typeof branch === "object") return branch.id || null;
+  return null;
+};
 
 interface ExpenseStatementReportProps {
   title: string;
@@ -30,6 +41,16 @@ const ExpenseStatementReport: React.FC<ExpenseStatementReportProps> = ({
   currentUser,
 }) => {
   const { isAuthed } = useAuth();
+  const { hasPermission } = useUserPermissions();
+  
+  // Check if user has SEARCH permission to view all branches
+  const canSearchAllBranches = useMemo(
+    () =>
+      hasPermission(
+        buildPermission(Resources.EXPENSE_STATEMENT_REPORT, Actions.SEARCH),
+      ),
+    [hasPermission],
+  );
   
   // Only fetch if user is authenticated
   const skip = !isAuthed;
@@ -47,6 +68,15 @@ const ExpenseStatementReport: React.FC<ExpenseStatementReportProps> = ({
       ...branch,
     }));
   }, [apiBranches]);
+  
+  // Get current user's branch ID
+  const userBranchId = useMemo(() => getUserBranchId(currentUser), [currentUser]);
+  
+  // Get user's branch name
+  const userBranchName = useMemo(() => {
+    if (!userBranchId) return "";
+    return branches.find(b => b.id === userBranchId)?.name || "";
+  }, [userBranchId, branches]);
 
   // Helper function to normalize date to YYYY-MM-DD format
   const normalizeDate = useMemo(() => {
@@ -113,7 +143,28 @@ const ExpenseStatementReport: React.FC<ExpenseStatementReportProps> = ({
   const [selectedExpenseCodeId, setSelectedExpenseCodeId] = useState<
     string | null
   >(null);
-  const [selectedBranch, setSelectedBranch] = useState("all");
+  
+  // Branch filter state - default based on permission
+  const [selectedBranch, setSelectedBranch] = useState<string>(() => {
+    // Compute initial value based on permission check
+    const hasSearchPermission = hasPermission(
+      buildPermission(Resources.EXPENSE_STATEMENT_REPORT, Actions.SEARCH),
+    );
+    return hasSearchPermission ? "all" : "";
+  });
+  
+  // Sync selectedBranch when permission changes or branches load
+  useEffect(() => {
+    if (!canSearchAllBranches && branches.length > 0 && userBranchName) {
+      // If user doesn't have permission, always set to current branch name
+      if (selectedBranch !== userBranchName) {
+        setSelectedBranch(userBranchName);
+      }
+    } else if (!canSearchAllBranches && !userBranchName && selectedBranch !== "") {
+      setSelectedBranch("");
+    }
+  }, [canSearchAllBranches, userBranchName, selectedBranch, branches]);
+  
   const [reportData, setReportData] = useState<any[]>([]);
 
   // Set initial selected expense code when data loads
@@ -305,13 +356,19 @@ const ExpenseStatementReport: React.FC<ExpenseStatementReportProps> = ({
               className={inputStyle}
               value={selectedBranch}
               onChange={(e) => setSelectedBranch(e.target.value)}
+              disabled={!canSearchAllBranches}
             >
-              <option value="all">جميع الفروع</option>
+              {canSearchAllBranches && <option value="all">جميع الفروع</option>}
               {branches.map((branch) => (
                 <option key={branch.id} value={branch.name}>
                   {branch.name}
                 </option>
               ))}
+              {!canSearchAllBranches && !branches.find(b => b.name === selectedBranch) && userBranchName && (
+                <option value={userBranchName}>
+                  {userBranchName}
+                </option>
+              )}
             </select>
             <label className="font-semibold">من:</label>
             <input

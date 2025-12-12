@@ -20,6 +20,17 @@ import {
   Resources,
   buildPermission,
 } from '../../../../enums/permissions.enum';
+import { useUserPermissions } from '../../../hook/usePermissions';
+
+// Helper function to get user's branch ID
+const getUserBranchId = (user: User | null): string | null => {
+  if (!user) return null;
+  if (user.branchId) return user.branchId;
+  const branch = (user as any)?.branch;
+  if (typeof branch === "string") return branch;
+  if (branch && typeof branch === "object") return branch.id || null;
+  return null;
+};
 
 interface VATStatementReportProps {
   title: string;
@@ -29,6 +40,16 @@ interface VATStatementReportProps {
 
 const VATStatementReport: React.FC<VATStatementReportProps> = ({ title, companyInfo, currentUser }) => {
     const navigate = useNavigate();
+    const { hasPermission } = useUserPermissions();
+    
+    // Check if user has SEARCH permission to view all branches
+    const canSearchAllBranches = useMemo(
+        () =>
+            hasPermission(
+                buildPermission(Resources.VAT_STATEMENT_REPORT, Actions.SEARCH),
+            ),
+        [hasPermission],
+    );
     
     // API hooks
     const { data: apiSalesInvoices = [], isLoading: salesInvoicesLoading } =
@@ -104,6 +125,15 @@ const VATStatementReport: React.FC<VATStatementReportProps> = ({ title, companyI
             ...branch,
         }));
     }, [apiBranches]);
+    
+    // Get current user's branch ID
+    const userBranchId = useMemo(() => getUserBranchId(currentUser), [currentUser]);
+    
+    // Get user's branch name
+    const userBranchName = useMemo(() => {
+        if (!userBranchId) return "";
+        return branches.find(b => b.id === userBranchId)?.name || "";
+    }, [userBranchId, branches]);
 
     const paymentVouchers = useMemo(() => {
         return (apiPaymentVouchers as PaymentVoucher[]).map((voucher) => ({
@@ -122,7 +152,28 @@ const VATStatementReport: React.FC<VATStatementReportProps> = ({ title, companyI
     const currentYear = new Date().getFullYear();
     const [startDate, setStartDate] = useState(`${currentYear}-01-01`);
     const [endDate, setEndDate] = useState(`${currentYear}-12-31`);
-    const [selectedBranch, setSelectedBranch] = useState('all');
+    
+    // Branch filter state - default based on permission
+    const [selectedBranch, setSelectedBranch] = useState<string>(() => {
+        // Compute initial value based on permission check
+        const hasSearchPermission = hasPermission(
+            buildPermission(Resources.VAT_STATEMENT_REPORT, Actions.SEARCH),
+        );
+        return hasSearchPermission ? "all" : "";
+    });
+    
+    // Sync selectedBranch when permission changes or branches load
+    useEffect(() => {
+        if (!canSearchAllBranches && branches.length > 0 && userBranchName) {
+            // If user doesn't have permission, always set to current branch name
+            if (selectedBranch !== userBranchName) {
+                setSelectedBranch(userBranchName);
+            }
+        } else if (!canSearchAllBranches && !userBranchName && selectedBranch !== "") {
+            setSelectedBranch("");
+        }
+    }, [canSearchAllBranches, userBranchName, selectedBranch, branches]);
+    
     const [reportData, setReportData] = useState<any[]>([]);
 
     // Helper function to normalize date to YYYY-MM-DD format
@@ -440,11 +491,17 @@ const VATStatementReport: React.FC<VATStatementReportProps> = ({ title, companyI
                             className={inputStyle} 
                             value={selectedBranch} 
                             onChange={e => setSelectedBranch(e.target.value)}
+                            disabled={!canSearchAllBranches}
                             size={branches.length > 5 ? 5 : undefined}
                             style={branches.length > 5 ? { overflowY: 'auto' } : {}}
                         >
-                            <option value="all">جميع الفروع</option>
+                            {canSearchAllBranches && <option value="all">جميع الفروع</option>}
                             {branches.map(branch => <option key={branch.id} value={branch.name}>{branch.name}</option>)}
+                            {!canSearchAllBranches && !branches.find(b => b.name === selectedBranch) && userBranchName && (
+                                <option value={userBranchName}>
+                                    {userBranchName}
+                                </option>
+                            )}
                         </select>
                         <label className="font-semibold">من:</label>
                         <input type="date" className={inputStyle} value={startDate} onChange={e => setStartDate(e.target.value)} />
