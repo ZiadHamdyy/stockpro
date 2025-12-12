@@ -54,11 +54,15 @@ const ZatcaInvoiceUpload: React.FC<ZatcaInvoiceUploadProps> = ({ title, companyI
     
     // --- State ---
     const [startDate, setStartDate] = useState(() => {
-        const d = new Date();
-        d.setDate(d.getDate() - 3);
-        return d.toISOString().substring(0, 10);
+        const now = new Date();
+        const year = now.getFullYear();
+        return `${year}-01-01`;
     });
-    const [endDate, setEndDate] = useState(() => new Date().toISOString().substring(0, 10));
+    const [endDate, setEndDate] = useState(() => {
+        const now = new Date();
+        const year = now.getFullYear();
+        return `${year}-12-31`;
+    });
     const [filterStatus, setFilterStatus] = useState<'all' | 'pending' | 'reported' | 'failed'>('all');
     const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
     const [isGlobalProcessing, setIsGlobalProcessing] = useState(false);
