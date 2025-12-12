@@ -17,6 +17,10 @@ import { useAuth } from "../../hook/Auth";
 import { useGetReceivableAccountsQuery } from "../../store/slices/receivableAccounts/receivableAccountsApi";
 import { useGetPayableAccountsQuery } from "../../store/slices/payableAccounts/payableAccountsApi";
 import { useUserPermissions } from "../../hook/usePermissions";
+import EntityBottomBar from "../../common/EntityBottomBar";
+import { useGetSalesInvoicesQuery } from "../../store/slices/salesInvoice/salesInvoiceApiSlice";
+import { useGetSalesReturnsQuery } from "../../store/slices/salesReturn/salesReturnApiSlice";
+import { useGetPaymentVouchersQuery } from "../../store/slices/paymentVoucherApiSlice";
 
 type AllEntityType =
   | "customer"
@@ -26,6 +30,7 @@ type AllEntityType =
   | "payable_account"
   | "expense"
   | "expense-Type"
+  | "revenue"
   | "vat";
 import DataTableModal from "../../common/DataTableModal";
 import { formatNumber } from "../../../utils/formatting";
@@ -111,6 +116,7 @@ const ReceiptVoucher: React.FC<ReceiptVoucherProps> = ({ title }) => {
   const [isSearchModalOpen, setIsSearchModalOpen] = useState(false);
   const [shouldResetOnClose, setShouldResetOnClose] = useState(false);
   const [hasInitialized, setHasInitialized] = useState(false);
+  const [showInfoBar, setShowInfoBar] = useState(false);
   const [previewVoucherData, setPreviewVoucherData] = useState<{
     number: string;
     date: string;
@@ -122,6 +128,11 @@ const ReceiptVoucher: React.FC<ReceiptVoucherProps> = ({ title }) => {
     branchName: string;
   } | null>(null);
   const shouldOpenPreviewRef = useRef(false);
+
+  // Fetch data for entity stats calculation
+  const { data: salesInvoices = [] } = useGetSalesInvoicesQuery();
+  const { data: salesReturns = [] } = useGetSalesReturnsQuery();
+  const { data: paymentVouchers = [] } = useGetPaymentVouchersQuery();
 
   // Open preview when previewVoucherData is set and we have a flag to open it
   useEffect(() => {
@@ -368,13 +379,207 @@ const ReceiptVoucher: React.FC<ReceiptVoucherProps> = ({ title }) => {
     setIsPreviewOpen(true);
   };
 
+  // Calculate entity stats for bottom bar
+  const entityStats = useMemo(() => {
+    const { type, id } = voucherData.entity;
+    if (!id) return null;
+    const idStr = String(id);
+    const currentVoucherId = voucherData.number;
+
+    let balance = 0;
+    let lastInvoice = undefined;
+    let lastReceipt = undefined;
+
+    // Logic for Customers
+    if (type === 'customer') {
+      const customer = customers.find(c => String(c.id) === idStr);
+      if (customer) {
+        // Calculate balance: openingBalance + creditSales - creditReturns - receipts + payments
+        const creditSales = salesInvoices
+          .filter(i => {
+            const invCustomerId = i.customerId || i.customer?.id;
+            return invCustomerId && String(invCustomerId) === idStr && i.paymentMethod === 'credit';
+          })
+          .reduce((sum, i) => sum + (i.net || 0), 0);
+        
+        const creditReturns = salesReturns
+          .filter(i => {
+            const retCustomerId = i.customerId || i.customer?.id;
+            return retCustomerId && String(retCustomerId) === idStr && i.paymentMethod === 'credit';
+          })
+          .reduce((sum, i) => sum + (i.net || 0), 0);
+        
+        const totalReceipts = vouchers
+          .filter(v => v.entityType === 'customer' && String(v.customerId || '') === idStr && String(v.id || '') !== String(currentVoucherId || ''))
+          .reduce((sum, v) => sum + (v.amount || 0), 0);
+        
+        const totalPayments = paymentVouchers
+          .filter(v => v.entityType === 'customer' && String(v.customerId || '') === idStr)
+          .reduce((sum, v) => sum + (v.amount || 0), 0);
+        
+        balance = (customer.openingBalance || 0) + creditSales - creditReturns - totalReceipts + totalPayments;
+        
+        // Get Last Invoice
+        const sortedInvoices = salesInvoices
+          .filter(i => {
+            const invCustomerId = i.customerId || i.customer?.id;
+            return invCustomerId && String(invCustomerId) === idStr;
+          })
+          .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+        
+        if (sortedInvoices.length > 0) {
+          lastInvoice = { 
+            amount: sortedInvoices[0].net || 0, 
+            date: new Date(sortedInvoices[0].date).toLocaleDateString("ar-EG") 
+          };
+        }
+
+        // Get Last Receipt (excluding current if editing)
+        const sortedReceipts = vouchers
+          .filter(v => v.entityType === 'customer' && String(v.customerId || '') === idStr && String(v.id || '') !== String(currentVoucherId || ''))
+          .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+        
+        if (sortedReceipts.length > 0) {
+          lastReceipt = { 
+            amount: sortedReceipts[0].amount || 0, 
+            date: new Date(sortedReceipts[0].date).toLocaleDateString("ar-EG") 
+          };
+        }
+      }
+    } 
+    // Logic for Suppliers
+    else if (type === 'supplier') {
+      const supplier = suppliers.find(s => String(s.id) === idStr);
+      if (supplier) {
+        balance = supplier.openingBalance || 0;
+        
+        const lastTx = vouchers
+          .filter(v => v.entityType === 'supplier' && String(v.supplierId || '') === idStr && String(v.id || '') !== String(currentVoucherId || ''))
+          .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())[0];
+        
+        if (lastTx) { 
+          lastReceipt = { 
+            amount: lastTx.amount || 0, 
+            date: new Date(lastTx.date).toLocaleDateString("ar-EG") 
+          };
+        }
+      }
+    }
+    // Logic for Current Accounts
+    else if (type === 'current_account') {
+      const account = currentAccounts.find(a => String(a.id) === idStr);
+      if (account) {
+        const totalRec = vouchers
+          .filter(v => v.entityType === 'current_account' && String(v.currentAccountId || '') === idStr && String(v.id || '') !== String(currentVoucherId || ''))
+          .reduce((sum, v) => sum + (v.amount || 0), 0);
+        balance = (account.openingBalance || 0) - totalRec; 
+        
+        const lastTx = vouchers
+          .filter(v => v.entityType === 'current_account' && String(v.currentAccountId || '') === idStr && String(v.id || '') !== String(currentVoucherId || ''))
+          .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())[0];
+        
+        if (lastTx) { 
+          lastReceipt = { 
+            amount: lastTx.amount || 0, 
+            date: new Date(lastTx.date).toLocaleDateString("ar-EG") 
+          };
+        }
+      }
+    }
+    // Logic for Revenue Codes
+    else if (type === 'revenue' as AllEntityType) {
+      const totalCollected = vouchers
+        .filter(v => v.entityType === 'revenue' && String(v.revenueCodeId || '') === idStr && String(v.id || '') !== String(currentVoucherId || ''))
+        .reduce((sum, v) => sum + (v.amount || 0), 0);
+      balance = totalCollected;
+      
+      const lastTx = vouchers
+        .filter(v => v.entityType === 'revenue' && String(v.revenueCodeId || '') === idStr && String(v.id || '') !== String(currentVoucherId || ''))
+        .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())[0];
+      
+      if (lastTx) { 
+        lastReceipt = { 
+          amount: lastTx.amount || 0, 
+          date: new Date(lastTx.date).toLocaleDateString("ar-EG") 
+        };
+      }
+    }
+    // Logic for Receivable Accounts
+    else if (type === 'receivable_account') {
+      const account = receivableAccounts.find((a: any) => String(a.id) === idStr);
+      if (account) {
+        const totalRec = vouchers
+          .filter(v => v.entityType === 'receivable_account' && String(v.receivableAccountId || '') === idStr && String(v.id || '') !== String(currentVoucherId || ''))
+          .reduce((sum, v) => sum + (v.amount || 0), 0);
+        balance = (account.openingBalance || 0) - totalRec;
+        
+        const lastTx = vouchers
+          .filter(v => v.entityType === 'receivable_account' && String(v.receivableAccountId || '') === idStr && String(v.id || '') !== String(currentVoucherId || ''))
+          .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())[0];
+        
+        if (lastTx) { 
+          lastReceipt = { 
+            amount: lastTx.amount || 0, 
+            date: new Date(lastTx.date).toLocaleDateString("ar-EG") 
+          };
+        }
+      }
+    }
+    // Logic for Payable Accounts
+    else if (type === 'payable_account') {
+      const account = payableAccounts.find((a: any) => String(a.id) === idStr);
+      if (account) {
+        const totalRec = vouchers
+          .filter(v => v.entityType === 'payable_account' && String(v.payableAccountId || '') === idStr && String(v.id || '') !== String(currentVoucherId || ''))
+          .reduce((sum, v) => sum + (v.amount || 0), 0);
+        balance = (account.openingBalance || 0) - totalRec;
+        
+        const lastTx = vouchers
+          .filter(v => v.entityType === 'payable_account' && String(v.payableAccountId || '') === idStr && String(v.id || '') !== String(currentVoucherId || ''))
+          .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())[0];
+        
+        if (lastTx) { 
+          lastReceipt = { 
+            amount: lastTx.amount || 0, 
+            date: new Date(lastTx.date).toLocaleDateString("ar-EG") 
+          };
+        }
+      }
+    }
+
+    return { balance, lastInvoice, lastReceipt };
+  }, [
+    voucherData.entity.id, 
+    voucherData.entity.type, 
+    voucherData.number,
+    customers, 
+    suppliers, 
+    currentAccounts, 
+    revenueCodes, 
+    receivableAccounts,
+    payableAccounts,
+    salesInvoices, 
+    salesReturns, 
+    vouchers,
+    paymentVouchers
+  ]);
+
+  // Show/Hide Bar logic
+  useEffect(() => {
+    if (voucherData.entity.id && entityStats && !isReadOnly) {
+      setShowInfoBar(true);
+    } else {
+      setShowInfoBar(false);
+    }
+  }, [voucherData.entity.id, entityStats, isReadOnly]);
+
   if (isLoading) {
     return <div className="text-center p-6">جاري التحميل...</div>;
   }
 
   return (
     <>
-      <div className="bg-white p-6 rounded-lg shadow">
+      <div className="bg-white p-6 rounded-lg shadow pb-20">
         <div className="border-2 border-brand-blue rounded-lg mb-4">
           <DocumentHeader companyInfo={companyInfo} />
         </div>
@@ -797,6 +1002,17 @@ const ReceiptVoucher: React.FC<ReceiptVoucherProps> = ({ title }) => {
         companyInfo={companyInfo}
         colorTheme="green"
       />
+      {/* Entity Bottom Bar */}
+      {showInfoBar && entityStats && (
+        <EntityBottomBar 
+          type={voucherData.entity.type as any}
+          entityName={voucherData.entity.name}
+          balance={entityStats.balance}
+          lastInvoice={entityStats.lastInvoice}
+          lastReceipt={entityStats.lastReceipt}
+          onClose={() => setShowInfoBar(false)}
+        />
+      )}
     </>
   );
 };
