@@ -1746,7 +1746,7 @@ const LiquidityReport: React.FC<LiquidityReportProps> = ({ title }) => {
                     <div className="p-4 space-y-3">
                         <div className="flex justify-between text-sm border-b border-gray-100 pb-2">
                             <span className="text-gray-600">الذمم الدائنة (الموردين)</span>
-                            <span className="font-bold">{formatNumber(analysis.totalPayables)}</span>
+                            <span className="font-bold">{formatNumber(analysis.totalPayables * -1)}</span>
                         </div>
                         <div className="flex justify-between text-sm border-b border-gray-100 pb-2">
                             <span className="text-gray-600">أرصدة دائنة أخرى</span>
