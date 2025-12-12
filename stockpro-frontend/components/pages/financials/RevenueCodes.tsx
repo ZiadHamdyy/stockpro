@@ -1,5 +1,4 @@
-import React, { useState, useCallback } from "react";
-import type { RevenueCode } from "../../../types";
+import React, { useState, useCallback, useMemo } from "react";
 import { PrintIcon, SearchIcon } from "../../icons";
 import RevenueCodeModal from "../reports/financials/RevenueCodeModal";
 import { useToast } from "../../common/ToastProvider";
@@ -10,18 +9,29 @@ import {
   Actions,
   buildPermission,
 } from "../../../enums/permissions.enum";
+import {
+  useGetRevenueCodesQuery,
+  useCreateRevenueCodeMutation,
+  useUpdateRevenueCodeMutation,
+  useDeleteRevenueCodeMutation,
+  type RevenueCode,
+} from "../../store/slices/revenueCode/revenueCodeApiSlice";
 
 interface RevenueCodesProps {
   title: string;
 }
 
 const RevenueCodes: React.FC<RevenueCodesProps> = ({ title }) => {
-  const [revenueCodes, setRevenueCodes] = useState<RevenueCode[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [codeToEdit, setCodeToEdit] = useState<RevenueCode | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const { showToast } = useToast();
   const { showModal } = useModal();
+
+  const { data: revenueCodes = [], isLoading, error } = useGetRevenueCodesQuery(searchTerm || undefined);
+  const [createRevenueCode, { isLoading: isCreating }] = useCreateRevenueCodeMutation();
+  const [updateRevenueCode, { isLoading: isUpdating }] = useUpdateRevenueCodeMutation();
+  const [deleteRevenueCode, { isLoading: isDeleting }] = useDeleteRevenueCodeMutation();
 
   const handleOpenModal = useCallback((code: RevenueCode | null = null) => {
     setCodeToEdit(code);
@@ -51,9 +61,9 @@ const RevenueCodes: React.FC<RevenueCodesProps> = ({ title }) => {
       showModal({
         title: "تأكيد الحذف",
         message: `هل أنت متأكد من حذف بند الإيراد "${code.name}"؟`,
-        onConfirm: () => {
+        onConfirm: async () => {
           try {
-            setRevenueCodes((prev) => prev.filter((c) => c.id !== code.id));
+            await deleteRevenueCode(code.id).unwrap();
             showToast("تم حذف بند الإيراد بنجاح");
           } catch (error) {
             showToast("حدث خطأ أثناء حذف بند الإيراد", "error");
@@ -64,21 +74,20 @@ const RevenueCodes: React.FC<RevenueCodesProps> = ({ title }) => {
         showPassword: true,
       });
     },
-    [showModal, showToast]
+    [showModal, deleteRevenueCode, showToast]
   );
 
   const handleSave = useCallback(
-    (code: RevenueCode) => {
+    async (code: RevenueCode) => {
       try {
         if (codeToEdit) {
-          // Update existing code
-          setRevenueCodes((prev) =>
-            prev.map((c) => (c.id === codeToEdit.id ? code : c))
-          );
+          await updateRevenueCode({
+            id: codeToEdit.id,
+            data: { name: code.name },
+          }).unwrap();
           showToast("تم تعديل بند الإيراد بنجاح");
         } else {
-          // Create new code
-          setRevenueCodes((prev) => [...prev, code]);
+          await createRevenueCode({ name: code.name }).unwrap();
           showToast("تم إضافة بند الإيراد بنجاح");
         }
         handleCloseModal();
@@ -92,17 +101,45 @@ const RevenueCodes: React.FC<RevenueCodesProps> = ({ title }) => {
         console.error("Error saving revenue code:", error);
       }
     },
-    [codeToEdit, showToast, handleCloseModal]
+    [codeToEdit, createRevenueCode, updateRevenueCode, showToast, handleCloseModal]
   );
 
-  const filteredCodes = revenueCodes.filter(
-    (code) =>
-      code.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      code.code.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredCodes = useMemo(() => {
+    if (!searchTerm) return revenueCodes;
+    const query = searchTerm.toLowerCase();
+    return revenueCodes.filter(
+      (code) =>
+        code.name.toLowerCase().includes(query) ||
+        code.code.toLowerCase().includes(query)
+    );
+  }, [revenueCodes, searchTerm]);
+
+  const isLoadingData = isLoading || isCreating || isUpdating || isDeleting;
 
   const inputStyle =
     "w-64 pr-10 pl-4 py-3 bg-brand-blue-bg border-2 border-brand-blue rounded-md text-black placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-brand-blue";
+
+  if (isLoadingData && revenueCodes.length === 0) {
+    return (
+      <div className="bg-white p-6 rounded-lg shadow">
+        <h1 className="text-2xl font-bold mb-4 text-brand-dark">{title}</h1>
+        <div className="flex justify-center items-center py-12">
+          <div className="text-gray-500">جاري التحميل...</div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="bg-white p-6 rounded-lg shadow">
+        <h1 className="text-2xl font-bold mb-4 text-brand-dark">{title}</h1>
+        <div className="flex justify-center items-center py-12">
+          <div className="text-red-500">حدث خطأ أثناء تحميل البيانات</div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <>
@@ -247,7 +284,6 @@ const RevenueCodes: React.FC<RevenueCodesProps> = ({ title }) => {
         onClose={handleCloseModal}
         onSave={handleSave}
         codeToEdit={codeToEdit}
-        codes={revenueCodes}
       />
     </>
   );

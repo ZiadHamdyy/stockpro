@@ -17,6 +17,7 @@ export class CreateReceiptVoucherRequest {
     'current_account',
     'receivable_account',
     'payable_account',
+    'revenue',
     'vat',
   ])
   entityType: string;
@@ -59,6 +60,10 @@ export class CreateReceiptVoucherRequest {
   @IsOptional()
   @IsString()
   payableAccountId?: string;
+
+  @IsOptional()
+  @IsString()
+  revenueCodeId?: string;
 
   @IsOptional()
   @IsString()

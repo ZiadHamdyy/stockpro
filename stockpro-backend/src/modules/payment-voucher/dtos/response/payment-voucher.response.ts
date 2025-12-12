@@ -11,6 +11,17 @@ class ExpenseCode {
   name: string;
 }
 
+class RevenueCode {
+  @Expose()
+  id: string;
+
+  @Expose()
+  code: string;
+
+  @Expose()
+  name: string;
+}
+
 class Safe {
   @Expose()
   id: string;
@@ -85,6 +96,9 @@ export class PaymentVoucherResponse {
   expenseCodeId?: string | null;
 
   @Expose()
+  revenueCodeId?: string | null;
+
+  @Expose()
   receivableAccountId?: string | null;
 
   @Expose()
@@ -103,6 +117,10 @@ export class PaymentVoucherResponse {
   @Expose()
   @Type(() => ExpenseCode)
   expenseCode?: ExpenseCode;
+
+  @Expose()
+  @Type(() => RevenueCode)
+  revenueCode?: RevenueCode;
 
   @Expose()
   @Type(() => Safe)

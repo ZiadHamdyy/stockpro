@@ -1,31 +1,24 @@
 
 import React, { useState, useEffect } from 'react';
-import type { RevenueCode } from '../../../../types';
+import type { RevenueCode } from '../../../../components/store/slices/revenueCode/revenueCodeApiSlice';
 
 interface RevenueCodeModalProps {
     isOpen: boolean;
     onClose: () => void;
     onSave: (code: RevenueCode) => void;
     codeToEdit: RevenueCode | null;
-    codes: RevenueCode[];
 }
 
-const RevenueCodeModal: React.FC<RevenueCodeModalProps> = ({ isOpen, onClose, onSave, codeToEdit, codes }) => {
-    const [codeData, setCodeData] = useState<Omit<RevenueCode, 'id'>>({ code: '', name: '' });
+const RevenueCodeModal: React.FC<RevenueCodeModalProps> = ({ isOpen, onClose, onSave, codeToEdit }) => {
+    const [codeData, setCodeData] = useState<{ code: string; name: string }>({ code: '', name: '' });
 
     useEffect(() => {
         if (codeToEdit) {
-            setCodeData(codeToEdit);
+            setCodeData({ code: codeToEdit.code, name: codeToEdit.name });
         } else {
-            const existingNumbers = codes
-                .map(c => c.code.startsWith('REV-') ? parseInt(c.code.substring(4), 10) : NaN)
-                .filter(n => !isNaN(n));
-            const maxNumber = existingNumbers.length > 0 ? Math.max(...existingNumbers) : 0;
-            const newCode = `REV-${String(maxNumber + 1).padStart(3, '0')}`;
-
-            setCodeData({ code: newCode, name: '' });
+            setCodeData({ code: '', name: '' });
         }
-    }, [codeToEdit, isOpen, codes]);
+    }, [codeToEdit, isOpen]);
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const { name, value } = e.target;
@@ -35,11 +28,13 @@ const RevenueCodeModal: React.FC<RevenueCodeModalProps> = ({ isOpen, onClose, on
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         const codeToSave: RevenueCode = {
-            ...codeData,
-            id: codeToEdit?.id || Date.now(),
+            id: codeToEdit?.id || '',
+            code: codeToEdit?.code || '',
+            name: codeData.name,
+            createdAt: codeToEdit?.createdAt || new Date().toISOString(),
+            updatedAt: codeToEdit?.updatedAt || new Date().toISOString(),
         };
         onSave(codeToSave);
-        onClose();
     };
 
     if (!isOpen) return null;
@@ -56,7 +51,15 @@ const RevenueCodeModal: React.FC<RevenueCodeModalProps> = ({ isOpen, onClose, on
                     <div className="p-6 space-y-4">
                          <div>
                             <label htmlFor="code" className="block text-sm font-medium text-gray-700">كود البند</label>
-                            <input type="text" id="code" name="code" value={codeData.code} className={inputStyle + " bg-gray-200"} required readOnly />
+                            <input 
+                                type="text" 
+                                id="code" 
+                                name="code" 
+                                value={codeToEdit ? codeData.code : ''} 
+                                className={inputStyle + " bg-gray-200"} 
+                                required 
+                                readOnly 
+                            />
                         </div>
                         <div>
                             <label htmlFor="name" className="block text-sm font-medium text-gray-700">اسم بند الإيراد</label>

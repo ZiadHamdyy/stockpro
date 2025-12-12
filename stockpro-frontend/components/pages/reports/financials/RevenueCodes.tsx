@@ -1,34 +1,44 @@
 
-import React, { useState } from 'react';
-import type { RevenueCode } from '../../../../types';
+import React, { useState, useMemo, useCallback } from 'react';
 import { PrintIcon, SearchIcon } from '../../../../components/icons';
 import RevenueCodeModal from './RevenueCodeModal';
 import { useModal } from '../../../../components/common/ModalProvider';
+import { useToast } from '../../../../components/common/ToastProvider';
+import {
+  useGetRevenueCodesQuery,
+  useCreateRevenueCodeMutation,
+  useUpdateRevenueCodeMutation,
+  useDeleteRevenueCodeMutation,
+  type RevenueCode,
+} from '../../../../components/store/slices/revenueCode/revenueCodeApiSlice';
 
 interface RevenueCodesProps {
     title: string;
-    codes: RevenueCode[];
-    onSave: (code: RevenueCode) => void;
-    onDelete: (id: number) => void;
 }
 
-const RevenueCodes: React.FC<RevenueCodesProps> = ({ title, codes, onSave, onDelete }) => {
+const RevenueCodes: React.FC<RevenueCodesProps> = ({ title }) => {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [codeToEdit, setCodeToEdit] = useState<RevenueCode | null>(null);
     const [searchTerm, setSearchTerm] = useState('');
     const { showModal } = useModal();
+    const { showToast } = useToast();
 
-    const handleOpenModal = (code: RevenueCode | null = null) => {
+    const { data: codes = [], isLoading, error } = useGetRevenueCodesQuery(searchTerm || undefined);
+    const [createRevenueCode, { isLoading: isCreating }] = useCreateRevenueCodeMutation();
+    const [updateRevenueCode, { isLoading: isUpdating }] = useUpdateRevenueCodeMutation();
+    const [deleteRevenueCode, { isLoading: isDeleting }] = useDeleteRevenueCodeMutation();
+
+    const handleOpenModal = useCallback((code: RevenueCode | null = null) => {
         setCodeToEdit(code);
         setIsModalOpen(true);
-    };
+    }, []);
 
-    const handleCloseModal = () => {
+    const handleCloseModal = useCallback(() => {
         setIsModalOpen(false);
         setCodeToEdit(null);
-    };
+    }, []);
 
-    const handleEditClick = (code: RevenueCode) => {
+    const handleEditClick = useCallback((code: RevenueCode) => {
         showModal({
             title: 'تأكيد التعديل',
             message: 'هل أنت متأكد من رغبتك في تعديل بيانات هذا البند؟',
@@ -36,24 +46,82 @@ const RevenueCodes: React.FC<RevenueCodesProps> = ({ title, codes, onSave, onDel
             type: 'edit',
             showPassword: true,
         });
-    };
+    }, [showModal, handleOpenModal]);
 
-    const handleDeleteClick = (code: RevenueCode) => {
+    const handleDeleteClick = useCallback((code: RevenueCode) => {
         showModal({
             title: 'تأكيد الحذف',
             message: `هل أنت متأكد من حذف بند الإيراد "${code.name}"؟`,
-            onConfirm: () => onDelete(code.id),
+            onConfirm: async () => {
+                try {
+                    await deleteRevenueCode(code.id).unwrap();
+                    showToast('تم حذف البند بنجاح');
+                } catch (error) {
+                    showToast('حدث خطأ أثناء حذف البند', 'error');
+                    console.error('Error deleting revenue code:', error);
+                }
+            },
             type: 'delete',
             showPassword: true,
         });
-    };
+    }, [showModal, deleteRevenueCode, showToast]);
 
-    const filteredCodes = codes.filter(code =>
-        code.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        code.code.toLowerCase().includes(searchTerm.toLowerCase())
-    );
+    const handleSave = useCallback(async (code: RevenueCode) => {
+        try {
+            if (codeToEdit) {
+                await updateRevenueCode({
+                    id: codeToEdit.id,
+                    data: { name: code.name },
+                }).unwrap();
+                showToast('تم تعديل البند بنجاح');
+            } else {
+                await createRevenueCode({ name: code.name }).unwrap();
+                showToast('تم إضافة البند بنجاح');
+            }
+            handleCloseModal();
+        } catch (error) {
+            showToast(
+                codeToEdit ? 'حدث خطأ أثناء تعديل البند' : 'حدث خطأ أثناء إضافة البند',
+                'error'
+            );
+            console.error('Error saving revenue code:', error);
+        }
+    }, [codeToEdit, createRevenueCode, updateRevenueCode, showToast, handleCloseModal]);
+
+    const filteredCodes = useMemo(() => {
+        if (!searchTerm) return codes;
+        const query = searchTerm.toLowerCase();
+        return codes.filter(code =>
+            code.name.toLowerCase().includes(query) ||
+            code.code.toLowerCase().includes(query)
+        );
+    }, [codes, searchTerm]);
+
+    const isLoadingData = isLoading || isCreating || isUpdating || isDeleting;
 
     const inputStyle = "w-64 pr-10 pl-4 py-3 bg-brand-blue-bg border-2 border-brand-blue rounded-md text-black placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-brand-blue";
+
+    if (isLoadingData && codes.length === 0) {
+        return (
+            <div className="bg-white p-6 rounded-lg shadow">
+                <h1 className="text-2xl font-bold mb-4 text-brand-dark">{title}</h1>
+                <div className="flex justify-center items-center py-12">
+                    <div className="text-gray-500">جاري التحميل...</div>
+                </div>
+            </div>
+        );
+    }
+
+    if (error) {
+        return (
+            <div className="bg-white p-6 rounded-lg shadow">
+                <h1 className="text-2xl font-bold mb-4 text-brand-dark">{title}</h1>
+                <div className="flex justify-center items-center py-12">
+                    <div className="text-red-500">حدث خطأ أثناء تحميل البيانات</div>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <>
@@ -87,16 +155,24 @@ const RevenueCodes: React.FC<RevenueCodesProps> = ({ title, codes, onSave, onDel
                             </tr>
                         </thead>
                         <tbody className="bg-white divide-y divide-gray-200">
-                            {filteredCodes.map((code) => (
-                                <tr key={code.id} className="hover:bg-brand-blue-bg">
-                                    <td className="px-6 py-4 whitespace-nowrap">{code.code}</td>
-                                    <td className="px-6 py-4 whitespace-nowrap font-medium text-brand-dark">{code.name}</td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                                        <button onClick={() => handleEditClick(code)} className="text-brand-blue hover:text-blue-800 font-semibold ml-4">تعديل</button>
-                                        <button onClick={() => handleDeleteClick(code)} className="text-red-600 hover:text-red-900 font-semibold">حذف</button>
+                            {filteredCodes.length === 0 ? (
+                                <tr>
+                                    <td colSpan={3} className="px-6 py-8 text-center text-gray-500">
+                                        لا توجد بيانات
                                     </td>
                                 </tr>
-                            ))}
+                            ) : (
+                                filteredCodes.map((code) => (
+                                    <tr key={code.id} className="hover:bg-brand-blue-bg">
+                                        <td className="px-6 py-4 whitespace-nowrap">{code.code}</td>
+                                        <td className="px-6 py-4 whitespace-nowrap font-medium text-brand-dark">{code.name}</td>
+                                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                            <button onClick={() => handleEditClick(code)} className="text-brand-blue hover:text-blue-800 font-semibold ml-4">تعديل</button>
+                                            <button onClick={() => handleDeleteClick(code)} className="text-red-600 hover:text-red-900 font-semibold">حذف</button>
+                                        </td>
+                                    </tr>
+                                ))
+                            )}
                         </tbody>
                     </table>
                 </div>
@@ -104,9 +180,8 @@ const RevenueCodes: React.FC<RevenueCodesProps> = ({ title, codes, onSave, onDel
             <RevenueCodeModal 
                 isOpen={isModalOpen} 
                 onClose={handleCloseModal} 
-                onSave={onSave}
+                onSave={handleSave}
                 codeToEdit={codeToEdit}
-                codes={codes}
             />
         </>
     );

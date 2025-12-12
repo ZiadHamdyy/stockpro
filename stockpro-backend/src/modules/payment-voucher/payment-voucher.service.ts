@@ -46,6 +46,7 @@ export class PaymentVoucherService {
       data.supplierId ||
       data.currentAccountId ||
       data.expenseCodeId ||
+      data.revenueCodeId ||
       data.receivableAccountId ||
       data.payableAccountId ||
       '';
@@ -109,6 +110,9 @@ export class PaymentVoucherService {
       ) {
         // Expense-Type: Note - ExpenseCode doesn't have currentBalance field
         // If tracking is needed, add currentBalance field to ExpenseCode model
+      } else if (data.entityType === 'revenue' && data.revenueCodeId) {
+        // Revenue: Note - RevenueCode doesn't have currentBalance field
+        // Revenue codes are for categorization only
       } else {
         // Apply entity-side effect for other account types
         // For payable_account, receivable_account, and current_account: increment (transfer money to account)
@@ -139,12 +143,13 @@ export class PaymentVoucherService {
           supplierId: data.supplierId,
           currentAccountId: data.currentAccountId,
           expenseCodeId: data.expenseCodeId,
+          revenueCodeId: data.revenueCodeId,
           receivableAccountId: (data as any).receivableAccountId,
           payableAccountId: (data as any).payableAccountId,
           userId,
           branchId: data.branchId,
         } as any,
-        include: { user: true, branch: true },
+        include: { user: true, branch: true, expenseCode: true, revenueCode: true },
       });
       return paymentVoucher;
     });
@@ -170,6 +175,8 @@ export class PaymentVoucherService {
       include: {
         user: true,
         branch: true,
+        expenseCode: true,
+        revenueCode: true,
       },
       orderBy: { createdAt: 'asc' },
     });
@@ -184,6 +191,7 @@ export class PaymentVoucherService {
       },
       include: {
         expenseCode: true,
+        revenueCode: true,
         safe: true,
         bank: true,
         user: true,
@@ -201,6 +209,8 @@ export class PaymentVoucherService {
       include: {
         user: true,
         branch: true,
+        expenseCode: true,
+        revenueCode: true,
       },
     });
 
@@ -362,6 +372,9 @@ export class PaymentVoucherService {
         ) {
           // Expense-Type: Note - ExpenseCode doesn't have currentBalance field
           // If tracking is needed, add currentBalance field to ExpenseCode model
+        } else if (newEntityType === 'revenue' && data.revenueCodeId) {
+          // Revenue: Note - RevenueCode doesn't have currentBalance field
+          // Revenue codes are for categorization only
         } else {
           const newEntityIds: any = {
             currentAccountId:
@@ -389,6 +402,7 @@ export class PaymentVoucherService {
           amount: newAmount,
           safeId: newSafeId,
           bankId: newBankId,
+          revenueCodeId: data.revenueCodeId ?? existing.revenueCodeId,
         };
 
         // If entity type or ID changed, fetch new entity name
@@ -397,6 +411,7 @@ export class PaymentVoucherService {
           data.supplierId ??
           data.currentAccountId ??
           data.expenseCodeId ??
+          data.revenueCodeId ??
           data.receivableAccountId ??
           data.payableAccountId ??
           null;
@@ -407,6 +422,7 @@ export class PaymentVoucherService {
             existing.supplierId ||
             existing.currentAccountId ||
             existing.expenseCodeId ||
+            existing.revenueCodeId ||
             (existing as any).receivableAccountId ||
             (existing as any).payableAccountId ||
             '';
@@ -419,7 +435,7 @@ export class PaymentVoucherService {
         const updated = await tx.paymentVoucher.update({
           where: { id },
           data: updateData,
-          include: { user: true, branch: true },
+          include: { user: true, branch: true, expenseCode: true, revenueCode: true },
         });
         return updated;
       });
@@ -572,6 +588,12 @@ export class PaymentVoucherService {
         });
         return expenseCode?.name || '';
 
+      case 'revenue':
+        const revenueCode = await this.prisma.revenueCode.findUnique({
+          where: { id: entityId },
+        });
+        return revenueCode?.name || '';
+
       case 'vat':
         return 'ضريبة القيمة المضافة';
 
@@ -643,12 +665,14 @@ export class PaymentVoucherService {
       supplierId: voucher.supplierId,
       currentAccountId: voucher.currentAccountId,
       expenseCodeId: voucher.expenseCodeId,
+      revenueCodeId: voucher.revenueCodeId,
       receivableAccountId: voucher.receivableAccountId || null,
       payableAccountId: voucher.payableAccountId || null,
       userId: voucher.userId,
       branchId: voucher.branchId,
       branch: voucher.branch || null,
       expenseCode: voucher.expenseCode,
+      revenueCode: voucher.revenueCode,
       safe: voucher.safe,
       bank: voucher.bank,
       createdAt: voucher.createdAt,

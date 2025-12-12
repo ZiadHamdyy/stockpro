@@ -19,6 +19,7 @@ export interface PaymentVoucher {
   supplierId?: string | null;
   currentAccountId?: string | null;
   expenseCodeId?: string | null;
+  revenueCodeId?: string | null;
   receivableAccountId?: string | null;
   payableAccountId?: string | null;
   userId: string;
@@ -43,6 +44,7 @@ export interface CreatePaymentVoucherRequest {
   supplierId?: string;
   currentAccountId?: string;
   expenseCodeId?: string;
+  revenueCodeId?: string;
   receivableAccountId?: string;
   payableAccountId?: string;
   priceBeforeTax?: number;
@@ -62,6 +64,7 @@ export interface UpdatePaymentVoucherRequest {
   supplierId?: string;
   currentAccountId?: string;
   expenseCodeId?: string;
+  revenueCodeId?: string;
   receivableAccountId?: string;
   payableAccountId?: string;
   priceBeforeTax?: number;

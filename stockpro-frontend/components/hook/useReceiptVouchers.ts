@@ -10,6 +10,7 @@ import {
 import { useGetCustomersQuery } from "../store/slices/customer/customerApiSlice";
 import { useGetSuppliersQuery } from "../store/slices/supplier/supplierApiSlice";
 import { useGetCurrentAccountsQuery } from "../store/slices/currentAccounts/currentAccountsApi";
+import { useGetRevenueCodesQuery } from "../store/slices/revenueCode/revenueCodeApiSlice";
 import { useGetSafesQuery } from "../store/slices/safe/safeApiSlice";
 import { useGetBanksQuery } from "../store/slices/bank/bankApiSlice";
 import { useToast } from "../common/ToastProvider";
@@ -51,6 +52,7 @@ export const useReceiptVouchers = () => {
   const { data: customers = [] } = useGetCustomersQuery();
   const { data: suppliers = [] } = useGetSuppliersQuery();
   const { data: currentAccounts = [] } = useGetCurrentAccountsQuery();
+  const { data: revenueCodes = [] } = useGetRevenueCodesQuery();
   const { data: safes = [] } = useGetSafesQuery();
   const { data: banks = [] } = useGetBanksQuery();
 
@@ -94,6 +96,7 @@ export const useReceiptVouchers = () => {
             v.customerId ||
             v.supplierId ||
             v.currentAccountId ||
+            v.revenueCodeId ||
             v.receivableAccountId ||
             v.payableAccountId ||
             null,
@@ -166,6 +169,9 @@ export const useReceiptVouchers = () => {
     } else if (voucherData.entity.type === "current_account") {
       const entityId = voucherData.entity.id ? String(voucherData.entity.id) : undefined;
       entityFields.currentAccountId = entityId;
+    } else if (voucherData.entity.type === "revenue") {
+      const entityId = voucherData.entity.id ? String(voucherData.entity.id) : undefined;
+      entityFields.revenueCodeId = entityId;
     } else if (voucherData.entity.type === "receivable_account") {
       const entityId = voucherData.entity.id ? String(voucherData.entity.id) : undefined;
       entityFields.receivableAccountId = entityId;
@@ -286,6 +292,7 @@ export const useReceiptVouchers = () => {
     customers,
     suppliers,
     currentAccounts,
+    revenueCodes,
     safes,
     branchSafes,
     banks,

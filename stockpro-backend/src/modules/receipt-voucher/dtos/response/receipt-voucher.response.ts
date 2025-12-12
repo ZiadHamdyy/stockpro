@@ -8,6 +8,17 @@ class Branch {
   name: string;
 }
 
+class RevenueCode {
+  @Expose()
+  id: string;
+
+  @Expose()
+  code: string;
+
+  @Expose()
+  name: string;
+}
+
 export class ReceiptVoucherResponse {
   @Expose()
   id: string;
@@ -55,6 +66,9 @@ export class ReceiptVoucherResponse {
   payableAccountId?: string | null;
 
   @Expose()
+  revenueCodeId?: string | null;
+
+  @Expose()
   userId: string;
 
   @Expose()
@@ -63,6 +77,10 @@ export class ReceiptVoucherResponse {
   @Expose()
   @Type(() => Branch)
   branch?: Branch | null;
+
+  @Expose()
+  @Type(() => RevenueCode)
+  revenueCode?: RevenueCode | null;
 
   @Expose()
   createdAt: Date;

@@ -31,6 +31,7 @@ import { CustomerModule } from './modules/customer/customer.module';
 import { SupplierModule } from './modules/supplier/supplier.module';
 import { CurrentAccountModule } from './modules/current-account/current-account.module';
 import { ExpenseModule } from './modules/expense/expense.module';
+import { RevenueCodeModule } from './modules/revenue-code/revenue-code.module';
 import { SalesInvoiceModule } from './modules/sales-invoice/sales-invoice.module';
 import { SalesReturnModule } from './modules/sales-return/sales-return.module';
 import { PurchaseInvoiceModule } from './modules/purchase-invoice/purchase-invoice.module';
@@ -77,6 +78,7 @@ import { FiscalYearModule } from './modules/fiscal-year/fiscal-year.module';
     SupplierModule,
     CurrentAccountModule,
     ExpenseModule,
+    RevenueCodeModule,
     SalesInvoiceModule,
     SalesReturnModule,
     PurchaseInvoiceModule,

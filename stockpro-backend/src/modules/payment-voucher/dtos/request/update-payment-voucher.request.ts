@@ -21,6 +21,7 @@ export class UpdatePaymentVoucherRequest {
     'payable_account',
     'expense',
     'expense-Type',
+    'revenue',
     'vat',
   ])
   entityType?: string;
@@ -73,6 +74,10 @@ export class UpdatePaymentVoucherRequest {
   @IsOptional()
   @IsString()
   expenseCodeId?: string;
+
+  @IsOptional()
+  @IsString()
+  revenueCodeId?: string;
 
   @IsOptional()
   @IsNumber()

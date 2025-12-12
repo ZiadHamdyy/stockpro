@@ -11,6 +11,7 @@ import { useGetCustomersQuery } from "../store/slices/customer/customerApiSlice"
 import { useGetSuppliersQuery } from "../store/slices/supplier/supplierApiSlice";
 import { useGetCurrentAccountsQuery } from "../store/slices/currentAccounts/currentAccountsApi";
 import { useGetExpenseCodesQuery } from "../store/slices/expense/expenseApiSlice";
+import { useGetRevenueCodesQuery } from "../store/slices/revenueCode/revenueCodeApiSlice";
 import { useGetSafesQuery } from "../store/slices/safe/safeApiSlice";
 import { useGetBanksQuery } from "../store/slices/bank/bankApiSlice";
 import { useToast } from "../common/ToastProvider";
@@ -55,6 +56,7 @@ export const usePaymentVouchers = () => {
   const { data: suppliers = [] } = useGetSuppliersQuery();
   const { data: currentAccounts = [] } = useGetCurrentAccountsQuery();
   const { data: expenseCodes = [] } = useGetExpenseCodesQuery();
+  const { data: revenueCodes = [] } = useGetRevenueCodesQuery();
   const { data: safes = [] } = useGetSafesQuery();
   const { data: banks = [] } = useGetBanksQuery();
 
@@ -102,6 +104,7 @@ export const usePaymentVouchers = () => {
             v.supplierId ||
             v.currentAccountId ||
             v.expenseCodeId ||
+            v.revenueCodeId ||
             v.receivableAccountId ||
             v.payableAccountId ||
             null,
@@ -185,6 +188,9 @@ export const usePaymentVouchers = () => {
     } else if (voucherData.entity.type === "expense-Type") {
       const entityId = voucherData.entity.id ? String(voucherData.entity.id) : undefined;
       entityFields.expenseCodeId = entityId;
+    } else if (voucherData.entity.type === "revenue") {
+      const entityId = voucherData.entity.id ? String(voucherData.entity.id) : undefined;
+      entityFields.revenueCodeId = entityId;
     } else if (voucherData.entity.type === "receivable_account") {
       const entityId = voucherData.entity.id ? String(voucherData.entity.id) : undefined;
       entityFields.receivableAccountId = entityId;
@@ -309,6 +315,7 @@ export const usePaymentVouchers = () => {
     suppliers,
     currentAccounts,
     expenseCodes,
+    revenueCodes,
     safes,
     branchSafes,
     banks,

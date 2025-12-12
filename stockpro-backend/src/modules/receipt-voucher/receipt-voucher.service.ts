@@ -45,6 +45,7 @@ export class ReceiptVoucherService {
       data.customerId ||
       data.supplierId ||
       data.currentAccountId ||
+      data.revenueCodeId ||
       (data as any).receivableAccountId ||
       (data as any).payableAccountId ||
       '';
@@ -135,10 +136,11 @@ export class ReceiptVoucherService {
           currentAccountId: data.currentAccountId,
           receivableAccountId: (data as any).receivableAccountId,
           payableAccountId: (data as any).payableAccountId,
+          revenueCodeId: data.revenueCodeId,
           userId,
           branchId: data.branchId,
         },
-        include: { user: true, branch: true },
+        include: { user: true, branch: true, revenueCode: true },
       });
       return receiptVoucher;
     });
@@ -177,6 +179,7 @@ export class ReceiptVoucherService {
       include: {
         user: true,
         branch: true,
+        revenueCode: true,
       },
     });
 
@@ -306,6 +309,9 @@ export class ReceiptVoucherService {
 
         if (newEntityType === 'vat') {
           // VAT vouchers don't affect entity balances
+        } else if (newEntityType === 'revenue' && data.revenueCodeId) {
+          // Revenue: Note - RevenueCode doesn't have currentBalance field
+          // Revenue codes are for categorization only
         } else if (newEntityType === 'customer' && newCustomerId) {
           await tx.customer.update({
             where: { id: newCustomerId },
@@ -343,6 +349,7 @@ export class ReceiptVoucherService {
           amount: newAmount,
           safeId: newSafeId,
           bankId: newBankId,
+          revenueCodeId: data.revenueCodeId ?? existing.revenueCodeId,
         };
 
         // If entity type or ID changed, fetch new entity name
@@ -350,6 +357,7 @@ export class ReceiptVoucherService {
           data.customerId ??
           data.supplierId ??
           data.currentAccountId ??
+          data.revenueCodeId ??
           (data as any).receivableAccountId ??
           (data as any).payableAccountId ??
           null;
@@ -359,6 +367,7 @@ export class ReceiptVoucherService {
             existing.customerId ||
             existing.supplierId ||
             existing.currentAccountId ||
+            existing.revenueCodeId ||
             (existing as any).receivableAccountId ||
             (existing as any).payableAccountId ||
             '';
@@ -510,6 +519,12 @@ export class ReceiptVoucherService {
         });
         return payable?.name || '';
 
+      case 'revenue':
+        const revenueCode = await this.prisma.revenueCode.findUnique({
+          where: { id: entityId },
+        });
+        return revenueCode?.name || '';
+
       case 'vat':
         return 'ضريبة القيمة المضافة';
 
@@ -580,9 +595,11 @@ export class ReceiptVoucherService {
       currentAccountId: voucher.currentAccountId,
       receivableAccountId: voucher.receivableAccountId || null,
       payableAccountId: voucher.payableAccountId || null,
+      revenueCodeId: voucher.revenueCodeId,
       userId: voucher.userId,
       branchId: voucher.branchId,
       branch: voucher.branch || null,
+      revenueCode: voucher.revenueCode || null,
       createdAt: voucher.createdAt,
       updatedAt: voucher.updatedAt,
     };

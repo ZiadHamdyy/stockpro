@@ -35,8 +35,8 @@ model User {
   storeIssueVouchers    StoreIssueVoucher[]
   storeReceiptVouchers  StoreReceiptVoucher[]
   storeTransferVouchers StoreTransferVoucher[]
-  auditLogs            AuditLog[]
-  notifications        Notification[]
+  auditLogs             AuditLog[]
+  notifications         Notification[]
   branch                Branch                 @relation(fields: [branchId], references: [id])
   role                  Role?                  @relation(fields: [roleId], references: [id])
 }
@@ -360,7 +360,7 @@ model StoreTransferVoucher {
   toStore       Store                      @relation("ToStore", fields: [toStoreId], references: [id])
   user          User                       @relation(fields: [userId], references: [id])
   items         StoreTransferVoucherItem[]
-  notifications Notification[]              @relation("TransferNotifications")
+  notifications Notification[]             @relation("TransferNotifications")
 
   @@index([voucherNumber])
   @@index([date])
@@ -433,16 +433,16 @@ model StoreItem {
 }
 
 model Notification {
-  id                    String                @id @default(uuid())
-  userId                String
-  type                  String
-  message               String
-  relatedId             String?
-  read                  Boolean                @default(false)
-  createdAt             DateTime               @default(now())
-  updatedAt             DateTime               @updatedAt
-  user                  User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
-  storeTransferVoucher  StoreTransferVoucher? @relation("TransferNotifications", fields: [relatedId], references: [id], onDelete: Cascade)
+  id                   String                @id @default(uuid())
+  userId               String
+  type                 String
+  message              String
+  relatedId            String?
+  read                 Boolean               @default(false)
+  createdAt            DateTime              @default(now())
+  updatedAt            DateTime              @updatedAt
+  user                 User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  storeTransferVoucher StoreTransferVoucher? @relation("TransferNotifications", fields: [relatedId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@index([read])
@@ -517,6 +517,18 @@ model ExpenseCode {
   @@index([expenseTypeId])
 }
 
+model RevenueCode {
+  id              String           @id @default(uuid())
+  code            String           @unique
+  name            String
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  paymentVouchers PaymentVoucher[]
+  receiptVouchers ReceiptVoucher[]
+
+  @@index([code])
+}
+
 model Expense {
   id            String      @id @default(uuid())
   code          String      @unique
@@ -533,36 +545,36 @@ model Expense {
 }
 
 model SalesInvoice {
-  id                String    @id @default(uuid())
-  code              String    @unique
-  date              DateTime  @default(now())
-  customerId        String?
-  items             Json
-  subtotal          Float     @default(0)
-  discount          Float     @default(0)
-  tax               Float     @default(0)
-  net               Float     @default(0)
-  paymentMethod     String
-  paymentTargetType String?
-  paymentTargetId   String?
-  notes             String?
-  userId            String
-  branchId          String?
-  createdAt         DateTime  @default(now())
-  updatedAt         DateTime  @updatedAt
-  bankId            String?
-  safeId            String?
+  id                  String              @id @default(uuid())
+  code                String              @unique
+  date                DateTime            @default(now())
+  customerId          String?
+  items               Json
+  subtotal            Float               @default(0)
+  discount            Float               @default(0)
+  tax                 Float               @default(0)
+  net                 Float               @default(0)
+  paymentMethod       String
+  paymentTargetType   String?
+  paymentTargetId     String?
+  notes               String?
+  userId              String
+  branchId            String?
+  createdAt           DateTime            @default(now())
+  updatedAt           DateTime            @updatedAt
+  bankId              String?
+  safeId              String?
   bankTransactionType BankTransactionType @default(POS)
-  isSplitPayment    Boolean   @default(false)
-  splitCashAmount   Float?
-  splitBankAmount   Float?
-  splitSafeId       String?
-  splitBankId       String?
-  bank              Bank?     @relation(fields: [bankId], references: [id])
-  branch            Branch?   @relation(fields: [branchId], references: [id])
-  customer          Customer? @relation(fields: [customerId], references: [id])
-  safe              Safe?     @relation(fields: [safeId], references: [id])
-  user              User      @relation(fields: [userId], references: [id])
+  isSplitPayment      Boolean             @default(false)
+  splitCashAmount     Float?
+  splitBankAmount     Float?
+  splitSafeId         String?
+  splitBankId         String?
+  bank                Bank?               @relation(fields: [bankId], references: [id])
+  branch              Branch?             @relation(fields: [branchId], references: [id])
+  customer            Customer?           @relation(fields: [customerId], references: [id])
+  safe                Safe?               @relation(fields: [safeId], references: [id])
+  user                User                @relation(fields: [userId], references: [id])
 
   @@index([code])
   @@index([date])
@@ -715,6 +727,7 @@ model PaymentVoucher {
   supplierId          String?
   currentAccountId    String?
   expenseCodeId       String?
+  revenueCodeId       String?
   userId              String
   branchId            String?
   createdAt           DateTime           @default(now())
@@ -728,6 +741,7 @@ model PaymentVoucher {
   currentAccount      CurrentAccount?    @relation(fields: [currentAccountId], references: [id])
   customer            Customer?          @relation(fields: [customerId], references: [id])
   expenseCode         ExpenseCode?       @relation(fields: [expenseCodeId], references: [id])
+  revenueCode         RevenueCode?       @relation(fields: [revenueCodeId], references: [id])
   payableAccount      PayableAccount?    @relation(fields: [payableAccountId], references: [id])
   receivableAccount   ReceivableAccount? @relation(fields: [receivableAccountId], references: [id])
   safe                Safe?              @relation(fields: [safeId], references: [id])
@@ -756,6 +770,7 @@ model ReceiptVoucher {
   customerId          String?
   supplierId          String?
   currentAccountId    String?
+  revenueCodeId       String?
   userId              String
   branchId            String?
   createdAt           DateTime           @default(now())
@@ -766,6 +781,7 @@ model ReceiptVoucher {
   branch              Branch?            @relation(fields: [branchId], references: [id])
   currentAccount      CurrentAccount?    @relation(fields: [currentAccountId], references: [id])
   customer            Customer?          @relation(fields: [customerId], references: [id])
+  revenueCode         RevenueCode?       @relation(fields: [revenueCodeId], references: [id])
   payableAccount      PayableAccount?    @relation(fields: [payableAccountId], references: [id])
   receivableAccount   ReceivableAccount? @relation(fields: [receivableAccountId], references: [id])
   safe                Safe?              @relation(fields: [safeId], references: [id])
@@ -854,8 +870,8 @@ model AuditLog {
   timestamp  DateTime @default(now())
   userId     String
   branchId   String?
-  action     String   // create, update, delete, approve, reject, login, logout
-  targetType String   // e.g., "store_receipt_voucher", "sales_invoice"
+  action     String // create, update, delete, approve, reject, login, logout
+  targetType String // e.g., "store_receipt_voucher", "sales_invoice"
   targetId   String?
   details    String
   createdAt  DateTime @default(now())
@@ -908,14 +924,14 @@ enum FiscalYearStatus {
 }
 
 model FiscalYear {
-  id              String           @id @default(uuid())
-  name            String           @unique
-  startDate       DateTime
-  endDate         DateTime
-  status          FiscalYearStatus @default(OPEN)
+  id               String           @id @default(uuid())
+  name             String           @unique
+  startDate        DateTime
+  endDate          DateTime
+  status           FiscalYearStatus @default(OPEN)
   retainedEarnings Float?
-  createdAt       DateTime         @default(now())
-  updatedAt       DateTime         @updatedAt
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
 
   @@index([startDate])
   @@index([endDate])

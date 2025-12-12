@@ -48,6 +48,7 @@ const PaymentVoucher: React.FC<PaymentVoucherProps> = ({ title }) => {
     suppliers,
     currentAccounts,
     expenseCodes,
+    revenueCodes,
     safes,
     branchSafes,
     banks,
@@ -197,6 +198,8 @@ const PaymentVoucher: React.FC<PaymentVoucherProps> = ({ title }) => {
           foundName = expenseCodes.find((c) => c.id === value)?.name || "";
         if (t === "expense-Type")
           foundName = expenseCodes.find((c) => c.id === value)?.name || "";
+        if (t === "revenue")
+          foundName = revenueCodes.find((c) => c.id === value)?.name || "";
         newEntity.name = foundName;
       }
       
@@ -342,6 +345,23 @@ const PaymentVoucher: React.FC<PaymentVoucherProps> = ({ title }) => {
         >
           <option value="">اختر بند مصروف...</option>
           {expenseCodes.map((c) => (
+            <option key={c.id} value={String(c.id)}>
+              {c.name}
+            </option>
+          ))}
+        </select>
+      );
+    }
+    if (entityType === "revenue") {
+      return (
+        <select
+          value={entityId}
+          onChange={(e) => handleEntityChange("id", e.target.value)}
+          className={inputStyle}
+          disabled={isReadOnly}
+        >
+          <option value="">اختر بند إيراد...</option>
+          {revenueCodes.map((c) => (
             <option key={c.id} value={String(c.id)}>
               {c.name}
             </option>
@@ -548,6 +568,7 @@ const PaymentVoucher: React.FC<PaymentVoucherProps> = ({ title }) => {
                 <option value="customer">عميل</option>
                 <option value="expense">مصروف</option>
                 <option value="expense-Type">مصروفات ضريبية</option>
+                <option value="revenue">إيراد</option>
                 <option value="receivable_account">أرصدة مدينة أخرى</option>
                 <option value="payable_account">أرصدة دائنة أخرى</option>
                 <option value="current_account">حساب جاري</option>
@@ -696,7 +717,7 @@ const PaymentVoucher: React.FC<PaymentVoucherProps> = ({ title }) => {
                       date: savedVoucher.date ? new Date(savedVoucher.date).toISOString().substring(0, 10) : voucherData.date,
                       entity: {
                         type: savedVoucher.entityType as any,
-                        id: savedVoucher.customerId || savedVoucher.supplierId || savedVoucher.currentAccountId || savedVoucher.expenseCodeId || savedVoucher.receivableAccountId || savedVoucher.payableAccountId || null,
+                        id: savedVoucher.customerId || savedVoucher.supplierId || savedVoucher.currentAccountId || savedVoucher.expenseCodeId || savedVoucher.revenueCodeId || savedVoucher.receivableAccountId || savedVoucher.payableAccountId || null,
                         name: savedVoucher.entityName,
                       },
                       amount: savedVoucher.amount === 0 || savedVoucher.amount === null ? ("" as any) : savedVoucher.amount,
