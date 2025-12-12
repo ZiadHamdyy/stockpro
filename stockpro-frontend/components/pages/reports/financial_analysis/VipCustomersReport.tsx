@@ -213,6 +213,17 @@ const VIPCustomersReport: React.FC<VIPCustomersReportProps> = ({ title }) => {
 
     }, [customers, salesInvoices, salesReturns, startDate, endDate, normalizeDate]);
 
+    const totals = useMemo(() => {
+        return reportData.reduce(
+            (acc, item) => {
+                acc.invoices += item.invoicesCount;
+                acc.netRevenue += item.netRevenue;
+                return acc;
+            },
+            { invoices: 0, netRevenue: 0 }
+        );
+    }, [reportData]);
+
     const handlePrint = () => window.print();
 
     const handleExcelExport = () => {
@@ -392,6 +403,15 @@ const VIPCustomersReport: React.FC<VIPCustomersReportProps> = ({ title }) => {
                                 </tr>
                             )}
                         </tbody>
+                        <tfoot className="bg-brand-blue text-white font-bold">
+                            <tr>
+                                <td className="p-3 text-center">—</td>
+                                <td className="p-3 text-right">الإجمالي</td>
+                                <td className="p-3 text-center">{totals.invoices}</td>
+                                <td className="p-3 text-center">{formatNumber(totals.netRevenue)}</td>
+                                <td className="p-3 text-center">—</td>
+                            </tr>
+                        </tfoot>
                     </table>
                 </div>
             </div>
