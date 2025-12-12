@@ -374,6 +374,7 @@ const ItemMovementReport: React.FC<ItemMovementReportProps> = ({
       type: string;
       ref: string;
       code: string;
+      invoicePrice: number | null;
       inward: number;
       outward: number;
       link: { page: string; label: string } | null;
@@ -406,6 +407,7 @@ const ItemMovementReport: React.FC<ItemMovementReportProps> = ({
               type: type,
               ref: tx.id,
               code: displayCode,
+              invoicePrice: isInvoice ? (item.price || null) : null,
               inward: factor > 0 ? item.qty : 0,
               outward: factor < 0 ? item.qty : 0,
               link: linkInfo,
@@ -491,6 +493,7 @@ const ItemMovementReport: React.FC<ItemMovementReportProps> = ({
                 type: `تحويل من ${v.fromStore}`,
                 ref: v.id,
                 code: displayCode,
+                invoicePrice: null,
                 inward: 0,
                 outward: item.qty,
                 link: { page: "store_transfer", label: "تحويل مخزني" },
@@ -506,6 +509,7 @@ const ItemMovementReport: React.FC<ItemMovementReportProps> = ({
                 type: `تحويل إلى ${v.toStore}`,
                 ref: v.id,
                 code: displayCode,
+                invoicePrice: null,
                 inward: item.qty,
                 outward: 0,
                 link: { page: "store_transfer", label: "تحويل مخزني" },
@@ -809,6 +813,9 @@ const ItemMovementReport: React.FC<ItemMovementReportProps> = ({
                   المرجع
                 </th>
                 <th className="px-6 py-3 text-right text-sm font-semibold text-white uppercase">
+                  سعر الفاتورة
+                </th>
+                <th className="px-6 py-3 text-right text-sm font-semibold text-white uppercase">
                   وارد
                 </th>
                 <th className="px-6 py-3 text-right text-sm font-semibold text-white uppercase">
@@ -821,7 +828,7 @@ const ItemMovementReport: React.FC<ItemMovementReportProps> = ({
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
               <tr className="bg-gray-50">
-                <td colSpan={6} className="px-6 py-3">
+                <td colSpan={5} className="px-6 py-3">
                   رصيد أول المدة
                 </td>
                 <td className={`px-6 py-3 ${getNegativeNumberClass(openingBalance)}`}>
@@ -854,6 +861,11 @@ const ItemMovementReport: React.FC<ItemMovementReportProps> = ({
                     )}
                     <span className="print:inline hidden">{item.code}</span>
                   </td>
+                  <td className="px-6 py-4">
+                    {item.invoicePrice !== null && item.invoicePrice !== undefined
+                      ? formatNumber(item.invoicePrice)
+                      : "-"}
+                  </td>
                   <td className="px-6 py-4 text-green-600">
                     {formatNumber(item.inward)}
                   </td>
@@ -868,7 +880,7 @@ const ItemMovementReport: React.FC<ItemMovementReportProps> = ({
             </tbody>
             <tfoot className="bg-brand-blue text-white">
               <tr className="font-bold text-white">
-                <td colSpan={4} className="px-6 py-3 text-right text-white">
+                <td colSpan={5} className="px-6 py-3 text-right text-white">
                   الإجمالي
                 </td>
                 <td className="px-6 py-3 text-right text-white">
