@@ -21,6 +21,7 @@ export class StoreReceiptVoucherService {
   ) {}
 
   async create(
+    companyId: string,
     createStoreReceiptVoucherDto: CreateStoreReceiptVoucherDto,
     userBranchId: string,
   ) {
@@ -30,12 +31,12 @@ export class StoreReceiptVoucherService {
     const voucherDate = new Date();
     
     // Check if there is an open period for this date
-    const hasOpenPeriod = await this.fiscalYearService.hasOpenPeriodForDate(voucherDate);
+    const hasOpenPeriod = await this.fiscalYearService.hasOpenPeriodForDate(companyId, voucherDate);
     if (!hasOpenPeriod) {
       throw new ForbiddenException('Cannot create voucher: no open fiscal period exists for this date');
     }
 
-    const isInClosedPeriod = await this.fiscalYearService.isDateInClosedPeriod(voucherDate);
+    const isInClosedPeriod = await this.fiscalYearService.isDateInClosedPeriod(companyId, voucherDate);
     if (isInClosedPeriod) {
       throw new ForbiddenException('Cannot create voucher in a closed fiscal period');
     }
@@ -50,7 +51,7 @@ export class StoreReceiptVoucherService {
     }
 
     // Generate voucher number
-    const voucherNumber = await this.generateVoucherNumber();
+    const voucherNumber = await this.generateVoucherNumber(companyId);
 
     // Calculate total amount
     const totalAmount = items.reduce((sum, item) => sum + item.totalPrice, 0);
@@ -72,6 +73,7 @@ export class StoreReceiptVoucherService {
           ...voucherData,
           voucherNumber,
           totalAmount,
+          companyId,
           items: {
             create: items.map((item) => ({
               quantity: item.quantity,
@@ -104,6 +106,7 @@ export class StoreReceiptVoucherService {
 
     // Create audit log
     await this.auditLogService.createAuditLog({
+      companyId,
       userId: result.userId,
       branchId: userBranchId,
       action: 'create',
@@ -115,8 +118,9 @@ export class StoreReceiptVoucherService {
     return result;
   }
 
-  async findAll() {
+  async findAll(companyId: string) {
     return this.prisma.storeReceiptVoucher.findMany({
+      where: { companyId },
       include: {
         store: {
           include: {
@@ -141,9 +145,9 @@ export class StoreReceiptVoucherService {
     });
   }
 
-  async findOne(id: string) {
+  async findOne(companyId: string, id: string) {
     const voucher = await this.prisma.storeReceiptVoucher.findUnique({
-      where: { id },
+      where: { id_companyId: { id, companyId } },
       include: {
         store: {
           include: {
@@ -172,6 +176,7 @@ export class StoreReceiptVoucherService {
   }
 
   async update(
+    companyId: string,
     id: string,
     updateStoreReceiptVoucherDto: UpdateStoreReceiptVoucherDto,
     userBranchId: string,
@@ -179,11 +184,11 @@ export class StoreReceiptVoucherService {
     const { items, ...voucherData } = updateStoreReceiptVoucherDto;
 
     // Check if voucher exists
-    const existingVoucher = await this.findOne(id);
+    const existingVoucher = await this.findOne(companyId, id);
 
     // Check if date is in a closed period (use existing date since DTO doesn't have date field)
     const voucherDate = existingVoucher.date;
-    const isInClosedPeriod = await this.fiscalYearService.isDateInClosedPeriod(voucherDate);
+    const isInClosedPeriod = await this.fiscalYearService.isDateInClosedPeriod(companyId, voucherDate);
     if (isInClosedPeriod) {
       throw new ForbiddenException('لا يمكن تعديل السند: الفترة المحاسبية مغلقة');
     }
@@ -271,6 +276,7 @@ export class StoreReceiptVoucherService {
 
     // Create audit log
     await this.auditLogService.createAuditLog({
+      companyId,
       userId: result.userId,
       branchId: userBranchId,
       action: 'update',
@@ -282,8 +288,8 @@ export class StoreReceiptVoucherService {
     return result;
   }
 
-  async remove(id: string, userBranchId: string) {
-    const voucher = await this.findOne(id);
+  async remove(companyId: string, id: string, userBranchId: string) {
+    const voucher = await this.findOne(companyId, id);
 
     const deleted = await this.prisma.storeReceiptVoucher.delete({
       where: { id },
@@ -291,6 +297,7 @@ export class StoreReceiptVoucherService {
 
     // Create audit log
     await this.auditLogService.createAuditLog({
+      companyId,
       userId: voucher.userId,
       branchId: userBranchId,
       action: 'delete',
@@ -302,8 +309,10 @@ export class StoreReceiptVoucherService {
     return deleted;
   }
 
-  private async generateVoucherNumber(): Promise<string> {
-    const count = await this.prisma.storeReceiptVoucher.count();
+  private async generateVoucherNumber(companyId: string): Promise<string> {
+    const count = await this.prisma.storeReceiptVoucher.count({
+      where: { companyId },
+    });
     return `SRV-${String(count + 1).padStart(6, '0')}`;
   }
 }
