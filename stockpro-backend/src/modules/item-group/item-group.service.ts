@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { DatabaseService } from '../../configs/database/database.service';
 import { CreateItemGroupRequest } from './dtos/request/create-item-group.request';
 import { UpdateItemGroupRequest } from './dtos/request/update-item-group.request';
@@ -8,38 +8,46 @@ import { ItemGroupResponse } from './dtos/response/item-group.response';
 export class ItemGroupService {
   constructor(private readonly prisma: DatabaseService) {}
 
-  async create(data: CreateItemGroupRequest): Promise<ItemGroupResponse> {
+  async create(
+    companyId: string,
+    data: CreateItemGroupRequest,
+  ): Promise<ItemGroupResponse> {
     const itemGroup = await this.prisma.itemGroup.create({
-      data,
+      data: { ...data, companyId },
     });
 
     return this.mapToResponse(itemGroup);
   }
 
-  async findAll(): Promise<ItemGroupResponse[]> {
+  async findAll(companyId: string): Promise<ItemGroupResponse[]> {
     const itemGroups = await this.prisma.itemGroup.findMany({
+      where: { companyId },
       orderBy: { createdAt: 'asc' },
     });
 
     return itemGroups.map((itemGroup) => this.mapToResponse(itemGroup));
   }
 
-  async findOne(id: string): Promise<ItemGroupResponse> {
+  async findOne(companyId: string, id: string): Promise<ItemGroupResponse> {
     const itemGroup = await this.prisma.itemGroup.findUnique({
-      where: { id },
+      where: { id_companyId: { id, companyId } },
     });
 
     if (!itemGroup) {
-      throw new Error('Item group not found');
+      throw new NotFoundException('Item group not found');
     }
 
     return this.mapToResponse(itemGroup);
   }
 
   async update(
+    companyId: string,
     id: string,
     data: UpdateItemGroupRequest,
   ): Promise<ItemGroupResponse> {
+    // Verify the item group belongs to the company
+    await this.findOne(companyId, id);
+
     const itemGroup = await this.prisma.itemGroup.update({
       where: { id },
       data,
@@ -48,7 +56,10 @@ export class ItemGroupService {
     return this.mapToResponse(itemGroup);
   }
 
-  async remove(id: string): Promise<void> {
+  async remove(companyId: string, id: string): Promise<void> {
+    // Verify the item group belongs to the company
+    await this.findOne(companyId, id);
+
     await this.prisma.itemGroup.delete({
       where: { id },
     });

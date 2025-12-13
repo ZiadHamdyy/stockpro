@@ -16,6 +16,7 @@ import { UpdateItemGroupRequest } from './dtos/request/update-item-group.request
 import { ItemGroupResponse } from './dtos/response/item-group.response';
 import { JwtAuthenticationGuard } from '../../common/guards/strategy.guards/jwt.guard';
 import { Auth } from '../../common/decorators/auth.decorator';
+import { currentCompany } from '../../common/decorators/company.decorator';
 
 @Controller('item-groups')
 @UseGuards(JwtAuthenticationGuard)
@@ -27,20 +28,26 @@ export class ItemGroupController {
   @Auth({ permissions: ['item_groups:create'] })
   async create(
     @Body() createItemGroupDto: CreateItemGroupRequest,
+    @currentCompany('id') companyId: string,
   ): Promise<ItemGroupResponse> {
-    return this.itemGroupService.create(createItemGroupDto);
+    return this.itemGroupService.create(companyId, createItemGroupDto);
   }
 
   @Get()
   @Auth({ permissions: ['item_groups:read'] })
-  async findAll(): Promise<ItemGroupResponse[]> {
-    return this.itemGroupService.findAll();
+  async findAll(
+    @currentCompany('id') companyId: string,
+  ): Promise<ItemGroupResponse[]> {
+    return this.itemGroupService.findAll(companyId);
   }
 
   @Get(':id')
   @Auth({ permissions: ['item_groups:read'] })
-  async findOne(@Param('id') id: string): Promise<ItemGroupResponse> {
-    return this.itemGroupService.findOne(id);
+  async findOne(
+    @Param('id') id: string,
+    @currentCompany('id') companyId: string,
+  ): Promise<ItemGroupResponse> {
+    return this.itemGroupService.findOne(companyId, id);
   }
 
   @Patch(':id')
@@ -48,14 +55,18 @@ export class ItemGroupController {
   async update(
     @Param('id') id: string,
     @Body() updateItemGroupDto: UpdateItemGroupRequest,
+    @currentCompany('id') companyId: string,
   ): Promise<ItemGroupResponse> {
-    return this.itemGroupService.update(id, updateItemGroupDto);
+    return this.itemGroupService.update(companyId, id, updateItemGroupDto);
   }
 
   @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)
   @Auth({ permissions: ['item_groups:delete'] })
-  async remove(@Param('id') id: string): Promise<void> {
-    return this.itemGroupService.remove(id);
+  async remove(
+    @Param('id') id: string,
+    @currentCompany('id') companyId: string,
+  ): Promise<void> {
+    return this.itemGroupService.remove(companyId, id);
   }
 }
