@@ -11,10 +11,10 @@ import {
 export class CompanyService {
   constructor(private readonly prisma: DatabaseService) {}
 
-  async getCompany(): Promise<CompanyResponse> {
+  async getCompany(companyId: string): Promise<CompanyResponse> {
     // Get the first (and only) company record
-    const company = await this.prisma.company.findFirst({
-      orderBy: { createdAt: 'asc' },
+    const company = await this.prisma.company.findUnique({
+      where: { id: companyId },
     });
 
     if (!company) {
@@ -48,10 +48,10 @@ export class CompanyService {
     return company;
   }
 
-  async upsertCompany(data: UpsertCompanyRequest): Promise<CompanyResponse> {
+  async upsertCompany(companyId: string, data: UpsertCompanyRequest): Promise<CompanyResponse> {
     // Try to find existing company
-    const existingCompany = await this.prisma.company.findFirst({
-      orderBy: { createdAt: 'asc' },
+    const existingCompany = await this.prisma.company.findUnique({
+      where: { id: companyId },
     });
 
     // Prepare data with logo conversion
@@ -65,7 +65,7 @@ export class CompanyService {
     if (existingCompany) {
       // Update existing company
       company = await this.prisma.company.update({
-        where: { id: existingCompany.id },
+        where: { id: companyId },
         data: companyData,
       });
     } else {
