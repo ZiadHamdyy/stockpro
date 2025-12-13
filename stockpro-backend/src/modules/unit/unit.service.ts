@@ -9,8 +9,16 @@ export class UnitService {
   constructor(private readonly prisma: DatabaseService) {}
 
   async create(companyId: string, data: CreateUnitRequest): Promise<UnitResponse> {
+    // Generate next code for this company
+    const last = await this.prisma.unit.findFirst({
+      where: { companyId },
+      select: { code: true },
+      orderBy: { code: 'desc' },
+    });
+    const nextCode = (last?.code ?? 0) + 1;
+
     const unit = await this.prisma.unit.create({
-      data: { ...data, companyId },
+      data: { ...data, companyId, code: nextCode },
     });
 
     return this.mapToResponse(unit);

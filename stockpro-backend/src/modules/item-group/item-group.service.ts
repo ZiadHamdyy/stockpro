@@ -12,8 +12,16 @@ export class ItemGroupService {
     companyId: string,
     data: CreateItemGroupRequest,
   ): Promise<ItemGroupResponse> {
+    // Generate next code for this company
+    const last = await this.prisma.itemGroup.findFirst({
+      where: { companyId },
+      select: { code: true },
+      orderBy: { code: 'desc' },
+    });
+    const nextCode = (last?.code ?? 0) + 1;
+
     const itemGroup = await this.prisma.itemGroup.create({
-      data: { ...data, companyId },
+      data: { ...data, companyId, code: nextCode },
     });
 
     return this.mapToResponse(itemGroup);

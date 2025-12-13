@@ -86,7 +86,7 @@ export class UserService {
     });
 
     // Create user directly with hashed password
-    // Generate next user code for this company
+    // Generate next user code - code is unique per company, so find max within company
     const last = await this.prisma.user.findFirst({
       where: { companyId },
       select: { code: true },
