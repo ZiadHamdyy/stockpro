@@ -11,24 +11,25 @@ import { UpdateStoreDto } from './dtos/update-store.dto';
 export class StoreService {
   constructor(private readonly prisma: DatabaseService) {}
 
-  async create(createStoreDto: CreateStoreDto) {
+  async create(companyId: string, createStoreDto: CreateStoreDto) {
     // Enforce one store per branch (friendly error; DB unique handles races)
-    const existingForBranch = await this.prisma.store.findFirst({
+    const existingForBranch = await this.prisma.store.findUnique({
       where: { branchId: createStoreDto.branchId },
-      select: { id: true },
+      select: { id: true, companyId: true },
     });
-    if (existingForBranch) {
+    if (existingForBranch && existingForBranch.companyId === companyId) {
       throw new BadRequestException('هذا الفرع لديه مخزن بالفعل');
     }
 
     const last = await this.prisma.store.findFirst({
+      where: { companyId },
       select: { code: true },
       orderBy: { code: 'desc' },
     });
     const nextCode = (last?.code ?? 0) + 1;
 
     return this.prisma.store.create({
-      data: { ...createStoreDto, code: nextCode },
+      data: { ...createStoreDto, companyId, code: nextCode },
       include: {
         branch: true,
         user: true,
@@ -36,8 +37,9 @@ export class StoreService {
     });
   }
 
-  async findAll() {
+  async findAll(companyId: string) {
     return this.prisma.store.findMany({
+      where: { companyId },
       include: {
         branch: true,
         user: true,
@@ -48,9 +50,9 @@ export class StoreService {
     });
   }
 
-  async findOne(id: string) {
+  async findOne(companyId: string, id: string) {
     const store = await this.prisma.store.findUnique({
-      where: { id },
+      where: { id_companyId: { id, companyId } },
       include: {
         branch: true,
         user: true,
@@ -64,16 +66,16 @@ export class StoreService {
     return store;
   }
 
-  async update(id: string, updateStoreDto: UpdateStoreDto) {
-    await this.findOne(id);
+  async update(companyId: string, id: string, updateStoreDto: UpdateStoreDto) {
+    await this.findOne(companyId, id);
 
     // If branch is being changed, ensure target branch does not already have a store
     if (updateStoreDto.branchId) {
-      const targetHasStore = await this.prisma.store.findFirst({
-        where: { branchId: updateStoreDto.branchId, NOT: { id } },
-        select: { id: true },
+      const targetHasStore = await this.prisma.store.findUnique({
+        where: { branchId: updateStoreDto.branchId },
+        select: { id: true, companyId: true },
       });
-      if (targetHasStore) {
+      if (targetHasStore && targetHasStore.id !== id && targetHasStore.companyId === companyId) {
         throw new BadRequestException('هذا الفرع لديه مخزن بالفعل');
       }
     }
@@ -88,16 +90,16 @@ export class StoreService {
     });
   }
 
-  async remove(id: string) {
-    await this.findOne(id);
+  async remove(companyId: string, id: string) {
+    await this.findOne(companyId, id);
 
     return this.prisma.store.delete({
       where: { id },
     });
   }
 
-  async findByBranchId(branchId: string) {
-    const store = await this.prisma.store.findFirst({
+  async findByBranchId(companyId: string, branchId: string) {
+    const store = await this.prisma.store.findUnique({
       where: { branchId },
       include: {
         branch: true,
@@ -105,7 +107,7 @@ export class StoreService {
       },
     });
 
-    if (!store) {
+    if (!store || store.companyId !== companyId) {
       throw new NotFoundException(
         `Store not found for branch with id: ${branchId}`,
       );
@@ -114,8 +116,13 @@ export class StoreService {
     return store;
   }
 
-  async findAllStoreItems() {
+  async findAllStoreItems(companyId: string) {
     return this.prisma.storeItem.findMany({
+      where: {
+        store: {
+          companyId,
+        },
+      },
       include: {
         item: {
           select: {
