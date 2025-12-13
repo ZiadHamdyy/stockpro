@@ -4,6 +4,7 @@ import { CompanyResponse } from './dtos/response/company.response';
 import { UpsertCompanyRequest } from './dtos/request/upsert-company.request';
 import { JwtAuthenticationGuard } from '../../common/guards/strategy.guards/jwt.guard';
 import { Auth } from '../../common/decorators/auth.decorator';
+import { currentCompany } from 'src/common/decorators/company.decorator';
 
 @Controller('company')
 @UseGuards(JwtAuthenticationGuard)
@@ -12,15 +13,16 @@ export class CompanyController {
 
   @Get()
   @Auth({ permissions: ['company_data:read'] })
-  async getCompany(): Promise<CompanyResponse> {
-    return this.companyService.getCompany();
+  async getCompany(@currentCompany('id') companyId: string): Promise<CompanyResponse> {
+    return this.companyService.getCompany(companyId);
   }
 
   @Put()
   @Auth({ permissions: ['company_data:update'] })
   async upsertCompany(
     @Body() data: UpsertCompanyRequest,
+    @currentCompany('id') companyId: string,
   ): Promise<CompanyResponse> {
-    return this.companyService.upsertCompany(data);
+    return this.companyService.upsertCompany(companyId, data);
   }
 }

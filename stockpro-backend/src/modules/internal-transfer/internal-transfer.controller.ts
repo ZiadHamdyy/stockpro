@@ -16,6 +16,7 @@ import { CreateInternalTransferRequest } from './dtos/request/create-internal-tr
 import { UpdateInternalTransferRequest } from './dtos/request/update-internal-transfer.request';
 import { InternalTransferResponse } from './dtos/response/internal-transfer.response';
 import { Auth } from '../../common/decorators/auth.decorator';
+import { currentCompany } from '../../common/decorators/company.decorator';
 
 @Controller('internal-transfers')
 export class InternalTransferController {
@@ -29,8 +30,10 @@ export class InternalTransferController {
   async createInternalTransfer(
     @Body() createDto: CreateInternalTransferRequest,
     @Request() req: any,
+    @currentCompany('id') companyId: string,
   ): Promise<InternalTransferResponse> {
     return this.internalTransferService.createInternalTransfer(
+      companyId,
       createDto,
       req.user.id,
     );
@@ -39,17 +42,19 @@ export class InternalTransferController {
   @Get()
   @Auth({ permissions: ['internal_transfers:read'] })
   async findAllInternalTransfers(
+    @currentCompany('id') companyId: string,
     @Query('search') search?: string,
   ): Promise<InternalTransferResponse[]> {
-    return this.internalTransferService.findAllInternalTransfers(search);
+    return this.internalTransferService.findAllInternalTransfers(companyId, search);
   }
 
   @Get(':id')
   @Auth({ permissions: ['internal_transfers:read'] })
   async findOneInternalTransfer(
     @Param('id') id: string,
+    @currentCompany('id') companyId: string,
   ): Promise<InternalTransferResponse> {
-    return this.internalTransferService.findOneInternalTransfer(id);
+    return this.internalTransferService.findOneInternalTransfer(companyId, id);
   }
 
   @Patch(':id')
@@ -57,14 +62,18 @@ export class InternalTransferController {
   async updateInternalTransfer(
     @Param('id') id: string,
     @Body() updateDto: UpdateInternalTransferRequest,
+    @currentCompany('id') companyId: string,
   ): Promise<InternalTransferResponse> {
-    return this.internalTransferService.updateInternalTransfer(id, updateDto);
+    return this.internalTransferService.updateInternalTransfer(companyId, id, updateDto);
   }
 
   @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)
   @Auth({ permissions: ['internal_transfers:delete'] })
-  async removeInternalTransfer(@Param('id') id: string): Promise<void> {
-    return this.internalTransferService.removeInternalTransfer(id);
+  async removeInternalTransfer(
+    @Param('id') id: string,
+    @currentCompany('id') companyId: string,
+  ): Promise<void> {
+    return this.internalTransferService.removeInternalTransfer(companyId, id);
   }
 }

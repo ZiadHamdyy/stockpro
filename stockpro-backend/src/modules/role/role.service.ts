@@ -20,22 +20,26 @@ export class RoleService {
     private readonly authService: IContextAuthService,
   ) {}
 
-  async create(createRoleRequest: CreateRoleRequest): Promise<RoleResponse> {
+  async create(companyId: string, createRoleRequest: CreateRoleRequest): Promise<RoleResponse> {
     // Prevent creating a role with the name "مدير" (manager)
     if (createRoleRequest.name === 'مدير') {
       throw new ConflictException('لا يمكن إنشاء دور باسم مدير');
     }
 
     const role = await this.prisma.role.create({
-      data: createRoleRequest,
+      data: {
+        ...createRoleRequest,
+        companyId,
+      },
     });
 
     return role;
   }
 
-  async findAll(): Promise<RoleResponse[]> {
+  async findAll(companyId: string): Promise<RoleResponse[]> {
     const roles = await this.prisma.role.findMany({
       orderBy: { name: 'asc' },
+      where: { companyId },
       include: {
         rolePermissions: {
           include: {
@@ -51,9 +55,9 @@ export class RoleService {
     })) as RoleResponse[];
   }
 
-  async findOne(id: string): Promise<RoleResponse | null> {
+  async findOne(companyId: string, id: string): Promise<RoleResponse | null> {
     const role = await this.prisma.role.findUnique({
-      where: { id },
+      where: { id_companyId: { id, companyId } },
       include: {
         rolePermissions: {
           include: {
@@ -73,9 +77,9 @@ export class RoleService {
     } as RoleResponse;
   }
 
-  async findOneByName(name: string): Promise<RoleResponse | null> {
+  async findOneByName(companyId: string, name: string): Promise<RoleResponse | null> {
     const role = await this.prisma.role.findUnique({
-      where: { name },
+      where: { name_companyId: { name, companyId: companyId } },
       include: {
         rolePermissions: {
           include: {
@@ -96,13 +100,14 @@ export class RoleService {
   }
 
   async update(
+    companyId: string,
     id: string,
     updateRoleRequest: UpdateRoleRequest,
     user?: any,
   ): Promise<RoleResponse> {
     // Check if it's a system role and prevent certain updates
     const existingRole = await this.prisma.role.findUnique({
-      where: { id },
+      where: { id_companyId: { id, companyId } },
       include: { rolePermissions: { include: { permission: true } } },
     });
 
@@ -123,17 +128,17 @@ export class RoleService {
     }
 
     const role = await this.prisma.role.update({
-      where: { id },
+      where: { id_companyId: { id, companyId } },
       data: updateRoleRequest,
     });
 
     return role;
   }
 
-  async remove(id: string): Promise<void> {
+  async remove(companyId: string, id: string): Promise<void> {
     // Check if role exists
     const role = await this.prisma.role.findUnique({
-      where: { id },
+      where: { id_companyId: { id, companyId } },
     });
 
     if (!role) {
@@ -147,7 +152,7 @@ export class RoleService {
 
     // Check if role has any users assigned
     const usersCount = await this.prisma.user.count({
-      where: { roleId: id },
+      where: { roleId: id, companyId },
     });
 
     if (usersCount > 0) {
@@ -158,11 +163,12 @@ export class RoleService {
 
     // Delete the role
     await this.prisma.role.delete({
-      where: { id },
+      where: { id_companyId: { id, companyId } },
     });
   }
 
   async assignPermissions(
+    companyId: string,
     id: string,
     assignPermissionsRequest: AssignPermissionsRequest,
   ): Promise<RoleResponse> {
@@ -171,7 +177,7 @@ export class RoleService {
     await this.prisma.$transaction(async (tx) => {
       // Get the role to check if it's manager
       const role = await tx.role.findUnique({
-        where: { id },
+        where: { id_companyId: { id, companyId } },
       });
 
       if (!role) {
@@ -180,7 +186,7 @@ export class RoleService {
 
       // Get all permissions for the 'permissions' resource
       const permissionsResourcePermissions = await tx.permission.findMany({
-        where: { resource: 'permissions' },
+        where: { resource: 'permissions', companyId },
       });
 
       const permissionsResourcePermissionIds =
@@ -197,6 +203,7 @@ export class RoleService {
       }
 
       // Remove existing permissions
+      // Note: RolePermission doesn't have companyId, but we've already verified the role belongs to the company
       await tx.rolePermission.deleteMany({
         where: { roleId: id },
       });
@@ -213,7 +220,7 @@ export class RoleService {
 
       // Immediately revoke sessions for users assigned to this role so they must re-login.
       const usersWithRole = await tx.user.findMany({
-        where: { roleId: id },
+        where: { roleId: id, companyId },
         select: { id: true },
       });
 
@@ -228,17 +235,22 @@ export class RoleService {
       }
     });
 
-    return this.findOne(id) as Promise<RoleResponse>;
+    return this.findOne(companyId, id) as Promise<RoleResponse>;
   }
 
-  async removePermission(roleId: string, permissionId: string): Promise<void> {
+  async removePermission(companyId: string, roleId: string, permissionId: string): Promise<void> {
+    // Verify the role belongs to the company first
+    const role = await this.prisma.role.findUnique({
+      where: { id_companyId: { id: roleId, companyId } },
+    });
+
+    if (!role) {
+      throw new ForbiddenException('Role not found');
+    }
+
+    // Delete the role permission using the roleId_permissionId unique constraint
     await this.prisma.rolePermission.delete({
-      where: {
-        roleId_permissionId: {
-          roleId,
-          permissionId,
-        },
-      },
+      where: { roleId_permissionId: { roleId, permissionId } },
     });
   }
 }

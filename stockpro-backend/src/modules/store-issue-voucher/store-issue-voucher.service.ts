@@ -21,6 +21,7 @@ export class StoreIssueVoucherService {
   ) {}
 
   async create(
+    companyId: string,
     createStoreIssueVoucherDto: CreateStoreIssueVoucherDto,
     userBranchId: string,
   ) {
@@ -30,12 +31,12 @@ export class StoreIssueVoucherService {
     const voucherDate = new Date();
     
     // Check if there is an open period for this date
-    const hasOpenPeriod = await this.fiscalYearService.hasOpenPeriodForDate(voucherDate);
+    const hasOpenPeriod = await this.fiscalYearService.hasOpenPeriodForDate(companyId, voucherDate);
     if (!hasOpenPeriod) {
       throw new ForbiddenException('Cannot create voucher: no open fiscal period exists for this date');
     }
 
-    const isInClosedPeriod = await this.fiscalYearService.isDateInClosedPeriod(voucherDate);
+    const isInClosedPeriod = await this.fiscalYearService.isDateInClosedPeriod(companyId, voucherDate);
     if (isInClosedPeriod) {
       throw new ForbiddenException('Cannot create voucher in a closed fiscal period');
     }
@@ -72,6 +73,7 @@ export class StoreIssueVoucherService {
           ...voucherData,
           storeId,
           voucherNumber,
+          companyId,
           totalAmount,
           items: {
             create: items.map((item) => ({
@@ -105,6 +107,7 @@ export class StoreIssueVoucherService {
 
     // Create audit log
     await this.auditLogService.createAuditLog({
+      companyId,
       userId: result.userId,
       branchId: userBranchId,
       action: 'create',
@@ -116,8 +119,9 @@ export class StoreIssueVoucherService {
     return result;
   }
 
-  async findAll() {
+  async findAll(companyId: string) {
     return this.prisma.storeIssueVoucher.findMany({
+      where: { companyId },
       include: {
         store: {
           include: {
@@ -142,9 +146,9 @@ export class StoreIssueVoucherService {
     });
   }
 
-  async findOne(id: string) {
+  async findOne(companyId: string, id: string) {
     const voucher = await this.prisma.storeIssueVoucher.findUnique({
-      where: { id },
+      where: { id_companyId: { id, companyId } },
       include: {
         store: {
           include: {
@@ -173,6 +177,7 @@ export class StoreIssueVoucherService {
   }
 
   async update(
+    companyId: string,
     id: string,
     updateStoreIssueVoucherDto: UpdateStoreIssueVoucherDto,
     userBranchId: string,
@@ -180,11 +185,11 @@ export class StoreIssueVoucherService {
     const { items, storeId, ...voucherData } = updateStoreIssueVoucherDto;
 
     // Check if voucher exists and get old data
-    const oldVoucher = await this.findOne(id);
+    const oldVoucher = await this.findOne(companyId, id);
     
     // Check if date is in a closed period (use existing date since DTO doesn't have date field)
     const voucherDate = oldVoucher.date;
-    const isInClosedPeriod = await this.fiscalYearService.isDateInClosedPeriod(voucherDate);
+    const isInClosedPeriod = await this.fiscalYearService.isDateInClosedPeriod(companyId, voucherDate);
     if (isInClosedPeriod) {
       throw new ForbiddenException('لا يمكن تعديل السند: الفترة المحاسبية مغلقة');
     }
@@ -308,6 +313,7 @@ export class StoreIssueVoucherService {
 
     // Create audit log
     await this.auditLogService.createAuditLog({
+      companyId,
       userId: result.userId,
       branchId: userBranchId,
       action: 'update',
@@ -319,9 +325,9 @@ export class StoreIssueVoucherService {
     return result;
   }
 
-  async remove(id: string, userBranchId: string) {
+  async remove(companyId: string, id: string, userBranchId: string) {
     // Get voucher before deletion to know what to rollback
-    const voucher = await this.findOne(id);
+    const voucher = await this.findOne(companyId, id);
 
     // Delete voucher (stock is automatically "restored" since the voucher items are deleted)
     // No need to explicitly rollback since stock is calculated from voucher history
@@ -331,6 +337,7 @@ export class StoreIssueVoucherService {
 
     // Create audit log
     await this.auditLogService.createAuditLog({
+      companyId,
       userId: voucher.userId,
       branchId: userBranchId,
       action: 'delete',

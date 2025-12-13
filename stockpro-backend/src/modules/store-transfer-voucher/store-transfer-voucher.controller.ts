@@ -15,6 +15,7 @@ import { UpdateStoreTransferVoucherDto } from './dtos/update-store-transfer-vouc
 import { JwtAuthenticationGuard } from '../../common/guards/strategy.guards/jwt.guard';
 import { Auth } from '../../common/decorators/auth.decorator';
 import { currentUser } from '../../common/decorators/currentUser.decorator';
+import { currentCompany } from '../../common/decorators/company.decorator';
 import type { currentUserType } from '../../common/types/current-user.type';
 
 @Controller('store-transfer-vouchers')
@@ -29,8 +30,10 @@ export class StoreTransferVoucherController {
   create(
     @Body() createStoreTransferVoucherDto: CreateStoreTransferVoucherDto,
     @currentUser() user: currentUserType,
+    @currentCompany('id') companyId: string,
   ) {
     return this.storeTransferVoucherService.create(
+      companyId,
       createStoreTransferVoucherDto,
       user.branchId,
     );
@@ -38,14 +41,20 @@ export class StoreTransferVoucherController {
 
   @Get()
   @Auth({ permissions: ['store_transfer:read'] })
-  findAll(@Query('status') status?: string) {
-    return this.storeTransferVoucherService.findAll(status);
+  findAll(
+    @currentCompany('id') companyId: string,
+    @Query('status') status?: string,
+  ) {
+    return this.storeTransferVoucherService.findAll(companyId, status);
   }
 
   @Get(':id')
   @Auth({ permissions: ['store_transfer:read'] })
-  findOne(@Param('id') id: string) {
-    return this.storeTransferVoucherService.findOne(id);
+  findOne(
+    @Param('id') id: string,
+    @currentCompany('id') companyId: string,
+  ) {
+    return this.storeTransferVoucherService.findOne(companyId, id);
   }
 
   @Patch(':id')
@@ -54,8 +63,10 @@ export class StoreTransferVoucherController {
     @Param('id') id: string,
     @Body() updateStoreTransferVoucherDto: UpdateStoreTransferVoucherDto,
     @currentUser() user: currentUserType,
+    @currentCompany('id') companyId: string,
   ) {
     return this.storeTransferVoucherService.update(
+      companyId,
       id,
       updateStoreTransferVoucherDto,
       user.branchId,
@@ -67,8 +78,9 @@ export class StoreTransferVoucherController {
   remove(
     @Param('id') id: string,
     @currentUser() user: currentUserType,
+    @currentCompany('id') companyId: string,
   ) {
-    return this.storeTransferVoucherService.remove(id, user.branchId);
+    return this.storeTransferVoucherService.remove(companyId, id, user.branchId);
   }
 
   @Patch(':id/accept')
@@ -76,8 +88,10 @@ export class StoreTransferVoucherController {
   accept(
     @Param('id') id: string,
     @currentUser() user: currentUserType,
+    @currentCompany('id') companyId: string,
   ) {
     return this.storeTransferVoucherService.acceptTransfer(
+      companyId,
       id,
       user.branchId,
       user.id,
@@ -89,8 +103,10 @@ export class StoreTransferVoucherController {
   reject(
     @Param('id') id: string,
     @currentUser() user: currentUserType,
+    @currentCompany('id') companyId: string,
   ) {
     return this.storeTransferVoucherService.rejectTransfer(
+      companyId,
       id,
       user.branchId,
       user.id,

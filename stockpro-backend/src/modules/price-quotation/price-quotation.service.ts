@@ -15,6 +15,7 @@ export class PriceQuotationService {
   ) {}
 
   async create(
+    companyId: string,
     data: CreatePriceQuotationRequest,
     userId: string,
     branchId?: string,
@@ -39,18 +40,18 @@ export class PriceQuotationService {
     const quotationDate = data.date ? new Date(data.date) : new Date();
     
     // Check if there is an open period for this date
-    const hasOpenPeriod = await this.fiscalYearService.hasOpenPeriodForDate(quotationDate);
+    const hasOpenPeriod = await this.fiscalYearService.hasOpenPeriodForDate(companyId, quotationDate);
     if (!hasOpenPeriod) {
       throw new ForbiddenException('لا يمكن إنشاء عرض سعر: لا توجد فترة محاسبية مفتوحة لهذا التاريخ');
     }
 
     // Check if date is in a closed period
-    const isInClosedPeriod = await this.fiscalYearService.isDateInClosedPeriod(quotationDate);
+    const isInClosedPeriod = await this.fiscalYearService.isDateInClosedPeriod(companyId, quotationDate);
     if (isInClosedPeriod) {
       throw new ForbiddenException('لا يمكن إنشاء عرض سعر: الفترة المحاسبية مغلقة');
     }
 
-    const code = await this.generateNextCode();
+    const code = await this.generateNextCode(companyId);
 
     const created = await this.prisma.priceQuotation.create({
       data: {
@@ -66,6 +67,7 @@ export class PriceQuotationService {
         totals: data.totals as unknown as any,
         userId,
         branchId,
+        companyId,
       },
       include: this.defaultInclude,
     });
@@ -73,20 +75,20 @@ export class PriceQuotationService {
     return this.mapToResponse(created);
   }
 
-  async findAll(search?: string): Promise<PriceQuotationResponse[]> {
-    const where = search
-      ? {
-          OR: [
-            { code: { contains: search, mode: 'insensitive' as const } },
-            { status: { contains: search, mode: 'insensitive' as const } },
-            {
-              customer: {
-                name: { contains: search, mode: 'insensitive' as const },
-              },
-            },
-          ],
-        }
-      : {};
+  async findAll(companyId: string, search?: string): Promise<PriceQuotationResponse[]> {
+    const where: any = { companyId };
+    if (search) {
+      where.OR = [
+        { code: { contains: search, mode: 'insensitive' as const } },
+        { status: { contains: search, mode: 'insensitive' as const } },
+        {
+          customer: {
+            name: { contains: search, mode: 'insensitive' as const },
+            companyId, // Ensure customer belongs to the same company
+          },
+        },
+      ];
+    }
 
     const quotations = await this.prisma.priceQuotation.findMany({
       where,
@@ -97,13 +99,13 @@ export class PriceQuotationService {
     return quotations.map((quotation) => this.mapToResponse(quotation));
   }
 
-  async findOne(id: string): Promise<PriceQuotationResponse> {
+  async findOne(companyId: string, id: string): Promise<PriceQuotationResponse> {
     const quotation = await this.prisma.priceQuotation.findUnique({
       where: { id },
       include: this.defaultInclude,
     });
 
-    if (!quotation) {
+    if (!quotation || quotation.companyId !== companyId) {
       throw new NotFoundException('Price quotation not found');
     }
 
@@ -111,6 +113,7 @@ export class PriceQuotationService {
   }
 
   async update(
+    companyId: string,
     id: string,
     data: UpdatePriceQuotationRequest,
   ): Promise<PriceQuotationResponse> {
@@ -157,6 +160,12 @@ export class PriceQuotationService {
     }
 
     try {
+      const existing = await this.prisma.priceQuotation.findUnique({
+        where: { id },
+      });
+      if (!existing || existing.companyId !== companyId) {
+        throw new NotFoundException('Price quotation not found');
+      }
       const updated = await this.prisma.priceQuotation.update({
         where: { id },
         data: payload,
@@ -165,14 +174,22 @@ export class PriceQuotationService {
 
       return this.mapToResponse(updated);
     } catch (error) {
+      if (error instanceof NotFoundException) throw error;
       throw new NotFoundException('Price quotation not found');
     }
   }
 
-  async remove(id: string): Promise<void> {
+  async remove(companyId: string, id: string): Promise<void> {
     try {
+      const quotation = await this.prisma.priceQuotation.findUnique({
+        where: { id },
+      });
+      if (!quotation || quotation.companyId !== companyId) {
+        throw new NotFoundException('Price quotation not found');
+      }
       await this.prisma.priceQuotation.delete({ where: { id } });
     } catch (error) {
+      if (error instanceof NotFoundException) throw error;
       throw new NotFoundException('Price quotation not found');
     }
   }
@@ -207,8 +224,9 @@ export class PriceQuotationService {
     };
   }
 
-  private async generateNextCode(): Promise<string> {
+  private async generateNextCode(companyId: string): Promise<string> {
     const lastQuotation = await this.prisma.priceQuotation.findFirst({
+      where: { companyId },
       orderBy: { code: 'desc' },
     });
 

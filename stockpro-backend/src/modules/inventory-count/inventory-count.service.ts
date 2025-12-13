@@ -24,6 +24,7 @@ export class InventoryCountService {
   ) {}
 
   async create(
+    companyId: string,
     createInventoryCountDto: CreateInventoryCountDto,
   ): Promise<InventoryCountResponse> {
     const { items, date, ...countData } = createInventoryCountDto;
@@ -37,19 +38,19 @@ export class InventoryCountService {
     const countDate = date ? new Date(date) : new Date();
     
     // Check if there is an open period for this date
-    const hasOpenPeriod = await this.fiscalYearService.hasOpenPeriodForDate(countDate);
+    const hasOpenPeriod = await this.fiscalYearService.hasOpenPeriodForDate(companyId, countDate);
     if (!hasOpenPeriod) {
       throw new ForbiddenException('لا يمكن إنشاء جرد: لا توجد فترة محاسبية مفتوحة لهذا التاريخ');
     }
 
     // Check if date is in a closed period
-    const isInClosedPeriod = await this.fiscalYearService.isDateInClosedPeriod(countDate);
+    const isInClosedPeriod = await this.fiscalYearService.isDateInClosedPeriod(companyId, countDate);
     if (isInClosedPeriod) {
       throw new ForbiddenException('لا يمكن إنشاء جرد: الفترة المحاسبية مغلقة');
     }
 
     // Generate code
-    const code = await this.generateNextCode();
+    const code = await this.generateNextCode(companyId);
 
     // Calculate total variance value
     const totalVarianceValue = items.reduce(
@@ -76,6 +77,7 @@ export class InventoryCountService {
               cost: item.cost,
             })),
           },
+          companyId,
         },
         include: {
           store: {
@@ -118,9 +120,10 @@ export class InventoryCountService {
     }
   }
 
-  async findAll(): Promise<InventoryCountResponse[]> {
+  async findAll(companyId: string): Promise<InventoryCountResponse[]> {
     try {
       const counts = await this.prisma.inventoryCount.findMany({
+        where: { companyId },
         include: {
           store: {
             include: {
@@ -155,9 +158,9 @@ export class InventoryCountService {
     }
   }
 
-  async findOne(id: string): Promise<InventoryCountResponse> {
+  async findOne(companyId: string, id: string): Promise<InventoryCountResponse> {
     const count = await this.prisma.inventoryCount.findUnique({
-      where: { id },
+      where: { id_companyId: { id, companyId } },
       include: {
         store: {
           include: {
@@ -179,7 +182,7 @@ export class InventoryCountService {
       },
     });
 
-    if (!count) {
+    if (!count || count.companyId !== companyId) {
       throw new NotFoundException('Inventory count not found');
     }
 
@@ -187,11 +190,12 @@ export class InventoryCountService {
   }
 
   async update(
+    companyId: string,
     id: string,
     updateInventoryCountDto: UpdateInventoryCountDto,
   ): Promise<InventoryCountResponse> {
     // Check if count exists and is pending
-    const existing = await this.findOne(id);
+    const existing = await this.findOne(companyId, id);
     if (existing.status === 'POSTED') {
       throw new BadRequestException(
         'Cannot update a posted inventory count',
@@ -252,10 +256,10 @@ export class InventoryCountService {
     });
   }
 
-  async post(id: string): Promise<InventoryCountResponse> {
+  async post(companyId: string, id: string): Promise<InventoryCountResponse> {
     // Get the inventory count
     const count = await this.prisma.inventoryCount.findUnique({
-      where: { id },
+      where: { id_companyId: { id, companyId } },
       include: {
         items: {
           include: {
@@ -267,7 +271,7 @@ export class InventoryCountService {
       },
     });
 
-    if (!count) {
+    if (!count || count.companyId !== companyId) {
       throw new NotFoundException('Inventory count not found');
     }
 
@@ -276,7 +280,7 @@ export class InventoryCountService {
     }
 
     // Create settlement vouchers
-    await this.createSettlementVouchers(count);
+    await this.createSettlementVouchers(companyId, count);
 
     // Update status to POSTED
     const updated = await this.prisma.inventoryCount.update({
@@ -306,9 +310,9 @@ export class InventoryCountService {
     return this.mapToResponse(updated);
   }
 
-  async remove(id: string): Promise<void> {
+  async remove(companyId: string, id: string): Promise<void> {
     // Check if count exists and is pending
-    const existing = await this.findOne(id);
+    const existing = await this.findOne(companyId, id);
     if (existing.status === 'POSTED') {
       throw new BadRequestException(
         'Cannot delete a posted inventory count',
@@ -320,7 +324,7 @@ export class InventoryCountService {
     });
   }
 
-  private async createSettlementVouchers(count: any): Promise<void> {
+  private async createSettlementVouchers(companyId: string, count: any): Promise<void> {
     const receiptItems: any[] = [];
     const issueItems: any[] = [];
 
@@ -356,6 +360,7 @@ export class InventoryCountService {
     // Create receipt voucher for surpluses (when actual > system, we add the difference)
     if (receiptItems.length > 0) {
       await this.storeReceiptVoucherService.create(
+        companyId,
         {
           storeId: count.storeId,
           userId: count.userId,
@@ -369,6 +374,7 @@ export class InventoryCountService {
     // Create issue voucher for shortages (when actual < system, we remove the difference)
     if (issueItems.length > 0) {
       await this.storeIssueVoucherService.create(
+        companyId,
         {
           storeId: count.storeId,
           userId: count.userId,
@@ -380,8 +386,9 @@ export class InventoryCountService {
     }
   }
 
-  private async generateNextCode(): Promise<string> {
+  private async generateNextCode(companyId: string): Promise<string> {
     const lastCount = await this.prisma.inventoryCount.findFirst({
+      where: { companyId },
       orderBy: { code: 'desc' },
     });
 

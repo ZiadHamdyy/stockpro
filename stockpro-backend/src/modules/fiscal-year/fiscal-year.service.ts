@@ -18,6 +18,7 @@ export class FiscalYearService {
   ) {}
 
   async create(
+    companyId: string,
     data: CreateFiscalYearRequest,
   ): Promise<FiscalYearResponse> {
     const startDate = new Date(data.startDate);
@@ -34,7 +35,7 @@ export class FiscalYearService {
     this.validateYearNotInFuture(startDate);
 
     // Check for overlapping periods
-    await this.validateNoOverlap(startDate, endDate);
+    await this.validateNoOverlap(companyId, startDate, endDate);
 
     const fiscalYear = await this.prisma.fiscalYear.create({
       data: {
@@ -42,23 +43,25 @@ export class FiscalYearService {
         startDate,
         endDate,
         status: 'OPEN',
+        companyId,
       },
     });
 
     return this.mapToResponse(fiscalYear);
   }
 
-  async findAll(): Promise<FiscalYearResponse[]> {
+  async findAll(companyId: string): Promise<FiscalYearResponse[]> {
     const fiscalYears = await this.prisma.fiscalYear.findMany({
+      where: { companyId },
       orderBy: { startDate: 'desc' },
     });
 
     return fiscalYears.map((fy) => this.mapToResponse(fy));
   }
 
-  async findOne(id: string): Promise<FiscalYearResponse> {
+  async findOne(companyId: string, id: string): Promise<FiscalYearResponse> {
     const fiscalYear = await this.prisma.fiscalYear.findUnique({
-      where: { id },
+      where: { id_companyId: { id, companyId } },
     });
 
     if (!fiscalYear) {
@@ -69,16 +72,12 @@ export class FiscalYearService {
   }
 
   async update(
+    companyId: string,
     id: string,
     data: UpdateFiscalYearRequest,
   ): Promise<FiscalYearResponse> {
-    const fiscalYear = await this.prisma.fiscalYear.findUnique({
-      where: { id },
-    });
-
-    if (!fiscalYear) {
-      throw new NotFoundException(`Fiscal year with ID ${id} not found`);
-    }
+    // Verify the fiscal year belongs to the company
+    const fiscalYear = await this.findOne(companyId, id);
 
     // Can only update open periods
     if (fiscalYear.status === 'CLOSED') {
@@ -107,7 +106,7 @@ export class FiscalYearService {
       }
 
       // Check for overlapping periods (excluding current period)
-      await this.validateNoOverlap(startDate, endDate, id);
+      await this.validateNoOverlap(companyId, startDate, endDate, id);
 
       updateData.startDate = startDate;
       updateData.endDate = endDate;
@@ -122,16 +121,12 @@ export class FiscalYearService {
   }
 
   async close(
+    companyId: string,
     id: string,
     userId: string,
   ): Promise<FiscalYearResponse> {
-    const fiscalYear = await this.prisma.fiscalYear.findUnique({
-      where: { id },
-    });
-
-    if (!fiscalYear) {
-      throw new NotFoundException(`Fiscal year with ID ${id} not found`);
-    }
+    // Verify the fiscal year belongs to the company
+    const fiscalYear = await this.findOne(companyId, id);
 
     if (fiscalYear.status === 'CLOSED') {
       throw new BadRequestException('السنة المالية مغلقة بالفعل');
@@ -142,6 +137,7 @@ export class FiscalYearService {
     const endDateStr = fiscalYear.endDate.toISOString().split('T')[0];
     const incomeStatement =
       await this.incomeStatementService.getIncomeStatement(
+        companyId,
         startDateStr,
         endDateStr,
       );
@@ -161,16 +157,12 @@ export class FiscalYearService {
   }
 
   async reopen(
+    companyId: string,
     id: string,
     userId: string,
   ): Promise<FiscalYearResponse> {
-    const fiscalYear = await this.prisma.fiscalYear.findUnique({
-      where: { id },
-    });
-
-    if (!fiscalYear) {
-      throw new NotFoundException(`Fiscal year with ID ${id} not found`);
-    }
+    // Verify the fiscal year belongs to the company
+    const fiscalYear = await this.findOne(companyId, id);
 
     if (fiscalYear.status === 'OPEN') {
       throw new BadRequestException('السنة المالية مفتوحة بالفعل');
@@ -194,9 +186,10 @@ export class FiscalYearService {
   /**
    * Check if a date falls within any closed period
    */
-  async isDateInClosedPeriod(date: Date): Promise<boolean> {
+  async isDateInClosedPeriod(companyId: string, date: Date): Promise<boolean> {
     const closedPeriods = await this.prisma.fiscalYear.findMany({
       where: {
+        companyId,
         status: 'CLOSED',
         startDate: { lte: date },
         endDate: { gte: date },
@@ -209,9 +202,10 @@ export class FiscalYearService {
   /**
    * Check if there is an open period for a given date
    */
-  async hasOpenPeriodForDate(date: Date): Promise<boolean> {
+  async hasOpenPeriodForDate(companyId: string, date: Date): Promise<boolean> {
     const openPeriods = await this.prisma.fiscalYear.findMany({
       where: {
+        companyId,
         status: 'OPEN',
         startDate: { lte: date },
         endDate: { gte: date },
@@ -224,9 +218,10 @@ export class FiscalYearService {
   /**
    * Get the fiscal period (and its status) for a given date
    */
-  async getPeriodForDate(date: Date): Promise<any | null> {
+  async getPeriodForDate(companyId: string, date: Date): Promise<any | null> {
     const period = await this.prisma.fiscalYear.findFirst({
       where: {
+        companyId,
         startDate: { lte: date },
         endDate: { gte: date },
       },
@@ -240,13 +235,14 @@ export class FiscalYearService {
    * Get effective period for a date (handles close-open-open scenario)
    * Returns the last closed period before the date, or null if date is after all closed periods
    */
-  async getEffectivePeriodForDate(date: Date): Promise<{
+  async getEffectivePeriodForDate(companyId: string, date: Date): Promise<{
     isEditable: boolean;
     lastClosedPeriodEnd: Date | null;
   }> {
     // Find the last closed period that ends before or on this date
     const lastClosedPeriod = await this.prisma.fiscalYear.findFirst({
       where: {
+        companyId,
         status: 'CLOSED',
         endDate: { lte: date },
       },
@@ -254,7 +250,7 @@ export class FiscalYearService {
     });
 
     // If date falls within a closed period, it's not editable
-    const isInClosedPeriod = await this.isDateInClosedPeriod(date);
+    const isInClosedPeriod = await this.isDateInClosedPeriod(companyId, date);
 
     if (isInClosedPeriod) {
       return {
@@ -298,11 +294,13 @@ export class FiscalYearService {
    * Validate that a date range doesn't overlap with existing periods
    */
   private async validateNoOverlap(
+    companyId: string,
     startDate: Date,
     endDate: Date,
     excludeId?: string,
   ): Promise<void> {
     const where: any = {
+      companyId,
       OR: [
         // New period starts within an existing period
         {

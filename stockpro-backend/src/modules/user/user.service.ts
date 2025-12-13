@@ -30,7 +30,7 @@ export class UserService {
     };
   }
 
-  async getAllUsers(filters?: UserListFilterInput) {
+  async getAllUsers(companyId: string, filters?: UserListFilterInput) {
     const {
       search,
       page = 1,
@@ -39,7 +39,7 @@ export class UserService {
       sortOrder = 'asc',
     } = filters || {};
 
-    const where: any = {};
+    const where: any = { companyId };
 
     if (search) {
       where.OR = [
@@ -76,18 +76,19 @@ export class UserService {
     };
   }
 
-  async createUser(data: CreateUserRequest) {
+  async createUser(companyId: string, data: CreateUserRequest) {
     // Check if user already exists
-    await this.errorIfUserExists(data.email);
+    await this.errorIfUserExists(companyId, data.email);
 
-    // Get default role (manager)
-    const defaultRole = await this.prisma.role.findFirst({
-      where: { name: 'manager' },
+    // Get default role (manager) for this company
+    const defaultRole = await this.prisma.role.findUnique({
+      where: { name_companyId: { name: 'مدير', companyId } },
     });
 
     // Create user directly with hashed password
-    // Generate next user code
+    // Generate next user code - code is unique per company, so find max within company
     const last = await this.prisma.user.findFirst({
+      where: { companyId },
       select: { code: true },
       orderBy: { code: 'desc' },
     });
@@ -104,6 +105,7 @@ export class UserService {
         active: true,
         roleId: data.roleId ?? defaultRole?.id,
         branchId: data.branchId,
+        companyId,
       },
       include: {
         role: true,
@@ -114,10 +116,10 @@ export class UserService {
     return this.convertUserForResponse(user);
   }
 
-  async getVerifiedUserIdByEmail(email: string) {
+  async getVerifiedUserIdByEmail(companyId: string, email: string) {
     const user = await this.prisma.user.findUnique({
       where: {
-        email,
+        email_companyId: { email, companyId },
       },
     });
     if (!user)
@@ -128,10 +130,10 @@ export class UserService {
     return { id: user.id };
   }
 
-  async getLoginUserOrError({ email }: { email: string }) {
+  async getLoginUserOrError(companyId: string, { email }: { email: string }) {
     const user = await this.prisma.user.findUnique({
       where: {
-        email,
+        email_companyId: { email, companyId },
       },
     });
     if (!user)
@@ -149,7 +151,7 @@ export class UserService {
 
   async toggleUserActivity(userId: string, currentUserId: string) {
     // Check if user exists
-    const existingUser = await this.prisma.user.findFirst({
+    const existingUser = await this.prisma.user.findUnique({
       where: {
         id: userId,
       },
@@ -208,9 +210,9 @@ export class UserService {
     return { success: true };
   }
 
-  async errorIfUserExists(email: string) {
+  async errorIfUserExists(companyId: string, email: string) {
     const user = await this.prisma.user.findUnique({
-      where: { email },
+      where: { email_companyId: { email, companyId } },
     });
     if (user)
       throw new GenericHttpException(
@@ -251,7 +253,7 @@ export class UserService {
     }
   }
 
-  async getUserById(userId: string) {
+  async getUserById(companyId: string, userId: string) {
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
       include: {
@@ -260,7 +262,7 @@ export class UserService {
       },
     });
 
-    if (!user) {
+    if (!user || user.companyId !== companyId) {
       throw new GenericHttpException(
         ERROR_MESSAGES.USER_NOT_FOUND,
         HttpStatus.NOT_FOUND,
@@ -270,13 +272,13 @@ export class UserService {
     return this.convertUserForResponse(user);
   }
 
-  async updateUser(userId: string, data: UpdateUserRequest) {
-    // Check if user exists
+  async updateUser(companyId: string, userId: string, data: UpdateUserRequest) {
+    // Check if user exists and belongs to the company
     const existingUser = await this.prisma.user.findUnique({
       where: { id: userId },
     });
 
-    if (!existingUser) {
+    if (!existingUser || existingUser.companyId !== companyId) {
       throw new GenericHttpException(
         ERROR_MESSAGES.USER_NOT_FOUND,
         HttpStatus.NOT_FOUND,
@@ -285,7 +287,7 @@ export class UserService {
 
     // Check if email is being changed and if new email already exists
     if (data.email && data.email !== existingUser.email) {
-      await this.errorIfUserExists(data.email);
+      await this.errorIfUserExists(companyId, data.email);
     }
 
     const updateData: any = {};
@@ -326,7 +328,7 @@ export class UserService {
     return this.convertUserForResponse(user);
   }
 
-  async getUserPermissions(userId: string) {
+  async getUserPermissions(companyId: string, userId: string) {
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
       include: {
@@ -341,6 +343,13 @@ export class UserService {
         },
       },
     });
+
+    if (!user || user.companyId !== companyId) {
+      throw new GenericHttpException(
+        ERROR_MESSAGES.USER_NOT_FOUND,
+        HttpStatus.NOT_FOUND,
+      );
+    }
 
     if (!user || !user.role) {
       return [];

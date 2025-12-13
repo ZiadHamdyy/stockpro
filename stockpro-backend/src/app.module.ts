@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, NestModule, MiddlewareConsumer } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { APP_FILTER, APP_INTERCEPTOR, APP_PIPE } from '@nestjs/core';
 import { PinoLogger } from 'nestjs-pino';
@@ -11,6 +11,7 @@ import { ResponseInterceptor } from './common/interceptors/response.interceptor'
 import { HttpExceptionFilter } from './common/application/exceptions/exception-filter';
 import { ValidationPipe } from './common/application/exceptions/validation.pipe';
 import { ContextModule } from './common/application/context/context.module';
+import { CompanyMiddleware } from './common/middleware/company.middleware';
 import { AuthModule } from './modules/auth/auth.module';
 import { UserModule } from './modules/user/user.module';
 import { SessionModule } from './modules/session/session.module';
@@ -121,4 +122,8 @@ import { FiscalYearModule } from './modules/fiscal-year/fiscal-year.module';
     },
   ],
 })
-export class AppModule {}
+export class AppModule implements NestModule {
+  configure(consumer: MiddlewareConsumer) {
+    consumer.apply(CompanyMiddleware).forRoutes('*');
+  }
+}

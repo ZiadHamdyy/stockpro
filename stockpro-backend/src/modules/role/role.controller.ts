@@ -17,6 +17,7 @@ import { RoleResponse } from './dtos/response/role.response';
 import { Serialize } from '../../common/interceptors/serialize.interceptor';
 import { Auth } from '../../common/decorators/auth.decorator';
 import { currentUser } from '../../common/decorators/currentUser.decorator';
+import { currentCompany } from '../../common/decorators/company.decorator';
 import type { currentUserType } from '../../common/types/current-user.type';
 
 @Controller('roles')
@@ -29,24 +30,25 @@ export class RoleController {
   @Auth({ permissions: ['permissions:create'] })
   async create(
     @Body() createRoleRequest: CreateRoleRequest,
+    @currentCompany('id') companyId: string,
   ): Promise<RoleResponse> {
-    return await this.roleService.create(createRoleRequest);
+    return await this.roleService.create(companyId, createRoleRequest);
   }
 
   @Get()
   @HttpCode(HttpStatus.OK)
   @Serialize(RoleResponse)
   @Auth({ permissions: ['permissions:read'] })
-  async findAll(): Promise<RoleResponse[]> {
-    return await this.roleService.findAll();
+  async findAll(@currentCompany('id') companyId: string): Promise<RoleResponse[]> {
+    return await this.roleService.findAll(companyId);
   }
 
   @Get(':id')
   @HttpCode(HttpStatus.OK)
   @Serialize(RoleResponse)
   @Auth({ permissions: ['permissions:read'] })
-  async findOne(@Param('id') id: string): Promise<RoleResponse | null> {
-    return await this.roleService.findOne(id);
+  async findOne(@Param('id') id: string, @currentCompany('id') companyId: string): Promise<RoleResponse | null> {
+    return await this.roleService.findOne(companyId, id);
   }
 
   @Patch(':id')
@@ -57,15 +59,16 @@ export class RoleController {
     @Param('id') id: string,
     @Body() updateRoleRequest: UpdateRoleRequest,
     @currentUser() user: currentUserType,
+    @currentCompany('id') companyId: string,
   ): Promise<RoleResponse> {
-    return await this.roleService.update(id, updateRoleRequest, user);
+    return await this.roleService.update(companyId, id, updateRoleRequest, user);
   }
 
   @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)
   @Auth({ permissions: ['permissions:delete'] })
-  async remove(@Param('id') id: string): Promise<void> {
-    return await this.roleService.remove(id);
+  async remove(@Param('id') id: string, @currentCompany('id') companyId: string): Promise<void> {
+    return await this.roleService.remove(companyId, id);
   }
 
   @Post(':id/permissions')
@@ -75,8 +78,10 @@ export class RoleController {
   async assignPermissions(
     @Param('id') id: string,
     @Body() assignPermissionsRequest: AssignPermissionsRequest,
+    @currentCompany('id') companyId: string,
   ): Promise<RoleResponse> {
     return await this.roleService.assignPermissions(
+      companyId,
       id,
       assignPermissionsRequest,
     );
@@ -88,7 +93,8 @@ export class RoleController {
   async removePermission(
     @Param('roleId') roleId: string,
     @Param('permissionId') permissionId: string,
+    @currentCompany('id') companyId: string,
   ): Promise<void> {
-    return await this.roleService.removePermission(roleId, permissionId);
+    return await this.roleService.removePermission(companyId, roleId, permissionId);
   }
 }

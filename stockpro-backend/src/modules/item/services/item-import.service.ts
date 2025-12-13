@@ -26,6 +26,7 @@ export class ItemImportService {
   ) {}
 
   async importFromExcel(
+    companyId: string,
     file: Express.Multer.File,
     user: currentUserType,
   ): Promise<ImportItemsResponse> {
@@ -57,7 +58,7 @@ export class ItemImportService {
       throw new BadRequestException('ملف Excel لا يحتوي على بيانات صالحة');
     }
 
-    const { groupMap, unitMap } = await this.loadLookups();
+    const { groupMap, unitMap } = await this.loadLookups(companyId);
 
     const errors: ImportItemsResponse['errors'] = [];
     let importedCount = 0;
@@ -65,8 +66,8 @@ export class ItemImportService {
     for (let index = 0; index < meaningfulRows.length; index++) {
       const { row, rowNumber } = meaningfulRows[index];
       try {
-        const payload = await this.transformRow(row, groupMap, unitMap);
-        await this.itemService.create(payload, user);
+        const payload = await this.transformRow(companyId, row, groupMap, unitMap);
+        await this.itemService.create(companyId, payload, user);
         importedCount++;
       } catch (error: any) {
         errors.push({
@@ -115,12 +116,14 @@ export class ItemImportService {
     }
   }
 
-  private async loadLookups() {
+  private async loadLookups(companyId: string) {
     const [groups, units] = await Promise.all([
       this.prisma.itemGroup.findMany({
+        where: { companyId },
         select: { id: true, name: true },
       }),
       this.prisma.unit.findMany({
+        where: { companyId },
         select: { id: true, name: true },
       }),
     ]);
@@ -136,6 +139,7 @@ export class ItemImportService {
   }
 
   private async transformRow(
+    companyId: string,
     row: RowRecord,
     groupMap: Map<string, string>,
     unitMap: Map<string, string>,
@@ -147,8 +151,8 @@ export class ItemImportService {
 
     const groupName = this.getString(row['المجموعة']);
     const unitName = this.getString(row['الوحدة']);
-    const groupId = await this.ensureGroupId(groupName, groupMap);
-    const unitId = await this.ensureUnitId(unitName, unitMap);
+    const groupId = await this.ensureGroupId(companyId, groupName, groupMap);
+    const unitId = await this.ensureUnitId(companyId, unitName, unitMap);
 
     const purchasePrice = this.parseNumber(row['سعر الشراء'], 'سعر الشراء');
     const salePrice = this.parseNumber(row['سعر البيع'], 'سعر البيع');
@@ -168,6 +172,7 @@ export class ItemImportService {
   }
 
   private async ensureGroupId(
+    companyId: string,
     name: string,
     groupMap: Map<string, string>,
   ): Promise<string> {
@@ -177,18 +182,19 @@ export class ItemImportService {
       'المجموعة',
       () =>
         this.prisma.itemGroup.create({
-          data: { name },
+          data: { name, companyId },
           select: { id: true },
         }),
       () =>
-        this.prisma.itemGroup.findFirst({
-          where: { name },
+        this.prisma.itemGroup.findUnique({
+          where: { name_companyId: { name, companyId } },
           select: { id: true },
         }),
     );
   }
 
   private async ensureUnitId(
+    companyId: string,
     name: string,
     unitMap: Map<string, string>,
   ): Promise<string> {
@@ -198,12 +204,12 @@ export class ItemImportService {
       'الوحدة',
       () =>
         this.prisma.unit.create({
-          data: { name },
+          data: { name, companyId },
           select: { id: true },
         }),
       () =>
-        this.prisma.unit.findFirst({
-          where: { name },
+        this.prisma.unit.findUnique({
+          where: { name_companyId: { name, companyId } },
           select: { id: true },
         }),
     );

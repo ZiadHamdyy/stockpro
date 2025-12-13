@@ -13,6 +13,7 @@ import { LocalStrategy } from '../../common/strategies/local.strategy';
 import { JwtStrategy } from '../../common/strategies/jwt.strategy';
 import { RefreshTokenGuard } from '../../common/guards/refresh-token.guard';
 import { TOKEN_CONSTANTS } from '../../common/constants';
+import { CompanyModule } from '../company/company.module';
 
 @Module({
   imports: [
@@ -41,6 +42,7 @@ import { TOKEN_CONSTANTS } from '../../common/constants';
     HelperModule,
     SessionModule,
     EmailModule,
+    CompanyModule,
   ],
   providers: [AuthService, LocalStrategy, JwtStrategy, RefreshTokenGuard],
   controllers: [AuthController],

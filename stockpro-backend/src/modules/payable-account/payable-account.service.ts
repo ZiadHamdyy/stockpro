@@ -13,24 +13,26 @@ export class PayableAccountService {
   ) {}
 
   async create(
+    companyId: string,
     dto: CreatePayableAccountRequest,
   ): Promise<PayableAccountResponse> {
     // Check financial period status (use current date for accounts without date field)
     const accountDate = new Date();
     
     // Check if there is an open period for this date
-    const hasOpenPeriod = await this.fiscalYearService.hasOpenPeriodForDate(accountDate);
+    const hasOpenPeriod = await this.fiscalYearService.hasOpenPeriodForDate(companyId, accountDate);
     if (!hasOpenPeriod) {
       throw new ForbiddenException('لا يمكن إضافة حساب دائن: لا توجد فترة محاسبية مفتوحة لهذا التاريخ');
     }
 
     // Check if date is in a closed period
-    const isInClosedPeriod = await this.fiscalYearService.isDateInClosedPeriod(accountDate);
+    const isInClosedPeriod = await this.fiscalYearService.isDateInClosedPeriod(companyId, accountDate);
     if (isInClosedPeriod) {
       throw new ForbiddenException('لا يمكن إضافة حساب دائن: الفترة المحاسبية مغلقة');
     }
 
     const last = await this.prisma.payableAccount.findFirst({
+      where: { companyId },
       orderBy: { code: 'desc' },
     });
     const lastNum = last ? parseInt(last.code.replace('PA-', ''), 10) || 0 : 0;
@@ -41,43 +43,44 @@ export class PayableAccountService {
         name: dto.name,
         openingBalance: dto.openingBalance ?? 0,
         currentBalance: dto.openingBalance ?? 0,
+        companyId,
         code,
       },
     });
     return this.map(entity);
   }
 
-  async findAll(): Promise<PayableAccountResponse[]> {
+  async findAll(companyId: string): Promise<PayableAccountResponse[]> {
     const rows = await this.prisma.payableAccount.findMany({
+      where: { companyId },
       orderBy: { code: 'asc' },
     });
     return rows.map(this.map);
   }
 
-  async findOne(id: string): Promise<PayableAccountResponse> {
+  async findOne(companyId: string, id: string): Promise<PayableAccountResponse> {
     const entity = await this.prisma.payableAccount.findUnique({
-      where: { id },
+      where: { id_companyId: { id, companyId } },
     });
     if (!entity) throw new NotFoundException('Payable account not found');
     return this.map(entity);
   }
 
-  async findByCode(code: string): Promise<PayableAccountResponse> {
+  async findByCode(companyId: string, code: string): Promise<PayableAccountResponse> {
     const entity = await this.prisma.payableAccount.findUnique({
-      where: { code },
+      where: { code_companyId: { code, companyId } },
     });
     if (!entity) throw new NotFoundException('Payable account not found');
     return this.map(entity);
   }
 
   async update(
+    companyId: string,
     id: string,
     dto: UpdatePayableAccountRequest,
   ): Promise<PayableAccountResponse> {
-    const exists = await this.prisma.payableAccount.findUnique({
-      where: { id },
-    });
-    if (!exists) throw new NotFoundException('Payable account not found');
+    // Verify the account belongs to the company
+    await this.findOne(companyId, id);
     const entity = await this.prisma.payableAccount.update({
       where: { id },
       data: dto,
@@ -85,11 +88,9 @@ export class PayableAccountService {
     return this.map(entity);
   }
 
-  async remove(id: string): Promise<void> {
-    const exists = await this.prisma.payableAccount.findUnique({
-      where: { id },
-    });
-    if (!exists) throw new NotFoundException('Payable account not found');
+  async remove(companyId: string, id: string): Promise<void> {
+    // Verify the account belongs to the company
+    await this.findOne(companyId, id);
     await this.prisma.payableAccount.delete({ where: { id } });
   }
 

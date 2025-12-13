@@ -18,27 +18,28 @@ export class ExpenseService {
   // ==================== Expense Type CRUD ====================
 
   async createExpenseType(
+    companyId: string,
     data: CreateExpenseTypeRequest,
   ): Promise<ExpenseTypeResponse> {
     const expenseType = await this.prisma.expenseType.create({
       data: {
         name: data.name,
         description: data.description,
+        companyId,
       },
     });
 
     return this.mapExpenseTypeToResponse(expenseType);
   }
 
-  async findAllExpenseTypes(search?: string): Promise<ExpenseTypeResponse[]> {
-    const where = search
-      ? {
-          OR: [
-            { name: { contains: search, mode: 'insensitive' as const } },
-            { description: { contains: search, mode: 'insensitive' as const } },
-          ],
-        }
-      : {};
+  async findAllExpenseTypes(companyId: string, search?: string): Promise<ExpenseTypeResponse[]> {
+    const where: any = { companyId };
+    if (search) {
+      where.OR = [
+        { name: { contains: search, mode: 'insensitive' as const } },
+        { description: { contains: search, mode: 'insensitive' as const } },
+      ];
+    }
 
     const types = await this.prisma.expenseType.findMany({
       where,
@@ -48,9 +49,9 @@ export class ExpenseService {
     return types.map((type) => this.mapExpenseTypeToResponse(type));
   }
 
-  async findOneExpenseType(id: string): Promise<ExpenseTypeResponse> {
+  async findOneExpenseType(companyId: string, id: string): Promise<ExpenseTypeResponse> {
     const expenseType = await this.prisma.expenseType.findUnique({
-      where: { id },
+      where: { id_companyId: { id, companyId } },
     });
 
     if (!expenseType) {
@@ -61,9 +62,13 @@ export class ExpenseService {
   }
 
   async updateExpenseType(
+    companyId: string,
     id: string,
     data: UpdateExpenseTypeRequest,
   ): Promise<ExpenseTypeResponse> {
+    // Verify the expense type belongs to the company
+    await this.findOneExpenseType(companyId, id);
+    
     try {
       const expenseType = await this.prisma.expenseType.update({
         where: { id },
@@ -76,7 +81,10 @@ export class ExpenseService {
     }
   }
 
-  async removeExpenseType(id: string): Promise<void> {
+  async removeExpenseType(companyId: string, id: string): Promise<void> {
+    // Verify the expense type belongs to the company
+    await this.findOneExpenseType(companyId, id);
+    
     try {
       await this.prisma.expenseType.delete({
         where: { id },
@@ -89,16 +97,18 @@ export class ExpenseService {
   // ==================== Expense Code CRUD ====================
 
   async createExpenseCode(
+    companyId: string,
     data: CreateExpenseCodeRequest,
   ): Promise<ExpenseCodeResponse> {
     const fallbackDescription = data.description?.trim() || data.name;
 
     return this.prisma.$transaction(async (tx) => {
-      const code = await this.generateNextExpenseCode(tx);
+      const code = await this.generateNextExpenseCode(companyId, tx);
 
       const expenseCode = await tx.expenseCode.create({
         data: {
           ...data,
+          companyId,
           description: fallbackDescription,
           code,
         },
@@ -107,13 +117,14 @@ export class ExpenseService {
         },
       });
 
-      const expenseNumber = await this.generateNextExpense(tx);
+      const expenseNumber = await this.generateNextExpense(companyId, tx);
 
       await tx.expense.create({
         data: {
           code: expenseNumber,
           description: expenseCode.name,
           expenseCodeId: expenseCode.id,
+          companyId,
           date: new Date(),
         },
       });
@@ -122,16 +133,15 @@ export class ExpenseService {
     });
   }
 
-  async findAllExpenseCodes(search?: string): Promise<ExpenseCodeResponse[]> {
-    const where = search
-      ? {
-          OR: [
-            { name: { contains: search, mode: 'insensitive' as const } },
-            { code: { contains: search, mode: 'insensitive' as const } },
-            { description: { contains: search, mode: 'insensitive' as const } },
-          ],
-        }
-      : {};
+  async findAllExpenseCodes(companyId: string, search?: string): Promise<ExpenseCodeResponse[]> {
+    const where: any = { companyId };
+    if (search) {
+      where.OR = [
+        { name: { contains: search, mode: 'insensitive' as const } },
+        { code: { contains: search, mode: 'insensitive' as const } },
+        { description: { contains: search, mode: 'insensitive' as const } },
+      ];
+    }
 
     const codes = await this.prisma.expenseCode.findMany({
       where,
@@ -144,9 +154,9 @@ export class ExpenseService {
     return codes.map((code) => this.mapExpenseCodeToResponse(code));
   }
 
-  async findOneExpenseCode(id: string): Promise<ExpenseCodeResponse> {
+  async findOneExpenseCode(companyId: string, id: string): Promise<ExpenseCodeResponse> {
     const expenseCode = await this.prisma.expenseCode.findUnique({
-      where: { id },
+      where: { id_companyId: { id, companyId } },
       include: {
         expenseType: true,
       },
@@ -160,9 +170,13 @@ export class ExpenseService {
   }
 
   async updateExpenseCode(
+    companyId: string,
     id: string,
     data: UpdateExpenseCodeRequest,
   ): Promise<ExpenseCodeResponse> {
+    // Verify the expense code belongs to the company
+    await this.findOneExpenseCode(companyId, id);
+    
     try {
       const expenseCode = await this.prisma.expenseCode.update({
         where: { id },
@@ -178,7 +192,10 @@ export class ExpenseService {
     }
   }
 
-  async removeExpenseCode(id: string): Promise<void> {
+  async removeExpenseCode(companyId: string, id: string): Promise<void> {
+    // Verify the expense code belongs to the company
+    await this.findOneExpenseCode(companyId, id);
+    
     try {
       await this.prisma.expenseCode.delete({
         where: { id },
@@ -190,12 +207,13 @@ export class ExpenseService {
 
   // ==================== Expense CRUD ====================
 
-  async createExpense(data: CreateExpenseRequest): Promise<ExpenseResponse> {
-    const code = await this.generateNextExpense();
+  async createExpense(companyId: string, data: CreateExpenseRequest): Promise<ExpenseResponse> {
+    const code = await this.generateNextExpense(companyId);
 
     const expense = await this.prisma.expense.create({
       data: {
         ...data,
+        companyId,
         code,
         date: new Date(data.date),
       },
@@ -211,20 +229,20 @@ export class ExpenseService {
     return this.mapExpenseToResponse(expense);
   }
 
-  async findAllExpenses(search?: string): Promise<ExpenseResponse[]> {
-    const where = search
-      ? {
-          OR: [
-            { code: { contains: search, mode: 'insensitive' as const } },
-            { description: { contains: search, mode: 'insensitive' as const } },
-            {
-              expenseCode: {
-                name: { contains: search, mode: 'insensitive' as const },
-              },
-            },
-          ],
-        }
-      : {};
+  async findAllExpenses(companyId: string, search?: string): Promise<ExpenseResponse[]> {
+    const where: any = { companyId };
+    if (search) {
+      where.OR = [
+        { code: { contains: search, mode: 'insensitive' as const } },
+        { description: { contains: search, mode: 'insensitive' as const } },
+        {
+          expenseCode: {
+            name: { contains: search, mode: 'insensitive' as const },
+            companyId, // Ensure related expense code belongs to the same company
+          },
+        },
+      ];
+    }
 
     const expenses = await this.prisma.expense.findMany({
       where,
@@ -241,9 +259,9 @@ export class ExpenseService {
     return expenses.map((expense) => this.mapExpenseToResponse(expense));
   }
 
-  async findOneExpense(id: string): Promise<ExpenseResponse> {
+  async findOneExpense(companyId: string, id: string): Promise<ExpenseResponse> {
     const expense = await this.prisma.expense.findUnique({
-      where: { id },
+      where: { id_companyId: { id, companyId } },
       include: {
         expenseCode: {
           include: {
@@ -261,9 +279,13 @@ export class ExpenseService {
   }
 
   async updateExpense(
+    companyId: string,
     id: string,
     data: UpdateExpenseRequest,
   ): Promise<ExpenseResponse> {
+    // Verify the expense belongs to the company
+    await this.findOneExpense(companyId, id);
+    
     try {
       const updateData: any = { ...data };
       if (data.date) {
@@ -288,7 +310,10 @@ export class ExpenseService {
     }
   }
 
-  async removeExpense(id: string): Promise<void> {
+  async removeExpense(companyId: string, id: string): Promise<void> {
+    // Verify the expense belongs to the company
+    await this.findOneExpense(companyId, id);
+    
     try {
       await this.prisma.expense.delete({
         where: { id },
@@ -301,9 +326,11 @@ export class ExpenseService {
   // ==================== Private Helper Methods ====================
 
   private async generateNextExpenseCode(
+    companyId: string,
     prisma: DatabaseService | Prisma.TransactionClient = this.prisma,
   ): Promise<string> {
     const lastCode = await prisma.expenseCode.findFirst({
+      where: { companyId },
       orderBy: { code: 'desc' },
     });
 
@@ -321,9 +348,11 @@ export class ExpenseService {
   }
 
   private async generateNextExpense(
+    companyId: string,
     prisma: DatabaseService | Prisma.TransactionClient = this.prisma,
   ): Promise<string> {
     const lastExpense = await prisma.expense.findFirst({
+      where: { companyId },
       orderBy: { code: 'desc' },
     });
 

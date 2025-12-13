@@ -13,25 +13,27 @@ export class CurrentAccountService {
   ) {}
 
   async create(
+    companyId: string,
     createCurrentAccountDto: CreateCurrentAccountRequest,
   ): Promise<CurrentAccountResponse> {
     // Check financial period status (use current date for accounts without date field)
     const accountDate = new Date();
     
     // Check if there is an open period for this date
-    const hasOpenPeriod = await this.fiscalYearService.hasOpenPeriodForDate(accountDate);
+    const hasOpenPeriod = await this.fiscalYearService.hasOpenPeriodForDate(companyId, accountDate);
     if (!hasOpenPeriod) {
       throw new ForbiddenException('لا يمكن إضافة حساب جاري: لا توجد فترة محاسبية مفتوحة لهذا التاريخ');
     }
 
     // Check if date is in a closed period
-    const isInClosedPeriod = await this.fiscalYearService.isDateInClosedPeriod(accountDate);
+    const isInClosedPeriod = await this.fiscalYearService.isDateInClosedPeriod(companyId, accountDate);
     if (isInClosedPeriod) {
       throw new ForbiddenException('لا يمكن إضافة حساب جاري: الفترة المحاسبية مغلقة');
     }
 
-    // Generate the next code
+    // Generate the next code (company-scoped)
     const lastAccount = await this.prisma.currentAccount.findFirst({
+      where: { companyId },
       orderBy: { code: 'desc' },
     });
 
@@ -50,6 +52,7 @@ export class CurrentAccountService {
         type: createCurrentAccountDto.type || '',
         openingBalance: createCurrentAccountDto.openingBalance,
         currentBalance: createCurrentAccountDto.openingBalance,
+        companyId,
         code,
       },
     });
@@ -57,17 +60,18 @@ export class CurrentAccountService {
     return this.mapToResponse(currentAccount);
   }
 
-  async findAll(): Promise<CurrentAccountResponse[]> {
+  async findAll(companyId: string): Promise<CurrentAccountResponse[]> {
     const currentAccounts = await this.prisma.currentAccount.findMany({
+      where: { companyId },
       orderBy: { code: 'asc' },
     });
 
     return currentAccounts.map((account) => this.mapToResponse(account));
   }
 
-  async findOne(id: string): Promise<CurrentAccountResponse> {
+  async findOne(companyId: string, id: string): Promise<CurrentAccountResponse> {
     const currentAccount = await this.prisma.currentAccount.findUnique({
-      where: { id },
+      where: { id_companyId: { id, companyId } },
     });
 
     if (!currentAccount) {
@@ -77,9 +81,9 @@ export class CurrentAccountService {
     return this.mapToResponse(currentAccount);
   }
 
-  async findByCode(code: string): Promise<CurrentAccountResponse> {
+  async findByCode(companyId: string, code: string): Promise<CurrentAccountResponse> {
     const currentAccount = await this.prisma.currentAccount.findUnique({
-      where: { code },
+      where: { code_companyId: { code, companyId } },
     });
 
     if (!currentAccount) {
@@ -90,16 +94,12 @@ export class CurrentAccountService {
   }
 
   async update(
+    companyId: string,
     id: string,
     updateCurrentAccountDto: UpdateCurrentAccountRequest,
   ): Promise<CurrentAccountResponse> {
-    const existingAccount = await this.prisma.currentAccount.findUnique({
-      where: { id },
-    });
-
-    if (!existingAccount) {
-      throw new NotFoundException('Current account not found');
-    }
+    // Verify the account belongs to the company
+    await this.findOne(companyId, id);
 
     const currentAccount = await this.prisma.currentAccount.update({
       where: { id },
@@ -109,14 +109,9 @@ export class CurrentAccountService {
     return this.mapToResponse(currentAccount);
   }
 
-  async remove(id: string): Promise<void> {
-    const existingAccount = await this.prisma.currentAccount.findUnique({
-      where: { id },
-    });
-
-    if (!existingAccount) {
-      throw new NotFoundException('Current account not found');
-    }
+  async remove(companyId: string, id: string): Promise<void> {
+    // Verify the account belongs to the company
+    await this.findOne(companyId, id);
 
     await this.prisma.currentAccount.delete({
       where: { id },

@@ -16,6 +16,7 @@ import { UpdateCurrentAccountRequest } from './dtos/request/update-current-accou
 import { CurrentAccountResponse } from './dtos/response/current-account.response';
 import { JwtAuthenticationGuard } from '../../common/guards/strategy.guards/jwt.guard';
 import { Auth } from '../../common/decorators/auth.decorator';
+import { currentCompany } from '../../common/decorators/company.decorator';
 
 @Controller('current-accounts')
 @UseGuards(JwtAuthenticationGuard)
@@ -27,28 +28,35 @@ export class CurrentAccountController {
   @Auth({ permissions: ['current_accounts:create'] })
   async create(
     @Body() createCurrentAccountDto: CreateCurrentAccountRequest,
+    @currentCompany('id') companyId: string,
   ): Promise<CurrentAccountResponse> {
-    return this.currentAccountService.create(createCurrentAccountDto);
+    return this.currentAccountService.create(companyId, createCurrentAccountDto);
   }
 
   @Get()
   @Auth({ permissions: ['current_accounts:read'] })
-  async findAll(): Promise<CurrentAccountResponse[]> {
-    return this.currentAccountService.findAll();
+  async findAll(
+    @currentCompany('id') companyId: string,
+  ): Promise<CurrentAccountResponse[]> {
+    return this.currentAccountService.findAll(companyId);
   }
 
   @Get('code/:code')
   @Auth({ permissions: ['current_accounts:read'] })
   async findByCode(
     @Param('code') code: string,
+    @currentCompany('id') companyId: string,
   ): Promise<CurrentAccountResponse> {
-    return this.currentAccountService.findByCode(code);
+    return this.currentAccountService.findByCode(companyId, code);
   }
 
   @Get(':id')
   @Auth({ permissions: ['current_accounts:read'] })
-  async findOne(@Param('id') id: string): Promise<CurrentAccountResponse> {
-    return this.currentAccountService.findOne(id);
+  async findOne(
+    @Param('id') id: string,
+    @currentCompany('id') companyId: string,
+  ): Promise<CurrentAccountResponse> {
+    return this.currentAccountService.findOne(companyId, id);
   }
 
   @Patch(':id')
@@ -56,14 +64,18 @@ export class CurrentAccountController {
   async update(
     @Param('id') id: string,
     @Body() updateCurrentAccountDto: UpdateCurrentAccountRequest,
+    @currentCompany('id') companyId: string,
   ): Promise<CurrentAccountResponse> {
-    return this.currentAccountService.update(id, updateCurrentAccountDto);
+    return this.currentAccountService.update(companyId, id, updateCurrentAccountDto);
   }
 
   @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)
   @Auth({ permissions: ['current_accounts:delete'] })
-  async remove(@Param('id') id: string): Promise<void> {
-    return this.currentAccountService.remove(id);
+  async remove(
+    @Param('id') id: string,
+    @currentCompany('id') companyId: string,
+  ): Promise<void> {
+    return this.currentAccountService.remove(companyId, id);
   }
 }

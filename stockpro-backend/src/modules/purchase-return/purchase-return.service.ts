@@ -34,6 +34,7 @@ export class PurchaseReturnService {
   }
 
   async create(
+    companyId: string,
     data: CreatePurchaseReturnRequest,
     userId: string,
     branchId?: string,
@@ -41,13 +42,13 @@ export class PurchaseReturnService {
     const returnDate = data.date ? new Date(data.date) : new Date();
     
     // Check if there is an open period for this date
-    const hasOpenPeriod = await this.fiscalYearService.hasOpenPeriodForDate(returnDate);
+    const hasOpenPeriod = await this.fiscalYearService.hasOpenPeriodForDate(companyId, returnDate);
     if (!hasOpenPeriod) {
       throw new ForbiddenException('Cannot create return: no open fiscal period exists for this date');
     }
 
     // Check if date is in a closed period
-    const isInClosedPeriod = await this.fiscalYearService.isDateInClosedPeriod(returnDate);
+    const isInClosedPeriod = await this.fiscalYearService.isDateInClosedPeriod(companyId, returnDate);
     if (isInClosedPeriod) {
       throw new ForbiddenException('Cannot create return in a closed fiscal period');
     }
@@ -74,7 +75,7 @@ export class PurchaseReturnService {
       }
     }
     // Generate next code
-    const code = await this.generateNextCode();
+    const code = await this.generateNextCode(companyId);
 
     // Calculate totals
     const subtotal = data.items.reduce(
@@ -89,7 +90,7 @@ export class PurchaseReturnService {
     let store: any = null;
     if (branchId) {
       try {
-        store = await this.storeService.findByBranchId(branchId);
+        store = await this.storeService.findByBranchId(companyId, branchId);
       } catch (error) {
         // Store not found, will use fallback
       }
@@ -99,14 +100,14 @@ export class PurchaseReturnService {
       // Get store in transaction
       if (branchId && !store) {
         store = await tx.store.findFirst({
-          where: { branchId },
+          where: { branchId, companyId },
         });
       }
 
       // Validate stock for all items prior to decrement
       for (const item of data.items) {
         const itemRecord = await tx.item.findUnique({
-          where: { code: item.id },
+          where: { code_companyId: { code: item.id, companyId } },
         });
         if (!itemRecord) {
           throwHttp(
@@ -149,7 +150,7 @@ export class PurchaseReturnService {
         data.paymentTargetType === 'safe' &&
         branchId
           ? (
-              await tx.safe.findFirst({
+              await tx.safe.findUnique({
                 where: { branchId },
               })
             )?.id || null
@@ -180,6 +181,7 @@ export class PurchaseReturnService {
           notes: data.notes,
           userId,
           branchId,
+          companyId,
         },
         include: {
           supplier: true,
@@ -196,7 +198,7 @@ export class PurchaseReturnService {
         const stockedItemsWithRecords = await Promise.all(
           data.items.map(async (item) => {
             const itemRecord = await tx.item.findUnique({
-              where: { code: item.id },
+              where: { code_companyId: { code: item.id, companyId } },
             });
             if (itemRecord && (itemRecord as any).type === 'STOCKED') {
               return { item, itemRecord };
@@ -222,11 +224,11 @@ export class PurchaseReturnService {
         // Fallback: Update global stock if store not found (backward compatibility)
         for (const item of data.items) {
           const itemRecord = await tx.item.findUnique({
-            where: { code: item.id },
+            where: { code_companyId: { code: item.id, companyId } },
           });
           if (itemRecord && (itemRecord as any).type === 'STOCKED') {
             await tx.item.update({
-              where: { code: item.id },
+              where: { id: itemRecord.id },
               data: { stock: { decrement: item.qty } },
             });
           }
@@ -266,6 +268,7 @@ export class PurchaseReturnService {
 
     // Create audit log
     await this.auditLogService.createAuditLog({
+      companyId,
       userId: created.userId,
       branchId: created.branchId || undefined,
       action: 'create',
@@ -277,16 +280,16 @@ export class PurchaseReturnService {
     return response;
   }
 
-  async findAll(search?: string): Promise<PurchaseReturnResponse[]> {
+  async findAll(companyId: string, search?: string): Promise<PurchaseReturnResponse[]> {
+    const where: any = { companyId };
+    if (search) {
+      where.OR = [
+        { code: { contains: search, mode: 'insensitive' } },
+        { supplier: { name: { contains: search, mode: 'insensitive' }, companyId } },
+      ];
+    }
     const returns = await this.prisma.purchaseReturn.findMany({
-      where: search
-        ? {
-            OR: [
-              { code: { contains: search, mode: 'insensitive' } },
-              { supplier: { name: { contains: search, mode: 'insensitive' } } },
-            ],
-          }
-        : {},
+      where,
       include: {
         supplier: true,
         user: {
@@ -310,9 +313,9 @@ export class PurchaseReturnService {
     })) as PurchaseReturnResponse[];
   }
 
-  async findOne(id: string): Promise<PurchaseReturnResponse> {
+  async findOne(companyId: string, id: string): Promise<PurchaseReturnResponse> {
     const returnRecord = await this.prisma.purchaseReturn.findUnique({
-      where: { id },
+      where: { id_companyId: { id, companyId } },
       include: {
         supplier: true,
         user: {
@@ -340,38 +343,43 @@ export class PurchaseReturnService {
   }
 
   async update(
+    companyId: string,
     id: string,
     data: UpdatePurchaseReturnRequest,
   ): Promise<PurchaseReturnResponse> {
-    const existingReturn = await this.prisma.purchaseReturn.findUnique({
-      where: { id },
-    });
-
-    if (!existingReturn) {
-      throw new NotFoundException('Purchase return not found');
-    }
+    // Verify the return belongs to the company
+    const existingReturn = await this.findOne(companyId, id);
 
     // Check if date is in a closed period (use new date if provided, otherwise existing date)
     const returnDate = data.date ? new Date(data.date) : existingReturn.date;
     
     // If date is being changed, validate it's in an open period
     if (data.date) {
-      const hasOpenPeriod = await this.fiscalYearService.hasOpenPeriodForDate(returnDate);
+      const hasOpenPeriod = await this.fiscalYearService.hasOpenPeriodForDate(companyId, returnDate);
       if (!hasOpenPeriod) {
         throw new ForbiddenException('لا يمكن تعديل المرتجع: لا توجد فترة محاسبية مفتوحة لهذا التاريخ');
       }
     }
     
-    const isInClosedPeriod = await this.fiscalYearService.isDateInClosedPeriod(returnDate);
+    const isInClosedPeriod = await this.fiscalYearService.isDateInClosedPeriod(companyId, returnDate);
     if (isInClosedPeriod) {
       throw new ForbiddenException('لا يمكن تعديل المرتجع: الفترة المحاسبية مغلقة');
     }
 
+    // Get existing return record for stock operations
+    const existingReturnRecord = await this.prisma.purchaseReturn.findUnique({
+      where: { id },
+    });
+
+    if (!existingReturnRecord || existingReturnRecord.companyId !== companyId) {
+      throw new NotFoundException('Purchase return not found');
+    }
+
     // Get old items to restore stock
-    const oldItems = existingReturn.items as any[];
+    const oldItems = existingReturnRecord.items as any[];
 
     // Calculate new totals
-    const items = data.items || (existingReturn.items as any[]) || [];
+    const items = data.items || (existingReturnRecord.items as any[]) || [];
     const subtotal = items.reduce(
       (sum, item) => sum + item.qty * item.price,
       0,
@@ -379,22 +387,27 @@ export class PurchaseReturnService {
     const discount =
       data.discount !== undefined
         ? data.discount
-        : existingReturn.discount || 0;
+        : existingReturnRecord.discount || 0;
     const tax = subtotal * 0.15; // 15% VAT
     const net = subtotal - discount + tax;
 
     const updated = await this.prisma.$transaction(async (tx) => {
       // Reverse old stock (increase), then validate new decrements
       for (const oldItem of oldItems) {
-        await tx.item.update({
-          where: { code: oldItem.id },
-          data: { stock: { increment: oldItem.qty } },
+        const oldItemRecord = await tx.item.findUnique({
+          where: { code_companyId: { code: oldItem.id, companyId } },
         });
+        if (oldItemRecord) {
+          await tx.item.update({
+            where: { id: oldItemRecord.id },
+            data: { stock: { increment: oldItem.qty } },
+          });
+        }
       }
 
       for (const item of items) {
         const itemRecord = await tx.item.findUnique({
-          where: { code: item.id },
+          where: { code_companyId: { code: item.id, companyId } },
         });
         if (!itemRecord) {
           throwHttp(
@@ -466,7 +479,7 @@ export class PurchaseReturnService {
 
       for (const item of items) {
         await tx.item.update({
-          where: { code: item.id },
+          where: { code_companyId: { code: item.id, companyId } },
           data: { stock: { decrement: item.qty } },
         });
       }
@@ -531,6 +544,7 @@ export class PurchaseReturnService {
 
     // Create audit log
     await this.auditLogService.createAuditLog({
+      companyId,
       userId: updated.userId,
       branchId: updated.branchId || undefined,
       action: 'update',
@@ -549,57 +563,65 @@ export class PurchaseReturnService {
     if (!branchId) {
       return null;
     }
-    const safe = await tx.safe.findFirst({ where: { branchId } });
+    const safe = await tx.safe.findUnique({ where: { branchId } });
     return safe?.id ?? null;
   }
 
-  async remove(id: string): Promise<void> {
-    const returnRecord = await this.prisma.purchaseReturn.findUnique({
-      where: { id },
-    });
-
-    if (!returnRecord) {
-      throw new NotFoundException('Purchase return not found');
-    }
+  async remove(companyId: string, id: string): Promise<void> {
+    // Verify the return belongs to the company
+    const returnRecord = await this.findOne(companyId, id);
 
     // Check if return date is in a closed period
-    const isInClosedPeriod = await this.fiscalYearService.isDateInClosedPeriod(returnRecord.date);
+    const isInClosedPeriod = await this.fiscalYearService.isDateInClosedPeriod(companyId, returnRecord.date);
     if (isInClosedPeriod) {
       throw new ForbiddenException('لا يمكن حذف المرتجع: الفترة المحاسبية مغلقة');
     }
 
+    const returnRecordData = await this.prisma.purchaseReturn.findUnique({
+      where: { id },
+    });
+
+    if (!returnRecordData || returnRecordData.companyId !== companyId) {
+      throw new NotFoundException('Purchase return not found');
+    }
+
     await this.prisma.$transaction(async (tx) => {
-      const items = returnRecord.items as any[];
+      const items = returnRecordData.items as any[];
       for (const item of items) {
-        await tx.item.update({
-          where: { code: item.id },
-          data: { stock: { increment: item.qty } },
+        const itemRecord = await tx.item.findUnique({
+          where: { code_companyId: { code: item.id, companyId } },
         });
+        if (itemRecord) {
+          await tx.item.update({
+            where: { id: itemRecord.id },
+            data: { stock: { increment: item.qty } },
+          });
+        }
       }
       // Reverse cash impact if applicable
       if (
-        (returnRecord as any).paymentMethod === 'cash' &&
-        (returnRecord as any).paymentTargetType
+        (returnRecordData as any).paymentMethod === 'cash' &&
+        (returnRecordData as any).paymentTargetType
       ) {
         await AccountingService.reverseImpact({
           kind: 'purchase-return',
-          amount: (returnRecord as any).net,
-          paymentTargetType: (returnRecord as any).paymentTargetType,
-          branchId: (returnRecord as any).branchId,
+          amount: (returnRecordData as any).net,
+          paymentTargetType: (returnRecordData as any).paymentTargetType,
+          branchId: (returnRecordData as any).branchId,
           bankId:
-            (returnRecord as any).paymentTargetType === 'bank'
-              ? (returnRecord as any).paymentTargetId
+            (returnRecordData as any).paymentTargetType === 'bank'
+              ? (returnRecordData as any).paymentTargetId
               : null,
           tx,
         });
       }
       // Reverse supplier balance update if applicable
       if (
-        (returnRecord as any).paymentMethod === 'credit' &&
-        (returnRecord as any).supplierId
+        (returnRecordData as any).paymentMethod === 'credit' &&
+        (returnRecordData as any).supplierId
       ) {
         await tx.supplier.update({
-          where: { id: (returnRecord as any).supplierId },
+          where: { id: (returnRecordData as any).supplierId },
           data: { currentBalance: { decrement: (returnRecord as any).net } },
         });
       }
@@ -609,17 +631,19 @@ export class PurchaseReturnService {
 
     // Create audit log
     await this.auditLogService.createAuditLog({
-      userId: returnRecord.userId,
-      branchId: returnRecord.branchId || undefined,
+      companyId,
+      userId: returnRecordData.userId,
+      branchId: returnRecordData.branchId || undefined,
       action: 'delete',
       targetType: 'purchase_return',
-      targetId: returnRecord.code,
-      details: `حذف مرتجع شراء رقم ${returnRecord.code}`,
+      targetId: returnRecordData.code,
+      details: `حذف مرتجع شراء رقم ${returnRecordData.code}`,
     });
   }
 
-  private async generateNextCode(): Promise<string> {
+  private async generateNextCode(companyId: string): Promise<string> {
     const lastReturn = await this.prisma.purchaseReturn.findFirst({
+      where: { companyId },
       orderBy: { createdAt: 'desc' },
     });
 

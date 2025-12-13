@@ -7,16 +7,17 @@ import { UpdateBranchDto } from './dtos/update-branch.dto';
 export class BranchService {
   constructor(private readonly prisma: DatabaseService) {}
 
-  async create(createBranchDto: CreateBranchDto) {
-    // Determine next sequential code (starting from 1)
+  async create(companyId: string, createBranchDto: CreateBranchDto) {
+    // Determine next sequential code (starting from 1, company-scoped)
     const last = await this.prisma.branch.findFirst({
+      where: { companyId },
       select: { code: true },
       orderBy: { code: 'desc' },
     });
     const nextCode = (last?.code ?? 0) + 1;
 
     return this.prisma.branch.create({
-      data: { ...createBranchDto, code: nextCode },
+      data: { ...createBranchDto, companyId, code: nextCode },
       include: {
         stores: {
           include: {
@@ -27,8 +28,9 @@ export class BranchService {
     });
   }
 
-  async findAll() {
+  async findAll(companyId: string) {
     return this.prisma.branch.findMany({
+      where: { companyId },
       include: {
         stores: {
           include: {
@@ -42,9 +44,9 @@ export class BranchService {
     });
   }
 
-  async findOne(id: string) {
+  async findOne(companyId: string, id: string) {
     const branch = await this.prisma.branch.findUnique({
-      where: { id },
+      where: { id_companyId: { id, companyId } },
       include: {
         stores: {
           include: {
@@ -61,8 +63,8 @@ export class BranchService {
     return branch;
   }
 
-  async update(id: string, updateBranchDto: UpdateBranchDto) {
-    await this.findOne(id);
+  async update(companyId: string, id: string, updateBranchDto: UpdateBranchDto) {
+    await this.findOne(companyId, id);
 
     return this.prisma.branch.update({
       where: { id },
@@ -77,8 +79,8 @@ export class BranchService {
     });
   }
 
-  async remove(id: string) {
-    await this.findOne(id);
+  async remove(companyId: string, id: string) {
+    await this.findOne(companyId, id);
 
     return this.prisma.branch.delete({
       where: { id },

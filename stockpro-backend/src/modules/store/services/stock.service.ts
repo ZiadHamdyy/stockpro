@@ -1,4 +1,4 @@
-import { Injectable, BadRequestException } from '@nestjs/common';
+import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { DatabaseService } from '../../../configs/database/database.service';
 
@@ -414,9 +414,23 @@ export class StockService {
    * Get balance info for frontend (includes existence check)
    */
   async getStoreItemBalanceInfo(
+    companyId: string,
     storeId: string,
     itemId: string,
   ): Promise<{ existsInStore: boolean; availableQty: number }> {
+    // Verify store and item belong to the company
+    const [store, item] = await Promise.all([
+      this.prisma.store.findUnique({ where: { id_companyId: { id: storeId, companyId } } }),
+      this.prisma.item.findUnique({ where: { id_companyId: { id: itemId, companyId } } }),
+    ]);
+
+    if (!store) {
+      throw new NotFoundException('Store not found');
+    }
+    if (!item || item.companyId !== companyId) {
+      throw new NotFoundException('Item not found');
+    }
+
     const exists = await this.itemExistsInStore(storeId, itemId);
     const balance = await this.getStoreItemBalance(storeId, itemId);
 

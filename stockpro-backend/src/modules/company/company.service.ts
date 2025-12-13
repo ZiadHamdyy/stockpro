@@ -11,10 +11,10 @@ import {
 export class CompanyService {
   constructor(private readonly prisma: DatabaseService) {}
 
-  async getCompany(): Promise<CompanyResponse> {
+  async getCompany(companyId: string): Promise<CompanyResponse> {
     // Get the first (and only) company record
-    const company = await this.prisma.company.findFirst({
-      orderBy: { createdAt: 'asc' },
+    const company = await this.prisma.company.findUnique({
+      where: { id: companyId },
     });
 
     if (!company) {
@@ -24,10 +24,34 @@ export class CompanyService {
     return this.mapToResponse(company);
   }
 
-  async upsertCompany(data: UpsertCompanyRequest): Promise<CompanyResponse> {
-    // Try to find existing company
-    const existingCompany = await this.prisma.company.findFirst({
+  async findByHost(host: string) {
+    const company = await this.prisma.company.findUnique({
+      where: { host },
+    });
+
+    if (!company) {
+      throw new NotFoundException(`Company not found for host: ${host}`);
+    }
+
+    return company;
+  }
+
+  async findFirstCompany() {
+    const company = await this.prisma.company.findFirst({
       orderBy: { createdAt: 'asc' },
+    });
+
+    if (!company) {
+      throw new NotFoundException('No company found');
+    }
+
+    return company;
+  }
+
+  async upsertCompany(companyId: string, data: UpsertCompanyRequest): Promise<CompanyResponse> {
+    // Try to find existing company
+    const existingCompany = await this.prisma.company.findUnique({
+      where: { id: companyId },
     });
 
     // Prepare data with logo conversion
@@ -41,13 +65,19 @@ export class CompanyService {
     if (existingCompany) {
       // Update existing company
       company = await this.prisma.company.update({
-        where: { id: existingCompany.id },
+        where: { id: companyId },
         data: companyData,
       });
     } else {
-      // Create new company
+      // Create new company - host is required for new companies
+      if (!data.host) {
+        throw new NotFoundException('Host is required when creating a new company');
+      }
       company = await this.prisma.company.create({
-        data: companyData,
+        data: {
+          ...companyData,
+          host: data.host,
+        },
       });
     }
 

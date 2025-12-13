@@ -17,28 +17,29 @@ export class CustomerService {
     private readonly fiscalYearService: FiscalYearService,
   ) {}
 
-  async create(data: CreateCustomerRequest): Promise<CustomerResponse> {
+  async create(companyId: string, data: CreateCustomerRequest): Promise<CustomerResponse> {
     // Check financial period status (use current date for customers without date field)
     const customerDate = new Date();
     
     // Check if there is an open period for this date
-    const hasOpenPeriod = await this.fiscalYearService.hasOpenPeriodForDate(customerDate);
+    const hasOpenPeriod = await this.fiscalYearService.hasOpenPeriodForDate(companyId, customerDate);
     if (!hasOpenPeriod) {
       throw new ForbiddenException('لا يمكن إضافة عميل: لا توجد فترة محاسبية مفتوحة لهذا التاريخ');
     }
 
     // Check if date is in a closed period
-    const isInClosedPeriod = await this.fiscalYearService.isDateInClosedPeriod(customerDate);
+    const isInClosedPeriod = await this.fiscalYearService.isDateInClosedPeriod(companyId, customerDate);
     if (isInClosedPeriod) {
       throw new ForbiddenException('لا يمكن إضافة عميل: الفترة المحاسبية مغلقة');
     }
 
-    const code = await this.generateNextCode();
+    const code = await this.generateNextCode(companyId);
     const openingBalance = data.openingBalance || 0;
 
     const customer = await this.prisma.customer.create({
       data: {
         ...data,
+        companyId,
         code,
         openingBalance,
         currentBalance: openingBalance, // Initialize currentBalance from openingBalance
@@ -48,17 +49,16 @@ export class CustomerService {
     return this.mapToResponse(customer);
   }
 
-  async findAll(search?: string): Promise<CustomerResponse[]> {
-    const where = search
-      ? {
-          OR: [
-            { name: { contains: search, mode: 'insensitive' as const } },
-            { code: { contains: search, mode: 'insensitive' as const } },
-            { phone: { contains: search, mode: 'insensitive' as const } },
-            { taxNumber: { contains: search, mode: 'insensitive' as const } },
-          ],
-        }
-      : {};
+  async findAll(companyId: string, search?: string): Promise<CustomerResponse[]> {
+    const where: any = { companyId };
+    if (search) {
+      where.OR = [
+        { name: { contains: search, mode: 'insensitive' as const } },
+        { code: { contains: search, mode: 'insensitive' as const } },
+        { phone: { contains: search, mode: 'insensitive' as const } },
+        { taxNumber: { contains: search, mode: 'insensitive' as const } },
+      ];
+    }
 
     const customers = await this.prisma.customer.findMany({
       where,
@@ -68,9 +68,9 @@ export class CustomerService {
     return customers.map((customer) => this.mapToResponse(customer));
   }
 
-  async findOne(id: string): Promise<CustomerResponse> {
+  async findOne(companyId: string, id: string): Promise<CustomerResponse> {
     const customer = await this.prisma.customer.findUnique({
-      where: { id },
+      where: { id_companyId: { id, companyId } },
     });
 
     if (!customer) {
@@ -80,9 +80,9 @@ export class CustomerService {
     return this.mapToResponse(customer);
   }
 
-  async findByCode(code: string): Promise<CustomerResponse> {
+  async findByCode(companyId: string, code: string): Promise<CustomerResponse> {
     const customer = await this.prisma.customer.findUnique({
-      where: { code },
+      where: { code_companyId: { code, companyId } },
     });
 
     if (!customer) {
@@ -93,14 +93,18 @@ export class CustomerService {
   }
 
   async update(
+    companyId: string,
     id: string,
     data: UpdateCustomerRequest,
   ): Promise<CustomerResponse> {
+    // Verify the customer belongs to the company
+    await this.findOne(companyId, id);
+
     try {
       // If openingBalance is being updated, adjust currentBalance accordingly
       if (data.openingBalance !== undefined) {
-        const existingCustomer = await this.prisma.customer.findUnique({
-          where: { id },
+        const existingCustomer = await this.prisma.customer.findFirst({
+          where: { id, companyId },
         });
 
         if (existingCustomer) {
@@ -131,7 +135,10 @@ export class CustomerService {
     }
   }
 
-  async remove(id: string): Promise<void> {
+  async remove(companyId: string, id: string): Promise<void> {
+    // Verify the customer belongs to the company
+    await this.findOne(companyId, id);
+
     // Prevent deletion if there are related transactions
     const [
       salesCount,
@@ -139,10 +146,10 @@ export class CustomerService {
       paymentVouchersCount,
       receiptVouchersCount,
     ] = await Promise.all([
-      this.prisma.salesInvoice.count({ where: { customerId: id } }),
-      this.prisma.salesReturn.count({ where: { customerId: id } }),
-      this.prisma.paymentVoucher.count({ where: { customerId: id } }),
-      this.prisma.receiptVoucher.count({ where: { customerId: id } }),
+      this.prisma.salesInvoice.count({ where: { customerId: id, companyId } }),
+      this.prisma.salesReturn.count({ where: { customerId: id, companyId } }),
+      this.prisma.paymentVoucher.count({ where: { customerId: id, companyId } }),
+      this.prisma.receiptVoucher.count({ where: { customerId: id, companyId } }),
     ]);
 
     if (
@@ -167,8 +174,9 @@ export class CustomerService {
     }
   }
 
-  private async generateNextCode(): Promise<string> {
+  private async generateNextCode(companyId: string): Promise<string> {
     const lastCustomer = await this.prisma.customer.findFirst({
+      where: { companyId },
       orderBy: { code: 'desc' },
     });
 

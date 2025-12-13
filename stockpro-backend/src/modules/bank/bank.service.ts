@@ -8,12 +8,13 @@ import { BankResponse } from './dtos/response/bank.response';
 export class BankService {
   constructor(private readonly prisma: DatabaseService) {}
 
-  async create(data: CreateBankRequest): Promise<BankResponse> {
-    const code = await this.generateNextCode();
+  async create(companyId: string, data: CreateBankRequest): Promise<BankResponse> {
+    const code = await this.generateNextCode(companyId);
 
     const bank = await this.prisma.bank.create({
       data: {
         ...data,
+        companyId,
         code,
         openingBalance: data.openingBalance || 0,
         currentBalance: data.openingBalance || 0,
@@ -23,18 +24,17 @@ export class BankService {
     return this.mapToResponse(bank);
   }
 
-  async findAll(search?: string): Promise<BankResponse[]> {
-    const where = search
-      ? {
-          OR: [
-            { name: { contains: search, mode: 'insensitive' as const } },
-            {
-              accountNumber: { contains: search, mode: 'insensitive' as const },
-            },
-            { iban: { contains: search, mode: 'insensitive' as const } },
-          ],
-        }
-      : {};
+  async findAll(companyId: string, search?: string): Promise<BankResponse[]> {
+    const where: any = { companyId };
+    if (search) {
+      where.OR = [
+        { name: { contains: search, mode: 'insensitive' as const } },
+        {
+          accountNumber: { contains: search, mode: 'insensitive' as const },
+        },
+        { iban: { contains: search, mode: 'insensitive' as const } },
+      ];
+    }
 
     const banks = await this.prisma.bank.findMany({
       where,
@@ -44,9 +44,9 @@ export class BankService {
     return banks.map((bank) => this.mapToResponse(bank));
   }
 
-  async findOne(id: string): Promise<BankResponse> {
+  async findOne(companyId: string, id: string): Promise<BankResponse> {
     const bank = await this.prisma.bank.findUnique({
-      where: { id },
+      where: { id_companyId: { id, companyId } },
     });
 
     if (!bank) {
@@ -56,9 +56,9 @@ export class BankService {
     return this.mapToResponse(bank);
   }
 
-  async findByCode(code: string): Promise<BankResponse> {
+  async findByCode(companyId: string, code: string): Promise<BankResponse> {
     const bank = await this.prisma.bank.findUnique({
-      where: { code },
+      where: { code_companyId: { code, companyId } },
     });
 
     if (!bank) {
@@ -68,7 +68,10 @@ export class BankService {
     return this.mapToResponse(bank);
   }
 
-  async update(id: string, data: UpdateBankRequest): Promise<BankResponse> {
+  async update(companyId: string, id: string, data: UpdateBankRequest): Promise<BankResponse> {
+    // Verify the bank belongs to the company
+    await this.findOne(companyId, id);
+
     try {
       const bank = await this.prisma.bank.update({
         where: { id },
@@ -81,7 +84,10 @@ export class BankService {
     }
   }
 
-  async remove(id: string): Promise<void> {
+  async remove(companyId: string, id: string): Promise<void> {
+    // Verify the bank belongs to the company
+    await this.findOne(companyId, id);
+
     try {
       await this.prisma.bank.delete({
         where: { id },
@@ -91,8 +97,9 @@ export class BankService {
     }
   }
 
-  private async generateNextCode(): Promise<string> {
+  private async generateNextCode(companyId: string): Promise<string> {
     const lastBank = await this.prisma.bank.findFirst({
+      where: { companyId },
       orderBy: { code: 'desc' },
     });
 

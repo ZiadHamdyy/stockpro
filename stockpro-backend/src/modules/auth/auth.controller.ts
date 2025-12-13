@@ -32,6 +32,7 @@ import { JwtAuthenticationGuard } from '../../common/guards/strategy.guards/jwt.
 import { currentUser } from '../../common/decorators/currentUser.decorator';
 import { clientIp } from '../../common/decorators/client-ip.decorator';
 import { userAgent } from '../../common/decorators/user-agent.decorator';
+import { currentCompany } from '../../common/decorators/company.decorator';
 import type { currentUserType } from '../../common/types/current-user.type';
 import { UserResponse } from '../../modules/user/dtos/response/user.response';
 
@@ -42,8 +43,11 @@ export class AuthController {
   @Post('signup')
   @Serialize(UserResponse)
   @HttpCode(HttpStatus.CREATED)
-  async signup(@Body() signupRequest: SignupRequest) {
-    return await this.authService.signup(signupRequest);
+  async signup(
+    @Body() signupRequest: SignupRequest,
+    @currentCompany('id') companyId: string,
+  ) {
+    return await this.authService.signup(companyId, signupRequest);
   }
 
   @Post('login')
@@ -113,24 +117,32 @@ export class AuthController {
 
   @Patch('forgot-password')
   @HttpCode(HttpStatus.OK)
-  async forgotPassword(@Body() forgotPasswordRequest: ForgotPasswordRequest) {
-    return await this.authService.forgotPassword(forgotPasswordRequest);
+  async forgotPassword(
+    @Body() forgotPasswordRequest: ForgotPasswordRequest,
+    @currentCompany('id') companyId: string,
+  ) {
+    return await this.authService.forgotPassword(companyId, forgotPasswordRequest);
   }
 
   @Patch('verify-forgot-password')
   @HttpCode(HttpStatus.OK)
   async verifyForgotPassword(
     @Body() verifyForgotPasswordRequest: VerifyForgotPasswordRequest,
+    @currentCompany('id') companyId: string,
   ) {
     return await this.authService.verifyForgotPassword(
+      companyId,
       verifyForgotPasswordRequest,
     );
   }
 
   @Patch('reset-password')
   @HttpCode(HttpStatus.OK)
-  async resetPassword(@Body() resetPasswordRequest: ResetPasswordRequest) {
-    return await this.authService.resetPassword(resetPasswordRequest);
+  async resetPassword(
+    @Body() resetPasswordRequest: ResetPasswordRequest,
+    @currentCompany('id') companyId: string,
+  ) {
+    return await this.authService.resetPassword(companyId, resetPasswordRequest);
   }
 
   @Patch('update-password')
@@ -158,11 +170,13 @@ export class AuthController {
   @HttpCode(HttpStatus.OK)
   async verifyEmail(
     @Body() verifyEmailRequest: VerifyEmailRequest,
+    @currentCompany('id') companyId: string,
     @clientIp() ipAddress: string,
     @userAgent() userAgent: string,
     @Res({ passthrough: true }) response: Response,
   ) {
     return await this.authService.verifyEmail(
+      companyId,
       verifyEmailRequest,
       ipAddress,
       userAgent,
@@ -174,8 +188,10 @@ export class AuthController {
   @HttpCode(HttpStatus.OK)
   async resendVerification(
     @Body() resendVerificationRequest: ResendVerificationRequest,
+    @currentCompany('id') companyId: string,
   ) {
     return await this.authService.resendVerificationCode(
+      companyId,
       resendVerificationRequest,
     );
   }
@@ -184,8 +200,10 @@ export class AuthController {
   @HttpCode(HttpStatus.OK)
   async resendForgotPassword(
     @Body() resendForgotPasswordRequest: ResendForgotPasswordRequest,
+    @currentCompany('id') companyId: string,
   ) {
     return await this.authService.resendForgotPasswordCode(
+      companyId,
       resendForgotPasswordRequest,
     );
   }

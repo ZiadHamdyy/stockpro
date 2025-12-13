@@ -21,6 +21,7 @@ import { CreateExpenseRequest } from './dtos/request/create-expense.request';
 import { UpdateExpenseRequest } from './dtos/request/update-expense.request';
 import { ExpenseResponse } from './dtos/response/expense.response';
 import { Auth } from '../../common/decorators/auth.decorator';
+import { currentCompany } from '../../common/decorators/company.decorator';
 
 @Controller('expenses')
 export class ExpenseController {
@@ -33,24 +34,27 @@ export class ExpenseController {
   @Auth({ permissions: ['expense_types:create'] })
   async createExpenseType(
     @Body() createExpenseTypeDto: CreateExpenseTypeRequest,
+    @currentCompany('id') companyId: string,
   ): Promise<ExpenseTypeResponse> {
-    return this.expenseService.createExpenseType(createExpenseTypeDto);
+    return this.expenseService.createExpenseType(companyId, createExpenseTypeDto);
   }
 
   @Get('types')
   @Auth({ permissions: ['expense_types:read'] })
   async findAllExpenseTypes(
+    @currentCompany('id') companyId: string,
     @Query('search') search?: string,
   ): Promise<ExpenseTypeResponse[]> {
-    return this.expenseService.findAllExpenseTypes(search);
+    return this.expenseService.findAllExpenseTypes(companyId, search);
   }
 
   @Get('types/:id')
   @Auth({ permissions: ['expense_types:read'] })
   async findOneExpenseType(
     @Param('id') id: string,
+    @currentCompany('id') companyId: string,
   ): Promise<ExpenseTypeResponse> {
-    return this.expenseService.findOneExpenseType(id);
+    return this.expenseService.findOneExpenseType(companyId, id);
   }
 
   @Patch('types/:id')
@@ -58,15 +62,19 @@ export class ExpenseController {
   async updateExpenseType(
     @Param('id') id: string,
     @Body() updateExpenseTypeDto: UpdateExpenseTypeRequest,
+    @currentCompany('id') companyId: string,
   ): Promise<ExpenseTypeResponse> {
-    return this.expenseService.updateExpenseType(id, updateExpenseTypeDto);
+    return this.expenseService.updateExpenseType(companyId, id, updateExpenseTypeDto);
   }
 
   @Delete('types/:id')
   @HttpCode(HttpStatus.NO_CONTENT)
   @Auth({ permissions: ['expense_types:delete'] })
-  async removeExpenseType(@Param('id') id: string): Promise<void> {
-    return this.expenseService.removeExpenseType(id);
+  async removeExpenseType(
+    @Param('id') id: string,
+    @currentCompany('id') companyId: string,
+  ): Promise<void> {
+    return this.expenseService.removeExpenseType(companyId, id);
   }
 
   // ==================== Expense Code Endpoints ====================
@@ -76,24 +84,27 @@ export class ExpenseController {
   @Auth({ permissions: ['expense_codes:create'] })
   async createExpenseCode(
     @Body() createExpenseCodeDto: CreateExpenseCodeRequest,
+    @currentCompany('id') companyId: string,
   ): Promise<ExpenseCodeResponse> {
-    return this.expenseService.createExpenseCode(createExpenseCodeDto);
+    return this.expenseService.createExpenseCode(companyId, createExpenseCodeDto);
   }
 
   @Get('codes')
   @Auth({ permissions: ['expense_codes:read'] })
   async findAllExpenseCodes(
+    @currentCompany('id') companyId: string,
     @Query('search') search?: string,
   ): Promise<ExpenseCodeResponse[]> {
-    return this.expenseService.findAllExpenseCodes(search);
+    return this.expenseService.findAllExpenseCodes(companyId, search);
   }
 
   @Get('codes/:id')
   @Auth({ permissions: ['expense_codes:read'] })
   async findOneExpenseCode(
     @Param('id') id: string,
+    @currentCompany('id') companyId: string,
   ): Promise<ExpenseCodeResponse> {
-    return this.expenseService.findOneExpenseCode(id);
+    return this.expenseService.findOneExpenseCode(companyId, id);
   }
 
   @Patch('codes/:id')
@@ -101,15 +112,19 @@ export class ExpenseController {
   async updateExpenseCode(
     @Param('id') id: string,
     @Body() updateExpenseCodeDto: UpdateExpenseCodeRequest,
+    @currentCompany('id') companyId: string,
   ): Promise<ExpenseCodeResponse> {
-    return this.expenseService.updateExpenseCode(id, updateExpenseCodeDto);
+    return this.expenseService.updateExpenseCode(companyId, id, updateExpenseCodeDto);
   }
 
   @Delete('codes/:id')
   @HttpCode(HttpStatus.NO_CONTENT)
   @Auth({ permissions: ['expense_codes:delete'] })
-  async removeExpenseCode(@Param('id') id: string): Promise<void> {
-    return this.expenseService.removeExpenseCode(id);
+  async removeExpenseCode(
+    @Param('id') id: string,
+    @currentCompany('id') companyId: string,
+  ): Promise<void> {
+    return this.expenseService.removeExpenseCode(companyId, id);
   }
 
   // ==================== Expense Endpoints ====================
@@ -119,22 +134,27 @@ export class ExpenseController {
   @Auth({ permissions: ['expenses_list:create'] })
   async createExpense(
     @Body() createExpenseDto: CreateExpenseRequest,
+    @currentCompany('id') companyId: string,
   ): Promise<ExpenseResponse> {
-    return this.expenseService.createExpense(createExpenseDto);
+    return this.expenseService.createExpense(companyId, createExpenseDto);
   }
 
   @Get()
   @Auth({ permissions: ['expenses_list:read'] })
   async findAllExpenses(
+    @currentCompany('id') companyId: string,
     @Query('search') search?: string,
   ): Promise<ExpenseResponse[]> {
-    return this.expenseService.findAllExpenses(search);
+    return this.expenseService.findAllExpenses(companyId, search);
   }
 
   @Get(':id')
   @Auth({ permissions: ['expenses_list:read'] })
-  async findOneExpense(@Param('id') id: string): Promise<ExpenseResponse> {
-    return this.expenseService.findOneExpense(id);
+  async findOneExpense(
+    @Param('id') id: string,
+    @currentCompany('id') companyId: string,
+  ): Promise<ExpenseResponse> {
+    return this.expenseService.findOneExpense(companyId, id);
   }
 
   @Patch(':id')
@@ -142,14 +162,18 @@ export class ExpenseController {
   async updateExpense(
     @Param('id') id: string,
     @Body() updateExpenseDto: UpdateExpenseRequest,
+    @currentCompany('id') companyId: string,
   ): Promise<ExpenseResponse> {
-    return this.expenseService.updateExpense(id, updateExpenseDto);
+    return this.expenseService.updateExpense(companyId, id, updateExpenseDto);
   }
 
   @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)
   @Auth({ permissions: ['expenses_list:delete'] })
-  async removeExpense(@Param('id') id: string): Promise<void> {
-    return this.expenseService.removeExpense(id);
+  async removeExpense(
+    @Param('id') id: string,
+    @currentCompany('id') companyId: string,
+  ): Promise<void> {
+    return this.expenseService.removeExpense(companyId, id);
   }
 }

@@ -19,6 +19,7 @@ export class ItemService {
   ) {}
 
   async create(
+    companyId: string,
     data: CreateItemRequest,
     currentUser: currentUserType,
   ): Promise<ItemResponse> {
@@ -26,28 +27,29 @@ export class ItemService {
     const itemDate = new Date();
     
     // Check if there is an open period for this date
-    const hasOpenPeriod = await this.fiscalYearService.hasOpenPeriodForDate(itemDate);
+    const hasOpenPeriod = await this.fiscalYearService.hasOpenPeriodForDate(companyId, itemDate);
     if (!hasOpenPeriod) {
       throw new ForbiddenException('لا يمكن إضافة صنف: لا توجد فترة محاسبية مفتوحة لهذا التاريخ');
     }
 
     // Check if date is in a closed period
-    const isInClosedPeriod = await this.fiscalYearService.isDateInClosedPeriod(itemDate);
+    const isInClosedPeriod = await this.fiscalYearService.isDateInClosedPeriod(companyId, itemDate);
     if (isInClosedPeriod) {
       throw new ForbiddenException('لا يمكن إضافة صنف: الفترة المحاسبية مغلقة');
     }
 
-    // Generate next code automatically
-    const nextCode = await this.generateNextCode();
+    // Generate next code automatically (company-scoped)
+    const nextCode = await this.generateNextCode(companyId);
 
     // Get user's store from their branch
-    const store = await this.storeService.findByBranchId(currentUser.branchId);
+    const store = await this.storeService.findByBranchId(companyId, currentUser.branchId);
 
     const openingStock = data.type === 'SERVICE' ? 0 : data.stock || 0;
 
     const payload: any = {
       ...data,
       code: nextCode, // Use auto-generated code
+      companyId,
       salePrice: (data as any).salePrice ?? 0,
       initialPurchasePrice: data.purchasePrice ?? 0,
       stock: 0, // Set global stock to 0, use StoreItem for store-specific stock
@@ -81,10 +83,12 @@ export class ItemService {
   }
 
   async findAll(
+    companyId: string,
     storeId?: string,
     _priceDate?: string,
   ): Promise<ItemResponse[]> {
     const items = await this.prisma.item.findMany({
+      where: { companyId },
       include: {
         group: true,
         unit: true,
@@ -119,9 +123,9 @@ export class ItemService {
     return items.map((item) => this.mapToResponse(item));
   }
 
-  async findOne(id: string): Promise<ItemResponse> {
+  async findOne(companyId: string, id: string): Promise<ItemResponse> {
     const item = await this.prisma.item.findUnique({
-      where: { id },
+      where: { id_companyId: { id, companyId } },
       include: {
         group: true,
         unit: true,
@@ -129,15 +133,15 @@ export class ItemService {
     });
 
     if (!item) {
-      throw new Error('Item not found');
+      throw new NotFoundException('Item not found');
     }
 
     return this.mapToResponse(item);
   }
 
-  async findByCode(code: string): Promise<ItemResponse> {
+  async findByCode(companyId: string, code: string): Promise<ItemResponse> {
     const item = await this.prisma.item.findUnique({
-      where: { code },
+      where: { code_companyId: { code, companyId } },
       include: {
         group: true,
         unit: true,
@@ -145,13 +149,16 @@ export class ItemService {
     });
 
     if (!item) {
-      throw new Error('Item not found');
+      throw new NotFoundException('Item not found');
     }
 
     return this.mapToResponse(item);
   }
 
-  async update(id: string, data: UpdateItemRequest): Promise<ItemResponse> {
+  async update(companyId: string, id: string, data: UpdateItemRequest): Promise<ItemResponse> {
+    // Verify the item belongs to the company
+    await this.findOne(companyId, id);
+
     const coerced: any =
       data?.type === 'SERVICE' ? { ...data, stock: 0 } : data;
     const item = await this.prisma.item.update({
@@ -166,11 +173,11 @@ export class ItemService {
     return this.mapToResponse(item);
   }
 
-  async remove(id: string): Promise<void> {
+  async remove(companyId: string, id: string): Promise<void> {
     // First, retrieve the item to get its code (items are referenced by code in JSON fields)
     const item = await this.prisma.item.findUnique({
       where: { id },
-      select: { id: true, code: true },
+      select: { id: true, code: true, companyId: true },
     });
 
     if (!item) {
@@ -223,18 +230,23 @@ export class ItemService {
       priceQuotations,
     ] = await Promise.all([
       this.prisma.salesInvoice.findMany({
+        where: { companyId },
         select: { id: true, items: true },
       }),
       this.prisma.salesReturn.findMany({
+        where: { companyId },
         select: { id: true, items: true },
       }),
       this.prisma.purchaseInvoice.findMany({
+        where: { companyId },
         select: { id: true, items: true },
       }),
       this.prisma.purchaseReturn.findMany({
+        where: { companyId },
         select: { id: true, items: true },
       }),
       this.prisma.priceQuotation.findMany({
+        where: { companyId },
         select: { id: true, items: true },
       }),
     ]);
@@ -305,17 +317,17 @@ export class ItemService {
     }
   }
 
-  private async generateNextCode(): Promise<string> {
-    // Always start from 001 and find the next available code
-    return await this.findNextAvailableCode(1);
+  private async generateNextCode(companyId: string): Promise<string> {
+    // Always start from 001 and find the next available code (company-scoped)
+    return await this.findNextAvailableCode(companyId, 1);
   }
 
-  private async findNextAvailableCode(startFrom: number): Promise<string> {
+  private async findNextAvailableCode(companyId: string, startFrom: number): Promise<string> {
     let code = startFrom;
     while (true) {
       const paddedCode = code.toString().padStart(3, '0');
       const existingItem = await this.prisma.item.findUnique({
-        where: { code: paddedCode },
+        where: { code_companyId: { code: paddedCode, companyId } },
         select: { id: true },
       });
 

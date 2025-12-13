@@ -16,6 +16,7 @@ import { PermissionResponse } from './dtos/response/permission.response';
 import { PermissionsGroupedResponse } from './dtos/response/permissions-grouped.response';
 import { Serialize } from '../../common/interceptors/serialize.interceptor';
 import { Auth } from '../../common/decorators/auth.decorator';
+import { currentCompany } from '../../common/decorators/company.decorator';
 
 @Controller('permissions')
 export class PermissionController {
@@ -27,24 +28,25 @@ export class PermissionController {
   @Auth({ permissions: ['permissions:create'] })
   async create(
     @Body() createPermissionRequest: CreatePermissionRequest,
+    @currentCompany('id') companyId: string,
   ): Promise<PermissionResponse> {
-    return await this.permissionService.create(createPermissionRequest);
+    return await this.permissionService.create(companyId, createPermissionRequest);
   }
 
   @Get()
   @HttpCode(HttpStatus.OK)
   @Serialize(PermissionResponse)
   @Auth({ permissions: ['permissions:read'] })
-  async findAll(): Promise<PermissionResponse[]> {
-    return await this.permissionService.findAll();
+  async findAll(@currentCompany('id') companyId: string): Promise<PermissionResponse[]> {
+    return await this.permissionService.findAll(companyId);
   }
 
   @Get('grouped')
   @HttpCode(HttpStatus.OK)
   @Serialize(PermissionsGroupedResponse)
   @Auth({ permissions: ['permissions:read'] })
-  async findAllGrouped(): Promise<PermissionsGroupedResponse[]> {
-    return await this.permissionService.findAllGrouped();
+  async findAllGrouped(@currentCompany('id') companyId: string): Promise<PermissionsGroupedResponse[]> {
+    return await this.permissionService.findAllGrouped(companyId);
   }
 
   @Get('resource/:resource')
@@ -53,16 +55,17 @@ export class PermissionController {
   @Auth({ permissions: ['permissions:read'] })
   async findByResource(
     @Param('resource') resource: string,
+    @currentCompany('id') companyId: string,
   ): Promise<PermissionResponse[]> {
-    return await this.permissionService.findByResource(resource);
+    return await this.permissionService.findByResource(companyId, resource);
   }
 
   @Get(':id')
   @HttpCode(HttpStatus.OK)
   @Serialize(PermissionResponse)
   @Auth({ permissions: ['permissions:read'] })
-  async findOne(@Param('id') id: string): Promise<PermissionResponse | null> {
-    return await this.permissionService.findOne(id);
+  async findOne(@Param('id') id: string, @currentCompany('id') companyId: string): Promise<PermissionResponse | null> {
+    return await this.permissionService.findOne(companyId, id);
   }
 
   @Patch(':id')
@@ -72,14 +75,15 @@ export class PermissionController {
   async update(
     @Param('id') id: string,
     @Body() updatePermissionRequest: UpdatePermissionRequest,
+    @currentCompany('id') companyId: string,
   ): Promise<PermissionResponse> {
-    return await this.permissionService.update(id, updatePermissionRequest);
+    return await this.permissionService.update(companyId, id, updatePermissionRequest);
   }
 
   @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)
   @Auth({ permissions: ['permissions:delete'] })
-  async remove(@Param('id') id: string): Promise<void> {
-    return await this.permissionService.remove(id);
+  async remove(@Param('id') id: string, @currentCompany('id') companyId: string): Promise<void> {
+    return await this.permissionService.remove(companyId, id);
   }
 }

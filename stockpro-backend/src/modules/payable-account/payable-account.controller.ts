@@ -12,6 +12,7 @@ import {
 } from '@nestjs/common';
 import { JwtAuthenticationGuard } from '../../common/guards/strategy.guards/jwt.guard';
 import { Auth } from '../../common/decorators/auth.decorator';
+import { currentCompany } from '../../common/decorators/company.decorator';
 import { PayableAccountService } from './payable-account.service';
 import { CreatePayableAccountRequest } from './dtos/request/create-payable-account.request';
 import { UpdatePayableAccountRequest } from './dtos/request/update-payable-account.request';
@@ -27,28 +28,35 @@ export class PayableAccountController {
   @Auth({ permissions: ['payable_accounts:create'] })
   async create(
     @Body() dto: CreatePayableAccountRequest,
+    @currentCompany('id') companyId: string,
   ): Promise<PayableAccountResponse> {
-    return this.service.create(dto);
+    return this.service.create(companyId, dto);
   }
 
   @Get()
   @Auth({ permissions: ['payable_accounts:read'] })
-  async findAll(): Promise<PayableAccountResponse[]> {
-    return this.service.findAll();
+  async findAll(
+    @currentCompany('id') companyId: string,
+  ): Promise<PayableAccountResponse[]> {
+    return this.service.findAll(companyId);
   }
 
   @Get('code/:code')
   @Auth({ permissions: ['payable_accounts:read'] })
   async findByCode(
     @Param('code') code: string,
+    @currentCompany('id') companyId: string,
   ): Promise<PayableAccountResponse> {
-    return this.service.findByCode(code);
+    return this.service.findByCode(companyId, code);
   }
 
   @Get(':id')
   @Auth({ permissions: ['payable_accounts:read'] })
-  async findOne(@Param('id') id: string): Promise<PayableAccountResponse> {
-    return this.service.findOne(id);
+  async findOne(
+    @Param('id') id: string,
+    @currentCompany('id') companyId: string,
+  ): Promise<PayableAccountResponse> {
+    return this.service.findOne(companyId, id);
   }
 
   @Patch(':id')
@@ -56,14 +64,18 @@ export class PayableAccountController {
   async update(
     @Param('id') id: string,
     @Body() dto: UpdatePayableAccountRequest,
+    @currentCompany('id') companyId: string,
   ): Promise<PayableAccountResponse> {
-    return this.service.update(id, dto);
+    return this.service.update(companyId, id, dto);
   }
 
   @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)
   @Auth({ permissions: ['payable_accounts:delete'] })
-  async remove(@Param('id') id: string): Promise<void> {
-    return this.service.remove(id);
+  async remove(
+    @Param('id') id: string,
+    @currentCompany('id') companyId: string,
+  ): Promise<void> {
+    return this.service.remove(companyId, id);
   }
 }

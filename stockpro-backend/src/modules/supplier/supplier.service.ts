@@ -17,28 +17,29 @@ export class SupplierService {
     private readonly fiscalYearService: FiscalYearService,
   ) {}
 
-  async create(data: CreateSupplierRequest): Promise<SupplierResponse> {
+  async create(companyId: string, data: CreateSupplierRequest): Promise<SupplierResponse> {
     // Check financial period status (use current date for suppliers without date field)
     const supplierDate = new Date();
     
     // Check if there is an open period for this date
-    const hasOpenPeriod = await this.fiscalYearService.hasOpenPeriodForDate(supplierDate);
+    const hasOpenPeriod = await this.fiscalYearService.hasOpenPeriodForDate(companyId, supplierDate);
     if (!hasOpenPeriod) {
       throw new ForbiddenException('لا يمكن إضافة مورد: لا توجد فترة محاسبية مفتوحة لهذا التاريخ');
     }
 
     // Check if date is in a closed period
-    const isInClosedPeriod = await this.fiscalYearService.isDateInClosedPeriod(supplierDate);
+    const isInClosedPeriod = await this.fiscalYearService.isDateInClosedPeriod(companyId, supplierDate);
     if (isInClosedPeriod) {
       throw new ForbiddenException('لا يمكن إضافة مورد: الفترة المحاسبية مغلقة');
     }
 
-    const code = await this.generateNextCode();
+    const code = await this.generateNextCode(companyId);
     const openingBalance = data.openingBalance || 0;
 
     const supplier = await this.prisma.supplier.create({
       data: {
         ...data,
+        companyId,
         code,
         openingBalance,
         currentBalance: openingBalance, // Initialize currentBalance from openingBalance
@@ -48,17 +49,16 @@ export class SupplierService {
     return this.mapToResponse(supplier);
   }
 
-  async findAll(search?: string): Promise<SupplierResponse[]> {
-    const where = search
-      ? {
-          OR: [
-            { name: { contains: search, mode: 'insensitive' as const } },
-            { code: { contains: search, mode: 'insensitive' as const } },
-            { phone: { contains: search, mode: 'insensitive' as const } },
-            { taxNumber: { contains: search, mode: 'insensitive' as const } },
-          ],
-        }
-      : {};
+  async findAll(companyId: string, search?: string): Promise<SupplierResponse[]> {
+    const where: any = { companyId };
+    if (search) {
+      where.OR = [
+        { name: { contains: search, mode: 'insensitive' as const } },
+        { code: { contains: search, mode: 'insensitive' as const } },
+        { phone: { contains: search, mode: 'insensitive' as const } },
+        { taxNumber: { contains: search, mode: 'insensitive' as const } },
+      ];
+    }
 
     const suppliers = await this.prisma.supplier.findMany({
       where,
@@ -68,9 +68,9 @@ export class SupplierService {
     return suppliers.map((supplier) => this.mapToResponse(supplier));
   }
 
-  async findOne(id: string): Promise<SupplierResponse> {
+  async findOne(companyId: string, id: string): Promise<SupplierResponse> {
     const supplier = await this.prisma.supplier.findUnique({
-      where: { id },
+      where: { id_companyId: { id, companyId } },
     });
 
     if (!supplier) {
@@ -80,9 +80,9 @@ export class SupplierService {
     return this.mapToResponse(supplier);
   }
 
-  async findByCode(code: string): Promise<SupplierResponse> {
+  async findByCode(companyId: string, code: string): Promise<SupplierResponse> {
     const supplier = await this.prisma.supplier.findUnique({
-      where: { code },
+      where: { code_companyId: { code, companyId } },
     });
 
     if (!supplier) {
@@ -93,14 +93,18 @@ export class SupplierService {
   }
 
   async update(
+    companyId: string,
     id: string,
     data: UpdateSupplierRequest,
   ): Promise<SupplierResponse> {
+    // Verify the supplier belongs to the company
+    await this.findOne(companyId, id);
+
     try {
       // If openingBalance is being updated, adjust currentBalance accordingly
       if (data.openingBalance !== undefined) {
-        const existingSupplier = await this.prisma.supplier.findUnique({
-          where: { id },
+        const existingSupplier = await this.prisma.supplier.findFirst({
+          where: { id, companyId },
         });
 
         if (existingSupplier) {
@@ -131,7 +135,10 @@ export class SupplierService {
     }
   }
 
-  async remove(id: string): Promise<void> {
+  async remove(companyId: string, id: string): Promise<void> {
+    // Verify the supplier belongs to the company
+    await this.findOne(companyId, id);
+
     // Prevent deletion if there are related transactions
     const [
       purchaseInvoicesCount,
@@ -139,10 +146,10 @@ export class SupplierService {
       paymentVouchersCount,
       receiptVouchersCount,
     ] = await Promise.all([
-      this.prisma.purchaseInvoice.count({ where: { supplierId: id } }),
-      this.prisma.purchaseReturn.count({ where: { supplierId: id } }),
-      this.prisma.paymentVoucher.count({ where: { supplierId: id } }),
-      this.prisma.receiptVoucher.count({ where: { supplierId: id } }),
+      this.prisma.purchaseInvoice.count({ where: { supplierId: id, companyId } }),
+      this.prisma.purchaseReturn.count({ where: { supplierId: id, companyId } }),
+      this.prisma.paymentVoucher.count({ where: { supplierId: id, companyId } }),
+      this.prisma.receiptVoucher.count({ where: { supplierId: id, companyId } }),
     ]);
 
     if (
@@ -170,8 +177,9 @@ export class SupplierService {
     }
   }
 
-  private async generateNextCode(): Promise<string> {
+  private async generateNextCode(companyId: string): Promise<string> {
     const lastSupplier = await this.prisma.supplier.findFirst({
+      where: { companyId },
       orderBy: { code: 'desc' },
     });
 

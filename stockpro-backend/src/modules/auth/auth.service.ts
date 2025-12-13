@@ -43,14 +43,17 @@ export class AuthService {
     };
   }
 
-  async signup(request: SignupRequest) {
+  async signup(companyId: string, request: SignupRequest) {
     const { email, password, name, image } = request;
-    await this.userService.errorIfUserExists(email);
+    await this.userService.errorIfUserExists(companyId, email);
 
-    // Get the first available branch (or create a default one if none exists)
-    let branch = await this.prisma.branch.findFirst();
+    // Get the first available branch for this company (or create a default one if none exists)
+    let branch = await this.prisma.branch.findFirst({
+      where: { companyId },
+    });
     if (!branch) {
       const last = await this.prisma.branch.findFirst({
+        where: { companyId },
         select: { code: true },
         orderBy: { code: 'desc' },
       });
@@ -62,12 +65,14 @@ export class AuthService {
           address: 'Default Address',
           phone: 'Default Phone',
           description: 'Default branch for new users',
+          companyId,
         },
       });
     }
 
-    // Generate next user code
+    // Generate next user code for this company
     const lastUser = await this.prisma.user.findFirst({
+      where: { companyId },
       select: { code: true },
       orderBy: { code: 'desc' },
     });
@@ -83,6 +88,7 @@ export class AuthService {
         active: true,
         emailVerified: false, // Set to false - requires email verification
         branchId: branch.id,
+        companyId,
       },
     });
 
@@ -118,10 +124,10 @@ export class AuthService {
     return user;
   }
 
-  async validateUser(email: string, password: string) {
+  async validateUser(email: string, password: string, companyId: string) {
     // Find user without throwing errors to prevent info leakage
     const user = await this.prisma.user.findUnique({
-      where: { email },
+      where: { email_companyId: { email, companyId } },
       include: {
         role: {
           include: {
@@ -410,13 +416,13 @@ export class AuthService {
   }
 
   // Password Recovery Methods
-  async forgotPassword(request: ForgotPasswordRequest) {
+  async forgotPassword(companyId: string, request: ForgotPasswordRequest) {
     const { email } = request;
 
     try {
       // Find user by email (silently fail if not found to prevent email enumeration)
       const user = await this.prisma.user.findUnique({
-        where: { email },
+        where: { email_companyId: { email, companyId } },
       });
 
       // Always return success message even if user not found (security best practice)
@@ -479,12 +485,12 @@ export class AuthService {
     }
   }
 
-  async verifyForgotPassword(request: VerifyForgotPasswordRequest) {
+  async verifyForgotPassword(companyId: string, request: VerifyForgotPasswordRequest) {
     const { email, otp } = request;
 
     // Find user by email
     const user = await this.prisma.user.findUnique({
-      where: { email },
+      where: { email_companyId: { email, companyId } },
     });
 
     // If user not found
@@ -549,12 +555,12 @@ export class AuthService {
     };
   }
 
-  async resetPassword(request: ResetPasswordRequest) {
+  async resetPassword(companyId: string, request: ResetPasswordRequest) {
     const { email, newPassword } = request;
 
     // Find user by email
     const user = await this.prisma.user.findUnique({
-      where: { email },
+      where: { email_companyId: { email, companyId } },
     });
 
     // If user not found
@@ -719,12 +725,12 @@ export class AuthService {
   }
 
   // Email Verification Methods
-  async resendVerificationCode(request: { email: string }) {
+  async resendVerificationCode(companyId: string, request: { email: string }) {
     const { email } = request;
 
     // Find user by email
     const user = await this.prisma.user.findUnique({
-      where: { email },
+      where: { email_companyId: { email, companyId } },
     });
 
     // If user not found
@@ -786,12 +792,12 @@ export class AuthService {
     };
   }
 
-  async resendForgotPasswordCode(request: { email: string }) {
+  async resendForgotPasswordCode(companyId: string, request: { email: string }) {
     const { email } = request;
 
     // Find user by email
     const user = await this.prisma.user.findUnique({
-      where: { email },
+      where: { email_companyId: { email, companyId } },
     });
 
     // If user not found
@@ -846,6 +852,7 @@ export class AuthService {
   }
 
   async verifyEmail(
+    companyId: string,
     request: { email: string; otp: string },
     ipAddress?: string,
     userAgent?: string,
@@ -855,7 +862,7 @@ export class AuthService {
 
     // Find user by email
     const user = await this.prisma.user.findUnique({
-      where: { email },
+      where: { email_companyId: { email, companyId } },
     });
 
     // If user not found

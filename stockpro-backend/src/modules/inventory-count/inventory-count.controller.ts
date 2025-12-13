@@ -13,6 +13,7 @@ import { CreateInventoryCountDto } from './dtos/create-inventory-count.dto';
 import { UpdateInventoryCountDto } from './dtos/update-inventory-count.dto';
 import { JwtAuthenticationGuard } from '../../common/guards/strategy.guards/jwt.guard';
 import { Auth } from '../../common/decorators/auth.decorator';
+import { currentCompany } from '../../common/decorators/company.decorator';
 
 @Controller('inventory-counts')
 @UseGuards(JwtAuthenticationGuard)
@@ -23,20 +24,26 @@ export class InventoryCountController {
 
   @Post()
   @Auth({ permissions: ['inventory_count:create'] })
-  create(@Body() createInventoryCountDto: CreateInventoryCountDto) {
-    return this.inventoryCountService.create(createInventoryCountDto);
+  create(
+    @Body() createInventoryCountDto: CreateInventoryCountDto,
+    @currentCompany('id') companyId: string,
+  ) {
+    return this.inventoryCountService.create(companyId, createInventoryCountDto);
   }
 
   @Get()
   @Auth({ permissions: ['inventory_count:read'] })
-  findAll() {
-    return this.inventoryCountService.findAll();
+  findAll(@currentCompany('id') companyId: string) {
+    return this.inventoryCountService.findAll(companyId);
   }
 
   @Get(':id')
   @Auth({ permissions: ['inventory_count:read'] })
-  findOne(@Param('id') id: string) {
-    return this.inventoryCountService.findOne(id);
+  findOne(
+    @Param('id') id: string,
+    @currentCompany('id') companyId: string,
+  ) {
+    return this.inventoryCountService.findOne(companyId, id);
   }
 
   @Patch(':id')
@@ -44,20 +51,27 @@ export class InventoryCountController {
   update(
     @Param('id') id: string,
     @Body() updateInventoryCountDto: UpdateInventoryCountDto,
+    @currentCompany('id') companyId: string,
   ) {
-    return this.inventoryCountService.update(id, updateInventoryCountDto);
+    return this.inventoryCountService.update(companyId, id, updateInventoryCountDto);
   }
 
   @Post(':id/post')
   @Auth({ permissions: ['inventory_count:post'] })
-  post(@Param('id') id: string) {
-    return this.inventoryCountService.post(id);
+  post(
+    @Param('id') id: string,
+    @currentCompany('id') companyId: string,
+  ) {
+    return this.inventoryCountService.post(companyId, id);
   }
 
   @Delete(':id')
   @Auth({ permissions: ['inventory_count:delete'] })
-  remove(@Param('id') id: string) {
-    return this.inventoryCountService.remove(id);
+  remove(
+    @Param('id') id: string,
+    @currentCompany('id') companyId: string,
+  ) {
+    return this.inventoryCountService.remove(companyId, id);
   }
 }
 

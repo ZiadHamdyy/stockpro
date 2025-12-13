@@ -14,6 +14,7 @@ import { UpdateStoreReceiptVoucherDto } from './dtos/update-store-receipt-vouche
 import { JwtAuthenticationGuard } from '../../common/guards/strategy.guards/jwt.guard';
 import { Auth } from '../../common/decorators/auth.decorator';
 import { currentUser } from '../../common/decorators/currentUser.decorator';
+import { currentCompany } from '../../common/decorators/company.decorator';
 import type { currentUserType } from '../../common/types/current-user.type';
 
 @Controller('store-receipt-vouchers')
@@ -28,8 +29,10 @@ export class StoreReceiptVoucherController {
   create(
     @Body() createStoreReceiptVoucherDto: CreateStoreReceiptVoucherDto,
     @currentUser() user: currentUserType,
+    @currentCompany('id') companyId: string,
   ) {
     return this.storeReceiptVoucherService.create(
+      companyId,
       createStoreReceiptVoucherDto,
       user.branchId,
     );
@@ -37,14 +40,17 @@ export class StoreReceiptVoucherController {
 
   @Get()
   @Auth({ permissions: ['store_receipt_voucher:read'] })
-  findAll() {
-    return this.storeReceiptVoucherService.findAll();
+  findAll(@currentCompany('id') companyId: string) {
+    return this.storeReceiptVoucherService.findAll(companyId);
   }
 
   @Get(':id')
   @Auth({ permissions: ['store_receipt_voucher:read'] })
-  findOne(@Param('id') id: string) {
-    return this.storeReceiptVoucherService.findOne(id);
+  findOne(
+    @Param('id') id: string,
+    @currentCompany('id') companyId: string,
+  ) {
+    return this.storeReceiptVoucherService.findOne(companyId, id);
   }
 
   @Patch(':id')
@@ -53,8 +59,10 @@ export class StoreReceiptVoucherController {
     @Param('id') id: string,
     @Body() updateStoreReceiptVoucherDto: UpdateStoreReceiptVoucherDto,
     @currentUser() user: currentUserType,
+    @currentCompany('id') companyId: string,
   ) {
     return this.storeReceiptVoucherService.update(
+      companyId,
       id,
       updateStoreReceiptVoucherDto,
       user.branchId,
@@ -66,7 +74,8 @@ export class StoreReceiptVoucherController {
   remove(
     @Param('id') id: string,
     @currentUser() user: currentUserType,
+    @currentCompany('id') companyId: string,
   ) {
-    return this.storeReceiptVoucherService.remove(id, user.branchId);
+    return this.storeReceiptVoucherService.remove(companyId, id, user.branchId);
   }
 }

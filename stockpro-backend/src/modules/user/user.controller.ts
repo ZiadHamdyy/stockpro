@@ -21,6 +21,7 @@ import { CreateUserRequest } from './dtos/request/create-user.request';
 import { UpdateUserRequest } from './dtos/request/update-user.request.js';
 import { JwtAuthenticationGuard } from '../../common/guards/strategy.guards/jwt.guard';
 import { currentUser } from '../../common/decorators/currentUser.decorator';
+import { currentCompany } from '../../common/decorators/company.decorator';
 import type { currentUserType } from '../../common/types/current-user.type';
 
 @Controller('users')
@@ -29,15 +30,21 @@ export class UserController {
   constructor(private readonly userService: UserService) {}
 
   @Get()
-  async getAllUsers(@Query() filters: UserListFilterInput) {
-    return await this.userService.getAllUsers(filters);
+  async getAllUsers(
+    @Query() filters: UserListFilterInput,
+    @currentCompany('id') companyId: string,
+  ) {
+    return await this.userService.getAllUsers(companyId, filters);
   }
 
   @Post()
   @HttpCode(HttpStatus.CREATED)
   @Serialize(UserResponse)
-  async createUser(@Body() data: CreateUserRequest) {
-    return await this.userService.createUser(data);
+  async createUser(
+    @Body() data: CreateUserRequest,
+    @currentCompany('id') companyId: string,
+  ) {
+    return await this.userService.createUser(companyId, data);
   }
 
   // @Get('by-email')
@@ -58,8 +65,11 @@ export class UserController {
 
   @Get(':id')
   @Serialize(UserResponse)
-  async getUserById(@Param('id') userId: string) {
-    return await this.userService.getUserById(userId);
+  async getUserById(
+    @Param('id') userId: string,
+    @currentCompany('id') companyId: string,
+  ) {
+    return await this.userService.getUserById(companyId, userId);
   }
 
   @Patch(':id')
@@ -68,8 +78,9 @@ export class UserController {
   async updateUser(
     @Param('id') userId: string,
     @Body() data: UpdateUserRequest,
+    @currentCompany('id') companyId: string,
   ) {
-    return await this.userService.updateUser(userId, data);
+    return await this.userService.updateUser(companyId, userId, data);
   }
 
   @Delete(':id')
@@ -80,8 +91,11 @@ export class UserController {
 
   @Get(':id/permissions')
   @HttpCode(HttpStatus.OK)
-  async getUserPermissions(@Param('id') userId: string) {
-    return await this.userService.getUserPermissions(userId);
+  async getUserPermissions(
+    @Param('id') userId: string,
+    @currentCompany('id') companyId: string,
+  ) {
+    return await this.userService.getUserPermissions(companyId, userId);
   }
 
   // @Post('check-email')

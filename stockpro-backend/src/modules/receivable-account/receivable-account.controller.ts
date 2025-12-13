@@ -12,6 +12,7 @@ import {
 } from '@nestjs/common';
 import { JwtAuthenticationGuard } from '../../common/guards/strategy.guards/jwt.guard';
 import { Auth } from '../../common/decorators/auth.decorator';
+import { currentCompany } from '../../common/decorators/company.decorator';
 import { ReceivableAccountService } from './receivable-account.service';
 import { CreateReceivableAccountRequest } from './dtos/request/create-receivable-account.request';
 import { UpdateReceivableAccountRequest } from './dtos/request/update-receivable-account.request';
@@ -27,28 +28,35 @@ export class ReceivableAccountController {
   @Auth({ permissions: ['receivable_accounts:create'] })
   async create(
     @Body() dto: CreateReceivableAccountRequest,
+    @currentCompany('id') companyId: string,
   ): Promise<ReceivableAccountResponse> {
-    return this.service.create(dto);
+    return this.service.create(companyId, dto);
   }
 
   @Get()
   @Auth({ permissions: ['receivable_accounts:read'] })
-  async findAll(): Promise<ReceivableAccountResponse[]> {
-    return this.service.findAll();
+  async findAll(
+    @currentCompany('id') companyId: string,
+  ): Promise<ReceivableAccountResponse[]> {
+    return this.service.findAll(companyId);
   }
 
   @Get('code/:code')
   @Auth({ permissions: ['receivable_accounts:read'] })
   async findByCode(
     @Param('code') code: string,
+    @currentCompany('id') companyId: string,
   ): Promise<ReceivableAccountResponse> {
-    return this.service.findByCode(code);
+    return this.service.findByCode(companyId, code);
   }
 
   @Get(':id')
   @Auth({ permissions: ['receivable_accounts:read'] })
-  async findOne(@Param('id') id: string): Promise<ReceivableAccountResponse> {
-    return this.service.findOne(id);
+  async findOne(
+    @Param('id') id: string,
+    @currentCompany('id') companyId: string,
+  ): Promise<ReceivableAccountResponse> {
+    return this.service.findOne(companyId, id);
   }
 
   @Patch(':id')
@@ -56,14 +64,18 @@ export class ReceivableAccountController {
   async update(
     @Param('id') id: string,
     @Body() dto: UpdateReceivableAccountRequest,
+    @currentCompany('id') companyId: string,
   ): Promise<ReceivableAccountResponse> {
-    return this.service.update(id, dto);
+    return this.service.update(companyId, id, dto);
   }
 
   @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)
   @Auth({ permissions: ['receivable_accounts:delete'] })
-  async remove(@Param('id') id: string): Promise<void> {
-    return this.service.remove(id);
+  async remove(
+    @Param('id') id: string,
+    @currentCompany('id') companyId: string,
+  ): Promise<void> {
+    return this.service.remove(companyId, id);
   }
 }

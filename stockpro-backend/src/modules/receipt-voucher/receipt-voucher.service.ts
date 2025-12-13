@@ -21,24 +21,25 @@ export class ReceiptVoucherService {
   // ==================== CRUD Operations ====================
 
   async createReceiptVoucher(
+    companyId: string,
     data: CreateReceiptVoucherRequest,
     userId: string,
   ): Promise<ReceiptVoucherResponse> {
     const voucherDate = data.date ? new Date(data.date) : new Date();
     
     // Check if there is an open period for this date
-    const hasOpenPeriod = await this.fiscalYearService.hasOpenPeriodForDate(voucherDate);
+    const hasOpenPeriod = await this.fiscalYearService.hasOpenPeriodForDate(companyId, voucherDate);
     if (!hasOpenPeriod) {
       throw new ForbiddenException('Cannot create voucher: no open fiscal period exists for this date');
     }
 
     // Check if date is in a closed period
-    const isInClosedPeriod = await this.fiscalYearService.isDateInClosedPeriod(voucherDate);
+    const isInClosedPeriod = await this.fiscalYearService.isDateInClosedPeriod(companyId, voucherDate);
     if (isInClosedPeriod) {
       throw new ForbiddenException('Cannot create voucher in a closed fiscal period');
     }
 
-    const code = await this.generateNextCode();
+    const code = await this.generateNextCode(companyId);
 
     // Fetch entity name based on type
     const entityId =
@@ -49,7 +50,7 @@ export class ReceiptVoucherService {
       (data as any).receivableAccountId ||
       (data as any).payableAccountId ||
       '';
-    const entityName = await this.fetchEntityName(data.entityType, entityId);
+    const entityName = await this.fetchEntityName(companyId, data.entityType, entityId);
 
     const result = await this.prisma.$transaction(async (tx) => {
       let safeBranchId: string | null = null;
@@ -60,7 +61,7 @@ export class ReceiptVoucherService {
         if (!data.safeId) {
           throw new NotFoundException('Safe not found');
         }
-        const safe = await tx.safe.findUnique({ where: { id: data.safeId } });
+        const safe = await tx.safe.findUnique({ where: { id_companyId: { id: data.safeId, companyId } } });
         if (!safe) {
           throw new NotFoundException('Safe not found');
         }
@@ -78,7 +79,7 @@ export class ReceiptVoucherService {
         if (!data.bankId) {
           throw new NotFoundException('Bank not found');
         }
-        const bank = await tx.bank.findUnique({ where: { id: data.bankId } });
+        const bank = await tx.bank.findUnique({ where: { id_companyId: { id: data.bankId, companyId } } });
         if (!bank) {
           throw new NotFoundException('Bank not found');
         }
@@ -97,21 +98,31 @@ export class ReceiptVoucherService {
         // VAT and profit_and_loss vouchers don't affect entity balances
       } else if (data.entityType === 'customer' && data.customerId) {
         // Customer: decrement (customer paid us)
-        await tx.customer.update({
+        const customer = await tx.customer.findUnique({
           where: { id: data.customerId },
-          data: { currentBalance: { decrement: data.amount } },
         });
+        if (customer && customer.companyId === companyId) {
+          await tx.customer.update({
+            where: { id: data.customerId },
+            data: { currentBalance: { decrement: data.amount } },
+          });
+        }
       } else if (data.entityType === 'supplier' && data.supplierId) {
         // Supplier: increment (we received from supplier)
-        await tx.supplier.update({
+        const supplier = await tx.supplier.findUnique({
           where: { id: data.supplierId },
-          data: { currentBalance: { increment: data.amount } },
         });
+        if (supplier && supplier.companyId === companyId) {
+          await tx.supplier.update({
+            where: { id: data.supplierId },
+            data: { currentBalance: { increment: data.amount } },
+          });
+        }
       } else {
         // Apply entity-side effect for other account types
         const direction =
           data.entityType === 'receivable_account' ? 'decrement' : 'increment';
-        await this.applyEntityBalanceEffect(tx, data.entityType, {
+        await this.applyEntityBalanceEffect(companyId, tx, data.entityType, {
           currentAccountId: data.currentAccountId,
           receivableAccountId: (data as any).receivableAccountId,
           payableAccountId: (data as any).payableAccountId,
@@ -139,6 +150,7 @@ export class ReceiptVoucherService {
           revenueCodeId: data.revenueCodeId,
           userId,
           branchId: data.branchId,
+          companyId,
         },
         include: { user: true, branch: true, revenueCode: true },
       });
@@ -149,17 +161,17 @@ export class ReceiptVoucherService {
   }
 
   async findAllReceiptVouchers(
+    companyId: string,
     search?: string,
   ): Promise<ReceiptVoucherResponse[]> {
-    const where = search
-      ? {
-          OR: [
-            { code: { contains: search, mode: 'insensitive' as const } },
-            { entityName: { contains: search, mode: 'insensitive' as const } },
-            { description: { contains: search, mode: 'insensitive' as const } },
-          ],
-        }
-      : {};
+    const where: any = { companyId };
+    if (search) {
+      where.OR = [
+        { code: { contains: search, mode: 'insensitive' as const } },
+        { entityName: { contains: search, mode: 'insensitive' as const } },
+        { description: { contains: search, mode: 'insensitive' as const } },
+      ];
+    }
 
     const vouchers = await this.prisma.receiptVoucher.findMany({
       where,
@@ -173,7 +185,7 @@ export class ReceiptVoucherService {
     return vouchers.map((voucher) => this.mapToResponse(voucher));
   }
 
-  async findOneReceiptVoucher(id: string): Promise<ReceiptVoucherResponse> {
+  async findOneReceiptVoucher(companyId: string, id: string): Promise<ReceiptVoucherResponse> {
     const receiptVoucher = await this.prisma.receiptVoucher.findUnique({
       where: { id },
       include: {
@@ -183,7 +195,7 @@ export class ReceiptVoucherService {
       },
     });
 
-    if (!receiptVoucher) {
+    if (!receiptVoucher || receiptVoucher.companyId !== companyId) {
       throw new NotFoundException('Receipt voucher not found');
     }
 
@@ -191,95 +203,113 @@ export class ReceiptVoucherService {
   }
 
   async updateReceiptVoucher(
+    companyId: string,
     id: string,
     data: UpdateReceiptVoucherRequest,
   ): Promise<ReceiptVoucherResponse> {
-    try {
-      // Get existing voucher to check date
-      const existing = await this.prisma.receiptVoucher.findUnique({ where: { id } });
-      if (!existing) throw new NotFoundException('Receipt voucher not found');
+    // Verify the voucher belongs to the company
+    const existing = await this.findOneReceiptVoucher(companyId, id);
 
+    try {
       // Check if date is in a closed period (use new date if provided, otherwise existing date)
       const voucherDate = data.date ? new Date(data.date) : existing.date;
       
       // If date is being changed, validate it's in an open period
       if (data.date) {
-        const hasOpenPeriod = await this.fiscalYearService.hasOpenPeriodForDate(voucherDate);
+        const hasOpenPeriod = await this.fiscalYearService.hasOpenPeriodForDate(companyId, voucherDate);
         if (!hasOpenPeriod) {
           throw new ForbiddenException('لا يمكن تعديل السند: لا توجد فترة محاسبية مفتوحة لهذا التاريخ');
         }
       }
       
-      const isInClosedPeriod = await this.fiscalYearService.isDateInClosedPeriod(voucherDate);
+      const isInClosedPeriod = await this.fiscalYearService.isDateInClosedPeriod(companyId, voucherDate);
       if (isInClosedPeriod) {
         throw new ForbiddenException('لا يمكن تعديل السند: الفترة المحاسبية مغلقة');
+      }
+
+      // Get existing voucher record for operations
+      const existingRecord = await this.prisma.receiptVoucher.findUnique({
+        where: { id },
+      });
+      if (!existingRecord || existingRecord.companyId !== companyId) {
+        throw new NotFoundException('Receipt voucher not found');
       }
 
       const result = await this.prisma.$transaction(async (tx) => {
 
         // Reverse previous effect on cash/bank (decrement back)
-        if (existing.paymentMethod === 'safe' && existing.safeId) {
+        if (existingRecord.paymentMethod === 'safe' && existingRecord.safeId) {
           const safe = await tx.safe.findUnique({
-            where: { id: existing.safeId },
+            where: { id: existingRecord.safeId },
           });
-          if (!safe) throw new NotFoundException('Safe not found');
+          if (!safe || safe.companyId !== companyId) throw new NotFoundException('Safe not found');
           await AccountingService.reverseImpact({
             kind: 'receipt-voucher',
-            amount: existing.amount,
+            amount: existingRecord.amount,
             paymentTargetType: 'safe',
             branchId: safe.branchId,
-            safeId: existing.safeId,
+            safeId: existingRecord.safeId,
             tx,
           });
-        } else if (existing.paymentMethod === 'bank' && existing.bankId) {
+        } else if (existingRecord.paymentMethod === 'bank' && existingRecord.bankId) {
           await AccountingService.reverseImpact({
             kind: 'receipt-voucher',
-            amount: existing.amount,
+            amount: existingRecord.amount,
             paymentTargetType: 'bank',
-            bankId: existing.bankId,
+            bankId: existingRecord.bankId,
             tx,
           });
         }
 
         // Reverse previous entity effect (skip for VAT and profit_and_loss types)
-        if (existing.entityType === 'vat' || existing.entityType === 'profit_and_loss') {
+        if (existingRecord.entityType === 'vat' || existingRecord.entityType === 'profit_and_loss') {
           // VAT and profit_and_loss vouchers don't affect entity balances
-        } else if (existing.entityType === 'customer' && existing.customerId) {
-          await tx.customer.update({
-            where: { id: existing.customerId },
-            data: { currentBalance: { increment: existing.amount } },
+        } else if (existingRecord.entityType === 'customer' && existingRecord.customerId) {
+          const customer = await tx.customer.findUnique({
+            where: { id: existingRecord.customerId },
           });
-        } else if (existing.entityType === 'supplier' && existing.supplierId) {
-          await tx.supplier.update({
-            where: { id: existing.supplierId },
-            data: { currentBalance: { decrement: existing.amount } },
+          if (customer && customer.companyId === companyId) {
+            await tx.customer.update({
+              where: { id: existingRecord.customerId },
+              data: { currentBalance: { increment: existingRecord.amount } },
+            });
+          }
+        } else if (existingRecord.entityType === 'supplier' && existingRecord.supplierId) {
+          const supplier = await tx.supplier.findUnique({
+            where: { id: existingRecord.supplierId },
           });
+          if (supplier && supplier.companyId === companyId) {
+            await tx.supplier.update({
+              where: { id: existingRecord.supplierId },
+              data: { currentBalance: { decrement: existingRecord.amount } },
+            });
+          }
         } else {
           const reverseDirection =
-            existing.entityType === 'receivable_account'
+            existingRecord.entityType === 'receivable_account'
               ? 'increment'
               : 'decrement';
-          await this.applyEntityBalanceEffect(tx, existing.entityType, {
-            currentAccountId: existing.currentAccountId,
-            receivableAccountId: (existing as any).receivableAccountId,
-            payableAccountId: (existing as any).payableAccountId,
-            amount: existing.amount,
+          await this.applyEntityBalanceEffect(companyId, tx, existingRecord.entityType, {
+            currentAccountId: existingRecord.currentAccountId,
+            receivableAccountId: (existingRecord as any).receivableAccountId,
+            payableAccountId: (existingRecord as any).payableAccountId,
+            amount: existingRecord.amount,
             direction: reverseDirection,
           });
         }
 
         // Determine new target and apply
-        const newPaymentMethod = data.paymentMethod || existing.paymentMethod;
+        const newPaymentMethod = data.paymentMethod || existingRecord.paymentMethod;
         const newAmount =
-          data.amount !== undefined ? data.amount : existing.amount;
+          data.amount !== undefined ? data.amount : existingRecord.amount;
         const newSafeId =
-          newPaymentMethod === 'safe' ? data.safeId || existing.safeId : null;
+          newPaymentMethod === 'safe' ? data.safeId || existingRecord.safeId : null;
         const newBankId =
-          newPaymentMethod === 'bank' ? data.bankId || existing.bankId : null;
+          newPaymentMethod === 'bank' ? data.bankId || existingRecord.bankId : null;
 
         if (newPaymentMethod === 'safe') {
           if (!newSafeId) throw new NotFoundException('Safe not found');
-          const safe = await tx.safe.findUnique({ where: { id: newSafeId } });
+          const safe = await tx.safe.findUnique({ where: { id_companyId: { id: newSafeId, companyId } } });
           if (!safe) throw new NotFoundException('Safe not found');
           await AccountingService.applyImpact({
             kind: 'receipt-voucher',
@@ -291,7 +321,7 @@ export class ReceiptVoucherService {
           });
         } else if (newPaymentMethod === 'bank') {
           if (!newBankId) throw new NotFoundException('Bank not found');
-          const bank = await tx.bank.findUnique({ where: { id: newBankId } });
+          const bank = await tx.bank.findUnique({ where: { id_companyId: { id: newBankId, companyId } } });
           if (!bank) throw new NotFoundException('Bank not found');
           await AccountingService.applyImpact({
             kind: 'receipt-voucher',
@@ -303,9 +333,9 @@ export class ReceiptVoucherService {
         }
 
         // Apply new entity effect (skip for VAT type)
-        const newEntityType = data.entityType || existing.entityType;
-        const newCustomerId = data.customerId ?? existing.customerId;
-        const newSupplierId = data.supplierId ?? existing.supplierId;
+        const newEntityType = data.entityType || existingRecord.entityType;
+        const newCustomerId = data.customerId ?? existingRecord.customerId;
+        const newSupplierId = data.supplierId ?? existingRecord.supplierId;
 
         if (newEntityType === 'vat') {
           // VAT vouchers don't affect entity balances
@@ -313,29 +343,39 @@ export class ReceiptVoucherService {
           // Revenue: Note - RevenueCode doesn't have currentBalance field
           // Revenue codes are for categorization only
         } else if (newEntityType === 'customer' && newCustomerId) {
-          await tx.customer.update({
+          const customer = await tx.customer.findUnique({
             where: { id: newCustomerId },
-            data: { currentBalance: { decrement: newAmount } },
           });
+          if (customer && customer.companyId === companyId) {
+            await tx.customer.update({
+              where: { id: newCustomerId },
+              data: { currentBalance: { decrement: newAmount } },
+            });
+          }
         } else if (newEntityType === 'supplier' && newSupplierId) {
-          await tx.supplier.update({
+          const supplier = await tx.supplier.findUnique({
             where: { id: newSupplierId },
-            data: { currentBalance: { increment: newAmount } },
           });
+          if (supplier && supplier.companyId === companyId) {
+            await tx.supplier.update({
+              where: { id: newSupplierId },
+              data: { currentBalance: { increment: newAmount } },
+            });
+          }
         } else {
           const newEntityIds: any = {
             currentAccountId:
-              data.currentAccountId ?? existing.currentAccountId,
+              data.currentAccountId ?? existingRecord.currentAccountId,
             receivableAccountId:
               (data as any).receivableAccountId ??
-              (existing as any).receivableAccountId,
+              (existingRecord as any).receivableAccountId,
             payableAccountId:
               (data as any).payableAccountId ??
-              (existing as any).payableAccountId,
+              (existingRecord as any).payableAccountId,
           };
           const direction =
             newEntityType === 'receivable_account' ? 'decrement' : 'increment';
-          await this.applyEntityBalanceEffect(tx, newEntityType, {
+          await this.applyEntityBalanceEffect(companyId, tx, newEntityType, {
             ...newEntityIds,
             amount: newAmount,
             direction,
@@ -349,7 +389,7 @@ export class ReceiptVoucherService {
           amount: newAmount,
           safeId: newSafeId,
           bankId: newBankId,
-          revenueCodeId: data.revenueCodeId ?? existing.revenueCodeId,
+          revenueCodeId: data.revenueCodeId ?? existingRecord.revenueCodeId,
         };
 
         // If entity type or ID changed, fetch new entity name
@@ -361,17 +401,18 @@ export class ReceiptVoucherService {
           (data as any).receivableAccountId ??
           (data as any).payableAccountId ??
           null;
-        if (newEntityType !== existing.entityType || newEntityId !== null) {
+        if (newEntityType !== existingRecord.entityType || newEntityId !== null) {
           const entityIdToUse =
             newEntityId ||
-            existing.customerId ||
-            existing.supplierId ||
-            existing.currentAccountId ||
-            existing.revenueCodeId ||
-            (existing as any).receivableAccountId ||
-            (existing as any).payableAccountId ||
+            existingRecord.customerId ||
+            existingRecord.supplierId ||
+            existingRecord.currentAccountId ||
+            existingRecord.revenueCodeId ||
+            (existingRecord as any).receivableAccountId ||
+            (existingRecord as any).payableAccountId ||
             '';
           updateData.entityName = await this.fetchEntityName(
+            companyId,
             newEntityType,
             entityIdToUse,
           );
@@ -391,19 +432,19 @@ export class ReceiptVoucherService {
     }
   }
 
-  async removeReceiptVoucher(id: string): Promise<void> {
+  async removeReceiptVoucher(companyId: string, id: string): Promise<void> {
+    // Verify the voucher belongs to the company
+    const existing = await this.findOneReceiptVoucher(companyId, id);
+
     try {
       // Check if voucher date is in a closed period before starting transaction
-      const existing = await this.prisma.receiptVoucher.findUnique({ where: { id } });
-      if (!existing) throw new NotFoundException('Receipt voucher not found');
-
-      const isInClosedPeriod = await this.fiscalYearService.isDateInClosedPeriod(existing.date);
+      const isInClosedPeriod = await this.fiscalYearService.isDateInClosedPeriod(companyId, existing.date);
       if (isInClosedPeriod) {
         throw new ForbiddenException('لا يمكن حذف السند: الفترة المحاسبية مغلقة');
       }
 
       await this.prisma.$transaction(async (tx) => {
-        const existingInTx = await tx.receiptVoucher.findUnique({ where: { id } });
+        const existingInTx = await tx.receiptVoucher.findUnique({ where: { id_companyId: { id, companyId } } });
         if (!existingInTx) throw new NotFoundException('Receipt voucher not found');
 
         // Reverse effect on cash/bank (decrement back)
@@ -411,7 +452,7 @@ export class ReceiptVoucherService {
           const safe = await tx.safe.findUnique({
             where: { id: existingInTx.safeId },
           });
-          if (!safe) throw new NotFoundException('Safe not found');
+          if (!safe || safe.companyId !== companyId) throw new NotFoundException('Safe not found');
           await AccountingService.reverseImpact({
             kind: 'receipt-voucher',
             amount: existingInTx.amount,
@@ -434,21 +475,31 @@ export class ReceiptVoucherService {
         if (existingInTx.entityType === 'vat' || existingInTx.entityType === 'profit_and_loss') {
           // VAT and profit_and_loss vouchers don't affect entity balances
         } else if (existingInTx.entityType === 'customer' && existingInTx.customerId) {
-          await tx.customer.update({
+          const customer = await tx.customer.findUnique({
             where: { id: existingInTx.customerId },
-            data: { currentBalance: { increment: existingInTx.amount } },
           });
+          if (customer && customer.companyId === companyId) {
+            await tx.customer.update({
+              where: { id: existingInTx.customerId },
+              data: { currentBalance: { increment: existingInTx.amount } },
+            });
+          }
         } else if (existingInTx.entityType === 'supplier' && existingInTx.supplierId) {
-          await tx.supplier.update({
+          const supplier = await tx.supplier.findUnique({
             where: { id: existingInTx.supplierId },
-            data: { currentBalance: { decrement: existingInTx.amount } },
           });
+          if (supplier && supplier.companyId === companyId) {
+            await tx.supplier.update({
+              where: { id: existingInTx.supplierId },
+              data: { currentBalance: { decrement: existingInTx.amount } },
+            });
+          }
         } else {
           const reverseDirection =
             existingInTx.entityType === 'receivable_account'
               ? 'increment'
               : 'decrement';
-          await this.applyEntityBalanceEffect(tx, existingInTx.entityType, {
+          await this.applyEntityBalanceEffect(companyId, tx, existingInTx.entityType, {
             currentAccountId: existingInTx.currentAccountId,
             receivableAccountId: (existingInTx as any).receivableAccountId,
             payableAccountId: (existingInTx as any).payableAccountId,
@@ -466,8 +517,9 @@ export class ReceiptVoucherService {
 
   // ==================== Private Helper Methods ====================
 
-  private async generateNextCode(): Promise<string> {
+  private async generateNextCode(companyId: string): Promise<string> {
     const lastVoucher = await this.prisma.receiptVoucher.findFirst({
+      where: { companyId },
       orderBy: { code: 'desc' },
     });
 
@@ -485,6 +537,7 @@ export class ReceiptVoucherService {
   }
 
   private async fetchEntityName(
+    companyId: string,
     entityType: string,
     entityId: string,
   ): Promise<string> {
@@ -493,37 +546,37 @@ export class ReceiptVoucherService {
         const customer = await this.prisma.customer.findUnique({
           where: { id: entityId },
         });
-        return customer?.name || '';
+        return customer && customer.companyId === companyId ? customer.name : '';
 
       case 'supplier':
         const supplier = await this.prisma.supplier.findUnique({
           where: { id: entityId },
         });
-        return supplier?.name || '';
+        return supplier && supplier.companyId === companyId ? supplier.name : '';
 
       case 'current_account':
         const currentAccount = await this.prisma.currentAccount.findUnique({
           where: { id: entityId },
         });
-        return currentAccount?.name || '';
+        return currentAccount && currentAccount.companyId === companyId ? currentAccount.name : '';
 
       case 'receivable_account':
         const receivable = await this.prisma.receivableAccount.findUnique({
           where: { id: entityId },
         });
-        return receivable?.name || '';
+        return receivable && receivable.companyId === companyId ? receivable.name : '';
 
       case 'payable_account':
         const payable = await this.prisma.payableAccount.findUnique({
           where: { id: entityId },
         });
-        return payable?.name || '';
+        return payable && payable.companyId === companyId ? payable.name : '';
 
       case 'revenue':
         const revenueCode = await this.prisma.revenueCode.findUnique({
           where: { id: entityId },
         });
-        return revenueCode?.name || '';
+        return revenueCode && revenueCode.companyId === companyId ? revenueCode.name : '';
 
       case 'vat':
         return 'ضريبة القيمة المضافة';
@@ -537,6 +590,7 @@ export class ReceiptVoucherService {
   }
 
   private async applyEntityBalanceEffect(
+    companyId: string,
     tx: any,
     entityType: string,
     params: {
