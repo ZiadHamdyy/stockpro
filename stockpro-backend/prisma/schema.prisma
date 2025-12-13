@@ -20,7 +20,7 @@ model User {
   branchId              String
   companyId             String
   image                 Bytes?
-  code                  Int                    @unique
+  code                  Int
   internalTransfers     InternalTransfer[]
   inventoryCounts       InventoryCount[]
   Otp                   Otp[]
@@ -43,6 +43,7 @@ model User {
   company               Company                @relation(fields: [companyId], references: [id])
 
   @@unique([email, companyId])
+  @@unique([code, companyId])
   @@index([companyId])
   @@index([companyId, code])
   @@index([id, companyId])
@@ -133,12 +134,13 @@ model ItemGroup {
   description String?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
-  code        Int      @unique @default(autoincrement())
+  code        Int
   companyId   String
   items       Item[]
   company     Company  @relation(fields: [companyId], references: [id])
 
   @@unique([name, companyId])
+  @@unique([code, companyId])
   @@index([companyId])
   @@index([id, companyId])
   @@unique([id, companyId])
@@ -150,12 +152,13 @@ model Unit {
   description String?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
-  code        Int      @unique @default(autoincrement())
+  code        Int
   companyId   String
   items       Item[]
   company     Company  @relation(fields: [companyId], references: [id])
 
   @@unique([name, companyId])
+  @@unique([code, companyId])
   @@index([companyId])
   @@index([id, companyId])
   @@unique([id, companyId])
