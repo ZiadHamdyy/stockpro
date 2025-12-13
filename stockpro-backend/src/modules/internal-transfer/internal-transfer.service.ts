@@ -22,6 +22,7 @@ export class InternalTransferService {
   // ==================== CRUD Operations ====================
 
   async createInternalTransfer(
+    companyId: string,
     data: CreateInternalTransferRequest,
     userId: string,
   ): Promise<InternalTransferResponse> {
@@ -29,18 +30,18 @@ export class InternalTransferService {
     const transferDate = new Date(data.date);
     
     // Check if there is an open period for this date
-    const hasOpenPeriod = await this.fiscalYearService.hasOpenPeriodForDate(transferDate);
+    const hasOpenPeriod = await this.fiscalYearService.hasOpenPeriodForDate(companyId, transferDate);
     if (!hasOpenPeriod) {
       throw new ForbiddenException('لا يمكن إنشاء تحويل داخلي: لا توجد فترة محاسبية مفتوحة لهذا التاريخ');
     }
 
     // Check if date is in a closed period
-    const isInClosedPeriod = await this.fiscalYearService.isDateInClosedPeriod(transferDate);
+    const isInClosedPeriod = await this.fiscalYearService.isDateInClosedPeriod(companyId, transferDate);
     if (isInClosedPeriod) {
       throw new ForbiddenException('لا يمكن إنشاء تحويل داخلي: الفترة المحاسبية مغلقة');
     }
 
-    const code = await this.generateNextCode();
+    const code = await this.generateNextCode(companyId);
 
     // Validate that from and to are different
     if (data.fromType === data.toType) {
@@ -61,7 +62,7 @@ export class InternalTransferService {
         const sender = await tx.safe.findUnique({
           where: { id: data.fromSafeId },
         });
-        if (!sender) throw new NotFoundException('Safe not found');
+        if (!sender || sender.companyId !== companyId) throw new NotFoundException('Safe not found');
         if ((sender as any).currentBalance < data.amount) {
           throw new ConflictException(`الرصيد غير كافي في ${sender.name}`);
         }
@@ -78,7 +79,7 @@ export class InternalTransferService {
         const sender = await tx.bank.findUnique({
           where: { id: data.fromBankId },
         });
-        if (!sender) throw new NotFoundException('Bank not found');
+        if (!sender || sender.companyId !== companyId) throw new NotFoundException('Bank not found');
         if ((sender as any).currentBalance < data.amount) {
           throw new ConflictException(`الرصيد غير كافي في ${sender.name}`);
         }
@@ -97,7 +98,7 @@ export class InternalTransferService {
         const receiver = await tx.safe.findUnique({
           where: { id: data.toSafeId },
         });
-        if (!receiver) throw new NotFoundException('Safe not found');
+        if (!receiver || receiver.companyId !== companyId) throw new NotFoundException('Safe not found');
         await AccountingService.applyImpact({
           kind: 'internal-transfer-in',
           amount: data.amount,
@@ -111,7 +112,7 @@ export class InternalTransferService {
         const receiver = await tx.bank.findUnique({
           where: { id: data.toBankId },
         });
-        if (!receiver) throw new NotFoundException('Bank not found');
+        if (!receiver || receiver.companyId !== companyId) throw new NotFoundException('Bank not found');
         await AccountingService.applyImpact({
           kind: 'internal-transfer-in',
           amount: data.amount,
@@ -131,6 +132,7 @@ export class InternalTransferService {
         description: data.description,
         userId,
         branchId: data.branchId,
+        companyId,
         fromSafeId: data.fromType === 'safe' ? data.fromSafeId! : null,
         fromBankId: data.fromType === 'bank' ? data.fromBankId! : null,
         toSafeId: data.toType === 'safe' ? data.toSafeId! : null,
@@ -155,16 +157,16 @@ export class InternalTransferService {
   }
 
   async findAllInternalTransfers(
+    companyId: string,
     search?: string,
   ): Promise<InternalTransferResponse[]> {
-    const where = search
-      ? {
-          OR: [
-            { code: { contains: search, mode: 'insensitive' as const } },
-            { description: { contains: search, mode: 'insensitive' as const } },
-          ],
-        }
-      : {};
+    const where: any = { companyId };
+    if (search) {
+      where.OR = [
+        { code: { contains: search, mode: 'insensitive' as const } },
+        { description: { contains: search, mode: 'insensitive' as const } },
+      ];
+    }
 
     const transfers = await this.prisma.internalTransfer.findMany({
       where,
@@ -182,7 +184,7 @@ export class InternalTransferService {
     return transfers.map((transfer) => this.mapToResponse(transfer));
   }
 
-  async findOneInternalTransfer(id: string): Promise<InternalTransferResponse> {
+  async findOneInternalTransfer(companyId: string, id: string): Promise<InternalTransferResponse> {
     const internalTransfer = await this.prisma.internalTransfer.findUnique({
       where: { id },
       include: {
@@ -195,7 +197,7 @@ export class InternalTransferService {
       },
     });
 
-    if (!internalTransfer) {
+    if (!internalTransfer || internalTransfer.companyId !== companyId) {
       throw new NotFoundException('Internal transfer not found');
     }
 
@@ -203,15 +205,19 @@ export class InternalTransferService {
   }
 
   async updateInternalTransfer(
+    companyId: string,
     id: string,
     data: UpdateInternalTransferRequest,
   ): Promise<InternalTransferResponse> {
+    // Verify the transfer belongs to the company
+    await this.findOneInternalTransfer(companyId, id);
+
     try {
       const result = await this.prisma.$transaction(async (tx) => {
         const existing = await tx.internalTransfer.findUnique({
           where: { id },
         });
-        if (!existing) {
+        if (!existing || existing.companyId !== companyId) {
           throw new NotFoundException('Internal transfer not found');
         }
 
@@ -220,7 +226,7 @@ export class InternalTransferService {
           const safe = await tx.safe.findUnique({
             where: { id: existing.fromSafeId },
           });
-          if (!safe) throw new NotFoundException('Safe not found');
+          if (!safe || safe.companyId !== companyId) throw new NotFoundException('Safe not found');
           await AccountingService.reverseImpact({
             kind: 'internal-transfer-out',
             amount: existing.amount,
@@ -296,7 +302,7 @@ export class InternalTransferService {
           const sender = await tx.safe.findUnique({
             where: { id: newFromSafeId },
           });
-          if (!sender) throw new NotFoundException('Safe not found');
+          if (!sender || sender.companyId !== companyId) throw new NotFoundException('Safe not found');
           if ((sender as any).currentBalance < newAmount) {
             throw new ConflictException(`الرصيد غير كافي في ${sender.name}`);
           }
@@ -313,7 +319,7 @@ export class InternalTransferService {
           const sender = await tx.bank.findUnique({
             where: { id: newFromBankId },
           });
-          if (!sender) throw new NotFoundException('Bank not found');
+          if (!sender || sender.companyId !== companyId) throw new NotFoundException('Bank not found');
           if ((sender as any).currentBalance < newAmount) {
             throw new ConflictException(`الرصيد غير كافي في ${sender.name}`);
           }
@@ -332,7 +338,7 @@ export class InternalTransferService {
           const receiver = await tx.safe.findUnique({
             where: { id: newToSafeId },
           });
-          if (!receiver) throw new NotFoundException('Safe not found');
+          if (!receiver || receiver.companyId !== companyId) throw new NotFoundException('Safe not found');
           await AccountingService.applyImpact({
             kind: 'internal-transfer-in',
             amount: newAmount,
@@ -346,7 +352,7 @@ export class InternalTransferService {
           const receiver = await tx.bank.findUnique({
             where: { id: newToBankId },
           });
-          if (!receiver) throw new NotFoundException('Bank not found');
+          if (!receiver || receiver.companyId !== companyId) throw new NotFoundException('Bank not found');
           await AccountingService.applyImpact({
             kind: 'internal-transfer-in',
             amount: newAmount,
@@ -397,13 +403,16 @@ export class InternalTransferService {
     }
   }
 
-  async removeInternalTransfer(id: string): Promise<void> {
+  async removeInternalTransfer(companyId: string, id: string): Promise<void> {
+    // Verify the transfer belongs to the company
+    await this.findOneInternalTransfer(companyId, id);
+
     try {
       await this.prisma.$transaction(async (tx) => {
         const existing = await tx.internalTransfer.findUnique({
           where: { id },
         });
-        if (!existing)
+        if (!existing || existing.companyId !== companyId)
           throw new NotFoundException('Internal transfer not found');
 
         // Reverse effect
@@ -411,7 +420,7 @@ export class InternalTransferService {
           const safe = await tx.safe.findUnique({
             where: { id: existing.fromSafeId },
           });
-          if (!safe) throw new NotFoundException('Safe not found');
+          if (!safe || safe.companyId !== companyId) throw new NotFoundException('Safe not found');
           await AccountingService.reverseImpact({
             kind: 'internal-transfer-out',
             amount: existing.amount,
@@ -481,8 +490,9 @@ export class InternalTransferService {
     }
   }
 
-  private async generateNextCode(): Promise<string> {
+  private async generateNextCode(companyId: string): Promise<string> {
     const lastTransfer = await this.prisma.internalTransfer.findFirst({
+      where: { companyId },
       orderBy: { code: 'desc' },
     });
 
