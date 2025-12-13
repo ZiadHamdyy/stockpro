@@ -34,6 +34,7 @@ export class PurchaseInvoiceService {
   }
 
   async create(
+    companyId: string,
     data: CreatePurchaseInvoiceRequest,
     userId: string,
     branchId?: string,
@@ -41,13 +42,13 @@ export class PurchaseInvoiceService {
     const invoiceDate = data.date ? new Date(data.date) : new Date();
     
     // Check if there is an open period for this date
-    const hasOpenPeriod = await this.fiscalYearService.hasOpenPeriodForDate(invoiceDate);
+    const hasOpenPeriod = await this.fiscalYearService.hasOpenPeriodForDate(companyId, invoiceDate);
     if (!hasOpenPeriod) {
       throw new ForbiddenException('Cannot create invoice: no open fiscal period exists for this date');
     }
 
     // Check if date is in a closed period
-    const isInClosedPeriod = await this.fiscalYearService.isDateInClosedPeriod(invoiceDate);
+    const isInClosedPeriod = await this.fiscalYearService.isDateInClosedPeriod(companyId, invoiceDate);
     if (isInClosedPeriod) {
       throw new ForbiddenException('Cannot create invoice in a closed fiscal period');
     }
@@ -79,7 +80,7 @@ export class PurchaseInvoiceService {
     }
 
     // Generate next code
-    const code = await this.generateNextCode();
+    const code = await this.generateNextCode(companyId);
 
     // Calculate totals
     const subtotal = data.items.reduce(
@@ -94,7 +95,7 @@ export class PurchaseInvoiceService {
     let store: any = null;
     if (branchId) {
       try {
-        store = await this.storeService.findByBranchId(branchId);
+        store = await this.storeService.findByBranchId(companyId, branchId);
       } catch (error) {
         // Store not found, will use fallback
       }
@@ -103,9 +104,12 @@ export class PurchaseInvoiceService {
     const created = await this.prisma.$transaction(async (tx) => {
       // Get store in transaction
       if (branchId && !store) {
-        store = await tx.store.findFirst({
+        store = await tx.store.findUnique({
           where: { branchId },
         });
+        if (store && store.companyId !== companyId) {
+          store = null;
+        }
       }
 
       // Only persist safe/bank links for CASH invoices
@@ -114,7 +118,7 @@ export class PurchaseInvoiceService {
         data.paymentTargetType === 'safe' &&
         branchId
           ? (
-              await tx.safe.findFirst({
+              await tx.safe.findUnique({
                 where: { branchId },
               })
             )?.id || null
@@ -145,6 +149,7 @@ export class PurchaseInvoiceService {
           notes: data.notes,
           userId,
           branchId,
+          companyId,
         },
         include: {
           supplier: true,
@@ -163,7 +168,7 @@ export class PurchaseInvoiceService {
         const stockedItemsWithRecords = await Promise.all(
           data.items.map(async (item) => {
             const itemRecord = await tx.item.findUnique({
-              where: { code: item.id },
+              where: { code_companyId: { code: item.id, companyId } },
             });
             if (itemRecord && (itemRecord as any).type === 'STOCKED') {
               return { item, itemRecord };
@@ -189,11 +194,11 @@ export class PurchaseInvoiceService {
         // Update purchase price for all items (including SERVICE items)
         for (const item of data.items) {
           const itemRecord = await tx.item.findUnique({
-            where: { code: item.id },
+            where: { code_companyId: { code: item.id, companyId } },
           });
           if (itemRecord) {
             await tx.item.update({
-              where: { code: item.id },
+              where: { id: itemRecord.id },
               data: { purchasePrice: item.price },
             });
           }
@@ -202,11 +207,11 @@ export class PurchaseInvoiceService {
         // Fallback: Update global stock if store not found (backward compatibility)
         for (const item of data.items) {
           const itemRecord = await tx.item.findUnique({
-            where: { code: item.id },
+            where: { code_companyId: { code: item.id, companyId } },
           });
           if (itemRecord && (itemRecord as any).type === 'STOCKED') {
             await tx.item.update({
-              where: { code: item.id },
+              where: { id: itemRecord.id },
               data: {
                 stock: { increment: item.qty },
                 purchasePrice: item.price,
@@ -215,7 +220,7 @@ export class PurchaseInvoiceService {
           } else if (itemRecord) {
             // Update purchase price even for SERVICE items
             await tx.item.update({
-              where: { code: item.id },
+              where: { id: itemRecord.id },
               data: { purchasePrice: item.price },
             });
           }
@@ -233,10 +238,10 @@ export class PurchaseInvoiceService {
               'Branch ID is required for safe payments',
             );
           }
-          const safe = await tx.safe.findFirst({
+          const safe = await tx.safe.findUnique({
             where: { branchId },
           });
-          if (!safe) {
+          if (!safe || safe.companyId !== companyId) {
             throwHttp(
               422,
               ERROR_CODES.INV_PAYMENT_ACCOUNT_REQUIRED,
@@ -282,6 +287,7 @@ export class PurchaseInvoiceService {
 
     // Create audit log
     await this.auditLogService.createAuditLog({
+      companyId,
       userId: created.userId,
       branchId: created.branchId || undefined,
       action: 'create',
@@ -293,16 +299,16 @@ export class PurchaseInvoiceService {
     return response;
   }
 
-  async findAll(search?: string): Promise<PurchaseInvoiceResponse[]> {
+  async findAll(companyId: string, search?: string): Promise<PurchaseInvoiceResponse[]> {
+    const where: any = { companyId };
+    if (search) {
+      where.OR = [
+        { code: { contains: search, mode: 'insensitive' } },
+        { supplier: { name: { contains: search, mode: 'insensitive' }, companyId } },
+      ];
+    }
     const invoices = await this.prisma.purchaseInvoice.findMany({
-      where: search
-        ? {
-            OR: [
-              { code: { contains: search, mode: 'insensitive' } },
-              { supplier: { name: { contains: search, mode: 'insensitive' } } },
-            ],
-          }
-        : {},
+      where,
       include: {
         supplier: true,
         user: {
@@ -326,9 +332,9 @@ export class PurchaseInvoiceService {
     })) as PurchaseInvoiceResponse[];
   }
 
-  async findOne(id: string): Promise<PurchaseInvoiceResponse> {
+  async findOne(companyId: string, id: string): Promise<PurchaseInvoiceResponse> {
     const invoice = await this.prisma.purchaseInvoice.findUnique({
-      where: { id },
+      where: { id_companyId: { id, companyId } },
       include: {
         supplier: true,
         user: {
@@ -356,6 +362,7 @@ export class PurchaseInvoiceService {
   }
 
   async update(
+    companyId: string,
     id: string,
     data: UpdatePurchaseInvoiceRequest,
   ): Promise<PurchaseInvoiceResponse> {
@@ -363,7 +370,7 @@ export class PurchaseInvoiceService {
       where: { id },
     });
 
-    if (!existingInvoice) {
+    if (!existingInvoice || existingInvoice.companyId !== companyId) {
       throw new NotFoundException('Purchase invoice not found');
     }
 
@@ -372,13 +379,13 @@ export class PurchaseInvoiceService {
     
     // If date is being changed, validate it's in an open period
     if (data.date) {
-      const hasOpenPeriod = await this.fiscalYearService.hasOpenPeriodForDate(invoiceDate);
+      const hasOpenPeriod = await this.fiscalYearService.hasOpenPeriodForDate(companyId, invoiceDate);
       if (!hasOpenPeriod) {
         throw new ForbiddenException('لا يمكن تعديل الفاتورة: لا توجد فترة محاسبية مفتوحة لهذا التاريخ');
       }
     }
     
-    const isInClosedPeriod = await this.fiscalYearService.isDateInClosedPeriod(invoiceDate);
+    const isInClosedPeriod = await this.fiscalYearService.isDateInClosedPeriod(companyId, invoiceDate);
     if (isInClosedPeriod) {
       throw new ForbiddenException('لا يمكن تعديل الفاتورة: الفترة المحاسبية مغلقة');
     }
@@ -412,10 +419,15 @@ export class PurchaseInvoiceService {
 
     const updated = await this.prisma.$transaction(async (tx) => {
       for (const oldItem of oldItems) {
-        await tx.item.update({
-          where: { code: oldItem.id },
-          data: { stock: { decrement: oldItem.qty } },
+        const oldItemRecord = await tx.item.findUnique({
+          where: { code_companyId: { code: oldItem.id, companyId } },
         });
+        if (oldItemRecord) {
+          await tx.item.update({
+            where: { id: oldItemRecord.id },
+            data: { stock: { decrement: oldItem.qty } },
+          });
+        }
       }
 
       const nextPaymentMethod =
@@ -434,7 +446,7 @@ export class PurchaseInvoiceService {
         nextPaymentMethod === 'cash' &&
         nextPaymentTargetType === 'safe' &&
         existingInvoice.branchId
-          ? await this.findSafeId(existingInvoice.branchId, tx)
+          ? await this.findSafeId(companyId, existingInvoice.branchId, tx)
           : null;
       const bankId =
         nextPaymentMethod === 'cash' && nextPaymentTargetType === 'bank'
@@ -473,10 +485,15 @@ export class PurchaseInvoiceService {
       });
 
       for (const item of items) {
-        await tx.item.update({
-          where: { code: item.id },
-          data: { stock: { increment: item.qty }, purchasePrice: item.price },
+        const itemRecord = await tx.item.findUnique({
+          where: { code_companyId: { code: item.id, companyId } },
         });
+        if (itemRecord) {
+          await tx.item.update({
+            where: { id: itemRecord.id },
+            data: { stock: { increment: item.qty }, purchasePrice: item.price },
+          });
+        }
       }
 
       // Reverse previous cash impact if needed
@@ -522,10 +539,10 @@ export class PurchaseInvoiceService {
               'Branch ID is required for safe payments',
             );
           }
-          const safe = await tx.safe.findFirst({
+          const safe = await tx.safe.findUnique({
             where: { branchId: invoiceBranchId },
           });
-          if (!safe) {
+          if (!safe || safe.companyId !== companyId) {
             throwHttp(
               422,
               ERROR_CODES.INV_PAYMENT_ACCOUNT_REQUIRED,
@@ -567,6 +584,7 @@ export class PurchaseInvoiceService {
 
     // Create audit log
     await this.auditLogService.createAuditLog({
+      companyId,
       userId: updated.userId,
       branchId: updated.branchId || undefined,
       action: 'update',
@@ -579,17 +597,23 @@ export class PurchaseInvoiceService {
   }
 
   private async findSafeId(
+    companyId: string,
     branchId?: string | null,
     tx: any = this.prisma,
   ): Promise<string | null> {
     if (!branchId) {
       return null;
     }
-    const safe = await tx.safe.findFirst({ where: { branchId } });
-    return safe?.id ?? null;
+    const safe = await tx.safe.findUnique({ where: { branchId } });
+    if (!safe || safe.companyId !== companyId) {
+      return null;
+    }
+    return safe.id;
   }
 
-  async remove(id: string): Promise<void> {
+  async remove(companyId: string, id: string): Promise<void> {
+    // Verify the invoice belongs to the company
+    await this.findOne(companyId, id);
     const invoice = await this.prisma.purchaseInvoice.findUnique({
       where: { id },
     });
@@ -599,7 +623,7 @@ export class PurchaseInvoiceService {
     }
 
     // Check if invoice date is in a closed period
-    const isInClosedPeriod = await this.fiscalYearService.isDateInClosedPeriod(invoice.date);
+    const isInClosedPeriod = await this.fiscalYearService.isDateInClosedPeriod(companyId, invoice.date);
     if (isInClosedPeriod) {
       throw new ForbiddenException('لا يمكن حذف الفاتورة: الفترة المحاسبية مغلقة');
     }
@@ -608,12 +632,12 @@ export class PurchaseInvoiceService {
       const items = invoice.items as any[];
       const itemCodes = Array.from(new Set(items.map((item) => item.id)));
       const otherInvoices = await tx.purchaseInvoice.findMany({
-        where: { id: { not: invoice.id } },
+        where: { id: { not: invoice.id }, companyId },
         orderBy: { date: 'desc' },
         select: { id: true, date: true, items: true },
       });
       const itemInitials = await tx.item.findMany({
-        where: { code: { in: itemCodes } },
+        where: { code: { in: itemCodes }, companyId },
       });
       const initialMap = new Map(
         itemInitials.map((entry) => [
@@ -625,37 +649,42 @@ export class PurchaseInvoiceService {
       );
 
       for (const item of items) {
-        await tx.item.update({
-          where: { code: item.id },
-          data: { stock: { decrement: item.qty } },
+        const itemRecord = await tx.item.findUnique({
+          where: { code_companyId: { code: item.id, companyId } },
         });
+        if (itemRecord) {
+          await tx.item.update({
+            where: { id: itemRecord.id },
+            data: { stock: { decrement: item.qty } },
+          });
 
-        const latestInvoice = otherInvoices.find(
-          (candidate) =>
-            Array.isArray(candidate.items) &&
-            (candidate.items as any[]).some(
-              (invItem) => invItem.id === item.id && invItem.price,
-            ),
-        );
-
-        if (latestInvoice) {
-          const matchedItem = (latestInvoice.items as any[]).find(
-            (invItem) => invItem.id === item.id && invItem.price,
+          const latestInvoice = otherInvoices.find(
+            (candidate) =>
+              Array.isArray(candidate.items) &&
+              (candidate.items as any[]).some(
+                (invItem) => invItem.id === item.id && invItem.price,
+              ),
           );
-          if (matchedItem?.price) {
-            await tx.item.update({
-              where: { code: item.id },
-              data: { purchasePrice: matchedItem.price },
-            });
-            continue;
-          }
-        }
 
-        const fallbackPrice = initialMap.get(item.id) ?? 0;
-        await tx.item.update({
-          where: { code: item.id },
-          data: { purchasePrice: fallbackPrice },
-        });
+          if (latestInvoice) {
+            const matchedItem = (latestInvoice.items as any[]).find(
+              (invItem) => invItem.id === item.id && invItem.price,
+            );
+            if (matchedItem?.price) {
+              await tx.item.update({
+                where: { id: itemRecord.id },
+                data: { purchasePrice: matchedItem.price },
+              });
+              continue;
+            }
+          }
+
+          const fallbackPrice = initialMap.get(item.id) ?? 0;
+          await tx.item.update({
+            where: { id: itemRecord.id },
+            data: { purchasePrice: fallbackPrice },
+          });
+        }
       }
 
       // Reverse cash impact if applicable
@@ -691,6 +720,7 @@ export class PurchaseInvoiceService {
 
     // Create audit log
     await this.auditLogService.createAuditLog({
+      companyId,
       userId: invoice.userId,
       branchId: invoice.branchId || undefined,
       action: 'delete',
@@ -700,8 +730,9 @@ export class PurchaseInvoiceService {
     });
   }
 
-  private async generateNextCode(): Promise<string> {
+  private async generateNextCode(companyId: string): Promise<string> {
     const lastInvoice = await this.prisma.purchaseInvoice.findFirst({
+      where: { companyId },
       orderBy: { createdAt: 'desc' },
     });
 
