@@ -8,6 +8,7 @@ export class AuditLogService {
   constructor(private readonly prisma: DatabaseService) {}
 
   async createAuditLog(data: {
+    companyId: string;
     userId: string;
     branchId?: string;
     action: string;
@@ -17,6 +18,7 @@ export class AuditLogService {
   }) {
     return this.prisma.auditLog.create({
       data: {
+        companyId: data.companyId,
         userId: data.userId,
         branchId: data.branchId,
         action: data.action,
@@ -27,8 +29,8 @@ export class AuditLogService {
     });
   }
 
-  async findAll(filters?: GetAuditLogsDto): Promise<AuditLogResponse[]> {
-    const where: any = {};
+  async findAll(companyId: string, filters?: GetAuditLogsDto): Promise<AuditLogResponse[]> {
+    const where: any = { companyId };
 
     if (filters?.userId) {
       where.userId = filters.userId;
