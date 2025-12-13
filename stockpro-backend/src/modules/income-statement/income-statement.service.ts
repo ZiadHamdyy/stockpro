@@ -7,6 +7,7 @@ export class IncomeStatementService {
   constructor(private readonly prisma: DatabaseService) {}
 
   async getIncomeStatement(
+    companyId: string,
     startDate: string,
     endDate: string,
   ): Promise<IncomeStatementResponse> {
@@ -15,10 +16,10 @@ export class IncomeStatementService {
     end.setHours(23, 59, 59, 999); // Include the entire end date
 
     // Calculate total sales
-    const totalSales = await this.calculateTotalSales(start, end);
+    const totalSales = await this.calculateTotalSales(companyId, start, end);
 
     // Calculate total sales returns
-    const totalSalesReturns = await this.calculateTotalSalesReturns(start, end);
+    const totalSalesReturns = await this.calculateTotalSalesReturns(companyId, start, end);
 
     // Calculate net sales
     const netSales = totalSales - totalSalesReturns;
@@ -31,15 +32,17 @@ export class IncomeStatementService {
     const dayBeforeStartString = dayBeforeStart.toISOString().split('T')[0];
     const endDateString = end.toISOString().split('T')[0];
     const beginningInventory = await this.calculateInventoryValue(
+      companyId,
       dayBeforeStartString, // Balance calculated at day before startDate
       dayBeforeStartString, // Price calculated at day before startDate
     );
 
     // Calculate total purchases (net of tax - subtotal only, excluding tax)
-    const totalPurchases = await this.calculateTotalPurchases(start, end);
+    const totalPurchases = await this.calculateTotalPurchases(companyId, start, end);
 
     // Calculate total purchase returns (net of tax - subtotal only, excluding tax)
     const totalPurchaseReturns = await this.calculateTotalPurchaseReturns(
+      companyId,
       start,
       end,
     );
@@ -50,7 +53,7 @@ export class IncomeStatementService {
     // Calculate ending inventory (at endDate)
     // Valuation is based on the last purchase price before or on the end date
     // Both balance and price are calculated at endDate
-    const endingInventory = await this.calculateInventoryValue(endDateString);
+    const endingInventory = await this.calculateInventoryValue(companyId, endDateString);
 
     // Calculate COGS
     const cogs = beginningInventory + netPurchases - endingInventory;
@@ -59,10 +62,11 @@ export class IncomeStatementService {
     const grossProfit = netSales - cogs;
 
     // Calculate expenses by type
-    const expensesByType = await this.calculateExpensesByType(start, end);
+    const expensesByType = await this.calculateExpensesByType(companyId, start, end);
 
     // Get all expense types from database to ensure all types are included
     const allExpenseTypes = await this.prisma.expenseType.findMany({
+      where: { companyId },
       orderBy: { name: 'asc' },
     });
 
@@ -100,11 +104,13 @@ export class IncomeStatementService {
   }
 
   private async calculateTotalSales(
+    companyId: string,
     startDate: Date,
     endDate: Date,
   ): Promise<number> {
     const result = await this.prisma.salesInvoice.aggregate({
       where: {
+        companyId,
         date: {
           gte: startDate,
           lte: endDate,
@@ -119,11 +125,13 @@ export class IncomeStatementService {
   }
 
   private async calculateTotalSalesReturns(
+    companyId: string,
     startDate: Date,
     endDate: Date,
   ): Promise<number> {
     const result = await this.prisma.salesReturn.aggregate({
       where: {
+        companyId,
         date: {
           gte: startDate,
           lte: endDate,
@@ -142,11 +150,13 @@ export class IncomeStatementService {
    * Returns subtotal only (net of tax - excludes tax amount)
    */
   private async calculateTotalPurchases(
+    companyId: string,
     startDate: Date,
     endDate: Date,
   ): Promise<number> {
     const result = await this.prisma.purchaseInvoice.aggregate({
       where: {
+        companyId,
         date: {
           gte: startDate,
           lte: endDate,
@@ -165,11 +175,13 @@ export class IncomeStatementService {
    * Returns subtotal only (net of tax - excludes tax amount)
    */
   private async calculateTotalPurchaseReturns(
+    companyId: string,
     startDate: Date,
     endDate: Date,
   ): Promise<number> {
     const result = await this.prisma.purchaseReturn.aggregate({
       where: {
+        companyId,
         date: {
           gte: startDate,
           lte: endDate,
@@ -184,12 +196,14 @@ export class IncomeStatementService {
   }
 
   private async calculateExpensesByType(
+    companyId: string,
     startDate: Date,
     endDate: Date,
   ): Promise<Record<string, number>> {
     // Get payment vouchers with expense type (both 'expense' and 'expense-Type')
     const vouchers = await this.prisma.paymentVoucher.findMany({
       where: {
+        companyId,
         date: {
           gte: startDate,
           lte: endDate,
@@ -235,6 +249,7 @@ export class IncomeStatementService {
    * @returns Total inventory value based on balance at balanceDate and price at priceDate
    */
   private async calculateInventoryValue(
+    companyId: string,
     balanceDate: string,
     priceDate?: string,
   ): Promise<number> {
@@ -250,6 +265,7 @@ export class IncomeStatementService {
     // Get all items
     const items = (await this.prisma.item.findMany({
       where: {
+        companyId,
         type: 'STOCKED', // Only calculate for stocked items
       },
     })) as unknown as Array<{
@@ -264,6 +280,7 @@ export class IncomeStatementService {
     for (const item of items) {
       // Calculate inventory balance at balanceDate
       const balance = await this.calculateItemBalanceAtDate(
+        companyId,
         item.id,
         item.code,
         balanceDateTime,
@@ -273,6 +290,7 @@ export class IncomeStatementService {
       if (balance > 0) {
         // Find the last purchase price before or on the priceDate
         const lastPurchasePrice = await this.getLastPurchasePriceBeforeDate(
+          companyId,
           item.code,
           priceDateTime,
         );
@@ -295,6 +313,7 @@ export class IncomeStatementService {
    * @param excludeTargetDate - If true, excludes transactions on the target date (uses lt instead of lte)
    */
   private async calculateItemBalanceAtDate(
+    companyId: string,
     itemId: string,
     itemCode: string,
     targetDate: Date,
@@ -321,6 +340,7 @@ export class IncomeStatementService {
     // Include all purchase invoices regardless of branch for company-wide income statement
     const purchaseInvoices = await this.prisma.purchaseInvoice.findMany({
       where: {
+        companyId,
         date: dateFilter,
       },
       select: {
@@ -341,6 +361,7 @@ export class IncomeStatementService {
     // Include all sales returns regardless of branch for company-wide income statement
     const salesReturns = await this.prisma.salesReturn.findMany({
       where: {
+        companyId,
         date: dateFilter,
       },
       select: {
@@ -361,6 +382,7 @@ export class IncomeStatementService {
     const storeReceiptVouchers = await this.prisma.storeReceiptVoucher.findMany(
       {
         where: {
+          companyId,
           date: dateFilter,
         },
         include: {
@@ -383,6 +405,7 @@ export class IncomeStatementService {
     // Include all sales invoices regardless of branch for company-wide income statement
     const salesInvoices = await this.prisma.salesInvoice.findMany({
       where: {
+        companyId,
         date: dateFilter,
       },
       select: {
@@ -403,6 +426,7 @@ export class IncomeStatementService {
     // Include all purchase returns regardless of branch for company-wide income statement
     const purchaseReturns = await this.prisma.purchaseReturn.findMany({
       where: {
+        companyId,
         date: dateFilter,
       },
       select: {
@@ -422,6 +446,7 @@ export class IncomeStatementService {
     // Subtract quantities from StoreIssueVouchers (before or on target date)
     const storeIssueVouchers = await this.prisma.storeIssueVoucher.findMany({
       where: {
+        companyId,
         date: dateFilter,
       },
       include: {
@@ -453,12 +478,14 @@ export class IncomeStatementService {
    * @returns The last purchase price before or on the target date, or null if not found
    */
   private async getLastPurchasePriceBeforeDate(
+    companyId: string,
     itemCode: string,
     targetDate: Date,
   ): Promise<number | null> {
     // Get all purchase invoices before or on target date, ordered by date descending
     const purchaseInvoices = await this.prisma.purchaseInvoice.findMany({
       where: {
+        companyId,
         date: {
           lte: targetDate,
         },
@@ -486,6 +513,7 @@ export class IncomeStatementService {
   }
 
   private async getItemTransactions(
+    companyId: string,
     itemId: string,
     itemCode: string,
     targetDate: string,
@@ -495,6 +523,7 @@ export class IncomeStatementService {
     // Get sales invoices
     const salesInvoices = await this.prisma.salesInvoice.findMany({
       where: {
+        companyId,
         date: {
           lte: new Date(targetDate),
         },
@@ -513,6 +542,7 @@ export class IncomeStatementService {
     // Get sales returns
     const salesReturns = await this.prisma.salesReturn.findMany({
       where: {
+        companyId,
         date: {
           lte: new Date(targetDate),
         },
@@ -535,8 +565,9 @@ export class IncomeStatementService {
       `
       SELECT items
       FROM "PurchaseInvoice"
-      WHERE date <= $1
+      WHERE "companyId" = $1 AND date <= $2
     `,
+      companyId,
       targetDate,
     );
 
@@ -556,8 +587,9 @@ export class IncomeStatementService {
       `
       SELECT items
       FROM "PurchaseReturn"
-      WHERE date <= $1
+      WHERE "companyId" = $1 AND date <= $2
     `,
+      companyId,
       targetDate,
     );
 
