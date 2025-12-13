@@ -23,17 +23,19 @@ export class PermissionService {
     return permission;
   }
 
-  async findAll(): Promise<PermissionResponse[]> {
+  async findAll(companyId: string): Promise<PermissionResponse[]> {
     const permissions = await this.prisma.permission.findMany({
       orderBy: [{ resource: 'asc' }, { action: 'asc' }],
+      where: { companyId },
     });
 
     return permissions;
   }
 
-  async findAllGrouped(): Promise<PermissionsGroupedResponse[]> {
+  async findAllGrouped(companyId: string): Promise<PermissionsGroupedResponse[]> {
     const permissions = await this.prisma.permission.findMany({
       orderBy: [{ resource: 'asc' }, { action: 'asc' }],
+      where: { companyId },
     });
 
     // Group permissions by resource
@@ -57,35 +59,36 @@ export class PermissionService {
     return groupedPermissions;
   }
 
-  async findOne(id: string): Promise<PermissionResponse | null> {
+  async findOne(companyId: string, id: string): Promise<PermissionResponse | null> {
     const permission = await this.prisma.permission.findUnique({
-      where: { id },
+      where: { id_companyId: { id, companyId } },
     });
 
     return permission;
   }
 
   async update(
+    companyId: string,
     id: string,
     updatePermissionRequest: UpdatePermissionRequest,
   ): Promise<PermissionResponse> {
     const permission = await this.prisma.permission.update({
-      where: { id },
+      where: { id_companyId: { id, companyId } },
       data: updatePermissionRequest,
     });
 
     return permission;
   }
 
-  async remove(id: string): Promise<void> {
+  async remove(companyId: string, id: string): Promise<void> {
     await this.prisma.permission.delete({
-      where: { id },
+      where: { id_companyId: { id, companyId } },
     });
   }
 
-  async findByResource(resource: string): Promise<PermissionResponse[]> {
+  async findByResource(companyId: string, resource: string): Promise<PermissionResponse[]> {
     const permissions = await this.prisma.permission.findMany({
-      where: { resource },
+      where: { resource, companyId },
       orderBy: { action: 'asc' },
     });
 
