@@ -34,4 +34,8 @@ export class UpsertCompanyRequest {
   @IsOptional()
   @IsString()
   logo?: string;
+
+  @IsOptional()
+  @IsString()
+  host?: string;
 }
