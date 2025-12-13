@@ -21,6 +21,7 @@ import { JwtAuthenticationGuard } from '../../common/guards/strategy.guards/jwt.
 import { Auth } from '../../common/decorators/auth.decorator';
 import { currentUser } from '../../common/decorators/currentUser.decorator';
 import type { currentUserType } from '../../common/types/current-user.type';
+import { currentCompany } from '../../common/decorators/company.decorator';
 import { StoreService } from '../store/store.service';
 import { ItemImportService } from './services/item-import.service';
 import { FileInterceptor } from '@nestjs/platform-express';
@@ -41,8 +42,9 @@ export class ItemController {
   async create(
     @Body() createItemDto: CreateItemRequest,
     @currentUser() user: currentUserType,
+    @currentCompany('id') companyId: string,
   ): Promise<ItemResponse> {
-    return this.itemService.create(createItemDto, user);
+    return this.itemService.create(companyId, createItemDto, user);
   }
 
   @Get()
@@ -51,31 +53,38 @@ export class ItemController {
     @Query('storeId') storeId?: string,
     @Query('priceDate') priceDate?: string,
     @currentUser() user?: currentUserType,
+    @currentCompany('id') companyId?: string,
   ): Promise<ItemResponse[]> {
     // If storeId not provided, get from current user's branch
     let finalStoreId = storeId;
     if (!finalStoreId && user?.branchId) {
       try {
-        const store = await this.storeService.findByBranchId(user.branchId);
+        const store = await this.storeService.findByBranchId(companyId!, user.branchId);
         finalStoreId = store.id;
       } catch (error) {
         // If store not found for branch, continue without storeId
         // This will return items with global stock (0 for new items)
       }
     }
-    return this.itemService.findAll(finalStoreId, priceDate);
+    return this.itemService.findAll(companyId!, finalStoreId, priceDate);
   }
 
   @Get('code/:code')
   @Auth({ permissions: ['items_list:read'] })
-  async findByCode(@Param('code') code: string): Promise<ItemResponse> {
-    return this.itemService.findByCode(code);
+  async findByCode(
+    @Param('code') code: string,
+    @currentCompany('id') companyId: string,
+  ): Promise<ItemResponse> {
+    return this.itemService.findByCode(companyId, code);
   }
 
   @Get(':id')
   @Auth({ permissions: ['items_list:read'] })
-  async findOne(@Param('id') id: string): Promise<ItemResponse> {
-    return this.itemService.findOne(id);
+  async findOne(
+    @Param('id') id: string,
+    @currentCompany('id') companyId: string,
+  ): Promise<ItemResponse> {
+    return this.itemService.findOne(companyId, id);
   }
 
   @Patch(':id')
@@ -83,15 +92,19 @@ export class ItemController {
   async update(
     @Param('id') id: string,
     @Body() updateItemDto: UpdateItemRequest,
+    @currentCompany('id') companyId: string,
   ): Promise<ItemResponse> {
-    return this.itemService.update(id, updateItemDto);
+    return this.itemService.update(companyId, id, updateItemDto);
   }
 
   @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)
   @Auth({ permissions: ['add_item:delete'] })
-  async remove(@Param('id') id: string): Promise<void> {
-    return this.itemService.remove(id);
+  async remove(
+    @Param('id') id: string,
+    @currentCompany('id') companyId: string,
+  ): Promise<void> {
+    return this.itemService.remove(companyId, id);
   }
 
   @Post('import')
@@ -106,7 +119,8 @@ export class ItemController {
   async importItems(
     @UploadedFile() file: Express.Multer.File,
     @currentUser() user: currentUserType,
+    @currentCompany('id') companyId: string,
   ) {
-    return this.itemImportService.importFromExcel(file, user);
+    return this.itemImportService.importFromExcel(companyId, file, user);
   }
 }
