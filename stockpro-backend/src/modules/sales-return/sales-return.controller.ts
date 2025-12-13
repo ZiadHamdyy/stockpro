@@ -18,6 +18,7 @@ import { SalesReturnResponse } from './dtos/response/sales-return.response';
 import { JwtAuthenticationGuard } from '../../common/guards/strategy.guards/jwt.guard';
 import { Auth } from '../../common/decorators/auth.decorator';
 import { currentUser } from '../../common/decorators/currentUser.decorator';
+import { currentCompany } from '../../common/decorators/company.decorator';
 
 @Controller('sales-returns')
 @UseGuards(JwtAuthenticationGuard)
@@ -30,8 +31,10 @@ export class SalesReturnController {
   async create(
     @Body() createSalesReturnDto: CreateSalesReturnRequest,
     @currentUser() user: any,
+    @currentCompany('id') companyId: string,
   ): Promise<SalesReturnResponse> {
     return this.salesReturnService.create(
+      companyId,
       createSalesReturnDto,
       user.id,
       user.branchId,
@@ -41,15 +44,19 @@ export class SalesReturnController {
   @Get()
   @Auth({ permissions: ['sales_return:read'] })
   async findAll(
+    @currentCompany('id') companyId: string,
     @Query('search') search?: string,
   ): Promise<SalesReturnResponse[]> {
-    return this.salesReturnService.findAll(search);
+    return this.salesReturnService.findAll(companyId, search);
   }
 
   @Get(':id')
   @Auth({ permissions: ['sales_return:read'] })
-  async findOne(@Param('id') id: string): Promise<SalesReturnResponse> {
-    return this.salesReturnService.findOne(id);
+  async findOne(
+    @Param('id') id: string,
+    @currentCompany('id') companyId: string,
+  ): Promise<SalesReturnResponse> {
+    return this.salesReturnService.findOne(companyId, id);
   }
 
   @Patch(':id')
@@ -58,14 +65,18 @@ export class SalesReturnController {
     @Param('id') id: string,
     @Body() updateSalesReturnDto: UpdateSalesReturnRequest,
     @currentUser() user: any,
+    @currentCompany('id') companyId: string,
   ): Promise<SalesReturnResponse> {
-    return this.salesReturnService.update(id, updateSalesReturnDto, user.id);
+    return this.salesReturnService.update(companyId, id, updateSalesReturnDto, user.id);
   }
 
   @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)
   @Auth({ permissions: ['sales_return:delete'] })
-  async remove(@Param('id') id: string): Promise<void> {
-    return this.salesReturnService.remove(id);
+  async remove(
+    @Param('id') id: string,
+    @currentCompany('id') companyId: string,
+  ): Promise<void> {
+    return this.salesReturnService.remove(companyId, id);
   }
 }
