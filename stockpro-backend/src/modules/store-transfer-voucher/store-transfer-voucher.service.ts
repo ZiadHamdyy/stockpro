@@ -23,6 +23,7 @@ export class StoreTransferVoucherService {
   ) {}
 
   async create(
+    companyId: string,
     createStoreTransferVoucherDto: CreateStoreTransferVoucherDto,
     userBranchId: string,
   ) {
@@ -33,12 +34,12 @@ export class StoreTransferVoucherService {
     const voucherDate = new Date();
     
     // Check if there is an open period for this date
-    const hasOpenPeriod = await this.fiscalYearService.hasOpenPeriodForDate(voucherDate);
+    const hasOpenPeriod = await this.fiscalYearService.hasOpenPeriodForDate(companyId, voucherDate);
     if (!hasOpenPeriod) {
       throw new ForbiddenException('Cannot create voucher: no open fiscal period exists for this date');
     }
 
-    const isInClosedPeriod = await this.fiscalYearService.isDateInClosedPeriod(voucherDate);
+    const isInClosedPeriod = await this.fiscalYearService.isDateInClosedPeriod(companyId, voucherDate);
     if (isInClosedPeriod) {
       throw new ForbiddenException('Cannot create voucher in a closed fiscal period');
     }
@@ -87,6 +88,7 @@ export class StoreTransferVoucherService {
           fromStoreId,
           voucherNumber,
           totalAmount,
+          companyId,
           status: 'PENDING',
           items: {
             create: items.map((item) => ({
@@ -125,6 +127,7 @@ export class StoreTransferVoucherService {
 
     // Create audit log
     await this.auditLogService.createAuditLog({
+      companyId,
       userId: result.userId,
       branchId: userBranchId,
       action: 'create',
@@ -137,6 +140,7 @@ export class StoreTransferVoucherService {
     // Notify receiving store
     try {
       await this.notificationService.createForStoreUsers(
+        companyId,
         result.toStoreId,
         'store_transfer',
         `طلب تحويل مخزن جديد رقم ${result.voucherNumber} من ${result.fromStore.name} - سيتم استلام العناصر`,
@@ -150,6 +154,7 @@ export class StoreTransferVoucherService {
     // Notify sending store
     try {
       await this.notificationService.createForStoreUsers(
+        companyId,
         result.fromStoreId,
         'store_transfer',
         `طلب تحويل مخزن جديد رقم ${result.voucherNumber} إلى ${result.toStore.name} - سيتم إرسال العناصر`,
@@ -163,8 +168,8 @@ export class StoreTransferVoucherService {
     return result;
   }
 
-  async findAll(status?: string) {
-    const where: any = {};
+  async findAll(companyId: string, status?: string) {
+    const where: any = { companyId };
     if (status && ['PENDING', 'ACCEPTED', 'REJECTED'].includes(status)) {
       where.status = status;
     }
@@ -200,9 +205,9 @@ export class StoreTransferVoucherService {
     });
   }
 
-  async findOne(id: string) {
+  async findOne(companyId: string, id: string) {
     const voucher = await this.prisma.storeTransferVoucher.findUnique({
-      where: { id },
+      where: { id_companyId: { id, companyId } },
       include: {
         fromStore: {
           include: {
@@ -236,6 +241,7 @@ export class StoreTransferVoucherService {
   }
 
   async update(
+    companyId: string,
     id: string,
     updateStoreTransferVoucherDto: UpdateStoreTransferVoucherDto,
     userBranchId: string,
@@ -244,11 +250,20 @@ export class StoreTransferVoucherService {
       updateStoreTransferVoucherDto;
 
     // Check if voucher exists and get old data
-    const oldVoucher = await this.findOne(id);
+    const oldVoucher = await this.prisma.storeTransferVoucher.findUnique({
+      where: { id_companyId: { id, companyId } },
+      include: {
+        items: true,
+      },
+    });
+    
+    if (!oldVoucher) {
+      throw new NotFoundException('Store transfer voucher not found');
+    }
     
     // Check if date is in a closed period (use existing date since DTO doesn't have date field)
     const voucherDate = oldVoucher.date;
-    const isInClosedPeriod = await this.fiscalYearService.isDateInClosedPeriod(voucherDate);
+    const isInClosedPeriod = await this.fiscalYearService.isDateInClosedPeriod(companyId, voucherDate);
     if (isInClosedPeriod) {
       throw new ForbiddenException('لا يمكن تعديل السند: الفترة المحاسبية مغلقة');
     }
@@ -390,6 +405,7 @@ export class StoreTransferVoucherService {
 
     // Create audit log
     await this.auditLogService.createAuditLog({
+      companyId,
       userId: result.userId,
       branchId: userBranchId,
       action: 'update',
@@ -401,8 +417,8 @@ export class StoreTransferVoucherService {
     return result;
   }
 
-  async remove(id: string, userBranchId: string) {
-    const voucher = await this.findOne(id);
+  async remove(companyId: string, id: string, userBranchId: string) {
+    const voucher = await this.findOne(companyId, id);
 
     const deleted = await this.prisma.storeTransferVoucher.delete({
       where: { id },
@@ -410,6 +426,7 @@ export class StoreTransferVoucherService {
 
     // Create audit log
     await this.auditLogService.createAuditLog({
+      companyId,
       userId: voucher.userId,
       branchId: userBranchId,
       action: 'delete',
@@ -421,8 +438,8 @@ export class StoreTransferVoucherService {
     return deleted;
   }
 
-  async acceptTransfer(id: string, userBranchId: string, userId: string) {
-    const voucher = await this.findOne(id);
+  async acceptTransfer(companyId: string, id: string, userBranchId: string, userId: string) {
+    const voucher = await this.findOne(companyId, id);
 
     if (voucher.status !== 'PENDING') {
       throw new BadRequestException(
@@ -469,6 +486,7 @@ export class StoreTransferVoucherService {
 
     // Create audit log
     await this.auditLogService.createAuditLog({
+      companyId,
       userId,
       branchId: userBranchId,
       action: 'accept',
@@ -479,6 +497,7 @@ export class StoreTransferVoucherService {
 
     // Mark related notifications as read for all users in the receiving store
     await this.notificationService.createForStoreUsers(
+      companyId,
       result.toStoreId,
       'store_transfer_accepted',
       `تم قبول تحويل المخزن رقم ${result.voucherNumber}`,
@@ -488,8 +507,8 @@ export class StoreTransferVoucherService {
     return result;
   }
 
-  async rejectTransfer(id: string, userBranchId: string, userId: string) {
-    const voucher = await this.findOne(id);
+  async rejectTransfer(companyId: string, id: string, userBranchId: string, userId: string) {
+    const voucher = await this.findOne(companyId, id);
 
     if (voucher.status !== 'PENDING') {
       throw new BadRequestException(
@@ -530,6 +549,7 @@ export class StoreTransferVoucherService {
 
     // Create audit log
     await this.auditLogService.createAuditLog({
+      companyId,
       userId,
       branchId: userBranchId,
       action: 'reject',
@@ -540,6 +560,7 @@ export class StoreTransferVoucherService {
 
     // Mark related notifications as read and notify sending store
     await this.notificationService.createForStoreUsers(
+      companyId,
       result.fromStoreId,
       'store_transfer_rejected',
       `تم رفض تحويل المخزن رقم ${result.voucherNumber}`,
