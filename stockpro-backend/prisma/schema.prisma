@@ -9,7 +9,7 @@ datasource db {
 
 model User {
   id                    String                 @id @default(uuid())
-  email                 String                 @unique
+  email                 String
   name                  String?
   password              String?
   emailVerified         Boolean                @default(true)
@@ -18,6 +18,7 @@ model User {
   createdAt             DateTime               @default(now())
   updatedAt             DateTime               @updatedAt
   branchId              String
+  companyId             String
   image                 Bytes?
   code                  Int                    @unique
   internalTransfers     InternalTransfer[]
@@ -39,6 +40,13 @@ model User {
   notifications         Notification[]
   branch                Branch                 @relation(fields: [branchId], references: [id])
   role                  Role?                  @relation(fields: [roleId], references: [id])
+  company               Company                @relation(fields: [companyId], references: [id])
+
+  @@unique([email, companyId])
+  @@index([companyId])
+  @@index([companyId, code])
+  @@index([id, companyId])
+  @@unique([id, companyId])
 }
 
 model Session {
@@ -70,14 +78,21 @@ model Otp {
 
 model Role {
   id                 String           @id @default(uuid())
-  name               String           @unique
+  name               String
   description        String?
   isSystem           Boolean          @default(false)
   createdAt          DateTime         @default(now())
   updatedAt          DateTime         @updatedAt
   permissionsVersion Int              @default(0)
+  companyId          String
   rolePermissions    RolePermission[]
   users              User[]
+  company            Company          @relation(fields: [companyId], references: [id])
+
+  @@unique([name, companyId])
+  @@index([companyId])
+  @@index([id, companyId])
+  @@unique([id, companyId])
 }
 
 model Permission {
@@ -87,10 +102,15 @@ model Permission {
   description     String?
   createdAt       DateTime         @default(now())
   updatedAt       DateTime         @updatedAt
+  companyId       String
   rolePermissions RolePermission[]
+  company         Company         @relation(fields: [companyId], references: [id])
 
-  @@unique([resource, action])
+  @@unique([resource, action, companyId])
   @@index([resource])
+  @@index([companyId])
+  @@index([id, companyId])
+  @@unique([id, companyId])
 }
 
 model RolePermission {
@@ -109,27 +129,41 @@ model RolePermission {
 
 model ItemGroup {
   id          String   @id @default(uuid())
-  name        String   @unique
+  name        String
   description String?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
   code        Int      @unique @default(autoincrement())
+  companyId   String
   items       Item[]
+  company     Company  @relation(fields: [companyId], references: [id])
+
+  @@unique([name, companyId])
+  @@index([companyId])
+  @@index([id, companyId])
+  @@unique([id, companyId])
 }
 
 model Unit {
   id          String   @id @default(uuid())
-  name        String   @unique
+  name        String
   description String?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
   code        Int      @unique @default(autoincrement())
+  companyId   String
   items       Item[]
+  company     Company  @relation(fields: [companyId], references: [id])
+
+  @@unique([name, companyId])
+  @@index([companyId])
+  @@index([id, companyId])
+  @@unique([id, companyId])
 }
 
 model Item {
   id                        String                     @id @default(uuid())
-  code                      String                     @unique
+  code                      String
   barcode                   String?
   name                      String
   purchasePrice             Float
@@ -138,6 +172,7 @@ model Item {
   reorderLimit              Float                      @default(0)
   groupId                   String
   unitId                    String
+  companyId                 String
   createdAt                 DateTime                   @default(now())
   updatedAt                 DateTime                   @updatedAt
   type                      ItemType                   @default(STOCKED)
@@ -145,37 +180,79 @@ model Item {
   inventoryCountItems       InventoryCountItem[]
   group                     ItemGroup                  @relation(fields: [groupId], references: [id])
   unit                      Unit                       @relation(fields: [unitId], references: [id])
+  company                   Company                    @relation(fields: [companyId], references: [id])
   storeIssueVoucherItems    StoreIssueVoucherItem[]
   storeItems                StoreItem[]
   storeReceiptVoucherItems  StoreReceiptVoucherItem[]
   storeTransferVoucherItems StoreTransferVoucherItem[]
 
+  @@unique([code, companyId])
   @@index([code])
   @@index([barcode])
   @@index([groupId])
   @@index([unitId])
+  @@index([companyId])
+  @@index([id, companyId])
+  @@unique([id, companyId])
 }
 
 model Company {
-  id            String   @id @default(uuid())
-  name          String
-  activity      String
-  address       String
-  phone         String
-  taxNumber     String
-  commercialReg String
-  currency      String
-  capital       Float
-  vatRate       Float    @default(0)
-  isVatEnabled  Boolean  @default(false)
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-  logo          Bytes?
+  id                String             @id @default(uuid())
+  name              String
+  activity          String
+  address           String
+  phone             String
+  taxNumber         String
+  commercialReg     String
+  currency          String
+  capital           Float
+  vatRate           Float              @default(0)
+  isVatEnabled      Boolean            @default(false)
+  host              String             @unique
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+  logo              Bytes?
+  users             User[]
+  roles             Role[]
+  permissions       Permission[]
+  itemGroups        ItemGroup[]
+  units             Unit[]
+  items             Item[]
+  branches          Branch[]
+  stores            Store[]
+  banks             Bank[]
+  safes             Safe[]
+  customers         Customer[]
+  suppliers         Supplier[]
+  currentAccounts   CurrentAccount[]
+  receivableAccounts ReceivableAccount[]
+  payableAccounts   PayableAccount[]
+  expenseTypes      ExpenseType[]
+  expenseCodes      ExpenseCode[]
+  revenueCodes      RevenueCode[]
+  expenses          Expense[]
+  salesInvoices     SalesInvoice[]
+  salesReturns      SalesReturn[]
+  purchaseInvoices  PurchaseInvoice[]
+  purchaseReturns   PurchaseReturn[]
+  paymentVouchers   PaymentVoucher[]
+  receiptVouchers   ReceiptVoucher[]
+  internalTransfers InternalTransfer[]
+  priceQuotations   PriceQuotation[]
+  storeReceiptVouchers StoreReceiptVoucher[]
+  storeIssueVouchers StoreIssueVoucher[]
+  storeTransferVouchers StoreTransferVoucher[]
+  inventoryCounts   InventoryCount[]
+  fiscalYears       FiscalYear[]
+  auditLogs         AuditLog[]
+  notifications     Notification[]
+
+  @@index([host])
 }
 
 model Bank {
   id               String             @id @default(uuid())
-  code             String             @unique
+  code             String
   name             String
   accountNumber    String
   iban             String
@@ -183,6 +260,7 @@ model Bank {
   createdAt        DateTime           @default(now())
   updatedAt        DateTime           @updatedAt
   currentBalance   Float              @default(0)
+  companyId        String
   fromTransfers    InternalTransfer[] @relation("FromBankTransfers")
   toTransfers      InternalTransfer[] @relation("ToBankTransfers")
   paymentVouchers  PaymentVoucher[]
@@ -191,19 +269,25 @@ model Bank {
   receiptVouchers  ReceiptVoucher[]
   salesInvoices    SalesInvoice[]
   salesReturns     SalesReturn[]
+  company          Company            @relation(fields: [companyId], references: [id])
 
+  @@unique([code, companyId])
   @@index([code])
+  @@index([companyId])
+  @@index([id, companyId])
+  @@unique([id, companyId])
 }
 
 model Safe {
   id               String             @id @default(uuid())
-  code             String             @unique
+  code             String
   name             String
   branchId         String             @unique
   openingBalance   Float              @default(0)
   createdAt        DateTime           @default(now())
   updatedAt        DateTime           @updatedAt
   currentBalance   Float              @default(0)
+  companyId        String
   fromTransfers    InternalTransfer[] @relation("FromSafeTransfers")
   toTransfers      InternalTransfer[] @relation("ToSafeTransfers")
   paymentVouchers  PaymentVoucher[]
@@ -211,16 +295,21 @@ model Safe {
   purchaseReturns  PurchaseReturn[]
   receiptVouchers  ReceiptVoucher[]
   branch           Branch             @relation(fields: [branchId], references: [id])
+  company          Company           @relation(fields: [companyId], references: [id])
   salesInvoices    SalesInvoice[]
   salesReturns     SalesReturn[]
 
+  @@unique([code, companyId])
   @@index([code])
   @@index([branchId])
+  @@index([companyId])
+  @@index([id, companyId])
+  @@unique([id, companyId])
 }
 
 model Customer {
   id              String           @id @default(uuid())
-  code            String           @unique
+  code            String
   name            String
   commercialReg   String
   taxNumber       String
@@ -230,18 +319,24 @@ model Customer {
   createdAt       DateTime         @default(now())
   updatedAt       DateTime         @updatedAt
   currentBalance  Float            @default(0)
+  companyId       String
   paymentVouchers PaymentVoucher[]
   priceQuotations PriceQuotation[]
   receiptVouchers ReceiptVoucher[]
   salesInvoices   SalesInvoice[]
   salesReturns    SalesReturn[]
+  company         Company          @relation(fields: [companyId], references: [id])
 
+  @@unique([code, companyId])
   @@index([code])
+  @@index([companyId])
+  @@index([id, companyId])
+  @@unique([id, companyId])
 }
 
 model Supplier {
   id               String            @id @default(uuid())
-  code             String            @unique
+  code             String
   name             String
   commercialReg    String
   taxNumber        String
@@ -251,12 +346,18 @@ model Supplier {
   createdAt        DateTime          @default(now())
   updatedAt        DateTime          @updatedAt
   currentBalance   Float             @default(0)
+  companyId        String
   paymentVouchers  PaymentVoucher[]
   purchaseInvoices PurchaseInvoice[]
   purchaseReturns  PurchaseReturn[]
   receiptVouchers  ReceiptVoucher[]
+  company          Company           @relation(fields: [companyId], references: [id])
 
+  @@unique([code, companyId])
   @@index([code])
+  @@index([companyId])
+  @@index([id, companyId])
+  @@unique([id, companyId])
 }
 
 model Branch {
@@ -267,7 +368,8 @@ model Branch {
   description       String?
   createdAt         DateTime           @default(now())
   updatedAt         DateTime           @updatedAt
-  code              Int                @unique
+  code              Int
+  companyId         String
   internalTransfers InternalTransfer[]
   inventoryCounts   InventoryCount[]
   paymentVouchers   PaymentVoucher[]
@@ -281,6 +383,13 @@ model Branch {
   stores            Store?
   users             User[]
   auditLogs         AuditLog[]
+  company           Company            @relation(fields: [companyId], references: [id])
+
+  @@unique([code, companyId])
+  @@index([companyId])
+  @@index([companyId, code])
+  @@index([id, companyId])
+  @@unique([id, companyId])
 }
 
 model Store {
@@ -290,63 +399,81 @@ model Store {
   phone                String?
   description          String?
   branchId             String                 @unique
-  userId               String
+  userId                String
+  companyId            String
   createdAt            DateTime               @default(now())
   updatedAt            DateTime               @updatedAt
-  code                 Int                    @unique
+  code                 Int
   inventoryCounts      InventoryCount[]
   branch               Branch                 @relation(fields: [branchId], references: [id])
   user                 User                   @relation(fields: [userId], references: [id])
+  company               Company                @relation(fields: [companyId], references: [id])
   storeIssueVouchers   StoreIssueVoucher[]
   storeItems           StoreItem[]
   storeReceiptVouchers StoreReceiptVoucher[]
   fromTransfers        StoreTransferVoucher[] @relation("FromStore")
   toTransfers          StoreTransferVoucher[] @relation("ToStore")
 
+  @@unique([code, companyId])
   @@index([branchId])
+  @@index([companyId])
+  @@index([id, companyId])
+  @@unique([id, companyId])
 }
 
 model StoreReceiptVoucher {
   id            String                    @id @default(uuid())
-  voucherNumber String                    @unique
+  voucherNumber String
   date          DateTime                  @default(now())
   notes         String?
   totalAmount   Float                     @default(0)
   storeId       String
   userId        String
+  companyId     String
   createdAt     DateTime                  @default(now())
   updatedAt     DateTime                  @updatedAt
   store         Store                     @relation(fields: [storeId], references: [id])
   user          User                      @relation(fields: [userId], references: [id])
+  company       Company                   @relation(fields: [companyId], references: [id])
   items         StoreReceiptVoucherItem[]
 
+  @@unique([voucherNumber, companyId])
   @@index([voucherNumber])
   @@index([date])
   @@index([storeId])
+  @@index([companyId])
+  @@index([id, companyId])
+  @@unique([id, companyId])
 }
 
 model StoreIssueVoucher {
   id            String                  @id @default(uuid())
-  voucherNumber String                  @unique
+  voucherNumber String
   date          DateTime                @default(now())
   notes         String?
   totalAmount   Float                   @default(0)
   storeId       String
   userId        String
+  companyId     String
   createdAt     DateTime                @default(now())
   updatedAt     DateTime                @updatedAt
   store         Store                   @relation(fields: [storeId], references: [id])
   user          User                    @relation(fields: [userId], references: [id])
+  company       Company                 @relation(fields: [companyId], references: [id])
   items         StoreIssueVoucherItem[]
 
+  @@unique([voucherNumber, companyId])
   @@index([voucherNumber])
   @@index([date])
   @@index([storeId])
+  @@index([companyId])
+  @@index([id, companyId])
+  @@unique([id, companyId])
 }
 
 model StoreTransferVoucher {
   id            String                     @id @default(uuid())
-  voucherNumber String                     @unique
+  voucherNumber String
   date          DateTime                   @default(now())
   notes         String?
   totalAmount   Float                      @default(0)
@@ -354,19 +481,25 @@ model StoreTransferVoucher {
   fromStoreId   String
   toStoreId     String
   userId        String
+  companyId     String
   createdAt     DateTime                   @default(now())
   updatedAt     DateTime                   @updatedAt
   fromStore     Store                      @relation("FromStore", fields: [fromStoreId], references: [id])
   toStore       Store                      @relation("ToStore", fields: [toStoreId], references: [id])
   user          User                       @relation(fields: [userId], references: [id])
+  company       Company                    @relation(fields: [companyId], references: [id])
   items         StoreTransferVoucherItem[]
   notifications Notification[]             @relation("TransferNotifications")
 
+  @@unique([voucherNumber, companyId])
   @@index([voucherNumber])
   @@index([date])
   @@index([fromStoreId])
   @@index([toStoreId])
   @@index([status])
+  @@index([companyId])
+  @@index([id, companyId])
+  @@unique([id, companyId])
 }
 
 model StoreReceiptVoucherItem {
@@ -441,112 +574,160 @@ model Notification {
   read                 Boolean               @default(false)
   createdAt            DateTime              @default(now())
   updatedAt            DateTime              @updatedAt
+  companyId            String
+  company              Company               @relation(fields: [companyId], references: [id])
   user                 User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
   storeTransferVoucher StoreTransferVoucher? @relation("TransferNotifications", fields: [relatedId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@index([read])
   @@index([createdAt])
+  @@index([companyId])
+  @@index([id, companyId])
+  @@unique([id, companyId])
 }
 
 model CurrentAccount {
   id              String           @id @default(uuid())
-  code            String           @unique
+  code            String
   name            String
   type            String
   openingBalance  Float            @default(0)
   createdAt       DateTime         @default(now())
   updatedAt       DateTime         @updatedAt
   currentBalance  Float            @default(0)
+  companyId       String
   paymentVouchers PaymentVoucher[]
   receiptVouchers ReceiptVoucher[]
+  company         Company          @relation(fields: [companyId], references: [id])
 
+  @@unique([code, companyId])
   @@index([code])
+  @@index([companyId])
+  @@index([id, companyId])
+  @@unique([id, companyId])
 }
 
 model ReceivableAccount {
   id              String           @id @default(uuid())
-  code            String           @unique
+  code            String
   name            String
   openingBalance  Float            @default(0)
   createdAt       DateTime         @default(now())
   updatedAt       DateTime         @updatedAt
   currentBalance  Float            @default(0)
+  companyId       String
   paymentVouchers PaymentVoucher[]
   receiptVouchers ReceiptVoucher[]
+  company         Company          @relation(fields: [companyId], references: [id])
 
+  @@unique([code, companyId])
   @@index([code])
+  @@index([companyId])
+  @@index([id, companyId])
+  @@unique([id, companyId])
 }
 
 model PayableAccount {
   id              String           @id @default(uuid())
-  code            String           @unique
+  code            String
   name            String
   openingBalance  Float            @default(0)
   createdAt       DateTime         @default(now())
   updatedAt       DateTime         @updatedAt
   currentBalance  Float            @default(0)
+  companyId       String
   paymentVouchers PaymentVoucher[]
   receiptVouchers ReceiptVoucher[]
+  company         Company          @relation(fields: [companyId], references: [id])
 
+  @@unique([code, companyId])
   @@index([code])
+  @@index([companyId])
+  @@index([id, companyId])
+  @@unique([id, companyId])
 }
 
 model ExpenseType {
   id           String        @id @default(uuid())
-  name         String        @unique
+  name         String
   description  String?
   createdAt    DateTime      @default(now())
   updatedAt    DateTime      @updatedAt
+  companyId    String
   expenseCodes ExpenseCode[]
+  company      Company       @relation(fields: [companyId], references: [id])
+
+  @@unique([name, companyId])
+  @@index([companyId])
+  @@index([id, companyId])
+  @@unique([id, companyId])
 }
 
 model ExpenseCode {
   id              String           @id @default(uuid())
-  code            String           @unique
+  code            String
   name            String
   description     String?
   expenseTypeId   String
   createdAt       DateTime         @default(now())
   updatedAt       DateTime         @updatedAt
+  companyId       String
   expenses        Expense[]
   expenseType     ExpenseType      @relation(fields: [expenseTypeId], references: [id])
   paymentVouchers PaymentVoucher[]
+  company         Company          @relation(fields: [companyId], references: [id])
 
+  @@unique([code, companyId])
   @@index([code])
   @@index([expenseTypeId])
+  @@index([companyId])
+  @@index([id, companyId])
+  @@unique([id, companyId])
 }
 
 model RevenueCode {
   id              String           @id @default(uuid())
-  code            String           @unique
+  code            String
   name            String
   createdAt       DateTime         @default(now())
   updatedAt       DateTime         @updatedAt
+  companyId       String
   paymentVouchers PaymentVoucher[]
   receiptVouchers ReceiptVoucher[]
+  company         Company          @relation(fields: [companyId], references: [id])
 
+  @@unique([code, companyId])
   @@index([code])
+  @@index([companyId])
+  @@index([id, companyId])
+  @@unique([id, companyId])
 }
 
 model Expense {
   id            String      @id @default(uuid())
-  code          String      @unique
+  code          String
   date          DateTime
   description   String?
   expenseCodeId String
   createdAt     DateTime    @default(now())
   updatedAt     DateTime    @updatedAt
+  companyId     String
   expenseCode   ExpenseCode @relation(fields: [expenseCodeId], references: [id])
+  company       Company    @relation(fields: [companyId], references: [id])
 
+  @@unique([code, companyId])
   @@index([code])
   @@index([date])
   @@index([expenseCodeId])
+  @@index([companyId])
+  @@index([id, companyId])
+  @@unique([id, companyId])
 }
 
 model SalesInvoice {
   id                  String              @id @default(uuid())
-  code                String              @unique
+  code                String
   date                DateTime            @default(now())
   customerId          String?
   items               Json
@@ -560,6 +741,7 @@ model SalesInvoice {
   notes               String?
   userId              String
   branchId            String?
+  companyId           String
   createdAt           DateTime            @default(now())
   updatedAt           DateTime            @updatedAt
   bankId              String?
@@ -575,18 +757,23 @@ model SalesInvoice {
   customer            Customer?           @relation(fields: [customerId], references: [id])
   safe                Safe?               @relation(fields: [safeId], references: [id])
   user                User                @relation(fields: [userId], references: [id])
+  company             Company             @relation(fields: [companyId], references: [id])
 
+  @@unique([code, companyId])
   @@index([code])
   @@index([date])
   @@index([customerId])
   @@index([userId])
   @@index([safeId])
   @@index([bankId])
+  @@index([companyId])
+  @@index([id, companyId])
+  @@unique([id, companyId])
 }
 
 model PriceQuotation {
   id           String    @id @default(uuid())
-  code         String    @unique
+  code         String
   date         DateTime  @default(now())
   expiryDate   DateTime?
   status       String    @default("draft")
@@ -597,22 +784,28 @@ model PriceQuotation {
   customerName String?
   userId       String
   branchId     String?
+  companyId    String
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
   branch       Branch?   @relation(fields: [branchId], references: [id])
   customer     Customer? @relation(fields: [customerId], references: [id])
   user         User      @relation(fields: [userId], references: [id])
+  company      Company   @relation(fields: [companyId], references: [id])
 
+  @@unique([code, companyId])
   @@index([code])
   @@index([date])
   @@index([customerId])
   @@index([userId])
   @@index([branchId])
+  @@index([companyId])
+  @@index([id, companyId])
+  @@unique([id, companyId])
 }
 
 model SalesReturn {
   id                String    @id @default(uuid())
-  code              String    @unique
+  code              String
   date              DateTime  @default(now())
   customerId        String?
   items             Json
@@ -626,6 +819,7 @@ model SalesReturn {
   notes             String?
   userId            String
   branchId          String?
+  companyId         String
   createdAt         DateTime  @default(now())
   updatedAt         DateTime  @updatedAt
   bankId            String?
@@ -635,18 +829,23 @@ model SalesReturn {
   customer          Customer? @relation(fields: [customerId], references: [id])
   safe              Safe?     @relation(fields: [safeId], references: [id])
   user              User      @relation(fields: [userId], references: [id])
+  company           Company   @relation(fields: [companyId], references: [id])
 
+  @@unique([code, companyId])
   @@index([code])
   @@index([date])
   @@index([customerId])
   @@index([userId])
   @@index([safeId])
   @@index([bankId])
+  @@index([companyId])
+  @@index([id, companyId])
+  @@unique([id, companyId])
 }
 
 model PurchaseInvoice {
   id                String    @id @default(uuid())
-  code              String    @unique
+  code              String
   date              DateTime  @default(now())
   supplierId        String?
   items             Json
@@ -660,6 +859,7 @@ model PurchaseInvoice {
   notes             String?
   userId            String
   branchId          String?
+  companyId         String
   createdAt         DateTime  @default(now())
   updatedAt         DateTime  @updatedAt
   bankId            String?
@@ -669,18 +869,23 @@ model PurchaseInvoice {
   safe              Safe?     @relation(fields: [safeId], references: [id])
   supplier          Supplier? @relation(fields: [supplierId], references: [id])
   user              User      @relation(fields: [userId], references: [id])
+  company           Company   @relation(fields: [companyId], references: [id])
 
+  @@unique([code, companyId])
   @@index([code])
   @@index([date])
   @@index([supplierId])
   @@index([userId])
   @@index([safeId])
   @@index([bankId])
+  @@index([companyId])
+  @@index([id, companyId])
+  @@unique([id, companyId])
 }
 
 model PurchaseReturn {
   id                String    @id @default(uuid())
-  code              String    @unique
+  code              String
   date              DateTime  @default(now())
   supplierId        String?
   items             Json
@@ -694,6 +899,7 @@ model PurchaseReturn {
   notes             String?
   userId            String
   branchId          String?
+  companyId         String
   createdAt         DateTime  @default(now())
   updatedAt         DateTime  @updatedAt
   bankId            String?
@@ -703,18 +909,23 @@ model PurchaseReturn {
   safe              Safe?     @relation(fields: [safeId], references: [id])
   supplier          Supplier? @relation(fields: [supplierId], references: [id])
   user              User      @relation(fields: [userId], references: [id])
+  company           Company   @relation(fields: [companyId], references: [id])
 
+  @@unique([code, companyId])
   @@index([code])
   @@index([date])
   @@index([supplierId])
   @@index([userId])
   @@index([safeId])
   @@index([bankId])
+  @@index([companyId])
+  @@index([id, companyId])
+  @@unique([id, companyId])
 }
 
 model PaymentVoucher {
   id                  String             @id @default(uuid())
-  code                String             @unique
+  code                String
   date                DateTime           @default(now())
   entityType          String
   entityName          String
@@ -730,6 +941,7 @@ model PaymentVoucher {
   revenueCodeId       String?
   userId              String
   branchId            String?
+  companyId           String
   createdAt           DateTime           @default(now())
   updatedAt           DateTime           @updatedAt
   receivableAccountId String?
@@ -747,18 +959,23 @@ model PaymentVoucher {
   safe                Safe?              @relation(fields: [safeId], references: [id])
   supplier            Supplier?          @relation(fields: [supplierId], references: [id])
   user                User               @relation(fields: [userId], references: [id])
+  company             Company           @relation(fields: [companyId], references: [id])
 
+  @@unique([code, companyId])
   @@index([code])
   @@index([date])
   @@index([entityType])
   @@index([userId])
   @@index([receivableAccountId])
   @@index([payableAccountId])
+  @@index([companyId])
+  @@index([id, companyId])
+  @@unique([id, companyId])
 }
 
 model ReceiptVoucher {
   id                  String             @id @default(uuid())
-  code                String             @unique
+  code                String
   date                DateTime           @default(now())
   entityType          String
   entityName          String
@@ -773,6 +990,7 @@ model ReceiptVoucher {
   revenueCodeId       String?
   userId              String
   branchId            String?
+  companyId           String
   createdAt           DateTime           @default(now())
   updatedAt           DateTime           @updatedAt
   receivableAccountId String?
@@ -787,18 +1005,23 @@ model ReceiptVoucher {
   safe                Safe?              @relation(fields: [safeId], references: [id])
   supplier            Supplier?          @relation(fields: [supplierId], references: [id])
   user                User               @relation(fields: [userId], references: [id])
+  company             Company           @relation(fields: [companyId], references: [id])
 
+  @@unique([code, companyId])
   @@index([code])
   @@index([date])
   @@index([entityType])
   @@index([userId])
   @@index([receivableAccountId])
   @@index([payableAccountId])
+  @@index([companyId])
+  @@index([id, companyId])
+  @@unique([id, companyId])
 }
 
 model InternalTransfer {
   id          String   @id @default(uuid())
-  code        String   @unique
+  code        String
   date        DateTime @default(now())
   amount      Float
   description String?
@@ -810,6 +1033,7 @@ model InternalTransfer {
   toBankId    String?
   userId      String
   branchId    String?
+  companyId  String
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
   branch      Branch?  @relation(fields: [branchId], references: [id])
@@ -818,15 +1042,20 @@ model InternalTransfer {
   toBank      Bank?    @relation("ToBankTransfers", fields: [toBankId], references: [id])
   toSafe      Safe?    @relation("ToSafeTransfers", fields: [toSafeId], references: [id])
   user        User     @relation(fields: [userId], references: [id])
+  company     Company  @relation(fields: [companyId], references: [id])
 
+  @@unique([code, companyId])
   @@index([code])
   @@index([date])
   @@index([userId])
+  @@index([companyId])
+  @@index([id, companyId])
+  @@unique([id, companyId])
 }
 
 model InventoryCount {
   id                 String               @id @default(uuid())
-  code               String               @unique
+  code               String
   date               DateTime             @default(now())
   status             InventoryCountStatus @default(PENDING)
   notes              String?
@@ -834,18 +1063,24 @@ model InventoryCount {
   storeId            String
   userId             String
   branchId           String?
+  companyId          String
   createdAt          DateTime             @default(now())
   updatedAt          DateTime             @updatedAt
   branch             Branch?              @relation(fields: [branchId], references: [id])
   store              Store                @relation(fields: [storeId], references: [id])
   user               User                 @relation(fields: [userId], references: [id])
+  company            Company              @relation(fields: [companyId], references: [id])
   items              InventoryCountItem[]
 
+  @@unique([code, companyId])
   @@index([code])
   @@index([date])
   @@index([status])
   @@index([storeId])
   @@index([userId])
+  @@index([companyId])
+  @@index([id, companyId])
+  @@unique([id, companyId])
 }
 
 model InventoryCountItem {
@@ -876,6 +1111,8 @@ model AuditLog {
   details    String
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
+  companyId  String
+  company    Company  @relation(fields: [companyId], references: [id])
   user       User     @relation(fields: [userId], references: [id])
   branch     Branch?  @relation(fields: [branchId], references: [id])
 
@@ -885,6 +1122,9 @@ model AuditLog {
   @@index([action])
   @@index([targetType])
   @@index([targetId])
+  @@index([companyId])
+  @@index([id, companyId])
+  @@unique([id, companyId])
 }
 
 enum SessionStatus {
@@ -925,15 +1165,21 @@ enum FiscalYearStatus {
 
 model FiscalYear {
   id               String           @id @default(uuid())
-  name             String           @unique
+  name             String
   startDate        DateTime
   endDate          DateTime
   status           FiscalYearStatus @default(OPEN)
   retainedEarnings Float?
+  companyId        String
   createdAt        DateTime         @default(now())
   updatedAt        DateTime         @updatedAt
+  company          Company          @relation(fields: [companyId], references: [id])
 
+  @@unique([name, companyId])
   @@index([startDate])
   @@index([endDate])
   @@index([status])
+  @@index([companyId])
+  @@index([id, companyId])
+  @@unique([id, companyId])
 }
