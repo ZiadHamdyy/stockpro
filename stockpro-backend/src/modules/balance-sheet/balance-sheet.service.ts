@@ -12,33 +12,36 @@ export class BalanceSheetService {
   ) {}
 
   async getBalanceSheet(
+    companyId: string,
     startDate: string,
     endDate: string,
   ): Promise<BalanceSheetResponse> {
     const targetDate = new Date(endDate);
     targetDate.setHours(23, 59, 59, 999);
 
-    const cashInSafes = await this.calculateCashInSafes(targetDate);
-    const cashInBanks = await this.calculateCashInBanks(targetDate);
-    const receivables = await this.calculateReceivables(targetDate);
-    const otherReceivables = await this.calculateOtherReceivables(targetDate);
-    const inventory = await this.calculateInventoryValue(endDate);
+    const cashInSafes = await this.calculateCashInSafes(companyId, targetDate);
+    const cashInBanks = await this.calculateCashInBanks(companyId, targetDate);
+    const receivables = await this.calculateReceivables(companyId, targetDate);
+    const otherReceivables = await this.calculateOtherReceivables(companyId, targetDate);
+    const inventory = await this.calculateInventoryValue(companyId, endDate);
     const totalAssets =
       cashInSafes + cashInBanks + receivables + otherReceivables + inventory;
 
-    const payables = await this.calculatePayables(targetDate);
-    const otherPayables = await this.calculateOtherPayables(targetDate);
+    const payables = await this.calculatePayables(companyId, targetDate);
+    const otherPayables = await this.calculateOtherPayables(companyId, targetDate);
     const periodStartDate = new Date(startDate);
-    const vatPayable = await this.calculateVatPayable(periodStartDate, targetDate);
+    const vatPayable = await this.calculateVatPayable(companyId, periodStartDate, targetDate);
     const totalLiabilities = payables + otherPayables + vatPayable;
 
-    const capital = await this.getCapital();
-    const partnersBalance = await this.calculatePartnersBalance(targetDate);
-    const retainedEarnings = await this.calculateNetProfit(startDate, endDate);
+    const capital = await this.getCapital(companyId);
+    const partnersBalance = await this.calculatePartnersBalance(companyId, targetDate);
+    const retainedEarnings = await this.calculateNetProfit(companyId, startDate, endDate);
     const totalEquity = capital + partnersBalance + retainedEarnings;
 
     // Get company currency
-    const company = await this.prisma.company.findFirst();
+    const company = await this.prisma.company.findUnique({
+      where: { id: companyId },
+    });
     const currency = company?.currency || 'SAR';
 
     return {
@@ -61,9 +64,11 @@ export class BalanceSheetService {
     };
   }
 
-  private async calculateCashInSafes(endDate: Date): Promise<number> {
+  private async calculateCashInSafes(companyId: string, endDate: Date): Promise<number> {
     // Get all safes across all branches
-    const safes = await this.prisma.safe.findMany();
+    const safes = await this.prisma.safe.findMany({
+      where: { companyId },
+    });
 
     let totalBalance = 0;
 
@@ -73,6 +78,7 @@ export class BalanceSheetService {
       // Add ReceiptVouchers (incoming)
       const receiptVouchers = await this.prisma.receiptVoucher.aggregate({
         where: {
+          companyId,
           paymentMethod: 'safe',
           safeId: safe.id,
           date: {
@@ -88,6 +94,7 @@ export class BalanceSheetService {
       // Subtract PaymentVouchers (outgoing)
       const paymentVouchers = await this.prisma.paymentVoucher.aggregate({
         where: {
+          companyId,
           paymentMethod: 'safe',
           safeId: safe.id,
           date: {
@@ -103,6 +110,7 @@ export class BalanceSheetService {
       // Subtract InternalTransfers from safe (outgoing)
       const transfersFrom = await this.prisma.internalTransfer.aggregate({
         where: {
+          companyId,
           fromType: 'safe',
           fromSafeId: safe.id,
           date: {
@@ -118,6 +126,7 @@ export class BalanceSheetService {
       // Add InternalTransfers to safe (incoming)
       const transfersTo = await this.prisma.internalTransfer.aggregate({
         where: {
+          companyId,
           toType: 'safe',
           toSafeId: safe.id,
           date: {
@@ -134,6 +143,7 @@ export class BalanceSheetService {
       // Regular payments (non-split)
       const salesInvoices = await this.prisma.salesInvoice.aggregate({
         where: {
+          companyId,
           paymentMethod: 'cash',
           paymentTargetType: 'safe',
           safeId: safe.id,
@@ -151,6 +161,7 @@ export class BalanceSheetService {
       // Split payment sales invoices (cash portion to this safe)
       const splitSalesInvoices = await this.prisma.salesInvoice.findMany({
         where: {
+          companyId,
           paymentMethod: 'cash',
           isSplitPayment: true,
           splitSafeId: safe.id,
@@ -171,6 +182,7 @@ export class BalanceSheetService {
       // Subtract SalesReturns (cash refunds from safe)
       const salesReturns = await this.prisma.salesReturn.aggregate({
         where: {
+          companyId,
           paymentMethod: 'cash',
           paymentTargetType: 'safe',
           safeId: safe.id,
@@ -187,6 +199,7 @@ export class BalanceSheetService {
       // Subtract PurchaseInvoices (cash payments from safe)
       const purchaseInvoices = await this.prisma.purchaseInvoice.aggregate({
         where: {
+          companyId,
           paymentMethod: 'cash',
           paymentTargetType: 'safe',
           safeId: safe.id,
@@ -203,6 +216,7 @@ export class BalanceSheetService {
       // Add PurchaseReturns (cash refunds to safe)
       const purchaseReturns = await this.prisma.purchaseReturn.aggregate({
         where: {
+          companyId,
           paymentMethod: 'cash',
           paymentTargetType: 'safe',
           safeId: safe.id,
@@ -222,9 +236,11 @@ export class BalanceSheetService {
     return totalBalance;
   }
 
-  private async calculateCashInBanks(endDate: Date): Promise<number> {
+  private async calculateCashInBanks(companyId: string, endDate: Date): Promise<number> {
     // Get all banks
-    const banks = await this.prisma.bank.findMany();
+    const banks = await this.prisma.bank.findMany({
+      where: { companyId },
+    });
 
     let totalBalance = 0;
 
@@ -234,6 +250,7 @@ export class BalanceSheetService {
       // Add ReceiptVouchers (incoming)
       const receiptVouchers = await this.prisma.receiptVoucher.aggregate({
         where: {
+          companyId,
           paymentMethod: 'bank',
           bankId: bank.id,
           date: {
@@ -249,6 +266,7 @@ export class BalanceSheetService {
       // Subtract PaymentVouchers (outgoing)
       const paymentVouchers = await this.prisma.paymentVoucher.aggregate({
         where: {
+          companyId,
           paymentMethod: 'bank',
           bankId: bank.id,
           date: {
@@ -264,6 +282,7 @@ export class BalanceSheetService {
       // Subtract InternalTransfers from bank (outgoing)
       const transfersFrom = await this.prisma.internalTransfer.aggregate({
         where: {
+          companyId,
           fromType: 'bank',
           fromBankId: bank.id,
           date: {
@@ -279,6 +298,7 @@ export class BalanceSheetService {
       // Add InternalTransfers to bank (incoming)
       const transfersTo = await this.prisma.internalTransfer.aggregate({
         where: {
+          companyId,
           toType: 'bank',
           toBankId: bank.id,
           date: {
@@ -295,6 +315,7 @@ export class BalanceSheetService {
       // Regular payments (non-split)
       const salesInvoices = await this.prisma.salesInvoice.aggregate({
         where: {
+          companyId,
           paymentMethod: 'cash',
           paymentTargetType: 'bank',
           bankId: bank.id,
@@ -312,6 +333,7 @@ export class BalanceSheetService {
       // Split payment sales invoices (bank portion to this bank)
       const splitSalesInvoices = await this.prisma.salesInvoice.findMany({
         where: {
+          companyId,
           paymentMethod: 'cash',
           isSplitPayment: true,
           splitBankId: bank.id,
@@ -332,6 +354,7 @@ export class BalanceSheetService {
       // Subtract SalesReturns (cash refunds from bank)
       const salesReturns = await this.prisma.salesReturn.aggregate({
         where: {
+          companyId,
           paymentMethod: 'cash',
           paymentTargetType: 'bank',
           bankId: bank.id,
@@ -348,6 +371,7 @@ export class BalanceSheetService {
       // Subtract PurchaseInvoices (cash payments from bank)
       const purchaseInvoices = await this.prisma.purchaseInvoice.aggregate({
         where: {
+          companyId,
           paymentMethod: 'cash',
           paymentTargetType: 'bank',
           bankId: bank.id,
@@ -364,6 +388,7 @@ export class BalanceSheetService {
       // Add PurchaseReturns (cash refunds to bank)
       const purchaseReturns = await this.prisma.purchaseReturn.aggregate({
         where: {
+          companyId,
           paymentMethod: 'cash',
           paymentTargetType: 'bank',
           bankId: bank.id,
@@ -383,9 +408,11 @@ export class BalanceSheetService {
     return totalBalance;
   }
 
-  private async calculateReceivables(endDate: Date): Promise<number> {
+  private async calculateReceivables(companyId: string, endDate: Date): Promise<number> {
     // Get all customers
-    const customers = await this.prisma.customer.findMany();
+    const customers = await this.prisma.customer.findMany({
+      where: { companyId },
+    });
 
     let totalBalance = 0;
 
@@ -395,6 +422,7 @@ export class BalanceSheetService {
       // Add SalesInvoices (credit sales - increases what customer owes)
       const salesInvoices = await this.prisma.salesInvoice.aggregate({
         where: {
+          companyId,
           customerId: customer.id,
           paymentMethod: 'credit',
           date: {
@@ -410,6 +438,7 @@ export class BalanceSheetService {
       // Subtract SalesReturns (credit returns - decreases what customer owes)
       const salesReturns = await this.prisma.salesReturn.aggregate({
         where: {
+          companyId,
           customerId: customer.id,
           paymentMethod: 'credit',
           date: {
@@ -425,6 +454,7 @@ export class BalanceSheetService {
       // Add PaymentVouchers (refunds to customer - increases what customer owes)
       const paymentVouchers = await this.prisma.paymentVoucher.aggregate({
         where: {
+          companyId,
           entityType: 'customer',
           customerId: customer.id,
           date: {
@@ -440,6 +470,7 @@ export class BalanceSheetService {
       // Subtract ReceiptVouchers (payments from customer - decreases what customer owes)
       const receiptVouchers = await this.prisma.receiptVoucher.aggregate({
         where: {
+          companyId,
           entityType: 'customer',
           customerId: customer.id,
           date: {
@@ -458,9 +489,11 @@ export class BalanceSheetService {
     return totalBalance;
   }
 
-  private async calculateOtherReceivables(endDate: Date): Promise<number> {
+  private async calculateOtherReceivables(companyId: string, endDate: Date): Promise<number> {
     // Get all receivable accounts
-    const receivableAccounts = await this.prisma.receivableAccount.findMany();
+    const receivableAccounts = await this.prisma.receivableAccount.findMany({
+      where: { companyId },
+    });
 
     let totalBalance = 0;
 
@@ -470,6 +503,7 @@ export class BalanceSheetService {
       // Add PaymentVouchers (debit - increases balance)
       const paymentVouchers = await this.prisma.paymentVoucher.aggregate({
         where: {
+          companyId,
           entityType: 'receivable_account',
           receivableAccountId: account.id,
           date: {
@@ -485,6 +519,7 @@ export class BalanceSheetService {
       // Subtract ReceiptVouchers (credit - decreases balance)
       const receiptVouchers = await this.prisma.receiptVoucher.aggregate({
         where: {
+          companyId,
           entityType: 'receivable_account',
           receivableAccountId: account.id,
           date: {
@@ -503,13 +538,14 @@ export class BalanceSheetService {
     return totalBalance;
   }
 
-  private async calculateInventoryValue(targetDate: string): Promise<number> {
+  private async calculateInventoryValue(companyId: string, targetDate: string): Promise<number> {
     const targetDateTime = new Date(targetDate);
     targetDateTime.setHours(23, 59, 59, 999);
 
     // Get all items (only STOCKED items)
     const items = await this.prisma.item.findMany({
       where: {
+        companyId,
         type: 'STOCKED',
       },
     });
@@ -519,6 +555,7 @@ export class BalanceSheetService {
     for (const item of items) {
       // Calculate inventory balance at target date across all stores
       const balance = await this.calculateItemBalanceAtDate(
+        companyId,
         item.id,
         item.code,
         targetDateTime,
@@ -527,6 +564,7 @@ export class BalanceSheetService {
       if (balance > 0) {
         // Find the last purchase price before or on the target date
         const lastPurchasePrice = await this.getLastPurchasePriceBeforeDate(
+          companyId,
           item.code,
           targetDateTime,
         );
@@ -546,6 +584,7 @@ export class BalanceSheetService {
    * across all stores
    */
   private async calculateItemBalanceAtDate(
+    companyId: string,
     itemId: string,
     itemCode: string,
     targetDate: Date,
@@ -565,6 +604,7 @@ export class BalanceSheetService {
     // Add quantities from PurchaseInvoices (before or on target date)
     const purchaseInvoices = await this.prisma.purchaseInvoice.findMany({
       where: {
+        companyId,
         date: {
           lte: targetDate,
         },
@@ -586,6 +626,7 @@ export class BalanceSheetService {
     // Add quantities from SalesReturns (before or on target date)
     const salesReturns = await this.prisma.salesReturn.findMany({
       where: {
+        companyId,
         date: {
           lte: targetDate,
         },
@@ -608,6 +649,7 @@ export class BalanceSheetService {
     const storeReceiptVouchers = await this.prisma.storeReceiptVoucher.findMany(
       {
         where: {
+          companyId,
           date: {
             lte: targetDate,
           },
@@ -631,6 +673,7 @@ export class BalanceSheetService {
     // Subtract quantities from SalesInvoices (before or on target date)
     const salesInvoices = await this.prisma.salesInvoice.findMany({
       where: {
+        companyId,
         date: {
           lte: targetDate,
         },
@@ -652,6 +695,7 @@ export class BalanceSheetService {
     // Subtract quantities from PurchaseReturns (before or on target date)
     const purchaseReturns = await this.prisma.purchaseReturn.findMany({
       where: {
+        companyId,
         date: {
           lte: targetDate,
         },
@@ -673,6 +717,7 @@ export class BalanceSheetService {
     // Subtract quantities from StoreIssueVouchers (before or on target date)
     const storeIssueVouchers = await this.prisma.storeIssueVoucher.findMany({
       where: {
+        companyId,
         date: {
           lte: targetDate,
         },
@@ -706,12 +751,14 @@ export class BalanceSheetService {
    * @returns The last purchase price before or on the target date, or null if not found
    */
   private async getLastPurchasePriceBeforeDate(
+    companyId: string,
     itemCode: string,
     targetDate: Date,
   ): Promise<number | null> {
     // Get all purchase invoices before or on target date, ordered by date descending
     const purchaseInvoices = await this.prisma.purchaseInvoice.findMany({
       where: {
+        companyId,
         date: {
           lte: targetDate,
         },
@@ -738,9 +785,11 @@ export class BalanceSheetService {
     return null; // No purchase found before this date
   }
 
-  private async calculatePayables(endDate: Date): Promise<number> {
+  private async calculatePayables(companyId: string, endDate: Date): Promise<number> {
     // Get all suppliers
-    const suppliers = await this.prisma.supplier.findMany();
+    const suppliers = await this.prisma.supplier.findMany({
+      where: { companyId },
+    });
 
     let totalBalance = 0;
 
@@ -750,6 +799,7 @@ export class BalanceSheetService {
       // Get all PurchaseInvoices (increases what we owe - credit)
       const purchaseInvoices = await this.prisma.purchaseInvoice.aggregate({
         where: {
+          companyId,
           supplierId: supplier.id,
           date: {
             lte: endDate,
@@ -764,6 +814,7 @@ export class BalanceSheetService {
       // Get all PurchaseReturns (decreases what we owe - debit)
       const purchaseReturns = await this.prisma.purchaseReturn.aggregate({
         where: {
+          companyId,
           supplierId: supplier.id,
           date: {
             lte: endDate,
@@ -778,6 +829,7 @@ export class BalanceSheetService {
       // Get PaymentVouchers (payments to supplier - decreases what we owe - debit)
       const paymentVouchers = await this.prisma.paymentVoucher.aggregate({
         where: {
+          companyId,
           entityType: 'supplier',
           supplierId: supplier.id,
           date: {
@@ -793,6 +845,7 @@ export class BalanceSheetService {
       // Get ReceiptVouchers (receipts from supplier - decreases what we owe - debit)
       const receiptVouchers = await this.prisma.receiptVoucher.aggregate({
         where: {
+          companyId,
           entityType: 'supplier',
           supplierId: supplier.id,
           date: {
@@ -818,9 +871,11 @@ export class BalanceSheetService {
     return totalBalance;
   }
 
-  private async calculateOtherPayables(endDate: Date): Promise<number> {
+  private async calculateOtherPayables(companyId: string, endDate: Date): Promise<number> {
     // Get all payable accounts
-    const payableAccounts = await this.prisma.payableAccount.findMany();
+    const payableAccounts = await this.prisma.payableAccount.findMany({
+      where: { companyId },
+    });
 
     let totalBalance = 0;
 
@@ -830,6 +885,7 @@ export class BalanceSheetService {
       // Add PaymentVouchers (debit - increases what we owe)
       const paymentVouchers = await this.prisma.paymentVoucher.aggregate({
         where: {
+          companyId,
           entityType: 'payable_account',
           payableAccountId: account.id,
           date: {
@@ -845,6 +901,7 @@ export class BalanceSheetService {
       // Subtract ReceiptVouchers (credit - decreases what we owe)
       const receiptVouchers = await this.prisma.receiptVoucher.aggregate({
         where: {
+          companyId,
           entityType: 'payable_account',
           payableAccountId: account.id,
           date: {
@@ -864,11 +921,14 @@ export class BalanceSheetService {
   }
 
   private async calculateVatPayable(
+    companyId: string,
     startDate: Date,
     endDate: Date,
   ): Promise<number> {
     // Get company VAT settings
-    const company = await this.prisma.company.findFirst();
+    const company = await this.prisma.company.findUnique({
+      where: { id: companyId },
+    });
     const isVatEnabled = company?.isVatEnabled || false;
     const vatRate = company?.vatRate || 0;
 
@@ -877,10 +937,11 @@ export class BalanceSheetService {
     }
 
     // Calculate opening VAT balance (all transactions before startDate)
-    const openingVatBalance = await this.calculateVatBalanceUpToDate(startDate);
+    const openingVatBalance = await this.calculateVatBalanceUpToDate(companyId, startDate);
 
     // Calculate current period VAT (transactions between startDate and endDate)
     const currentPeriodVat = await this.calculateVatForPeriod(
+      companyId,
       startDate,
       endDate,
     );
@@ -889,10 +950,11 @@ export class BalanceSheetService {
     return openingVatBalance + currentPeriodVat;
   }
 
-  private async calculateVatBalanceUpToDate(cutoffDate: Date): Promise<number> {
+  private async calculateVatBalanceUpToDate(companyId: string, cutoffDate: Date): Promise<number> {
     // Calculate Output VAT (VAT collected on sales) - before cutoffDate
     const salesInvoicesTax = await this.prisma.salesInvoice.aggregate({
       where: {
+        companyId,
         date: {
           lt: cutoffDate,
         },
@@ -906,6 +968,7 @@ export class BalanceSheetService {
     // Subtract tax from SalesReturns - before cutoffDate
     const salesReturnsTax = await this.prisma.salesReturn.aggregate({
       where: {
+        companyId,
         date: {
           lt: cutoffDate,
         },
@@ -919,6 +982,7 @@ export class BalanceSheetService {
     // Calculate Input VAT (VAT paid on purchases) - before cutoffDate
     const purchaseInvoicesTax = await this.prisma.purchaseInvoice.aggregate({
       where: {
+        companyId,
         date: {
           lt: cutoffDate,
         },
@@ -931,6 +995,7 @@ export class BalanceSheetService {
     // Sum taxable expenses (payment vouchers with expense codes) - before cutoffDate
     const taxableExpenses = await this.prisma.paymentVoucher.aggregate({
       where: {
+        companyId,
         entityType: {
           in: ['expense', 'expense-Type'],
         },
@@ -953,6 +1018,7 @@ export class BalanceSheetService {
     // Subtract tax from PurchaseReturns - before cutoffDate
     const purchaseReturnsTax = await this.prisma.purchaseReturn.aggregate({
       where: {
+        companyId,
         date: {
           lt: cutoffDate,
         },
@@ -969,12 +1035,14 @@ export class BalanceSheetService {
   }
 
   private async calculateVatForPeriod(
+    companyId: string,
     startDate: Date,
     endDate: Date,
   ): Promise<number> {
     // Calculate Output VAT (VAT collected on sales) - between startDate and endDate
     const salesInvoicesTax = await this.prisma.salesInvoice.aggregate({
       where: {
+        companyId,
         date: {
           gte: startDate,
           lte: endDate,
@@ -989,6 +1057,7 @@ export class BalanceSheetService {
     // Subtract tax from SalesReturns - between startDate and endDate
     const salesReturnsTax = await this.prisma.salesReturn.aggregate({
       where: {
+        companyId,
         date: {
           gte: startDate,
           lte: endDate,
@@ -1003,6 +1072,7 @@ export class BalanceSheetService {
     // Calculate Input VAT (VAT paid on purchases) - between startDate and endDate
     const purchaseInvoicesTax = await this.prisma.purchaseInvoice.aggregate({
       where: {
+        companyId,
         date: {
           gte: startDate,
           lte: endDate,
@@ -1016,6 +1086,7 @@ export class BalanceSheetService {
     // Sum taxable expenses (payment vouchers with expense codes) - between startDate and endDate
     const taxableExpenses = await this.prisma.paymentVoucher.aggregate({
       where: {
+        companyId,
         entityType: {
           in: ['expense', 'expense-Type'],
         },
@@ -1039,6 +1110,7 @@ export class BalanceSheetService {
     // Subtract tax from PurchaseReturns - between startDate and endDate
     const purchaseReturnsTax = await this.prisma.purchaseReturn.aggregate({
       where: {
+        companyId,
         date: {
           gte: startDate,
           lte: endDate,
@@ -1055,9 +1127,11 @@ export class BalanceSheetService {
     return netOutputVat - netInputVat;
   }
 
-  private async calculatePartnersBalance(endDate: Date): Promise<number> {
+  private async calculatePartnersBalance(companyId: string, endDate: Date): Promise<number> {
     // Get all current accounts
-    const currentAccounts = await this.prisma.currentAccount.findMany();
+    const currentAccounts = await this.prisma.currentAccount.findMany({
+      where: { companyId },
+    });
 
     let totalBalance = 0;
 
@@ -1067,6 +1141,7 @@ export class BalanceSheetService {
       // Add PaymentVouchers (debit - increases balance)
       const paymentVouchers = await this.prisma.paymentVoucher.aggregate({
         where: {
+          companyId,
           entityType: 'current_account',
           currentAccountId: account.id,
           date: {
@@ -1082,6 +1157,7 @@ export class BalanceSheetService {
       // Subtract ReceiptVouchers (credit - decreases balance)
       const receiptVouchers = await this.prisma.receiptVoucher.aggregate({
         where: {
+          companyId,
           entityType: 'current_account',
           currentAccountId: account.id,
           date: {
@@ -1101,18 +1177,20 @@ export class BalanceSheetService {
   }
 
   private async calculateNetProfit(
+    companyId: string,
     startDate: string,
     endDate: string,
   ): Promise<number> {
     // Get net profit from income statement for the current period
     const incomeStatement =
-      await this.incomeStatementService.getIncomeStatement(startDate, endDate);
+      await this.incomeStatementService.getIncomeStatement(companyId, startDate, endDate);
     const currentPeriodNetProfit = incomeStatement.netProfit || 0;
 
     // Find all closed fiscal years that ended before the current period start date
     const periodStartDate = new Date(startDate);
     const previousClosedFiscalYears = await (this.prisma as PrismaClient).fiscalYear.findMany({
       where: {
+        companyId,
         status: 'CLOSED',
         endDate: {
           lt: periodStartDate,
@@ -1133,8 +1211,10 @@ export class BalanceSheetService {
     return previousRetainedEarnings + currentPeriodNetProfit;
   }
 
-  private async getCapital(): Promise<number> {
-    const company = await this.prisma.company.findFirst();
+  private async getCapital(companyId: string): Promise<number> {
+    const company = await this.prisma.company.findUnique({
+      where: { id: companyId },
+    });
     return company?.capital || 0;
   }
 }
