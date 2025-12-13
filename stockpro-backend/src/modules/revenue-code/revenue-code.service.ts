@@ -10,13 +10,15 @@ export class RevenueCodeService {
   constructor(private readonly prisma: DatabaseService) {}
 
   async createRevenueCode(
+    companyId: string,
     data: CreateRevenueCodeRequest,
   ): Promise<RevenueCodeResponse> {
-    const code = await this.generateNextRevenueCode();
+    const code = await this.generateNextRevenueCode(companyId);
 
     const revenueCode = await this.prisma.revenueCode.create({
       data: {
         ...data,
+        companyId,
         code,
       },
     });
@@ -24,15 +26,14 @@ export class RevenueCodeService {
     return this.mapRevenueCodeToResponse(revenueCode);
   }
 
-  async findAllRevenueCodes(search?: string): Promise<RevenueCodeResponse[]> {
-    const where = search
-      ? {
-          OR: [
-            { name: { contains: search, mode: 'insensitive' as const } },
-            { code: { contains: search, mode: 'insensitive' as const } },
-          ],
-        }
-      : {};
+  async findAllRevenueCodes(companyId: string, search?: string): Promise<RevenueCodeResponse[]> {
+    const where: any = { companyId };
+    if (search) {
+      where.OR = [
+        { name: { contains: search, mode: 'insensitive' as const } },
+        { code: { contains: search, mode: 'insensitive' as const } },
+      ];
+    }
 
     const codes = await this.prisma.revenueCode.findMany({
       where,
@@ -42,9 +43,9 @@ export class RevenueCodeService {
     return codes.map((code) => this.mapRevenueCodeToResponse(code));
   }
 
-  async findOneRevenueCode(id: string): Promise<RevenueCodeResponse> {
+  async findOneRevenueCode(companyId: string, id: string): Promise<RevenueCodeResponse> {
     const revenueCode = await this.prisma.revenueCode.findUnique({
-      where: { id },
+      where: { id_companyId: { id, companyId } },
     });
 
     if (!revenueCode) {
@@ -55,9 +56,13 @@ export class RevenueCodeService {
   }
 
   async updateRevenueCode(
+    companyId: string,
     id: string,
     data: UpdateRevenueCodeRequest,
   ): Promise<RevenueCodeResponse> {
+    // Verify the revenue code belongs to the company
+    await this.findOneRevenueCode(companyId, id);
+    
     try {
       const revenueCode = await this.prisma.revenueCode.update({
         where: { id },
@@ -70,7 +75,10 @@ export class RevenueCodeService {
     }
   }
 
-  async removeRevenueCode(id: string): Promise<void> {
+  async removeRevenueCode(companyId: string, id: string): Promise<void> {
+    // Verify the revenue code belongs to the company
+    await this.findOneRevenueCode(companyId, id);
+    
     try {
       await this.prisma.revenueCode.delete({
         where: { id },
@@ -81,9 +89,11 @@ export class RevenueCodeService {
   }
 
   private async generateNextRevenueCode(
+    companyId: string,
     prisma: DatabaseService | Prisma.TransactionClient = this.prisma,
   ): Promise<string> {
     const lastCode = await prisma.revenueCode.findFirst({
+      where: { companyId },
       orderBy: { code: 'desc' },
     });
 
