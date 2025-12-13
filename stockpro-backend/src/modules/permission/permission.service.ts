@@ -10,10 +10,14 @@ export class PermissionService {
   constructor(private readonly prisma: DatabaseService) {}
 
   async create(
+    companyId: string,
     createPermissionRequest: CreatePermissionRequest,
   ): Promise<PermissionResponse> {
     const permission = await this.prisma.permission.create({
-      data: createPermissionRequest,
+      data: {
+        ...createPermissionRequest,
+        companyId,
+      },
     });
 
     return permission;

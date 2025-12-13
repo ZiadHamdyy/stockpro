@@ -16,6 +16,7 @@ import { PermissionResponse } from './dtos/response/permission.response';
 import { PermissionsGroupedResponse } from './dtos/response/permissions-grouped.response';
 import { Serialize } from '../../common/interceptors/serialize.interceptor';
 import { Auth } from '../../common/decorators/auth.decorator';
+import { currentCompany } from '../../common/decorators/company.decorator';
 
 @Controller('permissions')
 export class PermissionController {
@@ -27,8 +28,9 @@ export class PermissionController {
   @Auth({ permissions: ['permissions:create'] })
   async create(
     @Body() createPermissionRequest: CreatePermissionRequest,
+    @currentCompany('id') companyId: string,
   ): Promise<PermissionResponse> {
-    return await this.permissionService.create(createPermissionRequest);
+    return await this.permissionService.create(companyId, createPermissionRequest);
   }
 
   @Get()
