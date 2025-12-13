@@ -20,14 +20,17 @@ export class RoleService {
     private readonly authService: IContextAuthService,
   ) {}
 
-  async create(createRoleRequest: CreateRoleRequest): Promise<RoleResponse> {
+  async create(companyId: string, createRoleRequest: CreateRoleRequest): Promise<RoleResponse> {
     // Prevent creating a role with the name "مدير" (manager)
     if (createRoleRequest.name === 'مدير') {
       throw new ConflictException('لا يمكن إنشاء دور باسم مدير');
     }
 
     const role = await this.prisma.role.create({
-      data: createRoleRequest,
+      data: {
+        ...createRoleRequest,
+        companyId,
+      },
     });
 
     return role;
@@ -73,9 +76,9 @@ export class RoleService {
     } as RoleResponse;
   }
 
-  async findOneByName(name: string): Promise<RoleResponse | null> {
+  async findOneByName(companyId: string, name: string): Promise<RoleResponse | null> {
     const role = await this.prisma.role.findUnique({
-      where: { name },
+      where: { name_companyId: { name, companyId } },
       include: {
         rolePermissions: {
           include: {
