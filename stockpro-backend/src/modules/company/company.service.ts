@@ -24,6 +24,30 @@ export class CompanyService {
     return this.mapToResponse(company);
   }
 
+  async findByHost(host: string) {
+    const company = await this.prisma.company.findUnique({
+      where: { host },
+    });
+
+    if (!company) {
+      throw new NotFoundException(`Company not found for host: ${host}`);
+    }
+
+    return company;
+  }
+
+  async findFirstCompany() {
+    const company = await this.prisma.company.findFirst({
+      orderBy: { createdAt: 'asc' },
+    });
+
+    if (!company) {
+      throw new NotFoundException('No company found');
+    }
+
+    return company;
+  }
+
   async upsertCompany(data: UpsertCompanyRequest): Promise<CompanyResponse> {
     // Try to find existing company
     const existingCompany = await this.prisma.company.findFirst({
@@ -45,9 +69,15 @@ export class CompanyService {
         data: companyData,
       });
     } else {
-      // Create new company
+      // Create new company - host is required for new companies
+      if (!data.host) {
+        throw new NotFoundException('Host is required when creating a new company');
+      }
       company = await this.prisma.company.create({
-        data: companyData,
+        data: {
+          ...companyData,
+          host: data.host,
+        },
       });
     }
 
