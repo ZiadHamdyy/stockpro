@@ -698,8 +698,9 @@ async function seedCompany(companyId: string, host: string, companyName: string)
   if (!existingAdmin && existingBranch && managerRole) {
     // Hash the password using bcryptjs with 12 rounds (matching TOKEN_CONSTANTS)
     const hashedPassword = await bcryptjs.hash('Password#1', 12);
-    // Next user code - code is globally unique, so find max across all users
+    // Next user code - code is unique per company, so find max within company
     const lastUserWithCode = await prisma.user.findFirst({
+      where: { companyId },
       select: { code: true },
       orderBy: { code: 'desc' },
     });
