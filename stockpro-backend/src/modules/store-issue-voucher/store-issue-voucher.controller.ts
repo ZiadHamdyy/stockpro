@@ -14,6 +14,7 @@ import { UpdateStoreIssueVoucherDto } from './dtos/update-store-issue-voucher.dt
 import { JwtAuthenticationGuard } from '../../common/guards/strategy.guards/jwt.guard';
 import { Auth } from '../../common/decorators/auth.decorator';
 import { currentUser } from '../../common/decorators/currentUser.decorator';
+import { currentCompany } from '../../common/decorators/company.decorator';
 import type { currentUserType } from '../../common/types/current-user.type';
 
 @Controller('store-issue-vouchers')
@@ -28,8 +29,10 @@ export class StoreIssueVoucherController {
   create(
     @Body() createStoreIssueVoucherDto: CreateStoreIssueVoucherDto,
     @currentUser() user: currentUserType,
+    @currentCompany('id') companyId: string,
   ) {
     return this.storeIssueVoucherService.create(
+      companyId,
       createStoreIssueVoucherDto,
       user.branchId,
     );
@@ -37,14 +40,17 @@ export class StoreIssueVoucherController {
 
   @Get()
   @Auth({ permissions: ['store_issue_voucher:read'] })
-  findAll() {
-    return this.storeIssueVoucherService.findAll();
+  findAll(@currentCompany('id') companyId: string) {
+    return this.storeIssueVoucherService.findAll(companyId);
   }
 
   @Get(':id')
   @Auth({ permissions: ['store_issue_voucher:read'] })
-  findOne(@Param('id') id: string) {
-    return this.storeIssueVoucherService.findOne(id);
+  findOne(
+    @Param('id') id: string,
+    @currentCompany('id') companyId: string,
+  ) {
+    return this.storeIssueVoucherService.findOne(companyId, id);
   }
 
   @Patch(':id')
@@ -53,8 +59,10 @@ export class StoreIssueVoucherController {
     @Param('id') id: string,
     @Body() updateStoreIssueVoucherDto: UpdateStoreIssueVoucherDto,
     @currentUser() user: currentUserType,
+    @currentCompany('id') companyId: string,
   ) {
     return this.storeIssueVoucherService.update(
+      companyId,
       id,
       updateStoreIssueVoucherDto,
       user.branchId,
@@ -66,7 +74,8 @@ export class StoreIssueVoucherController {
   remove(
     @Param('id') id: string,
     @currentUser() user: currentUserType,
+    @currentCompany('id') companyId: string,
   ) {
-    return this.storeIssueVoucherService.remove(id, user.branchId);
+    return this.storeIssueVoucherService.remove(companyId, id, user.branchId);
   }
 }
