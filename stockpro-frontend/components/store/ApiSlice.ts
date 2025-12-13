@@ -7,6 +7,40 @@ import type {
 import { setCredentials, logOut, selectCurrentToken } from "./slices/auth/auth";
 import { showToastExternal } from "../common/ToastProvider";
 
+// Selector to get host override from Redux state or localStorage
+const selectHostOverride = (state: any): string | null => {
+  try {
+    // Check Redux state first (if you add a tenant slice later)
+    if (state?.tenant?.hostOverride) {
+      return state.tenant.hostOverride;
+    }
+    if (state?.auth?.hostOverride) {
+      return state.auth.hostOverride;
+    }
+    // Fallback to localStorage
+    if (typeof window !== 'undefined' && window.localStorage) {
+      return localStorage.getItem("X-Override-Host");
+    }
+  } catch (error) {
+    console.error("[ApiSlice] Error reading host override:", error);
+  }
+  return null;
+};
+
+// Helper function to set host override (can be called from anywhere)
+export const setHostOverride = (host: string | null) => {
+  if (host) {
+    localStorage.setItem("X-Override-Host", host);
+  } else {
+    localStorage.removeItem("X-Override-Host");
+  }
+};
+
+// Helper function to get host override
+export const getHostOverride = (): string | null => {
+  return localStorage.getItem("X-Override-Host");
+};
+
 const baseQuery = fetchBaseQuery({
   baseUrl:
     (import.meta as any).env?.VITE_BASE_BACK_URL ||
@@ -17,6 +51,27 @@ const baseQuery = fetchBaseQuery({
     if (token) {
       headers.set("authorization", `Bearer ${token}`);
     }
+    
+    // Add host override header for multi-tenancy simulation
+    // Backend middleware checks: x-company-host, host, x-forwarded-host, x-host
+    const hostOverride = selectHostOverride(getState() as any);
+    if (hostOverride) {
+      // Primary header that backend middleware checks first
+      headers.set("x-company-host", hostOverride);
+      
+      // Debug logging (remove in production)
+      if (import.meta.env.DEV) {
+        console.log("[ApiSlice] Host override headers set:", {
+          "x-company-host": hostOverride,
+        });
+      }
+    } else {
+      // Debug logging when no host override is set
+      if (import.meta.env.DEV) {
+        console.log("[ApiSlice] No host override set - headers will not include tenant info");
+      }
+    }
+    
     return headers;
   },
 });
