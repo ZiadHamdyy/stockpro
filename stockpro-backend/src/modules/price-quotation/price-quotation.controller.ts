@@ -18,6 +18,7 @@ import { PriceQuotationResponse } from './dtos/response/price-quotation.response
 import { JwtAuthenticationGuard } from '../../common/guards/strategy.guards/jwt.guard';
 import { Auth } from '../../common/decorators/auth.decorator';
 import { currentUser } from '../../common/decorators/currentUser.decorator';
+import { currentCompany } from '../../common/decorators/company.decorator';
 
 @Controller('price-quotations')
 @UseGuards(JwtAuthenticationGuard)
@@ -30,22 +31,27 @@ export class PriceQuotationController {
   async create(
     @Body() data: CreatePriceQuotationRequest,
     @currentUser() user: any,
+    @currentCompany('id') companyId: string,
   ): Promise<PriceQuotationResponse> {
-    return this.priceQuotationService.create(data, user.id, user.branchId);
+    return this.priceQuotationService.create(companyId, data, user.id, user.branchId);
   }
 
   @Get()
   @Auth({ permissions: ['price_quotation:read'] })
   async findAll(
+    @currentCompany('id') companyId: string,
     @Query('search') search?: string,
   ): Promise<PriceQuotationResponse[]> {
-    return this.priceQuotationService.findAll(search);
+    return this.priceQuotationService.findAll(companyId, search);
   }
 
   @Get(':id')
   @Auth({ permissions: ['price_quotation:read'] })
-  async findOne(@Param('id') id: string): Promise<PriceQuotationResponse> {
-    return this.priceQuotationService.findOne(id);
+  async findOne(
+    @Param('id') id: string,
+    @currentCompany('id') companyId: string,
+  ): Promise<PriceQuotationResponse> {
+    return this.priceQuotationService.findOne(companyId, id);
   }
 
   @Patch(':id')
@@ -53,14 +59,18 @@ export class PriceQuotationController {
   async update(
     @Param('id') id: string,
     @Body() data: UpdatePriceQuotationRequest,
+    @currentCompany('id') companyId: string,
   ): Promise<PriceQuotationResponse> {
-    return this.priceQuotationService.update(id, data);
+    return this.priceQuotationService.update(companyId, id, data);
   }
 
   @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)
   @Auth({ permissions: ['price_quotation:delete'] })
-  async remove(@Param('id') id: string): Promise<void> {
-    return this.priceQuotationService.remove(id);
+  async remove(
+    @Param('id') id: string,
+    @currentCompany('id') companyId: string,
+  ): Promise<void> {
+    return this.priceQuotationService.remove(companyId, id);
   }
 }
