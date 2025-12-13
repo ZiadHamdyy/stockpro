@@ -6,13 +6,17 @@ import { CreateNotificationDto } from './dtos/create-notification.dto';
 export class NotificationService {
   constructor(private readonly prisma: DatabaseService) {}
 
-  async create(createNotificationDto: CreateNotificationDto) {
+  async create(companyId: string, createNotificationDto: CreateNotificationDto) {
     return this.prisma.notification.create({
-      data: createNotificationDto,
+      data: {
+        ...createNotificationDto,
+        companyId,
+      },
     });
   }
 
   async createForStoreUsers(
+    companyId: string,
     storeId: string,
     type: string,
     message: string,
@@ -22,17 +26,18 @@ export class NotificationService {
       // Get store to find branch
       const store = await this.prisma.store.findUnique({
         where: { id: storeId },
-        select: { branchId: true },
+        select: { branchId: true, companyId: true },
       });
 
-      if (!store) {
-        console.error(`Store with id ${storeId} not found`);
+      if (!store || store.companyId !== companyId) {
+        console.error(`Store with id ${storeId} not found or doesn't belong to company ${companyId}`);
         return [];
       }
 
       // Get all users in the same branch as the store
       const users = await this.prisma.user.findMany({
         where: {
+          companyId,
           branchId: store.branchId,
           active: true,
         },
@@ -53,6 +58,7 @@ export class NotificationService {
               type,
               message,
               relatedId,
+              companyId,
             },
           }),
         ),
@@ -67,9 +73,12 @@ export class NotificationService {
     }
   }
 
-  async findAll(userId: string) {
+  async findAll(companyId: string, userId: string) {
     return this.prisma.notification.findMany({
-      where: { userId },
+      where: {
+        companyId,
+        userId,
+      },
       orderBy: { createdAt: 'desc' },
       include: {
         storeTransferVoucher: {
@@ -82,19 +91,21 @@ export class NotificationService {
     });
   }
 
-  async getUnreadCount(userId: string) {
+  async getUnreadCount(companyId: string, userId: string) {
     return this.prisma.notification.count({
       where: {
+        companyId,
         userId,
         read: false,
       },
     });
   }
 
-  async markAsRead(id: string, userId: string) {
+  async markAsRead(companyId: string, id: string, userId: string) {
     return this.prisma.notification.updateMany({
       where: {
         id,
+        companyId,
         userId, // Ensure user can only mark their own notifications as read
       },
       data: {
@@ -103,9 +114,10 @@ export class NotificationService {
     });
   }
 
-  async markAllAsRead(userId: string) {
+  async markAllAsRead(companyId: string, userId: string) {
     return this.prisma.notification.updateMany({
       where: {
+        companyId,
         userId,
         read: false,
       },
