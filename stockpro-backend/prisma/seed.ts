@@ -315,6 +315,35 @@ function generatePermissions(): Array<{
 async function main() {
   console.log('🌱 Starting seed process...');
 
+  // Create or get default company first (required for multi-tenancy)
+  console.log('🏢 Creating/Getting default company...');
+  let company = await prisma.company.findFirst({
+    where: { host: 'localhost' },
+  });
+  
+  if (!company) {
+    company = await prisma.company.create({
+      data: {
+        name: 'اسم الشركة',
+        activity: 'النشاط التجاري',
+        address: 'العنوان',
+        phone: '+966000000000',
+        taxNumber: '000000000000003',
+        commercialReg: '0000000000',
+        currency: 'SAR',
+        capital: 0,
+        vatRate: 15,
+        isVatEnabled: true,
+        host: 'localhost',
+      },
+    });
+    console.log('✅ Created default company');
+  } else {
+    console.log('✅ Company already exists');
+  }
+
+  const companyId = company.id;
+
   // Generate comprehensive permissions for all menu items
   const permissions = generatePermissions();
 
@@ -322,13 +351,17 @@ async function main() {
   for (const permission of permissions) {
     await prisma.permission.upsert({
       where: {
-        resource_action: {
+        resource_action_companyId: {
           resource: permission.resource,
           action: permission.action,
+          companyId,
         },
       },
       update: permission,
-      create: permission,
+      create: {
+        ...permission,
+        companyId,
+      },
     });
   }
   console.log(`✅ Created ${permissions.length} permissions`);
@@ -360,16 +393,28 @@ async function main() {
   console.log('👥 Creating roles...');
   for (const role of roles) {
     await prisma.role.upsert({
-      where: { name: role.name },
+      where: {
+        name_companyId: {
+          name: role.name,
+          companyId,
+        },
+      },
       update: role,
-      create: role,
+      create: {
+        ...role,
+        companyId,
+      },
     });
   }
   console.log(`✅ Created ${roles.length} roles`);
 
-  // Get all created roles and permissions
-  const createdRoles = await prisma.role.findMany();
-  const createdPermissions = await prisma.permission.findMany();
+  // Get all created roles and permissions for this company
+  const createdRoles = await prisma.role.findMany({
+    where: { companyId },
+  });
+  const createdPermissions = await prisma.permission.findMany({
+    where: { companyId },
+  });
 
   // Assign permissions to roles based on frontend rolePermissions map
   console.log('🔗 Assigning permissions to roles...');
@@ -581,48 +626,25 @@ async function main() {
     );
   }
 
-  // Assign default role to existing users
+  // Assign default role to existing users in this company
   console.log('👤 Assigning default role to existing users...');
   const defaultRole = createdRoles.find((r) => r.name === 'مدير');
   if (defaultRole) {
     await prisma.user.updateMany({
-      where: { roleId: null },
+      where: { roleId: null, companyId },
       data: { roleId: defaultRole.id },
     });
     console.log('✅ Assigned default role to existing users');
   }
 
-  // Create default company
-  console.log('🏢 Creating default company...');
-  let existingCompany = await prisma.company.findFirst();
-  if (!existingCompany) {
-    existingCompany = await prisma.company.create({
-      data: {
-        name: 'اسم الشركة',
-        activity: 'النشاط التجاري',
-        address: 'العنوان',
-        phone: '+966000000000',
-        taxNumber: '000000000000003',
-        commercialReg: '0000000000',
-        currency: 'SAR',
-        capital: 0,
-        vatRate: 15,
-        isVatEnabled: true,
-      },
-    });
-    console.log('✅ Created default company');
-  } else {
-    console.log('✅ Company already exists');
-  }
-
-  // Get or fetch the company for branch creation
-  const company = await prisma.company.findFirst();
-
   // Create default branch if none exists
   console.log('🏪 Creating default branch...');
-  let existingBranch = await prisma.branch.findFirst();
+  let existingBranch = await prisma.branch.findFirst({
+    where: { companyId },
+  });
   if (!existingBranch) {
     const lastBranchWithCode = await prisma.branch.findFirst({
+      where: { companyId },
       select: { code: true },
       orderBy: { code: 'desc' },
     });
@@ -634,6 +656,7 @@ async function main() {
         address: company?.address || 'العنوان',
         phone: company?.phone || '+966000000000',
         description: 'الفرع الرئيسي للشركة',
+        companyId,
       },
     });
     console.log('✅ Created default branch');
@@ -664,17 +687,30 @@ async function main() {
 
   for (const expenseType of expenseTypes) {
     await prisma.expenseType.upsert({
-      where: { name: expenseType.name },
+      where: {
+        name_companyId: {
+          name: expenseType.name,
+          companyId,
+        },
+      },
       update: expenseType,
-      create: expenseType,
+      create: {
+        ...expenseType,
+        companyId,
+      },
     });
   }
   console.log(`✅ Created ${expenseTypes.length} expense types`);
 
   // Create or update default admin user
   console.log('👤 Creating/updating default admin user...');
-  const existingAdmin = await prisma.user.findFirst({
-    where: { email: 'admin@stockpro.com' },
+  const existingAdmin = await prisma.user.findUnique({
+    where: {
+      email_companyId: {
+        email: 'admin@stockpro.com',
+        companyId,
+      },
+    },
   });
   let adminUser = existingAdmin;
   
@@ -683,6 +719,7 @@ async function main() {
     const hashedPassword = await bcryptjs.hash('Password#1', 12);
     // Next user code
     const lastUserWithCode = await prisma.user.findFirst({
+      where: { companyId },
       select: { code: true },
       orderBy: { code: 'desc' },
     });
@@ -698,6 +735,7 @@ async function main() {
         active: true,
         roleId: managerRole.id,
         branchId: existingBranch.id,
+        companyId,
       },
     });
     console.log('✅ Created default admin user');
@@ -706,7 +744,12 @@ async function main() {
   } else if (existingAdmin && managerRole) {
     // Ensure admin user has correct branch and role
     adminUser = await prisma.user.update({
-      where: { email: 'admin@stockpro.com' },
+      where: {
+        email_companyId: {
+          email: 'admin@stockpro.com',
+          companyId,
+        },
+      },
       data: {
         branchId: existingBranch.id,
         roleId: managerRole.id,
@@ -723,12 +766,13 @@ async function main() {
   // Create default store for the default branch
   console.log('🏬 Creating default store...');
   if (existingBranch && adminUser) {
-    let existingStore = await prisma.store.findFirst({
+    let existingStore = await prisma.store.findUnique({
       where: { branchId: existingBranch.id },
     });
 
     if (!existingStore) {
       const lastStoreWithCode = await prisma.store.findFirst({
+        where: { companyId },
         select: { code: true },
         orderBy: { code: 'desc' },
       });
@@ -743,6 +787,7 @@ async function main() {
           description: 'المخزن الرئيسي للشركة',
           branchId: existingBranch.id,
           userId: adminUser.id,
+          companyId,
         },
       });
       console.log('✅ Created default store');
@@ -756,12 +801,13 @@ async function main() {
   // Create default safe for the default branch
   console.log('💼 Creating default safe...');
   if (existingBranch) {
-    let existingSafe = await prisma.safe.findFirst({
+    let existingSafe = await prisma.safe.findUnique({
       where: { branchId: existingBranch.id },
     });
 
     if (!existingSafe) {
       const lastSafeWithCode = await prisma.safe.findFirst({
+        where: { companyId },
         select: { code: true },
         orderBy: { code: 'desc' },
       });
@@ -782,6 +828,7 @@ async function main() {
           branchId: existingBranch.id,
           openingBalance: 0,
           currentBalance: 0,
+          companyId,
         },
       });
       console.log('✅ Created default safe');
