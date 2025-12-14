@@ -3,12 +3,19 @@ import { DatabaseService } from '../../configs/database/database.service';
 import { CreateBankRequest } from './dtos/request/create-bank.request';
 import { UpdateBankRequest } from './dtos/request/update-bank.request';
 import { BankResponse } from './dtos/response/bank.response';
+import { SubscriptionService } from '../subscription/subscription.service';
 
 @Injectable()
 export class BankService {
-  constructor(private readonly prisma: DatabaseService) {}
+  constructor(
+    private readonly prisma: DatabaseService,
+    private readonly subscriptionService: SubscriptionService,
+  ) {}
 
   async create(companyId: string, data: CreateBankRequest): Promise<BankResponse> {
+    // Check subscription limit
+    await this.subscriptionService.enforceLimitOrThrow(companyId, 'banks');
+
     const code = await this.generateNextCode(companyId);
 
     const bank = await this.prisma.bank.create({
