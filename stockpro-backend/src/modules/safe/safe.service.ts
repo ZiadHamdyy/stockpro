@@ -7,12 +7,19 @@ import { DatabaseService } from '../../configs/database/database.service';
 import { CreateSafeRequest } from './dtos/request/create-safe.request';
 import { UpdateSafeRequest } from './dtos/request/update-safe.request';
 import { SafeResponse } from './dtos/response/safe.response';
+import { SubscriptionService } from '../subscription/subscription.service';
 
 @Injectable()
 export class SafeService {
-  constructor(private readonly prisma: DatabaseService) {}
+  constructor(
+    private readonly prisma: DatabaseService,
+    private readonly subscriptionService: SubscriptionService,
+  ) {}
 
   async create(companyId: string, data: CreateSafeRequest): Promise<SafeResponse> {
+    // Check subscription limit
+    await this.subscriptionService.enforceLimitOrThrow(companyId, 'safes');
+
     const code = await this.generateNextCode(companyId);
 
     // Enforce one safe per branch (friendly error; DB unique handles races)
