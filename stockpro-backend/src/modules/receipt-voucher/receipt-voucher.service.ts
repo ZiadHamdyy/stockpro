@@ -10,12 +10,14 @@ import { UpdateReceiptVoucherRequest } from './dtos/request/update-receipt-vouch
 import { ReceiptVoucherResponse } from './dtos/response/receipt-voucher.response';
 import { AccountingService } from '../../common/services/accounting.service';
 import { FiscalYearService } from '../fiscal-year/fiscal-year.service';
+import { SubscriptionService } from '../subscription/subscription.service';
 
 @Injectable()
 export class ReceiptVoucherService {
   constructor(
     private readonly prisma: DatabaseService,
     private readonly fiscalYearService: FiscalYearService,
+    private readonly subscriptionService: SubscriptionService,
   ) {}
 
   // ==================== CRUD Operations ====================
@@ -25,6 +27,9 @@ export class ReceiptVoucherService {
     data: CreateReceiptVoucherRequest,
     userId: string,
   ): Promise<ReceiptVoucherResponse> {
+    // Check subscription limit
+    await this.subscriptionService.enforceLimitOrThrow(companyId, 'financialVouchersPerMonth');
+
     const voucherDate = data.date ? new Date(data.date) : new Date();
     
     // Check if there is an open period for this date
