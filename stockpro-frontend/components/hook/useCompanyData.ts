@@ -42,7 +42,7 @@ export const useCompanyData = () => {
         activity: company.activity === 'النشاط التجاري' ? '' : company.activity,
         address: company.address === 'العنوان' ? '' : company.address,
         phone: company.phone === '+966000000000' ? '' : company.phone,
-        taxNumber: company.taxNumber === '000000000000003' ? '' : company.taxNumber,
+        taxNumber: company.taxNumber === '000000000000000' ? '' : company.taxNumber,
         commercialReg: company.commercialReg === '0000000000' ? '' : company.commercialReg,
         capital: company.capital === 0 || company.capital === null ? ("" as any) : company.capital,
       };

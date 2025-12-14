@@ -6,12 +6,14 @@ import { PriceQuotationResponse } from './dtos/response/price-quotation.response
 import { throwHttp } from '../../common/utils/http-error';
 import { ERROR_CODES } from '../../common/constants/error-codes';
 import { FiscalYearService } from '../fiscal-year/fiscal-year.service';
+import { SubscriptionService } from '../subscription/subscription.service';
 
 @Injectable()
 export class PriceQuotationService {
   constructor(
     private readonly prisma: DatabaseService,
     private readonly fiscalYearService: FiscalYearService,
+    private readonly subscriptionService: SubscriptionService,
   ) {}
 
   async create(
@@ -20,6 +22,9 @@ export class PriceQuotationService {
     userId: string,
     branchId?: string,
   ): Promise<PriceQuotationResponse> {
+    // Check subscription limit
+    await this.subscriptionService.enforceLimitOrThrow(companyId, 'priceQuotationsPerMonth');
+
     if (!data.items || data.items.length === 0) {
       throwHttp(
         422,

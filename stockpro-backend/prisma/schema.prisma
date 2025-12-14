@@ -249,6 +249,7 @@ model Company {
   fiscalYears       FiscalYear[]
   auditLogs         AuditLog[]
   notifications     Notification[]
+  subscription      Subscription?
 
   @@index([host])
 }
@@ -1166,6 +1167,19 @@ enum FiscalYearStatus {
   CLOSED
 }
 
+enum SubscriptionPlanType {
+  BASIC
+  GROWTH
+  BUSINESS
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  EXPIRED
+  CANCELLED
+  TRIAL
+}
+
 model FiscalYear {
   id               String           @id @default(uuid())
   name             String
@@ -1185,4 +1199,20 @@ model FiscalYear {
   @@index([companyId])
   @@index([id, companyId])
   @@unique([id, companyId])
+}
+
+model Subscription {
+  id        String               @id @default(uuid())
+  planType  SubscriptionPlanType
+  status    SubscriptionStatus   @default(ACTIVE)
+  startDate DateTime             @default(now())
+  endDate   DateTime?
+  companyId String               @unique
+  createdAt DateTime             @default(now())
+  updatedAt DateTime             @updatedAt
+  company   Company              @relation(fields: [companyId], references: [id])
+
+  @@index([companyId])
+  @@index([status])
+  @@index([planType])
 }

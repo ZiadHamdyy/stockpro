@@ -9,15 +9,20 @@ import { CreateCustomerRequest } from './dtos/request/create-customer.request';
 import { UpdateCustomerRequest } from './dtos/request/update-customer.request';
 import { CustomerResponse } from './dtos/response/customer.response';
 import { FiscalYearService } from '../fiscal-year/fiscal-year.service';
+import { SubscriptionService } from '../subscription/subscription.service';
 
 @Injectable()
 export class CustomerService {
   constructor(
     private readonly prisma: DatabaseService,
     private readonly fiscalYearService: FiscalYearService,
+    private readonly subscriptionService: SubscriptionService,
   ) {}
 
   async create(companyId: string, data: CreateCustomerRequest): Promise<CustomerResponse> {
+    // Check subscription limit
+    await this.subscriptionService.enforceLimitOrThrow(companyId, 'customers');
+
     // Check financial period status (use current date for customers without date field)
     const customerDate = new Date();
     

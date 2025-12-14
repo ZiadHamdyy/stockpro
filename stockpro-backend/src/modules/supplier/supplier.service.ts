@@ -9,15 +9,20 @@ import { CreateSupplierRequest } from './dtos/request/create-supplier.request';
 import { UpdateSupplierRequest } from './dtos/request/update-supplier.request';
 import { SupplierResponse } from './dtos/response/supplier.response';
 import { FiscalYearService } from '../fiscal-year/fiscal-year.service';
+import { SubscriptionService } from '../subscription/subscription.service';
 
 @Injectable()
 export class SupplierService {
   constructor(
     private readonly prisma: DatabaseService,
     private readonly fiscalYearService: FiscalYearService,
+    private readonly subscriptionService: SubscriptionService,
   ) {}
 
   async create(companyId: string, data: CreateSupplierRequest): Promise<SupplierResponse> {
+    // Check subscription limit
+    await this.subscriptionService.enforceLimitOrThrow(companyId, 'suppliers');
+
     // Check financial period status (use current date for suppliers without date field)
     const supplierDate = new Date();
     

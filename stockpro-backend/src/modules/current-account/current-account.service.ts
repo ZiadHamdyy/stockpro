@@ -4,18 +4,23 @@ import { CreateCurrentAccountRequest } from './dtos/request/create-current-accou
 import { UpdateCurrentAccountRequest } from './dtos/request/update-current-account.request';
 import { CurrentAccountResponse } from './dtos/response/current-account.response';
 import { FiscalYearService } from '../fiscal-year/fiscal-year.service';
+import { SubscriptionService } from '../subscription/subscription.service';
 
 @Injectable()
 export class CurrentAccountService {
   constructor(
     private readonly prisma: DatabaseService,
     private readonly fiscalYearService: FiscalYearService,
+    private readonly subscriptionService: SubscriptionService,
   ) {}
 
   async create(
     companyId: string,
     createCurrentAccountDto: CreateCurrentAccountRequest,
   ): Promise<CurrentAccountResponse> {
+    // Check subscription limit
+    await this.subscriptionService.enforceLimitOrThrow(companyId, 'currentAccounts');
+
     // Check financial period status (use current date for accounts without date field)
     const accountDate = new Date();
     

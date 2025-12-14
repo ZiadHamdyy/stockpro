@@ -31,7 +31,9 @@ export const NavigationHandler = () => {
       if (token) {
         dispatch(setCredentials({ accessToken: token, user }));
         enqueueSnackbar("Login successful!", { variant: "success" });
-        navigate("/dashboard", { replace: true });
+        // Check if user is SUPER_ADMIN and redirect accordingly
+        const isSuperAdmin = user?.role?.name === 'SUPER_ADMIN';
+        navigate(isSuperAdmin ? "/subscription" : "/dashboard", { replace: true });
       }
     } catch (error) {
       enqueueSnackbar("Login failed!", { variant: "error" });

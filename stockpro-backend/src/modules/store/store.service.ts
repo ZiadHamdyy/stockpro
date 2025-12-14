@@ -6,12 +6,19 @@ import {
 import { DatabaseService } from '../../configs/database/database.service';
 import { CreateStoreDto } from './dtos/create-store.dto';
 import { UpdateStoreDto } from './dtos/update-store.dto';
+import { SubscriptionService } from '../subscription/subscription.service';
 
 @Injectable()
 export class StoreService {
-  constructor(private readonly prisma: DatabaseService) {}
+  constructor(
+    private readonly prisma: DatabaseService,
+    private readonly subscriptionService: SubscriptionService,
+  ) {}
 
   async create(companyId: string, createStoreDto: CreateStoreDto) {
+    // Check subscription limit
+    await this.subscriptionService.enforceLimitOrThrow(companyId, 'stores');
+
     // Enforce one store per branch (friendly error; DB unique handles races)
     const existingForBranch = await this.prisma.store.findUnique({
       where: { branchId: createStoreDto.branchId },

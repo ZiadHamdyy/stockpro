@@ -10,6 +10,7 @@ import { StoreService } from '../store/store.service';
 import { StockService } from '../store/services/stock.service';
 import { AuditLogService } from '../audit-log/audit-log.service';
 import { FiscalYearService } from '../fiscal-year/fiscal-year.service';
+import { SubscriptionService } from '../subscription/subscription.service';
 
 @Injectable()
 export class SalesInvoiceService {
@@ -19,6 +20,7 @@ export class SalesInvoiceService {
     private readonly stockService: StockService,
     private readonly auditLogService: AuditLogService,
     private readonly fiscalYearService: FiscalYearService,
+    private readonly subscriptionService: SubscriptionService,
   ) {}
 
   private computeLineTotals(
@@ -55,6 +57,9 @@ export class SalesInvoiceService {
     userId: string,
     branchId?: string,
   ): Promise<SalesInvoiceResponse> {
+    // Check subscription limit
+    await this.subscriptionService.enforceLimitOrThrow(companyId, 'invoicesPerMonth');
+
     const invoiceDate = data.date ? new Date(data.date) : new Date();
     
     // Check if there is an open period for this date

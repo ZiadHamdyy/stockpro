@@ -2,12 +2,19 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { DatabaseService } from '../../configs/database/database.service';
 import { CreateBranchDto } from './dtos/create-branch.dto';
 import { UpdateBranchDto } from './dtos/update-branch.dto';
+import { SubscriptionService } from '../subscription/subscription.service';
 
 @Injectable()
 export class BranchService {
-  constructor(private readonly prisma: DatabaseService) {}
+  constructor(
+    private readonly prisma: DatabaseService,
+    private readonly subscriptionService: SubscriptionService,
+  ) {}
 
   async create(companyId: string, createBranchDto: CreateBranchDto) {
+    // Check subscription limit
+    await this.subscriptionService.enforceLimitOrThrow(companyId, 'branches');
+
     // Determine next sequential code (starting from 1, company-scoped)
     const last = await this.prisma.branch.findFirst({
       where: { companyId },

@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import type { CompanyInfo } from '../../../types';
 import { ExcelIcon, PdfIcon, PrintIcon, SearchIcon, BoxIcon, DollarSignIcon, DatabaseIcon, TrashIcon } from '../../icons';
 import { useToast } from '../../common/ToastProvider';
@@ -85,7 +85,7 @@ const InventoryCountPage: React.FC<InventoryCountProps> = ({ title, companyInfo 
     }, [allStores, canSearchAllBranches, userBranchId]);
     
     const { data: items = [], isLoading: itemsLoading } = useGetItemsQuery(
-        !canSearchAllBranches && selectedStoreId ? { storeId: selectedStoreId } : undefined,
+        selectedStoreId ? { storeId: selectedStoreId } : undefined,
     );
     const { data: allInventoryCounts = [], isLoading: countsLoading } = useGetInventoryCountsQuery();
     
@@ -114,27 +114,24 @@ const InventoryCountPage: React.FC<InventoryCountProps> = ({ title, companyInfo 
         return store?.name || '';
     }, [stores, selectedStoreId, userStore]);
 
-    // Set user's store as default when stores are loaded (new/unsaved) if branch-restricted
+    // Set user's store as default when stores are loaded (new/unsaved)
     useEffect(() => {
-        if (canSearchAllBranches) return;
         if (!userStore) return;
         if (countId) return; // don't override when viewing saved count
-        if (selectedStoreId !== userStore.id) {
+        if (!selectedStoreId || selectedStoreId !== userStore.id) {
             setSelectedStoreId(userStore.id);
             setCountItems([]); // reset items to reload for current store
         }
-    }, [canSearchAllBranches, userStore, selectedStoreId, countId]);
+    }, [userStore, selectedStoreId, countId]);
 
     // Initialize new count
-    const initializeCount = () => {
-        // Reset to user's store when creating new count (only when branch-restricted)
-        if (!canSearchAllBranches) {
-            if (!userStore) return;
-            if (selectedStoreId !== userStore.id) {
-                setSelectedStoreId(userStore.id);
-                setCountItems([]);
-                return; // Will re-run when store changes and items load
-            }
+    const initializeCount = useCallback(() => {
+        // Reset to user's store when creating new count
+        if (!userStore) return;
+        if (selectedStoreId !== userStore.id) {
+            setSelectedStoreId(userStore.id);
+            setCountItems([]);
+            return; // Will re-run when store changes and items load
         }
 
         if (!selectedStoreId || items.length === 0) return;
@@ -159,7 +156,7 @@ const InventoryCountPage: React.FC<InventoryCountProps> = ({ title, companyInfo 
             updatedAt: new Date().toISOString(),
         }));
         setCountItems(initialCountItems);
-    };
+    }, [userStore, selectedStoreId, items]);
 
     useEffect(() => {
         // Initialize when store or items change (only if no count is loaded)
@@ -168,7 +165,8 @@ const InventoryCountPage: React.FC<InventoryCountProps> = ({ title, companyInfo 
         if (selectedStoreId && stockedItems.length > 0 && countItems.length === 0 && !countId) {
             initializeCount();
         }
-    }, [selectedStoreId, items]);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [selectedStoreId, items, countId, initializeCount]);
 
     const handleActualChange = (itemId: string, val: string) => {
         if (status === 'POSTED') return; // Read-only if posted

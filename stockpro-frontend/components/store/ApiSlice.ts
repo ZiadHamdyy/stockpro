@@ -34,6 +34,8 @@ export const setHostOverride = (host: string | null) => {
   } else {
     localStorage.removeItem("X-Override-Host");
   }
+  // Dispatch custom event to notify components of company switch
+  window.dispatchEvent(new CustomEvent('company-switch', { detail: { host } }));
 };
 
 // Helper function to get host override
@@ -174,6 +176,7 @@ export const apiSlice = createApi({
     "AuditLog",
     "FiscalYear",
     "Notification",
+    "Subscription",
   ],
   endpoints: () => ({}),
 });

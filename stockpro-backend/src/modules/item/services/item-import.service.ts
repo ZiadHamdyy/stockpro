@@ -35,7 +35,7 @@ export class ItemImportService {
     }
 
     if (!file.originalname.toLowerCase().endsWith('.xlsx')) {
-      throw new BadRequestException('يجب أن يكون الملف بصيغة ‎.xlsx‎');
+      throw new BadRequestException('يجب أن يكون الملف بصيغة');
     }
 
     const workbook = this.readWorkbook(file);
@@ -180,11 +180,20 @@ export class ItemImportService {
       name,
       groupMap,
       'المجموعة',
-      () =>
-        this.prisma.itemGroup.create({
-          data: { name, companyId },
+      async () => {
+        // Generate next code for this company
+        const last = await this.prisma.itemGroup.findFirst({
+          where: { companyId },
+          select: { code: true },
+          orderBy: { code: 'desc' },
+        });
+        const nextCode = (last?.code ?? 0) + 1;
+
+        return this.prisma.itemGroup.create({
+          data: { name, companyId, code: nextCode },
           select: { id: true },
-        }),
+        });
+      },
       () =>
         this.prisma.itemGroup.findUnique({
           where: { name_companyId: { name, companyId } },
@@ -202,11 +211,20 @@ export class ItemImportService {
       name,
       unitMap,
       'الوحدة',
-      () =>
-        this.prisma.unit.create({
-          data: { name, companyId },
+      async () => {
+        // Generate next code for this company
+        const last = await this.prisma.unit.findFirst({
+          where: { companyId },
+          select: { code: true },
+          orderBy: { code: 'desc' },
+        });
+        const nextCode = (last?.code ?? 0) + 1;
+
+        return this.prisma.unit.create({
+          data: { name, companyId, code: nextCode },
           select: { id: true },
-        }),
+        });
+      },
       () =>
         this.prisma.unit.findUnique({
           where: { name_companyId: { name, companyId } },

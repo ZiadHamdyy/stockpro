@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { MENU_ITEMS } from "../../constants";
 import type { MenuItem } from "../../types";
@@ -8,6 +8,8 @@ import {
   getMenuKeyFromPath,
 } from "../../utils/menuPathMapper";
 import { filterMenuByReadPermissions } from "../../utils/permissions";
+import { useSubscription } from "../hook/useSubscription";
+import { filterMenuBySubscription } from "../../utils/subscriptionFilter";
 
 interface SidebarProps {
   searchTerm: string;
@@ -77,14 +79,62 @@ const Sidebar: React.FC<SidebarProps> = ({
   const navigate = useNavigate();
   const location = useLocation();
   const [openMenus, setOpenMenus] = useState<Record<string, boolean>>({});
+  const { subscription, isLoading: subscriptionLoading } = useSubscription();
 
   const menuFilteredByPermissions = useMemo(
     () => filterMenuByReadPermissions(MENU_ITEMS, permissionSet),
     [permissionSet],
   ); // hides pages without read access and prunes empty groups
+
+  // Filter menu items by subscription plan
+  // Only filter when subscription is loaded, otherwise show all items
+  const menuFilteredBySubscription = useMemo(
+    () => {
+      if (subscriptionLoading || !subscription) {
+        // Show all items while loading or if no subscription
+        return menuFilteredByPermissions;
+      }
+      
+      const filtered = filterMenuBySubscription(
+        menuFilteredByPermissions, 
+        subscription.planType
+      );
+      
+      // Debug: Log if Financial Analysis is in the filtered result
+      const hasFinancialAnalysis = filtered.some(
+        item => item.key === 'reports' && 
+        item.children?.some(child => child.key === 'financial_analysis')
+      );
+      
+      if (hasFinancialAnalysis && subscription.planType === 'BASIC') {
+        console.error('[Sidebar] ERROR: Financial Analysis visible for BASIC plan!', {
+          planType: subscription.planType,
+          filteredItems: filtered.map(i => i.key),
+        });
+      }
+      
+      return filtered;
+    },
+    [menuFilteredByPermissions, subscription?.planType, subscriptionLoading]
+  );
+
+  // Debug logging for filtering state
+  useEffect(() => {
+    console.log('[Sidebar] Filtering state:', {
+      subscription,
+      planType: subscription?.planType,
+      isLoading: subscriptionLoading,
+      menuFilteredBySubscription: menuFilteredBySubscription.length,
+      hasFinancialAnalysis: menuFilteredBySubscription.some(
+        item => item.key === 'reports' && 
+        item.children?.some(child => child.key === 'financial_analysis')
+      ),
+    });
+  }, [subscription, subscriptionLoading, menuFilteredBySubscription]);
+
   const filteredMenu = useMemo(
-    () => filterMenuItems(menuFilteredByPermissions, searchTerm),
-    [searchTerm, menuFilteredByPermissions],
+    () => filterMenuItems(menuFilteredBySubscription, searchTerm),
+    [searchTerm, menuFilteredBySubscription],
   );
 
   // Get current active menu key from path

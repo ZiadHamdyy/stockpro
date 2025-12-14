@@ -6,6 +6,9 @@ export const getPathFromMenuKey = (key: string): string => {
     // Dashboard
     dashboard: "/dashboard",
 
+    // Subscription
+    subscription: "/subscription",
+
     // Settings
     company_data: "/settings/company-data",
     fiscal_years: "/settings/fiscal-years",
@@ -142,6 +145,7 @@ export const getPathFromMenuKey = (key: string): string => {
 export const getMenuKeyFromPath = (path: string): string => {
   const pathToKeyMap: Record<string, string> = {
     "/dashboard": "dashboard",
+    "/subscription": "subscription",
     "/settings/company-data": "company_data",
     "/settings/fiscal-years": "fiscal_years",
     "/settings/branches-data": "branches_data",
