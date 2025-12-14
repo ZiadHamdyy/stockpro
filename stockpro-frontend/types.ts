@@ -431,3 +431,16 @@ export interface RevenueCode {
   code: string;
   name: string;
 }
+
+
+export interface LicenseInfo {
+  licenseKey: string;
+  planName: string;
+  status: 'active' | 'expired' | 'trial';
+  startDate: string;
+  expiryDate: string;
+  registeredOwner: string;
+  ownerPhone: string;
+  maxUsers: number;
+  maxBranches: number;
+}
