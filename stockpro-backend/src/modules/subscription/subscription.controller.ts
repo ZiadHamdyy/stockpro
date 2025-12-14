@@ -1,0 +1,59 @@
+import { Controller, Get, Post, Body } from '@nestjs/common';
+import { SubscriptionService } from './subscription.service';
+import { Auth } from '../../common/decorators/auth.decorator';
+import { currentCompany } from '../../common/decorators/company.decorator';
+import { UpdateSubscriptionRequest } from './dtos/request/update-subscription.request';
+import { SubscriptionResponse } from './dtos/response/subscription.response';
+import { PlanLimitsResponse } from './dtos/response/plan-limits.response';
+import { UsageStatsResponse } from './dtos/response/usage-stats.response';
+
+@Controller('subscriptions')
+export class SubscriptionController {
+  constructor(private readonly subscriptionService: SubscriptionService) {}
+
+  /**
+   * Get current subscription for company
+   */
+  @Get('current')
+  @Auth()
+  async getCurrentSubscription(
+    @currentCompany('id') companyId: string,
+  ): Promise<SubscriptionResponse> {
+    return this.subscriptionService.getCompanySubscription(companyId);
+  }
+
+  /**
+   * Get plan limits for current subscription
+   */
+  @Get('limits')
+  @Auth()
+  async getPlanLimits(
+    @currentCompany('id') companyId: string,
+  ): Promise<PlanLimitsResponse> {
+    return this.subscriptionService.getPlanLimits(companyId);
+  }
+
+  /**
+   * Get current usage statistics
+   */
+  @Get('usage')
+  @Auth()
+  async getUsageStats(
+    @currentCompany('id') companyId: string,
+  ): Promise<UsageStatsResponse> {
+    return this.subscriptionService.getUsageStats(companyId);
+  }
+
+  /**
+   * Update subscription plan (superadmin only)
+   */
+  @Post('upgrade')
+  @Auth({ permissions: ['subscription:update'] })
+  async upgradeSubscription(
+    @currentCompany('id') companyId: string,
+    @Body() data: UpdateSubscriptionRequest,
+  ): Promise<SubscriptionResponse> {
+    return this.subscriptionService.updateSubscription(companyId, data.planType);
+  }
+}
+
