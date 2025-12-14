@@ -8,6 +8,7 @@ import { StockService } from '../store/services/stock.service';
 import type { currentUserType } from '../../common/types/current-user.type';
 import { GenericHttpException } from '../../common/application/exceptions/generic-http-exception';
 import { FiscalYearService } from '../fiscal-year/fiscal-year.service';
+import { SubscriptionService } from '../subscription/subscription.service';
 
 @Injectable()
 export class ItemService {
@@ -16,6 +17,7 @@ export class ItemService {
     private readonly storeService: StoreService,
     private readonly stockService: StockService,
     private readonly fiscalYearService: FiscalYearService,
+    private readonly subscriptionService: SubscriptionService,
   ) {}
 
   async create(
@@ -23,6 +25,9 @@ export class ItemService {
     data: CreateItemRequest,
     currentUser: currentUserType,
   ): Promise<ItemResponse> {
+    // Check subscription limit
+    await this.subscriptionService.enforceLimitOrThrow(companyId, 'items');
+
     // Check financial period status (use current date for items without date field)
     const itemDate = new Date();
     
