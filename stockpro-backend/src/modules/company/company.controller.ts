@@ -31,8 +31,8 @@ export class CompanyController {
 
   @Post('create-with-seed')
   @Auth({ permissions: ['subscription:create'] })
-  async createCompanyWithSeed(@Body() body: { host: string }): Promise<CompanyResponse> {
-    return this.companyService.createCompanyWithSeed(body.host);
+  async createCompanyWithSeed(@Body() body: { host: string; planType?: 'BASIC' | 'GROWTH' | 'BUSINESS' }): Promise<CompanyResponse> {
+    return this.companyService.createCompanyWithSeed(body.host, body.planType);
   }
 
   @Put()

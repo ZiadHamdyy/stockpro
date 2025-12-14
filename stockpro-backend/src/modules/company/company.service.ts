@@ -318,7 +318,9 @@ function generatePermissions(): Array<{
 
 @Injectable()
 export class CompanyService {
-  constructor(private readonly prisma: DatabaseService) {}
+  constructor(
+    private readonly prisma: DatabaseService,
+  ) {}
 
   async getCompany(companyId: string): Promise<CompanyResponse> {
     const company = await this.prisma.company.findUnique({
@@ -443,7 +445,7 @@ export class CompanyService {
     return this.mapToResponse(company);
   }
 
-  async createCompanyWithSeed(host: string): Promise<CompanyResponse> {
+  async createCompanyWithSeed(host: string, planType: 'BASIC' | 'GROWTH' | 'BUSINESS' = 'BASIC'): Promise<CompanyResponse> {
     // Normalize host to lowercase
     const normalizedHost = host.toLowerCase().trim();
 
@@ -484,6 +486,15 @@ export class CompanyService {
 
     // Seed all company data
     await this.seedCompanyData(company.id, normalizedHost, company.name);
+
+    // Create subscription with selected plan
+    await this.prisma.subscription.create({
+      data: {
+        companyId: company.id,
+        planType: planType,
+        status: 'ACTIVE',
+      },
+    });
 
     return this.mapToResponse(company);
   }
