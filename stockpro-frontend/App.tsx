@@ -1344,7 +1344,10 @@ const AppContent = () => {
             <Route
               path="/reports/financial-analysis/liquidity"
               element={
-                <ProtectedRoute requiredPermission="liquidity_report-read">
+                <ProtectedRoute 
+                  requiredPermission="liquidity_report-read"
+                  requiresSubscription="GROWTH"
+                >
                   <LiquidityReport title={currentPageTitle} />
                 </ProtectedRoute>
               }
@@ -1352,7 +1355,10 @@ const AppContent = () => {
             <Route
               path="/reports/financial-analysis/performance"
               element={
-                <ProtectedRoute requiredPermission="financial_performance_report-read">
+                <ProtectedRoute 
+                  requiredPermission="financial_performance_report-read"
+                  requiresSubscription="GROWTH"
+                >
                   <FinancialPerformanceReport title={currentPageTitle} />
                 </ProtectedRoute>
               }
@@ -1360,7 +1366,10 @@ const AppContent = () => {
             <Route
               path="/reports/financial-analysis/item-profitability"
               element={
-                <ProtectedRoute requiredPermission="item_profitability_report-read">
+                <ProtectedRoute 
+                  requiredPermission="item_profitability_report-read"
+                  requiresSubscription="GROWTH"
+                >
                   <ItemProfitabilityReport title={currentPageTitle} />
                 </ProtectedRoute>
               }
@@ -1368,7 +1377,10 @@ const AppContent = () => {
             <Route
               path="/reports/financial-analysis/debt-aging"
               element={
-                <ProtectedRoute requiredPermission="debt_aging_report-read">
+                <ProtectedRoute 
+                  requiredPermission="debt_aging_report-read"
+                  requiresSubscription="GROWTH"
+                >
                   <DebtAgingReport title={currentPageTitle} />
                 </ProtectedRoute>
               }
@@ -1376,7 +1388,10 @@ const AppContent = () => {
             <Route
               path="/reports/financial-analysis/stagnant-items"
               element={
-                <ProtectedRoute requiredPermission="stagnant_items_report-read">
+                <ProtectedRoute 
+                  requiredPermission="stagnant_items_report-read"
+                  requiresSubscription="GROWTH"
+                >
                   <StagnantItemsReport title={currentPageTitle} />
                 </ProtectedRoute>
               }
@@ -1384,7 +1399,10 @@ const AppContent = () => {
             <Route
               path="/reports/financial-analysis/vip-customers"
               element={
-                <ProtectedRoute requiredPermission="vip_customers_report-read">
+                <ProtectedRoute 
+                  requiredPermission="vip_customers_report-read"
+                  requiresSubscription="GROWTH"
+                >
                   <VipCustomersReport title={currentPageTitle} />
                 </ProtectedRoute>
               }

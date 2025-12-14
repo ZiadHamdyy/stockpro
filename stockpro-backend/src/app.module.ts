@@ -50,6 +50,7 @@ import { PriceQuotationModule } from './modules/price-quotation/price-quotation.
 import { InventoryCountModule } from './modules/inventory-count/inventory-count.module';
 import { AuditLogModule } from './modules/audit-log/audit-log.module';
 import { FiscalYearModule } from './modules/fiscal-year/fiscal-year.module';
+import { SubscriptionModule } from './modules/subscription/subscription.module';
 
 @Module({
   imports: [
@@ -97,6 +98,7 @@ import { FiscalYearModule } from './modules/fiscal-year/fiscal-year.module';
     InventoryCountModule,
     AuditLogModule,
     FiscalYearModule,
+    SubscriptionModule,
   ],
   controllers: [AppController],
   providers: [
