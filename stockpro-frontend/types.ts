@@ -432,6 +432,62 @@ export interface RevenueCode {
   name: string;
 }
 
+// Subscription Types
+export interface Subscription {
+  id: string;
+  planType: 'BASIC' | 'GROWTH' | 'BUSINESS';
+  status: 'ACTIVE' | 'EXPIRED' | 'CANCELLED' | 'TRIAL';
+  startDate: string;
+  endDate?: string;
+  companyId: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface PlanLimits {
+  users: number;
+  branches: number;
+  stores: number;
+  safes: number;
+  banks: number;
+  invoicesPerMonth: number;
+  customers: number;
+  suppliers: number;
+  items: number;
+  priceQuotationsPerMonth: number;
+  financialVouchersPerMonth: number;
+  currentAccounts: number;
+  expenseRevenuePerMonth: number;
+  receivableAccounts: number;
+  payableAccounts: number;
+  financialAnalysisEnabled: boolean;
+}
+
+export interface UsageStats {
+  users: number;
+  branches: number;
+  stores: number;
+  safes: number;
+  banks: number;
+  invoicesThisMonth: number;
+  customers: number;
+  suppliers: number;
+  items: number;
+  priceQuotationsThisMonth: number;
+  financialVouchersThisMonth: number;
+  currentAccounts: number;
+  expenseRevenueThisMonth: number;
+  receivableAccounts: number;
+  payableAccounts: number;
+}
+
+export interface LimitCheckResult {
+  allowed: boolean;
+  current: number;
+  limit: number;
+  percentage: number;
+  resourceName: string;
+}
 
 export interface LicenseInfo {
   licenseKey: string;

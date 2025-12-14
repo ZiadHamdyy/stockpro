@@ -26,7 +26,7 @@ export const currentCompany = createParamDecorator(
       }
 
       return { id: targetCompanyId };
-    }or
+    }
 
     // Regular users use company from request context
     if (!companyId) {
