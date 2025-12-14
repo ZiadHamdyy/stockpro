@@ -11,6 +11,7 @@ import { StoreService } from '../store/store.service';
 import { StockService } from '../store/services/stock.service';
 import { AuditLogService } from '../audit-log/audit-log.service';
 import { FiscalYearService } from '../fiscal-year/fiscal-year.service';
+import { SubscriptionService } from '../subscription/subscription.service';
 
 @Injectable()
 export class PurchaseReturnService {
@@ -20,6 +21,7 @@ export class PurchaseReturnService {
     private readonly stockService: StockService,
     private readonly auditLogService: AuditLogService,
     private readonly fiscalYearService: FiscalYearService,
+    private readonly subscriptionService: SubscriptionService,
   ) {}
 
   /**
@@ -39,6 +41,9 @@ export class PurchaseReturnService {
     userId: string,
     branchId?: string,
   ): Promise<PurchaseReturnResponse> {
+    // Check subscription limit
+    await this.subscriptionService.enforceLimitOrThrow(companyId, 'invoicesPerMonth');
+
     const returnDate = data.date ? new Date(data.date) : new Date();
     
     // Check if there is an open period for this date
