@@ -11,12 +11,14 @@ import {
   base64ToBuffer,
   bufferToDataUri,
 } from '../../common/utils/image-converter';
+import { SubscriptionService } from '../subscription/subscription.service';
 
 @Injectable()
 export class UserService {
   constructor(
     private readonly prisma: DatabaseService,
     private readonly helperService: HelperService,
+    private readonly subscriptionService: SubscriptionService,
   ) {}
 
   /**
@@ -77,6 +79,9 @@ export class UserService {
   }
 
   async createUser(companyId: string, data: CreateUserRequest) {
+    // Check subscription limit
+    await this.subscriptionService.enforceLimitOrThrow(companyId, 'users');
+
     // Check if user already exists
     await this.errorIfUserExists(companyId, data.email);
 
