@@ -11,6 +11,7 @@ export class CompanyResponse {
   vatRate: number;
   isVatEnabled: boolean;
   logo: string | null;
+  host: string;
   createdAt: Date;
   updatedAt: Date;
 }
