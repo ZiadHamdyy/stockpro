@@ -22,22 +22,24 @@ import {
   buildPermission,
 } from "../../enums/permissions.enum";
 
-const permissionTreeData: PermissionNode[] = MENU_ITEMS.map((item) => ({
-  key: item.key,
-  label: item.label,
-  children: item.children?.map((child) => ({
-    key: child.key,
-    label: child.label,
-    children: child.children?.map((subChild) => ({
-      key: subChild.key,
-      label: subChild.label,
-      children: subChild.children?.map((grandChild) => ({
-        key: grandChild.key,
-        label: grandChild.label,
+const permissionTreeData: PermissionNode[] = MENU_ITEMS
+  .filter((item) => item.key !== 'subscription') // Exclude subscription page
+  .map((item) => ({
+    key: item.key,
+    label: item.label,
+    children: item.children?.map((child) => ({
+      key: child.key,
+      label: child.label,
+      children: child.children?.map((subChild) => ({
+        key: subChild.key,
+        label: subChild.label,
+        children: subChild.children?.map((grandChild) => ({
+          key: grandChild.key,
+          label: grandChild.label,
+        })),
       })),
     })),
-  })),
-}));
+  }));
 
 const getAllKeys = (nodes: PermissionNode[]): string[] => {
   return nodes.flatMap((node) => [

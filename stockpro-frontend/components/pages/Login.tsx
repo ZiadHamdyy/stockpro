@@ -51,9 +51,16 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
     try {
       const result = await loginUser({ email, password }).unwrap();
       // Call the parent onLogin callback with user data
-      onLogin(email, password, (result as any)?.data?.user);
-      // Navigate to dashboard after successful login
-      navigate("/dashboard", { replace: true });
+      const userData = (result as any)?.data?.user;
+      onLogin(email, password, userData);
+      
+      // Check if user is SUPER_ADMIN and redirect accordingly
+      const isSuperAdmin = userData?.role?.name === 'SUPER_ADMIN';
+      if (isSuperAdmin) {
+        navigate("/subscription", { replace: true });
+      } else {
+        navigate("/dashboard", { replace: true });
+      }
     } catch (error: any) {
       console.error("Login error:", error);
       setError("حدث خطأ أثناء تسجيل الدخول");

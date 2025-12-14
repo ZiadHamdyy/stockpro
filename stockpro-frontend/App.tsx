@@ -12,7 +12,8 @@ import {
 import { Provider } from "react-redux";
 import { PersistGate } from "redux-persist/integration/react";
 import { store, persistor } from "./components/store/store";
-import { useAppDispatch } from "./components/store/hooks";
+import { useAppDispatch, useAppSelector } from "./components/store/hooks";
+import { selectCurrentUser } from "./components/store/slices/auth/auth";
 import { useAuth } from "./components/hook/Auth";
 import { useUserPermissions } from "./components/hook/usePermissions";
 import { useSendLogOutMutation } from "./components/store/slices/auth/authApi";
@@ -100,6 +101,7 @@ import IncomeStatement from "./components/pages/final_accounts/IncomeStatement";
 import BalanceSheet from "./components/pages/final_accounts/BalanceSheet";
 import PrintSettingsPage from "./components/pages/settings/PrintSettings";
 import HelpCenter from "./components/pages/support/HelpCenter";
+import Subscription from "./components/pages/subscription/Subscription";
 
 import {
   initialBranches,
@@ -443,6 +445,29 @@ const PurchaseReturnWrapper = ({
   );
 };
 
+// Root redirect component that checks user role
+const RootRedirect = () => {
+  const currentUser = useAppSelector(selectCurrentUser);
+  const isSuperAdmin = currentUser?.role?.name === 'SUPER_ADMIN';
+  return <Navigate to={isSuperAdmin ? "/subscription" : "/dashboard"} replace />;
+};
+
+// Subscription route wrapper that redirects non-superadmins
+const SubscriptionRoute = () => {
+  const currentUser = useAppSelector(selectCurrentUser);
+  const isSuperAdmin = currentUser?.role?.name === 'SUPER_ADMIN';
+  
+  if (!isSuperAdmin) {
+    return <Navigate to="/dashboard" replace />;
+  }
+  
+  return (
+    <ProtectedRoute requiredPermission="subscription-read">
+      <Subscription title="الاشتراك والتراخيص" license={null} />
+    </ProtectedRoute>
+  );
+};
+
 const AppContent = () => {
   const location = useLocation();
   const navigate = useNavigate();
@@ -735,6 +760,9 @@ const AppContent = () => {
                 </ProtectedRoute>
               }
             />
+
+            {/* Subscription */}
+            <Route path="/subscription" element={<SubscriptionRoute />} />
 
             {/* Settings */}
             <Route
@@ -1691,8 +1719,8 @@ const AppContent = () => {
             />
 
             {/* Root and catch-all */}
-            <Route path="/" element={<Navigate to="/dashboard" replace />} />
-            <Route path="*" element={<Navigate to="/dashboard" replace />} />
+            <Route path="/" element={<RootRedirect />} />
+            <Route path="*" element={<RootRedirect />} />
           </Routes>
         </main>
       </div>

@@ -24,11 +24,13 @@ import {
   HelpIcon,
   ServerIcon,
   CloudUploadIcon,
+  ShieldIcon,
 } from "./components/icons";
 import type { MenuItem } from "./types";
 
 export const MENU_ITEMS: MenuItem[] = [
   { key: "dashboard", label: "الرئيسية", icon: HomeIcon },
+  { key: 'subscription', label: 'الاشتراك والتراخيص', icon: ShieldIcon },
   {
     key: "settings",
     label: "الإعدادات",
