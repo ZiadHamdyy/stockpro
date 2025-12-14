@@ -21,25 +21,15 @@ import {
   Actions,
   buildPermission,
 } from "../../enums/permissions.enum";
+import { useSubscription } from "./useSubscription";
+import { filterMenuBySubscription } from "../../utils/subscriptionFilter";
 
-const permissionTreeData: PermissionNode[] = MENU_ITEMS
-  .filter((item) => item.key !== 'subscription') // Exclude subscription page
-  .map((item) => ({
-    key: item.key,
-    label: item.label,
-    children: item.children?.map((child) => ({
-      key: child.key,
-      label: child.label,
-      children: child.children?.map((subChild) => ({
-        key: subChild.key,
-        label: subChild.label,
-        children: subChild.children?.map((grandChild) => ({
-          key: grandChild.key,
-          label: grandChild.label,
-        })),
-      })),
-    })),
-  }));
+// Helper function to convert MenuItem to PermissionNode
+const menuItemToPermissionNode = (item: any): PermissionNode => ({
+  key: item.key,
+  label: item.label,
+  children: item.children?.map((child: any) => menuItemToPermissionNode(child)),
+});
 
 const getAllKeys = (nodes: PermissionNode[]): string[] => {
   return nodes.flatMap((node) => [
@@ -47,8 +37,6 @@ const getAllKeys = (nodes: PermissionNode[]): string[] => {
     ...(node.children ? getAllKeys(node.children) : []),
   ]);
 };
-
-const allItemKeys = getAllKeys(permissionTreeData);
 
 /**
  * Hook to get current user's permissions
@@ -111,6 +99,7 @@ export const usePermissions = () => {
   const [error, setError] = useState<string | null>(null);
 
   const currentUser = useSelector(selectCurrentUser);
+  const { subscription, isLoading: subscriptionLoading } = useSubscription();
   const {
     data: roles = [],
     isLoading: rolesLoading,
@@ -125,6 +114,32 @@ export const usePermissions = () => {
   const [assignPermissions, { isLoading: saving }] =
     useAssignPermissionsMutation();
   const { showToast } = useToast();
+
+  // Filter menu items by subscription plan, then convert to permission tree
+  const permissionTreeData: PermissionNode[] = useMemo(() => {
+    // First filter out subscription page
+    const filteredMenuItems = MENU_ITEMS.filter((item) => item.key !== 'subscription');
+    
+    // Only filter when subscription is loaded
+    if (subscriptionLoading || !subscription) {
+      // Show all items while loading
+      return filteredMenuItems.map((item) => menuItemToPermissionNode(item));
+    }
+    
+    // Filter by subscription plan
+    const subscriptionFiltered = filterMenuBySubscription(
+      filteredMenuItems,
+      subscription.planType
+    );
+    
+    // Convert to PermissionNode structure
+    return subscriptionFiltered.map((item) => menuItemToPermissionNode(item));
+  }, [subscription?.planType, subscriptionLoading]);
+
+  // Calculate allItemKeys from the filtered permission tree
+  const allItemKeys = useMemo(() => {
+    return getAllKeys(permissionTreeData);
+  }, [permissionTreeData]);
 
   // Debug: Log permissions fetch status
   useEffect(() => {
