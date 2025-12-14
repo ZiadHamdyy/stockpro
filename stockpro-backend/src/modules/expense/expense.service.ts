@@ -10,10 +10,14 @@ import { ExpenseCodeResponse } from './dtos/response/expense-code.response';
 import { CreateExpenseRequest } from './dtos/request/create-expense.request';
 import { UpdateExpenseRequest } from './dtos/request/update-expense.request';
 import { ExpenseResponse } from './dtos/response/expense.response';
+import { SubscriptionService } from '../subscription/subscription.service';
 
 @Injectable()
 export class ExpenseService {
-  constructor(private readonly prisma: DatabaseService) {}
+  constructor(
+    private readonly prisma: DatabaseService,
+    private readonly subscriptionService: SubscriptionService,
+  ) {}
 
   // ==================== Expense Type CRUD ====================
 
@@ -208,6 +212,9 @@ export class ExpenseService {
   // ==================== Expense CRUD ====================
 
   async createExpense(companyId: string, data: CreateExpenseRequest): Promise<ExpenseResponse> {
+    // Check subscription limit
+    await this.subscriptionService.enforceLimitOrThrow(companyId, 'expenseRevenuePerMonth');
+
     const code = await this.generateNextExpense(companyId);
 
     const expense = await this.prisma.expense.create({
