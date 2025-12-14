@@ -100,6 +100,13 @@ export class MediatorGuard implements CanActivate {
       if (!request.user) {
         throw new GenericHttpException('Unauthorized', 401);
       }
+
+      // SUPER_ADMIN bypasses all permission checks
+      if (request.user?.role?.name === 'SUPER_ADMIN') {
+        console.log('MediatorGuard: SUPER_ADMIN detected - bypassing permission checks');
+        return true;
+      }
+
       // Check if user has all required permissions
       let hasAllPermissions = true;
       for (const permission of authOpts.permissions) {
