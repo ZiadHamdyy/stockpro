@@ -11,12 +11,14 @@ import { UpdateInternalTransferRequest } from './dtos/request/update-internal-tr
 import { InternalTransferResponse } from './dtos/response/internal-transfer.response';
 import { AccountingService } from '../../common/services/accounting.service';
 import { FiscalYearService } from '../fiscal-year/fiscal-year.service';
+import { SubscriptionService } from '../subscription/subscription.service';
 
 @Injectable()
 export class InternalTransferService {
   constructor(
     private readonly prisma: DatabaseService,
     private readonly fiscalYearService: FiscalYearService,
+    private readonly subscriptionService: SubscriptionService,
   ) {}
 
   // ==================== CRUD Operations ====================
@@ -26,6 +28,9 @@ export class InternalTransferService {
     data: CreateInternalTransferRequest,
     userId: string,
   ): Promise<InternalTransferResponse> {
+    // Check subscription limit
+    await this.subscriptionService.enforceLimitOrThrow(companyId, 'financialVouchersPerMonth');
+
     // Check financial period status
     const transferDate = new Date(data.date);
     
