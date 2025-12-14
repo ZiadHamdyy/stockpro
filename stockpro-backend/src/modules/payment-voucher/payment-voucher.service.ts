@@ -10,12 +10,14 @@ import { UpdatePaymentVoucherRequest } from './dtos/request/update-payment-vouch
 import { PaymentVoucherResponse } from './dtos/response/payment-voucher.response';
 import { AccountingService } from '../../common/services/accounting.service';
 import { FiscalYearService } from '../fiscal-year/fiscal-year.service';
+import { SubscriptionService } from '../subscription/subscription.service';
 
 @Injectable()
 export class PaymentVoucherService {
   constructor(
     private readonly prisma: DatabaseService,
     private readonly fiscalYearService: FiscalYearService,
+    private readonly subscriptionService: SubscriptionService,
   ) {}
 
   // ==================== CRUD Operations ====================
@@ -25,6 +27,9 @@ export class PaymentVoucherService {
     data: CreatePaymentVoucherRequest,
     userId: string,
   ): Promise<PaymentVoucherResponse> {
+    // Check subscription limit
+    await this.subscriptionService.enforceLimitOrThrow(companyId, 'financialVouchersPerMonth');
+
     const voucherDate = data.date ? new Date(data.date) : new Date();
     
     // Check if there is an open period for this date
