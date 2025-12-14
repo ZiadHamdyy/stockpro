@@ -6,6 +6,7 @@ import {
   useUpsertCompanyMutation,
   useCreateCompanyWithSeedMutation,
 } from '../../store/slices/companyApiSlice';
+import { useSubscription } from '../../hook/useSubscription';
 
 interface SubscriptionProps {
   title: string;
@@ -44,6 +45,9 @@ const Subscription: React.FC<SubscriptionProps> = ({ title }) => {
   const { data: companiesData, isLoading, refetch } = useGetAllCompaniesQuery();
   const [createCompanyWithSeed] = useCreateCompanyWithSeedMutation();
   const [updateCompany] = useUpsertCompanyMutation();
+  
+  // Subscription data
+  const { subscription, limits, usage, isLoading: subscriptionLoading } = useSubscription();
 
   // Ensure companies is always an array
   const companies = Array.isArray(companiesData) ? companiesData : [];
@@ -53,6 +57,7 @@ const Subscription: React.FC<SubscriptionProps> = ({ title }) => {
   const [selectedCompany, setSelectedCompany] = useState<any>(null);
   const [hostInput, setHostInput] = useState('');
   const [isCreating, setIsCreating] = useState(false);
+  const [selectedPlan, setSelectedPlan] = useState<'BASIC' | 'GROWTH' | 'BUSINESS'>('BASIC');
   const [formData, setFormData] = useState<CompanyFormData>({
     name: '',
     activity: '',
@@ -69,6 +74,7 @@ const Subscription: React.FC<SubscriptionProps> = ({ title }) => {
 
   const handleOpenCreateModal = () => {
     setHostInput('');
+    setSelectedPlan('BASIC');
     setIsCreateModalOpen(true);
   };
 
@@ -110,10 +116,11 @@ const Subscription: React.FC<SubscriptionProps> = ({ title }) => {
 
     setIsCreating(true);
     try {
-      await createCompanyWithSeed({ host: normalizedHost }).unwrap();
+      await createCompanyWithSeed({ host: normalizedHost, planType: selectedPlan }).unwrap();
       showToast('تم إنشاء الشركة بنجاح');
       setIsCreateModalOpen(false);
       setHostInput('');
+      setSelectedPlan('BASIC');
       refetch();
     } catch (error: any) {
       showToast(
@@ -297,6 +304,179 @@ const Subscription: React.FC<SubscriptionProps> = ({ title }) => {
         </div>
       </div>
 
+      {/* Current Plan & Usage Statistics */}
+      {subscription && limits && usage && (
+        <div className="bg-white rounded-xl shadow-lg p-6 mb-6 border border-gray-200">
+          <div className="flex items-center justify-between mb-6">
+            <h3 className="text-lg font-bold text-gray-800 flex items-center gap-2">
+              <BarChartIcon className="w-5 h-5 text-orange-500" />
+              الخطة الحالية وحدود الاستخدام
+            </h3>
+            <div className="flex items-center gap-4">
+              <div className={`px-4 py-2 rounded-lg font-bold ${
+                subscription.planType === 'BASIC' ? 'bg-orange-100 text-orange-700' :
+                subscription.planType === 'GROWTH' ? 'bg-blue-100 text-blue-700' :
+                'bg-purple-100 text-purple-700'
+              }`}>
+                {subscription.planType === 'BASIC' ? 'الخطة الأساسية' :
+                 subscription.planType === 'GROWTH' ? 'الخطة المتوسطة' :
+                 'الخطة الاحترافية'}
+              </div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            {/* Users */}
+            <div className="bg-gray-50 rounded-lg p-4">
+              <p className="text-sm text-gray-600 mb-2">المستخدمين</p>
+              <p className="text-2xl font-bold text-gray-800 mb-2">
+                {usage.users} / {limits.users === -1 ? '∞' : limits.users}
+              </p>
+              {limits.users !== -1 && (
+                <div className="w-full bg-gray-200 rounded-full h-2">
+                  <div
+                    className={`h-2 rounded-full ${
+                      (usage.users / limits.users) * 100 >= 100 ? 'bg-red-500' :
+                      (usage.users / limits.users) * 100 >= 80 ? 'bg-yellow-500' :
+                      'bg-green-500'
+                    }`}
+                    style={{ width: `${Math.min((usage.users / limits.users) * 100, 100)}%` }}
+                  />
+                </div>
+              )}
+            </div>
+
+            {/* Branches */}
+            <div className="bg-gray-50 rounded-lg p-4">
+              <p className="text-sm text-gray-600 mb-2">الفروع</p>
+              <p className="text-2xl font-bold text-gray-800 mb-2">
+                {usage.branches} / {limits.branches === -1 ? '∞' : limits.branches}
+              </p>
+              {limits.branches !== -1 && (
+                <div className="w-full bg-gray-200 rounded-full h-2">
+                  <div
+                    className={`h-2 rounded-full ${
+                      (usage.branches / limits.branches) * 100 >= 100 ? 'bg-red-500' :
+                      (usage.branches / limits.branches) * 100 >= 80 ? 'bg-yellow-500' :
+                      'bg-green-500'
+                    }`}
+                    style={{ width: `${Math.min((usage.branches / limits.branches) * 100, 100)}%` }}
+                  />
+                </div>
+              )}
+            </div>
+
+            {/* Items */}
+            <div className="bg-gray-50 rounded-lg p-4">
+              <p className="text-sm text-gray-600 mb-2">الأصناف</p>
+              <p className="text-2xl font-bold text-gray-800 mb-2">
+                {usage.items} / {limits.items === -1 ? '∞' : limits.items}
+              </p>
+              {limits.items !== -1 && (
+                <div className="w-full bg-gray-200 rounded-full h-2">
+                  <div
+                    className={`h-2 rounded-full ${
+                      (usage.items / limits.items) * 100 >= 100 ? 'bg-red-500' :
+                      (usage.items / limits.items) * 100 >= 80 ? 'bg-yellow-500' :
+                      'bg-green-500'
+                    }`}
+                    style={{ width: `${Math.min((usage.items / limits.items) * 100, 100)}%` }}
+                  />
+                </div>
+              )}
+            </div>
+
+            {/* Invoices this month */}
+            <div className="bg-gray-50 rounded-lg p-4">
+              <p className="text-sm text-gray-600 mb-2">الفواتير (آخر 30 يوم)</p>
+              <p className="text-2xl font-bold text-gray-800 mb-2">
+                {usage.invoicesThisMonth} / {limits.invoicesPerMonth === -1 ? '∞' : limits.invoicesPerMonth}
+              </p>
+              {limits.invoicesPerMonth !== -1 && (
+                <div className="w-full bg-gray-200 rounded-full h-2">
+                  <div
+                    className={`h-2 rounded-full ${
+                      (usage.invoicesThisMonth / limits.invoicesPerMonth) * 100 >= 100 ? 'bg-red-500' :
+                      (usage.invoicesThisMonth / limits.invoicesPerMonth) * 100 >= 80 ? 'bg-yellow-500' :
+                      'bg-green-500'
+                    }`}
+                    style={{ width: `${Math.min((usage.invoicesThisMonth / limits.invoicesPerMonth) * 100, 100)}%` }}
+                  />
+                </div>
+              )}
+            </div>
+
+            {/* Customers */}
+            <div className="bg-gray-50 rounded-lg p-4">
+              <p className="text-sm text-gray-600 mb-2">العملاء</p>
+              <p className="text-2xl font-bold text-gray-800 mb-2">
+                {usage.customers} / {limits.customers === -1 ? '∞' : limits.customers}
+              </p>
+              {limits.customers !== -1 && (
+                <div className="w-full bg-gray-200 rounded-full h-2">
+                  <div
+                    className={`h-2 rounded-full ${
+                      (usage.customers / limits.customers) * 100 >= 100 ? 'bg-red-500' :
+                      (usage.customers / limits.customers) * 100 >= 80 ? 'bg-yellow-500' :
+                      'bg-green-500'
+                    }`}
+                    style={{ width: `${Math.min((usage.customers / limits.customers) * 100, 100)}%` }}
+                  />
+                </div>
+              )}
+            </div>
+
+            {/* Suppliers */}
+            <div className="bg-gray-50 rounded-lg p-4">
+              <p className="text-sm text-gray-600 mb-2">الموردين</p>
+              <p className="text-2xl font-bold text-gray-800 mb-2">
+                {usage.suppliers} / {limits.suppliers === -1 ? '∞' : limits.suppliers}
+              </p>
+              {limits.suppliers !== -1 && (
+                <div className="w-full bg-gray-200 rounded-full h-2">
+                  <div
+                    className={`h-2 rounded-full ${
+                      (usage.suppliers / limits.suppliers) * 100 >= 100 ? 'bg-red-500' :
+                      (usage.suppliers / limits.suppliers) * 100 >= 80 ? 'bg-yellow-500' :
+                      'bg-green-500'
+                    }`}
+                    style={{ width: `${Math.min((usage.suppliers / limits.suppliers) * 100, 100)}%` }}
+                  />
+                </div>
+              )}
+            </div>
+
+            {/* Financial Vouchers */}
+            <div className="bg-gray-50 rounded-lg p-4">
+              <p className="text-sm text-gray-600 mb-2">السندات المالية (آخر 30 يوم)</p>
+              <p className="text-2xl font-bold text-gray-800 mb-2">
+                {usage.financialVouchersThisMonth} / {limits.financialVouchersPerMonth === -1 ? '∞' : limits.financialVouchersPerMonth}
+              </p>
+              {limits.financialVouchersPerMonth !== -1 && (
+                <div className="w-full bg-gray-200 rounded-full h-2">
+                  <div
+                    className={`h-2 rounded-full ${
+                      (usage.financialVouchersThisMonth / limits.financialVouchersPerMonth) * 100 >= 100 ? 'bg-red-500' :
+                      (usage.financialVouchersThisMonth / limits.financialVouchersPerMonth) * 100 >= 80 ? 'bg-yellow-500' :
+                      'bg-green-500'
+                    }`}
+                    style={{ width: `${Math.min((usage.financialVouchersThisMonth / limits.financialVouchersPerMonth) * 100, 100)}%` }}
+                  />
+                </div>
+              )}
+            </div>
+
+            {/* Financial Analysis */}
+            <div className="bg-gray-50 rounded-lg p-4">
+              <p className="text-sm text-gray-600 mb-2">التحليل المالي</p>
+              <p className="text-xl font-bold text-gray-800 mb-2">
+                {limits.financialAnalysisEnabled ? '✅ متاح' : '❌ غير متاح'}
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
             {/* Subscription Requests Card */}
         <div className="bg-white rounded-xl shadow-lg p-6 mb-6 border border-gray-200">
           <h3 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
@@ -425,26 +605,26 @@ const Subscription: React.FC<SubscriptionProps> = ({ title }) => {
         </div>
       </div>
 
-      {/* Create Company Modal - Simplified (Only Host) */}
+      {/* Create Company Modal - With Plan Selection */}
       {isCreateModalOpen && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-fade-in">
-          <div className="bg-white w-full max-w-md rounded-2xl shadow-2xl overflow-hidden">
-            <div className="bg-gradient-to-r from-orange-500 to-amber-500 p-5 text-white flex justify-between items-center">
-              <h3 className="text-lg font-bold flex items-center gap-2">
-                <ShieldIcon className="w-5 h-5" />
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center animate-fade-in overflow-y-auto">
+          <div className="bg-white w-full max-w-4xl rounded-xl shadow-2xl overflow-hidden my-6">
+            <div className="bg-gradient-to-r from-orange-500 to-amber-500 p-4 text-white flex justify-between items-center">
+              <h3 className="text-base font-bold flex items-center gap-2">
+                <ShieldIcon className="w-4 h-4" />
                 إضافة شركة جديدة
               </h3>
               <button
                 onClick={() => setIsCreateModalOpen(false)}
                 className="text-white hover:text-gray-200"
               >
-                <XIcon className="w-5 h-5" />
+                <XIcon className="w-4 h-4" />
               </button>
             </div>
 
-            <form onSubmit={handleCreateCompany} className="p-6">
+            <form onSubmit={handleCreateCompany} className="p-4">
               <div className="mb-4">
-                <label className="block text-sm font-bold text-gray-700 mb-2">
+                <label className="block text-xs font-bold text-gray-700 mb-1">
                   اسم النطاق (Host) *
                 </label>
                 <input
@@ -452,30 +632,369 @@ const Subscription: React.FC<SubscriptionProps> = ({ title }) => {
                   value={hostInput}
                   onChange={(e) => setHostInput(e.target.value)}
                   placeholder="companyname.stockplus.cloud"
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent font-mono"
+                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent font-mono"
                   required
                   disabled={isCreating}
                 />
-                <p className="text-xs text-gray-500 mt-2">
-                  سيتم إنشاء الشركة تلقائياً مع جميع البيانات الافتراضية (أدوار، صلاحيات، مستخدم، فرع، مخزن، إلخ)
+                <p className="text-xs text-gray-500 mt-1">
+                  سيتم إنشاء الشركة تلقائياً مع جميع البيانات الافتراضية
                 </p>
               </div>
 
-              <div className="flex justify-end gap-3 pt-4 border-t border-gray-200">
+              {/* Plan Selection */}
+              <div className="mb-4">
+                <label className="block text-xs font-bold text-gray-700 mb-2">
+                  اختر خطة الاشتراك *
+                </label>
+                
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                  {/* BASIC Plan */}
+                  <div
+                    onClick={() => !isCreating && setSelectedPlan('BASIC')}
+                    className={`cursor-pointer border-2 rounded-lg p-3 transition-all ${
+                      selectedPlan === 'BASIC'
+                        ? 'border-orange-500 bg-orange-50 shadow-lg scale-105'
+                        : 'border-gray-200 hover:border-orange-300 hover:shadow-md'
+                    }`}
+                  >
+                    <div className="text-center mb-2">
+                      <h4 className="text-base font-bold text-gray-800 mb-0.5">الأساسية</h4>
+                      <div className="inline-block px-2 py-0.5 bg-orange-100 text-orange-700 rounded-full text-xs font-bold">
+                        BASIC
+                      </div>
+                    </div>
+                    
+                    <div className="space-y-1 text-xs">
+                      <div className="flex justify-between gap-2">
+                        <div className="flex-1 flex justify-between">
+                          <span className="text-gray-600">المستخدمين</span>
+                          <span className="font-bold text-gray-800">3</span>
+                        </div>
+                        <div className="flex-1 flex justify-between">
+                          <span className="text-gray-600">الفروع</span>
+                          <span className="font-bold text-gray-800">2</span>
+                        </div>
+                      </div>
+                      <div className="flex justify-between gap-2">
+                        <div className="flex-1 flex justify-between">
+                          <span className="text-gray-600">المخازن</span>
+                          <span className="font-bold text-gray-800">2</span>
+                        </div>
+                        <div className="flex-1 flex justify-between">
+                          <span className="text-gray-600">الخزائن</span>
+                          <span className="font-bold text-gray-800">2</span>
+                        </div>
+                      </div>
+                      <div className="flex justify-between gap-2">
+                        <div className="flex-1 flex justify-between">
+                          <span className="text-gray-600">البنوك</span>
+                          <span className="font-bold text-gray-800">2</span>
+                        </div>
+                        <div className="flex-1 flex justify-between">
+                          <span className="text-gray-600">الأصناف</span>
+                          <span className="font-bold text-gray-800">500</span>
+                        </div>
+                      </div>
+                      <div className="flex justify-between gap-2">
+                        <div className="flex-1 flex justify-between">
+                          <span className="text-gray-600">العملاء</span>
+                          <span className="font-bold text-gray-800">10</span>
+                        </div>
+                        <div className="flex-1 flex justify-between">
+                          <span className="text-gray-600">الموردين</span>
+                          <span className="font-bold text-gray-800">10</span>
+                        </div>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">الفواتير/شهر</span>
+                        <span className="font-bold text-gray-800">500</span>
+                      </div>
+                      <div className="flex justify-between gap-2">
+                        <div className="flex-1 flex justify-between">
+                          <span className="text-gray-600">عروض/شهر</span>
+                          <span className="font-bold text-gray-800">50</span>
+                        </div>
+                        <div className="flex-1 flex justify-between">
+                          <span className="text-gray-600">سندات/شهر</span>
+                          <span className="font-bold text-gray-800">100</span>
+                        </div>
+                      </div>
+                      <div className="flex justify-between gap-2">
+                        <div className="flex-1 flex justify-between">
+                          <span className="text-gray-600">ح.جارية</span>
+                          <span className="font-bold text-gray-800">5</span>
+                        </div>
+                        <div className="flex-1 flex justify-between">
+                          <span className="text-gray-600">مصروفات/شهر</span>
+                          <span className="font-bold text-gray-800">10</span>
+                        </div>
+                      </div>
+                      <div className="flex justify-between gap-2">
+                        <div className="flex-1 flex justify-between">
+                          <span className="text-gray-600">المدينين</span>
+                          <span className="font-bold text-red-600">✗</span>
+                        </div>
+                        <div className="flex-1 flex justify-between">
+                          <span className="text-gray-600">الدائنين</span>
+                          <span className="font-bold text-red-600">✗</span>
+                        </div>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">التحليل المالي</span>
+                        <span className="font-bold text-red-600">✗</span>
+                      </div>
+                    </div>
+                    
+                    {selectedPlan === 'BASIC' && (
+                      <div className="mt-1.5 text-center">
+                        <span className="inline-block px-2 py-0.5 bg-orange-500 text-white rounded-full text-xs font-bold">
+                          ✓ محدد
+                        </span>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* GROWTH Plan */}
+                  <div
+                    onClick={() => !isCreating && setSelectedPlan('GROWTH')}
+                    className={`cursor-pointer border-2 rounded-lg p-3 transition-all ${
+                      selectedPlan === 'GROWTH'
+                        ? 'border-blue-500 bg-blue-50 shadow-lg scale-105'
+                        : 'border-gray-200 hover:border-blue-300 hover:shadow-md'
+                    }`}
+                  >
+                    <div className="text-center mb-2">
+                      <h4 className="text-base font-bold text-gray-800 mb-0.5">المتوسطة</h4>
+                      <div className="inline-block px-2 py-0.5 bg-blue-100 text-blue-700 rounded-full text-xs font-bold">
+                        GROWTH
+                      </div>
+                    </div>
+                    
+                    <div className="space-y-1 text-xs">
+                      <div className="flex justify-between gap-2">
+                        <div className="flex-1 flex justify-between">
+                          <span className="text-gray-600">المستخدمين</span>
+                          <span className="font-bold text-gray-800">10</span>
+                        </div>
+                        <div className="flex-1 flex justify-between">
+                          <span className="text-gray-600">الفروع</span>
+                          <span className="font-bold text-gray-800">5</span>
+                        </div>
+                      </div>
+                      <div className="flex justify-between gap-2">
+                        <div className="flex-1 flex justify-between">
+                          <span className="text-gray-600">المخازن</span>
+                          <span className="font-bold text-gray-800">10</span>
+                        </div>
+                        <div className="flex-1 flex justify-between">
+                          <span className="text-gray-600">الخزائن</span>
+                          <span className="font-bold text-gray-800">5</span>
+                        </div>
+                      </div>
+                      <div className="flex justify-between gap-2">
+                        <div className="flex-1 flex justify-between">
+                          <span className="text-gray-600">البنوك</span>
+                          <span className="font-bold text-gray-800">5</span>
+                        </div>
+                        <div className="flex-1 flex justify-between">
+                          <span className="text-gray-600">الأصناف</span>
+                          <span className="font-bold text-gray-800">5000</span>
+                        </div>
+                      </div>
+                      <div className="flex justify-between gap-2">
+                        <div className="flex-1 flex justify-between">
+                          <span className="text-gray-600">العملاء</span>
+                          <span className="font-bold text-gray-800">100</span>
+                        </div>
+                        <div className="flex-1 flex justify-between">
+                          <span className="text-gray-600">الموردين</span>
+                          <span className="font-bold text-gray-800">100</span>
+                        </div>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">الفواتير/شهر</span>
+                        <span className="font-bold text-gray-800">5000</span>
+                      </div>
+                      <div className="flex justify-between gap-2">
+                        <div className="flex-1 flex justify-between">
+                          <span className="text-gray-600">عروض/شهر</span>
+                          <span className="font-bold text-gray-800">500</span>
+                        </div>
+                        <div className="flex-1 flex justify-between">
+                          <span className="text-gray-600">سندات/شهر</span>
+                          <span className="font-bold text-gray-800">1000</span>
+                        </div>
+                      </div>
+                      <div className="flex justify-between gap-2">
+                        <div className="flex-1 flex justify-between">
+                          <span className="text-gray-600">ح.جارية</span>
+                          <span className="font-bold text-gray-800">50</span>
+                        </div>
+                        <div className="flex-1 flex justify-between">
+                          <span className="text-gray-600">مصروفات/شهر</span>
+                          <span className="font-bold text-gray-800">100</span>
+                        </div>
+                      </div>
+                      <div className="flex justify-between gap-2">
+                        <div className="flex-1 flex justify-between">
+                          <span className="text-gray-600">المدينين</span>
+                          <span className="font-bold text-gray-800">20</span>
+                        </div>
+                        <div className="flex-1 flex justify-between">
+                          <span className="text-gray-600">الدائنين</span>
+                          <span className="font-bold text-gray-800">20</span>
+                        </div>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">التحليل المالي</span>
+                        <span className="font-bold text-green-600">✓</span>
+                      </div>
+                    </div>
+                    
+                    {selectedPlan === 'GROWTH' && (
+                      <div className="mt-1.5 text-center">
+                        <span className="inline-block px-2 py-0.5 bg-blue-500 text-white rounded-full text-xs font-bold">
+                          ✓ محدد
+                        </span>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* BUSINESS Plan */}
+                  <div
+                    onClick={() => !isCreating && setSelectedPlan('BUSINESS')}
+                    className={`cursor-pointer border-2 rounded-lg p-3 transition-all ${
+                      selectedPlan === 'BUSINESS'
+                        ? 'border-purple-500 bg-purple-50 shadow-lg scale-105'
+                        : 'border-gray-200 hover:border-purple-300 hover:shadow-md'
+                    }`}
+                  >
+                    <div className="text-center mb-2">
+                      <h4 className="text-base font-bold text-gray-800 mb-0.5">الاحترافية</h4>
+                      <div className="inline-block px-2 py-0.5 bg-purple-100 text-purple-700 rounded-full text-xs font-bold">
+                        BUSINESS
+                      </div>
+                    </div>
+                    
+                    <div className="space-y-1 text-xs">
+                      <div className="flex justify-between gap-2">
+                        <div className="flex-1 flex justify-between">
+                          <span className="text-gray-600">المستخدمين</span>
+                          <span className="font-bold text-green-600">∞</span>
+                        </div>
+                        <div className="flex-1 flex justify-between">
+                          <span className="text-gray-600">الفروع</span>
+                          <span className="font-bold text-green-600">∞</span>
+                        </div>
+                      </div>
+                      <div className="flex justify-between gap-2">
+                        <div className="flex-1 flex justify-between">
+                          <span className="text-gray-600">المخازن</span>
+                          <span className="font-bold text-green-600">∞</span>
+                        </div>
+                        <div className="flex-1 flex justify-between">
+                          <span className="text-gray-600">الخزائن</span>
+                          <span className="font-bold text-green-600">∞</span>
+                        </div>
+                      </div>
+                      <div className="flex justify-between gap-2">
+                        <div className="flex-1 flex justify-between">
+                          <span className="text-gray-600">البنوك</span>
+                          <span className="font-bold text-green-600">∞</span>
+                        </div>
+                        <div className="flex-1 flex justify-between">
+                          <span className="text-gray-600">الأصناف</span>
+                          <span className="font-bold text-green-600">∞</span>
+                        </div>
+                      </div>
+                      <div className="flex justify-between gap-2">
+                        <div className="flex-1 flex justify-between">
+                          <span className="text-gray-600">العملاء</span>
+                          <span className="font-bold text-green-600">∞</span>
+                        </div>
+                        <div className="flex-1 flex justify-between">
+                          <span className="text-gray-600">الموردين</span>
+                          <span className="font-bold text-green-600">∞</span>
+                        </div>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">الفواتير/شهر</span>
+                        <span className="font-bold text-green-600">∞</span>
+                      </div>
+                      <div className="flex justify-between gap-2">
+                        <div className="flex-1 flex justify-between">
+                          <span className="text-gray-600">عروض/شهر</span>
+                          <span className="font-bold text-green-600">∞</span>
+                        </div>
+                        <div className="flex-1 flex justify-between">
+                          <span className="text-gray-600">سندات/شهر</span>
+                          <span className="font-bold text-green-600">∞</span>
+                        </div>
+                      </div>
+                      <div className="flex justify-between gap-2">
+                        <div className="flex-1 flex justify-between">
+                          <span className="text-gray-600">ح.جارية</span>
+                          <span className="font-bold text-green-600">∞</span>
+                        </div>
+                        <div className="flex-1 flex justify-between">
+                          <span className="text-gray-600">مصروفات/شهر</span>
+                          <span className="font-bold text-green-600">∞</span>
+                        </div>
+                      </div>
+                      <div className="flex justify-between gap-2">
+                        <div className="flex-1 flex justify-between">
+                          <span className="text-gray-600">المدينين</span>
+                          <span className="font-bold text-green-600">∞</span>
+                        </div>
+                        <div className="flex-1 flex justify-between">
+                          <span className="text-gray-600">الدائنين</span>
+                          <span className="font-bold text-green-600">∞</span>
+                        </div>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">التحليل المالي</span>
+                        <span className="font-bold text-green-600">✓</span>
+                      </div>
+                    </div>
+                    
+                    {selectedPlan === 'BUSINESS' && (
+                      <div className="mt-1.5 text-center">
+                        <span className="inline-block px-2 py-0.5 bg-purple-500 text-white rounded-full text-xs font-bold">
+                          ✓ محدد
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <p className="text-xs text-gray-500 mt-2 text-center">
+                  * الحدود الشهرية محسوبة على أساس آخر 30 يوماً متحركة
+                </p>
+              </div>
+
+              <div className="flex justify-end gap-2 pt-3 border-t border-gray-200">
                 <button
                   type="button"
                   onClick={() => setIsCreateModalOpen(false)}
-                  className="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg font-bold hover:bg-gray-50 transition-colors"
+                  className="px-4 py-1.5 text-sm border border-gray-300 text-gray-700 rounded-lg font-bold hover:bg-gray-50 transition-colors"
                   disabled={isCreating}
                 >
                   إلغاء
                 </button>
                 <button
                   type="submit"
-                  className="px-6 py-2 bg-orange-600 hover:bg-orange-700 text-white rounded-lg font-bold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  className={`px-4 py-1.5 text-sm rounded-lg font-bold transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
+                    selectedPlan === 'BASIC' ? 'bg-orange-600 hover:bg-orange-700' :
+                    selectedPlan === 'GROWTH' ? 'bg-blue-600 hover:bg-blue-700' :
+                    'bg-purple-600 hover:bg-purple-700'
+                  } text-white`}
                   disabled={isCreating}
                 >
-                  {isCreating ? 'جاري الإنشاء...' : 'إنشاء الشركة'}
+                  {isCreating ? 'جاري الإنشاء...' : `إنشاء - ${
+                    selectedPlan === 'BASIC' ? 'أساسية' :
+                    selectedPlan === 'GROWTH' ? 'متوسطة' :
+                    'احترافية'
+                  }`}
                 </button>
               </div>
             </form>
