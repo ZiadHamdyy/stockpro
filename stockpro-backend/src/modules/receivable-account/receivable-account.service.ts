@@ -4,18 +4,23 @@ import { CreateReceivableAccountRequest } from './dtos/request/create-receivable
 import { UpdateReceivableAccountRequest } from './dtos/request/update-receivable-account.request';
 import { ReceivableAccountResponse } from './dtos/response/receivable-account.response';
 import { FiscalYearService } from '../fiscal-year/fiscal-year.service';
+import { SubscriptionService } from '../subscription/subscription.service';
 
 @Injectable()
 export class ReceivableAccountService {
   constructor(
     private readonly prisma: DatabaseService,
     private readonly fiscalYearService: FiscalYearService,
+    private readonly subscriptionService: SubscriptionService,
   ) {}
 
   async create(
     companyId: string,
     dto: CreateReceivableAccountRequest,
   ): Promise<ReceivableAccountResponse> {
+    // Check subscription limit
+    await this.subscriptionService.enforceLimitOrThrow(companyId, 'receivableAccounts');
+
     // Check financial period status (use current date for accounts without date field)
     const accountDate = new Date();
     
