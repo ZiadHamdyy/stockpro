@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ShieldIcon, XIcon, PlusIcon, EditIcon, WhatsappIcon, PhoneIcon } from '../../icons';
+import { ShieldIcon, XIcon, PlusIcon, EditIcon, WhatsappIcon, PhoneIcon, BarChartIcon, BellIcon } from '../../icons';
 import { useToast } from '../../common/ToastProvider';
 import {
   useGetAllCompaniesQuery,
@@ -395,7 +395,34 @@ const Subscription: React.FC<SubscriptionProps> = ({ title }) => {
           </div>
         </div>
 
-        
+        {/* Statistics Card */}
+        <div className="bg-white rounded-xl shadow-lg p-6 border border-gray-200">
+          <h3 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
+            <BarChartIcon className="w-5 h-5 text-orange-500" />
+            الإحصائيات
+          </h3>
+          <div className="space-y-4">
+            <div className="flex justify-between items-center">
+              <span className="text-gray-600">طلبات معلقة</span>
+              <span className="font-bold text-orange-600">{mockSubscriptionRequests.length}</span>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="text-gray-600">آخر شركة</span>
+              <span className="font-bold text-gray-800 text-sm">
+                {companies.length > 0 && companies[companies.length - 1]?.createdAt
+                  ? new Date(companies[companies.length - 1].createdAt).toLocaleDateString('ar-US', {
+                      year: 'numeric',
+                      month: 'short',
+                      day: 'numeric'
+                    })
+                  : companies.length > 0
+                  ? 'قريباً'
+                  : 'لا يوجد'
+                }
+              </span>
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* Create Company Modal - Simplified (Only Host) */}
