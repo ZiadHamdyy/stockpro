@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ShieldIcon, XIcon, PlusIcon, EditIcon } from '../../icons';
+import { ShieldIcon, XIcon, PlusIcon, EditIcon, WhatsappIcon, PhoneIcon } from '../../icons';
 import { useToast } from '../../common/ToastProvider';
 import {
   useGetAllCompaniesQuery,
@@ -26,6 +26,17 @@ interface CompanyFormData {
   isVatEnabled: boolean;
   host: string;
   logo?: string;
+}
+
+interface SubscriptionRequest {
+  id: string;
+  phone: string;
+  plan: string;
+  name?: string;
+  email?: string;
+  companyName?: string;
+  createdAt?: string;
+  status?: string;
 }
 
 const Subscription: React.FC<SubscriptionProps> = ({ title }) => {
@@ -137,6 +148,81 @@ const Subscription: React.FC<SubscriptionProps> = ({ title }) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
+  // Mock subscription requests data
+  const mockSubscriptionRequests: SubscriptionRequest[] = [
+    {
+      id: '1',
+      phone: '966501234567',
+      plan: 'الخطة الأساسية',
+      name: 'أحمد محمد',
+      email: 'ahmed@example.com',
+      companyName: 'شركة التقنية المتقدمة',
+      createdAt: '2024-01-15',
+      status: 'pending',
+    },
+    {
+      id: '2',
+      phone: '966507654321',
+      plan: 'الخطة المتقدمة',
+      name: 'فاطمة علي',
+      email: 'fatima@example.com',
+      companyName: 'مؤسسة التجارة الإلكترونية',
+      createdAt: '2024-01-16',
+      status: 'pending',
+    },
+    {
+      id: '3',
+      phone: '966509876543',
+      plan: 'الخطة المميزة',
+      name: 'خالد سعيد',
+      email: 'khalid@example.com',
+      companyName: 'شركة الخدمات اللوجستية',
+      createdAt: '2024-01-17',
+      status: 'pending',
+    },
+    {
+      id: '4',
+      phone: '966505555555',
+      plan: 'الخطة الأساسية',
+      name: 'سارة أحمد',
+      email: 'sara@example.com',
+      companyName: 'مؤسسة التطوير العقاري',
+      createdAt: '2024-01-18',
+      status: 'pending',
+    },
+  ];
+
+  const handleOpenWhatsApp = (request: SubscriptionRequest) => {
+    // Format phone number (remove spaces, ensure proper format)
+    const phoneNumber = request.phone.replace(/\s+/g, '').replace(/^0/, '966');
+    
+    // Create pre-filled message
+    const messageParts = [
+      'السلام عليكم ورحمة الله وبركاته',
+      '',
+      `أنا مهتم بالخطة: ${request.plan}`,
+    ];
+    
+    if (request.name) {
+      messageParts.push(`الاسم: ${request.name}`);
+    }
+    if (request.companyName) {
+      messageParts.push(`اسم الشركة: ${request.companyName}`);
+    }
+    if (request.email) {
+      messageParts.push(`البريد الإلكتروني: ${request.email}`);
+    }
+    
+    messageParts.push('');
+    messageParts.push('أرغب في الحصول على مزيد من المعلومات حول الخطة.');
+    
+    const message = messageParts.join('\n');
+    const encodedMessage = encodeURIComponent(message);
+    
+    // Open WhatsApp
+    window.open(`https://wa.me/${phoneNumber}?text=${encodedMessage}`, '_blank');
+  };
+
   return (
     <div className="p-6 max-w-[1600px] mx-auto animate-fade-in font-sans text-slate-800">
       {/* Orange Gradient Hero Card */}
@@ -211,6 +297,66 @@ const Subscription: React.FC<SubscriptionProps> = ({ title }) => {
         </div>
       </div>
 
+            {/* Subscription Requests Card */}
+        <div className="bg-white rounded-xl shadow-lg p-6 mb-6 border border-gray-200">
+          <h3 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
+            <ShieldIcon className="w-5 h-5 text-orange-500" />
+            طلبات الاشتراك
+          </h3>
+          <div className="flex gap-6 overflow-x-auto pb-2 items-stretch">
+            {mockSubscriptionRequests.length === 0 ? (
+              <div className="text-center text-gray-500 py-8 w-full">
+                <p className="text-sm">لا توجد طلبات اشتراك</p>
+              </div>
+            ) : (
+              mockSubscriptionRequests.map((request) => (
+                <div
+                  key={request.id}
+                  onClick={() => handleOpenWhatsApp(request)}
+                  className="p-4 w-[300px] bg-gray-50 hover:bg-orange-50 rounded-lg cursor-pointer transition-all border border-gray-200 hover:border-orange-300 hover:shadow-md group flex-shrink-0 flex flex-col"
+                >
+                  <div className="flex items-start justify-between gap-3 flex-1">
+                    <div className="flex-1 min-w-0 flex flex-col">
+                      <div className="flex items-center gap-2 mb-2">
+                        <PhoneIcon className="w-4 h-4 text-gray-500 flex-shrink-0" />
+                        <p className="font-bold text-gray-800 text-sm truncate">
+                          {request.phone}
+                        </p>
+                      </div>
+                      <div className="mb-2">
+                        <span className="inline-block px-2 py-1 bg-orange-100 text-orange-700 rounded text-xs font-bold">
+                          {request.plan}
+                        </span>
+                      </div>
+                      <div className="flex-1 flex flex-col justify-start">
+                        {request.name && (
+                          <p className="text-xs text-gray-600 mb-1">
+                            <span className="font-semibold">الاسم:</span> {request.name}
+                          </p>
+                        )}
+                        {request.companyName && (
+                          <p className="text-xs text-gray-600 mb-1">
+                            <span className="font-semibold">الشركة:</span> {request.companyName}
+                          </p>
+                        )}
+                        {request.email && (
+                          <p className="text-xs text-gray-600">
+                            <span className="font-semibold">البريد:</span> {request.email}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                    <div className="flex-shrink-0">
+                      <div className="bg-green-100 group-hover:bg-green-200 p-2 rounded-full transition-colors">
+                        <WhatsappIcon className="w-5 h-5 text-green-600" />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
       {/* Bottom Grid: 3 Equal Columns */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {/* Limits Card */}
@@ -249,25 +395,7 @@ const Subscription: React.FC<SubscriptionProps> = ({ title }) => {
           </div>
         </div>
 
-        {/* Management Card */}
-        <div className="bg-white rounded-xl shadow-lg p-6 border border-gray-200">
-          <h3 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
-            <ShieldIcon className="w-5 h-5 text-orange-500" />
-            الإدارة
-          </h3>
-          <div className="space-y-3">
-            <button
-              onClick={handleOpenCreateModal}
-              className="w-full px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white rounded-lg font-bold flex items-center justify-center gap-2 transition-colors"
-            >
-              <PlusIcon className="w-4 h-4" />
-              إضافة شركة جديدة
-            </button>
-            <p className="text-xs text-gray-500 text-center">
-              أدخل اسم النطاق فقط لإنشاء شركة جديدة مع جميع البيانات الافتراضية
-            </p>
-          </div>
-        </div>
+        
       </div>
 
       {/* Create Company Modal - Simplified (Only Host) */}
