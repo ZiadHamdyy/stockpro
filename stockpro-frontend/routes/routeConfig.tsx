@@ -16,7 +16,7 @@ import StoreReceiptVoucher from "../components/pages/warehouse/StoreReceiptVouch
 import StoreIssueVoucher from "../components/pages/warehouse/StoreIssueVoucher";
 import StoreTransfer from "../components/pages/warehouse/StoreTransfer";
 import InventoryCount from "../components/pages/warehouse/InventoryCount";
-import POS from "../components/pages/sales/POS";
+import POS from "../components/pages/sales/POS/POS";
 import HelpCenter from "../components/pages/support/HelpCenter";
 import SalesInvoice from "../components/pages/sales/SalesInvoice";
 import PriceQuotation from "../components/pages/sales/PriceQuotation";

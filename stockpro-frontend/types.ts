@@ -500,3 +500,39 @@ export interface LicenseInfo {
   maxUsers: number;
   maxBranches: number;
 }
+
+
+export interface Product {
+  id: string;
+  name: string;
+  price: number;
+  category: string;
+  image: string;
+  barcode?: string;
+  unit?: string;
+}
+
+export interface CartItem extends Product {
+  quantity: number;
+  discount: number;
+}
+
+export interface Category {
+  id: string;
+  name: string;
+  icon: string;
+}
+
+export enum PaymentMethod {
+  CASH = 'CASH',
+  MADA = 'MADA',
+  VISA = 'VISA',
+  STCPAY = 'STCPAY',
+  APPLEPAY = 'APPLEPAY'
+}
+
+export interface AiInsight {
+  suggestion: string;
+  missingEssentials: string[];
+  healthTip: string;
+}

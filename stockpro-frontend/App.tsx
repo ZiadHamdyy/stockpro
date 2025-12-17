@@ -24,7 +24,7 @@ import { TitleProvider } from "./components/context/TitleContext";
 import Dashboard from "./components/pages/Dashboard";
 import Placeholder from "./components/pages/Placeholder";
 import Login from "./components/pages/Login";
-import POS from "./components/pages/sales/POS";
+import POS from "./components/pages/sales/POS/POS";
 import CompanyData from "./components/pages/settings/CompanyData";
 import FiscalYears from "./components/pages/settings/FiscalYears";
 import BranchesData from "./components/pages/settings/BranchesData";

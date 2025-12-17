@@ -1,0 +1,245 @@
+import React, { useRef, useEffect } from 'react';
+import type { InvoiceItem } from '../../../../types';
+import { formatNumber } from '../../../../utils/formatting';
+
+// Simple icon components for AI features
+const SparklesIcon: React.FC<{ className?: string }> = ({ className = "w-4 h-4" }) => (
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className={className}>
+    <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+  </svg>
+);
+
+const BrainCircuitIcon: React.FC<{ className?: string }> = ({ className = "w-4 h-4" }) => (
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className={className}>
+    <path d="M12 5a3 3 0 1 0-5.997.142 4 4 0 0 0-2.526 5.77 4 4 0 0 0 .556 6.588 4 4 0 0 0 7.636 2.106 3.2 3.2 0 0 0 .164-.546c.628-.5 1.2-1.1 1.6-1.8a3.2 3.2 0 0 0 .164-.546 4 4 0 0 0 2.526-5.77 4 4 0 0 0-.556-6.588A4 4 0 0 0 12 5Z"></path>
+    <path d="M8 12h.01M16 12h.01M11 8h.01M13 16h.01"></path>
+  </svg>
+);
+import PermissionWrapper from '../../../common/PermissionWrapper';
+import { Resources, Actions, buildPermission } from '../../../../enums/permissions.enum';
+
+interface CartProps {
+  cartItems: InvoiceItem[];
+  onUpdateQuantity: (id: string, delta: number) => void;
+  onRemoveItem: (id: string) => void;
+  onAnalyze: () => void;
+  subtotal: number;
+  tax: number;
+  total: number;
+  isAnalyzing: boolean;
+  aiInsight: any;
+  discount: number;
+  vatRate: number;
+}
+
+const Cart: React.FC<CartProps> = ({
+  cartItems,
+  onUpdateQuantity,
+  onRemoveItem,
+  onAnalyze,
+  subtotal,
+  tax,
+  total,
+  isAnalyzing,
+  aiInsight,
+  discount,
+  vatRate,
+}) => {
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const headerScrollRef = useRef<HTMLDivElement>(null);
+  const bodyScrollRef = useRef<HTMLDivElement>(null);
+
+  // Sync horizontal scroll between header and body
+  useEffect(() => {
+    const bodyElement = bodyScrollRef.current;
+    const headerElement = headerScrollRef.current;
+
+    if (!bodyElement || !headerElement) return;
+
+    let isSyncing = false;
+
+    const handleBodyScroll = () => {
+      if (isSyncing) return;
+      isSyncing = true;
+      headerElement.scrollLeft = bodyElement.scrollLeft;
+      requestAnimationFrame(() => {
+        isSyncing = false;
+      });
+    };
+
+    const handleHeaderScroll = () => {
+      if (isSyncing) return;
+      isSyncing = true;
+      bodyElement.scrollLeft = headerElement.scrollLeft;
+      requestAnimationFrame(() => {
+        isSyncing = false;
+      });
+    };
+
+    bodyElement.addEventListener('scroll', handleBodyScroll, { passive: true });
+    headerElement.addEventListener('scroll', handleHeaderScroll, { passive: true });
+
+    return () => {
+      bodyElement.removeEventListener('scroll', handleBodyScroll);
+      headerElement.removeEventListener('scroll', handleHeaderScroll);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (bodyScrollRef.current) {
+      bodyScrollRef.current.scrollTop = bodyScrollRef.current.scrollHeight;
+    }
+  }, [cartItems.length]);
+
+  return (
+    <div className="flex flex-col h-full bg-white">
+      
+      {/* AI Bar */}
+      {aiInsight ? (
+        <div className="bg-indigo-50 border-b border-indigo-100 p-2 flex items-center justify-between text-xs animate-fade-in shadow-inner">
+          <div className="flex items-center gap-2 text-indigo-800">
+            <BrainCircuitIcon className="w-4 h-4" />
+            <span className="font-bold">اقتراح ذكي:</span>
+            <span>{aiInsight.suggestion}</span>
+          </div>
+          {aiInsight.missingEssentials?.length > 0 && (
+            <div className="flex gap-1">
+              {aiInsight.missingEssentials.map((item: string, idx: number) => (
+                <span key={idx} className="bg-white px-2 py-0.5 rounded text-indigo-600 border border-indigo-200">{item}</span>
+              ))}
+            </div>
+          )}
+        </div>
+      ) : (
+        <div className="bg-royal-50 border-b border-royal-200 p-1 flex justify-center">
+            <button onClick={onAnalyze} disabled={isAnalyzing || cartItems.length === 0} className="text-[10px] flex items-center gap-1 text-royal-600 hover:text-royal-800 transition">
+            <SparklesIcon className={`w-3 h-3 ${isAnalyzing ? 'animate-spin' : ''}`} />
+            <span>تحليل الفاتورة بالذكاء الاصطناعي</span>
+          </button>
+        </div>
+      )}
+
+      {/* Table Container with Horizontal Scroll */}
+      <div className="flex-1 flex flex-col overflow-hidden">
+        {/* Table Header - BIGGER AND BOLDER as requested - Scrollable horizontally */}
+        <div 
+          ref={headerScrollRef}
+          className="bg-royal-700 text-white py-3 pr-1 shadow-md border-b-4 border-gold-500 overflow-x-auto overflow-y-hidden no-scrollbar"
+          onScroll={(e) => {
+            if (bodyScrollRef.current) {
+              bodyScrollRef.current.scrollLeft = e.currentTarget.scrollLeft;
+            }
+          }}
+        >
+          <div className="grid text-center items-center divide-x divide-royal-500 divide-x-reverse tracking-wide text-base font-black min-h-[48px]" style={{ gridTemplateColumns: 'minmax(60px, 0.5fr) minmax(120px, 1fr) minmax(200px, 2fr) minmax(80px, 0.8fr) minmax(100px, 1fr) minmax(100px, 1fr) minmax(80px, 0.8fr) minmax(80px, 0.8fr) minmax(120px, 1fr)' }}>
+            <div className="whitespace-nowrap px-2 h-full flex items-center justify-center">م</div>
+            <div className="whitespace-nowrap px-3 h-full flex items-center justify-center">رقم الصنف</div>
+            <div className="whitespace-nowrap px-4 h-full flex items-center justify-center">الصنف</div>
+            <div className="whitespace-nowrap px-2 h-full flex items-center justify-center">الوحدة</div>
+            <div className="whitespace-nowrap px-2 h-full flex items-center justify-center">الكمية</div>
+            <div className="whitespace-nowrap px-3 h-full flex items-center justify-center">السعر</div>
+            <div className="whitespace-nowrap px-2 h-full flex items-center justify-center">الخصم</div>
+            <div className="whitespace-nowrap px-2 h-full flex items-center justify-center">الضريبة</div>
+            <div className="whitespace-nowrap px-3 h-full flex items-center justify-center">الإجمالي</div>
+          </div>
+        </div>
+
+        {/* Scrollable Table Body Container */}
+        <div 
+          ref={bodyScrollRef}
+          className="flex-1 overflow-y-auto overflow-x-auto bg-white relative"
+          onScroll={(e) => {
+            if (headerScrollRef.current) {
+              headerScrollRef.current.scrollLeft = e.currentTarget.scrollLeft;
+            }
+          }}
+        >
+          <div className="min-h-full relative">
+            {cartItems.length === 0 && (
+              <div className="absolute inset-0 flex flex-col items-center justify-center text-royal-300 pointer-events-none">
+                <div className="text-6xl mb-2 opacity-30 grayscale">🛒</div>
+                <p className="font-bold text-royal-400">قائمة الفاتورة فارغة</p>
+              </div>
+            )}
+        
+        {cartItems.map((item, index) => {
+          const itemTax = Number(item.taxAmount) || 0;
+          const net = Number(item.total) || 0;
+          
+          return (
+            <div key={item.id} className="grid text-center items-stretch border-b border-royal-100 text-sm cursor-pointer group hover:bg-gold-50 bg-white divide-x divide-royal-200 divide-x-reverse h-12 transition-colors font-bold text-royal-900" style={{ gridTemplateColumns: 'minmax(60px, 0.5fr) minmax(120px, 1fr) minmax(200px, 2fr) minmax(80px, 0.8fr) minmax(100px, 1fr) minmax(100px, 1fr) minmax(80px, 0.8fr) minmax(80px, 0.8fr) minmax(120px, 1fr)' }}>
+              <div className="font-mono text-royal-500 font-bold h-full flex items-center justify-center bg-transparent opacity-70 text-xs whitespace-nowrap px-2">{index + 1}</div>
+              <div className="font-mono text-royal-800 font-black h-full flex items-center justify-center text-sm whitespace-nowrap px-3">{item.id.padStart(6, '0')}</div>
+              <div className="text-right pr-2 font-bold text-royal-950 h-full flex items-center justify-start text-sm whitespace-nowrap px-4">{item.name}</div>
+              <div className="text-royal-600 h-full flex items-center justify-center font-bold text-xs whitespace-nowrap px-2">{item.unit || 'حبة'}</div>
+              <div className="p-1 h-full flex items-center justify-center whitespace-nowrap">
+                <PermissionWrapper
+                  requiredPermission={buildPermission(
+                    Resources.SALES_INVOICE,
+                    Actions.UPDATE
+                  )}
+                  fallback={
+                    <input 
+                      type="number" 
+                      value={Math.abs(item.qty)}
+                      disabled
+                      className="w-full h-8 text-center border border-royal-300 rounded bg-gray-100 opacity-50 cursor-not-allowed font-black text-lg text-royal-900"
+                    />
+                  }
+                >
+                  <input 
+                    type="number" 
+                    value={Math.abs(item.qty)}
+                    onClick={(e) => e.stopPropagation()}
+                    onChange={(e) => onUpdateQuantity(item.id, parseInt(e.target.value) - item.qty)}
+                    className="w-full h-8 text-center border border-royal-300 rounded focus:ring-2 focus:ring-royal-500 outline-none bg-white font-black text-lg text-royal-900 shadow-sm"
+                  />
+                </PermissionWrapper>
+              </div>
+              <div className="font-mono font-bold text-royal-700 h-full flex items-center justify-center whitespace-nowrap px-3">{formatNumber(Math.abs(item.price))}</div>
+              <div className="text-red-500 font-mono h-full flex items-center justify-center opacity-70 whitespace-nowrap px-2">0.00</div>
+              <div className="text-royal-500 font-mono h-full flex items-center justify-center text-xs whitespace-nowrap px-2">{formatNumber(itemTax)}</div>
+              <div className="font-black text-royal-900 font-mono group-hover:bg-gold-200/50 h-full flex items-center justify-center text-base whitespace-nowrap px-3">{formatNumber(net)}</div>
+            </div>
+          );
+        })}
+          </div>
+        </div>
+      </div>
+
+      {/* Footer Totals */}
+      <div className="bg-royal-50 border-t-2 border-royal-200 p-2 text-xs">
+        <div className="flex items-center justify-between gap-3">
+          
+          <div className="flex-1 bg-white border border-royal-300 rounded p-1 flex justify-between items-center shadow-sm">
+            <span className="text-royal-500 px-2 font-bold border-l border-royal-200">العميل</span>
+            <span className="font-bold text-royal-800 px-2 flex-1 text-center">نقدي</span>
+          </div>
+
+          <div className="flex items-center gap-0 bg-white border border-royal-300 rounded overflow-hidden shadow-sm">
+            <span className="bg-royal-200 text-royal-700 font-bold px-3 py-1.5 border-l border-royal-300">العدد</span>
+            <span className="px-4 py-1.5 font-mono font-bold text-lg leading-none text-royal-900">{cartItems.length}</span>
+          </div>
+
+          <div className="flex gap-2 bg-royal-200 p-1.5 rounded-lg border border-royal-300 shadow-inner">
+            <div className="text-center bg-white rounded border border-royal-300 overflow-hidden min-w-[90px]">
+              <div className="text-[10px] text-royal-500 font-bold bg-royal-50 border-b border-royal-200">الخصم</div>
+              <div className="font-mono text-red-600 font-bold py-1 text-sm">{formatNumber(discount)}</div>
+            </div>
+            <div className="text-center bg-white rounded border border-royal-300 overflow-hidden min-w-[90px]">
+              <div className="text-[10px] text-royal-500 font-bold bg-royal-50 border-b border-royal-200">الضريبة</div>
+              <div className="font-mono text-royal-800 font-bold py-1 text-sm">{formatNumber(tax)}</div>
+            </div>
+            {/* Total Box - Updated colors */}
+            <div className="text-center bg-royal-700 rounded border-2 border-royal-800 overflow-hidden min-w-[140px] shadow-lg transform scale-105 origin-right">
+              <div className="text-[10px] text-royal-100 font-bold bg-royal-800 border-b border-royal-600">الإجمالي النهائي</div>
+              <div className="font-mono text-white text-2xl font-black py-0.5 tracking-wide text-gold-400">{formatNumber(Math.abs(total))}</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default Cart;
