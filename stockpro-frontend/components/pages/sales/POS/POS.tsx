@@ -211,8 +211,13 @@ const POS: React.FC<POSProps> = () => {
   const [selectedCustomer, setSelectedCustomer] = useState<{
     id: string;
     name: string;
-  }>({ id: "cash", name: "عميل نقدي" });
+  } | null>(null);
   const [customerType, setCustomerType] = useState('cash');
+  const [customerQuery, setCustomerQuery] = useState("");
+  const [isCustomerDropdownOpen, setIsCustomerDropdownOpen] = useState(false);
+  const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0, width: 0 });
+  const customerRef = useRef<HTMLDivElement>(null);
+  const customerInputRef = useRef<HTMLInputElement>(null);
   const [discount, setDiscount] = useState(0);
   const [notes, setNotes] = useState("");
   const [currentTime, setCurrentTime] = useState(new Date());
@@ -244,6 +249,16 @@ const POS: React.FC<POSProps> = () => {
   const activeTab = tabs.find(t => t.id === activeTabId) || tabs[0];
   const cartItems = activeTab.items;
 
+  const filteredCustomers = useMemo(
+    () =>
+      customerQuery
+        ? customers.filter((c) =>
+            c.name.toLowerCase().includes(customerQuery.toLowerCase())
+          )
+        : customers,
+    [customerQuery, customers],
+  );
+
   const { showToast } = useToast();
 
   // --- Effects ---
@@ -258,6 +273,42 @@ const POS: React.FC<POSProps> = () => {
       setCardBankId((prev) => prev ?? defaultBankId);
     }
   }, [paymentMethod, banks]);
+
+
+  useEffect(() => {
+    const updateDropdownPosition = () => {
+      if (customerInputRef.current) {
+        const rect = customerInputRef.current.getBoundingClientRect();
+        setDropdownPosition({
+          top: rect.bottom + window.scrollY + 4,
+          left: rect.left + window.scrollX,
+          width: rect.width,
+        });
+      }
+    };
+
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        customerRef.current &&
+        !customerRef.current.contains(event.target as Node)
+      ) {
+        setIsCustomerDropdownOpen(false);
+      }
+    };
+
+    if (isCustomerDropdownOpen) {
+      updateDropdownPosition();
+      document.addEventListener("mousedown", handleClickOutside);
+      window.addEventListener("scroll", updateDropdownPosition, true);
+      window.addEventListener("resize", updateDropdownPosition);
+    }
+    
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+      window.removeEventListener("scroll", updateDropdownPosition, true);
+      window.removeEventListener("resize", updateDropdownPosition);
+    };
+  }, [isCustomerDropdownOpen]);
 
   // Filter Items
   const filteredItems = useMemo(() => {
@@ -471,6 +522,13 @@ const POS: React.FC<POSProps> = () => {
     }
   };
 
+  const handleSelectCustomer = (customer: Customer) => {
+    setSelectedCustomer({ id: customer.id.toString(), name: customer.name });
+    setCustomerQuery(customer.name);
+    setIsCustomerDropdownOpen(false);
+    // Don't automatically change customer type - allow customer selection for both cash and credit
+  };
+
   const handleAIAnalyze = async () => {
     // Optional: Implement AI analysis if needed
     if (cartItems.length === 0) return;
@@ -483,6 +541,12 @@ const POS: React.FC<POSProps> = () => {
 
   const handlePaymentComplete = async (payments: { method: any, amount: number }[]) => {
     if (cartItems.length === 0) return;
+
+    // Validate customer selection for credit customers
+    if (customerType === "credit" && !selectedCustomer) {
+      showToast("الرجاء اختيار العميل للفواتير الآجلة.", "error");
+      return;
+    }
 
     const totalPaid = payments.reduce((sum, p) => sum + p.amount, 0);
     const paymentMethodFromPayments = payments[0]?.method;
@@ -509,8 +573,14 @@ const POS: React.FC<POSProps> = () => {
       return;
     }
 
+    // For cash: send null if no customer selected, otherwise send customer ID
+    // For credit: customer is required (already validated above)
+    const customerId = customerType === "cash" && !selectedCustomer
+      ? null
+      : (selectedCustomer ? selectedCustomer.id : null);
+
     const payload: CreateSalesInvoiceRequest = {
-      customerId: selectedCustomer.id !== "cash" ? selectedCustomer.id : undefined,
+      customerId: customerId || undefined,
       date: new Date().toISOString().substring(0, 10),
       items: cartItems.map((i) => ({
         id: i.id,
@@ -523,10 +593,12 @@ const POS: React.FC<POSProps> = () => {
         salePriceIncludesTax: Boolean((i as any).salePriceIncludesTax ?? salePriceIncludesTaxSetting),
       })),
       discount,
-      paymentMethod: "cash",
-      paymentTargetType: !isCardPayment ? "safe" : "bank",
-      paymentTargetId: !isCardPayment ? paymentTargetId : cardBankId ?? undefined,
-      bankTransactionType: isCardPayment ? "POS" : undefined,
+      paymentMethod: customerType === "credit" ? "credit" : "cash",
+      // For credit invoices, do NOT send any safe/bank info
+      paymentTargetType: customerType === "credit" ? null : (!isCardPayment ? "safe" : "bank"),
+      // For credit invoices, paymentTargetId should be null
+      paymentTargetId: customerType === "credit" ? null : (!isCardPayment ? paymentTargetId : cardBankId ?? undefined),
+      bankTransactionType: customerType === "credit" ? undefined : (isCardPayment ? "POS" : undefined),
       notes,
     };
 
@@ -547,7 +619,10 @@ const POS: React.FC<POSProps> = () => {
       setDiscount(0);
       setSearchQuery("");
       setNotes("");
-      setSelectedCustomer({ id: "cash", name: "عميل نقدي" });
+      setSelectedCustomer(null);
+      setCustomerType("cash");
+      setCustomerQuery("");
+      setIsCustomerDropdownOpen(false);
       setPaymentMethod("cash");
       setCardBankId(banks[0]?.id ? banks[0].id.toString() : null);
       setPaymentModalOpen(false);
@@ -557,20 +632,6 @@ const POS: React.FC<POSProps> = () => {
     }
   };
 
-  // Improved Header Field Component
-  const HeaderField = ({ label, icon: Icon, children, className = "" }: any) => {
-    return (
-      <div className={`flex flex-col min-w-[140px] relative ${className}`}>
-        <div className="flex items-center gap-2 mb-1">
-          <Icon className="w-[14px] h-[14px] text-gold-400" />
-          <span className="text-[10px] text-royal-200 font-medium">{label}</span>
-        </div>
-        <div className="h-9 w-full bg-royal-800/30 border border-royal-600 rounded flex items-center px-2 shadow-inner hover:border-gold-400/50 transition-colors">
-          {children}
-        </div>
-      </div>
-    );
-  };
 
   // Keyboard Shortcuts
   useEffect(() => {
@@ -598,9 +659,9 @@ const POS: React.FC<POSProps> = () => {
     <div className="flex flex-col h-screen bg-royal-50 font-sans text-sm overflow-hidden -m-6">
         
       {/* TOP HEADER - LIGHTER ROYAL BLUE THEME (royal-700) */}
-      <div className="bg-royal-700 p-2 border-b-4 border-gold-500 shadow-xl z-30 flex flex-col gap-2 h-auto">
+      <div className="bg-royal-700 p-2 border-b-4 border-gold-500 shadow-xl z-30 flex flex-col gap-2 h-auto relative overflow-visible">
         {/* Second Row: Operational Fields */}
-          <div className="flex items-center gap-3 overflow-x-auto pb-1 no-scrollbar px-1 pt-1 border-t border-royal-600">
+          <div className="flex items-center gap-3 overflow-x-auto pb-1 no-scrollbar px-1 pt-1 border-t border-royal-600 relative overflow-visible">
           
             <div className="flex flex-col min-w-[140px] relative w-40">
               <div className="flex items-center gap-2 mb-1">
@@ -611,7 +672,13 @@ const POS: React.FC<POSProps> = () => {
                 <button
                   onClick={() => {
                     setCustomerType("cash");
-                    setSelectedCustomer({ id: "cash", name: "عميل نقدي" });
+                    // Keep the selected customer name in the query if exists
+                    if (selectedCustomer) {
+                      setCustomerQuery(selectedCustomer.name);
+                    } else {
+                      setCustomerQuery("");
+                    }
+                    setIsCustomerDropdownOpen(false);
                   }}
                   className={`w-1/2 py-2 rounded text-xs font-bold transition-all duration-200 ${
                     customerType === "cash" 
@@ -622,7 +689,15 @@ const POS: React.FC<POSProps> = () => {
                   عميل نقدي
                 </button>
                 <button
-                  onClick={() => setCustomerType("credit")}
+                  onClick={() => {
+                    setCustomerType("credit");
+                    if (selectedCustomer) {
+                      setCustomerQuery(selectedCustomer.name);
+                    } else {
+                      setCustomerQuery("");
+                    }
+                    setIsCustomerDropdownOpen(false);
+                  }}
                   className={`w-1/2 py-2 rounded text-xs font-bold transition-all duration-200 ${
                     customerType === "credit" 
                       ? "bg-royal-600 text-white shadow" 
@@ -640,36 +715,71 @@ const POS: React.FC<POSProps> = () => {
               Actions.READ
             )}
             fallback={
-              <HeaderField label="اسم العميل" icon={UserIcon} className="flex-1 min-w-[200px]">
-                <span className="text-white font-bold text-xs opacity-50">{selectedCustomer.name}</span>
-              </HeaderField>
+              <div className="flex flex-col min-w-[140px] relative w-[300px]">
+                <div className="flex items-center gap-2 mb-1">
+                  <UserIcon className="w-[14px] h-[14px] text-gold-400" />
+                  <span className="text-[10px] text-royal-200 font-medium">العميل</span>
+                </div>
+                <div className="h-9 w-full bg-royal-800/30 border border-royal-600 rounded flex items-center px-2 shadow-inner hover:border-gold-400/50 transition-colors">
+                  <span className="text-white font-bold text-xs opacity-50">{selectedCustomer?.name || "-- عميل عام --"}</span>
+                </div>
+              </div>
             }
           >
-            <HeaderField label="اسم العميل" icon={UserIcon} className="flex-1 min-w-[200px]">
-              {customerType === 'cash' ? (
-                <span className="text-white font-bold text-xs opacity-50">-- عميل عام --</span>
-              ) : (
-                <button
-                  onClick={() => setIsCustomerModalOpen(true)}
-                  className="bg-transparent w-full text-white font-bold outline-none cursor-pointer text-xs text-left"
-                >
-                  {selectedCustomer.name}
-                </button>
-              )}
-            </HeaderField>
+            <div className="flex flex-col min-w-[140px] relative w-[300px]" ref={customerRef}>
+              <div className="flex items-center gap-2 mb-1">
+                <UserIcon className="w-[14px] h-[14px] text-gold-400" />
+                <span className="text-[10px] text-royal-200 font-medium">العميل</span>
+              </div>
+              <div className="relative h-9 w-full bg-royal-800/30 border border-royal-600 rounded flex items-center px-2 shadow-inner hover:border-gold-400/50 transition-colors">
+                <input
+                  ref={customerInputRef}
+                  type="text"
+                  placeholder={customerType === 'cash' ? "ابحث عن عميل (اختياري)..." : "ابحث عن عميل..."}
+                  className="bg-transparent w-full text-white font-bold outline-none cursor-pointer text-xs placeholder-white/50 border-none focus:ring-0"
+                  value={customerQuery}
+                  onChange={(e) => {
+                    setCustomerQuery(e.target.value);
+                    setIsCustomerDropdownOpen(true);
+                    setSelectedCustomer(null);
+                  }}
+                  onFocus={() => {
+                    setIsCustomerDropdownOpen(true);
+                    setTimeout(() => {
+                      if (customerInputRef.current) {
+                        const rect = customerInputRef.current.getBoundingClientRect();
+                        setDropdownPosition({
+                          top: rect.bottom + window.scrollY + 4,
+                          left: rect.left + window.scrollX,
+                          width: rect.width,
+                        });
+                      }
+                    }, 0);
+                  }}
+                />
+                {isCustomerDropdownOpen && (
+                  <div 
+                    className="fixed z-[9999] bg-royal-800 border-2 border-royal-600 rounded-md shadow-lg max-h-60 overflow-y-auto"
+                    style={{
+                      top: `${dropdownPosition.top}px`,
+                      left: `${dropdownPosition.left}px`,
+                      width: `${dropdownPosition.width}px`,
+                    }}
+                  >
+                    {filteredCustomers.map((customer) => (
+                      <div
+                        key={customer.id}
+                        onClick={() => handleSelectCustomer(customer)}
+                        className="p-2 cursor-pointer hover:bg-royal-600 text-white text-xs"
+                      >
+                        {customer.name}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
           </PermissionWrapper>
-
-          <HeaderField label="نوع الفاتورة" icon={FileTextIcon} className="w-32">
-            <select className="bg-transparent w-full text-white font-bold outline-none cursor-pointer text-xs" defaultValue="sales">
-              <option value="sales" className="bg-royal-800">مبيعات</option>
-              <option value="return" className="bg-royal-800">مرتجع مبيعات</option>
-              <option value="quotation" className="bg-royal-800">عرض سعر</option>
-            </select>
-          </HeaderField>
-
-          <HeaderField label="المندوب / البائع" icon={BriefcaseIcon} className="w-40">
-            <span className="text-white font-bold text-xs">{currentUser?.fullName || "غير محدد"}</span>
-          </HeaderField>
           
           {/* Search Bar - Darkened slightly for contrast against royal-700 */}
           <PermissionWrapper
@@ -732,7 +842,7 @@ const POS: React.FC<POSProps> = () => {
       </div>
 
       {/* MAIN LAYOUT */}
-      <div className="flex flex-1 overflow-hidden p-4 gap-4">
+      <div className="flex flex-1 overflow-hidden p-4 gap-4 relative z-0">
         
         {/* RIGHT: Function Sidebar */}
         <div className="w-56 h-full shadow-2xl rounded-lg overflow-hidden bg-royal-700 order-1 flex flex-col">
@@ -740,7 +850,7 @@ const POS: React.FC<POSProps> = () => {
         </div>
 
         {/* CENTER: Invoice Table (Tabs + Table) */}
-        <div className="flex-1 h-full flex flex-col gap-0 order-2 overflow-hidden shadow-xl rounded-lg border border-royal-200 bg-white">
+        <div className="flex-1 h-full flex flex-col gap-0 order-2 overflow-hidden shadow-xl rounded-lg border border-royal-200 bg-white relative z-0">
           
           {/* TABS HEADER */}
           <div className="flex items-end gap-1 px-2 pt-2 bg-royal-100 border-b border-royal-200 overflow-x-auto no-scrollbar">
@@ -781,7 +891,7 @@ const POS: React.FC<POSProps> = () => {
           </div>
 
           {/* TABLE CONTAINER */}
-          <div className="flex-1 relative z-0">
+          <div className="flex-1 relative z-0 overflow-hidden">
             <Cart 
               cartItems={cartItems}
               onUpdateQuantity={updateQty}
@@ -841,14 +951,16 @@ const POS: React.FC<POSProps> = () => {
             <div className="max-h-80 overflow-y-auto space-y-2 mb-4 pr-1">
               <div
                 onClick={() => {
-                  setSelectedCustomer({ id: "cash", name: "عميل نقدي" });
+                  setSelectedCustomer(null);
                   setCustomerType("cash");
+                  setCustomerQuery("");
+                  setIsCustomerDropdownOpen(false);
                   setIsCustomerModalOpen(false);
                 }}
                 className="p-3 rounded-lg border border-gray-200 hover:bg-blue-50 cursor-pointer flex justify-between items-center font-bold"
               >
                 <span>عميل نقدي (افتراضي)</span>
-                {selectedCustomer.id === "cash" && (
+                {!selectedCustomer && (
                   <span className="text-blue-600">✓</span>
                 )}
               </div>
@@ -860,16 +972,18 @@ const POS: React.FC<POSProps> = () => {
                       id: cust.id.toString(),
                       name: cust.name,
                     });
-                    setCustomerType("credit");
+                    // Don't automatically change customer type - allow selecting customer for both cash and credit
+                    setCustomerQuery(cust.name);
+                    setIsCustomerDropdownOpen(false);
                     setIsCustomerModalOpen(false);
                   }}
-                  className={`p-3 rounded-lg border cursor-pointer flex justify-between items-center transition-colors ${selectedCustomer.id === cust.id.toString() ? "bg-blue-50 border-blue-500 text-blue-800" : "border-gray-200 hover:bg-gray-50"}`}
+                  className={`p-3 rounded-lg border cursor-pointer flex justify-between items-center transition-colors ${selectedCustomer?.id === cust.id.toString() ? "bg-blue-50 border-blue-500 text-blue-800" : "border-gray-200 hover:bg-gray-50"}`}
                 >
                   <div>
                     <p className="font-bold">{cust.name}</p>
                     <p className="text-xs text-gray-500">{cust.phone}</p>
                   </div>
-                  {selectedCustomer.id === cust.id.toString() && (
+                  {selectedCustomer?.id === cust.id.toString() && (
                     <span className="text-blue-600">✓</span>
                   )}
                 </div>
