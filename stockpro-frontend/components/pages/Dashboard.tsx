@@ -1,4 +1,5 @@
 import React, { useEffect, useRef } from "react";
+import { useLocation } from "react-router-dom";
 import { UsersIcon, BoxIcon, ReceiptIcon, ShoppingCartIcon } from "../icons";
 import {
   useGetDashboardStatsQuery,
@@ -47,9 +48,13 @@ const StatCard: React.FC<StatCardProps> = ({
 );
 
 const Dashboard: React.FC<{ title: string }> = ({ title }) => {
+  const location = useLocation();
   const barChartRef = useRef<HTMLCanvasElement>(null);
   const doughnutChartRef = useRef<HTMLCanvasElement>(null);
   const chartInstances = useRef<{ bar?: any; doughnut?: any }>({});
+
+  // Get style variant from location state, default to 'default'
+  const styleVariant = (location.state as { style?: string })?.style || 'default';
 
   // Fetch company data for currency
   const { data: company } = useGetCompanyQuery();
@@ -214,6 +219,17 @@ const Dashboard: React.FC<{ title: string }> = ({ title }) => {
     };
   }, [monthlyStats, salesByItemGroup, currency]);
 
+  // Render alternative style (empty page for now)
+  if (styleVariant === 'alternative') {
+    return (
+      <div>
+        <h1 className="text-2xl font-bold mb-6 text-brand-dark">{title}</h1>
+        {/* Empty page - styles will be provided later */}
+      </div>
+    );
+  }
+
+  // Render default style (current dashboard content)
   return (
     <div>
       <h1 className="text-2xl font-bold mb-6 text-brand-dark">{title}</h1>

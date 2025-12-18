@@ -2,7 +2,7 @@ import React, { useState, useMemo, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { MENU_ITEMS } from "../../constants";
 import type { MenuItem } from "../../types";
-import { ChevronDownIcon } from "../icons";
+import { ChevronDownIcon, HomeIcon } from "../icons";
 import {
   getPathFromMenuKey,
   getMenuKeyFromPath,
@@ -143,6 +143,23 @@ const Sidebar: React.FC<SidebarProps> = ({
     [location.pathname],
   );
 
+  // Get current dashboard style from location state
+  const currentDashboardStyle = useMemo(
+    () => (location.state as { style?: string })?.style || 'default',
+    [location.state],
+  );
+
+  // Filter out dashboard from menu items since we'll render it separately
+  const menuWithoutDashboard = useMemo(
+    () => filteredMenu.filter(item => item.key !== 'dashboard'),
+    [filteredMenu],
+  );
+
+  // Handle dashboard navigation with style variant
+  const handleDashboardNavigation = (style: 'default' | 'alternative') => {
+    navigate('/dashboard', { state: { style } });
+  };
+
   const toggleMenu = (key: string) => {
     setOpenMenus((prev) => ({ ...prev, [key]: !prev[key] }));
   };
@@ -228,7 +245,40 @@ const Sidebar: React.FC<SidebarProps> = ({
         <StockProLogo />
       </div>
       <nav className="flex-1 p-2 space-y-1 overflow-y-auto sidebar-scrollbar">
-        {filteredMenu.map((item) => renderMenuItem(item))}
+        {/* Dashboard Navigation Buttons - Side by Side */}
+        {permissionSet.has('dashboard-read') && (
+          <div className="flex gap-2 mb-2">
+            {/* First Button - Default Style (Classic View) */}
+            <button
+              onClick={() => handleDashboardNavigation('default')}
+              className={`flex-1 py-2.5 px-4 text-sm font-medium rounded-md transition-colors duration-200 flex items-center justify-center ${
+                currentDashboardStyle === 'default' && location.pathname === '/dashboard'
+                  ? 'text-white bg-brand-green'
+                  : 'text-gray-200 hover:bg-brand-green hover:text-white'
+              }`}
+            >
+              <span className="flex items-center">
+                <HomeIcon className="w-5 h-5 ml-2" />
+                الرئيسية
+              </span>
+            </button>
+            {/* Second Button - Alternative Style (Modern View) */}
+            <button
+              onClick={() => handleDashboardNavigation('alternative')}
+              className={`flex-1 py-2.5 px-4 text-sm font-medium rounded-md transition-colors duration-200 flex items-center justify-center ${
+                currentDashboardStyle === 'alternative' && location.pathname === '/dashboard'
+                  ? 'text-white bg-brand-green'
+                  : 'text-gray-200 hover:bg-brand-green hover:text-white'
+              }`}
+            >
+              <span className="flex items-center">
+                <HomeIcon className="w-5 h-5 ml-2" />
+                الرئيسية
+              </span>
+            </button>
+          </div>
+        )}
+        {menuWithoutDashboard.map((item) => renderMenuItem(item))}
       </nav>
       <div className="p-4 border-t border-blue-900 text-center text-xs text-gray-300">
         <p>StockPro &copy; 2024</p>
