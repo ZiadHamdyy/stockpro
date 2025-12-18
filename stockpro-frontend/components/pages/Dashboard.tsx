@@ -8,6 +8,7 @@ import {
 } from "../store/slices/dashboard/dashboardApiSlice";
 import { useGetCompanyQuery } from "../store/slices/companyApiSlice";
 import { formatNumber } from "../../utils/formatting";
+import AlternativeDashboard from "./AlternativeDashboard";
 
 declare var Chart: any;
 
@@ -46,6 +47,7 @@ const StatCard: React.FC<StatCardProps> = ({
     </div>
   </div>
 );
+
 
 const Dashboard: React.FC<{ title: string }> = ({ title }) => {
   const location = useLocation();
@@ -219,14 +221,9 @@ const Dashboard: React.FC<{ title: string }> = ({ title }) => {
     };
   }, [monthlyStats, salesByItemGroup, currency]);
 
-  // Render alternative style (empty page for now)
+  // Render alternative style
   if (styleVariant === 'alternative') {
-    return (
-      <div>
-        <h1 className="text-2xl font-bold mb-6 text-brand-dark">{title}</h1>
-        {/* Empty page - styles will be provided later */}
-      </div>
-    );
+    return <AlternativeDashboard title={title} />;
   }
 
   // Render default style (current dashboard content)
