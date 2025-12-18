@@ -573,90 +573,63 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
 
                 {paymentMode === 'split' && (
                   <div className="w-full animate-fade-in-down origin-top">
-                    <div className="bg-slate-600 text-white rounded-lg p-2 shadow-md border border-slate-500">
-                      <div className="grid grid-cols-2 gap-4">
-                        {/* Bank Part */}
-                        <div className="p-2 bg-slate-500/40 rounded-md border border-slate-400/30">
-                          <div className="flex items-center justify-between mb-1 pb-1 border-b border-slate-400/30 h-8">
-                            <div className="flex items-center gap-2">
-                              <div className="w-2 h-2 rounded-full bg-blue-400 shadow-[0_0_6px_rgba(96,165,250,0.6)]"></div>
-                              <span className="text-[10px] font-bold text-white uppercase tracking-wider">
-                                البنكي (BANK)
-                              </span>
-                            </div>
-                            <div className="flex bg-slate-700 rounded p-0.5 border border-slate-500/50">
-                              <button
-                                onClick={() => setBankTransactionType("POS")}
-                                className={`px-2 py-0.5 text-[10px] font-bold rounded transition-all ${
-                                  bankTransactionType === "POS"
-                                    ? "bg-blue-600 text-white shadow"
-                                    : "text-slate-300 hover:text-white"
-                                }`}
-                              >
-                                POS
-                              </button>
-                              <button
-                                onClick={() => setBankTransactionType("TRANSFER")}
-                                className={`px-2 py-0.5 text-[10px] font-bold rounded transition-all ${
-                                  bankTransactionType === "TRANSFER"
-                                    ? "bg-blue-600 text-white shadow"
-                                    : "text-slate-300 hover:text-white"
-                                }`}
-                              >
-                                تحويل
-                              </button>
-                            </div>
-                          </div>
-                          <div className="flex gap-2 items-center h-8 mb-2">
-                            <div className="flex-1">
-                              <select
-                                className="w-full h-8 px-1 rounded-sm border-0 bg-white text-slate-900 text-xs focus:ring-1 focus:ring-blue-400 outline-none shadow-sm font-semibold"
-                                value={splitBankId || ""}
-                                onChange={(e) =>
-                                  setSplitBankId(e.target.value ? e.target.value : null)
-                                }
-                              >
-                                <option value="">اختر البنك...</option>
-                                {banks.map((b) => (
-                                  <option key={b.id} value={b.id?.toString() || ""}>
-                                    {b.name}
-                                  </option>
-                                ))}
-                              </select>
-                            </div>
-                          </div>
-                          <div className="w-full">
-                            <div className="w-full h-8 px-1 rounded-sm border-0 bg-white text-slate-900 font-bold text-sm shadow-sm text-center flex items-center justify-center">
-                              {formatNumber(splitBankAmount)}
-                            </div>
-                          </div>
-                        </div>
-                        {/* Cash Part */}
-                        <div className="p-2 bg-slate-500/40 rounded-md border border-slate-400/30">
-                          <div className="flex items-center justify-end mb-1 pb-1 border-b border-slate-400/30 h-8">
-                            <div className="flex items-center gap-2">
-                              <span className="text-[10px] font-bold text-white uppercase tracking-wider">
-                                النقدي (CASH)
-                              </span>
-                              <div className="w-2 h-2 rounded-full bg-green-400 shadow-[0_0_6px_rgba(74,222,128,0.6)]"></div>
-                            </div>
-                          </div>
-                          <div className="flex gap-2 items-center h-8 mb-2">
-                            <div className="flex-1 bg-white px-2 py-1 rounded-sm shadow-sm">
-                              <span className="text-xs font-semibold text-slate-900">
-                                {splitSafe?.name || 'الخزنة الافتراضية'}
-                              </span>
-                            </div>
-                          </div>
-                          <div className="w-full">
-                            <div className="w-full h-8 px-1 rounded-sm border-0 bg-white text-slate-900 font-bold text-sm shadow-sm text-center flex items-center justify-center">
-                              {formatNumber(splitCashAmount)}
-                            </div>
-                          </div>
-                        </div>
+                    <div className="flex flex-col gap-3">
+                      {/* Bank Selection */}
+                      <div className="flex items-center gap-3">
+                        <label className="text-sm font-medium text-gray-700 whitespace-nowrap">
+                          اختر البنك:
+                        </label>
+                        <select
+                          className="flex-1 bg-white border-2 border-royal-600 rounded-md shadow-sm text-black focus:outline-none focus:ring-2 focus:ring-royal-500 focus:border-royal-500 py-2 px-3 font-semibold"
+                          value={splitBankId || ""}
+                          onChange={(e) =>
+                            setSplitBankId(e.target.value ? e.target.value : null)
+                          }
+                        >
+                          <option value="">اختر البنك...</option>
+                          {banks.map((b) => (
+                            <option key={b.id} value={b.id?.toString() || ""}>
+                              {b.name}
+                            </option>
+                          ))}
+                        </select>
                       </div>
-                      <div className="mt-2 pt-2 border-t border-slate-400/30 text-center text-xs text-white/80">
-                        المجموع: {formatNumber(splitCashAmount + splitBankAmount)} / {formatNumber(totalAmount)}
+                      
+                      {/* Transaction Type and Safe */}
+                      <div className="flex items-center gap-3">
+                        <label className="text-sm font-medium text-gray-700 whitespace-nowrap">
+                          طريقة التحويل:
+                        </label>
+                        <div className="relative bg-royal-100 border-2 border-royal-600 rounded-md p-1 flex items-center flex-1">
+                          <button
+                            onClick={() => setBankTransactionType("POS")}
+                            className={`w-1/2 py-2 rounded text-sm font-semibold ${
+                              bankTransactionType === "POS"
+                                ? "bg-royal-600 text-white shadow"
+                                : "text-gray-600"
+                            } transition-all duration-200`}
+                          >
+                            نقاط بيع
+                          </button>
+                          <button
+                            onClick={() => setBankTransactionType("TRANSFER")}
+                            className={`w-1/2 py-2 rounded text-sm font-semibold ${
+                              bankTransactionType === "TRANSFER"
+                                ? "bg-royal-600 text-white shadow"
+                                : "text-gray-600"
+                            } transition-all duration-200`}
+                          >
+                            تحويل
+                          </button>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm font-medium text-gray-700 whitespace-nowrap">
+                            الخزنة:
+                          </span>
+                          <div className="bg-white border-2 border-royal-600 rounded-md shadow-sm px-3 py-2 font-semibold text-gray-900 min-w-[120px] text-center">
+                            {splitSafe?.name || 'الخزنة الافتراضية'}
+                          </div>
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -687,7 +660,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
               اختر طريقة الدفع
             </h3>
             
-            <div className="space-y-2 flex-1 overflow-y-auto pr-1 custom-scrollbar">
+            <div className="space-y-2 flex-1 pr-1">
               
               {/* SAFE BUTTON */}
               <button 
