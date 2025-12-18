@@ -7,13 +7,17 @@ import {
     WalletIcon, CreditCardIcon, TruckIcon,
     ClockIcon, FilterIcon
 } from '../icons';
-import { 
-    initialSalesInvoices, initialPurchaseInvoices, initialExpenses, 
-    initialSafes, initialBanks, initialBranches 
-} from '../../data';
 import { formatNumber } from '../../utils/formatting';
 import { getPathFromMenuKey } from '../../utils/menuPathMapper';
 import { useGetCompanyQuery } from '../store/slices/companyApiSlice';
+import { useGetSalesInvoicesQuery } from '../store/slices/salesInvoice/salesInvoiceApiSlice';
+import { useGetPurchaseInvoicesQuery } from '../store/slices/purchaseInvoice/purchaseInvoiceApiSlice';
+import { useGetExpensePaymentVouchersQuery } from '../store/slices/paymentVoucherApiSlice';
+import { useGetSafesQuery } from '../store/slices/safe/safeApiSlice';
+import { useGetBanksQuery } from '../store/slices/bank/bankApiSlice';
+import { useGetBranchesQuery } from '../store/slices/branch/branchApi';
+import { useGetBalanceSheetQuery } from '../store/slices/balanceSheet/balanceSheetApiSlice';
+import { getCurrentYearRange } from '../pages/reports/dateUtils';
 
 declare var Chart: any;
 
@@ -73,6 +77,22 @@ const SummaryCard: React.FC<{
 const AlternativeDashboard: React.FC<{ title: string }> = ({ title }) => {
     const navigate = useNavigate();
     const { data: company } = useGetCompanyQuery();
+    
+    // API Hooks for data fetching
+    const { data: salesInvoices = [], isLoading: salesInvoicesLoading } = useGetSalesInvoicesQuery();
+    const { data: purchaseInvoices = [], isLoading: purchaseInvoicesLoading } = useGetPurchaseInvoicesQuery();
+    const { data: expensePaymentVouchers = [], isLoading: expensesLoading } = useGetExpensePaymentVouchersQuery();
+    const { data: safes = [], isLoading: safesLoading } = useGetSafesQuery();
+    const { data: banks = [], isLoading: banksLoading } = useGetBanksQuery();
+    const { data: branches = [], isLoading: branchesLoading } = useGetBranchesQuery();
+    
+    // Get current year range for balance sheet
+    const yearRange = getCurrentYearRange();
+    const { data: balanceSheet, isLoading: balanceSheetLoading } = useGetBalanceSheetQuery({
+        startDate: yearRange.start,
+        endDate: yearRange.end,
+    });
+    
     const barChartRef = useRef<HTMLCanvasElement>(null);
     const branchChartRef = useRef<HTMLCanvasElement>(null); 
     const liquidityChartRef = useRef<HTMLCanvasElement>(null);
@@ -93,30 +113,83 @@ const AlternativeDashboard: React.FC<{ title: string }> = ({ title }) => {
 
     // --- Stats Calculation ---
     const stats = useMemo(() => {
-        const totalSales = initialSalesInvoices.reduce((sum, inv) => sum + inv.totals.net, 0);
-        const totalPurchases = initialPurchaseInvoices.reduce((sum, inv) => sum + inv.totals.net, 0);
-        const totalExpenses = initialExpenses.reduce((sum, exp) => sum + exp.amount, 0);
+        // Calculate total sales from sales invoices
+        const totalSales = salesInvoices.reduce((sum, inv) => sum + (inv.net || 0), 0);
         
-        const receivables = initialSalesInvoices.filter(i => i.paymentMethod === 'credit').reduce((sum, i) => sum + i.totals.net, 0);
-        const payables = initialPurchaseInvoices.filter(i => i.paymentMethod === 'credit').reduce((sum, i) => sum + i.totals.net, 0);
+        // Calculate total purchases from purchase invoices
+        const totalPurchases = purchaseInvoices.reduce((sum, inv) => sum + (inv.net || 0), 0);
         
-        const cashBalance = initialSafes.reduce((sum, s) => sum + s.openingBalance, 0);
-        const bankBalance = initialBanks.reduce((sum, b) => sum + b.openingBalance, 0);
-        const inventoryValue = 150000; 
+        // Calculate total expenses from payment vouchers with expense entityType
+        const totalExpenses = expensePaymentVouchers
+            .filter(v => {
+                const entityType = (v.entityType || '').toLowerCase();
+                return entityType === 'expense' || entityType === 'expense-type';
+            })
+            .reduce((sum, v) => sum + (v.amount || 0), 0);
+        
+        // Calculate receivables (credit sales)
+        const receivables = salesInvoices
+            .filter(i => i.paymentMethod === 'credit')
+            .reduce((sum, i) => sum + (i.net || 0), 0);
+        
+        // Calculate payables (credit purchases)
+        const payables = purchaseInvoices
+            .filter(i => i.paymentMethod === 'credit')
+            .reduce((sum, i) => sum + (i.net || 0), 0);
+        
+        // Calculate cash balance from safes (use currentBalance if available)
+        const cashBalance = safes.reduce((sum, s) => {
+            const balance = (s as any).currentBalance !== undefined 
+                ? (s as any).currentBalance 
+                : s.openingBalance || 0;
+            return sum + balance;
+        }, 0);
+        
+        // Calculate bank balance (use currentBalance if available, otherwise openingBalance)
+        const bankBalance = banks.reduce((sum, b) => {
+            const balance = (b as any).currentBalance !== undefined 
+                ? (b as any).currentBalance 
+                : b.openingBalance || 0;
+            return sum + balance;
+        }, 0);
+        
+        // Get inventory value from balance sheet
+        const inventoryValue = balanceSheet?.inventory || 0;
+        
+        // Calculate total liquidity
         const totalLiquidity = cashBalance + bankBalance + inventoryValue + receivables;
 
-        const branchStats = initialBranches.map(branch => {
-            let sales = initialSalesInvoices.filter(inv => inv.branchName === branch.name).reduce((sum, inv) => sum + inv.totals.net, 0);
-            if (sales === 0) { // Fallback data for visual demo
-                 if (branch.id === 1) sales = totalSales * 0.55;
-                 if (branch.id === 2) sales = totalSales * 0.30;
-                 if (branch.id === 3) sales = totalSales * 0.15;
-            }
-            return { name: branch.name, sales };
+        // Calculate branch stats from sales invoices grouped by branch
+        const branchStats = branches.map(branch => {
+            // Filter sales invoices by branchId or branch name
+            const branchSales = salesInvoices
+                .filter(inv => {
+                    const invBranchId = inv.branchId || inv.branch?.id;
+                    const invBranchName = inv.branch?.name;
+                    return invBranchId === branch.id || invBranchName === branch.name;
+                })
+                .reduce((sum, inv) => sum + (inv.net || 0), 0);
+            
+            return { name: branch.name, sales: branchSales };
         }).sort((a, b) => b.sales - a.sales);
 
-        return { totalSales, totalPurchases, totalExpenses, receivables, payables, cashBalance, bankBalance, inventoryValue, totalLiquidity, branchStats };
-    }, []);
+        return { 
+            totalSales, 
+            totalPurchases, 
+            totalExpenses, 
+            receivables, 
+            payables, 
+            cashBalance, 
+            bankBalance, 
+            inventoryValue, 
+            totalLiquidity, 
+            branchStats 
+        };
+    }, [salesInvoices, purchaseInvoices, expensePaymentVouchers, safes, banks, branches, balanceSheet]);
+
+    // Check if any data is still loading
+    const isLoading = salesInvoicesLoading || purchaseInvoicesLoading || expensesLoading || 
+                      safesLoading || banksLoading || branchesLoading || balanceSheetLoading;
 
     // Handle navigation
     const handleNavigate = (key: string, label: string) => {
@@ -128,28 +201,108 @@ const AlternativeDashboard: React.FC<{ title: string }> = ({ title }) => {
 
     // --- Chart 1: Financial Performance (3D Bars + Data Labels) ---
     useEffect(() => {
-        if (barChartRef.current) {
+        if (barChartRef.current && salesInvoices.length > 0 && purchaseInvoices.length > 0) {
             const ctx = barChartRef.current.getContext('2d');
             if (ctx) {
                 if (chartInstances.current.bar) chartInstances.current.bar.destroy();
                 
-                // Define data based on filter
-                let labels, salesData, profitData;
-
-                if (timeRange === '6m') {
-                    labels = ['يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو'];
-                    salesData = [25000, 32000, 28000, 35000, 42000, 38000];
-                    profitData = [8000, 12000, 9000, 13000, 16000, 14000];
-                } else {
-                    labels = ['يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو', 'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'];
-                    salesData = [25000, 32000, 28000, 35000, 42000, 38000, 40000, 45000, 43000, 48000, 52000, 55000];
-                    profitData = [8000, 12000, 9000, 13000, 16000, 14000, 15000, 18000, 17000, 20000, 22000, 24000];
-                }
-
-                // Simulate Branch Filter Effect
-                const multiplier = selectedBranch === 'all' ? 1 : 0.45;
-                salesData = salesData.map(v => v * multiplier);
-                profitData = profitData.map(v => v * multiplier);
+                // Get current date for filtering
+                const now = new Date();
+                const currentYear = now.getFullYear();
+                const currentMonth = now.getMonth(); // 0-11
+                
+                // Determine months to show
+                const monthsToShow = timeRange === '6m' ? 6 : 12;
+                const startMonth = timeRange === '6m' ? Math.max(0, currentMonth - 5) : 0;
+                
+                // Arabic month names
+                const monthNames = ['يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو', 'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'];
+                
+                // Filter invoices by branch if selected
+                const filteredSalesInvoices = selectedBranch === 'all' 
+                    ? salesInvoices 
+                    : salesInvoices.filter(inv => {
+                        const invBranchId = inv.branchId || inv.branch?.id;
+                        const invBranchName = inv.branch?.name;
+                        return invBranchId === branches.find(b => b.name === selectedBranch)?.id || invBranchName === selectedBranch;
+                    });
+                
+                const filteredPurchaseInvoices = selectedBranch === 'all'
+                    ? purchaseInvoices
+                    : purchaseInvoices.filter(inv => {
+                        const invBranchId = inv.branchId || inv.branch?.id;
+                        const invBranchName = inv.branch?.name;
+                        return invBranchId === branches.find(b => b.name === selectedBranch)?.id || invBranchName === selectedBranch;
+                    });
+                
+                // Initialize monthly data
+                const monthlyData = Array.from({ length: monthsToShow }, (_, i) => {
+                    const monthIndex = (startMonth + i) % 12;
+                    const year = timeRange === '6m' && monthIndex > currentMonth ? currentYear - 1 : currentYear;
+                    return {
+                        monthIndex,
+                        monthName: monthNames[monthIndex],
+                        year,
+                        sales: 0,
+                        purchases: 0,
+                    };
+                });
+                
+                // Aggregate sales by month
+                filteredSalesInvoices.forEach((invoice) => {
+                    if (!invoice.date) return;
+                    const invoiceDate = new Date(invoice.date);
+                    const invoiceYear = invoiceDate.getFullYear();
+                    const invoiceMonth = invoiceDate.getMonth();
+                    
+                    // Check if this invoice falls within our date range
+                    if (timeRange === '6m') {
+                        // For 6 months, check if it's within the last 6 months
+                        const monthsDiff = (currentYear - invoiceYear) * 12 + (currentMonth - invoiceMonth);
+                        if (monthsDiff >= 0 && monthsDiff < 6) {
+                            const dataIndex = monthsDiff;
+                            if (dataIndex < monthlyData.length) {
+                                monthlyData[dataIndex].sales += invoice.net || 0;
+                            }
+                        }
+                    } else {
+                        // For 1 year, check if it's in the current year
+                        if (invoiceYear === currentYear) {
+                            monthlyData[invoiceMonth].sales += invoice.net || 0;
+                        }
+                    }
+                });
+                
+                // Aggregate purchases by month
+                filteredPurchaseInvoices.forEach((invoice) => {
+                    if (!invoice.date) return;
+                    const invoiceDate = new Date(invoice.date);
+                    const invoiceYear = invoiceDate.getFullYear();
+                    const invoiceMonth = invoiceDate.getMonth();
+                    
+                    // Check if this invoice falls within our date range
+                    if (timeRange === '6m') {
+                        // For 6 months, check if it's within the last 6 months
+                        const monthsDiff = (currentYear - invoiceYear) * 12 + (currentMonth - invoiceMonth);
+                        if (monthsDiff >= 0 && monthsDiff < 6) {
+                            const dataIndex = monthsDiff;
+                            if (dataIndex < monthlyData.length) {
+                                monthlyData[dataIndex].purchases += invoice.net || 0;
+                            }
+                        }
+                    } else {
+                        // For 1 year, check if it's in the current year
+                        if (invoiceYear === currentYear) {
+                            monthlyData[invoiceMonth].purchases += invoice.net || 0;
+                        }
+                    }
+                });
+                
+                // Extract labels and data
+                const labels = monthlyData.map(d => d.monthName);
+                const salesData = monthlyData.map(d => d.sales);
+                // Calculate profit (sales - purchases)
+                const profitData = monthlyData.map(d => d.sales - d.purchases);
 
                 const datasets = [];
                 
@@ -262,7 +415,7 @@ const AlternativeDashboard: React.FC<{ title: string }> = ({ title }) => {
                 });
             }
         }
-    }, [timeRange, barMetric, selectedBranch]);
+    }, [timeRange, barMetric, selectedBranch, salesInvoices, purchaseInvoices, branches]);
 
     // --- Chart 2: Branch Sales (With Labels & Percentage On Segments) ---
     useEffect(() => {
@@ -628,10 +781,38 @@ const AlternativeDashboard: React.FC<{ title: string }> = ({ title }) => {
                             <h3 className="text-white font-extrabold text-xl tracking-wide">الأداء السنوي</h3>
                         </div>
                         <div className="grid grid-cols-2 gap-2 relative z-10">
-                            <SummaryCard title="المبيعات" value={formatNumber(stats.totalSales)} subValue="+12%" isPositive={true} icon={<ShoppingCartIcon/>} accentColor="bg-blue-500" />
-                            <SummaryCard title="المشتريات" value={formatNumber(stats.totalPurchases)} subValue="المدفوعات" isPositive={false} icon={<CreditCardIcon/>} accentColor="bg-purple-500" />
-                            <SummaryCard title="مستحقات (لنا)" value={formatNumber(stats.receivables)} subValue="تحصيل" isPositive={true} icon={<WalletIcon/>} accentColor="bg-amber-500" />
-                            <SummaryCard title="مستحقات (علينا)" value={formatNumber(stats.payables)} subValue="سداد" isPositive={false} icon={<TruckIcon/>} accentColor="bg-rose-500" />
+                            <SummaryCard 
+                                title="المبيعات" 
+                                value={isLoading ? "..." : formatNumber(stats.totalSales)} 
+                                subValue="+12%" 
+                                isPositive={true} 
+                                icon={<ShoppingCartIcon/>} 
+                                accentColor="bg-blue-500" 
+                            />
+                            <SummaryCard 
+                                title="المشتريات" 
+                                value={isLoading ? "..." : formatNumber(stats.totalPurchases)} 
+                                subValue="المدفوعات" 
+                                isPositive={false} 
+                                icon={<CreditCardIcon/>} 
+                                accentColor="bg-purple-500" 
+                            />
+                            <SummaryCard 
+                                title="مستحقات (لنا)" 
+                                value={isLoading ? "..." : formatNumber(stats.receivables)} 
+                                subValue="تحصيل" 
+                                isPositive={true} 
+                                icon={<WalletIcon/>} 
+                                accentColor="bg-amber-500" 
+                            />
+                            <SummaryCard 
+                                title="مستحقات (علينا)" 
+                                value={isLoading ? "..." : formatNumber(stats.payables)} 
+                                subValue="سداد" 
+                                isPositive={false} 
+                                icon={<TruckIcon/>} 
+                                accentColor="bg-rose-500" 
+                            />
                         </div>
                     </div>
 
@@ -658,7 +839,7 @@ const AlternativeDashboard: React.FC<{ title: string }> = ({ title }) => {
                                         className="bg-transparent text-[10px] text-white font-bold outline-none border-none cursor-pointer"
                                     >
                                         <option value="all" className="text-black">كل الفروع</option>
-                                        {initialBranches.map(b => (
+                                        {branches.map(b => (
                                             <option key={b.id} value={b.name} className="text-black">{b.name}</option>
                                         ))}
                                     </select>
