@@ -539,7 +539,17 @@ const POS: React.FC<POSProps> = () => {
     }, 1000);
   };
 
-  const handlePaymentComplete = async (payments: { method: any, amount: number }[]) => {
+  const handlePaymentComplete = async (paymentData: {
+    paymentMode: 'safe' | 'bank' | 'split';
+    paymentTargetType: 'safe' | 'bank' | null;
+    paymentTargetId: string | null;
+    isSplitPayment: boolean;
+    splitCashAmount?: number;
+    splitBankAmount?: number;
+    splitSafeId?: string | null;
+    splitBankId?: string | null;
+    bankTransactionType?: 'POS' | 'TRANSFER';
+  }) => {
     if (cartItems.length === 0) return;
 
     // Validate customer selection for credit customers
@@ -548,30 +558,7 @@ const POS: React.FC<POSProps> = () => {
       return;
     }
 
-    const totalPaid = payments.reduce((sum, p) => sum + p.amount, 0);
-    const paymentMethodFromPayments = payments[0]?.method;
-
-    // Determine payment method
-    const isCardPayment = paymentMethodFromPayments && paymentMethodFromPayments !== 'CASH';
-    
-    if (isCardPayment && !cardBankId) {
-      showToast("يرجى اختيار البنك لمدفوعات البطاقة", "error");
-      return;
-    }
-
     const safeBranchId = userBranchId;
-    const safeId = !isCardPayment && filteredSafes.length > 0 
-      ? filteredSafes[0].id?.toString() 
-      : undefined;
-
-    const paymentTargetId = !isCardPayment 
-      ? (safeId ?? (safeBranchId ? String(safeBranchId) : undefined))
-      : undefined;
-
-    if (!isCardPayment && !paymentTargetId) {
-      showToast("لا يمكن إتمام العملية: يرجى التأكد من وجود فرع مرتبط بحسابك", "error");
-      return;
-    }
 
     // For cash: send null if no customer selected, otherwise send customer ID
     // For credit: customer is required (already validated above)
@@ -595,12 +582,22 @@ const POS: React.FC<POSProps> = () => {
       discount,
       paymentMethod: customerType === "credit" ? "credit" : "cash",
       // For credit invoices, do NOT send any safe/bank info
-      paymentTargetType: customerType === "credit" ? null : (!isCardPayment ? "safe" : "bank"),
+      paymentTargetType: customerType === "credit" ? null : paymentData.paymentTargetType,
       // For credit invoices, paymentTargetId should be null
-      paymentTargetId: customerType === "credit" ? null : (!isCardPayment ? paymentTargetId : cardBankId ?? undefined),
-      bankTransactionType: customerType === "credit" ? undefined : (isCardPayment ? "POS" : undefined),
+      paymentTargetId: customerType === "credit" ? null : paymentData.paymentTargetId,
+      bankTransactionType: customerType === "credit" ? undefined : paymentData.bankTransactionType,
       notes,
     };
+
+    // Add split payment fields if split payment
+    if (customerType === "cash" && paymentData.isSplitPayment) {
+      payload.isSplitPayment = true;
+      payload.splitCashAmount = paymentData.splitCashAmount;
+      payload.splitBankAmount = paymentData.splitBankAmount;
+      payload.splitSafeId = paymentData.splitSafeId;
+      payload.splitBankId = paymentData.splitBankId;
+      payload.bankTransactionType = paymentData.bankTransactionType;
+    }
 
     try {
       const created = await createSalesInvoice(payload).unwrap();
@@ -939,6 +936,9 @@ const POS: React.FC<POSProps> = () => {
         cartItems={cartItems}
         onComplete={handlePaymentComplete}
         banks={banks}
+        currentUser={currentUser}
+        safes={safesData}
+        filteredSafes={filteredSafes}
       />
 
       {/* CUSTOMER MODAL */}
