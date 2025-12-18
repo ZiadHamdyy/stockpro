@@ -829,15 +829,20 @@ const POS: React.FC<POSProps> = () => {
             </div>
           </PermissionWrapper>
           
-
           {/* Grid Toggle */}
-          <button 
-            onClick={() => setShowProductGrid(!showProductGrid)}
-            className={`flex items-center gap-2 px-3 py-1.5 rounded border transition-all shadow-sm h-9 ${!showProductGrid ? 'bg-gold-500 text-royal-900 border-gold-600 font-bold' : 'bg-royal-600 text-royal-200 border-royal-500 hover:text-white'}`}
-          >
-            {showProductGrid ? <GridIcon className="w-4 h-4" /> : <MaximizeIcon className="w-4 h-4" />}
-            <span className="text-xs">{showProductGrid ? 'إخفاء الأصناف' : 'إظهار الأصناف'}</span>
-          </button>
+          <div className="flex flex-col min-w-[140px]">
+            <div className="flex items-center gap-2 mb-1">
+              <GridIcon className="w-[14px] h-[14px] text-gold-400" />
+              <span className="text-[10px] text-royal-200 font-medium">الأصناف</span>
+            </div>
+            <button 
+              onClick={() => setShowProductGrid(!showProductGrid)}
+              className={`flex items-center gap-2 px-3 py-1.5 rounded border transition-all shadow-sm h-9 ${!showProductGrid ? 'bg-gold-500 text-royal-900 border-gold-600 font-bold' : 'bg-royal-600 text-royal-200 border-royal-500 hover:text-white'}`}
+            >
+              {showProductGrid ? <GridIcon className="w-4 h-4" /> : <MaximizeIcon className="w-4 h-4" />}
+              <span className="text-xs">{showProductGrid ? 'إخفاء الأصناف' : 'إظهار الأصناف'}</span>
+            </button>
+          </div>
         </div>
       </div>
 
@@ -859,21 +864,21 @@ const POS: React.FC<POSProps> = () => {
                 key={tab.id}
                 onClick={() => setActiveTabId(tab.id)}
                 className={`
-                  relative group flex items-center gap-2 px-5 py-2.5 rounded-t-lg cursor-pointer select-none transition-all
+                  relative group flex items-center gap-2 px-5 py-1 rounded-t-lg cursor-pointer select-none transition-all
                   ${activeTabId === tab.id 
                     ? 'bg-white text-royal-900 shadow-[0_-2px_5px_rgba(0,0,0,0.05)] z-10 border-t-4 border-royal-800 font-bold' 
                     : 'bg-royal-200/50 text-royal-600 hover:bg-royal-200 hover:text-royal-800 mt-1 border-t-4 border-transparent'}
                 `}
                 style={{ minWidth: '140px' }}
               >
-                <div className="flex flex-col">
+                <div className="flex flex-col pt-1">
                   <span className="text-xs">{tab.name}</span>
                   <span className="text-[10px] opacity-70 font-mono">#{tab.id}</span>
                 </div>
                 
                 <button 
                   onClick={(e) => handleCloseTab(e, tab.id)}
-                  className={`mr-auto p-1 rounded-full hover:bg-red-100 hover:text-red-600 transition-colors opacity-0 group-hover:opacity-100 ${activeTabId === tab.id ? 'opacity-100' : ''}`}
+                  className={`mr-auto ml-[-15px] p-1 rounded-full hover:bg-red-100 hover:text-red-600 transition-colors opacity-0 group-hover:opacity-100 ${activeTabId === tab.id ? 'opacity-100' : ''}`}
                 >
                   <XIcon className="w-3 h-3" />
                 </button>
