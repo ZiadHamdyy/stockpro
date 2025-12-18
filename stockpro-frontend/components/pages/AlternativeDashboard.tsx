@@ -282,24 +282,60 @@ const AlternativeDashboard: React.FC<{ title: string }> = ({ title }) => {
                         const width = chart.width, height = chart.height, ctx = chart.ctx;
                         ctx.restore();
                         
-                        // Main Number
-                        const fontSize = (height / 100).toFixed(2);
-                        ctx.font = "bold " + fontSize + "em Cairo";
+                        const text = formatNumber(total);
+                        const textLength = text.length;
+                        
+                        // Dynamic font size based on text length - adjust to fit circle
+                        // Longer numbers = smaller font, shorter numbers = larger font
+                        let fontSize;
+                        const maxWidth = Math.min(width, height) * 0.6; // 60% of smaller dimension
+                        
+                        // Start with a base size and adjust based on text length
+                        if (textLength <= 8) {
+                            fontSize = (height / 90).toFixed(2); // Larger for short numbers
+                        } else if (textLength <= 12) {
+                            fontSize = (height / 110).toFixed(2);
+                        } else if (textLength <= 16) {
+                            fontSize = (height / 130).toFixed(2);
+                        } else {
+                            fontSize = (height / 150).toFixed(2); // Smaller for very long numbers
+                        }
+                        
+                        // Test if text fits, reduce if needed
+                        ctx.font = `bold ${fontSize}em Cairo`;
+                        const metrics = ctx.measureText(text);
+                        const textWidth = metrics.width;
+                        
+                        // If text is too wide, scale down
+                        if (textWidth > maxWidth) {
+                            fontSize = ((maxWidth / textWidth) * parseFloat(fontSize)).toFixed(2);
+                        }
+                        
+                        ctx.font = `bold ${fontSize}em Cairo`;
+                        ctx.textAlign = "center";
                         ctx.textBaseline = "middle";
                         ctx.fillStyle = "#1e3a8a"; // Dark Blue
-
-                        const text = formatNumber(total);
-                        const textX = Math.round((width - ctx.measureText(text).width) / 2);
-                        const textY = height / 2 + 5;
+                        
+                        const textX = width / 2;
+                        const textY = height / 2;
 
                         ctx.fillText(text, textX, textY);
                         
-                        // Subtitle
-                        ctx.font = "bold " + (height / 300).toFixed(2) + "em Cairo";
+                        // Subtitle - proportional to main text
+                        const subFontSize = (parseFloat(fontSize) * 0.35).toFixed(2);
+                        ctx.font = `bold ${subFontSize}em Cairo`;
                         ctx.fillStyle = "#64748b"; // Slate 500
                         const subText = "إجمالي المبيعات";
-                        const subTextX = Math.round((width - ctx.measureText(subText).width) / 2);
-                        ctx.fillText(subText, subTextX, textY - 20);
+                        const subTextX = width / 2;
+                        const subTextY = textY + (height / 10); // Position below main text
+
+                        // Add subtle shadow to subtitle
+                        ctx.shadowColor = 'rgba(71, 85, 105, 0.2)';
+                        ctx.shadowBlur = 4;
+                        ctx.shadowOffsetX = 1;
+                        ctx.shadowOffsetY = 1;
+                        
+                        ctx.fillText(subText, subTextX, subTextY);
 
                         ctx.save();
                     }
@@ -362,32 +398,17 @@ const AlternativeDashboard: React.FC<{ title: string }> = ({ title }) => {
                         datasets: [{
                             data: dataValues,
                             backgroundColor: ['#3b82f6', '#10b981', '#f59e0b', '#8b5cf6'],
-                            borderWidth: 2,
-                            borderColor: '#ffffff',
-                            hoverOffset: 8
+                            borderWidth: 0,
+                            hoverOffset: 5
                         }]
                     },
                     options: {
                         responsive: true,
                         maintainAspectRatio: false,
-                        cutout: '65%', 
-                        layout: { padding: 10 },
-                        plugins: { 
-                            legend: { display: false }, // Hide default legend, using on-chart labels
-                            tooltip: { 
-                                titleFont: { family: 'Cairo' }, 
-                                bodyFont: { family: 'Cairo' },
-                                callbacks: {
-                                    label: function(context: any) {
-                                        const val = context.raw;
-                                        const pct = ((val / total) * 100).toFixed(1) + '%';
-                                        return `${context.label}: ${formatNumber(val)} (${pct})`;
-                                    }
-                                }
-                            } 
-                        }
+                        cutout: '75%', 
+                        plugins: { legend: { display: false }, tooltip: { titleFont: { family: 'Cairo' }, bodyFont: { family: 'Cairo' } } }
                     },
-                    plugins: [centerTextPlugin, segmentLabelPlugin]
+                    plugins: [centerTextPlugin]
                 });
             }
         }
@@ -411,22 +432,60 @@ const AlternativeDashboard: React.FC<{ title: string }> = ({ title }) => {
                         const width = chart.width, height = chart.height, ctx = chart.ctx;
                         ctx.restore();
                         
-                        const fontSize = (height / 100).toFixed(2);
-                        ctx.font = "bold " + fontSize + "em Cairo";
+                        const text = formatNumber(total);
+                        const textLength = text.length;
+                        
+                        // Dynamic font size based on text length - adjust to fit circle
+                        // Longer numbers = smaller font, shorter numbers = larger font
+                        let fontSize;
+                        const maxWidth = Math.min(width, height) * 0.6; // 60% of smaller dimension
+                        
+                        // Start with a base size and adjust based on text length
+                        if (textLength <= 8) {
+                            fontSize = (height / 90).toFixed(2); // Larger for short numbers
+                        } else if (textLength <= 12) {
+                            fontSize = (height / 110).toFixed(2);
+                        } else if (textLength <= 16) {
+                            fontSize = (height / 130).toFixed(2);
+                        } else {
+                            fontSize = (height / 150).toFixed(2); // Smaller for very long numbers
+                        }
+                        
+                        // Test if text fits, reduce if needed
+                        ctx.font = `bold ${fontSize}em Cairo`;
+                        const metrics = ctx.measureText(text);
+                        const textWidth = metrics.width;
+                        
+                        // If text is too wide, scale down
+                        if (textWidth > maxWidth) {
+                            fontSize = ((maxWidth / textWidth) * parseFloat(fontSize)).toFixed(2);
+                        }
+                        
+                        ctx.font = `bold ${fontSize}em Cairo`;
+                        ctx.textAlign = "center";
                         ctx.textBaseline = "middle";
                         ctx.fillStyle = "#047857"; // Emerald Dark
 
-                        const text = formatNumber(total);
-                        const textX = Math.round((width - ctx.measureText(text).width) / 2);
-                        const textY = height / 2 + 5;
+                        const textX = width / 2;
+                        const textY = height / 2 - 5; // Slightly above center
 
                         ctx.fillText(text, textX, textY);
-
-                        ctx.font = "bold " + (height / 280).toFixed(2) + "em Cairo";
-                        ctx.fillStyle = "#64748b";
+                        
+                        // Subtitle - proportional to main text
+                        const subFontSize = (parseFloat(fontSize) * 0.35).toFixed(2);
+                        ctx.font = `bold ${subFontSize}em Cairo`;
+                        ctx.fillStyle = "#64748b"; // Slate 500
                         const subText = "إجمالي السيولة";
-                        const subTextX = Math.round((width - ctx.measureText(subText).width) / 2);
-                        ctx.fillText(subText, subTextX, textY - 15);
+                        const subTextX = width / 2;
+                        const subTextY = textY + (height / 12); // Closer spacing
+
+                        // Add subtle shadow to subtitle
+                        ctx.shadowColor = 'rgba(71, 85, 105, 0.2)';
+                        ctx.shadowBlur = 4;
+                        ctx.shadowOffsetX = 1;
+                        ctx.shadowOffsetY = 1;
+                        
+                        ctx.fillText(subText, subTextX, subTextY);
 
                         ctx.save();
                     }
@@ -542,7 +601,7 @@ const AlternativeDashboard: React.FC<{ title: string }> = ({ title }) => {
             <div className="flex-1 bg-slate-200 p-3 pt-2 flex flex-col gap-3 overflow-hidden relative z-10 mx-1 mb-1">
                 
                 {/* 2. COMPACT MIDDLE ROW: Cards & Actions */}
-                <div className="grid grid-cols-1 xl:grid-cols-2 gap-3 shrink-0 h-[190px]">
+                <div className="grid grid-cols-1 xl:grid-cols-2 gap-3 shrink-0">
                     
                     {/* Actions Panel */}
                     <div className="bg-[#1e40af] p-3 rounded-2xl border-2 border-blue-800 shadow-lg flex flex-col relative overflow-hidden">
@@ -551,7 +610,7 @@ const AlternativeDashboard: React.FC<{ title: string }> = ({ title }) => {
                             <div className="p-1 bg-white/20 rounded text-white shadow backdrop-blur-sm"><ShoppingCartIcon className="w-3 h-3"/></div>
                             <h3 className="text-white font-extrabold text-xl tracking-wide">الوصول السريع</h3>
                         </div>
-                        <div className="grid grid-cols-3 sm:grid-cols-6 xl:grid-cols-3 gap-2 h-full relative z-10">
+                        <div className="grid grid-cols-3 sm:grid-cols-6 xl:grid-cols-3 gap-2 relative z-10">
                             <QuickActionButton title="فاتورة مبيعات" icon={<ShoppingCartIcon/>} colorClass="bg-blue-600" onClick={() => handleNavigate('sales_invoice', 'فاتورة مبيعات')} />
                             <QuickActionButton title="فاتورة مشتريات" icon={<BoxIcon/>} colorClass="bg-emerald-600" onClick={() => handleNavigate('purchase_invoice', 'فاتورة مشتريات')} />
                             <QuickActionButton title="إضافة عميل" icon={<UsersIcon/>} colorClass="bg-indigo-600" onClick={() => handleNavigate('add_customer', 'إضافة عميل')} />
@@ -568,7 +627,7 @@ const AlternativeDashboard: React.FC<{ title: string }> = ({ title }) => {
                             <div className="p-1 bg-white/20 rounded text-white shadow backdrop-blur-sm"><ActivityIcon className="w-3 h-3"/></div>
                             <h3 className="text-white font-extrabold text-xl tracking-wide">الأداء السنوي</h3>
                         </div>
-                        <div className="grid grid-cols-2 gap-2 h-full relative z-10">
+                        <div className="grid grid-cols-2 gap-2 relative z-10">
                             <SummaryCard title="المبيعات" value={formatNumber(stats.totalSales)} subValue="+12%" isPositive={true} icon={<ShoppingCartIcon/>} accentColor="bg-blue-500" />
                             <SummaryCard title="المشتريات" value={formatNumber(stats.totalPurchases)} subValue="المدفوعات" isPositive={false} icon={<CreditCardIcon/>} accentColor="bg-purple-500" />
                             <SummaryCard title="مستحقات (لنا)" value={formatNumber(stats.receivables)} subValue="تحصيل" isPositive={true} icon={<WalletIcon/>} accentColor="bg-amber-500" />
