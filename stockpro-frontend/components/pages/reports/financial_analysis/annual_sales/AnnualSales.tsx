@@ -1,21 +1,85 @@
-import React, { useState } from 'react';
-import { BRANCHES, INITIAL_DATA } from './constants';
-import { AnalysisStatus } from '../types';
+import React, { useState, useMemo, useEffect } from 'react';
+import { AnalysisStatus, Branch, SalesRecord } from '../types';
 import { FilterPanel } from './FilterPanel';
 import { SalesChart } from './SalesChart';
 import { SalesTable } from './SalesTable';
 import { AIAnalysis } from './AIAnalysis';
 import { analyzeSalesData } from './services/geminiService';
-import { BarChartIcon, BuildingIcon, CalendarIcon, PrintIcon, TrendingUpIcon, DollarSignIcon, ActivityIcon, ArrowUpRightIcon } from '../../../../icons';
+import { BarChartIcon, BuildingIcon, CalendarIcon, PrintIcon, TrendingUpIcon, DollarSignIcon, ActivityIcon, Loader2Icon } from '../../../../icons';
+import { useGetBranchesQuery } from '../../../../store/slices/branch/branchApi';
+import { useGetAnnualSalesReportQuery } from '../../../../store/slices/annualSales/annualSalesApiSlice';
 
 interface AnnualSalesProps {
   title?: string;
 }
 
+// Color palette for branches
+const BRANCH_COLORS = [
+  '#3b82f6', // blue
+  '#10b981', // emerald
+  '#f59e0b', // amber
+  '#ef4444', // red
+  '#8b5cf6', // violet
+  '#ec4899', // pink
+  '#06b6d4', // cyan
+  '#84cc16', // lime
+  '#f97316', // orange
+  '#6366f1', // indigo
+];
+
+// Arabic month names
+const ARABIC_MONTHS = [
+  'يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو',
+  'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'
+];
+
 const AnnualSales: React.FC<AnnualSalesProps> = ({ title }) => {
-  const [selectedBranches, setSelectedBranches] = useState<string[]>(BRANCHES.map(b => b.id));
+  const selectedYear = new Date().getFullYear();
+  const [selectedBranches, setSelectedBranches] = useState<string[]>([]);
   const [aiStatus, setAiStatus] = useState<AnalysisStatus>('idle');
   const [aiResult, setAiResult] = useState<string>('');
+
+  // Fetch branches
+  const { data: apiBranches = [], isLoading: branchesLoading } = useGetBranchesQuery();
+
+  // Fetch annual sales report (fetch all branches, filter on frontend)
+  const { data: salesReport, isLoading: salesLoading, error: salesError } = useGetAnnualSalesReportQuery({
+    year: selectedYear,
+  });
+
+  // Transform branches to match Branch interface with colors
+  const branches: Branch[] = useMemo(() => {
+    return apiBranches.map((branch, index) => ({
+      id: branch.id,
+      name: branch.name,
+      color: BRANCH_COLORS[index % BRANCH_COLORS.length],
+    }));
+  }, [apiBranches]);
+
+  // Initialize selected branches when branches are loaded
+  useEffect(() => {
+    if (branches.length > 0 && selectedBranches.length === 0) {
+      setSelectedBranches(branches.map(b => b.id));
+    }
+  }, [branches, selectedBranches.length]);
+
+  // Transform sales report data to SalesRecord format
+  const salesData: SalesRecord[] = useMemo(() => {
+    if (!salesReport || !salesReport.months) {
+      // Return empty data for all 12 months
+      return ARABIC_MONTHS.map((monthName, index) => ({
+        monthName,
+        monthIndex: index + 1,
+        data: {},
+      }));
+    }
+
+    return salesReport.months.map((monthData) => ({
+      monthName: ARABIC_MONTHS[monthData.month - 1],
+      monthIndex: monthData.month,
+      data: monthData.branchSales || {},
+    }));
+  }, [salesReport]);
 
   const handleToggleBranch = (id: string) => {
     setSelectedBranches(prev => 
@@ -25,7 +89,7 @@ const AnnualSales: React.FC<AnnualSalesProps> = ({ title }) => {
     );
   };
 
-  const handleSelectAll = () => setSelectedBranches(BRANCHES.map(b => b.id));
+  const handleSelectAll = () => setSelectedBranches(branches.map(b => b.id));
   const handleClearAll = () => setSelectedBranches([]);
 
   const handleAnalyze = async () => {
@@ -37,7 +101,7 @@ const AnnualSales: React.FC<AnnualSalesProps> = ({ title }) => {
 
     setAiStatus('loading');
     try {
-      const result = await analyzeSalesData(INITIAL_DATA, selectedBranches, BRANCHES);
+      const result = await analyzeSalesData(salesData, selectedBranches, branches);
       setAiResult(result);
       setAiStatus('success');
     } catch (error) {
@@ -59,18 +123,52 @@ const AnnualSales: React.FC<AnnualSalesProps> = ({ title }) => {
   };
 
   // Calculate high-level summary metrics
-  const totalSales = INITIAL_DATA.reduce((acc, curr) => {
-    const monthTotal = BRANCHES.reduce((sum, branch) => {
-       return selectedBranches.includes(branch.id) ? sum + curr.data[branch.id] : sum;
+  const totalSales = useMemo(() => {
+    return salesData.reduce((acc, curr) => {
+      const monthTotal = branches.reduce((sum, branch) => {
+        return selectedBranches.includes(branch.id) ? sum + (curr.data[branch.id] || 0) : sum;
+      }, 0);
+      return acc + monthTotal;
     }, 0);
-    return acc + monthTotal;
-  }, 0);
+  }, [salesData, branches, selectedBranches]);
 
-  const bestMonth = INITIAL_DATA.reduce((max, curr) => {
-    const currTotal = BRANCHES.reduce((sum, b) => selectedBranches.includes(b.id) ? sum + curr.data[b.id] : sum, 0);
-    const maxTotal = BRANCHES.reduce((sum, b) => selectedBranches.includes(b.id) ? sum + max.data[b.id] : sum, 0);
-    return currTotal > maxTotal ? curr : max;
-  }, INITIAL_DATA[0]);
+  const bestMonth = useMemo(() => {
+    if (salesData.length === 0) {
+      return { monthName: 'لا توجد بيانات', monthIndex: 0, data: {} };
+    }
+    return salesData.reduce((max, curr) => {
+      const currTotal = branches.reduce((sum, b) => selectedBranches.includes(b.id) ? sum + (curr.data[b.id] || 0) : sum, 0);
+      const maxTotal = branches.reduce((sum, b) => selectedBranches.includes(b.id) ? sum + (max.data[b.id] || 0) : sum, 0);
+      return currTotal > maxTotal ? curr : max;
+    }, salesData[0]);
+  }, [salesData, branches, selectedBranches]);
+
+  const isLoading = branchesLoading || salesLoading;
+  const hasError = salesError;
+
+  // Show loading state
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-[#f1f5f9] flex items-center justify-center" dir="rtl">
+        <div className="text-center">
+          <Loader2Icon className="w-12 h-12 animate-spin text-indigo-600 mx-auto mb-4" />
+          <p className="text-slate-600 font-medium">جاري تحميل البيانات...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Show error state
+  if (hasError) {
+    return (
+      <div className="min-h-screen bg-[#f1f5f9] flex items-center justify-center" dir="rtl">
+        <div className="text-center bg-white p-8 rounded-2xl shadow-lg">
+          <p className="text-red-600 font-bold text-lg mb-2">حدث خطأ أثناء تحميل البيانات</p>
+          <p className="text-slate-600">يرجى المحاولة مرة أخرى</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[#f1f5f9] text-slate-800 pb-12 font-sans" dir="rtl">
@@ -84,7 +182,7 @@ const AnnualSales: React.FC<AnnualSalesProps> = ({ title }) => {
               </div>
               <div>
                 <h1 className="text-2xl font-extrabold tracking-tight text-slate-900">{title || 'تقرير المبيعات السنوي'}</h1>
-                <p className="text-sm text-slate-500 font-medium print:text-slate-600">لوحة القيادة التنفيذية - السنة المالية 2024</p>
+                <p className="text-sm text-slate-500 font-medium print:text-slate-600">لوحة القيادة التنفيذية - السنة المالية {selectedYear}</p>
               </div>
             </div>
             
@@ -92,7 +190,7 @@ const AnnualSales: React.FC<AnnualSalesProps> = ({ title }) => {
               <div className="hidden md:flex items-center gap-3 text-sm font-medium text-slate-500 print:hidden">
                 <span className="flex items-center gap-2 bg-slate-50 px-4 py-2 rounded-full border border-slate-200">
                   <CalendarIcon className="w-4 h-4 text-slate-400" />
-                   2024
+                  {selectedYear}
                 </span>
                 <span className="flex items-center gap-2 bg-slate-50 px-4 py-2 rounded-full border border-slate-200">
                   <BuildingIcon className="w-4 h-4 text-slate-400" />
@@ -144,9 +242,6 @@ const AnnualSales: React.FC<AnnualSalesProps> = ({ title }) => {
               <div className="p-3 bg-white/10 backdrop-blur-sm rounded-xl text-white border border-white/10 group-hover:scale-110 transition-transform">
                 <TrendingUpIcon className="w-6 h-6" />
               </div>
-              <span className="flex items-center gap-1 text-white font-bold text-xs bg-white/20 px-2.5 py-1 rounded-lg backdrop-blur-md print:text-emerald-700 print:bg-emerald-100">
-                +12.5% <ArrowUpRightIcon className="w-3 h-3" />
-              </span>
             </div>
             <div className="relative z-10">
               <p className="text-sm font-medium text-emerald-100 mb-1 print:text-slate-500">الشهر الأفضل أداءً</p>
@@ -178,7 +273,7 @@ const AnnualSales: React.FC<AnnualSalesProps> = ({ title }) => {
         {/* Filters - Hidden in Print */}
         <div className="no-print">
           <FilterPanel 
-            branches={BRANCHES}
+            branches={branches}
             selectedBranches={selectedBranches}
             onToggleBranch={handleToggleBranch}
             onSelectAll={handleSelectAll}
@@ -198,8 +293,8 @@ const AnnualSales: React.FC<AnnualSalesProps> = ({ title }) => {
           {/* Chart Section */}
           <section className="print-card break-inside-avoid">
             <SalesChart 
-              data={INITIAL_DATA} 
-              branches={BRANCHES} 
+              data={salesData} 
+              branches={branches} 
               selectedBranches={selectedBranches} 
             />
           </section>
@@ -207,8 +302,8 @@ const AnnualSales: React.FC<AnnualSalesProps> = ({ title }) => {
           {/* Table Section */}
           <section className="print-card break-inside-avoid">
             <SalesTable 
-              data={INITIAL_DATA} 
-              branches={BRANCHES} 
+              data={salesData} 
+              branches={branches} 
               selectedBranches={selectedBranches} 
             />
           </section>

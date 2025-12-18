@@ -220,4 +220,80 @@ export class AppService {
       itemGroups: result,
     };
   }
+
+  async getAnnualSalesReport(
+    companyId: string,
+    year: number,
+    branchIds?: string[],
+  ) {
+    const startDate = new Date(`${year}-01-01`);
+    const endDate = new Date(`${year + 1}-01-01`);
+
+    // Build where clause for company and branches
+    const whereClause: any = {
+      companyId,
+      date: {
+        gte: startDate,
+        lt: endDate,
+      },
+    };
+
+    if (branchIds && branchIds.length > 0) {
+      whereClause.branchId = { in: branchIds };
+    }
+
+    // Get all sales invoices for the specified year and branches
+    const salesInvoices = await this.prisma.salesInvoice.findMany({
+      where: whereClause,
+      select: {
+        date: true,
+        net: true,
+        branchId: true,
+      },
+    });
+
+    // Get all sales returns for the specified year and branches
+    const salesReturns = await this.prisma.salesReturn.findMany({
+      where: whereClause,
+      select: {
+        date: true,
+        net: true,
+        branchId: true,
+      },
+    });
+
+    // Initialize monthly data structure
+    // Structure: { month: number, branchSales: { [branchId]: number } }
+    const monthlyData = Array.from({ length: 12 }, (_, i) => ({
+      month: i + 1,
+      branchSales: {} as Record<string, number>,
+    }));
+
+    // Aggregate sales invoices by month and branch
+    salesInvoices.forEach((invoice) => {
+      if (!invoice.branchId) return;
+      const month = new Date(invoice.date).getMonth(); // 0-11, convert to 1-12
+      const monthIndex = month; // Keep 0-11 for array indexing
+      if (!monthlyData[monthIndex].branchSales[invoice.branchId]) {
+        monthlyData[monthIndex].branchSales[invoice.branchId] = 0;
+      }
+      monthlyData[monthIndex].branchSales[invoice.branchId] += invoice.net;
+    });
+
+    // Subtract sales returns from sales invoices
+    salesReturns.forEach((returnDoc) => {
+      if (!returnDoc.branchId) return;
+      const month = new Date(returnDoc.date).getMonth();
+      const monthIndex = month;
+      if (!monthlyData[monthIndex].branchSales[returnDoc.branchId]) {
+        monthlyData[monthIndex].branchSales[returnDoc.branchId] = 0;
+      }
+      monthlyData[monthIndex].branchSales[returnDoc.branchId] -= returnDoc.net;
+    });
+
+    return {
+      year,
+      months: monthlyData,
+    };
+  }
 }

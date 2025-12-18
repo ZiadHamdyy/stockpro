@@ -177,6 +177,7 @@ export const apiSlice = createApi({
     "FiscalYear",
     "Notification",
     "Subscription",
+    "AnnualSalesReport",
   ],
   endpoints: () => ({}),
 });
