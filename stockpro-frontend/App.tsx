@@ -484,6 +484,20 @@ const AppContent = () => {
   // Local state
   const [searchTerm, setSearchTerm] = useState("");
   const { showToast } = useToast();
+  
+  // Sidebar state with localStorage persistence
+  const [isSidebarOpen, setIsSidebarOpen] = useState(() => {
+    const saved = localStorage.getItem('sidebarOpen');
+    return saved !== null ? saved === 'true' : true;
+  });
+
+  useEffect(() => {
+    localStorage.setItem('sidebarOpen', String(isSidebarOpen));
+  }, [isSidebarOpen]);
+
+  const toggleSidebar = () => {
+    setIsSidebarOpen(prev => !prev);
+  };
 
   // Compute user permissions from Redux store (persistent)
   // App state
@@ -738,6 +752,7 @@ const AppContent = () => {
         searchTerm={searchTerm}
         permissionSet={permissionSet}
         onDatabaseBackup={handleBackup}
+        isOpen={isSidebarOpen}
       />
       <div className="flex-1 flex flex-col overflow-hidden">
         <Header
@@ -745,6 +760,8 @@ const AppContent = () => {
           onLogout={handleLogout}
           searchTerm={searchTerm}
           setSearchTerm={setSearchTerm}
+          isSidebarOpen={isSidebarOpen}
+          onToggleSidebar={toggleSidebar}
         />
         <main className="flex-1 overflow-x-hidden overflow-y-auto bg-brand-bg p-6">
           <Routes>

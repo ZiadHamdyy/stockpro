@@ -2,7 +2,7 @@ import React, { useState, useMemo, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { MENU_ITEMS } from "../../constants";
 import type { MenuItem } from "../../types";
-import { ChevronDownIcon } from "../icons";
+import { ChevronDownIcon, HomeIcon } from "../icons";
 import {
   getPathFromMenuKey,
   getMenuKeyFromPath,
@@ -15,10 +15,11 @@ interface SidebarProps {
   searchTerm: string;
   permissionSet: Set<string>;
   onDatabaseBackup?: () => void;
+  isOpen: boolean;
 }
 
-const StockProLogo: React.FC = () => (
-  <div className="flex items-center gap-2">
+const StockProLogo: React.FC<{ isOpen: boolean }> = ({ isOpen }) => (
+  <div className={`flex items-center ${isOpen ? 'gap-2' : 'justify-center'}`}>
     <svg
       width="32"
       height="32"
@@ -42,7 +43,7 @@ const StockProLogo: React.FC = () => (
         strokeWidth="1.5"
       />
     </svg>
-    <span className="text-2xl font-bold text-white">StockPro</span>
+    {isOpen && <span className="text-2xl font-bold text-white">StockPro</span>}
   </div>
 );
 
@@ -75,6 +76,7 @@ const Sidebar: React.FC<SidebarProps> = ({
   searchTerm,
   permissionSet,
   onDatabaseBackup,
+  isOpen,
 }) => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -143,6 +145,23 @@ const Sidebar: React.FC<SidebarProps> = ({
     [location.pathname],
   );
 
+  // Get current dashboard style from location state
+  const currentDashboardStyle = useMemo(
+    () => (location.state as { style?: string })?.style || 'default',
+    [location.state],
+  );
+
+  // Filter out dashboard from menu items since we'll render it separately
+  const menuWithoutDashboard = useMemo(
+    () => filteredMenu.filter(item => item.key !== 'dashboard'),
+    [filteredMenu],
+  );
+
+  // Handle dashboard navigation with style variant
+  const handleDashboardNavigation = (style: 'default' | 'alternative') => {
+    navigate('/dashboard', { state: { style } });
+  };
+
   const toggleMenu = (key: string) => {
     setOpenMenus((prev) => ({ ...prev, [key]: !prev[key] }));
   };
@@ -180,13 +199,13 @@ const Sidebar: React.FC<SidebarProps> = ({
   };
 
   const renderMenuItem = (item: MenuItem, level = 0) => {
-    const paddingClass = `pr-${4 + level * 4}`;
-    const isOpen = !!searchTerm || openMenus[item.key] || false;
+    const paddingClass = isOpen ? `pr-${4 + level * 4}` : '';
+    const isMenuOpen = !!searchTerm || openMenus[item.key] || false;
     const hasChildren = !!item.children;
     const isActive = activeMenuKey === item.key;
 
     let styleClass = "";
-    const isParentOpen = isOpen && hasChildren;
+    const isParentOpen = isMenuOpen && hasChildren;
 
     if (isActive && !hasChildren) {
       styleClass = "text-white bg-brand-green";
@@ -201,19 +220,20 @@ const Sidebar: React.FC<SidebarProps> = ({
         <button
           onClick={() => handleSelect(item)}
           onContextMenu={(e) => handleContextMenu(e, item)}
-          className={`w-full text-right flex justify-between items-center py-2.5 px-4 text-sm font-medium rounded-md transition-colors duration-200 ${paddingClass} ${styleClass}`}
+          className={`w-full ${isOpen ? 'text-right flex justify-between items-center' : 'flex justify-center items-center'} py-2.5 ${isOpen ? 'px-4' : 'px-2'} text-sm font-medium rounded-md transition-colors duration-200 ${paddingClass} ${styleClass}`}
+          title={!isOpen ? item.label : undefined}
         >
-          <span className="flex items-center">
-            <item.icon className="w-5 h-5 ml-3" />
-            {item.label}
+          <span className={`flex items-center ${isOpen ? '' : 'justify-center'}`}>
+            <item.icon className={`w-5 h-5 ${isOpen ? 'ml-3' : ''}`} />
+            {isOpen && item.label}
           </span>
-          {item.children && (
+          {isOpen && item.children && (
             <ChevronDownIcon
-              className={`w-4 h-4 transition-transform ${isOpen ? "rotate-180" : ""}`}
+              className={`w-4 h-4 transition-transform ${isMenuOpen ? "rotate-180" : ""}`}
             />
           )}
         </button>
-        {item.children && isOpen && (
+        {isOpen && item.children && isMenuOpen && (
           <div className="mt-1 space-y-1 bg-brand-green rounded-md p-2">
             {item.children.map((child) => renderMenuItem(child, level + 1))}
           </div>
@@ -223,16 +243,57 @@ const Sidebar: React.FC<SidebarProps> = ({
   };
 
   return (
-    <aside className="w-64 bg-brand-blue text-white flex flex-col flex-shrink-0">
-      <div className="h-16 flex items-center justify-center px-4 border-b border-blue-900 bg-brand-blue">
-        <StockProLogo />
+    <aside className={`${isOpen ? 'w-64' : 'w-16'} bg-brand-blue text-white flex flex-col flex-shrink-0 transition-all duration-300`}>
+      <div className={`h-16 flex items-center ${isOpen ? 'justify-center' : 'justify-center'} ${isOpen ? 'px-4' : 'px-2'} border-b border-blue-900 bg-brand-blue`}>
+        <StockProLogo isOpen={isOpen} />
       </div>
       <nav className="flex-1 p-2 space-y-1 overflow-y-auto sidebar-scrollbar">
-        {filteredMenu.map((item) => renderMenuItem(item))}
+        {/* Dashboard Navigation Buttons - Side by Side */}
+        {permissionSet.has('dashboard-read') && (
+          <div className={`${isOpen ? 'flex gap-2' : 'flex flex-col gap-2'} mb-2`}>
+            {/* First Button - Default Style (Classic View) */}
+            <button
+              onClick={() => handleDashboardNavigation('default')}
+              className={`${isOpen ? 'flex-1' : 'w-full'} py-2.5 ${isOpen ? 'px-4' : 'px-2'} text-sm font-medium rounded-md transition-colors duration-200 flex items-center ${isOpen ? 'justify-center' : 'justify-center'} ${
+                currentDashboardStyle === 'default' && location.pathname === '/dashboard'
+                  ? 'text-white bg-brand-green'
+                  : 'text-gray-200 hover:bg-brand-green hover:text-white'
+              }`}
+              title={!isOpen ? 'الرئيسية (كلاسيكي)' : undefined}
+            >
+              <span className="flex items-center">
+                <HomeIcon className={`w-5 h-5 ${isOpen ? 'ml-2' : ''}`} />
+                {isOpen && 'الرئيسية'}
+              </span>
+            </button>
+            {/* Second Button - Alternative Style (Modern View) */}
+            <button
+              onClick={() => handleDashboardNavigation('alternative')}
+              className={`${isOpen ? 'flex-1' : 'w-full'} py-2.5 ${isOpen ? 'px-4' : 'px-2'} text-sm font-medium rounded-md transition-colors duration-200 flex items-center ${isOpen ? 'justify-center' : 'justify-center'} ${
+                currentDashboardStyle === 'alternative' && location.pathname === '/dashboard'
+                  ? 'text-white bg-brand-green'
+                  : 'text-gray-200 hover:bg-brand-green hover:text-white'
+              }`}
+              title={!isOpen ? 'الرئيسية (حديث)' : undefined}
+            >
+              <span className="flex items-center">
+                <HomeIcon className={`w-5 h-5 ${isOpen ? 'ml-2' : ''}`} />
+                {isOpen && 'الرئيسية'}
+              </span>
+            </button>
+          </div>
+        )}
+        {menuWithoutDashboard.map((item) => renderMenuItem(item))}
       </nav>
-      <div className="p-4 border-t border-blue-900 text-center text-xs text-gray-300">
-        <p>StockPro &copy; 2024</p>
-        <p>All rights reserved.</p>
+      <div className={`${isOpen ? 'p-4' : 'p-2'} border-t border-blue-900 text-center text-xs text-gray-300`}>
+        {isOpen ? (
+          <>
+            <p>StockPro &copy; 2024</p>
+            <p>All rights reserved.</p>
+          </>
+        ) : (
+          <p>&copy; 2024</p>
+        )}
       </div>
     </aside>
   );

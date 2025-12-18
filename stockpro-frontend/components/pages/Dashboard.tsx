@@ -1,4 +1,5 @@
 import React, { useEffect, useRef } from "react";
+import { useLocation } from "react-router-dom";
 import { UsersIcon, BoxIcon, ReceiptIcon, ShoppingCartIcon } from "../icons";
 import {
   useGetDashboardStatsQuery,
@@ -7,6 +8,7 @@ import {
 } from "../store/slices/dashboard/dashboardApiSlice";
 import { useGetCompanyQuery } from "../store/slices/companyApiSlice";
 import { formatNumber } from "../../utils/formatting";
+import AlternativeDashboard from "./AlternativeDashboard";
 
 declare var Chart: any;
 
@@ -46,10 +48,15 @@ const StatCard: React.FC<StatCardProps> = ({
   </div>
 );
 
+
 const Dashboard: React.FC<{ title: string }> = ({ title }) => {
+  const location = useLocation();
   const barChartRef = useRef<HTMLCanvasElement>(null);
   const doughnutChartRef = useRef<HTMLCanvasElement>(null);
   const chartInstances = useRef<{ bar?: any; doughnut?: any }>({});
+
+  // Get style variant from location state, default to 'default'
+  const styleVariant = (location.state as { style?: string })?.style || 'default';
 
   // Fetch company data for currency
   const { data: company } = useGetCompanyQuery();
@@ -214,6 +221,12 @@ const Dashboard: React.FC<{ title: string }> = ({ title }) => {
     };
   }, [monthlyStats, salesByItemGroup, currency]);
 
+  // Render alternative style
+  if (styleVariant === 'alternative') {
+    return <AlternativeDashboard title={title} />;
+  }
+
+  // Render default style (current dashboard content)
   return (
     <div>
       <h1 className="text-2xl font-bold mb-6 text-brand-dark">{title}</h1>
