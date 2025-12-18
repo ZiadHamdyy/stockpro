@@ -6,10 +6,10 @@ const prisma = new PrismaClient();
 async function main() {
   console.log('🌱 Starting seed process for SUPER_ADMIN...');
 
-  // Create or get system company for SUPER_ADMIN (stockplus.cloud)
+  // Create or get system company for SUPER_ADMIN (admin)
   console.log('🏢 Creating/Getting system company...');
   let systemCompany = await prisma.company.findUnique({
-    where: { host: 'stockplus.cloud' },
+    where: { host: 'admin' },
   });
 
   if (!systemCompany) {
@@ -19,7 +19,7 @@ async function main() {
     });
 
     if (companyWithEmptyHost) {
-      // Update existing company with empty host to use stockplus.cloud
+      // Update existing company with empty host to use admin
       systemCompany = await prisma.company.update({
         where: { id: companyWithEmptyHost.id },
         data: {
@@ -38,9 +38,22 @@ async function main() {
       });
       console.log('✅ Updated existing company to system company');
     } else {
-      // Create new system company
-      systemCompany = await prisma.company.create({
-        data: {
+      // Create new system company using upsert to handle race conditions
+      systemCompany = await prisma.company.upsert({
+        where: { host: 'admin' },
+        update: {
+          name: 'StockPro System',
+          activity: 'System Administration',
+          address: 'System Address',
+          phone: '+966000000000',
+          taxNumber: '000000000000000',
+          commercialReg: '0000000000',
+          currency: 'SAR',
+          capital: 0,
+          vatRate: 15,
+          isVatEnabled: true,
+        },
+        create: {
           name: 'StockPro System',
           activity: 'System Administration',
           address: 'System Address',
@@ -54,7 +67,7 @@ async function main() {
           host: 'admin',
         },
       });
-      console.log('✅ Created system company');
+      console.log('✅ Created/Updated system company');
     }
   } else {
     console.log('✅ System company already exists');
@@ -290,7 +303,7 @@ async function main() {
   console.log('🎉 Seed process completed successfully!');
   console.log('');
   console.log('📋 Summary:');
-  console.log('   - System Company: stockplus.cloud');
+  console.log('   - System Company: admin');
   console.log('   - SUPER_ADMIN Role: Created');
   console.log('   - SUPER_ADMIN User: super@stockpro.com');
   console.log('   - Password: Password#1');
