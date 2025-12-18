@@ -5,6 +5,8 @@ import {
   BellIcon,
   BoxIcon,
   ReceiptIcon,
+  ChevronRightIcon,
+  ChevronLeftIcon,
 } from "../icons";
 import type { User } from "../../types";
 import { getLabelByPath } from "../../routes/routeConfig";
@@ -21,6 +23,8 @@ interface HeaderProps {
   onLogout: () => void;
   searchTerm: string;
   setSearchTerm: (term: string) => void;
+  isSidebarOpen: boolean;
+  onToggleSidebar: () => void;
 }
 
 const Header: React.FC<HeaderProps> = ({
@@ -28,6 +32,8 @@ const Header: React.FC<HeaderProps> = ({
   onLogout,
   searchTerm,
   setSearchTerm,
+  isSidebarOpen,
+  onToggleSidebar,
 }) => {
   const location = useLocation();
   const navigate = useNavigate();
@@ -111,8 +117,19 @@ const Header: React.FC<HeaderProps> = ({
 
   return (
     <header className="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-6 flex-shrink-0">
-      {/* Right side - Title */}
-      <div className="flex-shrink-0">
+      {/* Right side - Toggle button and Title */}
+      <div className="flex-shrink-0 flex items-center gap-3">
+        <button
+          onClick={onToggleSidebar}
+          className="p-2 rounded-full text-gray-500 hover:bg-gray-100 hover:text-brand-dark transition-colors"
+          title={isSidebarOpen ? "إخفاء القائمة الجانبية" : "إظهار القائمة الجانبية"}
+        >
+          {isSidebarOpen ? (
+            <ChevronRightIcon className="w-5 h-5" />
+          ) : (
+            <ChevronLeftIcon className="w-5 h-5" />
+          )}
+        </button>
         <h1 className="text-xl font-semibold text-brand-dark">{title}</h1>
       </div>
 
