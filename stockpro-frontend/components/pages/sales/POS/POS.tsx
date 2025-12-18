@@ -850,9 +850,9 @@ const POS: React.FC<POSProps> = () => {
       <div className="flex flex-1 overflow-hidden p-4 gap-4 relative z-0">
         
         {/* RIGHT: Function Sidebar */}
-        <div className="w-56 h-full shadow-2xl rounded-lg overflow-hidden bg-royal-700 order-1 flex flex-col">
+        {/* <div className="w-56 h-full shadow-2xl rounded-lg overflow-hidden bg-royal-700 order-1 flex flex-col">
           <POSSidebar onFunctionClick={handleFunctionClick} />
-        </div>
+        </div> */}
 
         {/* CENTER: Invoice Table (Tabs + Table) */}
         <div className="flex-1 h-full flex flex-col gap-0 order-2 overflow-hidden shadow-xl rounded-lg border border-royal-200 bg-white relative z-0">
@@ -909,6 +909,7 @@ const POS: React.FC<POSProps> = () => {
               aiInsight={aiInsight}
               discount={discount}
               vatRate={vatRate}
+              onOpenPayment={() => setPaymentModalOpen(true)}
             />
           </div>
         </div>
