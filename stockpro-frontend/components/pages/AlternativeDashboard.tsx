@@ -686,7 +686,7 @@ const AlternativeDashboard: React.FC<{ title: string }> = ({ title }) => {
     };
 
     return (
-        <div className="flex flex-col h-full overflow-hidden font-sans text-slate-800 bg-slate-200">
+        <div className="flex flex-col h-full overflow-y-auto font-sans text-slate-800 bg-slate-200">
             
             {/* 1. TOP HEADER SECTION */}
             <div className="shrink-0 p-3 pb-1 z-20 relative">
@@ -751,7 +751,7 @@ const AlternativeDashboard: React.FC<{ title: string }> = ({ title }) => {
             </div>
 
             {/* 2. MAIN CONTENT WRAPPER */}
-            <div className="flex-1 bg-slate-200 p-3 pt-2 flex flex-col gap-3 overflow-hidden relative z-10 mx-1 mb-1">
+            <div className="flex-1 bg-slate-200 p-3 pt-2 flex flex-col gap-3 overflow-y-auto relative z-10 mx-1 mb-1">
                 
                 {/* 2. COMPACT MIDDLE ROW: Cards & Actions */}
                 <div className="grid grid-cols-1 xl:grid-cols-2 gap-3 shrink-0">
