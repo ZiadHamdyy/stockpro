@@ -600,23 +600,39 @@ const POS: React.FC<POSProps> = () => {
       {/* TOP HEADER - LIGHTER ROYAL BLUE THEME (royal-700) */}
       <div className="bg-royal-700 p-2 border-b-4 border-gold-500 shadow-xl z-30 flex flex-col gap-2 h-auto">
         {/* Second Row: Operational Fields */}
-        <div className="flex items-center gap-3 overflow-x-auto pb-1 no-scrollbar px-1 pt-1 border-t border-royal-600">
+          <div className="flex items-center gap-3 overflow-x-auto pb-1 no-scrollbar px-1 pt-1 border-t border-royal-600">
           
-          <HeaderField label="نوع العميل" icon={UsersIcon} className="w-40">
-            <select 
-              value={customerType} 
-              onChange={(e) => {
-                setCustomerType(e.target.value);
-                if (e.target.value === 'cash') {
-                  setSelectedCustomer({ id: "cash", name: "عميل نقدي" });
-                }
-              }}
-              className="bg-transparent w-full text-white font-bold outline-none cursor-pointer text-xs"
-            >
-              <option value="cash" className="bg-royal-800">عميل نقدي</option>
-              <option value="credit" className="bg-royal-800">عميل آجل</option>
-            </select>
-          </HeaderField>
+            <div className="flex flex-col min-w-[140px] relative w-40">
+              <div className="flex items-center gap-2 mb-1">
+                <UsersIcon className="w-[14px] h-[14px] text-gold-400" />
+                <span className="text-[10px] text-royal-200 font-medium">نوع العميل</span>
+              </div>
+              <div className="relative bg-royal-800 border-2 border-royal-600 rounded-md p-1 flex items-center w-full">
+                <button
+                  onClick={() => {
+                    setCustomerType("cash");
+                    setSelectedCustomer({ id: "cash", name: "عميل نقدي" });
+                  }}
+                  className={`w-1/2 py-2 rounded text-xs font-bold transition-all duration-200 ${
+                    customerType === "cash" 
+                      ? "bg-royal-600 text-white shadow" 
+                      : "text-white opacity-70"
+                  }`}
+                >
+                  عميل نقدي
+                </button>
+                <button
+                  onClick={() => setCustomerType("credit")}
+                  className={`w-1/2 py-2 rounded text-xs font-bold transition-all duration-200 ${
+                    customerType === "credit" 
+                      ? "bg-royal-600 text-white shadow" 
+                      : "text-white opacity-70"
+                  }`}
+                >
+                  عميل آجل
+                </button>
+              </div>
+            </div>
 
           <PermissionWrapper
             requiredPermission={buildPermission(
