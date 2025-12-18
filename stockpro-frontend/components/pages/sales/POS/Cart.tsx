@@ -1,7 +1,7 @@
 import React, { useRef, useEffect } from 'react';
 import type { InvoiceItem } from '../../../../types';
 import { formatNumber } from '../../../../utils/formatting';
-import { DatabaseIcon } from '../../../icons';
+import { DatabaseIcon, TrashIcon } from '../../../icons';
 
 // Simple icon components for AI features
 const SparklesIcon: React.FC<{ className?: string }> = ({ className = "w-4 h-4" }) => (
@@ -134,7 +134,7 @@ const Cart: React.FC<CartProps> = ({
             }
           }}
         >
-          <div className="grid text-center items-center divide-x divide-royal-500 divide-x-reverse tracking-wide text-base font-black min-h-[48px]" style={{ gridTemplateColumns: 'minmax(60px, 0.5fr) minmax(120px, 1fr) minmax(200px, 2fr) minmax(80px, 0.8fr) minmax(100px, 1fr) minmax(100px, 1fr) minmax(80px, 0.8fr) minmax(80px, 0.8fr) minmax(120px, 1fr)' }}>
+          <div className="grid text-center items-center divide-x divide-royal-500 divide-x-reverse tracking-wide text-base font-black min-h-[48px]" style={{ gridTemplateColumns: 'minmax(60px, 0.5fr) minmax(120px, 1fr) minmax(200px, 2fr) minmax(80px, 0.8fr) minmax(100px, 1fr) minmax(100px, 1fr) minmax(80px, 0.8fr) minmax(80px, 0.8fr) minmax(120px, 1fr) minmax(60px, 0.5fr)' }}>
             <div className="whitespace-nowrap px-2 h-full flex items-center justify-center">م</div>
             <div className="whitespace-nowrap px-3 h-full flex items-center justify-center">رقم الصنف</div>
             <div className="whitespace-nowrap px-4 h-full flex items-center justify-center">الصنف</div>
@@ -144,6 +144,7 @@ const Cart: React.FC<CartProps> = ({
             <div className="whitespace-nowrap px-2 h-full flex items-center justify-center">الخصم</div>
             <div className="whitespace-nowrap px-2 h-full flex items-center justify-center">الضريبة</div>
             <div className="whitespace-nowrap px-3 h-full flex items-center justify-center">الإجمالي</div>
+            <div className="whitespace-nowrap px-2 h-full flex items-center justify-center">حذف</div>
           </div>
         </div>
 
@@ -170,7 +171,7 @@ const Cart: React.FC<CartProps> = ({
           const net = Number(item.total) || 0;
           
           return (
-            <div key={item.id} className="grid text-center items-stretch border-b border-royal-100 text-sm cursor-pointer group hover:bg-gold-50 bg-white divide-x divide-royal-200 divide-x-reverse h-12 transition-colors font-bold text-royal-900" style={{ gridTemplateColumns: 'minmax(60px, 0.5fr) minmax(120px, 1fr) minmax(200px, 2fr) minmax(80px, 0.8fr) minmax(100px, 1fr) minmax(100px, 1fr) minmax(80px, 0.8fr) minmax(80px, 0.8fr) minmax(120px, 1fr)' }}>
+            <div key={item.id} className="grid text-center items-stretch border-b border-royal-100 text-sm cursor-pointer group hover:bg-gold-50 bg-white divide-x divide-royal-200 divide-x-reverse h-12 transition-colors font-bold text-royal-900" style={{ gridTemplateColumns: 'minmax(60px, 0.5fr) minmax(120px, 1fr) minmax(200px, 2fr) minmax(80px, 0.8fr) minmax(100px, 1fr) minmax(100px, 1fr) minmax(80px, 0.8fr) minmax(80px, 0.8fr) minmax(120px, 1fr) minmax(60px, 0.5fr)' }}>
               <div className="font-mono text-royal-500 font-bold h-full flex items-center justify-center bg-transparent opacity-70 text-xs whitespace-nowrap px-2">{index + 1}</div>
               <div className="font-mono text-royal-800 font-black h-full flex items-center justify-center text-sm whitespace-nowrap px-3">{item.id.padStart(6, '0')}</div>
               <div className="text-right pr-2 font-bold text-royal-950 h-full flex items-center justify-start text-sm whitespace-nowrap px-4">{item.name}</div>
@@ -203,6 +204,18 @@ const Cart: React.FC<CartProps> = ({
               <div className="text-red-500 font-mono h-full flex items-center justify-center opacity-70 whitespace-nowrap px-2">0.00</div>
               <div className="text-royal-500 font-mono h-full flex items-center justify-center text-xs whitespace-nowrap px-2">{formatNumber(itemTax)}</div>
               <div className="font-black text-royal-900 font-mono group-hover:bg-gold-200/50 h-full flex items-center justify-center text-base whitespace-nowrap px-3">{formatNumber(net)}</div>
+              <div className="h-full flex items-center justify-center whitespace-nowrap px-2">
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onRemoveItem(item.id);
+                  }}
+                  className="p-1.5 rounded-md text-red-500 hover:bg-red-50 hover:text-red-600 transition-colors group-hover:bg-red-100"
+                  title="حذف الصنف"
+                >
+                  <TrashIcon className="w-4 h-4" />
+                </button>
+              </div>
             </div>
           );
         })}
