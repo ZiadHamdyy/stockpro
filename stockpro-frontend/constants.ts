@@ -460,6 +460,11 @@ export const MENU_ITEMS: MenuItem[] = [
             label: "تحليل أعمار الديون",
             icon: ClockIcon,
           },
+          {
+            key: "annual_sales_report",
+            label: "تقرير المبيعات السنوي",
+            icon: BarChartIcon,
+          },
         ],
       },
     ],

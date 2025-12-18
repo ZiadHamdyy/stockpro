@@ -180,6 +180,7 @@ const MENU_ITEMS: MenuItem[] = [
           { key: 'debt_aging_report', label: 'تحليل أعمار الديون' },
           { key: 'stagnant_items_report', label: 'تحليل المخزون الراكد' },
           { key: 'vip_customers_report', label: 'كبار العملاء (VIP)' },
+          { key: 'annual_sales_report', label: 'تقرير المبيعات السنوي' },
         ],
       },
       {
@@ -467,6 +468,7 @@ async function seedCompany(companyId: string, host: string, companyName: string)
         p.resource === 'debt_aging_report' ||
         p.resource === 'stagnant_items_report' ||
         p.resource === 'vip_customers_report' ||
+        p.resource === 'annual_sales_report' ||
         p.resource === 'item_reports' ||
         p.resource === 'item_movement_report' ||
         p.resource === 'item_balance_report' ||

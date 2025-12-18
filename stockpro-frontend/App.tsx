@@ -78,6 +78,7 @@ import ItemProfitabilityReport from "./components/pages/reports/financial_analys
 import DebtAgingReport from "./components/pages/reports/financial_analysis/DebtAgingReport";
 import StagnantItemsReport from "./components/pages/reports/financial_analysis/StagnantItemsReport";
 import VipCustomersReport from "./components/pages/reports/financial_analysis/VipCustomersReport";
+import AnnualSales from "./components/pages/reports/financial_analysis/annual_sales/AnnualSales";
 import CustomerStatementReport from "./components/pages/reports/customers/CustomerStatementReport";
 import CustomerBalanceReport from "./components/pages/reports/customers/CustomerBalanceReport";
 import SupplierStatementReport from "./components/pages/reports/suppliers/SupplierStatementReport";
@@ -1421,6 +1422,17 @@ const AppContent = () => {
                   requiresSubscription="GROWTH"
                 >
                   <VipCustomersReport title={currentPageTitle} />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/reports/financial-analysis/annual-sales"
+              element={
+                <ProtectedRoute 
+                  requiredPermission="annual_sales_report-read"
+                  requiresSubscription="GROWTH"
+                >
+                  <AnnualSales title={currentPageTitle} />
                 </ProtectedRoute>
               }
             />

@@ -98,6 +98,7 @@ export enum Resources {
   DEBT_AGING_REPORT = "debt_aging_report",
   STAGNANT_ITEMS_REPORT = "stagnant_items_report",
   VIP_CUSTOMERS_REPORT = "vip_customers_report",
+  ANNUAL_SALES_REPORT = "annual_sales_report",
   ITEM_REPORTS = "item_reports",
   ITEM_MOVEMENT_REPORT = "item_movement_report",
   ITEM_BALANCE_REPORT = "item_balance_report",

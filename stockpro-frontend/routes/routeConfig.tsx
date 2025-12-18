@@ -54,6 +54,7 @@ import ItemProfitabilityReport from "../components/pages/reports/financial_analy
 import DebtAgingReport from "../components/pages/reports/financial_analysis/DebtAgingReport";
 import StagnantItemsReport from "../components/pages/reports/financial_analysis/StagnantItemsReport";
 import VipCustomersReport from "../components/pages/reports/financial_analysis/VipCustomersReport";
+import AnnualSales from "../components/pages/reports/financial_analysis/annual_sales/AnnualSales";
 import CustomerStatementReport from "../components/pages/reports/customers/CustomerStatementReport";
 import CustomerBalanceReport from "../components/pages/reports/customers/CustomerBalanceReport";
 import SupplierStatementReport from "../components/pages/reports/suppliers/SupplierStatementReport";
@@ -486,6 +487,12 @@ export const routeConfig = [
     component: VipCustomersReport,
     requiredPermission: "vip_customers_report-read",
     label: "كبار العملاء (VIP)",
+  },
+  {
+    path: "/reports/financial-analysis/annual-sales",
+    component: AnnualSales,
+    requiredPermission: "annual_sales_report-read",
+    label: "تقرير المبيعات السنوي",
   },
 
   // Reports - Customers

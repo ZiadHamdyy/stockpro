@@ -311,6 +311,7 @@ export const usePermissions = () => {
 
       // Convert frontend permission keys to backend permission IDs
       const permissionIds: string[] = [];
+      const missingPermissions: string[] = [];
       rolePermissions.forEach((permissionKey) => {
         const [resource, action] = permissionKey.split("-");
         const permission = allPermissions.find(
@@ -318,8 +319,17 @@ export const usePermissions = () => {
         );
         if (permission) {
           permissionIds.push(permission.id);
+        } else {
+          missingPermissions.push(permissionKey);
         }
       });
+
+      // Warn about missing permissions
+      if (missingPermissions.length > 0) {
+        console.warn("Some permissions not found in database:", missingPermissions);
+        console.warn("Available permissions count:", allPermissions.length);
+        console.warn("Available resources:", [...new Set(allPermissions.map(p => p.resource))]);
+      }
 
       // Ensure permissions resource is always included for manager role (can't be removed from admin)
       if (role.name === "مدير") {

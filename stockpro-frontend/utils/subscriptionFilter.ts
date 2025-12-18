@@ -13,6 +13,7 @@ const RESTRICTED_MENU_KEYS: Record<string, string[]> = {
   stagnant_items_report: ['GROWTH', 'BUSINESS'],
   vip_customers_report: ['GROWTH', 'BUSINESS'],
   debt_aging_report: ['GROWTH', 'BUSINESS'],
+  annual_sales_report: ['GROWTH', 'BUSINESS'],
 };
 
 /**
