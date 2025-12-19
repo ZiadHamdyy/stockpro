@@ -337,68 +337,26 @@ const InvoicePrintPreview: React.FC<InvoicePrintPreviewProps> = ({
           overflow-wrap: break-word;
           word-wrap: break-word;
         }
-        .header { 
-          text-align: ${getAlignment('branchName')}; 
-          border-bottom: 1px dashed #000; 
-          padding-bottom: ${epson.spacing.sectionGap}px; 
-          margin-bottom: ${epson.spacing.sectionGap}px; 
-        }
-        .logo { max-width: 50px; margin-bottom: 2px; filter: grayscale(100%); }
         .info-row { display: flex; justify-content: space-between; margin-bottom: 1px; font-size: ${epson.fonts.body}px; }
         .info-row span { max-width: 48%; overflow-wrap: break-word; word-wrap: break-word; }
         .items-table { width: 100%; border-collapse: collapse; margin-top: ${epson.spacing.sectionGap}px; table-layout: fixed; }
-        .items-table th { border-bottom: 1px solid #000; text-align: ${getAlignment('itemName')}; font-size: ${epson.fonts.items}px; font-weight: bold; padding: 2px 0; }
         .items-table td { padding: 2px 0; font-size: ${epson.fonts.items}px; overflow-wrap: break-word; word-wrap: break-word; }
-        .totals { margin-top: ${epson.spacing.sectionGap}px; border-top: 1px dashed #000; padding-top: 3px; }
+        .totals { margin-top: ${epson.spacing.sectionGap}px; padding-top: 3px; }
         .total-row { display: flex; justify-content: space-between; font-weight: bold; font-size: ${epson.fonts.totals}px; margin-top: 3px; }
         .qr-container { text-align: ${getAlignment('qrCode')}; margin-top: ${epson.spacing.sectionGap}px; }
         .qr-container img { max-width: 80px; height: auto; }
-        .footer { text-align: ${getAlignment('footerText')}; margin-top: ${epson.spacing.sectionGap}px; font-size: ${epson.fonts.footer}px; border-top: 1px solid #000; padding-top: 3px; }
       </style>
     </head>
     <body>
-      <div class="header">
-        ${settings.showLogo && companyInfo.logo ? `<img src="${companyInfo.logo}" class="logo"/>` : ""}
-        <div style="font-size: ${epson.fonts.header}px; font-weight: bold; ${getPosition('branchName')}">${companyInfo.name}</div>
-        ${
-          settings.showAddress
-            ? `<div style="${getPosition('date')}; font-size: ${epson.fonts.body - 1}px;">${companyInfo.address}</div><div style="font-size: ${epson.fonts.body - 1}px;">${companyInfo.phone}</div>`
-            : ""
-        }
-        ${
-          settings.showTaxNumber
-            ? `<div style="${getPosition('date')}; font-size: ${epson.fonts.body - 1}px;">الرقم الضريبي: ${companyInfo.taxNumber}</div>`
-            : ""
-        }
+      <div style="text-align: ${getAlignment('branchName')}; ${getPosition('branchName')}; margin-bottom: 1px; font-size: ${epson.fonts.body}px;">
+        ${details.invoiceNumber}
+        ${getVisibility('branchName') ? `<div style="margin-top: 1px;">${details.branchName || "الفرع الرئيسي"}</div>` : ''}
       </div>
-      <div style="text-align: ${getAlignment('branchName')}; margin-bottom: ${epson.spacing.sectionGap}px; font-weight: bold; font-size: ${epson.fonts.header}px; border: 1px solid #000; padding: 3px;">
-        ${settings.headerText || defaultArabicTitle}
-      </div>
-      ${getVisibility('branchName') ? `<div class="info-row" style="${getPosition('branchName')}">
-        <span>${details.branchName || "الفرع الرئيسي"}</span>
-        <span>${details.invoiceNumber}</span>
-      </div>` : `<div class="info-row">
-        <span>${details.invoiceNumber}</span>
-      </div>`}
-      ${getVisibility('date') || getVisibility('customerType') ? `<div class="info-row">
-        ${getVisibility('date') ? `<span style="${getPosition('date')}">${details.invoiceDate}</span>` : ''}
-        ${getVisibility('customerType') ? `<span style="${getPosition('customerType')}">${paymentMethod === "cash" ? "نقدا" : "اجل"}</span>` : ''}
-      </div>` : ''}
-      ${getVisibility('customerName') ? `<div class="info-row" style="${getPosition('customerName')}"><span>العميل:</span><span>${customer?.name || "عميل نقدا"}</span></div>` : ''}
-      ${getVisibility('employeeName') ? `<div class="info-row" style="${getPosition('employeeName')}"><span>الموظف:</span><span>${details.userName || "غير محدد"}</span></div>` : ''}
+      ${getVisibility('date') ? `<div style="text-align: ${getAlignment('date')}; ${getPosition('date')}; margin-bottom: 1px; font-size: ${epson.fonts.body}px;">${details.invoiceDate}</div>` : ''}
+      ${getVisibility('customerType') ? `<div style="text-align: ${getAlignment('customerType')}; ${getPosition('customerType')}; margin-bottom: 1px; font-size: ${epson.fonts.body}px;">${paymentMethod === "cash" ? "نقدا" : "اجل"}</div>` : ''}
+      ${getVisibility('customerName') ? `<div style="text-align: ${getAlignment('customerName')}; ${getPosition('customerName')}; margin-bottom: 1px; font-size: ${epson.fonts.body}px;">${customer?.name || "عميل نقدا"}</div>` : ''}
+      ${getVisibility('employeeName') ? `<div style="text-align: ${getAlignment('employeeName')}; ${getPosition('employeeName')}; margin-bottom: 1px; font-size: ${epson.fonts.body}px;">${details.userName || "غير محدد"}</div>` : ''}
       <table class="items-table">
-        <thead>
-          <tr>
-            ${getVisibility('itemName') ? `<th style="text-align: ${getAlignment('itemName')}; ${getPosition('itemName')}">الصنف</th>` : ''}
-            ${getVisibility('itemQty') ? `<th style="text-align: ${getAlignment('itemQty')}; ${getPosition('itemQty')}">ك</th>` : ''}
-            ${getVisibility('itemPrice') ? `<th style="text-align: ${getAlignment('itemPrice')}; ${getPosition('itemPrice')}">سعر</th>` : ''}
-            ${getVisibility('itemTaxable') ? `<th style="text-align: ${getAlignment('itemTaxable')}; ${getPosition('itemTaxable')}">قبل ض</th>` : ''}
-            ${getVisibility('itemDiscount') ? `<th style="text-align: ${getAlignment('itemDiscount')}; ${getPosition('itemDiscount')}">خصم</th>` : ''}
-            ${getVisibility('itemTaxRate') ? `<th style="text-align: ${getAlignment('itemTaxRate')}; ${getPosition('itemTaxRate')}">نسبة</th>` : ''}
-            ${isVatEnabled && getVisibility('itemTax') ? `<th style="text-align: ${getAlignment('itemTax')}; ${getPosition('itemTax')}">ضريبة</th>` : ''}
-            ${getVisibility('itemTotal') ? `<th style="text-align: ${getAlignment('itemTotal')}; ${getPosition('itemTotal')}">مجموع</th>` : ''}
-          </tr>
-        </thead>
         <tbody>
           ${items
             .map(
@@ -419,36 +377,20 @@ const InvoicePrintPreview: React.FC<InvoicePrintPreviewProps> = ({
         </tbody>
       </table>
       <div class="totals">
-        ${getVisibility('totalsSubtotal') ? `<div class="info-row" style="text-align: ${getAlignment('totalsSubtotal')}; ${getPosition('totalsSubtotal')}">
-          <span>المجموع:</span>
-          <span>${totals.subtotal.toFixed(2)}</span>
-        </div>` : ''}
-        ${getVisibility('totalsDiscount') ? `<div class="info-row" style="text-align: ${getAlignment('totalsDiscount')}; ${getPosition('totalsDiscount')}">
-          <span>الخصم:</span>
-          <span>${totals.discount.toFixed(2)}</span>
-        </div>` : ''}
+        ${getVisibility('totalsSubtotal') ? `<div style="text-align: ${getAlignment('totalsSubtotal')}; ${getPosition('totalsSubtotal')}; font-size: ${epson.fonts.totals}px; margin-top: 3px;">${totals.subtotal.toFixed(2)}</div>` : ''}
+        ${getVisibility('totalsDiscount') ? `<div style="text-align: ${getAlignment('totalsDiscount')}; ${getPosition('totalsDiscount')}; font-size: ${epson.fonts.totals}px; margin-top: 3px;">${totals.discount.toFixed(2)}</div>` : ''}
         ${
           isVatEnabled && getVisibility('totalsTax')
-            ? `<div class="info-row" style="text-align: ${getAlignment('totalsTax')}; ${getPosition('totalsTax')}">
-                <span>الضريبة (${vatRate}%):</span>
-                <span>${totals.tax.toFixed(2)}</span>
-              </div>`
+            ? `<div style="text-align: ${getAlignment('totalsTax')}; ${getPosition('totalsTax')}; font-size: ${epson.fonts.totals}px; margin-top: 3px;">${totals.tax.toFixed(2)}</div>`
             : ""
         }
-        ${getVisibility('totalsNet') ? `<div class="total-row" style="text-align: ${getAlignment('totalsNet')}; ${getPosition('totalsNet')}">
-          <span>الصافي:</span>
-          <span>${totals.net.toFixed(2)}</span>
-        </div>` : ''}
+        ${getVisibility('totalsNet') ? `<div style="text-align: ${getAlignment('totalsNet')}; ${getPosition('totalsNet')}; font-weight: bold; font-size: ${epson.fonts.totals}px; margin-top: 3px;">${totals.net.toFixed(2)}</div>` : ''}
       </div>
       ${getVisibility('qrCode') ? `<div class="qr-container" style="${getPosition('qrCode')}">
         ${isVatEnabled ? `<img src="${qrCodeUrl}" width="80" height="80"/>` : ""}
       </div>` : ''}
       ${getVisibility('tafqeet') ? `<div style="text-align: ${getAlignment('tafqeet')}; ${getPosition('tafqeet')}; margin-top: ${epson.spacing.sectionGap}px; font-weight: bold; font-size: ${epson.fonts.body}px;">
         ${tafqeet(totals.net, companyInfo.currency)}
-      </div>` : ''}
-      ${getVisibility('footerText') ? `<div class="footer" style="${getPosition('footerText')}">
-        <div>${settings.footerText}</div>
-        ${settings.termsText ? `<div style="margin-top: 3px; font-size: ${epson.fonts.footer - 1}px;">${settings.termsText}</div>` : ''}
       </div>` : ''}
     </body>
     </html>
@@ -1461,68 +1403,26 @@ const InvoicePrintPreview: React.FC<InvoicePrintPreviewProps> = ({
           overflow-wrap: break-word;
           word-wrap: break-word;
         }
-        .header { 
-          text-align: ${getAlignment('branchName')}; 
-          border-bottom: 1px dashed #000; 
-          padding-bottom: ${epson.spacing.sectionGap}px; 
-          margin-bottom: ${epson.spacing.sectionGap}px; 
-        }
-        .logo { max-width: 50px; margin-bottom: 2px; filter: grayscale(100%); }
         .info-row { display: flex; justify-content: space-between; margin-bottom: 1px; font-size: ${epson.fonts.body}px; }
         .info-row span { max-width: 48%; overflow-wrap: break-word; word-wrap: break-word; }
         .items-table { width: 100%; border-collapse: collapse; margin-top: ${epson.spacing.sectionGap}px; table-layout: fixed; }
-        .items-table th { border-bottom: 1px solid #000; text-align: ${getAlignment('itemName')}; font-size: ${epson.fonts.items}px; font-weight: bold; padding: 2px 0; }
         .items-table td { padding: 2px 0; font-size: ${epson.fonts.items}px; overflow-wrap: break-word; word-wrap: break-word; }
-        .totals { margin-top: ${epson.spacing.sectionGap}px; border-top: 1px dashed #000; padding-top: 3px; }
+        .totals { margin-top: ${epson.spacing.sectionGap}px; padding-top: 3px; }
         .total-row { display: flex; justify-content: space-between; font-weight: bold; font-size: ${epson.fonts.totals}px; margin-top: 3px; }
         .qr-container { text-align: ${getAlignment('qrCode')}; margin-top: ${epson.spacing.sectionGap}px; }
         .qr-container img { max-width: 80px; height: auto; }
-        .footer { text-align: ${getAlignment('footerText')}; margin-top: ${epson.spacing.sectionGap}px; font-size: ${epson.fonts.footer}px; border-top: 1px solid #000; padding-top: 3px; }
       </style>
     </head>
     <body>
-      <div class="header">
-        ${settings.showLogo && companyInfo.logo ? `<img src="${companyInfo.logo}" class="logo"/>` : ""}
-        <div style="font-size: ${epson.fonts.header}px; font-weight: bold; ${getPosition('branchName')}">${companyInfo.name}</div>
-        ${
-          settings.showAddress
-            ? `<div style="${getPosition('date')}; font-size: ${epson.fonts.body - 1}px;">${companyInfo.address}</div><div style="font-size: ${epson.fonts.body - 1}px;">${companyInfo.phone}</div>`
-            : ""
-        }
-        ${
-          settings.showTaxNumber
-            ? `<div style="${getPosition('date')}; font-size: ${epson.fonts.body - 1}px;">الرقم الضريبي: ${companyInfo.taxNumber}</div>`
-            : ""
-        }
+      <div style="text-align: ${getAlignment('branchName')}; ${getPosition('branchName')}; margin-bottom: 1px; font-size: ${epson.fonts.body}px;">
+        ${details.invoiceNumber}
+        ${getVisibility('branchName') ? `<div style="margin-top: 1px;">${details.branchName || "الفرع الرئيسي"}</div>` : ''}
       </div>
-      <div style="text-align: ${getAlignment('branchName')}; margin-bottom: ${epson.spacing.sectionGap}px; font-weight: bold; font-size: ${epson.fonts.header}px; border: 1px solid #000; padding: 3px;">
-        ${settings.headerText || defaultArabicTitle}
-      </div>
-      ${getVisibility('branchName') ? `<div class="info-row" style="${getPosition('branchName')}">
-        <span>${details.branchName || "الفرع الرئيسي"}</span>
-        <span>${details.invoiceNumber}</span>
-      </div>` : `<div class="info-row">
-        <span>${details.invoiceNumber}</span>
-      </div>`}
-      ${getVisibility('date') || getVisibility('customerType') ? `<div class="info-row">
-        ${getVisibility('date') ? `<span style="${getPosition('date')}">${details.invoiceDate}</span>` : ''}
-        ${getVisibility('customerType') ? `<span style="${getPosition('customerType')}">${paymentMethod === "cash" ? "نقدا" : "اجل"}</span>` : ''}
-      </div>` : ''}
-      ${getVisibility('customerName') ? `<div class="info-row" style="${getPosition('customerName')}"><span>العميل:</span><span>${customer?.name || "عميل نقدا"}</span></div>` : ''}
-      ${getVisibility('employeeName') ? `<div class="info-row" style="${getPosition('employeeName')}"><span>الموظف:</span><span>${details.userName || "غير محدد"}</span></div>` : ''}
+      ${getVisibility('date') ? `<div style="text-align: ${getAlignment('date')}; ${getPosition('date')}; margin-bottom: 1px; font-size: ${epson.fonts.body}px;">${details.invoiceDate}</div>` : ''}
+      ${getVisibility('customerType') ? `<div style="text-align: ${getAlignment('customerType')}; ${getPosition('customerType')}; margin-bottom: 1px; font-size: ${epson.fonts.body}px;">${paymentMethod === "cash" ? "نقدا" : "اجل"}</div>` : ''}
+      ${getVisibility('customerName') ? `<div style="text-align: ${getAlignment('customerName')}; ${getPosition('customerName')}; margin-bottom: 1px; font-size: ${epson.fonts.body}px;">${customer?.name || "عميل نقدا"}</div>` : ''}
+      ${getVisibility('employeeName') ? `<div style="text-align: ${getAlignment('employeeName')}; ${getPosition('employeeName')}; margin-bottom: 1px; font-size: ${epson.fonts.body}px;">${details.userName || "غير محدد"}</div>` : ''}
       <table class="items-table">
-        <thead>
-          <tr>
-            ${getVisibility('itemName') ? `<th style="text-align: ${getAlignment('itemName')}; ${getPosition('itemName')}">الصنف</th>` : ''}
-            ${getVisibility('itemQty') ? `<th style="text-align: ${getAlignment('itemQty')}; ${getPosition('itemQty')}">ك</th>` : ''}
-            ${getVisibility('itemPrice') ? `<th style="text-align: ${getAlignment('itemPrice')}; ${getPosition('itemPrice')}">سعر</th>` : ''}
-            ${getVisibility('itemTaxable') ? `<th style="text-align: ${getAlignment('itemTaxable')}; ${getPosition('itemTaxable')}">قبل ض</th>` : ''}
-            ${getVisibility('itemDiscount') ? `<th style="text-align: ${getAlignment('itemDiscount')}; ${getPosition('itemDiscount')}">خصم</th>` : ''}
-            ${getVisibility('itemTaxRate') ? `<th style="text-align: ${getAlignment('itemTaxRate')}; ${getPosition('itemTaxRate')}">نسبة</th>` : ''}
-            ${isVatEnabled && getVisibility('itemTax') ? `<th style="text-align: ${getAlignment('itemTax')}; ${getPosition('itemTax')}">ضريبة</th>` : ''}
-            ${getVisibility('itemTotal') ? `<th style="text-align: ${getAlignment('itemTotal')}; ${getPosition('itemTotal')}">مجموع</th>` : ''}
-          </tr>
-        </thead>
         <tbody>
           ${items
             .map(
@@ -1543,36 +1443,20 @@ const InvoicePrintPreview: React.FC<InvoicePrintPreviewProps> = ({
         </tbody>
       </table>
       <div class="totals">
-        ${getVisibility('totalsSubtotal') ? `<div class="info-row" style="text-align: ${getAlignment('totalsSubtotal')}; ${getPosition('totalsSubtotal')}">
-          <span>المجموع:</span>
-          <span>${totals.subtotal.toFixed(2)}</span>
-        </div>` : ''}
-        ${getVisibility('totalsDiscount') ? `<div class="info-row" style="text-align: ${getAlignment('totalsDiscount')}; ${getPosition('totalsDiscount')}">
-          <span>الخصم:</span>
-          <span>${totals.discount.toFixed(2)}</span>
-        </div>` : ''}
+        ${getVisibility('totalsSubtotal') ? `<div style="text-align: ${getAlignment('totalsSubtotal')}; ${getPosition('totalsSubtotal')}; font-size: ${epson.fonts.totals}px; margin-top: 3px;">${totals.subtotal.toFixed(2)}</div>` : ''}
+        ${getVisibility('totalsDiscount') ? `<div style="text-align: ${getAlignment('totalsDiscount')}; ${getPosition('totalsDiscount')}; font-size: ${epson.fonts.totals}px; margin-top: 3px;">${totals.discount.toFixed(2)}</div>` : ''}
         ${
           isVatEnabled && getVisibility('totalsTax')
-            ? `<div class="info-row" style="text-align: ${getAlignment('totalsTax')}; ${getPosition('totalsTax')}">
-                <span>الضريبة (${vatRate}%):</span>
-                <span>${totals.tax.toFixed(2)}</span>
-              </div>`
+            ? `<div style="text-align: ${getAlignment('totalsTax')}; ${getPosition('totalsTax')}; font-size: ${epson.fonts.totals}px; margin-top: 3px;">${totals.tax.toFixed(2)}</div>`
             : ""
         }
-        ${getVisibility('totalsNet') ? `<div class="total-row" style="text-align: ${getAlignment('totalsNet')}; ${getPosition('totalsNet')}">
-          <span>الصافي:</span>
-          <span>${totals.net.toFixed(2)}</span>
-        </div>` : ''}
+        ${getVisibility('totalsNet') ? `<div style="text-align: ${getAlignment('totalsNet')}; ${getPosition('totalsNet')}; font-weight: bold; font-size: ${epson.fonts.totals}px; margin-top: 3px;">${totals.net.toFixed(2)}</div>` : ''}
       </div>
       ${getVisibility('qrCode') ? `<div class="qr-container" style="${getPosition('qrCode')}">
         ${isVatEnabled ? `<img src="${qrCodeUrl}" width="80" height="80"/>` : ""}
       </div>` : ''}
       ${getVisibility('tafqeet') ? `<div style="text-align: ${getAlignment('tafqeet')}; ${getPosition('tafqeet')}; margin-top: ${epson.spacing.sectionGap}px; font-weight: bold; font-size: ${epson.fonts.body}px;">
         ${tafqeet(totals.net, companyInfo.currency)}
-      </div>` : ''}
-      ${getVisibility('footerText') ? `<div class="footer" style="${getPosition('footerText')}">
-        <div>${settings.footerText}</div>
-        ${settings.termsText ? `<div style="margin-top: 3px; font-size: ${epson.fonts.footer - 1}px;">${settings.termsText}</div>` : ''}
       </div>` : ''}
     </body>
     </html>
