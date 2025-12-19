@@ -57,6 +57,7 @@ interface PaymentModalProps {
     splitBankId?: string | null;
     bankTransactionType?: 'POS' | 'TRANSFER';
   }) => void;
+  onNewInvoice?: () => void;
   banks?: Bank[];
   currentUser: User | null;
   safes?: Safe[];
@@ -80,7 +81,8 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
   subtotal, 
   tax, 
   cartItems, 
-  onComplete, 
+  onComplete,
+  onNewInvoice,
   banks = [],
   currentUser,
   safes = [],
@@ -310,6 +312,18 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
     onComplete(paymentData);
   };
 
+  const handleNewInvoice = () => {
+    // Close the modal immediately to prevent it from reopening
+    onClose();
+    // Finalize the current payment
+    handleFinalize();
+    // Create a new invoice after payment is finalized
+    // Use a small delay to ensure payment processing completes
+    setTimeout(() => {
+      onNewInvoice?.();
+    }, 200);
+  };
+
   // Get selected safe/bank names
   const selectedSafe = filteredSafes.find(s => s.id === selectedSafeId);
   const selectedBank = banks.find(b => b.id?.toString() === selectedBankId);
@@ -472,7 +486,8 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
         // F3: New invoice
         if (e.key === 'F3') {
           e.preventDefault();
-          handleFinalize();
+          e.stopPropagation();
+          handleNewInvoice();
           return;
         }
         // Enter: Print
@@ -549,7 +564,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, showReceipt, paymentMode, selectedSafeId, selectedBankId, splitSafeId, splitBankId, splitCashAmount, splitBankAmount, totalAmount, currentInput, handleAssignToSafe, handleAssignToBank, printSettings, companyInfo, transactionId, currentUser, cartItems, subtotal, tax, bankTransactionType, filteredSafes, banks, handlePrint, handleFinalize, handleProcessPayment, handleNumClick, handleBackspace, handleClearInput]);
+  }, [isOpen, showReceipt, paymentMode, selectedSafeId, selectedBankId, splitSafeId, splitBankId, splitCashAmount, splitBankAmount, totalAmount, currentInput, handleAssignToSafe, handleAssignToBank, printSettings, companyInfo, transactionId, currentUser, cartItems, subtotal, tax, bankTransactionType, filteredSafes, banks, handlePrint, handleFinalize, handleNewInvoice, handleProcessPayment, handleNumClick, handleBackspace, handleClearInput]);
 
   // Check if payment is ready
   const isPaymentReady = 
@@ -1088,7 +1103,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
               <span>طباعة (Enter)</span>
             </button>
             <button 
-              onClick={handleFinalize}
+              onClick={handleNewInvoice}
               className="flex-1 py-3 bg-royal-900 text-white rounded-xl font-bold hover:bg-royal-800 transition"
             >
               فاتورة جديدة (F3)

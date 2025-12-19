@@ -633,7 +633,10 @@ const POS: React.FC<POSProps> = () => {
   // Keyboard Shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'F3') handleNewTab(); 
+      // Don't handle F3 if payment modal is open (let PaymentModal handle it)
+      if (e.key === 'F3' && !isPaymentModalOpen) {
+        handleNewTab();
+      }
       if (e.key === 'F4') if (cartItems.length > 0) {
         setPaymentAmount(Math.abs(totals.net).toString());
         setPaymentModalOpen(true);
@@ -650,7 +653,7 @@ const POS: React.FC<POSProps> = () => {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [cartItems, activeTabId, tabs, totals]);
+  }, [cartItems, activeTabId, tabs, totals, isPaymentModalOpen]);
 
   return (
     <div className="flex flex-col h-screen bg-royal-50 font-sans text-sm overflow-hidden -m-6">
@@ -936,6 +939,7 @@ const POS: React.FC<POSProps> = () => {
         tax={totals.tax}
         cartItems={cartItems}
         onComplete={handlePaymentComplete}
+        onNewInvoice={handleNewTab}
         banks={banks}
         currentUser={currentUser}
         safes={safesData}
