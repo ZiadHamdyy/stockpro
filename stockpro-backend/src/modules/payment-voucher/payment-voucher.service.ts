@@ -11,6 +11,7 @@ import { PaymentVoucherResponse } from './dtos/response/payment-voucher.response
 import { AccountingService } from '../../common/services/accounting.service';
 import { FiscalYearService } from '../fiscal-year/fiscal-year.service';
 import { SubscriptionService } from '../subscription/subscription.service';
+import { AuditLogService } from '../audit-log/audit-log.service';
 
 @Injectable()
 export class PaymentVoucherService {
@@ -18,6 +19,7 @@ export class PaymentVoucherService {
     private readonly prisma: DatabaseService,
     private readonly fiscalYearService: FiscalYearService,
     private readonly subscriptionService: SubscriptionService,
+    private readonly auditLogService: AuditLogService,
   ) {}
 
   // ==================== CRUD Operations ====================
@@ -169,6 +171,17 @@ export class PaymentVoucherService {
         include: { user: true, branch: true, expenseCode: true, revenueCode: true },
       });
       return paymentVoucher;
+    });
+
+    // Create audit log
+    await this.auditLogService.createAuditLog({
+      companyId,
+      userId: result.userId,
+      branchId: result.branchId || undefined,
+      action: 'create',
+      targetType: 'payment_voucher',
+      targetId: result.code,
+      details: `إنشاء سند صرف رقم ${result.code} بقيمة ${result.amount} ريال`,
     });
 
     return this.mapToResponse(result);
@@ -487,6 +500,17 @@ export class PaymentVoucherService {
         return updated;
       });
 
+      // Create audit log
+      await this.auditLogService.createAuditLog({
+        companyId,
+        userId: result.userId,
+        branchId: result.branchId || undefined,
+        action: 'update',
+        targetType: 'payment_voucher',
+        targetId: result.code,
+        details: `تعديل سند صرف رقم ${result.code}`,
+      });
+
       return this.mapToResponse(result);
     } catch (error) {
       throw new NotFoundException('Payment voucher not found');
@@ -565,6 +589,17 @@ export class PaymentVoucherService {
         }
 
         await tx.paymentVoucher.delete({ where: { id } });
+      });
+
+      // Create audit log
+      await this.auditLogService.createAuditLog({
+        companyId,
+        userId: existing.userId,
+        branchId: existing.branchId || undefined,
+        action: 'delete',
+        targetType: 'payment_voucher',
+        targetId: existing.code,
+        details: `حذف سند صرف رقم ${existing.code}`,
       });
     } catch (error) {
       throw new NotFoundException('Payment voucher not found');

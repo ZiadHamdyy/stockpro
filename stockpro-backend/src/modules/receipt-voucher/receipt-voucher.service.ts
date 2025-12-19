@@ -11,6 +11,7 @@ import { ReceiptVoucherResponse } from './dtos/response/receipt-voucher.response
 import { AccountingService } from '../../common/services/accounting.service';
 import { FiscalYearService } from '../fiscal-year/fiscal-year.service';
 import { SubscriptionService } from '../subscription/subscription.service';
+import { AuditLogService } from '../audit-log/audit-log.service';
 
 @Injectable()
 export class ReceiptVoucherService {
@@ -18,6 +19,7 @@ export class ReceiptVoucherService {
     private readonly prisma: DatabaseService,
     private readonly fiscalYearService: FiscalYearService,
     private readonly subscriptionService: SubscriptionService,
+    private readonly auditLogService: AuditLogService,
   ) {}
 
   // ==================== CRUD Operations ====================
@@ -160,6 +162,17 @@ export class ReceiptVoucherService {
         include: { user: true, branch: true, revenueCode: true },
       });
       return receiptVoucher;
+    });
+
+    // Create audit log
+    await this.auditLogService.createAuditLog({
+      companyId,
+      userId: result.userId,
+      branchId: result.branchId || undefined,
+      action: 'create',
+      targetType: 'receipt_voucher',
+      targetId: result.code,
+      details: `إنشاء سند قبض رقم ${result.code} بقيمة ${result.amount} ريال`,
     });
 
     return this.mapToResponse(result);
@@ -431,6 +444,17 @@ export class ReceiptVoucherService {
         return updated;
       });
 
+      // Create audit log
+      await this.auditLogService.createAuditLog({
+        companyId,
+        userId: result.userId,
+        branchId: result.branchId || undefined,
+        action: 'update',
+        targetType: 'receipt_voucher',
+        targetId: result.code,
+        details: `تعديل سند قبض رقم ${result.code}`,
+      });
+
       return this.mapToResponse(result);
     } catch (error) {
       throw new NotFoundException('Receipt voucher not found');
@@ -514,6 +538,17 @@ export class ReceiptVoucherService {
         }
 
         await tx.receiptVoucher.delete({ where: { id } });
+      });
+
+      // Create audit log
+      await this.auditLogService.createAuditLog({
+        companyId,
+        userId: existing.userId,
+        branchId: existing.branchId || undefined,
+        action: 'delete',
+        targetType: 'receipt_voucher',
+        targetId: existing.code,
+        details: `حذف سند قبض رقم ${existing.code}`,
       });
     } catch (error) {
       throw new NotFoundException('Receipt voucher not found');

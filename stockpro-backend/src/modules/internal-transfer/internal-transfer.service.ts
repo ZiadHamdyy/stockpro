@@ -12,6 +12,7 @@ import { InternalTransferResponse } from './dtos/response/internal-transfer.resp
 import { AccountingService } from '../../common/services/accounting.service';
 import { FiscalYearService } from '../fiscal-year/fiscal-year.service';
 import { SubscriptionService } from '../subscription/subscription.service';
+import { AuditLogService } from '../audit-log/audit-log.service';
 
 @Injectable()
 export class InternalTransferService {
@@ -19,6 +20,7 @@ export class InternalTransferService {
     private readonly prisma: DatabaseService,
     private readonly fiscalYearService: FiscalYearService,
     private readonly subscriptionService: SubscriptionService,
+    private readonly auditLogService: AuditLogService,
   ) {}
 
   // ==================== CRUD Operations ====================
@@ -156,6 +158,17 @@ export class InternalTransferService {
         },
       });
       return internalTransfer;
+    });
+
+    // Create audit log
+    await this.auditLogService.createAuditLog({
+      companyId,
+      userId: result.userId,
+      branchId: result.branchId || undefined,
+      action: 'create',
+      targetType: 'internal_transfer',
+      targetId: result.code,
+      details: `إنشاء تحويل داخلي رقم ${result.code} بقيمة ${result.amount} ريال`,
     });
 
     return this.mapToResponse(result);
@@ -395,6 +408,17 @@ export class InternalTransferService {
         return updated;
       });
 
+      // Create audit log
+      await this.auditLogService.createAuditLog({
+        companyId,
+        userId: result.userId,
+        branchId: result.branchId || undefined,
+        action: 'update',
+        targetType: 'internal_transfer',
+        targetId: result.code,
+        details: `تعديل تحويل داخلي رقم ${result.code}`,
+      });
+
       return this.mapToResponse(result);
     } catch (error) {
       if (
@@ -467,6 +491,17 @@ export class InternalTransferService {
         }
 
         await tx.internalTransfer.delete({ where: { id } });
+      });
+
+      // Create audit log
+      await this.auditLogService.createAuditLog({
+        companyId,
+        userId: existing.userId,
+        branchId: existing.branchId || undefined,
+        action: 'delete',
+        targetType: 'internal_transfer',
+        targetId: existing.code,
+        details: `حذف تحويل داخلي رقم ${existing.code}`,
       });
     } catch (error) {
       throw new NotFoundException('Internal transfer not found');
