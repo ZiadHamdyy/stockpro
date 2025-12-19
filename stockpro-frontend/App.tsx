@@ -24,6 +24,7 @@ import { TitleProvider } from "./components/context/TitleContext";
 import Dashboard from "./components/pages/Dashboard";
 import Placeholder from "./components/pages/Placeholder";
 import Login from "./components/pages/Login";
+import Landing from "./components/pages/landing/Landing";
 import POS from "./components/pages/sales/POS/POS";
 import CompanyData from "./components/pages/settings/CompanyData";
 import FiscalYears from "./components/pages/settings/FiscalYears";
@@ -450,6 +451,14 @@ const PurchaseReturnWrapper = ({
 // Root redirect component that checks user role
 const RootRedirect = () => {
   const currentUser = useAppSelector(selectCurrentUser);
+  const { isAuthed } = useAuth();
+  
+  // If user is not logged in, show landing page
+  if (!isAuthed || !currentUser) {
+    return <Landing />;
+  }
+  
+  // If user is logged in, redirect based on role
   const isSuperAdmin = currentUser?.role?.name === 'SUPER_ADMIN';
   return <Navigate to={isSuperAdmin ? "/subscription" : "/dashboard"} replace />;
 };
@@ -688,8 +697,11 @@ const AppContent = () => {
   const handleLogout = async () => {
     try {
       await sendLogOut(undefined).unwrap();
+      navigate('/login', { replace: true });
     } catch (error) {
       console.error("Logout error:", error);
+      // Navigate to login even if logout API call fails
+      navigate('/login', { replace: true });
     }
   };
 
@@ -744,8 +756,15 @@ const AppContent = () => {
 
 
 
+  // If not logged in, show Landing or Login based on route
   if (!isLoggedIn) {
-    return <Login onLogin={handleLogin} />;
+    return (
+      <Routes>
+        <Route path="/login" element={<Login onLogin={handleLogin} />} />
+        <Route path="/" element={<Landing />} />
+        <Route path="*" element={<Landing />} />
+      </Routes>
+    );
   }
 
   return (
@@ -767,8 +786,6 @@ const AppContent = () => {
         />
         <main className="flex-1 overflow-x-hidden overflow-y-auto bg-brand-bg p-6">
           <Routes>
-            {/* Login */}
-            <Route path="/login" element={<Login onLogin={handleLogin} />} />
 
             {/* Dashboard */}
             <Route

@@ -250,9 +250,9 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
                 <a href="#" className="bg-white hover:bg-red-50 p-2 rounded-full shadow-lg transition-all duration-300 hover:scale-110 hover:-translate-y-1 w-10 h-10 flex items-center justify-center group" title="YouTube">
                   <YoutubeIcon className="w-5 h-5 text-[#FF0000]" />
                 </a>
-                <a href="#" className="bg-white hover:bg-cyan-50 p-2 rounded-full shadow-lg transition-all duration-300 hover:scale-110 hover:-translate-y-1 w-10 h-10 flex items-center justify-center group" title="Website">
+                <button onClick={() => navigate('/')} className="bg-white hover:bg-cyan-50 p-2 rounded-full shadow-lg transition-all duration-300 hover:scale-110 hover:-translate-y-1 w-10 h-10 flex items-center justify-center group" title="Website">
                   <GlobeIcon className="w-5 h-5 text-[#00A4EF]" />
-                </a>
+                </button>
                 <a href="#" className="bg-white hover:bg-green-50 p-2 rounded-full shadow-lg transition-all duration-300 hover:scale-110 hover:-translate-y-1 w-10 h-10 flex items-center justify-center group" title="Contact">
                   <PhoneIcon className="w-5 h-5 text-[#25D366]" />
                 </a>
