@@ -23,6 +23,7 @@ import { Resources, Actions, buildPermission } from '../../../../enums/permissio
 interface CartProps {
   cartItems: InvoiceItem[];
   onUpdateQuantity: (id: string, delta: number) => void;
+  onUpdatePrice: (id: string, newPrice: number) => void;
   onRemoveItem: (id: string) => void;
   onAnalyze: () => void;
   subtotal: number;
@@ -39,6 +40,7 @@ interface CartProps {
 const Cart: React.FC<CartProps> = ({
   cartItems,
   onUpdateQuantity,
+  onUpdatePrice,
   onRemoveItem,
   onAnalyze,
   subtotal,
@@ -203,7 +205,30 @@ const Cart: React.FC<CartProps> = ({
                   />
                 </PermissionWrapper>
               </div>
-              <div className="font-mono font-bold text-royal-700 h-full flex items-center justify-center whitespace-nowrap px-3">{formatNumber(Math.abs(item.price))}</div>
+              <div className="p-1 h-full flex items-center justify-center whitespace-nowrap">
+                <PermissionWrapper
+                  requiredPermission={buildPermission(
+                    Resources.SALES_INVOICE,
+                    Actions.UPDATE
+                  )}
+                  fallback={
+                    <div className="font-mono font-bold text-royal-700 h-full flex items-center justify-center whitespace-nowrap px-3 w-full">{formatNumber(Math.abs(item.price))}</div>
+                  }
+                >
+                  <input 
+                    type="number" 
+                    value={Math.abs(item.price)}
+                    onClick={(e) => e.stopPropagation()}
+                    onChange={(e) => {
+                      const newPrice = parseFloat(e.target.value) || 0;
+                      onUpdatePrice(item.id, newPrice);
+                    }}
+                    className="w-full h-8 text-center border border-royal-300 rounded focus:ring-2 focus:ring-royal-500 outline-none bg-white font-mono font-bold text-lg text-royal-700 shadow-sm"
+                    step="0.01"
+                    min="0"
+                  />
+                </PermissionWrapper>
+              </div>
               <div className="text-red-500 font-mono h-full flex items-center justify-center opacity-70 whitespace-nowrap px-2">0.00</div>
               <div className="text-royal-500 font-mono h-full flex items-center justify-center text-xs whitespace-nowrap px-2">{formatNumber(itemTax)}</div>
               <div className="font-black text-royal-900 font-mono group-hover:bg-gold-200/50 h-full flex items-center justify-center text-base whitespace-nowrap px-3">{formatNumber(net)}</div>

@@ -433,6 +433,38 @@ const POS: React.FC<POSProps> = () => {
     );
   };
 
+  const updatePrice = (id: string, newPrice: number) => {
+    setTabs((prev) =>
+      prev.map(tab => {
+        if (tab.id === activeTabId) {
+          return {
+            ...tab,
+            items: tab.items.map((item) => {
+              if (item.id === id) {
+                const { total, taxAmount } = computeLineAmounts(
+                  item.qty,
+                  newPrice,
+                  Boolean((item as any).salePriceIncludesTax ?? salePriceIncludesTaxSetting),
+                  isVatEnabled,
+                  vatRate,
+                );
+
+                return {
+                  ...item,
+                  price: newPrice,
+                  total,
+                  taxAmount,
+                };
+              }
+              return item;
+            }),
+          };
+        }
+        return tab;
+      })
+    );
+  };
+
   const removeFromCart = (id: string) => {
     setTabs((prev) =>
       prev.map(tab => {
@@ -955,6 +987,7 @@ const POS: React.FC<POSProps> = () => {
             <Cart 
               cartItems={cartItems}
               onUpdateQuantity={updateQty}
+              onUpdatePrice={updatePrice}
               onRemoveItem={removeFromCart}
               onAnalyze={handleAIAnalyze}
               subtotal={totals.subtotal}
