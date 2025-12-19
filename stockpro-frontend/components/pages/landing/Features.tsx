@@ -70,11 +70,9 @@ interface FeatureSectionProps {
   feature: typeof featuresStaticData[0];
   index: number;
   imgSrc: string;
-  onImageUpload: (key: ImageKey, file: File) => void;
 }
 
-
-const FeatureSection: React.FC<FeatureSectionProps> = ({ feature, index, imgSrc, onImageUpload }) => {
+const FeatureSection: React.FC<FeatureSectionProps> = ({ feature, index, imgSrc }) => {
     const isReversed = index % 2 !== 0;
     const colorConfigs = [
         { gradient: 'from-blue-500 to-blue-600', bgGradient: 'from-blue-50 to-blue-100/50', border: 'border-blue-200/50', iconBg: 'from-blue-500 to-blue-600' },
@@ -117,21 +115,6 @@ const FeatureSection: React.FC<FeatureSectionProps> = ({ feature, index, imgSrc,
                         alt={feature.title} 
                         className="relative rounded-2xl shadow-2xl w-full h-auto object-cover border-4 border-white transform transition duration-500 hover:scale-[1.02] z-10"
                     />
-                    <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity rounded-2xl z-10">
-                        <input 
-                            type="file" 
-                            id={`featureUpload-${feature.key}`}
-                            className="hidden" 
-                            accept="image/*"
-                            onChange={(e) => e.target.files?.[0] && onImageUpload(feature.key, e.target.files[0])}
-                        />
-                        <label 
-                            htmlFor={`featureUpload-${feature.key}`}
-                            className="cursor-pointer bg-white text-stock-dark font-bold py-2 px-6 rounded-full hover:bg-gray-50 transition shadow-lg"
-                        >
-                            تغيير الصورة
-                        </label>
-                    </div>
                 </div>
             </div>
         </div>
@@ -139,7 +122,6 @@ const FeatureSection: React.FC<FeatureSectionProps> = ({ feature, index, imgSrc,
 }
 
 interface FeaturesPageProps {
-  onImageUpload: (key: ImageKey, file: File) => void;
   featureImages: {
     featureInventory: string;
     featureInvoices: string;
@@ -148,7 +130,7 @@ interface FeaturesPageProps {
   };
 }
 
-const FeaturesPage: React.FC<FeaturesPageProps> = ({ onImageUpload, featureImages }) => {
+const FeaturesPage: React.FC<FeaturesPageProps> = ({ featureImages }) => {
   return (
     <section id="features" className="bg-white">
       <div className="bg-gradient-to-b from-blue-50 to-white py-24 border-b border-slate-100">
@@ -176,7 +158,6 @@ const FeaturesPage: React.FC<FeaturesPageProps> = ({ onImageUpload, featureImage
                 feature={feature} 
                 index={index} 
                 imgSrc={featureImages[feature.key]}
-                onImageUpload={onImageUpload}
               />
           </div>
         );

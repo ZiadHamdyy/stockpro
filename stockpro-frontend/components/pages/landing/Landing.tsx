@@ -176,7 +176,6 @@ const Landing: React.FC = () => {
     switch (currentPage) {
       case 'features':
         return <FeaturesPage 
-                  onImageUpload={handleImageUpload} 
                   featureImages={{
                     featureInventory: images.featureInventory,
                     featureInvoices: images.featureInvoices,
@@ -194,8 +193,6 @@ const Landing: React.FC = () => {
                   setPage={setCurrentPage}
                   heroBgUrl={images.heroBg}
                   dashboardUrl={images.dashboard}
-                  onImageUpload={handleImageUpload}
-                  onImageSelect={handleImageUrlUpdate}
                   featureSummaries={featureSummaries}
                   onFeatureSummaryChange={handleFeatureSummaryChange}
                   stats={stats}

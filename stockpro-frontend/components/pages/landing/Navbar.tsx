@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Page } from './Landing';
 
@@ -35,18 +35,8 @@ const NavLink: React.FC<{
     );
 }
 
-// Blue/Green/Neutral Presets
-const presetLogos = [
-    { name: 'بيانات زرقاء', url: 'https://cdn-icons-png.flaticon.com/512/2920/2920326.png' }, 
-    { name: 'نمو أخضر', url: 'https://cdn-icons-png.flaticon.com/512/4256/4256900.png' }, 
-    { name: 'درع أزرق', url: 'https://cdn-icons-png.flaticon.com/512/2438/2438078.png' }, 
-    { name: 'رسم بياني', url: 'https://cdn-icons-png.flaticon.com/512/1600/1600184.png' }, 
-];
-
-const Navbar: React.FC<NavbarProps> = ({ setPage, currentPage, logoUrl, onLogoUpload, onLogoSelect }) => {
+const Navbar: React.FC<NavbarProps> = ({ setPage, currentPage, logoUrl }) => {
   const navigate = useNavigate();
-  const [showLogoPresets, setShowLogoPresets] = useState(false);
-  const logoWrapperRef = useRef<HTMLDivElement>(null);
   const [scrolled, setScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
@@ -58,25 +48,6 @@ const Navbar: React.FC<NavbarProps> = ({ setPage, currentPage, logoUrl, onLogoUp
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file) {
-      onLogoUpload(file);
-    }
-  };
-
-  // Click outside to close presets
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-        if (logoWrapperRef.current && !logoWrapperRef.current.contains(event.target as Node)) {
-            setShowLogoPresets(false);
-        }
-    };
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => {
-        document.removeEventListener("mousedown", handleClickOutside);
-    };
-  }, []);
 
   return (
     <header className={`fixed top-0 w-full z-50 transition-all duration-500 ${
@@ -89,7 +60,7 @@ const Navbar: React.FC<NavbarProps> = ({ setPage, currentPage, logoUrl, onLogoUp
       
       <div className="container mx-auto px-6 flex justify-between items-center transition-all duration-300 relative z-10">
         <div className="flex items-center gap-4">
-            <div className="relative group/edit" ref={logoWrapperRef}>
+            <div className="relative">
                  <button onClick={() => setPage('home')} className="flex items-center space-x-3 space-x-reverse group/logo transition-transform duration-300 hover:scale-105">
                     <div className="relative p-2 rounded-xl bg-gradient-to-br from-white/20 to-white/10 backdrop-blur-md border-2 border-white/30 shadow-lg group-hover/logo:border-white/50 group-hover/logo:shadow-xl transition-all duration-300">
                         <div className="absolute inset-0 bg-gradient-to-br from-blue-400/20 via-emerald-400/20 to-purple-400/20 rounded-xl opacity-0 group-hover/logo:opacity-100 transition-opacity duration-300"></div>
@@ -100,55 +71,6 @@ const Navbar: React.FC<NavbarProps> = ({ setPage, currentPage, logoUrl, onLogoUp
                         <span className="bg-gradient-to-r from-emerald-300 via-green-200 to-teal-200 bg-clip-text text-transparent">Pro</span>
                     </span>
                 </button>
-                
-                {/* Hover Menu for Logo Options */}
-                <div className="absolute top-full right-0 mt-3 opacity-0 group-hover/edit:opacity-100 transition-all duration-300 pointer-events-none group-hover/edit:pointer-events-auto z-50 flex flex-col gap-2 transform translate-y-2 group-hover/edit:translate-y-0">
-                    
-                    {/* File Upload */}
-                    <div className="relative">
-                        <input 
-                            type="file" 
-                            id="logoUpload" 
-                            className="hidden" 
-                            accept="image/png, image/jpeg, image/svg+xml"
-                            onChange={handleFileChange} 
-                        />
-                        <label 
-                            htmlFor="logoUpload" 
-                            className="cursor-pointer bg-gradient-to-r from-white to-blue-50 text-stock-dark text-[10px] font-bold px-4 py-2 rounded-xl shadow-xl hover:shadow-2xl whitespace-nowrap block text-center border-2 border-white/80 hover:border-blue-300 transition-all duration-300 hover:scale-105 transform"
-                        >
-                            رفع شعار خاص
-                        </label>
-                    </div>
-
-                    {/* Presets Trigger */}
-                     <button
-                        onClick={() => setShowLogoPresets(!showLogoPresets)}
-                        className="cursor-pointer bg-gradient-to-r from-blue-600 to-emerald-600 text-white text-[10px] font-bold px-4 py-2 rounded-xl shadow-xl hover:shadow-2xl hover:from-blue-700 hover:to-emerald-700 whitespace-nowrap block text-center transition-all duration-300 hover:scale-105 transform border-2 border-white/20"
-                    >
-                        اختر شعار جاهز
-                    </button>
-
-                    {/* Presets Dropdown */}
-                    {showLogoPresets && (
-                        <div className="absolute top-0 right-full mr-2 bg-gradient-to-br from-white to-blue-50/50 backdrop-blur-md p-3 rounded-2xl shadow-2xl grid grid-cols-2 gap-2 w-36 border-2 border-white/80">
-                            {presetLogos.map((preset, idx) => (
-                                <button 
-                                    key={idx} 
-                                    onClick={() => {
-                                        onLogoSelect(preset.url);
-                                        setShowLogoPresets(false);
-                                    }}
-                                    className="p-3 hover:bg-gradient-to-br hover:from-blue-50 hover:to-emerald-50 rounded-xl border-2 border-gray-100 hover:border-blue-300 transition-all duration-300 flex flex-col items-center gap-1 hover:scale-105 transform hover:shadow-lg"
-                                    title={preset.name}
-                                >
-                                    <img src={preset.url} className="w-7 h-7 object-contain drop-shadow-sm" alt={preset.name} />
-                                    <span className="text-[8px] text-gray-600 font-semibold">{preset.name}</span>
-                                </button>
-                            ))}
-                        </div>
-                    )}
-                </div>
             </div>
         </div>
 

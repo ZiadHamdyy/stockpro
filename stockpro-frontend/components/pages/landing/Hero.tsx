@@ -259,8 +259,6 @@ interface HomePageProps {
   setPage: (page: Page) => void;
   heroBgUrl: string;
   dashboardUrl: string;
-  onImageUpload: (key: ImageKey, file: File) => void;
-  onImageSelect: (key: ImageKey, url: string) => void;
   featureSummaries: FeatureSummary[];
   onFeatureSummaryChange: (id: number, updatedValues: Partial<FeatureSummary>) => void;
   stats: StatItem[];
@@ -281,7 +279,7 @@ const colorVariants: Record<string, { container: string, iconBg: string, iconTex
     violet: { container: "hover:border-violet-300 hover:shadow-violet-100", iconBg: "bg-violet-50", iconText: "text-violet-600" },
 };
 
-const HomePage: React.FC<HomePageProps> = ({ setPage, heroBgUrl, dashboardUrl, onImageUpload, onImageSelect, featureSummaries, onFeatureSummaryChange, stats, onStatChange }) => {
+const HomePage: React.FC<HomePageProps> = ({ setPage, heroBgUrl, dashboardUrl, featureSummaries, onFeatureSummaryChange, stats, onStatChange }) => {
   const [selectedFeature, setSelectedFeature] = useState<FeatureSummary | null>(null);
   const [currentBgIndex, setCurrentBgIndex] = useState(0);
 
@@ -401,20 +399,6 @@ const HomePage: React.FC<HomePageProps> = ({ setPage, heroBgUrl, dashboardUrl, o
                     />
                      {/* Reflection/Glare Effect */}
                      <div className="absolute top-0 right-0 w-full h-full bg-gradient-to-tr from-transparent via-white/10 to-transparent pointer-events-none"></div>
-
-                    {/* Edit Overlay */}
-                    <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover/image:opacity-100 transition-opacity z-20 bg-black/20 backdrop-blur-sm">
-                         <input 
-                            type="file" 
-                            id="dashUpload" 
-                            className="hidden" 
-                            accept="image/*"
-                            onChange={(e) => e.target.files?.[0] && onImageUpload('dashboard', e.target.files[0])}
-                        />
-                        <label htmlFor="dashUpload" className="cursor-pointer bg-white text-stock-dark font-bold py-3 px-8 rounded-full shadow-xl hover:bg-blue-50 transition border border-gray-200">
-                            تغيير صورة البرنامج
-                        </label>
-                    </div>
                 </div>
             </div>
         </div>
