@@ -112,7 +112,8 @@ const FeatureSummaryCard: React.FC<{
   feature: FeatureSummary;
   onUpdate: (id: number, updatedValues: Partial<FeatureSummary>) => void;
   onOpenDetails: (feature: FeatureSummary) => void;
-}> = ({ feature, onUpdate, onOpenDetails }) => {
+  gradientClass?: string;
+}> = ({ feature, onUpdate, onOpenDetails, gradientClass = 'from-blue-50 to-blue-100/50' }) => {
   const [isIconPickerOpen, setIsIconPickerOpen] = useState(false);
   const Icon = iconMap[feature.icon];
   const pickerRef = useRef<HTMLDivElement>(null);
@@ -136,7 +137,7 @@ const FeatureSummaryCard: React.FC<{
 
   return (
     <div 
-        className="bg-white p-8 rounded-3xl shadow-[0_4px_20px_-4px_rgba(0,0,0,0.05)] border border-slate-100 hover:shadow-lg hover:border-blue-100 transition-all duration-300 relative group cursor-pointer"
+        className={`bg-gradient-to-br ${gradientClass} p-8 rounded-3xl shadow-lg border-2 border-white/80 hover:shadow-2xl hover:border-blue-300/50 transition-all duration-300 relative group cursor-pointer`}
         onClick={(e) => {
              if (!(e.target as HTMLElement).closest('input') && 
                  !(e.target as HTMLElement).closest('textarea') &&
@@ -147,7 +148,7 @@ const FeatureSummaryCard: React.FC<{
     >
       <div className="relative inline-block mb-6 icon-picker-trigger">
         <div 
-          className="p-4 bg-blue-50 text-stock-primary rounded-2xl transition-all duration-300 group-hover:bg-stock-primary group-hover:text-white group-hover:scale-110 shadow-inner"
+          className="p-4 bg-gradient-to-br from-blue-500 to-blue-600 text-white rounded-2xl transition-all duration-300 group-hover:from-blue-600 group-hover:to-blue-700 group-hover:scale-110 shadow-xl"
           onClick={(e) => {
               e.stopPropagation();
               setIsIconPickerOpen(prev => !prev);
@@ -192,51 +193,61 @@ const FeatureSummaryCard: React.FC<{
 };
 
 // --- Testimonials Section ---
-const TestimonialsSection = () => (
-    <section className="py-24 bg-blue-50 border-t border-blue-100">
-        <div className="container mx-auto px-6">
-            <div className="text-center mb-16">
-                <span className="text-emerald-600 font-bold text-sm uppercase tracking-wider bg-emerald-100/50 px-4 py-1.5 rounded-full border border-emerald-100">قصص نجاح</span>
-                <h2 className="text-3xl md:text-4xl font-black text-stock-dark mt-4">شركاء النجاح</h2>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                {[
-                    { name: "أحمد العلي", role: "المدير التنفيذي - شركة النور", text: "دقة في الحسابات وسهولة في الاستخدام. هذا بالضبط ما كنا نبحث عنه." },
-                    { name: "سارة محمد", role: "متجر أزياء", text: "نظام نقاط البيع والمخزون مترابط بشكل لا يصدق. وفر علينا ساعات من العمل اليدوي." },
-                    { name: "خالد عبدالله", role: "مدير مالي", text: "التقارير المالية تصدر بضغطة زر، مما يجعل اتخاذ القرارات أسرع وأدق." }
-                ].map((t, i) => (
-                    <div key={i} className="bg-white p-8 rounded-2xl border border-slate-100 relative hover:border-stock-primary/20 hover:shadow-lg transition-all duration-300">
-                         <div className="flex items-center gap-4 mb-4">
-                            <div className="w-10 h-10 rounded-full bg-blue-50 border border-blue-100 flex items-center justify-center text-stock-primary font-bold shadow-sm">
-                                {t.name.charAt(0)}
+const TestimonialsSection = () => {
+    const testimonials = [
+        { name: "أحمد العلي", role: "المدير التنفيذي - شركة النور", text: "دقة في الحسابات وسهولة في الاستخدام. هذا بالضبط ما كنا نبحث عنه.", gradient: 'from-blue-50 to-blue-100/50', iconBg: 'from-blue-500 to-blue-600' },
+        { name: "سارة محمد", role: "متجر أزياء", text: "نظام نقاط البيع والمخزون مترابط بشكل لا يصدق. وفر علينا ساعات من العمل اليدوي.", gradient: 'from-emerald-50 to-emerald-100/50', iconBg: 'from-emerald-500 to-emerald-600' },
+        { name: "خالد عبدالله", role: "مدير مالي", text: "التقارير المالية تصدر بضغطة زر، مما يجعل اتخاذ القرارات أسرع وأدق.", gradient: 'from-purple-50 to-purple-100/50', iconBg: 'from-purple-500 to-purple-600' }
+    ];
+    
+    return (
+        <section className="py-24 bg-gradient-to-br from-blue-50 via-indigo-50/30 to-purple-50 border-t border-blue-200/50">
+            <div className="container mx-auto px-6">
+                <div className="text-center mb-16">
+                    <span className="inline-block text-emerald-600 font-bold text-sm uppercase tracking-wider bg-gradient-to-r from-emerald-100 to-blue-100 px-5 py-2 rounded-full border-2 border-emerald-200/50 shadow-md">قصص نجاح</span>
+                    <h2 className="text-3xl md:text-4xl font-black mt-4">
+                        <span className="bg-gradient-to-r from-blue-600 via-emerald-600 to-purple-600 bg-clip-text text-transparent">
+                            شركاء النجاح
+                        </span>
+                    </h2>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                    {testimonials.map((t, i) => (
+                        <div key={i} className={`bg-gradient-to-br ${t.gradient} p-8 rounded-3xl border-2 border-white/80 relative hover:shadow-2xl hover:-translate-y-2 transition-all duration-300`}>
+                             <div className="flex items-center gap-4 mb-4">
+                                <div className={`w-12 h-12 rounded-full bg-gradient-to-br ${t.iconBg} text-white flex items-center justify-center font-bold shadow-lg`}>
+                                    {t.name.charAt(0)}
+                                </div>
+                                <div>
+                                    <h4 className="font-black text-stock-dark text-base">{t.name}</h4>
+                                    <p className="text-xs text-slate-600 font-medium">{t.role}</p>
+                                </div>
                             </div>
-                            <div>
-                                <h4 className="font-bold text-stock-dark text-sm">{t.name}</h4>
-                                <p className="text-xs text-slate-500">{t.role}</p>
-                            </div>
+                            <p className="text-slate-700 text-sm leading-relaxed font-medium">"{t.text}"</p>
                         </div>
-                        <p className="text-slate-600 text-sm leading-relaxed">"{t.text}"</p>
-                    </div>
-                ))}
+                    ))}
+                </div>
             </div>
-        </div>
-    </section>
-);
+        </section>
+    );
+};
 
 // --- Call To Action Section ---
 const CallToActionSection = ({ setPage }: { setPage: (page: Page) => void }) => (
-    <section className="py-24 relative overflow-hidden bg-gradient-to-br from-sky-100 via-blue-100 to-indigo-200 border-t border-blue-200">
+    <section className="py-24 relative overflow-hidden bg-gradient-to-br from-blue-600 via-indigo-600 to-purple-600 border-t border-blue-300/50">
+         {/* Animated gradient overlay */}
+         <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/20 via-transparent to-blue-500/20 animate-pulse"></div>
          <div className="absolute inset-0">
-            <div className="absolute inset-0 opacity-30" style={{ backgroundImage: 'linear-gradient(#bfdbfe 1px, transparent 1px), linear-gradient(90deg, #bfdbfe 1px, transparent 1px)', backgroundSize: '40px 40px' }}></div>
+            <div className="absolute inset-0 opacity-20" style={{ backgroundImage: 'linear-gradient(#ffffff 1px, transparent 1px), linear-gradient(90deg, #ffffff 1px, transparent 1px)', backgroundSize: '40px 40px' }}></div>
          </div>
          <div className="container mx-auto px-6 relative z-10 text-center">
-             <h2 className="text-4xl md:text-5xl font-black mb-6 tracking-tight text-stock-dark">ابدأ رحلة النمو اليوم</h2>
-             <p className="text-slate-600 text-lg mb-10 max-w-2xl mx-auto leading-relaxed">نظام محاسبي متكامل ينمو مع نمو أعمالك، مصمم خصيصاً للشركات الطموحة.</p>
+             <h2 className="text-4xl md:text-5xl font-black mb-6 tracking-tight text-white drop-shadow-lg">ابدأ رحلة النمو اليوم</h2>
+             <p className="text-blue-50 text-lg mb-10 max-w-2xl mx-auto leading-relaxed font-medium">نظام محاسبي متكامل ينمو مع نمو أعمالك، مصمم خصيصاً للشركات الطموحة.</p>
              <button 
                 onClick={() => setPage('pricing')}
-                className="bg-stock-primary text-white font-bold py-4 px-12 rounded-xl text-lg hover:bg-blue-700 transition-all shadow-lg shadow-blue-200 border-2 border-transparent hover:scale-105"
+                className="bg-gradient-to-r from-emerald-500 to-emerald-600 text-white font-bold py-5 px-14 rounded-xl text-lg hover:from-emerald-600 hover:to-emerald-700 transition-all shadow-2xl shadow-emerald-400/50 border-2 border-white/20 hover:scale-110 transform active:scale-100 hover:shadow-emerald-500/50"
             >
-                 أنشئ حسابك المجاني
+                 ابدأ رحلتك الآن
              </button>
          </div>
     </section>
@@ -287,7 +298,10 @@ const HomePage: React.FC<HomePageProps> = ({ setPage, heroBgUrl, dashboardUrl, o
   return (
     <>
     {/* HERO SECTION - pb-0 to let image touch bottom */}
-    <section className="relative pt-32 pb-0 overflow-hidden bg-white min-h-screen flex flex-col justify-between">
+    <section className="relative pt-8 md:pt-12 pb-0 overflow-hidden bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 min-h-screen flex flex-col justify-between">
+      
+      {/* Animated Gradient Overlay */}
+      <div className="absolute inset-0 z-0 bg-gradient-to-br from-blue-600/10 via-emerald-500/10 to-purple-600/10 animate-gradient-xy"></div>
       
       {/* Animated Background Slideshow */}
       {!isManualOverride && animatedBackgrounds.map((bg, index) => (
@@ -295,7 +309,8 @@ const HomePage: React.FC<HomePageProps> = ({ setPage, heroBgUrl, dashboardUrl, o
             key={index}
             className={`absolute inset-0 z-0 transition-opacity duration-1000 ease-in-out ${index === currentBgIndex ? 'opacity-100' : 'opacity-0'}`}
           >
-              <img src={bg} alt="Office Background" className="w-full h-full object-cover" />
+              <img src={bg} alt="Office Background" className="w-full h-full object-cover opacity-40" />
+              <div className="absolute inset-0 bg-gradient-to-br from-blue-600/20 via-transparent to-emerald-500/20"></div>
           </div>
       ))}
 
@@ -320,41 +335,48 @@ const HomePage: React.FC<HomePageProps> = ({ setPage, heroBgUrl, dashboardUrl, o
         <div className="flex flex-col md:flex-row justify-between items-stretch w-full px-0 md:px-4 mt-12 mb-auto gap-4 md:gap-20">
             
             {/* Right Box (First in RTL) */}
-            <div className="w-full md:w-[42%] max-w-xl bg-white/[0.02] backdrop-blur-xl p-8 rounded-[2.5rem] border border-white/20 shadow-2xl relative overflow-hidden text-right flex flex-col justify-center transition-all hover:bg-white/[0.05]">
+            <div className="w-full md:w-[42%] max-w-xl bg-gradient-to-br from-white/90 via-white/80 to-blue-50/50 backdrop-blur-xl p-8 rounded-[2.5rem] border-2 border-white/40 shadow-2xl relative overflow-hidden text-right flex flex-col justify-center transition-all hover:bg-white/95 hover:shadow-3xl hover:scale-[1.02] group">
+                {/* Gradient accent line */}
+                <div className="absolute top-0 right-0 w-1 h-full bg-gradient-to-b from-blue-500 via-emerald-500 to-purple-500 opacity-60"></div>
                 <div className="relative z-10">
-                     <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/20 border border-white/20 text-stock-dark text-[10px] font-bold mb-4 shadow-sm backdrop-blur-md">
-                        <span className="flex h-2 w-2 relative">
-                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                            <span className="relative inline-flex rounded-full h-2 w-2 bg-stock-secondary"></span>
+                     <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-emerald-100 to-blue-100 border-2 border-emerald-200/50 text-stock-dark text-xs font-bold mb-4 shadow-lg backdrop-blur-md">
+                        <span className="flex h-2.5 w-2.5 relative">
+                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-500 opacity-75"></span>
+                            <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
                         </span>
                         <span className="drop-shadow-md">نظام محاسبي معتمد</span>
                     </div>
-                    <h1 className="text-3xl md:text-5xl font-black leading-tight tracking-tight text-stock-dark drop-shadow-lg">
-                    تحكم في <span className="text-blue-600 drop-shadow-md">أرقامك</span> <br/>
-                    وضاعف <span className="text-emerald-600 drop-shadow-md">أرباحك</span>
+                    <h1 className="text-4xl md:text-6xl font-black leading-tight tracking-tight mb-4">
+                    تحكم في <span className="bg-gradient-to-r from-blue-600 to-blue-800 bg-clip-text text-transparent drop-shadow-md">أرقامك</span> <br/>
+                    وضاعف <span className="bg-gradient-to-r from-emerald-600 to-emerald-800 bg-clip-text text-transparent drop-shadow-md">أرباحك</span>
                     </h1>
+                    <p className="text-lg md:text-xl text-slate-800 font-semibold drop-shadow-md">
+                      نظام محاسبي سحابي متكامل لإدارة أعمالك بكفاءة
+                    </p>
                 </div>
             </div>
 
             {/* Left Box (Second in RTL) */}
-            <div className="w-full md:w-[42%] max-w-xl bg-white/[0.02] backdrop-blur-xl p-8 rounded-[2.5rem] border border-white/20 shadow-2xl relative overflow-hidden text-right flex flex-col justify-center transition-all hover:bg-white/[0.05]">
+            <div className="w-full md:w-[42%] max-w-xl bg-gradient-to-br from-white/90 via-emerald-50/30 to-white/80 backdrop-blur-xl p-8 rounded-[2.5rem] border-2 border-white/40 shadow-2xl relative overflow-hidden text-right flex flex-col justify-center transition-all hover:bg-white/95 hover:shadow-3xl hover:scale-[1.02] group">
+                {/* Gradient accent line */}
+                <div className="absolute top-0 left-0 w-1 h-full bg-gradient-to-b from-emerald-500 via-blue-500 to-purple-500 opacity-60"></div>
                 <div className="relative z-10">
-                    <p className="text-lg text-slate-900 leading-relaxed mb-8 font-bold drop-shadow-md">
-                    منصة Stock.Pro تمنحك الرؤية الكاملة لإدارة المخزون، المبيعات، والعملاء بدقة متناهية.
+                    <p className="text-lg md:text-xl text-slate-900 leading-relaxed mb-8 font-semibold drop-shadow-md">
+                    منصة Stock.Pro تمنحك الرؤية الكاملة لإدارة المخزون، المبيعات، والعملاء بدقة متناهية. نظام واحد متكامل يغطي جميع احتياجاتك المحاسبية والإدارية.
                     </p>
 
                     <div className="flex flex-col sm:flex-row justify-start gap-4 w-full">
                         <button
                             onClick={() => setPage('pricing')}
-                            className="bg-stock-primary text-white font-bold py-3 px-8 rounded-xl hover:bg-blue-700 transition-all shadow-lg shadow-blue-200 text-sm border-2 border-transparent flex-1 justify-center"
+                            className="bg-gradient-to-r from-blue-600 to-blue-700 text-white font-bold py-4 px-10 rounded-xl hover:from-blue-700 hover:to-blue-800 transition-all shadow-lg shadow-blue-300/50 text-base border-2 border-transparent flex-1 justify-center transform hover:scale-105 active:scale-100 hover:shadow-xl"
                         >
-                            جرب مجاناً
+                            ابدأ الآن مجاناً
                         </button>
                         <button
                             onClick={() => setPage('features')}
-                            className="bg-white/80 text-stock-dark font-bold py-3 px-8 rounded-xl hover:bg-white transition-all border border-white/50 shadow-lg text-sm flex items-center justify-center gap-2 flex-1 backdrop-blur-sm"
+                            className="bg-gradient-to-r from-white to-emerald-50 text-stock-dark font-bold py-4 px-10 rounded-xl hover:from-emerald-50 hover:to-emerald-100 transition-all border-2 border-emerald-200/50 shadow-lg text-base flex items-center justify-center gap-2 flex-1 backdrop-blur-sm transform hover:scale-105 active:scale-100 hover:shadow-xl"
                         >
-                            شاهد الفيديو
+                            اكتشف المميزات
                         </button>
                     </div>
                 </div>
@@ -365,10 +387,11 @@ const HomePage: React.FC<HomePageProps> = ({ setPage, heroBgUrl, dashboardUrl, o
         {/* Dashboard Preview - Moved to Absolute Bottom */}
         {/* mt-auto pushes it down. mb-0 ensures it touches bottom. */}
         <div className="relative w-full max-w-[90rem] mx-auto mt-auto mb-0 z-10 group/image">
-            {/* Green Glow Behind */}
-            <div className="absolute -inset-2 bg-emerald-500/60 rounded-[2rem] blur-xl opacity-50 animate-pulse"></div>
+            {/* Multi-color Gradient Glow Behind */}
+            <div className="absolute -inset-4 bg-gradient-to-r from-blue-500/40 via-emerald-500/40 to-purple-500/40 rounded-[2rem] blur-2xl opacity-60 animate-pulse"></div>
+            <div className="absolute -inset-2 bg-gradient-to-r from-emerald-400/50 to-blue-400/50 rounded-[2rem] blur-xl opacity-70"></div>
             
-            <div className="relative bg-white/10 p-2 rounded-t-[1.8rem] rounded-b-none border-[3px] border-b-0 border-emerald-500/80 shadow-2xl backdrop-blur-sm">
+            <div className="relative bg-gradient-to-br from-white/20 via-white/10 to-blue-50/20 p-2 rounded-t-[1.8rem] rounded-b-none border-[3px] border-b-0 border-gradient-to-r from-emerald-500 via-blue-500 to-purple-500 shadow-2xl backdrop-blur-sm" style={{ borderImage: 'linear-gradient(to right, #10b981, #3b82f6, #8b5cf6) 1' }}>
                  {/* Panoramic Height */}
                  <div className="rounded-t-2xl rounded-b-none overflow-hidden bg-slate-100 relative h-[240px] md:h-[280px]">
                     <img 
@@ -399,30 +422,50 @@ const HomePage: React.FC<HomePageProps> = ({ setPage, heroBgUrl, dashboardUrl, o
       </div>
     </section>
 
-    {/* Stats Section with Professional Colors and Editing */}
-    <section className="bg-white py-16 border-y border-slate-100 relative z-20">
+    {/* Enhanced Stats Section with Vibrant Gradients */}
+    <section className="bg-gradient-to-br from-blue-50 via-indigo-50/50 to-purple-50 py-20 border-y border-slate-200/50 relative z-20">
         <div className="container mx-auto px-6">
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-6 lg:gap-8">
+            <div className="text-center mb-12">
+                <span className="inline-block text-emerald-600 font-bold text-sm uppercase tracking-wider bg-gradient-to-r from-emerald-100 to-blue-100 px-5 py-2 rounded-full border-2 border-emerald-200/50 shadow-md">
+                  إحصائيات
+                </span>
+            </div>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-6 lg:gap-8 max-w-6xl mx-auto">
                 {stats.map((stat) => {
                     const Icon = iconMap[stat.icon];
                     const variant = colorVariants[stat.color];
+                    const gradientMap: Record<string, string> = {
+                        blue: 'from-blue-500 to-blue-600',
+                        emerald: 'from-emerald-500 to-emerald-600',
+                        indigo: 'from-indigo-500 to-indigo-600',
+                        violet: 'from-violet-500 to-violet-600',
+                    };
+                    const bgGradientMap: Record<string, string> = {
+                        blue: 'from-blue-50 to-blue-100/50',
+                        emerald: 'from-emerald-50 to-emerald-100/50',
+                        indigo: 'from-indigo-50 to-indigo-100/50',
+                        violet: 'from-violet-50 to-violet-100/50',
+                    };
                     
                     return (
-                        <div key={stat.id} className={`p-6 rounded-2xl bg-white border border-slate-100 transition-all duration-300 group hover:-translate-y-1 ${variant.container}`}>
-                            <div className={`w-14 h-14 rounded-xl flex items-center justify-center mb-4 transition-colors ${variant.iconBg} ${variant.iconText}`}>
-                                <Icon className="w-7 h-7" />
+                        <div 
+                            key={stat.id} 
+                            className={`p-8 rounded-3xl bg-gradient-to-br ${bgGradientMap[stat.color]} border-2 border-white/80 transition-all duration-300 group hover:-translate-y-3 hover:shadow-2xl hover:scale-105 ${variant.container}`}
+                        >
+                            <div className={`w-16 h-16 rounded-2xl flex items-center justify-center mb-6 transition-all duration-300 group-hover:scale-110 bg-gradient-to-br ${gradientMap[stat.color]} text-white shadow-xl`}>
+                                <Icon className="w-8 h-8" />
                             </div>
                             
-                            <div className="space-y-1">
+                            <div className="space-y-2">
                                 <EditableText
                                     value={stat.value}
                                     onSave={(val) => onStatChange(stat.id, { value: val })}
-                                    className="text-3xl font-black text-slate-900 tracking-tight"
+                                    className={`text-4xl md:text-5xl font-black bg-gradient-to-r ${gradientMap[stat.color]} bg-clip-text text-transparent tracking-tight`}
                                 />
                                 <EditableText
                                     value={stat.label}
                                     onSave={(val) => onStatChange(stat.id, { label: val })}
-                                    className="text-slate-500 text-sm font-bold"
+                                    className="text-slate-700 text-sm font-bold"
                                 />
                             </div>
                         </div>
@@ -432,21 +475,38 @@ const HomePage: React.FC<HomePageProps> = ({ setPage, heroBgUrl, dashboardUrl, o
         </div>
     </section>
     
-    <section id="features-summary" className="py-24 bg-blue-50">
+    <section id="features-summary" className="py-24 bg-gradient-to-br from-white via-blue-50/30 to-emerald-50/30">
         <div className="container mx-auto px-6">
             <div className="text-center mb-16">
-                <h2 className="text-4xl font-black text-stock-dark mb-4">كل ما تحتاجه في مكان واحد</h2>
-                <p className="text-slate-500 max-w-2xl mx-auto text-lg">صممنا Stock.Pro ليغنيك عن استخدام برامج متعددة. نظام واحد متكامل.</p>
+                <span className="inline-block text-emerald-600 font-bold text-sm uppercase tracking-wider bg-gradient-to-r from-emerald-100 to-blue-100 px-5 py-2 rounded-full border-2 border-emerald-200/50 shadow-md mb-4">
+                  المميزات الرئيسية
+                </span>
+                <h2 className="text-4xl md:text-5xl font-black mb-4">
+                  <span className="bg-gradient-to-r from-blue-600 via-emerald-600 to-purple-600 bg-clip-text text-transparent">
+                    كل ما تحتاجه في مكان واحد
+                  </span>
+                </h2>
+                <p className="text-slate-700 max-w-2xl mx-auto text-lg leading-relaxed font-medium">صممنا Stock.Pro ليغنيك عن استخدام برامج متعددة. نظام واحد متكامل يغطي جميع احتياجاتك.</p>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                {featureSummaries.map((feature) => (
-                    <FeatureSummaryCard 
-                      key={feature.id} 
-                      feature={feature}
-                      onUpdate={onFeatureSummaryChange}
-                      onOpenDetails={(f) => setSelectedFeature(f)}
-                    />
-                ))}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 max-w-7xl mx-auto">
+                {featureSummaries.map((feature, index) => {
+                    const colorGradients = [
+                        'from-blue-50 to-blue-100/50',
+                        'from-emerald-50 to-emerald-100/50',
+                        'from-purple-50 to-purple-100/50',
+                        'from-indigo-50 to-indigo-100/50',
+                    ];
+                    return (
+                        <div key={feature.id} className="transform transition-all duration-300 hover:scale-105">
+                            <FeatureSummaryCard 
+                              feature={feature}
+                              onUpdate={onFeatureSummaryChange}
+                              onOpenDetails={(f) => setSelectedFeature(f)}
+                              gradientClass={colorGradients[index % colorGradients.length]}
+                            />
+                        </div>
+                    );
+                })}
             </div>
         </div>
     </section>

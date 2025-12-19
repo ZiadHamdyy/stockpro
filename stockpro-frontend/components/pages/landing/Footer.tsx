@@ -15,7 +15,7 @@ const Footer: React.FC<FooterProps> = ({ logoUrl, setPage }) => {
   };
 
   return (
-    <footer className="bg-sky-100 text-slate-700 pt-20 pb-10 border-t border-blue-200">
+    <footer className="bg-gradient-to-br from-blue-50 via-indigo-50/30 to-purple-50 text-slate-700 pt-20 pb-10 border-t border-blue-200/50">
       <div className="container mx-auto px-6">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-12 mb-16">
             
@@ -69,7 +69,7 @@ const Footer: React.FC<FooterProps> = ({ logoUrl, setPage }) => {
                         placeholder="بريدك الإلكتروني" 
                         className="bg-white text-slate-800 px-4 py-3 rounded-lg border border-blue-100 focus:outline-none focus:border-stock-primary focus:ring-2 focus:ring-blue-50 transition text-sm shadow-sm"
                     />
-                    <button type="button" className="bg-stock-primary text-white font-bold py-3 rounded-lg hover:bg-blue-600 transition text-sm shadow-lg shadow-blue-200">
+                    <button type="button" className="bg-gradient-to-r from-blue-600 to-emerald-600 text-white font-bold py-3 rounded-lg hover:from-blue-700 hover:to-emerald-700 transition text-sm shadow-lg shadow-blue-300/50">
                         اشترك الآن
                     </button>
                 </form>

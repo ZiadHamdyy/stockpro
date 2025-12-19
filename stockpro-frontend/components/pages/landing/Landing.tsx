@@ -213,7 +213,7 @@ const Landing: React.FC = () => {
         onLogoUpload={(file) => handleImageUpload('logo', file)}
         onLogoSelect={(url) => handleImageUrlUpdate('logo', url)}
       />
-      <main>
+      <main className="pt-14 md:pt-14">
         {renderPage()}
       </main>
       <Footer logoUrl={images.logo} setPage={setCurrentPage} />
