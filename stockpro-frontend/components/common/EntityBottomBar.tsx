@@ -19,6 +19,8 @@ interface EntityBottomBarProps {
   lastReceipt?: { amount: number; date: string };
   entityName: string;
   onClose: () => void;
+  mode?: 'payment' | 'receipt'; // 'payment' decrements balance, 'receipt' increments balance
+  currentAmount?: number; // Current voucher amount to adjust balance
 }
 
 const EntityBottomBar: React.FC<EntityBottomBarProps> = ({ 
@@ -27,11 +29,20 @@ const EntityBottomBar: React.FC<EntityBottomBarProps> = ({
   lastInvoice, 
   lastReceipt, 
   entityName, 
-  onClose 
+  onClose,
+  mode,
+  currentAmount = 0
 }) => {
   if (!entityName) return null;
 
   const isCustomer = type === 'customer';
+  
+  // Adjust balance based on mode: payment decrements, receipt increments
+  const adjustedBalance = mode === 'payment' 
+    ? balance - (currentAmount || 0)
+    : mode === 'receipt'
+    ? balance + (currentAmount || 0)
+    : balance;
   
   // Icon Selection
   const getIcon = () => {
@@ -92,14 +103,14 @@ const EntityBottomBar: React.FC<EntityBottomBarProps> = ({
                 {type === 'revenue' ? 'إجمالي المحصل (السنة)' : 'الرصيد الحالي'}
               </span>
               <div className="flex items-baseline gap-2 bg-black/20 px-4 py-1.5 rounded-lg border border-white/5 transition-all group-hover:bg-black/30 group-hover:shadow-lg">
-                <span className={`text-2xl font-black font-mono tracking-tight ${balance > 0 ? 'text-red-300' : 'text-emerald-300'}`}>
-                  {formatNumber(Math.abs(balance))}
+                <span className={`text-2xl font-black font-mono tracking-tight ${adjustedBalance > 0 ? 'text-red-300' : 'text-emerald-300'}`}>
+                  {formatNumber(Math.abs(adjustedBalance))}
                 </span>
                 <span className="text-[10px] text-blue-200 font-bold">SAR</span>
               </div>
               {type !== 'revenue' && (
-                <span className={`text-[9px] px-2 py-0.5 mt-1 rounded-full font-bold shadow-sm ${balance > 0 ? 'bg-red-500/80 text-white' : balance < 0 ? 'bg-emerald-500/80 text-white' : 'bg-gray-500/50 text-gray-200'}`}>
-                  {balance > 0 ? 'مدين (عليه)' : balance < 0 ? 'دائن (له)' : 'متزن'}
+                <span className={`text-[9px] px-2 py-0.5 mt-1 rounded-full font-bold shadow-sm ${adjustedBalance > 0 ? 'bg-red-500/80 text-white' : adjustedBalance < 0 ? 'bg-emerald-500/80 text-white' : 'bg-gray-500/50 text-gray-200'}`}>
+                  {adjustedBalance > 0 ? 'مدين (عليه)' : adjustedBalance < 0 ? 'دائن (له)' : 'متزن'}
                 </span>
               )}
             </div>

@@ -1198,6 +1198,8 @@ const PaymentVoucher: React.FC<PaymentVoucherProps> = ({ title }) => {
           lastInvoice={entityStats.lastInvoice}
           lastReceipt={entityStats.lastReceipt}
           onClose={() => setShowInfoBar(false)}
+          mode="payment"
+          currentAmount={typeof voucherData.amount === 'number' ? voucherData.amount : (typeof voucherData.amount === 'string' ? parseFloat(voucherData.amount) || 0 : 0)}
         />
       )}
     </>

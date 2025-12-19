@@ -1011,6 +1011,8 @@ const ReceiptVoucher: React.FC<ReceiptVoucherProps> = ({ title }) => {
           lastInvoice={entityStats.lastInvoice}
           lastReceipt={entityStats.lastReceipt}
           onClose={() => setShowInfoBar(false)}
+          mode="receipt"
+          currentAmount={typeof voucherData.amount === 'number' ? voucherData.amount : (typeof voucherData.amount === 'string' ? parseFloat(voucherData.amount) || 0 : 0)}
         />
       )}
     </>
