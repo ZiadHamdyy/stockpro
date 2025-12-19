@@ -10,14 +10,14 @@ interface SwitchProps {
 }
 
 export const Switch: React.FC<SwitchProps> = ({ checked, onChange, label, description, disabled = false, variant = 'primary' }) => {
-  // Using Royal Blue (royal-600) for primary and Red for danger
-  const activeColor = variant === 'danger' ? 'bg-red-700' : 'bg-royal-600';
+  // Using Blue (blue-600) for primary and Red for danger
+  const activeColor = variant === 'danger' ? 'bg-red-700' : 'bg-blue-600';
 
   return (
     <div className="flex items-start justify-between py-3 group cursor-pointer" onClick={() => !disabled && onChange(!checked)}>
       <div className="flex flex-col flex-1 pl-4">
         {label && (
-          <span className={`text-sm font-bold transition-colors ${disabled ? 'text-gray-400' : 'text-royal-900 group-hover:text-royal-600'}`}>
+          <span className={`text-sm font-bold transition-colors ${disabled ? 'text-gray-400' : 'text-blue-900 group-hover:text-blue-600'}`}>
             {label}
           </span>
         )}
@@ -30,7 +30,7 @@ export const Switch: React.FC<SwitchProps> = ({ checked, onChange, label, descri
         disabled={disabled}
         className={`${
           checked ? activeColor : 'bg-gray-200'
-        } relative inline-flex h-5 w-9 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-royal-500 focus:ring-offset-2 ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
+        } relative inline-flex h-5 w-9 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
       >
         <span
           aria-hidden="true"

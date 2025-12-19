@@ -30,9 +30,9 @@ import { Switch } from './Switch';
 
 const SelectField = ({ label, value, options, onChange, icon: Icon, help, className = "" }: any) => (
   <div className={`mb-3 pb-3 border-b border-slate-100 last:border-0 last:pb-0 last:mb-0 transition-colors duration-300 ${className}`}>
-    <label className="text-xs font-extrabold text-slate-600 mb-2 uppercase tracking-wide flex items-center gap-2 group-hover/card:text-royal-800 transition-colors">
+    <label className="text-xs font-extrabold text-slate-600 mb-2 uppercase tracking-wide flex items-center gap-2 group-hover/card:text-blue-800 transition-colors">
       {Icon && (
-        <span className="p-1 rounded bg-slate-100 text-slate-500 group-hover/card:bg-royal-100 group-hover/card:text-royal-600 transition-all duration-300">
+        <span className="p-1 rounded bg-slate-100 text-slate-500 group-hover/card:bg-blue-100 group-hover/card:text-blue-600 transition-all duration-300">
           <Icon className="w-3 h-3" />
         </span>
       )}
@@ -42,7 +42,7 @@ const SelectField = ({ label, value, options, onChange, icon: Icon, help, classN
       <select 
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="block w-full rounded-lg border-slate-200 bg-slate-50 text-sm py-2.5 px-3 pr-8 text-slate-800 font-bold focus:border-royal-500 focus:ring-2 focus:ring-royal-200 focus:bg-white focus:shadow-md shadow-sm transition-all duration-200 hover:border-royal-300 hover:bg-white"
+        className="block w-full rounded-lg border-slate-200 bg-slate-50 text-sm py-2.5 px-3 pr-8 text-slate-800 font-bold focus:border-blue-500 focus:ring-2 focus:ring-blue-200 focus:bg-white focus:shadow-md shadow-sm transition-all duration-200 hover:border-blue-300 hover:bg-white"
       >
         {options.map((opt: any) => (
           <option key={opt.value} value={opt.value}>{opt.label}</option>
@@ -55,9 +55,9 @@ const SelectField = ({ label, value, options, onChange, icon: Icon, help, classN
 
 const InputField = ({ label, value, type = "text", onChange, icon: Icon, suffix, help, className = "" }: any) => (
   <div className={`mb-3 pb-3 border-b border-slate-100 last:border-0 last:pb-0 last:mb-0 transition-colors duration-300 ${className}`}>
-    <label className="text-xs font-extrabold text-slate-600 mb-2 uppercase tracking-wide flex items-center gap-2 group-hover/card:text-royal-800 transition-colors">
+    <label className="text-xs font-extrabold text-slate-600 mb-2 uppercase tracking-wide flex items-center gap-2 group-hover/card:text-blue-800 transition-colors">
       {Icon && (
-        <span className="p-1 rounded bg-slate-100 text-slate-500 group-hover/card:bg-royal-100 group-hover/card:text-royal-600 transition-all duration-300">
+        <span className="p-1 rounded bg-slate-100 text-slate-500 group-hover/card:bg-blue-100 group-hover/card:text-blue-600 transition-all duration-300">
           <Icon className="w-3 h-3" />
         </span>
       )}
@@ -68,11 +68,11 @@ const InputField = ({ label, value, type = "text", onChange, icon: Icon, suffix,
         type={type}
         value={value}
         onChange={(e) => onChange(type === 'number' ? Number(e.target.value) : e.target.value)}
-        className="block w-full rounded-lg border-slate-200 bg-slate-50 text-sm py-2.5 px-3 font-bold text-slate-800 focus:border-royal-500 focus:ring-2 focus:ring-royal-200 focus:bg-white focus:shadow-md shadow-sm transition-all duration-200 hover:border-royal-300 hover:bg-white"
+        className="block w-full rounded-lg border-slate-200 bg-slate-50 text-sm py-2.5 px-3 font-bold text-slate-800 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 focus:bg-white focus:shadow-md shadow-sm transition-all duration-200 hover:border-blue-300 hover:bg-white"
       />
       {suffix && (
-        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-          <span className="text-gray-400 text-xs font-bold group-focus-within/input:text-royal-600 transition-colors">{suffix}</span>
+        <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+          <span className="text-gray-400 text-xs font-bold group-focus-within/input:text-blue-600 transition-colors">{suffix}</span>
         </div>
       )}
     </div>
@@ -84,20 +84,22 @@ const InteractiveCard = ({ title, icon: Icon, children, accentColor = "royal" }:
   // Define styles based on accent color
   const styles = {
     royal: {
-      borderTop: "border-t-royal-600",
-      headerBg: "bg-gradient-to-r from-royal-50 via-white to-white",
-      iconBox: "bg-royal-600 text-white shadow-royal-200",
-      titleText: "text-royal-900",
-      glow: "group-hover/card:shadow-royal-900/5",
-      borderHover: "group-hover/card:border-royal-300"
+      borderTop: "border-t-blue-600",
+      headerBg: "bg-gradient-to-r from-blue-50 via-white to-white",
+      iconBox: "bg-blue-600 text-white shadow-blue-200",
+      titleText: "text-blue-900",
+      glow: "group-hover/card:shadow-blue-900/5",
+      borderHover: "group-hover/card:border-blue-300",
+      underlineBg: "bg-blue-500/20"
     },
     regal: {
-      borderTop: "border-t-regal-600",
-      headerBg: "bg-gradient-to-r from-regal-50 via-white to-white",
-      iconBox: "bg-regal-600 text-white shadow-regal-200",
-      titleText: "text-regal-900",
-      glow: "group-hover/card:shadow-regal-900/5",
-      borderHover: "group-hover/card:border-regal-300"
+      borderTop: "border-t-indigo-600",
+      headerBg: "bg-gradient-to-r from-indigo-50 via-white to-white",
+      iconBox: "bg-indigo-600 text-white shadow-indigo-200",
+      titleText: "text-indigo-900",
+      glow: "group-hover/card:shadow-indigo-900/5",
+      borderHover: "group-hover/card:border-indigo-300",
+      underlineBg: "bg-indigo-500/20"
     },
     gold: {
       borderTop: "border-t-gold-500",
@@ -105,7 +107,8 @@ const InteractiveCard = ({ title, icon: Icon, children, accentColor = "royal" }:
       iconBox: "bg-gold-500 text-white shadow-yellow-200",
       titleText: "text-yellow-900",
       glow: "group-hover/card:shadow-yellow-900/5",
-      borderHover: "group-hover/card:border-yellow-300"
+      borderHover: "group-hover/card:border-yellow-300",
+      underlineBg: "bg-yellow-500/20"
     },
     red: {
       borderTop: "border-t-red-600",
@@ -113,7 +116,8 @@ const InteractiveCard = ({ title, icon: Icon, children, accentColor = "royal" }:
       iconBox: "bg-red-600 text-white shadow-red-200",
       titleText: "text-red-900",
       glow: "group-hover/card:shadow-red-900/5",
-      borderHover: "group-hover/card:border-red-300"
+      borderHover: "group-hover/card:border-red-300",
+      underlineBg: "bg-red-500/20"
     },
   };
 
@@ -128,7 +132,7 @@ const InteractiveCard = ({ title, icon: Icon, children, accentColor = "royal" }:
         </div>
         <div>
            <h3 className={`text-lg font-black tracking-tight ${currentStyle.titleText} transition-colors duration-300`}>{title}</h3>
-           <div className={`h-1 w-0 group-hover/card:w-full transition-all duration-700 bg-${accentColor}-500/20 rounded mt-1`}></div>
+           <div className={`h-1 w-0 group-hover/card:w-full transition-all duration-700 ${currentStyle.underlineBg} rounded mt-1`}></div>
         </div>
       </div>
       
@@ -161,9 +165,9 @@ const TaxExampleBox = ({ rate, policy, currency }: { rate: number, policy: TaxPo
   }
 
   return (
-    <div className="mt-5 bg-royal-50/30 rounded-xl p-0 border border-royal-100 overflow-hidden shadow-sm group/example hover:border-royal-200 transition-colors">
-      <div className="bg-white/60 px-4 py-2.5 border-b border-royal-100 flex items-center gap-2 font-bold text-royal-800 text-xs">
-        <div className="p-1 bg-royal-100 rounded text-royal-600">
+    <div className="mt-5 bg-blue-50/30 rounded-xl p-0 border border-blue-100 overflow-hidden shadow-sm group/example hover:border-blue-200 transition-colors">
+      <div className="bg-white/60 px-4 py-2.5 border-b border-blue-100 flex items-center gap-2 font-bold text-blue-800 text-xs">
+        <div className="p-1 bg-blue-100 rounded text-blue-600">
            <Calculator className="w-3 h-3" />
         </div>
         <span>مثال رقمي (لصنف سعره {basePrice} {currency})</span>
@@ -187,7 +191,7 @@ const TaxExampleBox = ({ rate, policy, currency }: { rate: number, policy: TaxPo
              <ArrowRight className="w-3 h-3" />
            </div>
            <span className="text-gray-400 text-[10px] mb-1.5 font-medium uppercase tracking-wider">صافي لك</span>
-           <span className="font-black text-regal-600 text-base bg-white px-2 py-1 rounded border border-slate-100 w-full">{revenue.toFixed(2)}</span>
+           <span className="font-black text-indigo-600 text-base bg-white px-2 py-1 rounded border border-slate-100 w-full">{revenue.toFixed(2)}</span>
         </div>
       </div>
     </div>
@@ -217,7 +221,7 @@ const RoundingSimulation = ({ method }: { method: RoundingMethod }) => {
     <div className="mt-2 flex items-center justify-between bg-slate-100 rounded px-2 py-1.5 text-xs">
         <span className="text-gray-500">مثال: {exampleValue}</span>
         <ArrowRight className="w-3 h-3 text-gray-400" />
-        <span className="font-bold text-royal-700">{roundedValue.toFixed(2)} ({label})</span>
+        <span className="font-bold text-blue-700">{roundedValue.toFixed(2)} ({label})</span>
     </div>
   );
 }
@@ -260,12 +264,24 @@ const FinancialSystem: React.FC<FinancialSystemProps> = ({ title }) => {
   // --- Calculations for Policy Strength ---
   const policyStrength = useMemo(() => {
     let score = 100;
+    
+    // High risk: Allow negative stock (major inventory risk)
     if (config.allowNegativeStock) score -= 30;
+    
+    // High risk: Allow selling below cost (financial loss risk)
     if (config.allowSellingBelowCost) score -= 20;
-    if (!config.lockPostedPeriods) score -= 15;
-    if (config.creditLimitControl === StrictnessLevel.WARNING) score -= 10;
-    if (config.minMarginControl === StrictnessLevel.WARNING) score -= 10;
-    return Math.max(0, score);
+    
+    // Medium risk: Credit limit control (weak enforcement)
+    if (config.creditLimitControl === StrictnessLevel.WARNING) score -= 15;
+    else if (config.creditLimitControl === StrictnessLevel.APPROVAL) score -= 5;
+    
+    // Medium risk: Discount controls (no manager approval required)
+    if (!config.requireManagerApprovalForDiscount) score -= 10;
+    
+    // Low risk: High discount percentage (above 20%)
+    if (config.maxDiscountPercentage > 20) score -= 5;
+    
+    return Math.max(0, Math.min(100, score));
   }, [config]);
 
   // --- Handlers ---
@@ -297,27 +313,24 @@ const FinancialSystem: React.FC<FinancialSystemProps> = ({ title }) => {
     <div className="min-h-screen bg-[#eceff4] pb-24 font-sans text-slate-900">
       
       {/* 1. Dashboard Header & Policy Strength Hero */}
-      <header className="bg-royal-900 text-white pb-20 pt-6 shadow-xl relative overflow-hidden">
+      <header className="bg-blue-900 text-white pb-20 pt-6 shadow-xl relative overflow-hidden">
          {/* Background pattern */}
          <div className="absolute top-0 right-0 w-full h-full opacity-10 bg-[radial-gradient(#ffffff_1px,transparent_1px)] [background-size:16px_16px]"></div>
          
          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-8">
                <div className="flex items-center gap-4">
-                  <div className="bg-white/10 p-3 rounded-xl border border-white/20 backdrop-blur-sm shadow-2xl shadow-royal-900/50">
-                    <Settings2 className="w-7 h-7 text-white" />
+                  <div className="bg-white/10 p-3 rounded-xl border border-white/20 backdrop-blur-sm shadow-2xl shadow-blue-900/50">
+                    <Settings2 className="w-7 h-7" />
                   </div>
                   <div>
                     <h1 className="text-2xl font-black tracking-tight text-white">{title || 'إعدادات النظام المالي'}</h1>
-                    <p className="text-royal-200 text-sm mt-1 font-medium">لوحة التحكم المركزية للسياسات المحاسبية</p>
+                    <p className="text-blue-200 text-sm mt-1 font-medium">لوحة التحكم المركزية للسياسات المحاسبية</p>
                   </div>
                </div>
                
                <div className="flex items-center gap-3">
-                  <button onClick={() => window.location.reload()} className="px-4 py-2.5 text-xs font-bold text-white/90 hover:text-white bg-white/10 hover:bg-white/20 rounded-lg transition-all border border-white/10">
-                    إلغاء التعديلات
-                  </button>
-                  <button onClick={handleSave} className="px-6 py-2.5 text-xs font-bold text-royal-950 bg-white hover:bg-gray-50 rounded-lg shadow-lg hover:shadow-xl transition-all flex items-center gap-2 transform hover:-translate-y-0.5 active:scale-95">
+                  <button onClick={handleSave} className="px-6 py-2.5 text-xs font-bold text-blue-950 bg-white hover:bg-gray-50 rounded-lg shadow-lg hover:shadow-xl transition-all flex items-center gap-2 transform hover:-translate-y-0.5 active:scale-95">
                     <Save className="w-4 h-4" />
                     حفظ وتطبيق
                   </button>
@@ -329,11 +342,11 @@ const FinancialSystem: React.FC<FinancialSystemProps> = ({ title }) => {
                <div className="flex-1 w-full">
                   <div className="flex justify-between items-center mb-3">
                      <span className="text-sm font-bold text-white flex items-center gap-2">
-                       <ShieldCheck className="w-5 h-5 text-regal-300" />
+                       <ShieldCheck className="w-5 h-5 text-indigo-300" />
                        مستوى الأمان المالي والرقابي
                      </span>
                      <span className={`text-xs font-bold px-3 py-1.5 rounded-full border ${
-                        policyStrength >= 80 ? 'bg-regal-500/20 text-regal-200 border-regal-500/30' : 'bg-red-500/20 text-red-200 border-red-500/30'
+                        policyStrength >= 80 ? 'bg-indigo-500/20 text-indigo-200 border-indigo-500/30' : 'bg-red-500/20 text-red-200 border-red-500/30'
                      }`}>
                         {policyStrength}% {policyStrength >= 80 ? '(آمن)' : '(مخاطرة مرتفعة)'}
                      </span>
@@ -341,7 +354,7 @@ const FinancialSystem: React.FC<FinancialSystemProps> = ({ title }) => {
                   <div className="w-full bg-black/30 rounded-full h-3 overflow-hidden border border-white/5 shadow-inner">
                      <div 
                        className={`h-full rounded-full transition-all duration-1000 ease-out shadow-[0_0_15px_rgba(255,255,255,0.3)] ${
-                         policyStrength >= 80 ? 'bg-gradient-to-r from-regal-400 to-regal-600' : 
+                         policyStrength >= 80 ? 'bg-gradient-to-r from-indigo-400 to-indigo-600' : 
                          policyStrength >= 50 ? 'bg-gradient-to-r from-yellow-400 to-yellow-600' : 
                          'bg-gradient-to-r from-red-500 to-red-700'
                        }`} 
@@ -349,7 +362,7 @@ const FinancialSystem: React.FC<FinancialSystemProps> = ({ title }) => {
                      />
                   </div>
                </div>
-               <div className="text-xs font-medium text-royal-200 md:w-1/3 leading-relaxed border-r border-white/10 pr-6 mr-6 hidden md:block opacity-80">
+               <div className="text-xs font-medium text-blue-200 md:w-1/3 leading-relaxed border-r border-white/10 pr-6 mr-6 hidden md:block opacity-80">
                   يعتمد هذا المؤشر على تحليل فوري للمخاطر المحتملة من الإعدادات الحالية، مثل السماح بالبيع المكشوف أو تعديل الفترات المغلقة.
                </div>
             </div>
@@ -397,14 +410,6 @@ const FinancialSystem: React.FC<FinancialSystemProps> = ({ title }) => {
               
               {/* Dynamic Tax Example */}
               <TaxExampleBox rate={config.defaultTaxRate} policy={config.taxPolicy} currency={config.baseCurrency} />
-
-              <div className="mt-6 pt-4 border-t border-slate-100 border-dashed">
-                 <Switch 
-                   checked={config.enableMultiCurrency}
-                   onChange={() => handleToggle('enableMultiCurrency')}
-                   label="تفعيل تعدد العملات"
-                 />
-              </div>
            </InteractiveCard>
 
            {/* Section 2: Valuation */}
@@ -461,7 +466,6 @@ const FinancialSystem: React.FC<FinancialSystemProps> = ({ title }) => {
                         value={config.maxDiscountPercentage}
                         onChange={(v: number) => handleChange('maxDiscountPercentage', v)}
                         type="number"
-                        suffix="%"
                         className="border-b-0 pb-0 mb-0"
                       />
                    </div>
@@ -484,7 +488,7 @@ const FinancialSystem: React.FC<FinancialSystemProps> = ({ title }) => {
                     variant="danger"
                  />
               </div>
-
+              <br />
               <div className="bg-yellow-50 rounded-xl p-4 border border-yellow-200 mb-5 shadow-sm group/warn">
                  <div className="flex items-start gap-3 mb-3 pb-3 border-b border-yellow-200/50">
                     <div className="bg-yellow-100 p-1.5 rounded-full text-yellow-700">
@@ -505,15 +509,16 @@ const FinancialSystem: React.FC<FinancialSystemProps> = ({ title }) => {
                  </div>
               </div>
            </InteractiveCard>
+
         </div>
       </main>
 
       {/* Toast Notification */}
       {showToast && (
         <div className="fixed bottom-6 left-1/2 transform -translate-x-1/2 z-50 animate-in slide-in-from-bottom-5 fade-in duration-300">
-           <div className="bg-royal-950 text-white px-8 py-3 rounded-full shadow-2xl flex items-center gap-4 border border-royal-800 ring-4 ring-black/5">
-             <div className="bg-regal-500 rounded-full p-1">
-               <CheckCircle2 className="w-4.5 h-4.5 text-white" />
+           <div className="bg-blue-950 text-white px-8 py-3 rounded-full shadow-2xl flex items-center gap-4 border border-blue-800 ring-4 ring-black/5">
+             <div className="bg-indigo-500 rounded-full p-1">
+               <CheckCircle2 className="w-4.5 h-4.5" />
              </div>
              <div>
                 <span className="text-sm font-bold block">تم حفظ السياسات بنجاح</span>
