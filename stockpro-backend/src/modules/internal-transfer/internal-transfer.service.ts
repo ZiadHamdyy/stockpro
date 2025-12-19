@@ -437,12 +437,14 @@ export class InternalTransferService {
     await this.findOneInternalTransfer(companyId, id);
 
     try {
+      // Fetch existing record before transaction for audit log
+      const existing = await this.prisma.internalTransfer.findUnique({
+        where: { id },
+      });
+      if (!existing || existing.companyId !== companyId)
+        throw new NotFoundException('Internal transfer not found');
+
       await this.prisma.$transaction(async (tx) => {
-        const existing = await tx.internalTransfer.findUnique({
-          where: { id },
-        });
-        if (!existing || existing.companyId !== companyId)
-          throw new NotFoundException('Internal transfer not found');
 
         // Reverse effect
         if (existing.fromType === 'safe' && existing.fromSafeId) {
