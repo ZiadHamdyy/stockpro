@@ -51,6 +51,7 @@ import { InventoryCountModule } from './modules/inventory-count/inventory-count.
 import { AuditLogModule } from './modules/audit-log/audit-log.module';
 import { FiscalYearModule } from './modules/fiscal-year/fiscal-year.module';
 import { SubscriptionModule } from './modules/subscription/subscription.module';
+import { ZatcaModule } from './modules/zatca/zatca.module';
 
 @Module({
   imports: [
@@ -99,6 +100,7 @@ import { SubscriptionModule } from './modules/subscription/subscription.module';
     AuditLogModule,
     FiscalYearModule,
     SubscriptionModule,
+    ZatcaModule,
   ],
   controllers: [AppController],
   providers: [

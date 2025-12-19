@@ -428,6 +428,11 @@ const SalesInvoice: React.FC<SalesInvoiceProps> = ({
       userName: string;
       branchName: string;
     };
+    zatcaUuid?: string;
+    zatcaSequentialNumber?: number;
+    zatcaStatus?: 'PENDING' | 'ACCEPTED' | 'REJECTED';
+    zatcaIssueDateTime?: string;
+    zatcaHash?: string;
     printSettings?: PrintSettings;
   } | null>(null);
 
@@ -1261,7 +1266,7 @@ const SalesInvoice: React.FC<SalesInvoiceProps> = ({
 
       if (currentIndex >= 0 && invoices[currentIndex]) {
         // Update existing invoice
-        await updateSalesInvoice({
+        const updatedInvoice = await updateSalesInvoice({
           id: invoices[currentIndex].id,
           data: invoiceData,
         }).unwrap();
@@ -1285,6 +1290,11 @@ const SalesInvoice: React.FC<SalesInvoiceProps> = ({
             userName: currentUser?.name || currentUser?.fullName || "غير محدد",
             branchName: resolvedBranchName || "غير محدد",
           },
+          zatcaUuid: updatedInvoice?.zatcaUuid,
+          zatcaSequentialNumber: updatedInvoice?.zatcaSequentialNumber,
+          zatcaStatus: updatedInvoice?.zatcaStatus,
+          zatcaIssueDateTime: updatedInvoice?.zatcaIssueDateTime,
+          zatcaHash: updatedInvoice?.zatcaHash,
           printSettings,
         };
         
@@ -1327,6 +1337,11 @@ const SalesInvoice: React.FC<SalesInvoiceProps> = ({
             userName: currentUser?.name || currentUser?.fullName || "غير محدد",
             branchName: resolvedBranchName || "غير محدد",
           },
+          zatcaUuid: savedInvoice?.zatcaUuid,
+          zatcaSequentialNumber: savedInvoice?.zatcaSequentialNumber,
+          zatcaStatus: savedInvoice?.zatcaStatus,
+          zatcaIssueDateTime: savedInvoice?.zatcaIssueDateTime,
+          zatcaHash: savedInvoice?.zatcaHash,
           printSettings,
         };
         
@@ -2223,6 +2238,11 @@ const SalesInvoice: React.FC<SalesInvoiceProps> = ({
                 userName: string;
                 branchName: string;
               };
+              zatcaUuid?: string;
+              zatcaSequentialNumber?: number;
+              zatcaStatus?: 'PENDING' | 'ACCEPTED' | 'REJECTED';
+              zatcaIssueDateTime?: string;
+              zatcaHash?: string;
             }
           | null) || (() => {
           const fullCustomer = selectedCustomer
@@ -2237,6 +2257,9 @@ const SalesInvoice: React.FC<SalesInvoiceProps> = ({
                 commercialReg: fullCustomer?.commercialReg || undefined,
               }
             : null;
+          // Get current invoice if viewing existing one
+          const currentInvoice = currentIndex >= 0 ? invoices[currentIndex] : null;
+          
           return {
             companyInfo,
             vatRate,
@@ -2250,6 +2273,12 @@ const SalesInvoice: React.FC<SalesInvoiceProps> = ({
               userName: currentUser?.name || currentUser?.fullName || "غير محدد",
               branchName: resolvedBranchName || "غير محدد",
             },
+            // Include ZATCA fields from current invoice if available
+            zatcaUuid: currentInvoice?.zatcaUuid,
+            zatcaSequentialNumber: currentInvoice?.zatcaSequentialNumber,
+            zatcaStatus: currentInvoice?.zatcaStatus,
+            zatcaIssueDateTime: currentInvoice?.zatcaIssueDateTime,
+            zatcaHash: currentInvoice?.zatcaHash,
           };
         })();
         

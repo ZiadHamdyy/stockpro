@@ -756,6 +756,15 @@ model SalesInvoice {
   splitBankAmount     Float?
   splitSafeId         String?
   splitBankId         String?
+  zatcaUuid           String?
+  zatcaSequentialNumber Int?
+  zatcaStatus         ZatcaStatus?
+  zatcaPreviousHash   String?
+  zatcaHash           String?
+  zatcaSubmittedAt    DateTime?
+  zatcaResponseXml    String?             @db.Text
+  zatcaResponseMessage String?
+  zatcaIssueDateTime  DateTime?
   bank                Bank?               @relation(fields: [bankId], references: [id])
   branch              Branch?             @relation(fields: [branchId], references: [id])
   customer            Customer?           @relation(fields: [customerId], references: [id])
@@ -1178,6 +1187,12 @@ enum SubscriptionStatus {
   EXPIRED
   CANCELLED
   TRIAL
+}
+
+enum ZatcaStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
 }
 
 model FiscalYear {

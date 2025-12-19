@@ -34,6 +34,11 @@ interface InvoicePrintPreviewProps {
       userName: string;
       branchName: string;
     };
+    zatcaUuid?: string;
+    zatcaSequentialNumber?: number;
+    zatcaStatus?: 'PENDING' | 'ACCEPTED' | 'REJECTED';
+    zatcaIssueDateTime?: string;
+    zatcaHash?: string;
   };
   printSettings?: PrintSettings;
 }
@@ -47,7 +52,7 @@ const InvoicePrintPreview: React.FC<InvoicePrintPreviewProps> = ({
 }) => {
   if (!isOpen) return null;
 
-  const { companyInfo, vatRate, isVatEnabled, items, totals, paymentMethod, customer, details } =
+  const { companyInfo, vatRate, isVatEnabled, items, totals, paymentMethod, customer, details, zatcaUuid, zatcaSequentialNumber, zatcaStatus, zatcaIssueDateTime, zatcaHash } =
     invoiceData;
   const currentUser = useSelector((state: RootState) => state.auth.user);
   const { showToast } = useToast();
@@ -840,12 +845,55 @@ const InvoicePrintPreview: React.FC<InvoicePrintPreviewProps> = ({
           .totals td { font-weight: 600; }
           .totals .value { text-align: left; }
           .muted { color: #666; font-size: 12px; text-align: center; margin-top: 8px; }
-          .qr-box { margin-top: 12px; }
+          .qr-box { margin-top: 12px; text-align: center; }
+          .qr-box-top { text-align: center; margin-bottom: 12px; }
           .tafqeet { margin-top: 12px; padding: 8px; border: 1px dashed #000; text-align: center; font-weight: 700; }
+          .zatca-info { margin-bottom: 12px; padding: 8px; border: 1px solid #000; background: #f9f9f9; }
+          .zatca-row { display: flex; justify-content: space-between; margin-bottom: 4px; font-size: 11px; }
+          .zatca-label { font-weight: 600; }
+          .zatca-status { padding: 2px 6px; border-radius: 3px; font-weight: 600; }
+          .zatca-status-pending { background: #fff3cd; color: #856404; }
+          .zatca-status-accepted { background: #d4edda; color: #155724; }
+          .zatca-status-rejected { background: #f8d7da; color: #721c24; }
         </style>
       </head>
       <body>
         <div class="title-box">${settings.headerText || defaultArabicTitle}</div>
+
+        ${isVatEnabled && qrData ? `
+        <div class="qr-box-top">
+          <img src="${qrCodeUrl}" width="150" height="150"/>
+        </div>
+        ` : ""}
+
+        ${(zatcaUuid || zatcaSequentialNumber || zatcaStatus || zatcaIssueDateTime) ? `
+        <div class="zatca-info">
+          ${zatcaUuid ? `
+          <div class="zatca-row">
+            <span class="zatca-label">UUID:</span>
+            <span>${zatcaUuid}</span>
+          </div>
+          ` : ""}
+          ${zatcaSequentialNumber ? `
+          <div class="zatca-row">
+            <span class="zatca-label">Sequential Number:</span>
+            <span>${zatcaSequentialNumber}</span>
+          </div>
+          ` : ""}
+          ${zatcaIssueDateTime ? `
+          <div class="zatca-row">
+            <span class="zatca-label">Issue Date/Time (UTC):</span>
+            <span>${new Date(zatcaIssueDateTime).toISOString().replace('T', ' ').substring(0, 19)} UTC</span>
+          </div>
+          ` : ""}
+          ${zatcaStatus ? `
+          <div class="zatca-row">
+            <span class="zatca-label">ZATCA Status:</span>
+            <span class="zatca-status zatca-status-${zatcaStatus.toLowerCase()}">${zatcaStatus}</span>
+          </div>
+          ` : ""}
+        </div>
+        ` : ""}
 
         <div class="section">
           <table class="table info-table">
@@ -885,19 +933,50 @@ const InvoicePrintPreview: React.FC<InvoicePrintPreviewProps> = ({
                   <span class="label-en">Customer</span>
                 </td>
                 <td>${customer?.name || "عميل نقدي"}</td>
-              </tr>
-              <tr>
                 <td>
                   رقم الفاتورة
                   <span class="label-en">Invoice No</span>
                 </td>
                 <td>${details.invoiceNumber}</td>
+              </tr>
+              ${customer?.taxNumber || customer?.commercialReg ? `
+              <tr>
+                <td>
+                  ${customer?.taxNumber ? `
+                  الرقم الضريبي للعميل
+                  <span class="label-en">Customer VAT Number</span>
+                  ` : `
+                  السجل التجاري للعميل
+                  <span class="label-en">Customer Commercial Reg</span>
+                  `}
+                </td>
+                <td>${customer?.taxNumber || customer?.commercialReg || "-"}</td>
                 <td>
                   التاريخ
                   <span class="label-en">Date</span>
                 </td>
                 <td>${details.invoiceDate}</td>
               </tr>
+              ` : `
+              <tr>
+                <td>
+                  التاريخ
+                  <span class="label-en">Date</span>
+                </td>
+                <td>${details.invoiceDate}</td>
+                <td></td>
+                <td></td>
+              </tr>
+              `}
+              ${customer?.address ? `
+              <tr>
+                <td>
+                  عنوان العميل
+                  <span class="label-en">Customer Address</span>
+                </td>
+                <td colspan="3">${customer.address}</td>
+              </tr>
+              ` : ""}
             </tbody>
           </table>
         </div>
@@ -947,10 +1026,7 @@ const InvoicePrintPreview: React.FC<InvoicePrintPreviewProps> = ({
           </table>
         </div>
 
-        <div class="section" style="display:flex; justify-content:space-between; align-items:flex-start; gap:10px;">
-          <div class="qr-box">
-            ${isVatEnabled && qrData ? `<img src="${qrCodeUrl}" width="120" height="120"/>` : ""}
-          </div>
+        <div class="section" style="display:flex; justify-content:flex-end; align-items:flex-start; gap:10px;">
           <table class="table totals">
             <tbody>
               <tr>

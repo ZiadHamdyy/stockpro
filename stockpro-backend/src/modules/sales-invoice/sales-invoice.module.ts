@@ -6,9 +6,10 @@ import { StoreModule } from '../store/store.module';
 import { AuditLogModule } from '../audit-log/audit-log.module';
 import { FiscalYearModule } from '../fiscal-year/fiscal-year.module';
 import { SubscriptionModule } from '../subscription/subscription.module';
+import { ZatcaModule } from '../zatca/zatca.module';
 
 @Module({
-  imports: [StoreModule, AuditLogModule, FiscalYearModule, SubscriptionModule],
+  imports: [StoreModule, AuditLogModule, FiscalYearModule, SubscriptionModule, ZatcaModule],
   controllers: [SalesInvoiceController],
   providers: [SalesInvoiceService, DatabaseService],
   exports: [SalesInvoiceService],

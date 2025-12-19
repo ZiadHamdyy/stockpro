@@ -16,6 +16,8 @@
     "baseUrl": "./",
     "incremental": true,
     "skipLibCheck": true,
+    "typeRoots": ["./node_modules/@types"],
+    "types": [],
     "strictNullChecks": true,
     "strictPropertyInitialization": false,
     "forceConsistentCasingInFileNames": true,

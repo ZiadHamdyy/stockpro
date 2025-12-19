@@ -11,6 +11,8 @@ import { StockService } from '../store/services/stock.service';
 import { AuditLogService } from '../audit-log/audit-log.service';
 import { FiscalYearService } from '../fiscal-year/fiscal-year.service';
 import { SubscriptionService } from '../subscription/subscription.service';
+import { ZatcaService } from '../zatca/zatca.service';
+import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class SalesInvoiceService {
@@ -21,6 +23,8 @@ export class SalesInvoiceService {
     private readonly auditLogService: AuditLogService,
     private readonly fiscalYearService: FiscalYearService,
     private readonly subscriptionService: SubscriptionService,
+    private readonly zatcaService: ZatcaService,
+    private readonly configService: ConfigService,
   ) {}
 
   private computeLineTotals(
@@ -430,6 +434,28 @@ export class SalesInvoiceService {
       targetId: result.code,
       details: `إنشاء فاتورة مبيعات رقم ${result.code} بقيمة ${result.net} ريال`,
     });
+
+    // Process for ZATCA if VAT is enabled
+    if (company?.isVatEnabled) {
+      try {
+        // Process invoice for ZATCA (generate UUID, sequential number, XML, hash)
+        await this.zatcaService.processInvoiceForZatca(result.id);
+
+        // Auto-submit to ZATCA if configured
+        const autoSubmit = this.configService.get<string>('ZATCA_AUTO_SUBMIT') === 'true';
+        if (autoSubmit) {
+          // Submit asynchronously to avoid blocking the response
+          this.zatcaService.submitToZatca(result.id).catch((error) => {
+            // Log error but don't fail the invoice creation
+            console.error('Failed to auto-submit invoice to ZATCA:', error);
+          });
+        }
+      } catch (error: any) {
+        // Log error but don't fail the invoice creation
+        // ZATCA processing can be done manually later
+        console.error('Failed to process invoice for ZATCA:', error);
+      }
+    }
 
     return response;
   }

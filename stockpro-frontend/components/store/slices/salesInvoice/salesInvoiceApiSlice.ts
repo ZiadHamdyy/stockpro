@@ -58,6 +58,11 @@ export interface SalesInvoice {
   };
   createdAt: string;
   updatedAt: string;
+  zatcaUuid?: string;
+  zatcaSequentialNumber?: number;
+  zatcaStatus?: 'PENDING' | 'ACCEPTED' | 'REJECTED';
+  zatcaIssueDateTime?: string;
+  zatcaHash?: string;
 }
 
 export interface CreateSalesInvoiceRequest {
