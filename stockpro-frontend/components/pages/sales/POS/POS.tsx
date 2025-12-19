@@ -906,6 +906,7 @@ const POS: React.FC<POSProps> = () => {
               aiInsight={aiInsight}
               discount={discount}
               vatRate={vatRate}
+              currency={companyInfo.currency}
               onOpenPayment={() => setPaymentModalOpen(true)}
             />
           </div>

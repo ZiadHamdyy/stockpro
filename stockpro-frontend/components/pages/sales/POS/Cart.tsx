@@ -1,6 +1,7 @@
 import React, { useRef, useEffect } from 'react';
 import type { InvoiceItem } from '../../../../types';
 import { formatNumber } from '../../../../utils/formatting';
+import { tafqeet } from '../../../../utils/tafqeet';
 import { DatabaseIcon, TrashIcon } from '../../../icons';
 
 // Simple icon components for AI features
@@ -31,6 +32,7 @@ interface CartProps {
   aiInsight: any;
   discount: number;
   vatRate: number;
+  currency?: string;
   onOpenPayment?: () => void;
 }
 
@@ -46,6 +48,7 @@ const Cart: React.FC<CartProps> = ({
   aiInsight,
   discount,
   vatRate,
+  currency = 'SAR',
   onOpenPayment,
 }) => {
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -250,20 +253,19 @@ const Cart: React.FC<CartProps> = ({
           </button>
           
           <div className="flex-1 bg-white border border-royal-300 rounded p-1 flex justify-between items-center shadow-sm">
-            <span className="text-royal-500 px-2 font-bold border-l border-royal-200">العميل</span>
-            <span className="font-bold text-royal-800 px-2 flex-1 text-center">نقدي</span>
-          </div>
-
-          <div className="flex items-center gap-0 bg-white border border-royal-300 rounded overflow-hidden shadow-sm">
-            <span className="bg-royal-200 text-royal-700 font-bold px-3 py-1.5 border-l border-royal-300">العدد</span>
-            <span className="px-4 py-1.5 font-mono font-bold text-lg leading-none text-royal-900">{cartItems.length}</span>
+            <span className="font-bold text-royal-800 px-2 flex-1 text-center text-xs leading-tight">{tafqeet(Math.abs(total), currency)}</span>
           </div>
 
           <div className="flex gap-2 bg-royal-200 p-1.5 rounded-lg border border-royal-300 shadow-inner">
+          <div className="text-center bg-white rounded border border-royal-300 overflow-hidden min-w-[90px]">
+              <div className="text-[10px] text-royal-500 font-bold bg-royal-50 border-b border-royal-200">السعر قبل الضريبة</div>
+              <div className="font-mono text-royal-800 font-bold py-1 text-sm">{formatNumber(subtotal - discount)}</div>
+            </div>
             <div className="text-center bg-white rounded border border-royal-300 overflow-hidden min-w-[90px]">
               <div className="text-[10px] text-royal-500 font-bold bg-royal-50 border-b border-royal-200">الخصم</div>
               <div className="font-mono text-red-600 font-bold py-1 text-sm">{formatNumber(discount)}</div>
             </div>
+            
             <div className="text-center bg-white rounded border border-royal-300 overflow-hidden min-w-[90px]">
               <div className="text-[10px] text-royal-500 font-bold bg-royal-50 border-b border-royal-200">الضريبة</div>
               <div className="font-mono text-royal-800 font-bold py-1 text-sm">{formatNumber(tax)}</div>
