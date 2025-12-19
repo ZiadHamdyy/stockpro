@@ -63,6 +63,29 @@ const AuditLogReport: React.FC<AuditLogReportProps> = ({ title }) => {
         }
     };
 
+    const getTargetTypeArabic = (targetType: string): string => {
+        const translations: Record<string, string> = {
+            'receipt_voucher': 'سند قبض',
+            'payment_voucher': 'سند صرف',
+            'internal_transfer': 'تحويل داخلي',
+            'sales_invoice': 'فاتورة مبيعات',
+            'purchase_invoice': 'فاتورة شراء',
+            'sales_return': 'مرتجع مبيعات',
+            'purchase_return': 'مرتجع شراء',
+            'store_receipt_voucher': 'إذن إضافة مخزن',
+            'store_issue_voucher': 'إذن صرف مخزن',
+            'store_transfer': 'تحويل مخزن',
+            'customer': 'عميل',
+            'supplier': 'مورد',
+            'item': 'صنف',
+            'user': 'مستخدم',
+            'branch': 'فرع',
+            'safe': 'خزنة',
+            'bank': 'بنك',
+        };
+        return translations[targetType] || targetType;
+    };
+
     const stats = useMemo(() => {
         const today = new Date().toISOString().split('T')[0];
         const logsToday = logsArray.filter(l => l.timestamp.startsWith(today)).length;
@@ -274,7 +297,7 @@ const AuditLogReport: React.FC<AuditLogReportProps> = ({ title }) => {
                                     </td>
                                     <td className="px-6 py-3 whitespace-nowrap border-l border-gray-100">
                                         <div className="flex flex-col">
-                                            <span className="text-sm font-bold text-gray-800">{log.targetType}</span>
+                                            <span className="text-sm font-bold text-gray-800">{getTargetTypeArabic(log.targetType)}</span>
                                             {log.targetId && <span className="text-xs text-gray-500 font-mono bg-gray-100 px-1 rounded w-fit border border-gray-200">#{log.targetId}</span>}
                                         </div>
                                     </td>
