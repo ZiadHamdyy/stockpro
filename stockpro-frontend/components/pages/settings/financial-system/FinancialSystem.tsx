@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { 
   SaveIcon as Save, 
   ShieldCheckIcon as ShieldCheck, 
@@ -234,32 +234,74 @@ interface FinancialSystemProps {
 
 const FinancialSystem: React.FC<FinancialSystemProps> = ({ title }) => {
   // --- State ---
-  const [config, setConfig] = useState<PricingConfig>({
-    taxPolicy: TaxPolicy.EXCLUSIVE,
-    defaultTaxRate: 15,
-    baseCurrency: 'SAR',
-    enableMultiCurrency: false,
-    roundingMethod: RoundingMethod.NEAREST_0_05,
-    inventoryValuationMethod: ValuationMethod.WEIGHTED_AVERAGE,
-    cogsMethod: ValuationMethod.WEIGHTED_AVERAGE,
-    autoUpdateSalePriceOnPurchase: false,
-    defaultMarginPercentage: 25,
-    lockPostedPeriods: true,
-    closingDate: new Date().toISOString().split('T')[0],
-    preventDuplicateSupplierRef: true,
-    creditLimitControl: StrictnessLevel.BLOCK,
-    minMarginControl: StrictnessLevel.WARNING,
-    allowSellingBelowCost: false,
-    maxCashTransactionLimit: 5000,
-    requireCostCenterForExpenses: true,
-    allowNegativeStock: false,
-    reserveStockOnOrder: true,
-    maxDiscountPercentage: 15,
-    requireManagerApprovalForDiscount: true,
-    activePriceLists: { 'أساسي': true, 'جملة': false, 'كبار العملاء (VIP)': true },
+  // Initialize from localStorage for backward compatibility
+  const [config, setConfig] = useState<PricingConfig>(() => {
+    // Read from localStorage
+    const allowSellingLessThanStock = (() => {
+      const stored = localStorage.getItem("allowSellingLessThanStock");
+      return stored ? JSON.parse(stored) : false;
+    })();
+    
+    const salePriceIncludesTax = (() => {
+      const stored = localStorage.getItem("salePriceIncludesTax");
+      return stored ? JSON.parse(stored) : false;
+    })();
+    
+    const allowSellingLessThanCost = (() => {
+      const stored = localStorage.getItem("allowSellingLessThanCost");
+      return stored ? JSON.parse(stored) : false;
+    })();
+
+    return {
+      taxPolicy: salePriceIncludesTax ? TaxPolicy.INCLUSIVE : TaxPolicy.EXCLUSIVE,
+      defaultTaxRate: 15,
+      baseCurrency: 'SAR',
+      enableMultiCurrency: false,
+      roundingMethod: RoundingMethod.NEAREST_0_05,
+      inventoryValuationMethod: ValuationMethod.WEIGHTED_AVERAGE,
+      cogsMethod: ValuationMethod.WEIGHTED_AVERAGE,
+      autoUpdateSalePriceOnPurchase: false,
+      defaultMarginPercentage: 25,
+      lockPostedPeriods: true,
+      closingDate: new Date().toISOString().split('T')[0],
+      preventDuplicateSupplierRef: true,
+      creditLimitControl: StrictnessLevel.BLOCK,
+      minMarginControl: StrictnessLevel.WARNING,
+      allowSellingBelowCost: allowSellingLessThanCost,
+      maxCashTransactionLimit: 5000,
+      requireCostCenterForExpenses: true,
+      allowNegativeStock: allowSellingLessThanStock,
+      reserveStockOnOrder: true,
+      maxDiscountPercentage: 15,
+      requireManagerApprovalForDiscount: true,
+      activePriceLists: { 'أساسي': true, 'جملة': false, 'كبار العملاء (VIP)': true },
+    };
   });
 
   const [showToast, setShowToast] = useState(false);
+
+  // --- Sync to localStorage for backward compatibility ---
+  useEffect(() => {
+    localStorage.setItem(
+      "allowSellingLessThanStock",
+      JSON.stringify(config.allowNegativeStock)
+    );
+  }, [config.allowNegativeStock]);
+
+  useEffect(() => {
+    localStorage.setItem(
+      "allowSellingLessThanCost",
+      JSON.stringify(config.allowSellingBelowCost)
+    );
+  }, [config.allowSellingBelowCost]);
+
+  useEffect(() => {
+    const salePriceIncludesTax = config.taxPolicy === TaxPolicy.INCLUSIVE;
+    localStorage.setItem(
+      "salePriceIncludesTax",
+      JSON.stringify(salePriceIncludesTax)
+    );
+  }, [config.taxPolicy]);
 
   // --- Calculations for Policy Strength ---
   const policyStrength = useMemo(() => {
