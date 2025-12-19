@@ -18,6 +18,7 @@ export const getPathFromMenuKey = (key: string): string => {
     permissions: "/settings/permissions",
     audit_log: "/settings/audit-log",
     print_settings: "/settings/print-settings",
+    financial_system: "/settings/financial-system",
     database_backup: "/dashboard", // Special handling - trigger backup
 
     // ZATCA

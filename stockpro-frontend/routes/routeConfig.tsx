@@ -8,6 +8,7 @@ import UsersData from "../components/pages/settings/UsersData";
 import Permissions from "../components/pages/settings/Permissions";
 import AuditLog from "../components/pages/settings/AuditLog";
 import PrintSettings from "../components/pages/settings/PrintSettings";
+import FinancialSystem from "../components/pages/settings/financial-system/FinancialSystem";
 import AddItem from "../components/pages/items/AddItem";
 import ItemsList from "../components/pages/items/ItemsList";
 import ItemGroups from "../components/pages/items/ItemGroups";
@@ -150,6 +151,12 @@ export const routeConfig = [
     component: PrintSettings,
     requiredPermission: "print_settings-read",
     label: "إعدادات الطباعة",
+  },
+  {
+    path: "/settings/financial-system",
+    component: FinancialSystem,
+    requiredPermission: "financial_system-read",
+    label: "إعدادات النظام المالي",
   },
 
   // Items

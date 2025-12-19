@@ -32,6 +32,7 @@ import StoresData from "./components/pages/settings/StoresData";
 import UsersData from "./components/pages/settings/UsersData";
 import Permissions from "./components/pages/settings/Permissions";
 import AuditLog from "./components/pages/settings/AuditLog";
+import FinancialSystem from "./components/pages/settings/financial-system/FinancialSystem";
 import AddItem from "./components/pages/items/AddItem";
 import ItemsList from "./components/pages/items/ItemsList";
 import ItemGroups from "./components/pages/items/ItemGroups";
@@ -850,6 +851,14 @@ const AppContent = () => {
                     settings={printSettings}
                     onSave={setPrintSettings}
                   />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/settings/financial-system"
+              element={
+                <ProtectedRoute requiredPermission="financial_system-read">
+                  <FinancialSystem title={currentPageTitle} />
                 </ProtectedRoute>
               }
             />

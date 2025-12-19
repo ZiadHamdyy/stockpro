@@ -12,3 +12,4 @@ export interface SalesRecord {
   data: Record<string, number>; // branch id -> sales amount
 }
 
+

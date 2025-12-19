@@ -29,6 +29,7 @@ const MENU_ITEMS: MenuItem[] = [
       { key: 'permissions', label: 'الصلاحيات' },
       { key: 'audit_log', label: 'سجل العمليات' },
       { key: 'print_settings', label: 'إعدادات الطباعة' },
+      { key: 'financial_system', label: 'إعدادات النظام المالي' },
       {
         key: 'database',
         label: 'قاعدة البيانات',
