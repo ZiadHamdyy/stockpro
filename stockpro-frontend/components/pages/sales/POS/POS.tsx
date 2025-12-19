@@ -549,6 +549,7 @@ const POS: React.FC<POSProps> = () => {
     splitSafeId?: string | null;
     splitBankId?: string | null;
     bankTransactionType?: 'POS' | 'TRANSFER';
+    createNewInvoice?: boolean;
   }) => {
     if (cartItems.length === 0) return;
 
@@ -605,12 +606,33 @@ const POS: React.FC<POSProps> = () => {
         setInvoiceNumber(created.code);
       }
 
-      if (tabs.length > 1) {
-        const newTabs = tabs.filter(t => t.id !== activeTabId);
-        setTabs(newTabs);
-        setActiveTabId(newTabs[0].id);
+      // If createNewInvoice flag is set, create a new tab instead of clearing/resetting
+      if (paymentData.createNewInvoice) {
+        // Remove the completed tab and create a new one
+        const completedTabId = activeTabId;
+        const updatedTabs = tabs.filter(t => t.id !== completedTabId);
+        
+        // Create a new invoice tab
+        const newTab: InvoiceTab = {
+          id: nextTabId,
+          name: `فاتورة ${nextTabId}`,
+          items: [],
+          timestamp: new Date()
+        };
+        
+        // Add the new tab and set it as active in one operation
+        setTabs([...updatedTabs, newTab]);
+        setActiveTabId(nextTabId);
+        setNextTabId(prev => prev + 1);
       } else {
-        setTabs(prev => prev.map(t => ({ ...t, items: [] })));
+        // Normal flow: clear current tab or remove it
+        if (tabs.length > 1) {
+          const newTabs = tabs.filter(t => t.id !== activeTabId);
+          setTabs(newTabs);
+          setActiveTabId(newTabs[0].id);
+        } else {
+          setTabs(prev => prev.map(t => ({ ...t, items: [] })));
+        }
       }
       
       setDiscount(0);

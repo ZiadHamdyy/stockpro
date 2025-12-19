@@ -56,6 +56,7 @@ interface PaymentModalProps {
     splitSafeId?: string | null;
     splitBankId?: string | null;
     bankTransactionType?: 'POS' | 'TRANSFER';
+    createNewInvoice?: boolean;
   }) => void;
   onNewInvoice?: () => void;
   banks?: Bank[];
@@ -280,7 +281,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
     }, 1000);
   };
 
-  const handleFinalize = () => {
+  const handleFinalize = (createNewInvoice?: boolean) => {
     // Build payment data structure
     const paymentData: {
       paymentMode: PaymentMode;
@@ -292,11 +293,13 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
       splitSafeId?: string | null;
       splitBankId?: string | null;
       bankTransactionType?: 'POS' | 'TRANSFER';
+      createNewInvoice?: boolean;
     } = {
       paymentMode,
       paymentTargetType: paymentMode === 'split' ? null : (paymentMode === 'safe' ? 'safe' : 'bank'),
       paymentTargetId: paymentMode === 'split' ? null : (paymentMode === 'safe' ? selectedSafeId : selectedBankId),
       isSplitPayment: paymentMode === 'split',
+      createNewInvoice,
     };
 
     if (paymentMode === 'split') {
@@ -315,13 +318,8 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
   const handleNewInvoice = () => {
     // Close the modal immediately to prevent it from reopening
     onClose();
-    // Finalize the current payment
-    handleFinalize();
-    // Create a new invoice after payment is finalized
-    // Use a small delay to ensure payment processing completes
-    setTimeout(() => {
-      onNewInvoice?.();
-    }, 200);
+    // Finalize the current payment with createNewInvoice flag
+    handleFinalize(true);
   };
 
   // Get selected safe/bank names
