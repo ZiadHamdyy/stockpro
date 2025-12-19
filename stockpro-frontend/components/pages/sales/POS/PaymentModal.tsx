@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import type { InvoiceItem, User, Safe } from '../../../../types';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import type { InvoiceItem, User, Safe, CompanyInfo, PrintSettings } from '../../../../types';
 import { 
   XIcon, 
   PrintIcon, 
@@ -13,6 +13,8 @@ import {
   ChevronRightIcon,
 } from '../../../icons';
 import { formatNumber } from '../../../../utils/formatting';
+import { loadPrintSettings } from '../../../../utils/printSettingsStorage';
+import { useGetCompanyQuery } from '../../../store/slices/companyApiSlice';
 
 // Simple icon components for missing icons
 const DeleteIcon: React.FC<{ className?: string }> = ({ className = "w-6 h-6" }) => (
@@ -97,6 +99,36 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
   const [showReceipt, setShowReceipt] = useState(false);
   const [transactionId, setTransactionId] = useState('');
   const [splitAssignTarget, setSplitAssignTarget] = useState<'cash' | 'bank' | null>(null);
+
+  // Get company info
+  const { data: company } = useGetCompanyQuery();
+  const companyInfo: CompanyInfo = useMemo(() => ({
+    name: company?.name ?? "",
+    activity: company?.activity ?? "",
+    address: company?.address ?? "",
+    phone: company?.phone ?? "",
+    taxNumber: company?.taxNumber ?? "",
+    commercialReg: (company as any)?.commercialReg ?? "",
+    currency: company?.currency ?? "SAR",
+    logo: (company as any)?.logo ?? null,
+    capital: (company as any)?.capital ?? 0,
+    vatRate: company?.vatRate ?? 0,
+    isVatEnabled: company?.isVatEnabled ?? false,
+  }), [company]);
+
+  // Load print settings
+  const printSettings: PrintSettings = useMemo(() => {
+    const loaded = loadPrintSettings();
+    return loaded || {
+      template: "thermal",
+      showLogo: true,
+      showTaxNumber: true,
+      showAddress: true,
+      headerText: "فاتورة ضريبية مبسطة",
+      footerText: "شكراً لتعاملكم معنا",
+      termsText: "",
+    };
+  }, []);
 
   // Calculations
   const totalAmount = Math.abs(total);
@@ -278,13 +310,179 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
     onComplete(paymentData);
   };
 
+  // Get selected safe/bank names
+  const selectedSafe = filteredSafes.find(s => s.id === selectedSafeId);
+  const selectedBank = banks.find(b => b.id?.toString() === selectedBankId);
+  const splitSafe = filteredSafes.find(s => s.id === splitSafeId);
+  const splitBank = banks.find(b => b.id?.toString() === splitBankId);
+
+  const handlePrint = () => {
+    const printWindow = window.open("", "", "height=800,width=800");
+    if (!printWindow) return;
+
+    const thermalReceiptHTML = `
+      <html>
+      <head>
+        <title>إيصال</title>
+        <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet">
+        <style>
+          @page { size: 80mm auto; margin: 0; }
+          body { 
+            font-family: 'Courier New', 'Cairo', monospace; 
+            direction: rtl; 
+            margin: 0 auto; 
+            padding: 5px; 
+            font-size: 12px; 
+            width: 78mm; 
+            -webkit-print-color-adjust: exact;
+            box-sizing: border-box;
+          }
+          * { box-sizing: border-box; }
+          .header { text-align: center; border-bottom: 2px dashed #000; padding-bottom: 10px; margin-bottom: 10px; }
+          .logo { max-width: 60px; margin-bottom: 5px; filter: grayscale(100%); }
+          .info-row { display: flex; justify-content: space-between; margin-bottom: 2px; }
+          .items-table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+          .items-table th { border-bottom: 1px solid #000; text-align: center; font-size: 11px; font-weight: bold; }
+          .items-table td { padding: 4px 0; font-size: 11px; }
+          .totals { margin-top: 10px; border-top: 2px dashed #000; padding-top: 5px; }
+          .total-row { display: flex; justify-content: space-between; font-weight: bold; font-size: 16px; margin-top: 5px; }
+          .footer { text-align: center; margin-top: 10px; font-size: 10px; border-top: 1px solid #000; padding-top: 5px; }
+          .payment-breakdown { margin-top: 10px; border-top: 1px dashed #000; padding-top: 5px; }
+          .payment-row { display: flex; justify-content: space-between; margin-bottom: 2px; font-size: 11px; }
+        </style>
+      </head>
+      <body>
+        <div class="header">
+          ${printSettings.showLogo && companyInfo.logo ? `<img src="${companyInfo.logo}" class="logo" alt="Logo" />` : ''}
+          <div style="font-size: 16px; font-weight: bold;">${companyInfo.name || 'POS ROYAL'}</div>
+          ${printSettings.showAddress ? `
+            ${companyInfo.address ? `<div>${companyInfo.address}</div>` : ''}
+            ${companyInfo.phone ? `<div>${companyInfo.phone}</div>` : ''}
+          ` : ''}
+          ${printSettings.showTaxNumber && companyInfo.taxNumber ? `<div>الرقم الضريبي: ${companyInfo.taxNumber}</div>` : ''}
+        </div>
+        <div style="text-align: center; margin-bottom: 10px; font-weight: bold; font-size: 14px; border: 1px solid #000; padding: 5px;">
+          ${printSettings.headerText || 'فاتورة ضريبية مبسطة'}
+        </div>
+        <div class="info-row">
+          <span>رقم الفاتورة:</span>
+          <span>#${transactionId}</span>
+        </div>
+        <div class="info-row">
+          <span>التاريخ:</span>
+          <span>${new Date().toLocaleString('ar-SA')}</span>
+        </div>
+        <div class="info-row">
+          <span>الموظف:</span>
+          <span>${currentUser?.name || 'غير محدد'}</span>
+        </div>
+        <table class="items-table">
+          <thead>
+            <tr>
+              <th style="text-align: right;">الصنف</th>
+              <th style="width: 20px;">ك</th>
+              <th>سعر</th>
+              <th>مجموع</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${cartItems.map((item) => `
+              <tr>
+                <td style="text-align: right;">${item.name}</td>
+                <td style="text-align: center;">${item.qty}</td>
+                <td style="text-align: center;">${formatNumber(Math.abs(item.price))}</td>
+                <td style="text-align: center;">${formatNumber(Math.abs(item.total))}</td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+        <div class="totals">
+          <div class="info-row">
+            <span>المجموع:</span>
+            <span>${formatNumber(subtotal)}</span>
+          </div>
+          ${tax > 0 && companyInfo.isVatEnabled ? `
+            <div class="info-row">
+              <span>الضريبة (${companyInfo.vatRate}%):</span>
+              <span>${formatNumber(tax)}</span>
+            </div>
+          ` : ''}
+          <div class="total-row">
+            <span>الصافي:</span>
+            <span>${formatNumber(totalAmount)}</span>
+          </div>
+        </div>
+        ${paymentMode === 'split' ? `
+          <div class="payment-breakdown">
+            <div class="payment-row">
+              <span>نقدي - ${splitSafe?.name || 'الخزنة'}:</span>
+              <span>${formatNumber(splitCashAmount)}</span>
+            </div>
+            <div class="payment-row">
+              <span>بنك - ${splitBank?.name || 'البنك'}:</span>
+              <span>${formatNumber(splitBankAmount)}</span>
+            </div>
+          </div>
+        ` : ''}
+        ${paymentMode === 'safe' ? `
+          <div class="payment-breakdown">
+            <div class="payment-row">
+              <span>طريقة الدفع:</span>
+              <span>نقدي - ${selectedSafe?.name || 'الخزنة'}</span>
+            </div>
+          </div>
+        ` : ''}
+        ${paymentMode === 'bank' ? `
+          <div class="payment-breakdown">
+            <div class="payment-row">
+              <span>طريقة الدفع:</span>
+              <span>بنك - ${selectedBank?.name || 'البنك'}</span>
+            </div>
+            <div class="payment-row">
+              <span>نوع المعاملة:</span>
+              <span>${bankTransactionType === 'POS' ? 'نقاط بيع' : 'تحويل'}</span>
+            </div>
+          </div>
+        ` : ''}
+        ${printSettings.footerText ? `
+          <div class="footer">
+            <div>${printSettings.footerText}</div>
+          </div>
+        ` : ''}
+      </body>
+      </html>
+    `;
+
+    printWindow.document.write(thermalReceiptHTML);
+    printWindow.document.close();
+    printWindow.focus();
+
+    setTimeout(() => {
+      printWindow.print();
+      printWindow.close();
+    }, 500);
+  };
+
   // Keyboard shortcuts
   useEffect(() => {
     if (!isOpen) return;
 
     const handleKeyDown = (e: KeyboardEvent) => {
       if (showReceipt) {
-        if (e.key === 'Enter' || e.key === 'Escape') {
+        // F3: New invoice
+        if (e.key === 'F3') {
+          e.preventDefault();
+          handleFinalize();
+          return;
+        }
+        // Enter: Print
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          handlePrint();
+          return;
+        }
+        // Escape: Finalize (close and complete)
+        if (e.key === 'Escape') {
           e.preventDefault();
           handleFinalize();
         }
@@ -351,13 +549,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, showReceipt, paymentMode, selectedSafeId, selectedBankId, splitSafeId, splitBankId, splitCashAmount, splitBankAmount, totalAmount, currentInput, handleAssignToSafe, handleAssignToBank]);
-
-  // Get selected safe/bank names
-  const selectedSafe = filteredSafes.find(s => s.id === selectedSafeId);
-  const selectedBank = banks.find(b => b.id?.toString() === selectedBankId);
-  const splitSafe = filteredSafes.find(s => s.id === splitSafeId);
-  const splitBank = banks.find(b => b.id?.toString() === splitBankId);
+  }, [isOpen, showReceipt, paymentMode, selectedSafeId, selectedBankId, splitSafeId, splitBankId, splitCashAmount, splitBankAmount, totalAmount, currentInput, handleAssignToSafe, handleAssignToBank, printSettings, companyInfo, transactionId, currentUser, cartItems, subtotal, tax, bankTransactionType, filteredSafes, banks, handlePrint, handleFinalize, handleProcessPayment, handleNumClick, handleBackspace, handleClearInput]);
 
   // Check if payment is ready
   const isPaymentReady = 
@@ -370,38 +562,128 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
   return (
     <div className="fixed inset-0 bg-royal-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-2 sm:p-6 font-sans">
       
-      {/* Receipt for Printing */}
+      {/* Receipt for Printing - Thermal Format */}
       <div id="printable-receipt" className="hidden">
-        <div className="text-center mb-4">
-          <h1 className="text-xl font-bold">POS ROYAL</h1>
-          <p>فاتورة ضريبية مبسطة</p>
-          <p>رقم: #{transactionId}</p>
-          <p>{new Date().toLocaleString('ar-SA')}</p>
+        <style>{`
+          @media print {
+            @page { size: 80mm auto; margin: 0; }
+            body { width: 78mm; margin: 0 auto; padding: 5px; font-size: 12px; font-family: 'Courier New', 'Cairo', monospace; }
+            .header { text-align: center; border-bottom: 2px dashed #000; padding-bottom: 10px; margin-bottom: 10px; }
+            .logo { max-width: 60px; margin-bottom: 5px; filter: grayscale(100%); }
+            .info-row { display: flex; justify-content: space-between; margin-bottom: 2px; }
+            .items-table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+            .items-table th { border-bottom: 1px solid #000; text-align: center; font-size: 11px; font-weight: bold; }
+            .items-table td { padding: 4px 0; font-size: 11px; }
+            .totals { margin-top: 10px; border-top: 2px dashed #000; padding-top: 5px; }
+            .total-row { display: flex; justify-content: space-between; font-weight: bold; font-size: 16px; margin-top: 5px; }
+            .footer { text-align: center; margin-top: 10px; font-size: 10px; border-top: 1px solid #000; padding-top: 5px; }
+            .payment-breakdown { margin-top: 10px; border-top: 1px dashed #000; padding-top: 5px; }
+            .payment-row { display: flex; justify-content: space-between; margin-bottom: 2px; font-size: 11px; }
+          }
+        `}</style>
+        <div className="header">
+          {printSettings.showLogo && companyInfo.logo ? (
+            <img src={companyInfo.logo} className="logo" alt="Logo" />
+          ) : null}
+          <div style={{ fontSize: '16px', fontWeight: 'bold' }}>{companyInfo.name || 'POS ROYAL'}</div>
+          {printSettings.showAddress ? (
+            <>
+              {companyInfo.address ? <div>{companyInfo.address}</div> : null}
+              {companyInfo.phone ? <div>{companyInfo.phone}</div> : null}
+            </>
+          ) : null}
+          {printSettings.showTaxNumber && companyInfo.taxNumber ? (
+            <div>الرقم الضريبي: {companyInfo.taxNumber}</div>
+          ) : null}
         </div>
-        <div className="w-full text-left border-t border-b border-black py-2">
-          {cartItems.map((item) => (
-            <div key={item.id} className="flex justify-between text-sm">
-              <span>{item.name}</span>
-              <span>{formatNumber(Math.abs(item.total))}</span>
+        <div style={{ textAlign: 'center', marginBottom: '10px', fontWeight: 'bold', fontSize: '14px', border: '1px solid #000', padding: '5px' }}>
+          {printSettings.headerText || 'فاتورة ضريبية مبسطة'}
+        </div>
+        <div className="info-row">
+          <span>رقم الفاتورة:</span>
+          <span>#{transactionId}</span>
+        </div>
+        <div className="info-row">
+          <span>التاريخ:</span>
+          <span>{new Date().toLocaleString('ar-SA')}</span>
+        </div>
+        <div className="info-row">
+          <span>الموظف:</span>
+          <span>{currentUser?.name || 'غير محدد'}</span>
+        </div>
+        <table className="items-table">
+          <thead>
+            <tr>
+              <th style={{ textAlign: 'right' }}>الصنف</th>
+              <th style={{ width: '20px' }}>ك</th>
+              <th>سعر</th>
+              <th>مجموع</th>
+            </tr>
+          </thead>
+          <tbody>
+            {cartItems.map((item) => (
+              <tr key={item.id}>
+                <td style={{ textAlign: 'right' }}>{item.name}</td>
+                <td style={{ textAlign: 'center' }}>{item.qty}</td>
+                <td style={{ textAlign: 'center' }}>{formatNumber(Math.abs(item.price))}</td>
+                <td style={{ textAlign: 'center' }}>{formatNumber(Math.abs(item.total))}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+        <div className="totals">
+          <div className="info-row">
+            <span>المجموع:</span>
+            <span>{formatNumber(subtotal)}</span>
+          </div>
+          {tax > 0 && companyInfo.isVatEnabled ? (
+            <div className="info-row">
+              <span>الضريبة ({companyInfo.vatRate}%):</span>
+              <span>{formatNumber(tax)}</span>
             </div>
-          ))}
-        </div>
-        <div className="flex justify-between font-bold mt-2">
-          <span>المجموع</span>
-          <span>{formatNumber(totalAmount)}</span>
+          ) : null}
+          <div className="total-row">
+            <span>الصافي:</span>
+            <span>{formatNumber(totalAmount)}</span>
+          </div>
         </div>
         {paymentMode === 'split' && (
-          <div className="mt-2 border-t pt-2">
-            <div className="flex justify-between text-xs">
-              <span>نقدي - {splitSafe?.name}</span>
+          <div className="payment-breakdown">
+            <div className="payment-row">
+              <span>نقدي - {splitSafe?.name || 'الخزنة'}:</span>
               <span>{formatNumber(splitCashAmount)}</span>
             </div>
-            <div className="flex justify-between text-xs">
-              <span>بنك - {splitBank?.name}</span>
+            <div className="payment-row">
+              <span>بنك - {splitBank?.name || 'البنك'}:</span>
               <span>{formatNumber(splitBankAmount)}</span>
             </div>
           </div>
         )}
+        {paymentMode === 'safe' && (
+          <div className="payment-breakdown">
+            <div className="payment-row">
+              <span>طريقة الدفع:</span>
+              <span>نقدي - {selectedSafe?.name || 'الخزنة'}</span>
+            </div>
+          </div>
+        )}
+        {paymentMode === 'bank' && (
+          <div className="payment-breakdown">
+            <div className="payment-row">
+              <span>طريقة الدفع:</span>
+              <span>بنك - {selectedBank?.name || 'البنك'}</span>
+            </div>
+            <div className="payment-row">
+              <span>نوع المعاملة:</span>
+              <span>{bankTransactionType === 'POS' ? 'نقاط بيع' : 'تحويل'}</span>
+            </div>
+          </div>
+        )}
+        {printSettings.footerText ? (
+          <div className="footer">
+            <div>{printSettings.footerText}</div>
+          </div>
+        ) : null}
       </div>
 
       {/* Main UI */}
@@ -799,17 +1081,17 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
 
           <div className="flex gap-3">
             <button 
-              onClick={() => window.print()}
+              onClick={handlePrint}
               className="flex-1 py-3 bg-royal-100 text-royal-900 rounded-xl font-bold hover:bg-royal-200 transition flex items-center justify-center gap-2"
             >
               <PrintIcon className="w-5 h-5" />
-              <span>طباعة</span>
+              <span>طباعة (Enter)</span>
             </button>
             <button 
               onClick={handleFinalize}
               className="flex-1 py-3 bg-royal-900 text-white rounded-xl font-bold hover:bg-royal-800 transition"
             >
-              فاتورة جديدة (Enter)
+              فاتورة جديدة (F3)
             </button>
           </div>
         </div>
