@@ -241,6 +241,7 @@ const getDefaultEpsonSettings = (): EpsonSettings => ({
         footerText: true,
         tafqeet: true,
     },
+    columnOrder: ['itemCode', 'itemName', 'itemQty', 'itemPrice', 'itemTaxable', 'itemDiscount', 'itemTaxRate', 'itemTax', 'itemTotal'],
 });
 
 const PrintSettings: React.FC<PrintSettingsProps> = ({ title, settings, onSave }) => {
@@ -564,6 +565,58 @@ const PrintSettings: React.FC<PrintSettingsProps> = ({ title, settings, onSave }
                                                     />
                                                 </div>
                                             ))}
+                                        </div>
+                                    </div>
+
+                                    {/* Column Order Controls */}
+                                    <div className="mt-8 border-b border-gray-200 pb-6">
+                                        <h3 className="text-lg font-bold text-gray-700 mb-4">ترتيب أعمدة الأصناف</h3>
+                                        <div className="space-y-2">
+                                            {(epson.columnOrder || getDefaultEpsonSettings().columnOrder || []).map((col, index) => {
+                                                const columnLabels: Record<string, string> = {
+                                                    itemCode: 'كود الصنف',
+                                                    itemName: 'اسم الصنف',
+                                                    itemQty: 'الكمية',
+                                                    itemPrice: 'السعر',
+                                                    itemTaxable: 'قبل الضريبة',
+                                                    itemDiscount: 'الخصم',
+                                                    itemTaxRate: 'نسبة الضريبة',
+                                                    itemTax: 'الضريبة',
+                                                    itemTotal: 'الإجمالي',
+                                                };
+                                                return (
+                                                    <div key={index} className="flex items-center gap-2 p-3 bg-gray-50 rounded-lg border border-gray-200">
+                                                        <button
+                                                            onClick={() => {
+                                                                if (index > 0) {
+                                                                    const newOrder = [...(epson.columnOrder || getDefaultEpsonSettings().columnOrder || [])];
+                                                                    [newOrder[index - 1], newOrder[index]] = [newOrder[index], newOrder[index - 1]];
+                                                                    handleEpsonSettingsChange(['columnOrder'], newOrder);
+                                                                }
+                                                            }}
+                                                            disabled={index === 0}
+                                                            className={`px-3 py-1 rounded ${index === 0 ? 'bg-gray-200 text-gray-400 cursor-not-allowed' : 'bg-blue-500 text-white hover:bg-blue-600'} transition-colors`}
+                                                        >
+                                                            ← يسار
+                                                        </button>
+                                                        <span className="flex-1 text-sm font-semibold text-gray-700">{columnLabels[col] || col}</span>
+                                                        <button
+                                                            onClick={() => {
+                                                                const currentOrder = epson.columnOrder || getDefaultEpsonSettings().columnOrder || [];
+                                                                if (index < currentOrder.length - 1) {
+                                                                    const newOrder = [...currentOrder];
+                                                                    [newOrder[index], newOrder[index + 1]] = [newOrder[index + 1], newOrder[index]];
+                                                                    handleEpsonSettingsChange(['columnOrder'], newOrder);
+                                                                }
+                                                            }}
+                                                            disabled={index === (epson.columnOrder || getDefaultEpsonSettings().columnOrder || []).length - 1}
+                                                            className={`px-3 py-1 rounded ${index === (epson.columnOrder || getDefaultEpsonSettings().columnOrder || []).length - 1 ? 'bg-gray-200 text-gray-400 cursor-not-allowed' : 'bg-blue-500 text-white hover:bg-blue-600'} transition-colors`}
+                                                        >
+                                                            يمين →
+                                                        </button>
+                                                    </div>
+                                                );
+                                            })}
                                         </div>
                                     </div>
 

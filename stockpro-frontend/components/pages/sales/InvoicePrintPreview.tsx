@@ -140,6 +140,7 @@ const InvoicePrintPreview: React.FC<InvoicePrintPreviewProps> = ({
       footerText: true,
       tafqeet: true,
     },
+    columnOrder: ['itemCode', 'itemName', 'itemQty', 'itemPrice', 'itemTaxable', 'itemDiscount', 'itemTaxRate', 'itemTax', 'itemTotal'],
   });
 
   const settings: PrintSettings = (() => {
@@ -317,6 +318,46 @@ const InvoicePrintPreview: React.FC<InvoicePrintPreviewProps> = ({
       return visibility[key] !== false; // Default to true if not set
     };
 
+    const renderItemColumn = (colType: string, item: any) => {
+      const columnWidths: Record<string, string> = {
+        itemCode: '5%',
+        itemName: '30%',
+        itemQty: '8%',
+        itemPrice: '',
+        itemTaxable: '',
+        itemDiscount: '',
+        itemTaxRate: '',
+        itemTax: '',
+        itemTotal: '',
+      };
+      const width = columnWidths[colType] ? `width: ${columnWidths[colType]};` : '';
+      
+      switch (colType) {
+        case 'itemCode':
+          return `<td style="text-align: ${getAlignment('itemName')}; ${width}">${item.id}</td>`;
+        case 'itemName':
+          return getVisibility('itemName') ? `<td style="text-align: ${getAlignment('itemName')}; ${getPosition('itemName')}; ${width}">${item.name}</td>` : '';
+        case 'itemQty':
+          return getVisibility('itemQty') ? `<td style="text-align: ${getAlignment('itemQty')}; ${getPosition('itemQty')}; ${width}">${item.qty}</td>` : '';
+        case 'itemPrice':
+          return getVisibility('itemPrice') ? `<td style="text-align: ${getAlignment('itemPrice')}; ${getPosition('itemPrice')}; ${width}">${item.price.toFixed(2)}</td>` : '';
+        case 'itemTaxable':
+          return getVisibility('itemTaxable') ? `<td style="text-align: ${getAlignment('itemTaxable')}; ${getPosition('itemTaxable')}; ${width}">${(item.price * item.qty).toFixed(2)}</td>` : '';
+        case 'itemDiscount':
+          return getVisibility('itemDiscount') ? `<td style="text-align: ${getAlignment('itemDiscount')}; ${getPosition('itemDiscount')}; ${width}">0.00</td>` : '';
+        case 'itemTaxRate':
+          return getVisibility('itemTaxRate') ? `<td style="text-align: ${getAlignment('itemTaxRate')}; ${getPosition('itemTaxRate')}; ${width}">${isVatEnabled ? `${vatRate}%` : '0%'}</td>` : '';
+        case 'itemTax':
+          return isVatEnabled && getVisibility('itemTax') ? `<td style="text-align: ${getAlignment('itemTax')}; ${getPosition('itemTax')}; ${width}">${(item.taxAmount || 0).toFixed(2)}</td>` : '';
+        case 'itemTotal':
+          return getVisibility('itemTotal') ? `<td style="text-align: ${getAlignment('itemTotal')}; ${getPosition('itemTotal')}; ${width}">${item.total.toFixed(2)}</td>` : '';
+        default:
+          return '';
+      }
+    };
+
+    const columnOrder = epson.columnOrder || getDefaultEpsonSettings().columnOrder || ['itemCode', 'itemName', 'itemQty', 'itemPrice', 'itemTaxable', 'itemDiscount', 'itemTaxRate', 'itemTax', 'itemTotal'];
+
     return `
     <html>
     <head>
@@ -362,14 +403,7 @@ const InvoicePrintPreview: React.FC<InvoicePrintPreviewProps> = ({
             .map(
               (item) => `
             <tr>
-              ${getVisibility('itemName') ? `<td style="text-align: ${getAlignment('itemName')}; ${getPosition('itemName')}">${item.name}</td>` : ''}
-              ${getVisibility('itemQty') ? `<td style="text-align: ${getAlignment('itemQty')}; ${getPosition('itemQty')}">${item.qty}</td>` : ''}
-              ${getVisibility('itemPrice') ? `<td style="text-align: ${getAlignment('itemPrice')}; ${getPosition('itemPrice')}">${item.price.toFixed(2)}</td>` : ''}
-              ${getVisibility('itemTaxable') ? `<td style="text-align: ${getAlignment('itemTaxable')}; ${getPosition('itemTaxable')}">${(item.price * item.qty).toFixed(2)}</td>` : ''}
-              ${getVisibility('itemDiscount') ? `<td style="text-align: ${getAlignment('itemDiscount')}; ${getPosition('itemDiscount')}">0.00</td>` : ''}
-              ${getVisibility('itemTaxRate') ? `<td style="text-align: ${getAlignment('itemTaxRate')}; ${getPosition('itemTaxRate')}">${isVatEnabled ? `${vatRate}%` : '0%'}</td>` : ''}
-              ${isVatEnabled && getVisibility('itemTax') ? `<td style="text-align: ${getAlignment('itemTax')}; ${getPosition('itemTax')}">${(item.taxAmount || 0).toFixed(2)}</td>` : ''}
-              ${getVisibility('itemTotal') ? `<td style="text-align: ${getAlignment('itemTotal')}; ${getPosition('itemTotal')}">${item.total.toFixed(2)}</td>` : ''}
+              ${columnOrder.map(col => renderItemColumn(col, item)).join('')}
             </tr>
           `,
             )
@@ -1342,7 +1376,7 @@ const InvoicePrintPreview: React.FC<InvoicePrintPreviewProps> = ({
   // Update preview settings when settings change
   React.useEffect(() => {
     if (template === 'epson' && settings.epsonSettings) {
-      // Merge with defaults to ensure visibility is always present
+      // Merge with defaults to ensure visibility and columnOrder are always present
       const merged = {
         ...getDefaultEpsonSettings(),
         ...settings.epsonSettings,
@@ -1350,6 +1384,7 @@ const InvoicePrintPreview: React.FC<InvoicePrintPreviewProps> = ({
           ...getDefaultEpsonSettings().visibility,
           ...(settings.epsonSettings.visibility || {}),
         },
+        columnOrder: settings.epsonSettings.columnOrder || getDefaultEpsonSettings().columnOrder,
       };
       setEpsonPreviewSettings(merged);
     }
@@ -1382,6 +1417,46 @@ const InvoicePrintPreview: React.FC<InvoicePrintPreviewProps> = ({
       const visibility = epson.visibility || {};
       return visibility[key] !== false; // Default to true if not set
     };
+
+    const renderItemColumn = (colType: string, item: any) => {
+      const columnWidths: Record<string, string> = {
+        itemCode: '5%',
+        itemName: '30%',
+        itemQty: '8%',
+        itemPrice: '',
+        itemTaxable: '',
+        itemDiscount: '',
+        itemTaxRate: '',
+        itemTax: '',
+        itemTotal: '',
+      };
+      const width = columnWidths[colType] ? `width: ${columnWidths[colType]};` : '';
+      
+      switch (colType) {
+        case 'itemCode':
+          return `<td style="text-align: ${getAlignment('itemName')}; ${width}">${item.id}</td>`;
+        case 'itemName':
+          return getVisibility('itemName') ? `<td style="text-align: ${getAlignment('itemName')}; ${getPosition('itemName')}; ${width}">${item.name}</td>` : '';
+        case 'itemQty':
+          return getVisibility('itemQty') ? `<td style="text-align: ${getAlignment('itemQty')}; ${getPosition('itemQty')}; ${width}">${item.qty}</td>` : '';
+        case 'itemPrice':
+          return getVisibility('itemPrice') ? `<td style="text-align: ${getAlignment('itemPrice')}; ${getPosition('itemPrice')}; ${width}">${item.price.toFixed(2)}</td>` : '';
+        case 'itemTaxable':
+          return getVisibility('itemTaxable') ? `<td style="text-align: ${getAlignment('itemTaxable')}; ${getPosition('itemTaxable')}; ${width}">${(item.price * item.qty).toFixed(2)}</td>` : '';
+        case 'itemDiscount':
+          return getVisibility('itemDiscount') ? `<td style="text-align: ${getAlignment('itemDiscount')}; ${getPosition('itemDiscount')}; ${width}">0.00</td>` : '';
+        case 'itemTaxRate':
+          return getVisibility('itemTaxRate') ? `<td style="text-align: ${getAlignment('itemTaxRate')}; ${getPosition('itemTaxRate')}; ${width}">${isVatEnabled ? `${vatRate}%` : '0%'}</td>` : '';
+        case 'itemTax':
+          return isVatEnabled && getVisibility('itemTax') ? `<td style="text-align: ${getAlignment('itemTax')}; ${getPosition('itemTax')}; ${width}">${(item.taxAmount || 0).toFixed(2)}</td>` : '';
+        case 'itemTotal':
+          return getVisibility('itemTotal') ? `<td style="text-align: ${getAlignment('itemTotal')}; ${getPosition('itemTotal')}; ${width}">${item.total.toFixed(2)}</td>` : '';
+        default:
+          return '';
+      }
+    };
+
+    const columnOrder = epson.columnOrder || getDefaultEpsonSettings().columnOrder || ['itemCode', 'itemName', 'itemQty', 'itemPrice', 'itemTaxable', 'itemDiscount', 'itemTaxRate', 'itemTax', 'itemTotal'];
 
     return `
     <html>
@@ -1428,14 +1503,7 @@ const InvoicePrintPreview: React.FC<InvoicePrintPreviewProps> = ({
             .map(
               (item) => `
             <tr>
-              ${getVisibility('itemName') ? `<td style="text-align: ${getAlignment('itemName')}; ${getPosition('itemName')}">${item.name}</td>` : ''}
-              ${getVisibility('itemQty') ? `<td style="text-align: ${getAlignment('itemQty')}; ${getPosition('itemQty')}">${item.qty}</td>` : ''}
-              ${getVisibility('itemPrice') ? `<td style="text-align: ${getAlignment('itemPrice')}; ${getPosition('itemPrice')}">${item.price.toFixed(2)}</td>` : ''}
-              ${getVisibility('itemTaxable') ? `<td style="text-align: ${getAlignment('itemTaxable')}; ${getPosition('itemTaxable')}">${(item.price * item.qty).toFixed(2)}</td>` : ''}
-              ${getVisibility('itemDiscount') ? `<td style="text-align: ${getAlignment('itemDiscount')}; ${getPosition('itemDiscount')}">0.00</td>` : ''}
-              ${getVisibility('itemTaxRate') ? `<td style="text-align: ${getAlignment('itemTaxRate')}; ${getPosition('itemTaxRate')}">${isVatEnabled ? `${vatRate}%` : '0%'}</td>` : ''}
-              ${isVatEnabled && getVisibility('itemTax') ? `<td style="text-align: ${getAlignment('itemTax')}; ${getPosition('itemTax')}">${(item.taxAmount || 0).toFixed(2)}</td>` : ''}
-              ${getVisibility('itemTotal') ? `<td style="text-align: ${getAlignment('itemTotal')}; ${getPosition('itemTotal')}">${item.total.toFixed(2)}</td>` : ''}
+              ${columnOrder.map(col => renderItemColumn(col, item)).join('')}
             </tr>
           `,
             )
@@ -1572,6 +1640,8 @@ const InvoicePrintPreview: React.FC<InvoicePrintPreviewProps> = ({
             </div>
             
             <div className="space-y-4">
+              
+
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-2">
                   اختر العنصر للتعديل
@@ -1701,7 +1771,58 @@ const InvoicePrintPreview: React.FC<InvoicePrintPreviewProps> = ({
                   )}
                 </div>
               )}
-
+              {/* Column Order Controls */}
+              <div className="border-b pb-4">
+                <h4 className="text-sm font-bold text-gray-700 mb-3">ترتيب أعمدة الأصناف</h4>
+                <div className="space-y-2">
+                  {(epsonPreviewSettings.columnOrder || getDefaultEpsonSettings().columnOrder || []).map((col, index) => {
+                    const columnLabels: Record<string, string> = {
+                      itemCode: 'كود الصنف',
+                      itemName: 'اسم الصنف',
+                      itemQty: 'الكمية',
+                      itemPrice: 'السعر',
+                      itemTaxable: 'قبل الضريبة',
+                      itemDiscount: 'الخصم',
+                      itemTaxRate: 'نسبة الضريبة',
+                      itemTax: 'الضريبة',
+                      itemTotal: 'الإجمالي',
+                    };
+                    return (
+                      <div key={index} className="flex items-center gap-2 p-2 bg-gray-50 rounded border border-gray-200">
+                        <button
+                          onClick={() => {
+                            if (index > 0) {
+                              const currentOrder = epsonPreviewSettings.columnOrder || getDefaultEpsonSettings().columnOrder || [];
+                              const newOrder = [...currentOrder];
+                              [newOrder[index - 1], newOrder[index]] = [newOrder[index], newOrder[index - 1]];
+                              updateEpsonPreviewSetting(['columnOrder'], newOrder);
+                            }
+                          }}
+                          disabled={index === 0}
+                          className={`px-2 py-1 rounded text-xs ${index === 0 ? 'bg-gray-200 text-gray-400 cursor-not-allowed' : 'bg-blue-500 text-white hover:bg-blue-600'} transition-colors`}
+                        >
+                          ←
+                        </button>
+                        <span className="flex-1 text-xs font-semibold text-gray-700">{columnLabels[col] || col}</span>
+                        <button
+                          onClick={() => {
+                            const currentOrder = epsonPreviewSettings.columnOrder || getDefaultEpsonSettings().columnOrder || [];
+                            if (index < currentOrder.length - 1) {
+                              const newOrder = [...currentOrder];
+                              [newOrder[index], newOrder[index + 1]] = [newOrder[index + 1], newOrder[index]];
+                              updateEpsonPreviewSetting(['columnOrder'], newOrder);
+                            }
+                          }}
+                          disabled={index === (epsonPreviewSettings.columnOrder || getDefaultEpsonSettings().columnOrder || []).length - 1}
+                          className={`px-2 py-1 rounded text-xs ${index === (epsonPreviewSettings.columnOrder || getDefaultEpsonSettings().columnOrder || []).length - 1 ? 'bg-gray-200 text-gray-400 cursor-not-allowed' : 'bg-blue-500 text-white hover:bg-blue-600'} transition-colors`}
+                        >
+                          →
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
               <div className="border-t pt-4">
                 <button
                   onClick={handleSaveEpsonPreview}

@@ -412,6 +412,7 @@ export interface EpsonSettings {
     footerText?: boolean;
     tafqeet?: boolean;
   };
+  columnOrder?: string[]; // Order of item columns: ['itemCode', 'itemName', 'itemQty', 'itemPrice', ...]
 }
 
 export interface PrintSettings {
