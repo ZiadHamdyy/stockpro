@@ -478,19 +478,27 @@ const POS: React.FC<POSProps> = () => {
 
   const handleCloseTab = (e: React.MouseEvent, tabId: number) => {
     e.stopPropagation();
-    if (tabs.length === 1) {
-      if (confirm('هل تريد مسح الفاتورة الحالية؟')) {
-         setTabs(prev => prev.map(t => ({ ...t, items: [] })));
-         setAiInsight(null);
-      }
-      return;
-    }
-
     const newTabs = tabs.filter(t => t.id !== tabId);
-    setTabs(newTabs);
     
-    if (activeTabId === tabId) {
-      setActiveTabId(newTabs[newTabs.length - 1].id);
+    if (newTabs.length === 0) {
+      // All tabs closed - create a new empty one (start from beginning)
+      const newTab: InvoiceTab = {
+        id: 1,
+        name: 'فاتورة 1',
+        items: [],
+        timestamp: new Date()
+      };
+      setTabs([newTab]);
+      setActiveTabId(1);
+      setNextTabId(2);
+      setAiInsight(null);
+    } else {
+      // Switch to another tab
+      setTabs(newTabs);
+      if (activeTabId === tabId) {
+        // If we closed the active tab, switch to the last tab in the list
+        setActiveTabId(newTabs[newTabs.length - 1].id);
+      }
     }
   };
 
@@ -670,12 +678,37 @@ const POS: React.FC<POSProps> = () => {
       if (e.key === 'F9') if (cartItems.length > 0) { 
         if(confirm('حذف السطر الأخير؟')) removeFromCart(cartItems[cartItems.length-1].id); 
       }
-      if (e.key === 'Escape') setPaymentModalOpen(false);
+      if (e.key === 'Escape') {
+        if (isPaymentModalOpen) {
+          setPaymentModalOpen(false);
+        } else {
+          // Close current tab logic
+          const newTabs = tabs.filter(t => t.id !== activeTabId);
+          
+          if (newTabs.length === 0) {
+            // All tabs closed - create a new empty one (start from beginning)
+            const newTab: InvoiceTab = {
+              id: 1,
+              name: 'فاتورة 1',
+              items: [],
+              timestamp: new Date()
+            };
+            setTabs([newTab]);
+            setActiveTabId(1);
+            setNextTabId(2);
+            setAiInsight(null);
+          } else {
+            // Switch to another tab
+            setTabs(newTabs);
+            setActiveTabId(newTabs[newTabs.length - 1].id);
+          }
+        }
+      }
     };
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [cartItems, activeTabId, tabs, totals, isPaymentModalOpen]);
+  }, [cartItems, activeTabId, tabs, totals, isPaymentModalOpen, nextTabId]);
 
   return (
     <div className="flex flex-col h-screen bg-royal-50 font-sans text-sm overflow-hidden -m-6">
