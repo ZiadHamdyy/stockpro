@@ -426,7 +426,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
             {/* Big Display Screen */}
             <div className="p-5 rounded-2xl shadow-lg mb-2 relative overflow-hidden flex flex-col justify-between h-40 border-b-4 bg-royal-900 border-gold-500 transition-all duration-300">
               {paymentMode === 'split' ? (
-                // Split Payment Display
+                // Split Payment Display - Full details
                 <>
                   <div className="flex justify-between items-start z-10">
                     <div className="flex flex-col text-white">
@@ -467,33 +467,13 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
                   </div>
                 </>
               ) : (
-                // Regular Payment Display
-                <>
-                  <div className="flex justify-between items-start z-10">
-                    <div className="flex flex-col text-white">
-                      <span className="text-white/70 text-xs font-bold uppercase">المطلوب (الإجمالي)</span>
-                      <span className="text-2xl font-bold">{formatNumber(totalAmount)}</span>
-                    </div>
-                    
-                    <div className="flex flex-col items-end">
-                      <span className="text-xs font-bold uppercase text-white">
-                        المبلغ المدخل
-                      </span>
-                      <span className="text-5xl font-mono font-bold tracking-wider text-white">
-                        {currentInput || '0.00'}
-                      </span>
-                    </div>
+                // Bank/Safe Payment Display - Simple, only show total
+                <div className="flex items-center justify-center h-full">
+                  <div className="flex flex-col items-center text-white">
+                    <span className="text-white/70 text-xs font-bold uppercase mb-2">المطلوب (الإجمالي)</span>
+                    <span className="text-6xl font-mono font-bold tracking-wider">{formatNumber(totalAmount)}</span>
                   </div>
-                  
-                  <div className="flex justify-between items-end z-10 mt-2">
-                    <div className="text-white/50 text-xs">
-                      {currentInput ? 'المبلغ المدخل...' : 'اضغط Enter لإتمام الدفع'}
-                    </div>
-                    <div className="text-5xl font-mono font-bold tracking-widest text-gold-400">
-                      {currentInput || <span className="opacity-30 text-2xl align-middle">0.00</span>}
-                    </div>
-                  </div>
-                </>
+                </div>
               )}
             </div>
 
@@ -637,20 +617,22 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
               </div>
             </div>
 
-            {/* Numpad */}
-            <div className="h-48 grid grid-cols-4 gap-2">
-              <div className="flex flex-col gap-2">
-                {[5, 10, 50, 100, 500].map(amt => (
-                  <button key={amt} onClick={() => setCurrentInput(amt.toString())} className="flex-1 bg-royal-100 text-royal-800 font-bold rounded-lg hover:bg-royal-200 transition-colors shadow-sm text-lg">{amt}</button>
-                ))}
+            {/* Numpad - Only shown in split mode */}
+            {paymentMode === 'split' && (
+              <div className="h-48 grid grid-cols-4 gap-2">
+                <div className="flex flex-col gap-2">
+                  {[5, 10, 50, 100, 500].map(amt => (
+                    <button key={amt} onClick={() => setCurrentInput(amt.toString())} className="flex-1 bg-royal-100 text-royal-800 font-bold rounded-lg hover:bg-royal-200 transition-colors shadow-sm text-lg">{amt}</button>
+                  ))}
+                </div>
+                <div className="col-span-3 grid grid-cols-3 gap-2">
+                  {[1,2,3,4,5,6,7,8,9, '.', 0].map(n => (
+                    <button key={n} onClick={() => handleNumClick(n.toString())} className="bg-white text-royal-900 text-3xl font-bold rounded-lg border border-royal-200 hover:bg-royal-50 shadow-sm transition-colors active:bg-royal-200">{n}</button>
+                  ))}
+                  <button onClick={handleBackspace} onDoubleClick={handleClearInput} className="bg-red-50 text-red-500 rounded-lg hover:bg-red-100 flex items-center justify-center transition-colors shadow-sm active:bg-red-200"><DeleteIcon className="w-8 h-8" /></button>
+                </div>
               </div>
-              <div className="col-span-3 grid grid-cols-3 gap-2">
-                {[1,2,3,4,5,6,7,8,9, '.', 0].map(n => (
-                  <button key={n} onClick={() => handleNumClick(n.toString())} className="bg-white text-royal-900 text-3xl font-bold rounded-lg border border-royal-200 hover:bg-royal-50 shadow-sm transition-colors active:bg-royal-200">{n}</button>
-                ))}
-                <button onClick={handleBackspace} onDoubleClick={handleClearInput} className="bg-red-50 text-red-500 rounded-lg hover:bg-red-100 flex items-center justify-center transition-colors shadow-sm active:bg-red-200"><DeleteIcon className="w-8 h-8" /></button>
-              </div>
-            </div>
+            )}
           </div>
 
           {/* Right Side: Payment Mode Buttons */}
