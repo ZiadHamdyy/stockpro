@@ -1856,6 +1856,9 @@ const LiquidityReport: React.FC<LiquidityReportProps> = ({ title }) => {
             
             <div id="printable-area">
                 <ReportHeader title={title} />
+                <div className="text-right mb-2">
+                    <span className="font-semibold text-gray-800">التاريخ:</span> {new Date().toLocaleDateString('ar-EG', { year: 'numeric', month: 'long', day: 'numeric' })}
+                </div>
                 <div className="flex justify-end items-center mb-2 no-print">
                 <PermissionWrapper
                     requiredPermission={buildPermission(
@@ -1933,32 +1936,32 @@ const LiquidityReport: React.FC<LiquidityReportProps> = ({ title }) => {
             {/* Detailed Breakdown */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                 <div className="border rounded-xl overflow-hidden">
-                    <div className="bg-blue-50 p-4 border-b border-blue-100 flex justify-between items-center">
-                        <h3 className="font-bold text-blue-800">الأصول المتداولة (Current Assets)</h3>
-                        <span className="font-mono font-bold text-blue-700 text-lg">{formatNumber(analysis.currentAssets)}</span>
+                    <div className="bg-blue-50 p-3 border-b border-blue-100 flex justify-between items-center">
+                        <h3 className="font-bold text-blue-800 text-sm">الأصول المتداولة (Current Assets)</h3>
+                        <span className="font-mono font-bold text-blue-700 text-base">{formatNumber(analysis.currentAssets)}</span>
                     </div>
-                    <div className="p-4 space-y-2">
-                        <div className="flex justify-between text-sm border-b border-gray-100 pb-2">
+                    <div className="p-3 space-y-1.5">
+                        <div className="flex justify-between text-xs border-b border-gray-100 pb-1">
                             <span className="text-gray-600">النقدية بالخزينة</span>
                             <span className="font-bold">{formatNumber(analysis.totalCash)}</span>
                         </div>
-                        <div className="flex justify-between text-sm border-b border-gray-100 pb-2">
+                        <div className="flex justify-between text-xs border-b border-gray-100 pb-1">
                             <span className="text-gray-600">الأرصدة البنكية</span>
                             <span className="font-bold">{formatNumber(analysis.totalBank)}</span>
                         </div>
-                        <div className="flex justify-between text-sm border-b border-gray-100 pb-2">
+                        <div className="flex justify-between text-xs border-b border-gray-100 pb-1">
                             <span className="text-gray-600">الذمم المدينة (العملاء)</span>
                             <span className="font-bold">{formatNumber(analysis.totalReceivables)}</span>
                         </div>
-                        <div className="flex justify-between text-sm border-b border-gray-100 pb-2">
+                        <div className="flex justify-between text-xs border-b border-gray-100 pb-1">
                             <span className="text-gray-600">أرصدة مدينة أخرى</span>
                             <span className="font-bold">{formatNumber(analysis.totalOtherReceivables)}</span>
                         </div>
-                        <div className="flex justify-between text-sm pb-2">
+                        <div className="flex justify-between text-xs pb-1">
                             <span className="text-gray-600">قيمة المخزون (بسعر الشراء)</span>
                             <span className="font-bold">{formatNumber(analysis.totalInventory)}</span>
                         </div>
-                        <div className="flex justify-between text-sm pb-2">
+                        <div className="flex justify-between text-xs pb-1">
                             <span className="text-gray-600">ضريبة القيمة المضافة المدفوعة</span>
                             <span className="font-bold">{formatNumber(analysis.vatAsset)}</span>
                         </div>
