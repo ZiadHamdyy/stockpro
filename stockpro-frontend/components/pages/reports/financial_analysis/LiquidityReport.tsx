@@ -1783,9 +1783,11 @@ const LiquidityReport: React.FC<LiquidityReportProps> = ({ title }) => {
                     
                     /* Borders */
                     .border { border-width: 1px !important; }
+                    .border-2 { border-width: 2px !important; }
                     .border-l-8 { border-left-width: 2rem !important; }
                     .border-b { border-bottom-width: 1px !important; }
                     .border-t { border-top-width: 1px !important; }
+                    .border-brand-blue { border-color: #1E40AF !important; }
                     .rounded { border-radius: 0.25rem !important; }
                     .rounded-full { border-radius: 9999px !important; }
                     .rounded-xl { border-radius: 0.75rem !important; }

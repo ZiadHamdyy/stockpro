@@ -168,6 +168,9 @@ const StagnantItemsReport: React.FC<StagnantItemsReportProps> = ({ title }) => {
         <div className="bg-white p-6 rounded-lg shadow">
             <div id="printable-area">
                 <ReportHeader title={title} />
+                <div className="text-right mb-2">
+                    <span className="font-semibold text-gray-800">التاريخ:</span> {new Date().toLocaleDateString('ar-EG', { year: 'numeric', month: 'long', day: 'numeric' })}
+                </div>
                 
                 <div className="flex justify-between items-center my-6 bg-gray-50 p-4 rounded-lg border border-gray-200 no-print">
                     <div className="flex flex-wrap items-center gap-4">
