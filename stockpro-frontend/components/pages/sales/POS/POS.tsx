@@ -743,10 +743,10 @@ const POS: React.FC<POSProps> = () => {
   }, [cartItems, activeTabId, tabs, totals, isPaymentModalOpen, nextTabId]);
 
   return (
-    <div className="flex flex-col h-screen bg-royal-50 font-sans text-sm overflow-hidden -m-6">
+    <div className="flex flex-col bg-royal-50 font-sans text-sm overflow-hidden -m-6" style={{ height: 'calc(100vh - 4rem)' }}>
         
       {/* TOP HEADER - LIGHTER ROYAL BLUE THEME (royal-700) */}
-      <div className="bg-royal-700 p-2 border-b-4 border-gold-500 shadow-xl z-30 flex flex-col gap-2 h-auto relative overflow-visible">
+      <div className="bg-royal-700 p-2 border-b-4 border-gold-500 shadow-xl z-30 flex flex-col gap-2 h-auto relative overflow-visible flex-shrink-0">
         {/* Second Row: Operational Fields */}
           <div className="flex items-center gap-3 overflow-x-auto pb-1 no-scrollbar px-1 pt-1 border-t border-royal-600 relative overflow-visible">
           
@@ -934,7 +934,7 @@ const POS: React.FC<POSProps> = () => {
       </div>
 
       {/* MAIN LAYOUT */}
-      <div className="flex flex-1 overflow-hidden p-4 gap-4 relative z-0">
+      <div className="flex flex-1 overflow-hidden p-4 gap-4 relative z-0 min-h-0">
         
         {/* RIGHT: Function Sidebar */}
         {/* <div className="w-56 h-full shadow-2xl rounded-lg overflow-hidden bg-royal-700 order-1 flex flex-col">
@@ -942,7 +942,7 @@ const POS: React.FC<POSProps> = () => {
         </div> */}
 
         {/* CENTER: Invoice Table (Tabs + Table) */}
-        <div className="flex-1 h-full flex flex-col gap-0 order-2 overflow-hidden shadow-xl rounded-lg border border-royal-200 bg-white relative z-0">
+        <div className="flex-1 flex flex-col gap-0 order-2 overflow-hidden shadow-xl rounded-lg border border-royal-200 bg-white relative z-0 min-h-0">
           
           {/* TABS HEADER */}
           <div className="flex items-end gap-1 px-2 pt-2 bg-royal-100 border-b border-royal-200 overflow-x-auto no-scrollbar">
@@ -1005,7 +1005,7 @@ const POS: React.FC<POSProps> = () => {
 
         {/* LEFT: Product Catalog (Conditional) */}
         {showProductGrid && (
-          <div className="w-[28%] h-full flex flex-col shadow-xl rounded-lg overflow-hidden border border-royal-200 bg-white order-3 animate-fade-in-right">
+          <div className="w-[28%] flex flex-col shadow-xl rounded-lg overflow-hidden border border-royal-200 bg-white order-3 animate-fade-in-right min-h-0">
             <ProductGrid 
               items={filteredItems} 
               onAdd={addToCart}
