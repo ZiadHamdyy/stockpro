@@ -1627,19 +1627,21 @@ const LiquidityReport: React.FC<LiquidityReportProps> = ({ title }) => {
 
     return (
         <div className="bg-white p-6 rounded-lg shadow space-y-8">
-            <div className="flex justify-between items-center border-b pb-4 no-print">
-                <h1 className="text-2xl font-bold text-brand-dark">{title}</h1>
-                <PermissionWrapper
-                    requiredPermission={buildPermission(
-                        Resources.LIQUIDITY_REPORT,
-                        Actions.PRINT,
-                    )}
-                    fallback={
-                        <button disabled className="p-2 bg-gray-100 rounded cursor-not-allowed opacity-50"><PrintIcon/></button>
-                    }
-                >
-                    <button onClick={handlePrint} className="p-2 bg-gray-100 rounded hover:bg-gray-200"><PrintIcon/></button>
-                </PermissionWrapper>
+            <div id="printable-area">
+                <ReportHeader title={title} />
+                <div className="flex justify-end items-center mb-4 no-print">
+                    <PermissionWrapper
+                        requiredPermission={buildPermission(
+                            Resources.LIQUIDITY_REPORT,
+                            Actions.PRINT,
+                        )}
+                        fallback={
+                            <button disabled className="p-2 bg-gray-100 rounded cursor-not-allowed opacity-50"><PrintIcon/></button>
+                        }
+                    >
+                        <button onClick={handlePrint} className="p-2 bg-gray-100 rounded hover:bg-gray-200"><PrintIcon/></button>
+                    </PermissionWrapper>
+                </div>
             </div>
 
             {/* Safety Indicator Banner */}
