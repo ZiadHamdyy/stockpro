@@ -1,10 +1,8 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { AnalysisStatus, Branch, SalesRecord } from '../types';
+import { Branch, SalesRecord } from '../types';
 import { FilterPanel } from './FilterPanel';
 import { SalesChart } from './SalesChart';
 import { SalesTable } from './SalesTable';
-import { AIAnalysis } from './AIAnalysis';
-import { analyzeSalesData } from './services/geminiService';
 import { BarChartIcon, BuildingIcon, CalendarIcon, PrintIcon, TrendingUpIcon, DollarSignIcon, ActivityIcon, Loader2Icon } from '../../../../icons';
 import { useGetBranchesQuery } from '../../../../store/slices/branch/branchApi';
 import { useGetAnnualSalesReportQuery } from '../../../../store/slices/annualSales/annualSalesApiSlice';
@@ -36,8 +34,6 @@ const ARABIC_MONTHS = [
 const AnnualSales: React.FC<AnnualSalesProps> = ({ title }) => {
   const selectedYear = new Date().getFullYear();
   const [selectedBranches, setSelectedBranches] = useState<string[]>([]);
-  const [aiStatus, setAiStatus] = useState<AnalysisStatus>('idle');
-  const [aiResult, setAiResult] = useState<string>('');
 
   // Fetch branches
   const { data: apiBranches = [], isLoading: branchesLoading } = useGetBranchesQuery();
@@ -91,23 +87,6 @@ const AnnualSales: React.FC<AnnualSalesProps> = ({ title }) => {
 
   const handleSelectAll = () => setSelectedBranches(branches.map(b => b.id));
   const handleClearAll = () => setSelectedBranches([]);
-
-  const handleAnalyze = async () => {
-    if (selectedBranches.length === 0) {
-      setAiStatus('error');
-      setAiResult("يرجى اختيار فرع واحد على الأقل للتحليل.");
-      return;
-    }
-
-    setAiStatus('loading');
-    try {
-      const result = await analyzeSalesData(salesData, selectedBranches, branches);
-      setAiResult(result);
-      setAiStatus('success');
-    } catch (error) {
-      setAiStatus('error');
-    }
-  };
 
   const handlePrint = () => {
     window.print();
@@ -280,13 +259,6 @@ const AnnualSales: React.FC<AnnualSalesProps> = ({ title }) => {
             onClearAll={handleClearAll}
           />
         </div>
-
-        {/* AI Section */}
-        <AIAnalysis 
-          status={aiStatus}
-          result={aiResult}
-          onAnalyze={handleAnalyze}
-        />
 
         {/* Content Grid */}
         <div className="space-y-8">
