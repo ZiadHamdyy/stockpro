@@ -13,7 +13,10 @@ import AlternativeDashboard from "./AlternativeDashboard";
 declare var Chart: any;
 
 // Helper function to format large numbers with K/M suffixes
-const formatLargeNumber = (num: number): string => {
+const formatLargeNumber = (num: number | undefined | null): string => {
+  if (num === undefined || num === null || isNaN(num)) {
+    return "0";
+  }
   if (num >= 1000000) {
     return (num / 1000000).toFixed(1) + "M";
   } else if (num >= 1000) {
@@ -64,26 +67,40 @@ const Dashboard: React.FC<{ title: string }> = ({ title }) => {
 
   // Fetch dashboard statistics
   const { data: dashboardStats, isLoading: statsLoading } =
-    useGetDashboardStatsQuery();
+    useGetDashboardStatsQuery(undefined, {
+      refetchOnMountOrArgChange: true,
+    });
 
   // Fetch monthly statistics
-  const { data: monthlyStats } = useGetMonthlyStatsQuery();
+  const { data: monthlyStats, isLoading: monthlyStatsLoading } = useGetMonthlyStatsQuery(undefined, {
+    refetchOnMountOrArgChange: true,
+  });
 
   // Fetch sales by item group
-  const { data: salesByItemGroup } = useGetSalesByItemGroupQuery();
+  const { data: salesByItemGroup, isLoading: salesByItemGroupLoading } = useGetSalesByItemGroupQuery(undefined, {
+    refetchOnMountOrArgChange: true,
+  });
 
   useEffect(() => {
+    // Only render charts when styleVariant is 'default'
+    if (styleVariant !== 'default') {
+      return;
+    }
+
     // Bar Chart for Monthly Performance
-    if (barChartRef.current && monthlyStats) {
+    if (barChartRef.current && !monthlyStatsLoading) {
       const barCtx = barChartRef.current.getContext("2d");
       if (barCtx) {
         if (chartInstances.current.bar) chartInstances.current.bar.destroy();
 
-        // Convert data to thousands for better readability
-        const salesData = monthlyStats.months.map((m) => m.netSales / 1000);
-        const purchasesData = monthlyStats.months.map(
-          (m) => m.netPurchases / 1000,
-        );
+        // Use data if available, otherwise use empty array
+        const salesData = monthlyStats?.months 
+          ? monthlyStats.months.map((m) => m.netSales / 1000)
+          : Array(12).fill(0);
+        const purchasesData = monthlyStats?.months
+          ? monthlyStats.months.map((m) => m.netPurchases / 1000)
+          : Array(12).fill(0);
+
 
         chartInstances.current.bar = new Chart(barCtx, {
           type: "bar",
@@ -146,7 +163,7 @@ const Dashboard: React.FC<{ title: string }> = ({ title }) => {
     }
 
     // Doughnut Chart for Sales by Category
-    if (doughnutChartRef.current && salesByItemGroup) {
+    if (doughnutChartRef.current && !salesByItemGroupLoading) {
       const doughnutCtx = doughnutChartRef.current.getContext("2d");
       if (doughnutCtx) {
         if (chartInstances.current.doughnut)
@@ -168,11 +185,16 @@ const Dashboard: React.FC<{ title: string }> = ({ title }) => {
           "#a855f7",
         ];
 
-        const labels = salesByItemGroup.itemGroups.map((g) => g.groupName);
-        const data = salesByItemGroup.itemGroups.map((g) => g.totalSales);
-        const backgroundColors = salesByItemGroup.itemGroups.map(
-          (_, i) => colors[i % colors.length],
-        );
+        // Use data if available, otherwise use empty arrays
+        const labels = salesByItemGroup?.itemGroups 
+          ? salesByItemGroup.itemGroups.map((g) => g.groupName)
+          : [];
+        const data = salesByItemGroup?.itemGroups
+          ? salesByItemGroup.itemGroups.map((g) => g.totalSales)
+          : [];
+        const backgroundColors = salesByItemGroup?.itemGroups
+          ? salesByItemGroup.itemGroups.map((_, i) => colors[i % colors.length])
+          : [];
 
         chartInstances.current.doughnut = new Chart(doughnutCtx, {
           type: "doughnut",
@@ -202,8 +224,7 @@ const Dashboard: React.FC<{ title: string }> = ({ title }) => {
                   label: function (context: any) {
                     const label = context.label || "";
                     const value = context.parsed || 0;
-                    const percentage =
-                      salesByItemGroup.itemGroups[context.dataIndex].percentage;
+                    const percentage = salesByItemGroup?.itemGroups?.[context.dataIndex]?.percentage || 0;
                     return `${label}: ${formatNumber(value)} ${currency} (${percentage}%)`;
                   },
                 },
@@ -219,7 +240,51 @@ const Dashboard: React.FC<{ title: string }> = ({ title }) => {
       if (chartInstances.current.doughnut)
         chartInstances.current.doughnut.destroy();
     };
-  }, [monthlyStats, salesByItemGroup, currency]);
+  }, [styleVariant, monthlyStats, salesByItemGroup, currency, monthlyStatsLoading, salesByItemGroupLoading]);
+
+  // Handle chart resize when container size changes
+  useEffect(() => {
+    // Only handle resize when styleVariant is 'default'
+    if (styleVariant !== 'default') {
+      return;
+    }
+
+    const resizeCharts = () => {
+      if (chartInstances.current.bar) {
+        chartInstances.current.bar.resize();
+      }
+      if (chartInstances.current.doughnut) {
+        chartInstances.current.doughnut.resize();
+      }
+    };
+
+    // Use ResizeObserver to detect container size changes
+    const observers: ResizeObserver[] = [];
+    
+    if (barChartRef.current) {
+      const barObserver = new ResizeObserver(() => {
+        resizeCharts();
+      });
+      barObserver.observe(barChartRef.current);
+      observers.push(barObserver);
+    }
+
+    if (doughnutChartRef.current) {
+      const doughnutObserver = new ResizeObserver(() => {
+        resizeCharts();
+      });
+      doughnutObserver.observe(doughnutChartRef.current);
+      observers.push(doughnutObserver);
+    }
+
+    // Also listen to window resize as fallback
+    window.addEventListener('resize', resizeCharts);
+
+    return () => {
+      observers.forEach(observer => observer.disconnect());
+      window.removeEventListener('resize', resizeCharts);
+    };
+  }, [styleVariant]);
 
   // Render alternative style
   if (styleVariant === 'alternative') {

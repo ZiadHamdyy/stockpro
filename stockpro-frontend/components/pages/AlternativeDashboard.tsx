@@ -79,18 +79,32 @@ const AlternativeDashboard: React.FC<{ title: string }> = ({ title }) => {
     const { data: company } = useGetCompanyQuery();
     
     // API Hooks for data fetching
-    const { data: salesInvoices = [], isLoading: salesInvoicesLoading } = useGetSalesInvoicesQuery();
-    const { data: purchaseInvoices = [], isLoading: purchaseInvoicesLoading } = useGetPurchaseInvoicesQuery();
-    const { data: expensePaymentVouchers = [], isLoading: expensesLoading } = useGetExpensePaymentVouchersQuery();
-    const { data: safes = [], isLoading: safesLoading } = useGetSafesQuery();
-    const { data: banks = [], isLoading: banksLoading } = useGetBanksQuery();
-    const { data: branches = [], isLoading: branchesLoading } = useGetBranchesQuery();
+    const { data: salesInvoices = [], isLoading: salesInvoicesLoading } = useGetSalesInvoicesQuery(undefined, {
+        refetchOnMountOrArgChange: true,
+    });
+    const { data: purchaseInvoices = [], isLoading: purchaseInvoicesLoading } = useGetPurchaseInvoicesQuery(undefined, {
+        refetchOnMountOrArgChange: true,
+    });
+    const { data: expensePaymentVouchers = [], isLoading: expensesLoading } = useGetExpensePaymentVouchersQuery(undefined, {
+        refetchOnMountOrArgChange: true,
+    });
+    const { data: safes = [], isLoading: safesLoading } = useGetSafesQuery(undefined, {
+        refetchOnMountOrArgChange: true,
+    });
+    const { data: banks = [], isLoading: banksLoading } = useGetBanksQuery(undefined, {
+        refetchOnMountOrArgChange: true,
+    });
+    const { data: branches = [], isLoading: branchesLoading } = useGetBranchesQuery(undefined, {
+        refetchOnMountOrArgChange: true,
+    });
     
     // Get current year range for balance sheet
     const yearRange = getCurrentYearRange();
     const { data: balanceSheet, isLoading: balanceSheetLoading } = useGetBalanceSheetQuery({
         startDate: yearRange.start,
         endDate: yearRange.end,
+    }, {
+        refetchOnMountOrArgChange: true,
     });
     
     const barChartRef = useRef<HTMLCanvasElement>(null);
@@ -201,7 +215,8 @@ const AlternativeDashboard: React.FC<{ title: string }> = ({ title }) => {
 
     // --- Chart 1: Financial Performance (3D Bars + Data Labels) ---
     useEffect(() => {
-        if (barChartRef.current && salesInvoices.length > 0 && purchaseInvoices.length > 0) {
+        // Allow chart to render even with empty data - it will show zeros
+        if (barChartRef.current && !salesInvoicesLoading && !purchaseInvoicesLoading) {
             const ctx = barChartRef.current.getContext('2d');
             if (ctx) {
                 if (chartInstances.current.bar) chartInstances.current.bar.destroy();
@@ -213,7 +228,6 @@ const AlternativeDashboard: React.FC<{ title: string }> = ({ title }) => {
                 
                 // Determine months to show
                 const monthsToShow = timeRange === '6m' ? 6 : 12;
-                const startMonth = timeRange === '6m' ? Math.max(0, currentMonth - 5) : 0;
                 
                 // Arabic month names
                 const monthNames = ['يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو', 'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'];
@@ -235,10 +249,31 @@ const AlternativeDashboard: React.FC<{ title: string }> = ({ title }) => {
                         return invBranchId === branches.find(b => b.name === selectedBranch)?.id || invBranchName === selectedBranch;
                     });
                 
-                // Initialize monthly data
+                // Initialize monthly data - for 6 months, go backwards from current month (oldest to newest)
                 const monthlyData = Array.from({ length: monthsToShow }, (_, i) => {
-                    const monthIndex = (startMonth + i) % 12;
-                    const year = timeRange === '6m' && monthIndex > currentMonth ? currentYear - 1 : currentYear;
+                    let monthIndex: number;
+                    let year: number;
+                    
+                    if (timeRange === '6m') {
+                        // For 6 months: calculate months going backwards (5 months ago to current month)
+                        // i=0 should be 5 months ago, i=5 should be current month
+                        const monthsAgo = 5 - i; // 5, 4, 3, 2, 1, 0
+                        const targetMonth = currentMonth - monthsAgo;
+                        
+                        if (targetMonth < 0) {
+                            // Previous year
+                            monthIndex = 12 + targetMonth;
+                            year = currentYear - 1;
+                        } else {
+                            monthIndex = targetMonth;
+                            year = currentYear;
+                        }
+                    } else {
+                        // For 1 year: January (0) to December (11)
+                        monthIndex = i;
+                        year = currentYear;
+                    }
+                    
                     return {
                         monthIndex,
                         monthName: monthNames[monthIndex],
@@ -260,8 +295,11 @@ const AlternativeDashboard: React.FC<{ title: string }> = ({ title }) => {
                         // For 6 months, check if it's within the last 6 months
                         const monthsDiff = (currentYear - invoiceYear) * 12 + (currentMonth - invoiceMonth);
                         if (monthsDiff >= 0 && monthsDiff < 6) {
-                            const dataIndex = monthsDiff;
-                            if (dataIndex < monthlyData.length) {
+                            // monthsDiff: 0 = current month, 5 = 5 months ago
+                            // monthlyData: index 0 = 5 months ago, index 5 = current month
+                            // So we need to reverse: dataIndex = 5 - monthsDiff
+                            const dataIndex = 5 - monthsDiff;
+                            if (dataIndex >= 0 && dataIndex < monthlyData.length) {
                                 monthlyData[dataIndex].sales += invoice.net || 0;
                             }
                         }
@@ -285,8 +323,11 @@ const AlternativeDashboard: React.FC<{ title: string }> = ({ title }) => {
                         // For 6 months, check if it's within the last 6 months
                         const monthsDiff = (currentYear - invoiceYear) * 12 + (currentMonth - invoiceMonth);
                         if (monthsDiff >= 0 && monthsDiff < 6) {
-                            const dataIndex = monthsDiff;
-                            if (dataIndex < monthlyData.length) {
+                            // monthsDiff: 0 = current month, 5 = 5 months ago
+                            // monthlyData: index 0 = 5 months ago, index 5 = current month
+                            // So we need to reverse: dataIndex = 5 - monthsDiff
+                            const dataIndex = 5 - monthsDiff;
+                            if (dataIndex >= 0 && dataIndex < monthlyData.length) {
                                 monthlyData[dataIndex].purchases += invoice.net || 0;
                             }
                         }
@@ -415,11 +456,11 @@ const AlternativeDashboard: React.FC<{ title: string }> = ({ title }) => {
                 });
             }
         }
-    }, [timeRange, barMetric, selectedBranch, salesInvoices, purchaseInvoices, branches]);
+    }, [timeRange, barMetric, selectedBranch, salesInvoices, purchaseInvoices, branches, salesInvoicesLoading, purchaseInvoicesLoading]);
 
     // --- Chart 2: Branch Sales (With Labels & Percentage On Segments) ---
     useEffect(() => {
-        if (branchChartRef.current) {
+        if (branchChartRef.current && !isLoading) {
             const ctx = branchChartRef.current.getContext('2d');
             if (ctx) {
                 if (chartInstances.current.branch) chartInstances.current.branch.destroy();
@@ -565,11 +606,11 @@ const AlternativeDashboard: React.FC<{ title: string }> = ({ title }) => {
                 });
             }
         }
-    }, [stats]);
+    }, [stats, isLoading]);
 
     // --- Chart 3: Liquidity (Center Text) ---
     useEffect(() => {
-        if (liquidityChartRef.current) {
+        if (liquidityChartRef.current && !isLoading) {
             const ctx = liquidityChartRef.current.getContext('2d');
             if (ctx) {
                 if (chartInstances.current.liquidity) chartInstances.current.liquidity.destroy();
@@ -665,7 +706,7 @@ const AlternativeDashboard: React.FC<{ title: string }> = ({ title }) => {
                 });
             }
         }
-    }, [stats]);
+    }, [stats, isLoading]);
 
     // Cleanup charts on unmount
     useEffect(() => {
@@ -673,6 +714,56 @@ const AlternativeDashboard: React.FC<{ title: string }> = ({ title }) => {
             if (chartInstances.current.bar) chartInstances.current.bar.destroy();
             if (chartInstances.current.branch) chartInstances.current.branch.destroy();
             if (chartInstances.current.liquidity) chartInstances.current.liquidity.destroy();
+        };
+    }, []);
+
+    // Handle chart resize when container size changes
+    useEffect(() => {
+        const resizeCharts = () => {
+            if (chartInstances.current.bar) {
+                chartInstances.current.bar.resize();
+            }
+            if (chartInstances.current.branch) {
+                chartInstances.current.branch.resize();
+            }
+            if (chartInstances.current.liquidity) {
+                chartInstances.current.liquidity.resize();
+            }
+        };
+
+        // Use ResizeObserver to detect container size changes
+        const observers: ResizeObserver[] = [];
+        
+        if (barChartRef.current) {
+            const barObserver = new ResizeObserver(() => {
+                resizeCharts();
+            });
+            barObserver.observe(barChartRef.current);
+            observers.push(barObserver);
+        }
+
+        if (branchChartRef.current) {
+            const branchObserver = new ResizeObserver(() => {
+                resizeCharts();
+            });
+            branchObserver.observe(branchChartRef.current);
+            observers.push(branchObserver);
+        }
+
+        if (liquidityChartRef.current) {
+            const liquidityObserver = new ResizeObserver(() => {
+                resizeCharts();
+            });
+            liquidityObserver.observe(liquidityChartRef.current);
+            observers.push(liquidityObserver);
+        }
+
+        // Also listen to window resize as fallback
+        window.addEventListener('resize', resizeCharts);
+
+        return () => {
+            observers.forEach(observer => observer.disconnect());
+            window.removeEventListener('resize', resizeCharts);
         };
     }, []);
 
