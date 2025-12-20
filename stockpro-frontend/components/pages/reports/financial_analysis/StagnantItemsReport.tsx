@@ -13,12 +13,14 @@ import {
 import { useGetItemsQuery } from '../../../store/slices/items/itemsApi';
 import { useGetSalesInvoicesQuery } from '../../../store/slices/salesInvoice/salesInvoiceApiSlice';
 import { useGetStoreIssueVouchersQuery } from '../../../store/slices/storeIssueVoucher/storeIssueVoucherApi';
+import { useGetCompanyQuery } from '../../../store/slices/companyApiSlice';
 
 interface StagnantItemsReportProps {
     title: string;
 }
 
 const StagnantItemsReport: React.FC<StagnantItemsReportProps> = ({ title }) => {
+    const PRINT_PAGE_SIZE = 20;
     const [thresholdDays, setThresholdDays] = useState(90);
     const [searchTerm, setSearchTerm] = useState('');
 
@@ -26,6 +28,7 @@ const StagnantItemsReport: React.FC<StagnantItemsReportProps> = ({ title }) => {
     const { data: apiItems = [], isLoading: itemsLoading } = useGetItemsQuery(undefined);
     const { data: apiSalesInvoices = [], isLoading: salesLoading } = useGetSalesInvoicesQuery();
     const { data: apiStoreIssueVouchers = [], isLoading: vouchersLoading } = useGetStoreIssueVouchersQuery();
+    const { data: companyInfo } = useGetCompanyQuery(undefined);
 
     const isLoading = itemsLoading || salesLoading || vouchersLoading;
 
@@ -137,7 +140,226 @@ const StagnantItemsReport: React.FC<StagnantItemsReportProps> = ({ title }) => {
 
     const totalStagnantValue = reportData.reduce((sum, item) => sum + item.stockValue, 0);
 
-    const handlePrint = () => window.print();
+    const printPages = useMemo(() => {
+        const pages: typeof reportData[] = [];
+        for (let i = 0; i < reportData.length; i += PRINT_PAGE_SIZE) {
+            pages.push(reportData.slice(i, i + PRINT_PAGE_SIZE));
+        }
+        return pages;
+    }, [reportData]);
+
+    const handlePrint = () => {
+        const printWindow = window.open("", "_blank", "width=1200,height=800");
+        if (!printWindow) return;
+
+        const totalPages = Math.max(printPages.length, 1);
+        const currentDate = new Date().toLocaleDateString('ar-EG', { year: 'numeric', month: 'long', day: 'numeric' });
+
+        // Company header HTML
+        const companyHeader = companyInfo ? `
+            <div style="border: 2px solid #1E40AF; border-radius: 8px; margin-bottom: 16px; padding: 16px; background: white;">
+                <div style="display: flex; justify-content: space-between; align-items: start;">
+                    <div style="display: flex; align-items: center; gap: 16px;">
+                        ${companyInfo.logo ? `<img src="${companyInfo.logo}" alt="Company Logo" style="height: 80px; width: auto; object-fit: contain;" />` : ''}
+                        <div>
+                            <h2 style="font-size: 24px; font-weight: bold; color: #1F2937; margin: 0 0 8px 0;">${companyInfo.name}</h2>
+                            <p style="font-size: 14px; color: #4B5563; margin: 4px 0;">${companyInfo.address || ''}</p>
+                            <p style="font-size: 14px; color: #4B5563; margin: 4px 0;">هاتف: ${companyInfo.phone || ''}</p>
+                        </div>
+                    </div>
+                    <div style="text-align: right;">
+                        <h1 style="font-size: 24px; font-weight: bold; color: #1F2937; margin: 0 0 8px 0;">${title}</h1>
+                        <div style="font-size: 14px; margin-top: 8px;">
+                            <p style="margin: 4px 0;"><span style="font-weight: 600;">الرقم الضريبي:</span> ${companyInfo.taxNumber || ''}</p>
+                            <p style="margin: 4px 0;"><span style="font-weight: 600;">السجل التجاري:</span> ${companyInfo.commercialReg || ''}</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        ` : `
+            <div style="border: 2px solid #1E40AF; border-radius: 8px; margin-bottom: 16px; padding: 16px; background: white;">
+                <h1 style="font-size: 24px; font-weight: bold; color: #1F2937; margin: 0; text-align: center;">${title}</h1>
+            </div>
+        `;
+
+        // Date and threshold info
+        const dateInfo = `
+            <div style="margin-bottom: 16px; text-align: right;">
+                <p style="margin: 4px 0; font-size: 14px;"><span style="font-weight: 600; color: #1F2937;">التاريخ:</span> ${currentDate}</p>
+                <div style="display: flex; justify-content: flex-start; align-items: center; gap: 16px; margin-top: 8px;">
+                    <div style="display: flex; align-items: center; gap: 8px; background: #FEF2F2; padding: 8px 12px; border: 1px solid #FECACA; border-radius: 8px;">
+                        <span style="font-weight: 600; color: #991B1B;">عرض الأصناف الراكدة منذ:</span>
+                        <span style="padding: 4px 8px; border: 1px solid #FCA5A5; border-radius: 6px; background: white; font-weight: bold; color: #991B1B;">${thresholdDays} يوم</span>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        // Alert banner (only for first page)
+        const alertBanner = (pageIndex: number) => {
+            if (pageIndex !== 0) return '';
+            return `
+                <div style="background: #FEF2F2; border-left: 8px solid #DC2626; padding: 16px; margin-bottom: 24px; border-radius: 0 8px 8px 0; box-shadow: 0 1px 3px rgba(0,0,0,0.1); display: flex; align-items: center; justify-content: space-between;">
+                    <div style="display: flex; align-items: center; gap: 12px;">
+                        <div style="width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; color: #DC2626;">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+                                <line x1="12" y1="9" x2="12" y2="13"></line>
+                                <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                            </svg>
+                        </div>
+                        <div>
+                            <h3 style="font-size: 18px; font-weight: bold; color: #991B1B; margin: 0 0 4px 0;">قيمة المخزون المجمد (Dead Capital)</h3>
+                            <p style="color: #B91C1C; font-size: 14px; margin: 0;">إجمالي تكلفة الأصناف التي لم تتحرك منذ ${thresholdDays} يوم</p>
+                        </div>
+                    </div>
+                    <p style="font-size: 32px; font-weight: 900; color: #991B1B; margin: 0; letter-spacing: -0.5px;">
+                        ${formatNumber(totalStagnantValue)} <span style="font-size: 14px; font-weight: 500; color: #DC2626;">SAR</span>
+                    </p>
+                </div>
+            `;
+        };
+
+        // Table header
+        const tableHeader = `
+            <tr>
+                <th style="padding: 12px; text-align: right; background: #1E40AF; color: #FFFFFF; font-weight: 600;">الكود</th>
+                <th style="padding: 12px; text-align: right; background: #1E40AF; color: #FFFFFF; font-weight: 600;">الصنف</th>
+                <th style="padding: 12px; text-align: center; background: #1E40AF; color: #FFFFFF; font-weight: 600;">الرصيد الحالي</th>
+                <th style="padding: 12px; text-align: center; background: #1E40AF; color: #FFFFFF; font-weight: 600;">قيمة المخزون (تكلفة)</th>
+                <th style="padding: 12px; text-align: center; background: #1E40AF; color: #FFFFFF; font-weight: 600;">تاريخ آخر حركة</th>
+                <th style="padding: 12px; text-align: center; background: #B91C1C; color: #FFFFFF; font-weight: 600;">أيام الركود</th>
+            </tr>
+        `;
+
+        // Generate pages
+        const bodyPages = printPages
+            .map(
+                (pageItems, idx) => `
+                <div class="page">
+                    <div class="page-header">
+                        <h2 class="title">${title}</h2>
+                        <div class="page-number">(${totalPages} / ${idx + 1})</div>
+                    </div>
+                    ${idx === 0 ? companyHeader : `<div style="margin-bottom: 16px; text-align: center;"><h2 style="font-size: 20px; font-weight: bold; color: #1F2937; margin: 0;">${title}</h2></div>`}
+                    ${dateInfo}
+                    ${alertBanner(idx)}
+                    <table>
+                        <thead>${tableHeader}</thead>
+                        <tbody>
+                            ${pageItems.length === 0 ? `
+                                <tr>
+                                    <td colspan="6" style="padding: 32px; text-align: center; color: #6B7280;">
+                                        ممتاز! لا توجد أصناف راكدة تتجاوز المدة المحددة.
+                                    </td>
+                                </tr>
+                            ` : pageItems
+                                .map(
+                                    (item) => `
+                                    <tr>
+                                        <td style="padding: 12px; text-align: right; color: #4B5563;">${item.code}</td>
+                                        <td style="padding: 12px; text-align: right; font-weight: bold; color: #1F2937;">${item.name}</td>
+                                        <td style="padding: 12px; text-align: center; font-weight: bold;">${item.stock}</td>
+                                        <td style="padding: 12px; text-align: center; color: #6B7280;">${formatNumber(item.stockValue)}</td>
+                                        <td style="padding: 12px; text-align: center; color: #6B7280;">${item.lastMovementDate}</td>
+                                        <td style="padding: 12px; text-align: center; vertical-align: middle;">
+                                            <span style="padding: 6px 12px; border-radius: 9999px; font-size: 11px; font-weight: bold; ${item.daysDormant >= 180 ? 'background: #FEE2E2; color: #991B1B;' : 'background: #FED7AA; color: #9A3412;'}">
+                                                ${item.daysDormant === 999 ? 'لم يتحرك' : `${item.daysDormant} يوم`}
+                                            </span>
+                                        </td>
+                                    </tr>
+                                `
+                                )
+                                .join("")}
+                        </tbody>
+                    </table>
+                </div>`
+            )
+            .join("");
+
+        const html = `
+            <!DOCTYPE html>
+            <html dir="rtl" lang="ar">
+            <head>
+                <meta charset="UTF-8" />
+                <title>${title}</title>
+                <style>
+                    @page { size: A4 landscape; margin: 10mm; }
+                    body {
+                        font-family: 'Cairo', sans-serif;
+                        margin: 0;
+                        padding: 10mm;
+                        color: #1F2937;
+                        background: #FFFFFF;
+                        -webkit-print-color-adjust: exact;
+                        print-color-adjust: exact;
+                    }
+                    .page-header {
+                        display: flex;
+                        align-items: center;
+                        justify-content: space-between;
+                        margin: 0 0 12px 0;
+                    }
+                    .title {
+                        margin: 0;
+                        font-size: 16px;
+                        color: #1F2937;
+                    }
+                    .page-number {
+                        font-size: 12px;
+                        font-weight: 700;
+                        color: #1F2937;
+                    }
+                    table { 
+                        width: 100%; 
+                        border-collapse: collapse; 
+                        font-size: 12px; 
+                        margin-top: 16px;
+                    }
+                    th, td { 
+                        border: 1px solid #E5E7EB; 
+                        padding: 6px 8px; 
+                        text-align: right; 
+                    }
+                    thead { 
+                        background: #1E40AF !important; 
+                        color: #FFFFFF !important; 
+                    }
+                    tbody tr:nth-child(odd) { 
+                        background: #F8FAFC !important; 
+                    }
+                    tbody tr:nth-child(even) { 
+                        background: #FFFFFF !important; 
+                    }
+                    tr { 
+                        page-break-inside: avoid; 
+                        break-inside: avoid; 
+                    }
+                    .page { 
+                        page-break-after: always; 
+                        break-after: page; 
+                    }
+                    .page:last-of-type { 
+                        page-break-after: auto; 
+                        break-after: auto; 
+                    }
+                </style>
+            </head>
+            <body>
+                ${bodyPages}
+            </body>
+            </html>
+        `;
+
+        printWindow.document.open();
+        printWindow.document.write(html);
+        printWindow.document.close();
+        printWindow.focus();
+        setTimeout(() => {
+            printWindow.print();
+            printWindow.close();
+        }, 200);
+    };
 
     const handleExcelExport = () => {
         const data = reportData.map(item => ({
