@@ -457,6 +457,8 @@ const BankStatementReport: React.FC<BankStatementReportProps> = ({
         invoiceDate <= normalizedEndDate
       ) {
         const amount = resolveRecordAmount(inv);
+        const bankTransactionType = (inv as any).bankTransactionType;
+        const category = bankTransactionType === "POS" ? "pos" : bankTransactionType === "TRANSFER" ? "transfer" : "other";
         transactions.push({
           date: invoiceDate,
           description: `فاتورة مبيعات - ${inv.customerOrSupplier?.name || "عميل"}`,
@@ -466,7 +468,7 @@ const BankStatementReport: React.FC<BankStatementReportProps> = ({
           credit: 0,
           link: { page: "sales_invoice", label: "فاتورة مبيعات" },
           sortKey: buildSortKey(inv),
-        category: (inv as any).bankTransactionType === "POS" ? "pos" : "other",
+          category: category,
         });
       }
     });
@@ -483,6 +485,8 @@ const BankStatementReport: React.FC<BankStatementReportProps> = ({
       ) {
         const amount = Number(inv.splitBankAmount) || 0;
         if (amount > 0) {
+          const bankTransactionType = (inv as any).bankTransactionType;
+          const category = bankTransactionType === "POS" ? "pos" : bankTransactionType === "TRANSFER" ? "transfer" : "other";
           transactions.push({
             date: invoiceDate,
             description: `فاتورة مبيعات (جزء من دفع مجزأ) - ${inv.customerOrSupplier?.name || "عميل"}`,
@@ -492,7 +496,7 @@ const BankStatementReport: React.FC<BankStatementReportProps> = ({
             credit: 0,
             link: { page: "sales_invoice", label: "فاتورة مبيعات" },
             sortKey: buildSortKey(inv),
-          category: (inv as any).bankTransactionType === "POS" ? "pos" : "other",
+            category: category,
           });
         }
       }
@@ -752,7 +756,7 @@ const BankStatementReport: React.FC<BankStatementReportProps> = ({
     });
 
     // Return data in ascending order (oldest first) without the helper sort key
-    return withBalance.map(({ sortKey, category, ...rest }) => rest);
+    return withBalance.map(({ sortKey, ...rest }) => rest);
   }, [
     selectedBankId,
     receiptVouchers,
@@ -1042,11 +1046,16 @@ const BankStatementReport: React.FC<BankStatementReportProps> = ({
                   {formatNumber(openingBalance)}
                 </td>
               </tr>
-              {reportData.map((item, index) => (
+              {reportData.map((item, index) => {
+                const categoryLabel = (item as any).category === "pos" ? "pos" : (item as any).category === "transfer" ? "تحويل" : "";
+                const displayDescription = categoryLabel 
+                  ? `${item.description} - ${categoryLabel}`
+                  : item.description;
+                return (
                 <tr key={index} className="hover:bg-brand-blue-bg">
                   <td className="px-6 py-4 w-36">{item.date.substring(0, 10)}</td>
                   <td className="px-6 py-4 font-medium text-brand-dark">
-                    {item.description}
+                    {displayDescription}
                   </td>
                   <td className="px-6 py-4 font-medium text-brand-dark">
                     {item.link ? (
@@ -1079,7 +1088,8 @@ const BankStatementReport: React.FC<BankStatementReportProps> = ({
                     {formatNumber(item.balance)}
                   </td>
                 </tr>
-              ))}
+                );
+              })}
             </tbody>
             <tfoot className="bg-brand-blue text-white">
               <tr className="font-bold text-white">
