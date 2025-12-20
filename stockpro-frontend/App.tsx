@@ -159,6 +159,7 @@ import type {
 import { loadPrintSettings } from "./utils/printSettingsStorage";
 import { ToastProvider, useToast } from "./components/common/ToastProvider";
 import { ModalProvider } from "./components/common/ModalProvider";
+import { TokenExpirationProvider } from "./components/common/TokenExpirationContext";
 import Toast from "./components/common/Toast";
 import { getLabelByPath } from "./routes/routeConfig";
 import ProtectedRoute from "./components/common/ProtectedRoute";
@@ -1808,7 +1809,9 @@ const AppWrapper = () => (
         <TitleProvider>
           <ToastProvider>
             <ModalProvider>
-              <AppContent />
+              <TokenExpirationProvider>
+                <AppContent />
+              </TokenExpirationProvider>
             </ModalProvider>
             <Toast />
           </ToastProvider>

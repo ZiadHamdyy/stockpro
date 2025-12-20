@@ -5,7 +5,7 @@
 export const TOKEN_CONSTANTS = {
   // Access Token Configuration
   ACCESS_TOKEN: {
-    EXPIRES_IN: '15m', // 15 minutes
+    EXPIRES_IN: '10s', // 15 minutes
     ALGORITHM: 'HS256' as const,
     TYPE: 'access' as const,
   },
