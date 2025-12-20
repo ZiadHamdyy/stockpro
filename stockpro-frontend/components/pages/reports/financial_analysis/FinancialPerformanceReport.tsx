@@ -1,7 +1,7 @@
 
-import React, { useState, useMemo, useEffect, useRef } from 'react';
+import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import type { Invoice, Voucher } from '../../../../types';
-import { ExcelIcon, PdfIcon, PrintIcon } from '../../../icons';
+import { ExcelIcon, PdfIcon, PrintIcon, XIcon } from '../../../icons';
 import PermissionWrapper from '../../../common/PermissionWrapper';
 import ReportHeader from '../ReportHeader';
 import { formatNumber, exportToExcel } from '../../../../utils/formatting';
@@ -23,7 +23,11 @@ interface FinancialPerformanceReportProps {
 const months = ['يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو', 'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'];
 
 const FinancialPerformanceReport: React.FC<FinancialPerformanceReportProps> = ({ title }) => {
-    const [year, setYear] = useState(new Date().getFullYear());
+    const currentYear = new Date().getFullYear();
+    const [year, setYear] = useState(currentYear);
+    const [yearQuery, setYearQuery] = useState<string | null>(null);
+    const [isYearDropdownOpen, setIsYearDropdownOpen] = useState(false);
+    const yearRef = useRef<HTMLDivElement>(null);
     const chartRef = useRef<HTMLCanvasElement>(null);
     const chartInstance = useRef<any>(null);
 
@@ -33,6 +37,52 @@ const FinancialPerformanceReport: React.FC<FinancialPerformanceReportProps> = ({
     const { data: apiPaymentVouchers = [], isLoading: vouchersLoading } = useGetPaymentVouchersQuery();
 
     const isLoading = salesLoading || purchasesLoading || vouchersLoading;
+
+    // Generate years list (from current year going backwards to 2000)
+    const years = useMemo(() => {
+        const yearsList = [];
+        for (let y = currentYear; y >= 2000; y--) {
+            yearsList.push(y);
+        }
+        return yearsList; // Current year first, then descending
+    }, [currentYear]);
+
+    // Filter years based on search query
+    const filteredYears = useMemo(() => {
+        if (!yearQuery || !yearQuery.trim()) {
+            return years;
+        }
+        const query = yearQuery.toLowerCase();
+        return years.filter((y) => y.toString().includes(query));
+    }, [yearQuery, years]);
+
+    // Handle year selection
+    const handleSelectYear = useCallback((selectedYear: number) => {
+        setYear(selectedYear);
+        setYearQuery(selectedYear.toString());
+        setIsYearDropdownOpen(false);
+    }, []);
+
+    // Handle clear search
+    const handleClearSearch = useCallback((e: React.MouseEvent) => {
+        e.stopPropagation();
+        setYearQuery(null);
+        setIsYearDropdownOpen(true);
+    }, []);
+
+    // Close dropdown when clicking outside
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (yearRef.current && !yearRef.current.contains(event.target as Node)) {
+                setIsYearDropdownOpen(false);
+            }
+        };
+
+        document.addEventListener("mousedown", handleClickOutside);
+        return () => {
+            document.removeEventListener("mousedown", handleClickOutside);
+        };
+    }, []);
 
     // Normalize any date value to yyyy-MM-dd
     const normalizeDate = useMemo(() => {
@@ -298,9 +348,56 @@ const FinancialPerformanceReport: React.FC<FinancialPerformanceReportProps> = ({
                 <div className="flex justify-between items-center my-4 bg-gray-50 p-4 rounded-lg border border-gray-200 print:hidden">
                     <div className="flex items-center gap-2">
                         <span className="font-bold text-gray-700">السنة المالية:</span>
-                        <span className="px-3 py-2 border border-gray-300 rounded-lg bg-white font-bold text-gray-900">
-                            {year}
-                        </span>
+                        <div className="relative" ref={yearRef}>
+                            <input
+                                type="text"
+                                placeholder="ابحث عن سنة..."
+                                value={yearQuery !== null ? yearQuery : year.toString()}
+                                onChange={(e) => {
+                                    const value = e.target.value;
+                                    setYearQuery(value);
+                                    setIsYearDropdownOpen(true);
+                                    // If user types a valid year number, update the year
+                                    const numValue = parseInt(value);
+                                    if (!isNaN(numValue) && numValue >= 2000 && numValue <= currentYear + 10) {
+                                        setYear(numValue);
+                                    }
+                                }}
+                                onFocus={() => {
+                                    setIsYearDropdownOpen(true);
+                                }}
+                                className="px-3 py-2 border border-gray-300 rounded-lg bg-white font-bold text-gray-900 w-32 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            />
+                            {yearQuery !== null && yearQuery !== "" && (
+                                <button
+                                    type="button"
+                                    onClick={handleClearSearch}
+                                    className="absolute left-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                                    title="مسح البحث"
+                                >
+                                    <XIcon className="w-4 h-4" />
+                                </button>
+                            )}
+                            {isYearDropdownOpen && (
+                                <div className="absolute z-20 w-32 mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                                    {filteredYears.length > 0 ? (
+                                        filteredYears.map((y) => (
+                                            <div
+                                                key={y}
+                                                onClick={() => handleSelectYear(y)}
+                                                className="p-2 cursor-pointer hover:bg-blue-50 text-center font-semibold"
+                                            >
+                                                {y}
+                                            </div>
+                                        ))
+                                    ) : (
+                                        <div className="p-2 text-center text-gray-500">
+                                            لا توجد نتائج
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+                        </div>
                     </div>
                     <div className="flex gap-2">
                         <PermissionWrapper
