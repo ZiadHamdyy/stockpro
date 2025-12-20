@@ -9,7 +9,7 @@ import {
   Resources,
   buildPermission,
 } from "../../../../enums/permissions.enum";
-import { formatNumber, getNegativeNumberClass } from "../../../../utils/formatting";
+import { formatNumber, getNegativeNumberClass, getNegativeNumberClassForTotal } from "../../../../utils/formatting";
 import { useGetReceiptVouchersQuery } from "../../../store/slices/receiptVoucherApiSlice";
 import { useGetBranchesQuery } from "../../../store/slices/branch/branchApi";
 import { useAuth } from "../../../hook/Auth";
@@ -500,7 +500,7 @@ const DailyCollectionsReport: React.FC<DailyCollectionsReportProps> = ({
                 <td colSpan={6} className="px-6 py-3 text-right text-white">
                   الإجمالي
                 </td>
-                <td className={`px-6 py-3 text-right text-white ${getNegativeNumberClass(totals.amount)}`}>
+                <td className={`px-6 py-3 text-right text-white ${getNegativeNumberClassForTotal(totals.amount)}`}>
                   {formatNumber(totals.amount)}
                 </td>
                 <td className="text-white"></td>

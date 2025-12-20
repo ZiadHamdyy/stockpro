@@ -8,7 +8,7 @@ import {
   Resources,
   buildPermission,
 } from "../../../../enums/permissions.enum";
-import { formatNumber, getNegativeNumberClass } from "../../../../utils/formatting";
+import { formatNumber, getNegativeNumberClass, getNegativeNumberClassForTotal } from "../../../../utils/formatting";
 import { useGetInternalTransfersQuery } from "../../../store/slices/internalTransferApiSlice";
 import { useGetBranchesQuery } from "../../../store/slices/branch/branchApi";
 import { useAuth } from "../../../hook/Auth";
@@ -499,7 +499,7 @@ const DailyTransfersReport: React.FC<DailyTransfersReportProps> = ({
                   الإجمالي
                 </td>
                 <td
-                  className={`px-6 py-3 text-right text-white ${getNegativeNumberClass(
+                  className={`px-6 py-3 text-right text-white ${getNegativeNumberClassForTotal(
                     totals.amount,
                   )}`}
                 >

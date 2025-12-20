@@ -8,7 +8,7 @@ import {
   Resources,
   buildPermission,
 } from "../../../../enums/permissions.enum";
-import { formatNumber, getNegativeNumberClass } from "../../../../utils/formatting";
+import { formatNumber, getNegativeNumberClass, getNegativeNumberClassForTotal } from "../../../../utils/formatting";
 import { useGetExpensePaymentVouchersQuery } from "../../../store/slices/paymentVoucherApiSlice";
 import { useGetBranchesQuery } from "../../../store/slices/branch/branchApi";
 import { useAuth } from "../../../hook/Auth";
@@ -525,12 +525,12 @@ const TotalExpensesReport: React.FC<TotalExpensesReportProps> = ({
                 {monthlyTotals.map((total, index) => (
                   <td
                     key={index}
-                    className={`px-4 py-3 text-center text-white whitespace-nowrap ${getNegativeNumberClass(total)}`}
+                    className={`px-4 py-3 text-center text-white whitespace-nowrap ${getNegativeNumberClassForTotal(total)}`}
                   >
                     {formatNumber(total)}
                   </td>
                 ))}
-                <td className={`px-4 py-3 text-center text-white whitespace-nowrap ${getNegativeNumberClass(grandTotal)}`}>
+                <td className={`px-4 py-3 text-center text-white whitespace-nowrap ${getNegativeNumberClassForTotal(grandTotal)}`}>
                   {formatNumber(grandTotal)}
                 </td>
               </tr>

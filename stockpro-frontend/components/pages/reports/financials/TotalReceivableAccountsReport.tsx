@@ -3,7 +3,7 @@ import type { CompanyInfo, User, Voucher } from "../../../../types";
 import { ExcelIcon, PdfIcon, PrintIcon, SearchIcon } from "../../../icons";
 import ReportHeader from "../ReportHeader";
 import PermissionWrapper from '../../../common/PermissionWrapper';
-import { formatNumber, getNegativeNumberClass } from "../../../../utils/formatting";
+import { formatNumber, getNegativeNumberClass, getNegativeNumberClassForTotal } from "../../../../utils/formatting";
 import { useGetReceivableAccountsQuery } from "../../../store/slices/receivableAccounts/receivableAccountsApi";
 import { useGetReceiptVouchersQuery } from "../../../store/slices/receiptVoucherApiSlice";
 import { useGetPaymentVouchersQuery } from "../../../store/slices/paymentVoucherApiSlice";
@@ -419,16 +419,16 @@ const TotalReceivableAccountsReport: React.FC<TotalReceivableAccountsReportProps
                 <td colSpan={2} className="px-6 py-3 text-right text-white">
                   الإجمالي
                 </td>
-                <td className={`px-6 py-3 text-right text-white ${getNegativeNumberClass(totals.opening)}`}>
+                <td className={`px-6 py-3 text-right text-white ${getNegativeNumberClassForTotal(totals.opening)}`}>
                   {formatNumber(totals.opening)}
                 </td>
-                <td className={`px-6 py-3 text-right ${getNegativeNumberClass(totals.debit) || "text-green-200"}`}>
+                <td className={`px-6 py-3 text-right ${getNegativeNumberClassForTotal(totals.debit) || "text-green-200"}`}>
                   {formatNumber(totals.debit)}
                 </td>
-                <td className={`px-6 py-3 text-right ${getNegativeNumberClass(totals.credit) || "text-red-200"}`}>
+                <td className={`px-6 py-3 text-right ${getNegativeNumberClassForTotal(totals.credit) || "text-red-200"}`}>
                   {formatNumber(totals.credit)}
                 </td>
-                <td className={`px-6 py-3 text-right text-white ${getNegativeNumberClass(totals.balance)}`}>
+                <td className={`px-6 py-3 text-right text-white ${getNegativeNumberClassForTotal(totals.balance)}`}>
                   {formatNumber(totals.balance)}
                 </td>
               </tr>

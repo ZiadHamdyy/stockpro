@@ -10,7 +10,7 @@ import type {
 import { ExcelIcon, PdfIcon, PrintIcon, SearchIcon } from "../../../icons";
 import ReportHeader from "../ReportHeader";
 import PermissionWrapper from "../../../common/PermissionWrapper";
-import { formatNumber, getNegativeNumberClass } from "../../../../utils/formatting";
+import { formatNumber, getNegativeNumberClass, getNegativeNumberClassForTotal } from "../../../../utils/formatting";
 import { useGetSuppliersQuery } from "../../../store/slices/supplier/supplierApiSlice";
 import { useGetPurchaseInvoicesQuery } from "../../../store/slices/purchaseInvoice/purchaseInvoiceApiSlice";
 import { useGetPurchaseReturnsQuery } from "../../../store/slices/purchaseReturn/purchaseReturnApiSlice";
@@ -587,7 +587,7 @@ const SupplierBalanceReport: React.FC<SupplierBalanceReportProps> = ({
                 <td colSpan={2} className="px-6 py-3 text-right text-white">
                   الإجمالي
                 </td>
-                <td className={`px-6 py-3 text-right text-white ${getNegativeNumberClass(totals.opening)}`}>
+                <td className={`px-6 py-3 text-right text-white ${getNegativeNumberClassForTotal(totals.opening)}`}>
                   {formatNumber(totals.opening)}
                 </td>
                 <td className="px-6 py-3 text-right text-green-200">
@@ -596,7 +596,7 @@ const SupplierBalanceReport: React.FC<SupplierBalanceReportProps> = ({
                 <td className="px-6 py-3 text-right text-red-200">
                   {formatNumber(totals.credit)}
                 </td>
-                <td className={`px-6 py-3 text-right text-white ${getNegativeNumberClass(totals.balance)}`}>
+                <td className={`px-6 py-3 text-right text-white ${getNegativeNumberClassForTotal(totals.balance)}`}>
                   {formatNumber(totals.balance)}
                 </td>
               </tr>

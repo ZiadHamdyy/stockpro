@@ -4,7 +4,7 @@ import type { CompanyInfo, Safe, User, Voucher } from "../../../../types";
 import { ExcelIcon, PdfIcon, PrintIcon, SearchIcon } from "../../../icons";
 import ReportHeader from "../ReportHeader";
 import PermissionWrapper from '../../../common/PermissionWrapper';
-import { formatNumber, getNegativeNumberClass } from "../../../../utils/formatting";
+import { formatNumber, getNegativeNumberClass, getNegativeNumberClassForTotal } from "../../../../utils/formatting";
 import { useGetSafesQuery } from "../../../store/slices/safe/safeApiSlice";
 import { useGetInternalTransfersQuery } from "../../../store/slices/internalTransferApiSlice";
 import { useGetSalesInvoicesQuery } from "../../../store/slices/salesInvoice/salesInvoiceApiSlice";
@@ -1125,13 +1125,13 @@ const SafeStatementReport: React.FC<SafeStatementReportProps> = ({
                 <td colSpan={3} className="px-6 py-3 text-right text-white">
                   الإجمالي
                 </td>
-                <td className={`px-6 py-3 text-right ${getNegativeNumberClass(totalDebit) || "text-green-200"}`}>
+                <td className={`px-6 py-3 text-right ${getNegativeNumberClassForTotal(totalDebit) || "text-green-200"}`}>
                   {formatNumber(totalDebit)}
                 </td>
-                <td className={`px-6 py-3 text-right ${getNegativeNumberClass(totalCredit) || "text-red-200"}`}>
+                <td className={`px-6 py-3 text-right ${getNegativeNumberClassForTotal(totalCredit) || "text-red-200"}`}>
                   {formatNumber(totalCredit)}
                 </td>
-                <td className={`px-6 py-3 text-right text-white ${getNegativeNumberClass(finalBalance)}`}>
+                <td className={`px-6 py-3 text-right text-white ${getNegativeNumberClassForTotal(finalBalance)}`}>
                   {formatNumber(finalBalance)}
                 </td>
               </tr>

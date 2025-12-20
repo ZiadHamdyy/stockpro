@@ -13,7 +13,7 @@ import {
   Resources,
   buildPermission,
 } from "../../../../enums/permissions.enum";
-import { formatNumber, getNegativeNumberClass } from "../../../../utils/formatting";
+import { formatNumber, getNegativeNumberClass, getNegativeNumberClassForTotal } from "../../../../utils/formatting";
 import { useGetCurrentAccountsQuery } from "../../../store/slices/currentAccounts/currentAccountsApi";
 import { useGetBranchesQuery } from "../../../store/slices/branch/branchApi";
 import { useGetReceiptVouchersQuery } from "../../../store/slices/receiptVoucherApiSlice";
@@ -670,13 +670,13 @@ const CurrentAccountStatementReport: React.FC<
                 <td colSpan={4} className="px-6 py-3 text-right text-white">
                   الإجمالي
                 </td>
-                <td className={`px-6 py-3 text-right ${getNegativeNumberClass(totalDebit) || "text-green-200"}`}>
+                <td className={`px-6 py-3 text-right ${getNegativeNumberClassForTotal(totalDebit) || "text-green-200"}`}>
                   {formatNumber(totalDebit)}
                 </td>
-                <td className={`px-6 py-3 text-right ${getNegativeNumberClass(totalCredit) || "text-red-200"}`}>
+                <td className={`px-6 py-3 text-right ${getNegativeNumberClassForTotal(totalCredit) || "text-red-200"}`}>
                   {formatNumber(totalCredit)}
                 </td>
-                <td className={`px-6 py-3 text-right text-white ${getNegativeNumberClass(finalBalance)}`}>
+                <td className={`px-6 py-3 text-right text-white ${getNegativeNumberClassForTotal(finalBalance)}`}>
                   {formatNumber(finalBalance)}
                 </td>
               </tr>

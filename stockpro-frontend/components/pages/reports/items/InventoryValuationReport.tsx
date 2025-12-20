@@ -3,7 +3,7 @@ import type { CompanyInfo, User } from "../../../../types";
 import { ExcelIcon, PdfIcon, PrintIcon, SearchIcon } from "../../../icons";
 import ReportHeader from "../ReportHeader";
 import PermissionWrapper from "../../../common/PermissionWrapper";
-import { formatNumber, getNegativeNumberClass } from "../../../../utils/formatting";
+import { formatNumber, getNegativeNumberClass, getNegativeNumberClassForTotal } from "../../../../utils/formatting";
 import { useGetItemsQuery } from "../../../store/slices/items/itemsApi";
 import { useGetBranchesQuery } from "../../../store/slices/branch/branchApi";
 import { useGetStoresQuery } from "../../../store/slices/store/storeApi";
@@ -815,7 +815,7 @@ const InventoryValuationReport: React.FC<InventoryValuationReportProps> = ({
                 <td colSpan={5} className="px-6 py-3 text-right text-white">
                   إجمالي قيمة المخزون
                 </td>
-                <td className={`px-6 py-3 text-right text-white ${getNegativeNumberClass(totalValue)}`}>
+                <td className={`px-6 py-3 text-right text-white ${getNegativeNumberClassForTotal(totalValue)}`}>
                   {formatNumber(totalValue)}
                 </td>
               </tr>

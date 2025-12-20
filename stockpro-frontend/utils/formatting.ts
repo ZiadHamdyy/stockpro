@@ -56,6 +56,16 @@ export const getNegativeNumberClass = (num: number): string => {
 };
 
 /**
+ * Returns the appropriate className for displaying negative numbers in totals sections.
+ * Negative numbers will be styled in a lighter red (text-red-200) for better visibility on blue backgrounds.
+ * @param num The number to check
+ * @returns CSS className string (empty string if number is positive or zero)
+ */
+export const getNegativeNumberClassForTotal = (num: number): string => {
+  return num < 0 ? "text-red-200" : "";
+};
+
+/**
  * Formats a number as currency with commas and 2 decimal places for money display.
  * Example: 1000000 -> "1,000,000.00"
  * @param num The number to format

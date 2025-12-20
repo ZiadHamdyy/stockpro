@@ -5,7 +5,7 @@ import type { CompanyInfo, Branch, User, Invoice } from '../../../../types';
 import { ExcelIcon, PdfIcon, PrintIcon, SearchIcon } from '../../../icons';
 import ReportHeader from '../ReportHeader';
 import PermissionWrapper from '../../../common/PermissionWrapper';
-import { formatNumber, getNegativeNumberClass } from '../../../../utils/formatting';
+import { formatNumber, getNegativeNumberClass, getNegativeNumberClassForTotal } from '../../../../utils/formatting';
 import { useGetSalesInvoicesQuery } from '../../../store/slices/salesInvoice/salesInvoiceApiSlice';
 import { useGetSalesReturnsQuery } from '../../../store/slices/salesReturn/salesReturnApiSlice';
 import { useGetPurchaseInvoicesQuery } from '../../../store/slices/purchaseInvoice/purchaseInvoiceApiSlice';
@@ -636,13 +636,13 @@ const VATStatementReport: React.FC<VATStatementReportProps> = ({ title, companyI
                                 <td colSpan={3} className="px-6 py-3 text-right text-white">
                                     الإجمالي
                                 </td>
-                                <td className={`px-6 py-3 text-right ${getNegativeNumberClass(totalDebit) || "text-green-200"}`}>
+                                <td className={`px-6 py-3 text-right ${getNegativeNumberClassForTotal(totalDebit) || "text-green-200"}`}>
                                     {formatNumber(totalCredit)}
                                 </td>
-                                <td className={`px-6 py-3 text-right ${getNegativeNumberClass(totalCredit) || "text-red-200"}`}>
+                                <td className={`px-6 py-3 text-right ${getNegativeNumberClassForTotal(totalCredit) || "text-red-200"}`}>
                                     {formatNumber(totalDebit)}
                                 </td>
-                                <td className={`px-6 py-3 text-right text-white ${getNegativeNumberClass(netTax)}`}>
+                                <td className={`px-6 py-3 text-right text-white ${getNegativeNumberClassForTotal(netTax)}`}>
                                     {formatNumber(netTax)}
                                 </td>
                             </tr>

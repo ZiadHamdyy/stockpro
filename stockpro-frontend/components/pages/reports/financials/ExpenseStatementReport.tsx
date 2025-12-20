@@ -11,7 +11,7 @@ import {
   Resources,
   buildPermission,
 } from "../../../../enums/permissions.enum";
-import { formatNumber, getNegativeNumberClass } from "../../../../utils/formatting";
+import { formatNumber, getNegativeNumberClass, getNegativeNumberClassForTotal } from "../../../../utils/formatting";
 import { useGetExpenseCodesQuery } from "../../../store/slices/expense/expenseApiSlice";
 import { useGetExpensePaymentVouchersQuery } from "../../../store/slices/paymentVoucherApiSlice";
 import { useGetBranchesQuery } from "../../../store/slices/branch/branchApi";
@@ -520,10 +520,10 @@ const ExpenseStatementReport: React.FC<ExpenseStatementReportProps> = ({
                 <td colSpan={4} className="px-6 py-3 text-right text-white">
                   الإجمالي
                 </td>
-                <td className={`px-6 py-3 text-right text-white ${getNegativeNumberClass(totalAmount)}`}>
+                <td className={`px-6 py-3 text-right text-white ${getNegativeNumberClassForTotal(totalAmount)}`}>
                   {formatNumber(totalAmount)}
                 </td>
-                <td className={`px-6 py-3 text-right text-white ${getNegativeNumberClass(totalAmount)}`}>
+                <td className={`px-6 py-3 text-right text-white ${getNegativeNumberClassForTotal(totalAmount)}`}>
                   {formatNumber(totalAmount)}
                 </td>
               </tr>
