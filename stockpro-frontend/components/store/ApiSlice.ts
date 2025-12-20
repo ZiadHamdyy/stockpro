@@ -204,9 +204,9 @@ const baseQueryWithReAuth: BaseQueryFn<
       const currentToken = selectCurrentToken(api.getState() as any);
       
       // Check if token expired more than 10 seconds ago
-      // If expired > 10 seconds ago, user likely reopened tab after expiration → logout directly
-      // If expired ≤ 10 seconds ago, it's an active session → show dialog
-      const tokenExpiredMoreThan = isTokenExpiredMoreThan(currentToken, 60000);
+      // If expired > 5 minutes ago, user likely reopened tab after expiration → logout directly
+      // If expired ≤ 5 minutes ago, it's an active session → show dialog
+      const tokenExpiredMoreThan = isTokenExpiredMoreThan(currentToken, 300000); // 300000 = 5 minutes
       
       // If no token exists, logout directly
       if (!currentToken) {
