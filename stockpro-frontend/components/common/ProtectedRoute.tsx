@@ -25,7 +25,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   requiresSubscription,
 }) => {
   const currentUser = useSelector(selectCurrentUser);
-  const { subscription } = useSubscription();
+  const { subscription, isLoading: subscriptionLoading } = useSubscription();
 
   // If user is not authenticated, redirect to login
   if (!currentUser) {
@@ -74,6 +74,20 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
 
   // Check subscription requirements (after permission check)
   if (requiresSubscription) {
+    // Wait for subscription data to load before making redirect decision
+    // This prevents redirecting to dashboard on page refresh while data is loading
+    if (subscriptionLoading) {
+      // Show loading state while subscription is being fetched
+      return (
+        <div className="flex justify-center items-center h-screen">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand-blue mx-auto mb-4"></div>
+            <p className="text-gray-600">جاري التحميل...</p>
+          </div>
+        </div>
+      );
+    }
+    
     // Determine allowed plans based on requirement
     const allowedPlans = requiresSubscription === 'GROWTH' 
       ? ['GROWTH', 'BUSINESS'] 
