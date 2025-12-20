@@ -417,6 +417,11 @@ export const MENU_ITEMS: MenuItem[] = [
             label: "كشف حساب بنك",
             icon: BarChartIcon,
           },
+          {
+            key: "total_cash_report",
+            label: "إجمالي النقدية",
+            icon: BarChartIcon,
+          },
         ],
       },
       {

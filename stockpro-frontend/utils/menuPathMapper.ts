@@ -117,6 +117,8 @@ export const getPathFromMenuKey = (key: string): string => {
     daily_transfers_report: "/reports/financials/daily-transfers",
     expense_statement_report: "/reports/financials/expense-statement",
     total_expenses_report: "/reports/financials/total-expenses",
+    revenue_statement_report: "/reports/financials/revenue-statement",
+    total_revenues_report: "/reports/financials/total-revenues",
     current_account_statement_report:
       "/reports/financials/current-account-statement",
     total_current_accounts_report: "/reports/financials/total-current-accounts",
@@ -130,6 +132,7 @@ export const getPathFromMenuKey = (key: string): string => {
       "/reports/financials/total-payable-accounts",
     safe_statement_report: "/reports/financials/safe-statement",
     bank_statement_report: "/reports/financials/bank-statement",
+    total_cash_report: "/reports/financials/total-cash",
     vat_statement_report: "/reports/financials/vat-statement",
     tax_declaration_report: "/reports/financials/tax-declaration",
 
@@ -217,6 +220,8 @@ export const getMenuKeyFromPath = (path: string): string => {
     "/reports/financials/daily-transfers": "daily_transfers_report",
     "/reports/financials/expense-statement": "expense_statement_report",
     "/reports/financials/total-expenses": "total_expenses_report",
+    "/reports/financials/revenue-statement": "revenue_statement_report",
+    "/reports/financials/total-revenues": "total_revenues_report",
     "/reports/financials/current-account-statement":
       "current_account_statement_report",
     "/reports/financials/total-current-accounts":
@@ -231,6 +236,7 @@ export const getMenuKeyFromPath = (path: string): string => {
       "total_payable_accounts_report",
     "/reports/financials/safe-statement": "safe_statement_report",
     "/reports/financials/bank-statement": "bank_statement_report",
+    "/reports/financials/total-cash": "total_cash_report",
     "/reports/financials/vat-statement": "vat_statement_report",
     "/reports/financials/tax-declaration": "tax_declaration_report",
     "/final-accounts/income-statement": "income_statement",

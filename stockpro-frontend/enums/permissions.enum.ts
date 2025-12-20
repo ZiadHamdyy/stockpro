@@ -126,6 +126,7 @@ export enum Resources {
   TOTAL_PAYABLE_ACCOUNTS_REPORT = "total_payable_accounts_report",
   SAFE_STATEMENT_REPORT = "safe_statement_report",
   BANK_STATEMENT_REPORT = "bank_statement_report",
+  TOTAL_CASH_REPORT = "total_cash_report",
   VAT_STATEMENT_REPORT = "vat_statement_report",
   TAX_DECLARATION_REPORT = "tax_declaration_report",
 

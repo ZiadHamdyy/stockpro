@@ -90,6 +90,8 @@ import DailyPaymentsReport from "./components/pages/reports/financials/DailyPaym
 import DailyTransfersReport from "./components/pages/reports/financials/DailyTransfersReport";
 import ExpenseStatementReport from "./components/pages/reports/financials/ExpenseStatementReport";
 import TotalExpensesReport from "./components/pages/reports/financials/TotalExpensesReport";
+import RevenueStatementReport from "./components/pages/reports/financials/RevenueStatementReport";
+import TotalRevenuesReport from "./components/pages/reports/financials/TotalRevenueReport";
 import CurrentAccountStatementReport from "./components/pages/reports/financials/CurrentAccountStatementReport";
 import TotalCurrentAccountsReport from "./components/pages/reports/financials/TotalCurrentAccountsReport";
 import ReceivableAccountStatementReport from "./components/pages/reports/financials/ReceivableAccountStatementReport";
@@ -98,6 +100,7 @@ import PayableAccountStatementReport from "./components/pages/reports/financials
 import TotalPayableAccountsReport from "./components/pages/reports/financials/TotalPayableAccountsReport";
 import SafeStatementReport from "./components/pages/reports/financials/SafeStatementReport";
 import BankStatementReport from "./components/pages/reports/financials/BankStatementReport";
+import TotalCashReport from "./components/pages/reports/financials/TotalCashReport";
 import TaxDeclarationReport from "./components/pages/reports/financials/TaxDeclarationReport";
 import VATStatementReport from "./components/pages/reports/financials/VATStatementReport";
 import IncomeStatement from "./components/pages/final_accounts/IncomeStatement";
@@ -1614,6 +1617,30 @@ const AppContent = () => {
               }
             />
             <Route
+              path="/reports/financials/revenue-statement"
+              element={
+                <ProtectedRoute requiredPermission="revenue_statement_report-read">
+                  <RevenueStatementReport
+                    title={currentPageTitle}
+                    companyInfo={companyInfo}
+                    currentUser={currentUser}
+                  />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/reports/financials/total-revenues"
+              element={
+                <ProtectedRoute requiredPermission="total_revenues_report-read">
+                  <TotalRevenuesReport
+                    title={currentPageTitle}
+                    companyInfo={companyInfo}
+                    currentUser={currentUser}
+                  />
+                </ProtectedRoute>
+              }
+            />
+            <Route
               path="/reports/financials/current-account-statement"
               element={
                 <ProtectedRoute requiredPermission="current_account_statement_report-read">
@@ -1716,6 +1743,20 @@ const AppContent = () => {
               element={
                 <ProtectedRoute requiredPermission="bank_statement_report-read">
                   <BankStatementReport
+                    title={currentPageTitle}
+                    companyInfo={companyInfo}
+                    receiptVouchers={receiptVouchers}
+                    paymentVouchers={paymentVouchers}
+                    currentUser={currentUser}
+                  />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/reports/financials/total-cash"
+              element={
+                <ProtectedRoute requiredPermission="total_cash_report-read">
+                  <TotalCashReport
                     title={currentPageTitle}
                     companyInfo={companyInfo}
                     receiptVouchers={receiptVouchers}

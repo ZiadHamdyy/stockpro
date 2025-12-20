@@ -249,6 +249,7 @@ const MENU_ITEMS: MenuItem[] = [
         children: [
           { key: 'safe_statement_report', label: 'كشف حساب خزينة' },
           { key: 'bank_statement_report', label: 'كشف حساب بنك' },
+          { key: 'total_cash_report', label: 'إجمالي النقدية' },
         ],
       },
       {

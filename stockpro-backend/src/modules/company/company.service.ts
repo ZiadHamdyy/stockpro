@@ -219,6 +219,8 @@ const MENU_ITEMS: MenuItem[] = [
           { key: 'daily_transfers_report', label: 'يومية التحويلات' },
           { key: 'expense_statement_report', label: 'كشف حساب مصروفات' },
           { key: 'total_expenses_report', label: 'إجمالي المصروفات' },
+          { key: 'revenue_statement_report', label: 'كشف حساب إيرادات' },
+          { key: 'total_revenues_report', label: 'إجمالي الإيرادات' },
         ],
       },
       {
@@ -248,6 +250,7 @@ const MENU_ITEMS: MenuItem[] = [
         children: [
           { key: 'safe_statement_report', label: 'كشف حساب خزينة' },
           { key: 'bank_statement_report', label: 'كشف حساب بنك' },
+          { key: 'total_cash_report', label: 'إجمالي النقدية' },
         ],
       },
       {
@@ -662,6 +665,8 @@ export class CompanyService {
           p.resource === 'daily_transfers_report' ||
           p.resource === 'expense_statement_report' ||
           p.resource === 'total_expenses_report' ||
+          p.resource === 'revenue_statement_report' ||
+          p.resource === 'total_revenues_report' ||
           p.resource === 'general_accounts_reports' ||
           p.resource === 'current_account_statement_report' ||
           p.resource === 'total_current_accounts_report' ||
@@ -672,6 +677,7 @@ export class CompanyService {
           p.resource === 'cash_reports' ||
           p.resource === 'safe_statement_report' ||
           p.resource === 'bank_statement_report' ||
+          p.resource === 'total_cash_report' ||
           p.resource === 'tax_reports' ||
           p.resource === 'vat_statement_report' ||
           p.resource === 'tax_declaration_report' ||
