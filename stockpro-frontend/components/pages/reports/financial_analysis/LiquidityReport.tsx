@@ -1552,7 +1552,8 @@ const LiquidityReport: React.FC<LiquidityReportProps> = ({ title }) => {
         };
 
         // Calculate total payables as sum of final balances for all suppliers
-        const totalPayables = suppliers.reduce((sum, supplier) => sum + calculateSupplierFinalBalance(supplier), 0);
+        const calculatedPayables = suppliers.reduce((sum, supplier) => sum + calculateSupplierFinalBalance(supplier), 0) * -1;
+        const totalPayables = calculatedPayables === 0 ? 0 : calculatedPayables;
 
         const vatLiability = vatLiabilityFromNet > 0 ? vatLiabilityFromNet : Math.max(balanceSheetData?.vatPayable ?? 0, 0);
         
@@ -1976,7 +1977,7 @@ const LiquidityReport: React.FC<LiquidityReportProps> = ({ title }) => {
                     <div className="p-4 space-y-2">
                         <div className="flex justify-between text-sm border-b border-gray-100 pb-2">
                             <span className="text-gray-600">الذمم الدائنة (الموردين)</span>
-                            <span className="font-bold">{formatNumber(analysis.totalPayables * -1)}</span>
+                            <span className="font-bold">{formatNumber(analysis.totalPayables)}</span>
                         </div>
                         <div className="flex justify-between text-sm border-b border-gray-100 pb-2">
                             <span className="text-gray-600">أرصدة دائنة أخرى</span>
