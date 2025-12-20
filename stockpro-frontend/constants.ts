@@ -353,6 +353,16 @@ export const MENU_ITEMS: MenuItem[] = [
             label: "إجمالي المصروفات",
             icon: BarChartIcon,
           },
+          {
+            key: "revenue_statement_report",
+            label: "كشف حساب إيرادات",
+            icon: BarChartIcon,
+          },
+          {
+            key: "total_revenues_report",
+            label: "إجمالي الإيرادات",
+            icon: BarChartIcon,
+          },
         ],
       },
       {

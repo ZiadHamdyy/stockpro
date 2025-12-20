@@ -218,6 +218,8 @@ const MENU_ITEMS: MenuItem[] = [
           { key: 'daily_transfers_report', label: 'يومية التحويلات' },
           { key: 'expense_statement_report', label: 'كشف حساب مصروفات' },
           { key: 'total_expenses_report', label: 'إجمالي المصروفات' },
+          { key: 'revenue_statement_report', label: 'كشف حساب إيرادات' },
+          { key: 'total_revenues_report', label: 'إجمالي الإيرادات' },
         ],
       },
       {

@@ -116,6 +116,8 @@ export enum Resources {
   DAILY_TRANSFERS_REPORT = "daily_transfers_report",
   EXPENSE_STATEMENT_REPORT = "expense_statement_report",
   TOTAL_EXPENSES_REPORT = "total_expenses_report",
+  REVENUE_STATEMENT_REPORT = "revenue_statement_report",
+  TOTAL_REVENUES_REPORT = "total_revenues_report",
   CURRENT_ACCOUNT_STATEMENT_REPORT = "current_account_statement_report",
   TOTAL_CURRENT_ACCOUNTS_REPORT = "total_current_accounts_report",
   RECEIVABLE_ACCOUNT_STATEMENT_REPORT = "receivable_account_statement_report",
