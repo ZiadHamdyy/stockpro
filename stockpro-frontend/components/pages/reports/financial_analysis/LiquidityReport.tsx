@@ -1607,7 +1607,233 @@ const LiquidityReport: React.FC<LiquidityReportProps> = ({ title }) => {
         return { label: 'خطر شديد', classes: 'bg-red-100 text-red-800 border-red-500' };
     };
 
-    const handlePrint = () => window.print();
+    const handlePrint = () => {
+        const reportContent = document.getElementById("printable-area");
+        if (!reportContent) return;
+
+        const printWindow = window.open("", "", "height=800,width=1200");
+        printWindow?.document.write("<html><head><title>طباعة التقرير</title>");
+        printWindow?.document.write(
+            '<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet">',
+        );
+        printWindow?.document.write(
+            '<script src="https://cdn.tailwindcss.com"></script>',
+        );
+        printWindow?.document.write(`
+            <script>
+                tailwind.config = {
+                    theme: {
+                        extend: {
+                            colors: {
+                                'brand-blue': '#1E40AF',
+                                'brand-blue-bg': '#EFF6FF',
+                                'brand-green': '#16a34a',
+                                'brand-green-active': '#4ade80',
+                                'brand-green-bg': '#ECFDF5',
+                                'brand-dark': '#1F2937',
+                                'brand-light-gray': '#F8FAFC',
+                                'brand-text': '#111827',
+                            },
+                        },
+                    },
+                };
+            </script>
+        `);
+        printWindow?.document.write(`
+            <style>
+                @page {
+                    size: Legal landscape;
+                    margin: 1cm;
+                }
+                body { font-family: "Cairo", sans-serif; direction: rtl; font-size: 14px; }
+                .no-print, .no-print * { display: none !important; visibility: hidden !important; margin: 0 !important; padding: 0 !important; }
+                /* Make hidden md:block elements visible in print */
+                .hidden.md\\:block { display: block !important; }
+                @media print {
+                    @page {
+                        size: Legal landscape;
+                        margin: 1cm;
+                    }
+                    body { 
+                        -webkit-print-color-adjust: exact !important; 
+                        color-adjust: exact !important; 
+                        print-color-adjust: exact !important;
+                        font-size: 14px !important; 
+                    }
+                    .no-print, .no-print * { display: none !important; visibility: hidden !important; }
+                    .hidden.md\\:block { display: block !important; }
+                    
+                    /* Grid layouts - preserve desktop view */
+                    .grid { display: grid !important; }
+                    .grid-cols-1 { grid-template-columns: repeat(1, minmax(0, 1fr)) !important; }
+                    /* Force desktop grid layouts in print - override Tailwind responsive behavior */
+                    [class*="md:grid-cols-3"] { grid-template-columns: repeat(3, minmax(0, 1fr)) !important; }
+                    [class*="lg:grid-cols-2"] { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
+                    
+                    /* Flex utilities */
+                    .flex { display: flex !important; }
+                    .justify-between { justify-content: space-between !important; }
+                    .justify-end { justify-content: flex-end !important; }
+                    .items-center { align-items: center !important; }
+                    .items-start { align-items: flex-start !important; }
+                    .gap-3 { gap: 0.75rem !important; }
+                    .gap-6 { gap: 1.5rem !important; }
+                    .gap-8 { gap: 2rem !important; }
+                    
+                    /* Spacing */
+                    .p-2 { padding: 0.5rem !important; }
+                    .p-4 { padding: 1rem !important; }
+                    .p-6 { padding: 1.5rem !important; }
+                    .px-3 { padding-left: 0.75rem !important; padding-right: 0.75rem !important; }
+                    .py-1 { padding-top: 0.25rem !important; padding-bottom: 0.25rem !important; }
+                    .mb-1 { margin-bottom: 0.25rem !important; }
+                    .mb-4 { margin-bottom: 1rem !important; }
+                    .mt-1 { margin-top: 0.25rem !important; }
+                    .mt-2 { margin-top: 0.5rem !important; }
+                    .mt-4 { margin-top: 1rem !important; }
+                    .mr-auto { margin-right: auto !important; }
+                    
+                    /* Text utilities */
+                    .text-xs { font-size: 0.75rem !important; }
+                    .text-sm { font-size: 0.875rem !important; }
+                    .text-lg { font-size: 1.125rem !important; }
+                    .text-2xl { font-size: 1.5rem !important; }
+                    .text-3xl { font-size: 1.875rem !important; }
+                    .text-4xl { font-size: 2.25rem !important; }
+                    .font-bold { font-weight: 700 !important; }
+                    .font-extrabold { font-weight: 800 !important; }
+                    .font-black { font-weight: 900 !important; }
+                    .font-medium { font-weight: 500 !important; }
+                    .font-semibold { font-weight: 600 !important; }
+                    .font-mono { font-family: ui-monospace, monospace !important; }
+                    .text-center { text-align: center !important; }
+                    .uppercase { text-transform: uppercase !important; }
+                    .tracking-widest { letter-spacing: 0.1em !important; }
+                    
+                    /* Brand colors */
+                    .bg-brand-blue { background-color: #1E40AF !important; }
+                    .text-brand-blue { color: #1E40AF !important; }
+                    .text-brand-dark { color: #1F2937 !important; }
+                    
+                    /* Emerald colors */
+                    .bg-emerald-100 { background-color: #D1FAE5 !important; }
+                    .text-emerald-800 { color: #065F46 !important; }
+                    .border-emerald-500 { border-color: #10B981 !important; }
+                    
+                    /* Blue colors */
+                    .bg-blue-50 { background-color: #EFF6FF !important; }
+                    .bg-blue-100 { background-color: #DBEAFE !important; }
+                    .bg-blue-500 { background-color: #3B82F6 !important; }
+                    .text-blue-500 { color: #3B82F6 !important; }
+                    .text-blue-700 { color: #1D4ED8 !important; }
+                    .text-blue-800 { color: #1E40AF !important; }
+                    .border-blue-100 { border-color: #DBEAFE !important; }
+                    .border-blue-500 { border-color: #3B82F6 !important; }
+                    
+                    /* Purple colors */
+                    .bg-purple-500 { background-color: #A855F7 !important; }
+                    .text-purple-500 { color: #A855F7 !important; }
+                    
+                    /* Green colors */
+                    .bg-green-100 { background-color: #D1FAE5 !important; }
+                    .bg-green-500 { background-color: #10B981 !important; }
+                    .text-green-500 { color: #10B981 !important; }
+                    .text-green-600 { color: #059669 !important; }
+                    .text-green-700 { color: #047857 !important; }
+                    .text-green-800 { color: #065F46 !important; }
+                    .border-green-500 { border-color: #10B981 !important; }
+                    
+                    /* Red colors */
+                    .bg-red-50 { background-color: #FEF2F2 !important; }
+                    .bg-red-100 { background-color: #FEE2E2 !important; }
+                    .bg-red-500 { background-color: #EF4444 !important; }
+                    .text-red-600 { color: #DC2626 !important; }
+                    .text-red-700 { color: #B91C1C !important; }
+                    .text-red-800 { color: #991B1B !important; }
+                    .border-red-100 { border-color: #FEE2E2 !important; }
+                    .border-red-500 { border-color: #EF4444 !important; }
+                    
+                    /* Yellow colors */
+                    .bg-yellow-100 { background-color: #FEF3C7 !important; }
+                    .text-yellow-500 { color: #F59E0B !important; }
+                    .text-yellow-800 { color: #92400E !important; }
+                    .border-yellow-500 { border-color: #F59E0B !important; }
+                    
+                    /* Orange colors */
+                    .bg-orange-100 { background-color: #FFEDD5 !important; }
+                    .text-orange-500 { color: #F97316 !important; }
+                    .text-orange-800 { color: #9A3412 !important; }
+                    .border-orange-500 { border-color: #F97316 !important; }
+                    
+                    /* Gray colors */
+                    .bg-gray-50 { background-color: #F9FAFB !important; }
+                    .bg-gray-100 { background-color: #F3F4F6 !important; }
+                    .bg-gray-200 { background-color: #E5E7EB !important; }
+                    .text-gray-500 { color: #6B7280 !important; }
+                    .text-gray-600 { color: #4B5563 !important; }
+                    .text-gray-700 { color: #374151 !important; }
+                    .text-gray-800 { color: #1F2937 !important; }
+                    .border-gray-100 { border-color: #F3F4F6 !important; }
+                    .border-gray-200 { border-color: #E5E7EB !important; }
+                    
+                    /* White */
+                    .bg-white { background-color: #FFFFFF !important; }
+                    .text-white { color: #FFFFFF !important; }
+                    
+                    /* Borders */
+                    .border { border-width: 1px !important; }
+                    .border-l-8 { border-left-width: 2rem !important; }
+                    .border-b { border-bottom-width: 1px !important; }
+                    .border-t { border-top-width: 1px !important; }
+                    .rounded { border-radius: 0.25rem !important; }
+                    .rounded-full { border-radius: 9999px !important; }
+                    .rounded-xl { border-radius: 0.75rem !important; }
+                    .rounded-lg { border-radius: 0.5rem !important; }
+                    
+                    /* Shadows */
+                    .shadow { box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06) !important; }
+                    .shadow-sm { box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05) !important; }
+                    
+                    /* Positioning */
+                    .absolute { position: absolute !important; }
+                    .relative { position: relative !important; }
+                    .top-0 { top: 0 !important; }
+                    .left-0 { left: 0 !important; }
+                    .w-full { width: 100% !important; }
+                    .h-1 { height: 0.25rem !important; }
+                    .h-6 { height: 1.5rem !important; }
+                    .h-12 { height: 3rem !important; }
+                    .w-6 { width: 1.5rem !important; }
+                    .w-12 { width: 3rem !important; }
+                    .w-auto { width: auto !important; }
+                    
+                    /* Overflow */
+                    .overflow-hidden { overflow: hidden !important; }
+                    
+                    /* Opacity */
+                    .opacity-50 { opacity: 0.5 !important; }
+                    .opacity-70 { opacity: 0.7 !important; }
+                    .opacity-90 { opacity: 0.9 !important; }
+                    
+                    /* Backdrop */
+                    .backdrop-blur-sm { backdrop-filter: blur(4px) !important; }
+                    
+                    /* Space utilities */
+                    .space-y-3 > * + * { margin-top: 0.75rem !important; }
+                    .space-y-8 > * + * { margin-top: 2rem !important; }
+                }
+            </style>
+        `);
+        printWindow?.document.write("</head><body>");
+        printWindow?.document.write(reportContent.innerHTML);
+        printWindow?.document.write("</body></html>");
+        printWindow?.document.close();
+        printWindow?.focus();
+        setTimeout(() => {
+            printWindow?.print();
+            printWindow?.close();
+        }, 500);
+    };
 
     if (isLoading) {
         return (
@@ -1626,59 +1852,58 @@ const LiquidityReport: React.FC<LiquidityReportProps> = ({ title }) => {
     const cashStatus = getRatioStatus(analysis.cashRatio);
 
     return (
-        <div className="bg-white p-6 rounded-lg shadow space-y-8">
+        <div className="bg-white p-4 rounded-lg shadow space-y-3">
+            
             <div id="printable-area">
                 <ReportHeader title={title} />
-                <div className="flex justify-end items-center mb-4 no-print">
-                    <PermissionWrapper
-                        requiredPermission={buildPermission(
-                            Resources.LIQUIDITY_REPORT,
-                            Actions.PRINT,
-                        )}
-                        fallback={
-                            <button disabled className="p-2 bg-gray-100 rounded cursor-not-allowed opacity-50"><PrintIcon/></button>
-                        }
-                    >
-                        <button onClick={handlePrint} className="p-2 bg-gray-100 rounded hover:bg-gray-200"><PrintIcon/></button>
-                    </PermissionWrapper>
-                </div>
+                <div className="flex justify-end items-center mb-2 no-print">
+                <PermissionWrapper
+                    requiredPermission={buildPermission(
+                        Resources.LIQUIDITY_REPORT,
+                        Actions.PRINT,
+                    )}
+                    fallback={
+                        <button disabled className="p-2 bg-gray-100 rounded cursor-not-allowed opacity-50"><PrintIcon/></button>
+                    }
+                >
+                    <button onClick={handlePrint} className="p-2 bg-gray-100 rounded hover:bg-gray-200"><PrintIcon/></button>
+                </PermissionWrapper>
             </div>
-
-            {/* Safety Indicator Banner */}
-            <div className={`p-6 rounded-xl border-l-8 shadow-sm flex items-center gap-6 ${getStatusColor(analysis.safetyStatus)}`}>
-                <div className="p-4 bg-white/50 rounded-full backdrop-blur-sm">
-                    {analysis.safetyStatus === 'excellent' || analysis.safetyStatus === 'good' ? <ShieldIcon className="w-12 h-12"/> : <AlertTriangleIcon className="w-12 h-12"/>}
+                {/* Safety Indicator Banner */}
+            <div className={`p-3 mb-2 rounded-xl border-l-8 shadow-sm flex items-center gap-3 ${getStatusColor(analysis.safetyStatus)}`}>
+                <div className="p-2.5 bg-white/50 rounded-full backdrop-blur-sm">
+                    {analysis.safetyStatus === 'excellent' || analysis.safetyStatus === 'good' ? <ShieldIcon className="w-9 h-9"/> : <AlertTriangleIcon className="w-9 h-9"/>}
                 </div>
                 <div>
-                    <h2 className="text-2xl font-extrabold mb-1">حالة السيولة: {
+                    <h2 className="text-xl font-extrabold mb-0.5">حالة السيولة: {
                         analysis.safetyStatus === 'excellent' ? 'ممتازة' : 
                         analysis.safetyStatus === 'good' ? 'جيدة' : 
                         analysis.safetyStatus === 'warning' ? 'حذرة' : 'خطرة'
                     }</h2>
-                    <p className="text-lg opacity-90 font-medium">{analysis.safetyMessage}</p>
+                    <p className="text-sm opacity-90 font-medium">{analysis.safetyMessage}</p>
                 </div>
                 <div className="mr-auto text-center hidden md:block">
-                    <p className="text-sm uppercase tracking-widest opacity-70 font-bold">نسبة التداول</p>
-                    <p className="text-4xl font-black">{analysis.currentRatio.toFixed(2)}</p>
+                    <p className="text-xs uppercase tracking-widest opacity-70 font-bold">نسبة التداول</p>
+                    <p className="text-3xl font-black">{analysis.currentRatio.toFixed(2)}</p>
                 </div>
             </div>
 
             {/* Ratios Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div className="bg-white p-6 rounded-xl shadow border border-gray-200 relative overflow-hidden">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-2">
+                <div className="bg-white p-5 rounded-xl shadow border border-gray-200 relative overflow-hidden">
                     <div className="absolute top-0 left-0 w-full h-1 bg-blue-500"></div>
-                    <div className="flex justify-between items-start mb-4">
+                    <div className="flex justify-between items-start mb-3">
                         <h3 className="font-bold text-gray-600">نسبة التداول (Current Ratio)</h3>
                         <ActivityIcon className="text-blue-500 w-6 h-6"/>
                     </div>
                     <p className="text-3xl font-bold text-brand-dark">{analysis.currentRatio.toFixed(2)}</p>
                     <p className="text-xs text-gray-500 mt-2">المعيار المقبول: 1.5 - 2.0</p>
-                    <p className="text-sm text-gray-600 mt-4 bg-gray-50 p-2 rounded">قدرة الشركة على سداد ديونها قصيرة الأجل باستخدام جميع أصولها المتداولة.</p>
+                    <p className="text-sm text-gray-600 mt-3 bg-gray-50 p-2 rounded">قدرة الشركة على سداد ديونها قصيرة الأجل باستخدام جميع أصولها المتداولة.</p>
                 </div>
 
-                <div className="bg-white p-6 rounded-xl shadow border border-gray-200 relative overflow-hidden">
+                <div className="bg-white p-5 rounded-xl shadow border border-gray-200 relative overflow-hidden">
                     <div className="absolute top-0 left-0 w-full h-1 bg-purple-500"></div>
-                    <div className="flex justify-between items-start mb-4">
+                    <div className="flex justify-between items-start mb-3">
                         <h3 className="font-bold text-gray-600">نسبة السيولة السريعة (Quick)</h3>
                         <TrendingUpIcon className="text-purple-500 w-6 h-6"/>
                     </div>
@@ -1687,12 +1912,12 @@ const LiquidityReport: React.FC<LiquidityReportProps> = ({ title }) => {
                         <span className={`px-3 py-1 text-xs font-bold rounded-full border ${quickStatus.classes}`}>{quickStatus.label}</span>
                     </div>
                     <p className="text-xs text-gray-500 mt-2">المعيار المقبول: {'>'} 1.0 (مع تدرج الألوان حسب النتيجة)</p>
-                    <p className="text-sm text-gray-600 mt-4 bg-gray-50 p-2 rounded">القدرة على السداد دون الحاجة لبيع المخزون (النقد + الذمم المدينة).</p>
+                    <p className="text-sm text-gray-600 mt-3 bg-gray-50 p-2 rounded">القدرة على السداد دون الحاجة لبيع المخزون (النقد + الذمم المدينة).</p>
                 </div>
 
-                <div className="bg-white p-6 rounded-xl shadow border border-gray-200 relative overflow-hidden">
+                <div className="bg-white p-5 rounded-xl shadow border border-gray-200 relative overflow-hidden">
                     <div className="absolute top-0 left-0 w-full h-1 bg-green-500"></div>
-                    <div className="flex justify-between items-start mb-4">
+                    <div className="flex justify-between items-start mb-3">
                         <h3 className="font-bold text-gray-600">نسبة النقدية (Cash Ratio)</h3>
                         <ShieldIcon className="text-green-500 w-6 h-6"/>
                     </div>
@@ -1701,18 +1926,18 @@ const LiquidityReport: React.FC<LiquidityReportProps> = ({ title }) => {
                         <span className={`px-3 py-1 text-xs font-bold rounded-full border ${cashStatus.classes}`}>{cashStatus.label}</span>
                     </div>
                     <p className="text-xs text-gray-500 mt-2">المعيار: يعتمد على النشاط (مع تدرج الألوان حسب النتيجة)</p>
-                    <p className="text-sm text-gray-600 mt-4 bg-gray-50 p-2 rounded">السيولة النقدية الفورية المتوفرة لتغطية الالتزامات الحالية.</p>
+                    <p className="text-sm text-gray-600 mt-3 bg-gray-50 p-2 rounded">السيولة النقدية الفورية المتوفرة لتغطية الالتزامات الحالية.</p>
                 </div>
             </div>
 
             {/* Detailed Breakdown */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                 <div className="border rounded-xl overflow-hidden">
                     <div className="bg-blue-50 p-4 border-b border-blue-100 flex justify-between items-center">
                         <h3 className="font-bold text-blue-800">الأصول المتداولة (Current Assets)</h3>
                         <span className="font-mono font-bold text-blue-700 text-lg">{formatNumber(analysis.currentAssets)}</span>
                     </div>
-                    <div className="p-4 space-y-3">
+                    <div className="p-4 space-y-2">
                         <div className="flex justify-between text-sm border-b border-gray-100 pb-2">
                             <span className="text-gray-600">النقدية بالخزينة</span>
                             <span className="font-bold">{formatNumber(analysis.totalCash)}</span>
@@ -1745,7 +1970,7 @@ const LiquidityReport: React.FC<LiquidityReportProps> = ({ title }) => {
                         <h3 className="font-bold text-red-800">الالتزامات المتداولة (Current Liabilities)</h3>
                         <span className="font-mono font-bold text-red-700 text-lg">{formatNumber(analysis.currentLiabilities)}</span>
                     </div>
-                    <div className="p-4 space-y-3">
+                    <div className="p-4 space-y-2">
                         <div className="flex justify-between text-sm border-b border-gray-100 pb-2">
                             <span className="text-gray-600">الذمم الدائنة (الموردين)</span>
                             <span className="font-bold">{formatNumber(analysis.totalPayables * -1)}</span>
@@ -1760,6 +1985,7 @@ const LiquidityReport: React.FC<LiquidityReportProps> = ({ title }) => {
                         </div>
                     </div>
                 </div>
+            </div>
             </div>
         </div>
     );
