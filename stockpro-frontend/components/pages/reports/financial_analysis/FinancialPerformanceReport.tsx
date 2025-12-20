@@ -429,7 +429,7 @@ const FinancialPerformanceReport: React.FC<FinancialPerformanceReportProps> = ({
                 </div>
 
                 {/* Vibrant Summary Cards */}
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6 print:hidden">
                     <div className="bg-gradient-to-br from-blue-600 to-blue-700 text-white p-5 rounded-xl shadow-lg transform transition hover:-translate-y-1">
                         <p className="text-blue-100 text-xs font-bold uppercase tracking-wider opacity-80">إجمالي المبيعات</p>
                         <p className="text-3xl font-bold mt-2">{formatNumber(reportData.reduce((s, i) => s + i.sales, 0))}</p>
