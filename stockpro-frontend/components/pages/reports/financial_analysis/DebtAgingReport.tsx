@@ -329,11 +329,14 @@ const DebtAgingReport: React.FC<DebtAgingReportProps> = ({ title }) => {
                 buckets['90+'] += remainingOpeningBalance;
             }
 
+            // Calculate total balance as sum of unpaid buckets (overdue invoices)
+            const totalBalance = buckets['0-30'] + buckets['31-60'] + buckets['61-90'] + buckets['90+'];
+
             return {
                 id: customer.id,
                 name: customer.name,
                 code: customer.code,
-                totalBalance: totalCreditSales, // Show total credit sales as current balance
+                totalBalance, // Sum of all payment buckets
                 currentBalance: roundedBalance, // Actual outstanding balance for filtering (rounded)
                 totalCreditSales,
                 totalReceipts,
@@ -361,6 +364,7 @@ const DebtAgingReport: React.FC<DebtAgingReportProps> = ({ title }) => {
         acc.total += item.totalBalance;
         acc.totalCreditSales += item.totalCreditSales;
         acc.totalReceipts += item.totalReceipts;
+        acc.totalOutstandingBalance += item.currentBalance;
         acc.paymentB30 += item.paymentBuckets['0-30'];
         acc.paymentB60 += item.paymentBuckets['31-60'];
         acc.paymentB90 += item.paymentBuckets['61-90'];
@@ -370,19 +374,20 @@ const DebtAgingReport: React.FC<DebtAgingReportProps> = ({ title }) => {
         acc.b90 += item.buckets['61-90'];
         acc.b90plus += item.buckets['90+'];
         return acc;
-    }, { total: 0, totalCreditSales: 0, totalReceipts: 0, paymentB30: 0, paymentB60: 0, paymentB90: 0, paymentB90plus: 0, b30: 0, b60: 0, b90: 0, b90plus: 0 });
+    }, { total: 0, totalCreditSales: 0, totalReceipts: 0, totalOutstandingBalance: 0, paymentB30: 0, paymentB60: 0, paymentB90: 0, paymentB90plus: 0, b30: 0, b60: 0, b90: 0, b90plus: 0 });
 
     const handlePrint = () => window.print();
 
     const handleExcelExport = () => {
-        const data = reportData.map(c => ({
+        const data = reportData.map((c, index) => ({
+            '#': index + 1,
             'الكود': c.code,
             'العميل': c.name,
             'الرصيد القائم': c.totalBalance,
-            'المدفوعات 1-30 يوم': c.paymentBuckets['0-30'],
-            'المدفوعات 31-60 يوم': c.paymentBuckets['31-60'],
-            'المدفوعات 61-90 يوم': c.paymentBuckets['61-90'],
-            'المدفوعات أكثر من 90 يوم': c.paymentBuckets['90+'],
+            'الديون المستحقة 1-30 يوم': c.buckets['0-30'],
+            'الديون المستحقة 31-60 يوم': c.buckets['31-60'],
+            'الديون المستحقة 61-90 يوم': c.buckets['61-90'],
+            'الديون المستحقة أكثر من 90 يوم': c.buckets['90+'],
         }));
         exportToExcel(data, 'تحليل_أعمار_الديون');
     };
@@ -444,20 +449,20 @@ const DebtAgingReport: React.FC<DebtAgingReportProps> = ({ title }) => {
                         <p className="text-xl font-bold text-blue-900">{formatNumber(totals.total)}</p>
                     </div>
                     <div className="bg-green-50 border border-green-200 p-4 rounded-xl text-center">
-                        <p className="text-xs text-green-800 font-bold mb-1">المدفوعات 1-30 يوم</p>
-                        <p className="text-xl font-bold text-green-900">{formatNumber(totals.paymentB30)}</p>
+                        <p className="text-xs text-green-800 font-bold mb-1">الديون المستحقة 1-30 يوم</p>
+                        <p className="text-xl font-bold text-green-900">{formatNumber(totals.b30)}</p>
                     </div>
                     <div className="bg-yellow-50 border border-yellow-200 p-4 rounded-xl text-center">
-                        <p className="text-xs text-yellow-800 font-bold mb-1">المدفوعات 31-60 يوم</p>
-                        <p className="text-xl font-bold text-yellow-900">{formatNumber(totals.paymentB60)}</p>
+                        <p className="text-xs text-yellow-800 font-bold mb-1">الديون المستحقة 31-60 يوم</p>
+                        <p className="text-xl font-bold text-yellow-900">{formatNumber(totals.b60)}</p>
                     </div>
                     <div className="bg-orange-50 border border-orange-200 p-4 rounded-xl text-center">
-                        <p className="text-xs text-orange-800 font-bold mb-1">المدفوعات 61-90 يوم</p>
-                        <p className="text-xl font-bold text-orange-900">{formatNumber(totals.paymentB90)}</p>
+                        <p className="text-xs text-orange-800 font-bold mb-1">الديون المستحقة 61-90 يوم</p>
+                        <p className="text-xl font-bold text-orange-900">{formatNumber(totals.b90)}</p>
                     </div>
                     <div className="bg-red-50 border border-red-200 p-4 rounded-xl text-center animate-pulse">
-                        <p className="text-xs text-red-800 font-bold mb-1">المدفوعات +90 يوم</p>
-                        <p className="text-xl font-bold text-red-900">{formatNumber(totals.paymentB90plus)}</p>
+                        <p className="text-xs text-red-800 font-bold mb-1">رصيد العملاء</p>
+                        <p className="text-xl font-bold text-red-900">{formatNumber(totals.totalOutstandingBalance)}</p>
                     </div>
                 </div>
 
@@ -465,6 +470,7 @@ const DebtAgingReport: React.FC<DebtAgingReportProps> = ({ title }) => {
                     <table className="min-w-full text-sm text-center">
                         <thead className="bg-brand-blue text-white">
                             <tr>
+                                <th className="p-3">#</th>
                                 <th className="p-3 text-right">العميل</th>
                                 <th className="p-3 font-bold bg-blue-800">الرصيد القائم</th>
                                 <th className="p-3 bg-green-600">1-30 يوم</th>
@@ -474,34 +480,32 @@ const DebtAgingReport: React.FC<DebtAgingReportProps> = ({ title }) => {
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-200">
-                            {reportData.map(customer => (
+                            {reportData.map((customer, index) => (
                                 <tr key={customer.id} className="hover:bg-gray-50">
+                                    <td className="p-3 text-gray-600">{index + 1}</td>
                                     <td className="p-3 text-right font-bold text-gray-800">{customer.name}</td>
                                     <td className="p-3 font-mono font-bold bg-blue-50">{formatNumber(customer.totalBalance)}</td>
-                                    <td className="p-3 text-gray-600">{formatNumber(customer.paymentBuckets['0-30'])}</td>
-                                    <td className="p-3 text-gray-600">{formatNumber(customer.paymentBuckets['31-60'])}</td>
-                                    <td className="p-3 text-gray-600">{formatNumber(customer.paymentBuckets['61-90'])}</td>
-                                    <td className={`p-3 font-bold ${customer.paymentBuckets['90+'] > 0 ? 'text-red-600 bg-red-50' : 'text-gray-400'}`}>
-                                        {formatNumber(customer.paymentBuckets['90+'])}
+                                    <td className="p-3 text-gray-600">{formatNumber(customer.buckets['0-30'])}</td>
+                                    <td className="p-3 text-gray-600">{formatNumber(customer.buckets['31-60'])}</td>
+                                    <td className="p-3 text-gray-600">{formatNumber(customer.buckets['61-90'])}</td>
+                                    <td className={`p-3 font-bold ${customer.buckets['90+'] > 0 ? 'text-red-600 bg-red-50' : 'text-gray-400'}`}>
+                                        {formatNumber(customer.buckets['90+'])}
                                     </td>
                                 </tr>
                             ))}
                         </tbody>
-                        <tfoot className="bg-gray-100 font-bold">
+                        <tfoot className="bg-brand-blue text-white font-bold">
                             <tr>
-                                <td className="p-3 text-right">الإجمالي</td>
-                                <td className="p-3 text-blue-800">{formatNumber(totals.total)}</td>
-                                <td className="p-3 text-green-700">{formatNumber(totals.paymentB30)}</td>
-                                <td className="p-3 text-yellow-700">{formatNumber(totals.paymentB60)}</td>
-                                <td className="p-3 text-orange-700">{formatNumber(totals.paymentB90)}</td>
-                                <td className="p-3 text-red-700">{formatNumber(totals.paymentB90plus)}</td>
+                                <td className="p-3 bg-brand-blue"></td>
+                                <td className="p-3 text-right bg-brand-blue">الإجمالي</td>
+                                <td className="p-3 bg-blue-800">{formatNumber(totals.total)}</td>
+                                <td className="p-3 bg-green-600">{formatNumber(totals.b30)}</td>
+                                <td className="p-3 bg-yellow-500 text-yellow-900">{formatNumber(totals.b60)}</td>
+                                <td className="p-3 bg-orange-500">{formatNumber(totals.b90)}</td>
+                                <td className="p-3 bg-red-600">{formatNumber(totals.b90plus)}</td>
                             </tr>
                         </tfoot>
                     </table>
-                </div>
-                
-                <div className="mt-6 text-xs text-gray-500">
-                    * يتم احتساب أعمار الديون بناءً على مبدأ ما يرد أولاً يصرف أولاً (FIFO) - يتم تطبيق المدفوعات على أقدم فواتير البيع الآجل أولاً. يتم عرض العملاء الذين لديهم رصيد مدين فقط.
                 </div>
             </div>
         </div>
