@@ -24,6 +24,7 @@ import { useGetStoreReceiptVouchersQuery } from "../../store/slices/storeReceipt
 import { useGetStoreIssueVouchersQuery } from "../../store/slices/storeIssueVoucher/storeIssueVoucherApi";
 import { useGetStoreTransferVouchersQuery } from "../../store/slices/storeTransferVoucher/storeTransferVoucherApi";
 import { useGetStoresQuery } from "../../store/slices/store/storeApi";
+import { useGetReceiptVouchersQuery } from "../../store/slices/receiptVoucherApiSlice";
 
 type StatementRow = {
   statement: string;
@@ -59,6 +60,7 @@ const IncomeStatement: React.FC = () => {
   const { data: storeIssueVouchers = [] } = useGetStoreIssueVouchersQuery(undefined);
   const { data: storeTransferVouchers = [] } = useGetStoreTransferVouchersQuery(undefined);
   const { data: stores = [] } = useGetStoresQuery(undefined);
+  const { data: apiReceiptVouchers = [] } = useGetReceiptVouchersQuery(undefined);
 
   // Define the original order of expense types as they were hardcoded
   const expenseTypeOrder = [
@@ -415,6 +417,27 @@ const IncomeStatement: React.FC = () => {
     getLastPurchasePriceBeforeDate,
   ]);
 
+  // Calculate other revenues exactly as in RevenueStatementReport
+  // Sum of all receipt vouchers with entityType === 'revenue' within date range
+  const calculatedOtherRevenues = useMemo(() => {
+    const normalizedStartDate = normalizeDate(startDate);
+    const normalizedEndDate = normalizeDate(endDate);
+    
+    if (!normalizedStartDate || !normalizedEndDate) return 0;
+
+    return (apiReceiptVouchers as any[])
+      .filter((voucher) => {
+        // Filter by revenue entity type
+        if (voucher.entityType !== 'revenue') return false;
+        
+        // Filter by date range
+        const voucherDate = normalizeDate(voucher.date);
+        if (!voucherDate) return false;
+        return voucherDate >= normalizedStartDate && voucherDate <= normalizedEndDate;
+      })
+      .reduce((sum, voucher) => sum + (voucher.amount || 0), 0);
+  }, [apiReceiptVouchers, startDate, endDate, normalizeDate]);
+
   const statementRows = useMemo<StatementRow[]>(() => {
     if (!financialData) return [];
 
@@ -447,6 +470,8 @@ const IncomeStatement: React.FC = () => {
     const calculatedGrossProfit = financialData.netSales - calculatedCogs;
     addRow("مجمل الربح", undefined, calculatedGrossProfit);
 
+    addRow("الايرادات الاخري", calculatedOtherRevenues);
+
     addRow("المصروفات");
     sortedExpenseTypes.forEach((expenseType) => {
       const expenseAmount =
@@ -460,11 +485,11 @@ const IncomeStatement: React.FC = () => {
       asNegative(financialData.totalExpenses),
     );
 
-    const calculatedNetProfit = calculatedGrossProfit - financialData.totalExpenses;
+    const calculatedNetProfit = calculatedGrossProfit + calculatedOtherRevenues - financialData.totalExpenses;
     addRow("صافي الربح / (الخسارة)", undefined, calculatedNetProfit);
 
     return rows;
-  }, [financialData, sortedExpenseTypes, calculatedEndingInventory]);
+  }, [financialData, sortedExpenseTypes, calculatedEndingInventory, calculatedOtherRevenues]);
 
   const formatExportValue = (value?: number | null): string => {
     if (value === null || value === undefined) return "";
@@ -511,7 +536,57 @@ const IncomeStatement: React.FC = () => {
       '<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet">',
     );
     printWindow?.document.write(
-      `<style>body { font-family: "Cairo", sans-serif; direction: rtl; } @media print { body { -webkit-print-color-adjust: exact !important; color-adjust: exact !important; } .no-print { display: none !important; } table { width: 100%; border-collapse: collapse; } .bg-brand-blue { background-color: #1E40AF !important; } .text-white { color: white !important; } .bg-gray-100 { background-color: #F9FAFB !important; } .bg-blue-100 { background-color: #DBEAFE !important; } .bg-green-100 { background-color: #D1FAE5 !important; } .bg-brand-green { background-color: #16A34A !important; } .text-green-800 { color: #166534 !important; } .bg-red-600 { background-color: #DC2626 !important; } }</style>`,
+      `<style>
+        @page {
+          size: A4;
+          margin: 0.5cm;
+        }
+        body { font-family: "Cairo", sans-serif; direction: rtl; }
+        @media print {
+          @page {
+            size: A4;
+            margin: 0.5cm;
+          }
+          body {
+            -webkit-print-color-adjust: exact !important;
+            color-adjust: exact !important;
+          }
+          .no-print {
+            display: none !important;
+          }
+          table {
+            width: 100%;
+            border-collapse: collapse;
+          }
+          .bg-brand-blue {
+            background-color: #1E40AF !important;
+          }
+          .text-white {
+            color: white !important;
+          }
+          .bg-gray-100 {
+            background-color: #F9FAFB !important;
+          }
+          .bg-blue-100 {
+            background-color: #DBEAFE !important;
+          }
+          .bg-green-100 {
+            background-color: #D1FAE5 !important;
+          }
+          .bg-brand-green {
+            background-color: #16A34A !important;
+          }
+          .text-green-800 {
+            color: #166534 !important;
+          }
+          .bg-red-600 {
+            background-color: #DC2626 !important;
+          }
+          .bg-red-200 {
+            background-color: #FECACA !important;
+          }
+        }
+      </style>`,
     );
     printWindow?.document.write(
       "</head><body>" + reportContent.innerHTML + "</body></html>",
@@ -567,6 +642,12 @@ const IncomeStatement: React.FC = () => {
     <div className="bg-white p-6 rounded-lg shadow">
       <div id="printable-area-income">
         <ReportHeader title={title} />
+        
+        <div className="mb-4 text-center print:mb-2 hidden print:block">
+          <p className="text-lg font-semibold text-brand-dark">
+            الفترة من {startDate} إلى {endDate}
+          </p>
+        </div>
 
         <div className="flex justify-between items-center my-4 bg-gray-50 p-3 rounded-md border-2 border-gray-200 no-print">
           <div className="flex items-center gap-4">
@@ -634,14 +715,14 @@ const IncomeStatement: React.FC = () => {
         <div className="overflow-x-auto border border-brand-blue rounded-lg mt-3">
           <table className="min-w-full text-sm">
             <thead>
-              <tr className="bg-brand-blue-bg text-sm">
-                <th className="px-2 py-2 text-right font-semibold text-brand-dark w-3/5">
+              <tr className="bg-brand-green text-white text-sm">
+                <th className="px-2 py-2 text-right font-semibold text-white w-3/5">
                   البيان
                 </th>
-                <th className="px-2 py-2 text-left font-semibold text-brand-dark">
+                <th className="px-2 py-2 text-left font-semibold text-white">
                   جزئي
                 </th>
-                <th className="px-2 py-2 text-left font-semibold text-brand-dark">
+                <th className="px-2 py-2 text-left font-semibold text-white">
                   كلي
                 </th>
               </tr>
@@ -716,6 +797,14 @@ const IncomeStatement: React.FC = () => {
                 </Td>
               </tr>
 
+              <tr>
+                <Td>الايرادات الاخري</Td>
+                <Td className={`font-mono text-left ${getNegativeNumberClass(calculatedOtherRevenues)}`}>
+                  {formatNumber(calculatedOtherRevenues)}
+                </Td>
+                <Td></Td>
+              </tr>
+
               <tr className="bg-blue-100 font-bold text-brand-dark">
                 <Td colSpan={3} className="text-lg">
                   المصروفات
@@ -743,12 +832,12 @@ const IncomeStatement: React.FC = () => {
               </tr>
 
               <tr
-                className={`font-bold text-2xl ${(financialData.netSales - (financialData.beginningInventory + financialData.netPurchases - calculatedEndingInventory) - financialData.totalExpenses) >= 0 ? "bg-brand-green" : "bg-red-200"}`}
+                className={`font-bold text-2xl text-white ${(financialData.netSales - (financialData.beginningInventory + financialData.netPurchases - calculatedEndingInventory) + calculatedOtherRevenues - financialData.totalExpenses) >= 0 ? "bg-brand-green" : "bg-red-200"}`}
               >
                 <Td>صافي الربح / (الخسارة)</Td>
                 <Td></Td>
-                <Td className={`font-mono text-left ${getNegativeNumberClass(financialData.netSales - (financialData.beginningInventory + financialData.netPurchases - calculatedEndingInventory) - financialData.totalExpenses)}`}>
-                  {formatNumber(financialData.netSales - (financialData.beginningInventory + financialData.netPurchases - calculatedEndingInventory) - financialData.totalExpenses)}
+                <Td className={`font-mono text-left ${getNegativeNumberClass(financialData.netSales - (financialData.beginningInventory + financialData.netPurchases - calculatedEndingInventory) + calculatedOtherRevenues - financialData.totalExpenses)}`}>
+                  {formatNumber(financialData.netSales - (financialData.beginningInventory + financialData.netPurchases - calculatedEndingInventory) + calculatedOtherRevenues - financialData.totalExpenses)}
                 </Td>
               </tr>
             </tbody>
