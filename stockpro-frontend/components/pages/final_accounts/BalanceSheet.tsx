@@ -577,6 +577,38 @@ const BalanceSheet: React.FC = () => {
     toNumber,
   ]);
 
+  // Calculate other revenues exactly as in IncomeStatement
+  // Sum of all receipt vouchers with entityType === 'revenue' within date range
+  const calculatedOtherRevenues = useMemo(() => {
+    const normalizedStartDate = normalizeDate(startDate);
+    const normalizedEndDate = normalizeDate(endDate);
+    
+    if (!normalizedStartDate || !normalizedEndDate) return 0;
+
+    return (apiReceiptVouchers as any[])
+      .filter((voucher) => {
+        // Filter by revenue entity type
+        if (voucher.entityType !== 'revenue') return false;
+        
+        // Filter by date range
+        const voucherDate = normalizeDate(voucher.date);
+        if (!voucherDate) return false;
+        return voucherDate >= normalizedStartDate && voucherDate <= normalizedEndDate;
+      })
+      .reduce((sum, voucher) => sum + (voucher.amount || 0), 0);
+  }, [apiReceiptVouchers, startDate, endDate, normalizeDate]);
+
+  // Calculate net profit exactly as in IncomeStatement
+  // Formula: netSales - (beginningInventory + netPurchases - calculatedEndingInventory) + calculatedOtherRevenues - totalExpenses
+  const calculatedNetProfit = useMemo(() => {
+    if (!incomeStatementData) return 0;
+    
+    return incomeStatementData.netSales - 
+           (incomeStatementData.beginningInventory + incomeStatementData.netPurchases - calculatedInventoryValue) + 
+           calculatedOtherRevenues - 
+           incomeStatementData.totalExpenses;
+  }, [incomeStatementData, calculatedInventoryValue, calculatedOtherRevenues]);
+
   // Calculate retained earnings with fiscal year logic
   const calculatedRetainedEarnings = useMemo(() => {
     const normalizedStartDate = normalizeDate(startDate);
@@ -596,8 +628,8 @@ const BalanceSheet: React.FC = () => {
       0,
     );
 
-    // Get current period net profit from income statement
-    const currentPeriodNetProfit = incomeStatementData?.netProfit || 0;
+    // Use calculated net profit (same calculation as IncomeStatement)
+    const currentPeriodNetProfit = calculatedNetProfit;
 
     // Include profit_and_loss vouchers in retained earnings calculation
     const profitAndLossReceipts = apiReceiptVouchers
@@ -625,7 +657,7 @@ const BalanceSheet: React.FC = () => {
     );
   }, [
     fiscalYears,
-    incomeStatementData,
+    calculatedNetProfit,
     normalizeDate,
     startDate,
     endDate,
@@ -1444,12 +1476,8 @@ const BalanceSheet: React.FC = () => {
               </tr>
               <tr>
                 <Td> الأرباح ( الخسائر ) المبقاة</Td>
-                <Td
-                  className={`text-left font-mono ${getNegativeNumberClass(
-                    displayData.retainedEarnings,
-                  )}`}
-                >
-                  {formatNumber(displayData.retainedEarnings)}
+                <Td className={`font-mono text-left ${getNegativeNumberClass(calculatedNetProfit)}`}>
+                  {formatNumber(calculatedNetProfit)}
                 </Td>
               </tr>
               <tr className="font-bold bg-green-100 text-green-800">
