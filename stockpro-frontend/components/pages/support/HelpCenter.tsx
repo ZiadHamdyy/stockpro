@@ -43,7 +43,7 @@ const HelpCenter: React.FC<{ title: string }> = ({ title }) => {
 
             {/* Contact Channels */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <a href="https://wa.me/966500000000" target="_blank" rel="noreferrer" className="bg-green-50 border-b-4 border-green-500 p-6 rounded-xl shadow-sm hover:shadow-md transition-all hover:-translate-y-1 group cursor-pointer">
+                <a href="https://wa.me/966552403483" target="_blank" rel="noreferrer" className="bg-green-50 border-b-4 border-green-500 p-6 rounded-xl shadow-sm hover:shadow-md transition-all hover:-translate-y-1 group cursor-pointer">
                     <div className="flex items-center gap-4 mb-4">
                         <div className="bg-white p-3 rounded-full shadow-sm group-hover:bg-green-100 transition-colors">
                             <WhatsappIcon className="w-8 h-8 text-green-600" />
@@ -57,7 +57,7 @@ const HelpCenter: React.FC<{ title: string }> = ({ title }) => {
                     <span className="text-green-600 font-bold text-sm flex items-center">بدء المحادثة <span className="mr-2 transform group-hover:-translate-x-1 transition-transform">&larr;</span></span>
                 </a>
 
-                <a href="tel:920000000" className="bg-cyan-50 border-b-4 border-cyan-500 p-6 rounded-xl shadow-sm hover:shadow-md transition-all hover:-translate-y-1 group cursor-pointer">
+                <a href="tel:0552403483" className="bg-cyan-50 border-b-4 border-cyan-500 p-6 rounded-xl shadow-sm hover:shadow-md transition-all hover:-translate-y-1 group cursor-pointer">
                     <div className="flex items-center gap-4 mb-4">
                         <div className="bg-white p-3 rounded-full shadow-sm group-hover:bg-cyan-100 transition-colors">
                             <PhoneIcon className="w-8 h-8 text-cyan-600" />
@@ -68,7 +68,7 @@ const HelpCenter: React.FC<{ title: string }> = ({ title }) => {
                         </div>
                     </div>
                     <p className="text-sm text-cyan-800 mb-4">تحدث مع أحد ممثلي خدمة العملاء لحل المشاكل المعقدة.</p>
-                    <span className="text-cyan-600 font-bold text-sm flex items-center">920000000</span>
+                    <span className="text-cyan-600 font-bold text-sm flex items-center">0552403483</span>
                 </a>
 
                 <a href="mailto:support@stockpro.com" className="bg-blue-50 border-b-4 border-blue-500 p-6 rounded-xl shadow-sm hover:shadow-md transition-all hover:-translate-y-1 group cursor-pointer">
