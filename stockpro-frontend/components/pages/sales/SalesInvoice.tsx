@@ -1156,18 +1156,35 @@ const SalesInvoice: React.FC<SalesInvoiceProps> = ({
       }
     }
 
-    // Validate sale price against last purchase price if allowSellingLessThanCost is enabled
-    if (allowSellingLessThanCost) {
+    // Validate sale price against cost (last purchase price if available, otherwise item's purchasePrice)
+    // when selling below cost is NOT allowed
+    if (!allowSellingLessThanCost) {
       for (const item of finalItems) {
         const lastPurchasePrice = getLastPurchasePriceBeforeDate(
           item.id,
-          invoiceDetails.invoiceDate
+          invoiceDetails.invoiceDate,
         );
-        // If last purchase price exists and sale price is less than it, prevent the sale
-        if (lastPurchasePrice !== null && item.price < lastPurchasePrice) {
+
+        // Fallback to item's stored purchasePrice if there is no purchase history
+        const itemInfo = allItems.find((i) => i.id === item.id);
+        const fallbackPurchasePrice =
+          itemInfo && typeof itemInfo.purchasePrice === "number"
+            ? itemInfo.purchasePrice
+            : null;
+
+        // Effective cost: prefer last purchase price, otherwise stored purchasePrice
+        const effectiveCost =
+          lastPurchasePrice !== null ? lastPurchasePrice : fallbackPurchasePrice;
+
+        // If we have a cost reference and sale price is less than it, prevent the sale
+        if (effectiveCost !== null && item.price < effectiveCost) {
           showToast(
-            `لا يمكن البيع: سعر البيع (${formatMoney(item.price)}) أقل من آخر سعر شراء (${formatMoney(lastPurchasePrice)}) للصنف: ${item.name}`,
-            'error'
+            `لا يمكن البيع: سعر البيع (${formatMoney(
+              item.price,
+            )}) أقل من تكلفة الشراء (${formatMoney(
+              effectiveCost,
+            )}) للصنف: ${item.name}`,
+            "error",
           );
           return;
         }
