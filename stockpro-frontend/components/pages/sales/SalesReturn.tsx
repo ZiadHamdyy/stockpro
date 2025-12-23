@@ -86,6 +86,28 @@ const SalesReturn: React.FC<SalesReturnProps> = ({
     return null;
   };
   
+  // Helper to get a displayable SAFE name (not branch) for the current or saved return
+  const getDisplaySafeName = (
+    ret: any | null,
+    user: User | null,
+    allSafes: Safe[],
+  ): string => {
+    // Resolve a branchId from the return (if existing) or fall back to user's branch
+    const resolveBranchIdFromReturn = (r: any): string | null => {
+      if (!r) return null;
+      return r.branch?.id || r.branchId || null;
+    };
+
+    const branchIdFromReturn = resolveBranchIdFromReturn(ret);
+    const branchIdFromUser = getUserBranchId(user);
+    const branchId = branchIdFromReturn || branchIdFromUser;
+    if (!branchId) return "";
+
+    // Find the first safe for that branch (this is considered the "current" safe)
+    const safeForBranch = allSafes.find((s) => s.branchId === branchId);
+    return safeForBranch?.name || "";
+  };
+  
   // Get current user's branch ID
   const userBranchId = getUserBranchId(currentUser);
   const canSearchAllBranches = useMemo(
@@ -1215,9 +1237,13 @@ const SalesReturn: React.FC<SalesReturnProps> = ({
                   {paymentTargetType === "safe" ? (
                     <input
                       type="text"
-                      value={typeof currentUser?.branch === 'string' 
-                        ? currentUser.branch 
-                        : (currentUser?.branch as any)?.name || currentUser?.branch || ""}
+                      // For new returns, show the default safe of the current branch (locked).
+                      // For existing returns, show the saved safe if available, otherwise the branch safe.
+                      value={getDisplaySafeName(
+                        currentIndex >= 0 ? returns[currentIndex] : null,
+                        currentUser,
+                        safes,
+                      )}
                       className={inputStyle}
                       disabled={true}
                       readOnly
