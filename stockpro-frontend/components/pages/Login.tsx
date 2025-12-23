@@ -11,26 +11,20 @@ interface LoginProps {
 }
 
 const StockProLogo: React.FC<{ size?: 'normal' | 'large', variant?: 'light' | 'dark' }> = ({ size = 'normal', variant = 'light' }) => {
-    const isLarge = size === 'large';
-    const svgSize = isLarge ? "80" : "48"; // Increased Logo Size for large variant
-    const textSize = isLarge ? "text-6xl" : "text-3xl"; // Increased Text Size
-    const textColor = variant === 'light' ? 'text-white' : 'text-brand-blue';
-    const subTextColor = variant === 'light' ? 'text-blue-100' : 'text-gray-500';
+  const isLarge = size === "large";
+  const imgSize = isLarge ? "w-72" : "w-40";
+  const bgClass =
+    variant === "light" ? "drop-shadow-2xl" : "drop-shadow-lg";
 
-    return (
-        <div className="flex flex-col items-center gap-4">
-            <div className="flex items-center gap-4">
-                <svg width={svgSize} height={svgSize} viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" className="drop-shadow-2xl filter">
-                    <path d="M6 22.0001L13 26.0001L26 13.3334L19 9.33341L6 22.0001Z" fill="#A3E635"/>
-                    <path d="M19 9.33325L26 13.3333L13 26L6 22L19 9.33325Z" stroke={variant === 'light' ? '#F9FAFB' : '#1E40AF'} strokeWidth="1.5"/>
-                    <path d="M26 10L19 6L6 18.6666L13 22.6666L26 10Z" fill={variant === 'light' ? '#60A5FA' : '#1E40AF'} /> 
-                    <path d="M13 22.6667L6 18.6667L19 6L26 10L13 22.6667Z" stroke={variant === 'light' ? '#F9FAFB' : '#1E40AF'} strokeWidth="1.5"/>
-                </svg>
-                <span className={`${textSize} font-black ${textColor} tracking-wider drop-shadow-lg`}>StockPro</span>
-            </div>
-            {isLarge && <span className={`text-lg font-medium ${subTextColor} tracking-[0.4em] uppercase mt-1 opacity-90`}>Inventory System</span>}
-        </div>
-    );
+  return (
+    <div className="flex flex-col items-center gap-4">
+      <img
+        src="/images/45011ec1-339d-4270-afe4-c93b43308fb4.jpeg"
+        alt="StockPro"
+        className={`${imgSize} h-auto ${bgClass}`}
+      />
+    </div>
+  );
 };
 
 const Login: React.FC<LoginProps> = ({ onLogin }) => {
