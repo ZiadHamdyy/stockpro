@@ -44,6 +44,7 @@ interface PaymentVoucherProps {
 
 const PaymentVoucher: React.FC<PaymentVoucherProps> = ({ title }) => {
   const { data: companyInfo } = useGetCompanyQuery();
+  const isVatEnabled = !!companyInfo?.isVatEnabled && (companyInfo?.vatRate || 0) > 0;
   const { User } = useAuth();
   const { showToast } = useToast();
   const { data: receivableAccounts = [] } = useGetReceivableAccountsQuery();
@@ -219,7 +220,7 @@ const PaymentVoucher: React.FC<PaymentVoucherProps> = ({ title }) => {
       const updatedData: any = { ...prev, entity: newEntity };
       
       // Recalculate VAT if entity type changed to "expense-Type" and we have amount
-      if (field === "type" && value === "expense-Type" && companyInfo?.vatRate) {
+      if (field === "type" && value === "expense-Type" && isVatEnabled && companyInfo?.vatRate) {
         const amountValue = typeof prev.amount === "number" ? prev.amount : (typeof prev.amount === "string" ? parseFloat(prev.amount) || 0 : 0);
         if (amountValue > 0) {
           const vatRate = companyInfo.vatRate;
@@ -755,8 +756,8 @@ const PaymentVoucher: React.FC<PaymentVoucherProps> = ({ title }) => {
                       amount: numValue,
                     };
                     
-                    // Calculate VAT breakdown if entityType is "expense-Type" and we have a valid amount and VAT rate
-                    if (prev.entity.type === "expense-Type" && companyInfo?.vatRate) {
+                    // Calculate VAT breakdown if entityType is "expense-Type" and we have a valid amount and VAT is enabled
+                    if (prev.entity.type === "expense-Type" && isVatEnabled && companyInfo?.vatRate) {
                       const amountNum = typeof numValue === "number" ? numValue : (typeof numValue === "string" ? parseFloat(numValue) || 0 : 0);
                       if (amountNum > 0) {
                         const vatRate = companyInfo.vatRate;
@@ -788,8 +789,9 @@ const PaymentVoucher: React.FC<PaymentVoucherProps> = ({ title }) => {
             />
           </div>
 
-          {/* Show VAT breakdown for expense-Type */}
+          {/* Show VAT breakdown for expense-Type (only when VAT is enabled) */}
           {voucherData.entity.type === "expense-Type" && 
+           isVatEnabled &&
            companyInfo?.vatRate && 
            ((typeof voucherData.amount === "number" && voucherData.amount > 0) || 
             (typeof voucherData.amount === "string" && parseFloat(voucherData.amount) > 0)) && 
@@ -837,12 +839,16 @@ const PaymentVoucher: React.FC<PaymentVoucherProps> = ({ title }) => {
                 <option value="supplier">مورد</option>
                 <option value="customer">عميل</option>
                 <option value="expense">مصروف</option>
-                <option value="expense-Type">مصروفات ضريبية</option>
+                {isVatEnabled && (
+                  <option value="expense-Type">مصروفات ضريبية</option>
+                )}
                 <option value="revenue">إيراد</option>
                 <option value="receivable_account">أرصدة مدينة أخرى</option>
                 <option value="payable_account">أرصدة دائنة أخرى</option>
                 <option value="current_account">حساب جاري</option>
-                <option value="vat">ضريبة القيمة المضافة</option>
+                {isVatEnabled && (
+                  <option value="vat">ضريبة القيمة المضافة</option>
+                )}
                 <option value="profit_and_loss">الارباح والخسائر المبقاه</option>
               </select>
             </div>
