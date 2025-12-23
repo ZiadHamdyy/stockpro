@@ -124,16 +124,16 @@ export const SalesChart: React.FC<SalesChartProps> = ({ data, branches, selected
   }, [data, branches, selectedBranches]);
 
   return (
-    <div className="bg-slate-800 p-6 rounded-2xl shadow-lg border border-slate-700 h-[450px] flex flex-col print:bg-white print:border-slate-200 print:shadow-none">
-      <div className="flex items-center justify-between mb-6">
-         <h3 className="text-xl font-bold text-white flex items-center gap-3 print:text-black">
+    <div className="bg-slate-800 p-6 rounded-2xl shadow-lg border border-slate-700 h-[450px] flex flex-col w-full print:bg-white print:border-slate-200 print:shadow-none print:p-4 print:h-[320px] print:w-full print:[max-width:100%] overflow-hidden">
+      <div className="flex items-center justify-between mb-6 print:mb-3">
+        <h3 className="text-xl font-bold text-white flex items-center gap-3 print:text-black print:text-lg">
           <span className="w-1.5 h-6 bg-indigo-400 rounded-full shadow-[0_0_10px_rgba(129,140,248,0.5)]"></span>
           منحنى تطور المبيعات
         </h3>
       </div>
-     
-      <div className="flex-1 w-full min-h-0" dir="ltr"> 
-        <canvas ref={chartRef}></canvas>
+
+      <div className="flex-1 w-full min-h-0 overflow-hidden" dir="ltr">
+        <canvas ref={chartRef} style={{ width: '100%', height: '100%' }}></canvas>
       </div>
     </div>
   );

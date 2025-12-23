@@ -150,18 +150,25 @@ const AnnualSales: React.FC<AnnualSalesProps> = ({ title }) => {
   }
 
   return (
-    <div className="min-h-screen bg-[#f1f5f9] text-slate-800 pb-12 font-sans" dir="rtl">
+  <div
+    className="min-h-screen bg-[#f1f5f9] text-slate-800 pb-12 font-sans print:scale-90 print:origin-top print:[max-height:100vh]"
+    dir="rtl"
+  >
       {/* Navbar */}
-      <header className="bg-white border-b border-slate-200 sticky top-0 z-50 shadow-sm print:border-b-2 print:border-black print:shadow-none print:static">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between h-20 items-center">
+      <header className="bg-white border-b border-slate-200 sticky top-0 z-50 shadow-sm print:border-b print:border-black print:shadow-none print:static print:py-2">
+        <div className="max-w-7xl mx-auto px-4 sm:px-4 lg:px-6 print:px-4">
+          <div className="flex justify-between h-20 items-center print:h-auto print:py-0">
             <div className="flex items-center gap-4">
               <div className="p-3 bg-indigo-600 rounded-xl text-white shadow-lg shadow-indigo-200 print:hidden">
                 <BarChartIcon className="w-6 h-6" />
               </div>
               <div>
-                <h1 className="text-2xl font-extrabold tracking-tight text-slate-900">{title || 'تقرير المبيعات السنوي'}</h1>
-                <p className="text-sm text-slate-500 font-medium print:text-slate-600">لوحة القيادة التنفيذية - السنة المالية {selectedYear}</p>
+                <h1 className="text-2xl font-extrabold tracking-tight text-slate-900 print:text-xl">
+                  {title || 'تقرير المبيعات السنوي'}
+                </h1>
+                <p className="text-sm text-slate-500 font-medium print:text-[11px] print:text-slate-600">
+                  لوحة القيادة التنفيذية - السنة المالية {selectedYear}
+                </p>
               </div>
             </div>
             
@@ -189,60 +196,68 @@ const AnnualSales: React.FC<AnnualSalesProps> = ({ title }) => {
         </div>
       </header>
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8 print:py-4 print:space-y-4">
         
         {/* Top Stats Cards - Colorful & Cheerful */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 print:grid-cols-3">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 print:grid-cols-3 print:gap-4">
           
           {/* Card 1: Total Sales - Blue/Indigo */}
-          <div className="group relative bg-gradient-to-br from-blue-600 to-indigo-700 p-6 rounded-2xl shadow-lg hover:shadow-2xl hover:-translate-y-1 transition-all duration-300 cursor-default overflow-hidden print:bg-white print:border print:border-slate-300 print:shadow-none print:text-black">
+          <div className="group relative bg-gradient-to-br from-blue-600 to-indigo-700 p-6 rounded-2xl shadow-lg hover:shadow-2xl hover:-translate-y-1 transition-all duration-300 cursor-default overflow-hidden print:bg-white print:border print:border-slate-300 print:shadow-none print:text-black print:p-4">
             {/* Abstract Shapes */}
             <div className="absolute top-0 right-0 w-32 h-32 bg-white opacity-10 rounded-full -translate-y-1/2 translate-x-1/2 blur-2xl group-hover:opacity-20 transition-opacity"></div>
             
-            <div className="flex justify-between items-start mb-4 relative z-10">
+            <div className="flex justify-between items-start mb-4 relative z-10 print:mb-2">
               <div className="p-3 bg-white/10 backdrop-blur-sm rounded-xl text-white border border-white/10 group-hover:scale-110 transition-transform">
                 <DollarSignIcon className="w-6 h-6" />
               </div>
               <span className="text-xs font-bold text-white/90 bg-white/20 px-2.5 py-1 rounded-lg backdrop-blur-md">YTD</span>
             </div>
             <div className="relative z-10">
-              <p className="text-sm font-medium text-blue-100 mb-1 print:text-slate-500">إجمالي المبيعات السنوية</p>
-              <h3 className="text-3xl font-extrabold text-white tabular-nums tracking-tight print:text-black">
+              <p className="text-sm font-medium text-blue-100 mb-1 print:text-[11px] print:text-slate-500">
+                إجمالي المبيعات السنوية
+              </p>
+              <h3 className="text-3xl font-extrabold text-white tabular-nums tracking-tight print:text-black print:text-2xl">
                 {formatCurrency(totalSales)}
               </h3>
             </div>
           </div>
 
           {/* Card 2: Best Month - Emerald/Teal */}
-          <div className="group relative bg-gradient-to-br from-emerald-500 to-teal-600 p-6 rounded-2xl shadow-lg hover:shadow-2xl hover:-translate-y-1 transition-all duration-300 cursor-default overflow-hidden print:bg-white print:border print:border-slate-300 print:shadow-none print:text-black">
+          <div className="group relative bg-gradient-to-br from-emerald-500 to-teal-600 p-6 rounded-2xl shadow-lg hover:shadow-2xl hover:-translate-y-1 transition-all duration-300 cursor-default overflow-hidden print:bg-white print:border print:border-slate-300 print:shadow-none print:text-black print:p-4">
              <div className="absolute bottom-0 left-0 w-24 h-24 bg-white opacity-10 rounded-full translate-y-1/2 -translate-x-1/2 blur-2xl group-hover:opacity-20 transition-opacity"></div>
 
-            <div className="flex justify-between items-start mb-4 relative z-10">
+            <div className="flex justify-between items-start mb-4 relative z-10 print:mb-2">
               <div className="p-3 bg-white/10 backdrop-blur-sm rounded-xl text-white border border-white/10 group-hover:scale-110 transition-transform">
                 <TrendingUpIcon className="w-6 h-6" />
               </div>
             </div>
             <div className="relative z-10">
-              <p className="text-sm font-medium text-emerald-100 mb-1 print:text-slate-500">الشهر الأفضل أداءً</p>
+              <p className="text-sm font-medium text-emerald-100 mb-1 print:text-[11px] print:text-slate-500">
+                الشهر الأفضل أداءً
+              </p>
               <div className="flex items-baseline gap-2">
-                <h3 className="text-3xl font-extrabold text-white print:text-black">{bestMonth.monthName}</h3>
+                <h3 className="text-3xl font-extrabold text-white print:text-black print:text-2xl">
+                  {bestMonth.monthName}
+                </h3>
               </div>
             </div>
           </div>
 
           {/* Card 3: Average - Amber/Orange */}
-          <div className="group relative bg-gradient-to-br from-amber-500 to-orange-600 p-6 rounded-2xl shadow-lg hover:shadow-2xl hover:-translate-y-1 transition-all duration-300 cursor-default overflow-hidden print:bg-white print:border print:border-slate-300 print:shadow-none print:text-black">
+          <div className="group relative bg-gradient-to-br from-amber-500 to-orange-600 p-6 rounded-2xl shadow-lg hover:shadow-2xl hover:-translate-y-1 transition-all duration-300 cursor-default overflow-hidden print:bg-white print:border print:border-slate-300 print:shadow-none print:text-black print:p-4">
              <div className="absolute top-1/2 left-1/2 w-40 h-40 bg-white opacity-10 rounded-full -translate-x-1/2 -translate-y-1/2 blur-3xl group-hover:opacity-20 transition-opacity"></div>
 
-            <div className="flex justify-between items-start mb-4 relative z-10">
+            <div className="flex justify-between items-start mb-4 relative z-10 print:mb-2">
               <div className="p-3 bg-white/10 backdrop-blur-sm rounded-xl text-white border border-white/10 group-hover:scale-110 transition-transform">
                 <ActivityIcon className="w-6 h-6" />
               </div>
               <span className="text-xs font-bold text-white/90 bg-white/20 px-2.5 py-1 rounded-lg backdrop-blur-md">AVG</span>
             </div>
             <div className="relative z-10">
-              <p className="text-sm font-medium text-amber-100 mb-1 print:text-slate-500">متوسط المبيعات الشهري</p>
-              <h3 className="text-3xl font-extrabold text-white tabular-nums tracking-tight print:text-black">
+              <p className="text-sm font-medium text-amber-100 mb-1 print:text-[11px] print:text-slate-500">
+                متوسط المبيعات الشهري
+              </p>
+              <h3 className="text-3xl font-extrabold text-white tabular-nums tracking-tight print:text-black print:text-2xl">
                  {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'SAR', notation: "compact", maximumFractionDigits: 1 }).format(totalSales / 12)}
               </h3>
             </div>
@@ -263,7 +278,7 @@ const AnnualSales: React.FC<AnnualSalesProps> = ({ title }) => {
         {/* Content Grid */}
         <div className="space-y-8">
           {/* Chart Section */}
-          <section className="print-card break-inside-avoid">
+          <section className="print-card break-inside-avoid print:w-full print:[max-width:100%] print:overflow-hidden">
             <SalesChart 
               data={salesData} 
               branches={branches} 

@@ -31,9 +31,9 @@ export const SalesTable: React.FC<SalesTableProps> = ({ data, branches, selected
   });
 
   return (
-    <div className="bg-white rounded-2xl shadow-[0_2px_15px_-3px_rgba(0,0,0,0.07),0_10px_20px_-2px_rgba(0,0,0,0.04)] border border-slate-300 overflow-hidden flex flex-col h-full print-card">
-      <div className="p-6 border-b border-slate-300 flex justify-between items-center bg-white">
-        <h3 className="text-xl font-bold text-[#0f172a] flex items-center gap-3">
+    <div className="bg-white rounded-2xl shadow-[0_2px_15px_-3px_rgba(0,0,0,0.07),0_10px_20px_-2px_rgba(0,0,0,0.04)] border border-slate-300 overflow-hidden flex flex-col h-full print-card print:shadow-none">
+      <div className="p-6 border-b border-slate-300 flex justify-between items-center bg-white print:p-4">
+        <h3 className="text-xl font-bold text-[#0f172a] flex items-center gap-3 print:text-lg">
           <span className="w-1.5 h-6 bg-emerald-600 rounded-full"></span>
           جدول البيانات التفصيلي
         </h3>
@@ -44,19 +44,25 @@ export const SalesTable: React.FC<SalesTableProps> = ({ data, branches, selected
       </div>
       
       <div className="overflow-x-auto">
-        <table className="w-full text-sm text-right border-collapse">
-          <thead className="bg-[#1e293b] text-white font-bold">
+        <table className="w-full text-sm text-right border-collapse print:text-xs">
+          <thead className="bg-[#1e293b] text-white font-bold print:text-xs">
             <tr>
-              <th className="px-6 py-4 whitespace-nowrap min-w-[100px] border border-slate-600 text-slate-200">الشهر</th>
+              <th className="px-6 py-4 whitespace-nowrap min-w-[100px] border border-slate-600 text-slate-200 print:px-4 print:py-2">
+                الشهر
+              </th>
               {visibleBranches.map(branch => (
-                <th key={branch.id} className="px-6 py-4 whitespace-nowrap font-bold border border-slate-600" style={{ color: '#fff' }}>
+                <th
+                  key={branch.id}
+                  className="px-6 py-4 whitespace-nowrap font-bold border border-slate-600 print:px-4 print:py-2"
+                  style={{ color: '#fff' }}
+                >
                   <div className="flex flex-col items-start gap-1">
                     <span>{branch.name}</span>
                     <span className="h-1 w-8 rounded-full" style={{ backgroundColor: branch.color }}></span>
                   </div>
                 </th>
               ))}
-              <th className="px-6 py-4 whitespace-nowrap bg-slate-900 text-white font-extrabold text-center border border-slate-600">
+              <th className="px-6 py-4 whitespace-nowrap bg-slate-900 text-white font-extrabold text-center border border-slate-600 print:px-4 print:py-2">
                 الإجمالي
               </th>
             </tr>
@@ -67,34 +73,44 @@ export const SalesTable: React.FC<SalesTableProps> = ({ data, branches, selected
               return (
                 <tr 
                   key={record.monthIndex} 
-                  className={`transition-colors ${
+                  className={`transition-colors print:text-xs ${
                     index % 2 === 0 ? 'bg-white' : 'bg-slate-200'
                   } hover:bg-indigo-100`}
                 >
-                  <td className="px-6 py-4 font-bold text-slate-800 border border-slate-300">
+                  <td className="px-6 py-4 font-bold text-slate-800 border border-slate-300 print:px-4 print:py-2">
                     {record.monthName}
                   </td>
                   {visibleBranches.map(branch => (
-                    <td key={branch.id} className="px-6 py-4 text-slate-700 font-semibold tabular-nums font-mono tracking-tight border border-slate-300">
+                    <td
+                      key={branch.id}
+                      className="px-6 py-4 text-slate-700 font-semibold tabular-nums font-mono tracking-tight border border-slate-300 print:px-4 print:py-2"
+                    >
                       {formatCurrency(record.data[branch.id] || 0)}
                     </td>
                   ))}
-                  <td className={`px-6 py-4 font-bold text-[#0f172a] tabular-nums text-center border border-slate-300 font-mono tracking-tight ${index % 2 === 0 ? 'bg-slate-100' : 'bg-slate-300'}`}>
+                  <td
+                    className={`px-6 py-4 font-bold text-[#0f172a] tabular-nums text-center border border-slate-300 font-mono tracking-tight print:px-4 print:py-2 ${
+                      index % 2 === 0 ? 'bg-slate-100' : 'bg-slate-300'
+                    }`}
+                  >
                     {formatCurrency(rowTotal)}
                   </td>
                 </tr>
               );
             })}
           </tbody>
-          <tfoot className="bg-[#0f172a] text-white font-bold print:bg-slate-200 print:text-black print:border-t-2 print:border-black">
+          <tfoot className="bg-[#0f172a] text-white font-bold print:bg-slate-200 print:text-black print:border-t-2 print:border-black print:text-xs">
             <tr>
-              <td className="px-6 py-5 border border-slate-700">الإجمالي السنوي</td>
+              <td className="px-6 py-5 border border-slate-700 print:px-4 print:py-3">الإجمالي السنوي</td>
               {visibleBranches.map(branch => (
-                <td key={branch.id} className="px-6 py-5 tabular-nums text-emerald-300 print:text-black font-mono border border-slate-700">
+                <td
+                  key={branch.id}
+                  className="px-6 py-5 tabular-nums text-emerald-300 print:text-black font-mono border border-slate-700 print:px-4 print:py-3"
+                >
                   {formatCurrency(branchTotals[branch.id])}
                 </td>
               ))}
-              <td className="px-6 py-5 tabular-nums text-white text-base bg-[#020617] text-center print:text-black print:bg-slate-300 font-mono border border-slate-700">
+              <td className="px-6 py-5 tabular-nums text-white text-base bg-[#020617] text-center print:text-black print:bg-slate-300 font-mono border border-slate-700 print:px-4 print:py-3">
                  {formatCurrency(Object.values(branchTotals).reduce((a, b) => a + b, 0))}
               </td>
             </tr>
