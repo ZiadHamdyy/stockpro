@@ -685,6 +685,45 @@ const AlternativeDashboard: React.FC<{ title: string }> = ({ title }) => {
                     }
                 };
 
+                // Plugin to draw percentage text ON the liquidity segments
+                const segmentLabelPluginLiquidity = {
+                    id: 'segmentLabelPluginLiquidity',
+                    afterDatasetsDraw(chart: any) {
+                        const { ctx } = chart;
+                        const dataset = chart.data.datasets[0];
+                        const meta = chart.getDatasetMeta(0);
+                        const total = dataset.data.reduce((acc: number, val: number) => acc + val, 0);
+
+                        ctx.textAlign = 'center';
+                        ctx.textBaseline = 'middle';
+                        ctx.fillStyle = '#ffffff';
+
+                        meta.data.forEach((element: any, index: number) => {
+                            const value = dataset.data[index];
+                            if (!value || total === 0) return;
+
+                            const percentage = ((value / total) * 100).toFixed(0) + '%';
+
+                            const { startAngle, endAngle, outerRadius, innerRadius, x, y } = element;
+                            const middleAngle = startAngle + (endAngle - startAngle) / 2;
+                            const midRadius = (innerRadius + outerRadius) / 2;
+
+                            const textX = x + Math.cos(middleAngle) * midRadius;
+                            const textY = y + Math.sin(middleAngle) * midRadius;
+
+                            // Only draw if the arc is large enough so text does not overlap
+                            if (endAngle - startAngle > 0.25) {
+                                ctx.save();
+                                ctx.font = 'bold 11px Cairo';
+                                ctx.shadowColor = 'rgba(0, 0, 0, 0.45)';
+                                ctx.shadowBlur = 4;
+                                ctx.fillText(percentage, textX, textY);
+                                ctx.restore();
+                            }
+                        });
+                    }
+                };
+
                 chartInstances.current.liquidity = new Chart(ctx, {
                     type: 'doughnut',
                     data: {
@@ -699,10 +738,11 @@ const AlternativeDashboard: React.FC<{ title: string }> = ({ title }) => {
                     options: {
                         responsive: true,
                         maintainAspectRatio: false,
-                        cutout: '75%', 
+                        // Smaller cutout to make the circle border thicker (closer to the example design)
+                        cutout: '65%',
                         plugins: { legend: { display: false }, tooltip: { titleFont: { family: 'Cairo' }, bodyFont: { family: 'Cairo' } } }
                     },
-                    plugins: [centerTextPluginLiquidity]
+                    plugins: [centerTextPluginLiquidity, segmentLabelPluginLiquidity]
                 });
             }
         }
@@ -809,11 +849,11 @@ const AlternativeDashboard: React.FC<{ title: string }> = ({ title }) => {
                             
                             <div className="relative flex items-baseline transform group-hover:scale-105 transition-transform duration-500 ease-out">
                                 <h1 className="text-5xl font-black tracking-widest drop-shadow-2xl font-sans text-transparent bg-clip-text bg-gradient-to-b from-white via-blue-50 to-blue-200">
-                                    Stock
+                                    Pro
                                 </h1>
                                 <span className="text-5xl font-black text-amber-400 animate-pulse mx-1 drop-shadow-[0_0_10px_rgba(251,191,36,0.6)]">.</span>
                                 <h1 className="text-5xl font-black tracking-widest drop-shadow-2xl font-sans text-blue-200 group-hover:text-white transition-colors duration-300">
-                                    Pro
+                                    Stock
                                 </h1>
                             </div>
                         </div>
@@ -822,15 +862,16 @@ const AlternativeDashboard: React.FC<{ title: string }> = ({ title }) => {
                         <div className="flex justify-end">
                             <div className="bg-slate-100/95 border-2 border-slate-300 rounded-xl px-4 py-1.5 flex items-center gap-3 shadow-lg min-w-[240px] justify-between group hover:border-blue-400 transition-all duration-300">
                                 <div className="text-right flex flex-col justify-center">
-                                    <span className="block text-slate-600 text-sm font-bold tracking-widest mb-0.5 uppercase group-hover:text-blue-600 transition-colors">
-                                        {getFormattedDate()}
-                                    </span>
+                                    
                                     <div className="flex items-baseline gap-1 dir-ltr">
-                                        <span className="font-mono text-2xl font-black text-slate-800 tracking-wider leading-none">
+                                        <span className="font-mono text-sm font-black text-slate-800 tracking-wider leading-none">
                                             {getFormattedTime().split(' ')[0]} 
                                         </span>
                                         <span className="text-sm font-bold text-slate-500 uppercase ml-1">{getFormattedTime().split(' ')[1]}</span>
                                     </div>
+                                    <span className="block text-slate-600 text-2xl font-bold tracking-widest mb-0.5 uppercase group-hover:text-blue-600 transition-colors">
+                                        {getFormattedDate()}
+                                    </span>
                                 </div>
                                 <div className="bg-slate-200 p-2 rounded-lg shadow-inner border border-slate-300">
                                     <ClockIcon className="w-6 h-6 text-slate-600 group-hover:text-blue-600 transition-colors" />
