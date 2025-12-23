@@ -1665,7 +1665,9 @@ const SalesInvoice: React.FC<SalesInvoiceProps> = ({
                                   onChange={(e) =>
                                     setSplitSafeId(e.target.value ? e.target.value : null)
                                   }
-                                  disabled={isReadOnly}
+                                  // For new invoices, lock the split safe to the current branch safe (auto-selected)
+                                  // and prevent changing it. For existing invoices, allow normal interaction.
+                                  disabled={isReadOnly || currentIndex < 0}
                                 >
                                   <option value="">اختر الخزنة...</option>
                                   {safesForSelection.map((s) => (
@@ -1725,7 +1727,9 @@ const SalesInvoice: React.FC<SalesInvoiceProps> = ({
                               setPaymentTargetId(e.target.value || null)
                             }
                             className={inputStyle}
-                            disabled={isReadOnly}
+                            // For new invoices, lock the safe to the current branch safe (auto-selected in state)
+                            // and prevent changing it. For existing invoices (view or edit), allow normal interaction.
+                            disabled={isReadOnly || currentIndex < 0}
                           >
                             <option value="">اختر الخزنة...</option>
                             {safesForSelection.map((safe) => (
