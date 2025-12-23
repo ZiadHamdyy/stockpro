@@ -31,6 +31,7 @@ import { useGetStoreReceiptVouchersQuery } from "../../store/slices/storeReceipt
 import { useGetStoreIssueVouchersQuery } from "../../store/slices/storeIssueVoucher/storeIssueVoucherApi";
 import { useGetStoreTransferVouchersQuery } from "../../store/slices/storeTransferVoucher/storeTransferVoucherApi";
 import { useGetSuppliersQuery } from "../../store/slices/supplier/supplierApiSlice";
+import { useAuth } from "../../hook/Auth";
 
 const flipSign = (value: number) => (value === 0 ? 0 : value * -1);
 
@@ -74,6 +75,19 @@ const BalanceSheet: React.FC = () => {
     isLoading,
     error,
   } = useBalanceSheet(startDate, endDate);
+
+  // Get current user for print
+  const { User: currentUser } = useAuth();
+  
+  // Get current date for print
+  const currentDate = useMemo(() => {
+    const now = new Date();
+    return now.toLocaleDateString('ar-EG', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+    });
+  }, []);
 
   // Helper to normalize date to YYYY-MM-DD (copied from VATStatementReport)
   const normalizeDate = useMemo(() => {
@@ -1245,9 +1259,19 @@ const BalanceSheet: React.FC = () => {
     <div className="bg-white p-6 rounded-lg shadow">
       <div id="printable-area-balance-sheet">
         <ReportHeader title={title} companyInfo={companyInfo} />
-        <div className="px-6 py-2 text-sm print:block hidden border-t-2 mt-2 space-y-1">
-          <p>
-            <strong>التقرير من:</strong> {startDate} <strong>إلى:</strong> {endDate}
+        <div className="px-6 py-2 text-sm print:block hidden border-t-2 mt-2">
+          <p className="flex justify-between items-center gap-4 flex-wrap">
+            <span>
+              <strong>التقرير من:</strong> {startDate} <strong>إلى:</strong> {endDate}
+            </span>
+            <span>
+              <strong>تاريخ الطباعة:</strong> {currentDate}
+            </span>
+            {currentUser && (
+              <span>
+                <strong>المستخدم:</strong> {currentUser.name || currentUser.username || 'غير محدد'}
+              </span>
+            )}
           </p>
         </div>
 
