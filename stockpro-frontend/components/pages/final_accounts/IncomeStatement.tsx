@@ -452,6 +452,49 @@ const IncomeStatement: React.FC = () => {
       .reduce((sum, voucher) => sum + (voucher.amount || 0), 0);
   }, [apiReceiptVouchers, startDate, endDate, normalizeDate]);
 
+  // Calculate net purchases: (purchases before tax - purchase discounts - purchase returns before tax + return discounts)
+  const calculatedNetPurchases = useMemo(() => {
+    const normalizedStartDate = normalizeDate(startDate);
+    const normalizedEndDate = normalizeDate(endDate);
+
+    if (!normalizedStartDate || !normalizedEndDate) return 0;
+
+    const isInRange = (date: any) => {
+      const d = normalizeDate(date);
+      if (!d) return false;
+      return d >= normalizedStartDate && d <= normalizedEndDate;
+    };
+
+    const { totalPurchasesBeforeTax, totalPurchasesDiscount } = (apiPurchaseInvoices as any[])
+      .filter((inv) => isInRange(inv.date || inv.invoiceDate))
+      .reduce(
+        (acc, inv) => {
+          acc.totalPurchasesBeforeTax += toNumber(inv.subtotal || 0);
+          acc.totalPurchasesDiscount += toNumber(inv.discount || 0);
+          return acc;
+        },
+        { totalPurchasesBeforeTax: 0, totalPurchasesDiscount: 0 },
+      );
+
+    const { totalPurchaseReturnsBeforeTax, totalReturnsDiscount } = (apiPurchaseReturns as any[])
+      .filter((inv) => isInRange(inv.date || inv.invoiceDate))
+      .reduce(
+        (acc, inv) => {
+          acc.totalPurchaseReturnsBeforeTax += toNumber(inv.subtotal || 0);
+          acc.totalReturnsDiscount += toNumber(inv.discount || 0);
+          return acc;
+        },
+        { totalPurchaseReturnsBeforeTax: 0, totalReturnsDiscount: 0 },
+      );
+
+    return (
+      totalPurchasesBeforeTax -
+      totalPurchasesDiscount -
+      totalPurchaseReturnsBeforeTax +
+      totalReturnsDiscount
+    );
+  }, [apiPurchaseInvoices, apiPurchaseReturns, startDate, endDate, normalizeDate, toNumber]);
+
   // Calculate allowed discount: total sales discounts - total sales returns discounts
   const allowedDiscount = useMemo(() => {
     const normalizedStartDate = normalizeDate(startDate);
@@ -499,12 +542,15 @@ const IncomeStatement: React.FC = () => {
 
     addRow("تكلفة البضاعة المباعة");
     addRow("رصيد مخزون أول المدة", financialData.beginningInventory);
-    addRow("(+) صافي المشتريات", financialData.netPurchases);
+    addRow("(+) صافي المشتريات", calculatedNetPurchases);
     addRow(
       "(-) رصيد مخزون آخر المدة",
       asNegative(calculatedEndingInventory),
     );
-    const calculatedCogs = financialData.beginningInventory + financialData.netPurchases - calculatedEndingInventory;
+    const calculatedCogs =
+      financialData.beginningInventory +
+      calculatedNetPurchases -
+      calculatedEndingInventory;
     addRow(
       "تكلفة البضاعة المباعة",
       undefined,
@@ -533,7 +579,15 @@ const IncomeStatement: React.FC = () => {
     addRow("صافي الربح / (الخسارة)", undefined, calculatedNetProfit);
 
     return rows;
-  }, [financialData, sortedExpenseTypes, calculatedEndingInventory, calculatedOtherRevenues, allowedDiscount, netSalesAfterDiscount]);
+  }, [
+    financialData,
+    sortedExpenseTypes,
+    calculatedEndingInventory,
+    calculatedOtherRevenues,
+    allowedDiscount,
+    netSalesAfterDiscount,
+    calculatedNetPurchases,
+  ]);
 
   const formatExportValue = (value?: number | null): string => {
     if (value === null || value === undefined) return "";
@@ -831,8 +885,8 @@ const IncomeStatement: React.FC = () => {
               </tr>
               <tr>
                 <Td>(+) صافي المشتريات</Td>
-                <Td className={`font-mono text-left ${getNegativeNumberClass(financialData.netPurchases)}`}>
-                  {formatNumber(financialData.netPurchases)}
+                <Td className={`font-mono text-left ${getNegativeNumberClass(calculatedNetPurchases)}`}>
+                  {formatNumber(calculatedNetPurchases)}
                 </Td>
                 <Td></Td>
               </tr>
@@ -846,16 +900,16 @@ const IncomeStatement: React.FC = () => {
               <tr className="font-bold bg-gray-100">
                 <Td>تكلفة البضاعة المباعة</Td>
                 <Td></Td>
-                <Td className={`font-mono text-left text-lg text-red-600 ${getNegativeNumberClass(financialData.beginningInventory + financialData.netPurchases - calculatedEndingInventory)}`}>
-                  ({formatNumber(financialData.beginningInventory + financialData.netPurchases - calculatedEndingInventory)})
+                <Td className={`font-mono text-left text-lg text-red-600 ${getNegativeNumberClass(financialData.beginningInventory + calculatedNetPurchases - calculatedEndingInventory)}`}>
+                  ({formatNumber(financialData.beginningInventory + calculatedNetPurchases - calculatedEndingInventory)})
                 </Td>
               </tr>
 
               <tr className="font-bold text-xl bg-green-100 text-green-800">
                 <Td>مجمل الربح</Td>
                 <Td></Td>
-                <Td className={`font-mono text-left ${getNegativeNumberClass(netSalesAfterDiscount - (financialData.beginningInventory + financialData.netPurchases - calculatedEndingInventory))}`}>
-                  {formatNumber(netSalesAfterDiscount - (financialData.beginningInventory + financialData.netPurchases - calculatedEndingInventory))}
+                <Td className={`font-mono text-left ${getNegativeNumberClass(netSalesAfterDiscount - (financialData.beginningInventory + calculatedNetPurchases - calculatedEndingInventory))}`}>
+                  {formatNumber(netSalesAfterDiscount - (financialData.beginningInventory + calculatedNetPurchases - calculatedEndingInventory))}
                 </Td>
               </tr>
 
@@ -894,12 +948,12 @@ const IncomeStatement: React.FC = () => {
               </tr>
 
               <tr
-                className={`font-bold text-2xl text-white ${(netSalesAfterDiscount - (financialData.beginningInventory + financialData.netPurchases - calculatedEndingInventory) + calculatedOtherRevenues - financialData.totalExpenses) >= 0 ? "bg-brand-green" : "bg-red-200"}`}
+                className={`font-bold text-2xl text-white ${(netSalesAfterDiscount - (financialData.beginningInventory + calculatedNetPurchases - calculatedEndingInventory) + calculatedOtherRevenues - financialData.totalExpenses) >= 0 ? "bg-brand-green" : "bg-red-200"}`}
               >
                 <Td>صافي الربح / (الخسارة)</Td>
                 <Td></Td>
-                <Td className={`font-mono text-left ${getNegativeNumberClass(netSalesAfterDiscount - (financialData.beginningInventory + financialData.netPurchases - calculatedEndingInventory) + calculatedOtherRevenues - financialData.totalExpenses)}`}>
-                  {formatNumber(netSalesAfterDiscount - (financialData.beginningInventory + financialData.netPurchases - calculatedEndingInventory) + calculatedOtherRevenues - financialData.totalExpenses)}
+                <Td className={`font-mono text-left ${getNegativeNumberClass(netSalesAfterDiscount - (financialData.beginningInventory + calculatedNetPurchases - calculatedEndingInventory) + calculatedOtherRevenues - financialData.totalExpenses)}`}>
+                  {formatNumber(netSalesAfterDiscount - (financialData.beginningInventory + calculatedNetPurchases - calculatedEndingInventory) + calculatedOtherRevenues - financialData.totalExpenses)}
                 </Td>
               </tr>
             </tbody>
