@@ -25,6 +25,7 @@ import { useGetStoreIssueVouchersQuery } from "../../store/slices/storeIssueVouc
 import { useGetStoreTransferVouchersQuery } from "../../store/slices/storeTransferVoucher/storeTransferVoucherApi";
 import { useGetStoresQuery } from "../../store/slices/store/storeApi";
 import { useGetReceiptVouchersQuery } from "../../store/slices/receiptVoucherApiSlice";
+import { useAuth } from "../../hook/Auth";
 
 type StatementRow = {
   statement: string;
@@ -46,6 +47,19 @@ const IncomeStatement: React.FC = () => {
     isLoading,
     error,
   } = useIncomeStatement(startDate, endDate);
+
+  // Get current user for print
+  const { User: currentUser } = useAuth();
+
+  // Get current date for print
+  const currentDate = useMemo(() => {
+    const now = new Date();
+    return now.toLocaleDateString("ar-EG", {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+    });
+  }, []);
 
   // Fetch expense types to display dynamically
   const { data: expenseTypes = [] } = useGetExpenseTypesQuery();
@@ -643,9 +657,20 @@ const IncomeStatement: React.FC = () => {
       <div id="printable-area-income">
         <ReportHeader title={title} />
         
-        <div className="mb-4 text-center print:mb-2 hidden print:block">
-          <p className="text-lg font-semibold text-brand-dark">
-            الفترة من {startDate} إلى {endDate}
+        <div className="mb-4 text-sm print:mb-2 hidden print:block">
+          <p className="flex justify-between items-center gap-4 flex-wrap text-lg font-semibold text-brand-dark">
+            <span>
+              الفترة من {startDate} إلى {endDate}
+            </span>
+            <span>
+              <strong>تاريخ الطباعة:</strong> {currentDate}
+            </span>
+            {currentUser && (
+              <span>
+                <strong>المستخدم:</strong>{" "}
+                {currentUser.name || currentUser.username || "غير محدد"}
+              </span>
+            )}
           </p>
         </div>
 
