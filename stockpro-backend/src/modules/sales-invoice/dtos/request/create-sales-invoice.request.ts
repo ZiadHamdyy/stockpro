@@ -46,6 +46,10 @@ export class CreateSalesInvoiceRequest {
 
   @IsString()
   @IsOptional()
+  customerName?: string;
+
+  @IsString()
+  @IsOptional()
   date?: string;
 
   @IsArray()

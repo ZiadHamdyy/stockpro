@@ -354,6 +354,7 @@ const SalesInvoice: React.FC<SalesInvoiceProps> = ({
     invoiceNumber: "",
     invoiceDate: new Date().toISOString().substring(0, 10),
   });
+  const [invoiceNotes, setInvoiceNotes] = useState<string>("");
   const [invoiceBranchId, setInvoiceBranchId] = useState<string | null>(null);
   const [safeBranchName, setSafeBranchName] = useState<string>(
     () => getUserBranchName(currentUser),
@@ -591,6 +592,7 @@ const SalesInvoice: React.FC<SalesInvoiceProps> = ({
     const defaultBranchId = getUserBranchId(currentUser);
     setInvoiceBranchId(defaultBranchId);
     setSafeBranchName(getUserBranchName(currentUser));
+    setInvoiceNotes("");
     setOriginalInvoiceVatEnabled(false); // Reset for new invoices
     setIsReadOnly(false);
     setPreviewData(null); // Clear preview data
@@ -620,8 +622,13 @@ const SalesInvoice: React.FC<SalesInvoiceProps> = ({
       setSelectedCustomer(
         inv.customer ? { id: inv.customer.id, name: inv.customer.name } : null,
       );
-      // Show "عميل نقدي" when editing cash invoice without customer
-      setCustomerQuery(inv.customer?.name || (inv.paymentMethod === "cash" && !inv.customer ? "عميل نقدي" : ""));
+      // For saved invoices: if there is a customer name (linked or stored) show it, otherwise show \"عميل نقدي\"
+      const storedCustomerName = (inv as any).customerName as string | undefined;
+      setCustomerQuery(
+        inv.customer?.name ||
+          (storedCustomerName && storedCustomerName.trim()) ||
+          "عميل نقدي",
+      );
       const normalizedItems = (inv.items as InvoiceRow[]).map((item) => ({
         ...item,
         salePriceIncludesTax: Boolean(item.salePriceIncludesTax),
@@ -633,6 +640,8 @@ const SalesInvoice: React.FC<SalesInvoiceProps> = ({
         tax: inv.tax,
         net: inv.net,
       });
+      setInvoiceNotes((inv as any).notes || "");
+      setInvoiceNotes((inv as any).notes || "");
       // Determine original VAT status from invoice data
       // If invoice has tax > 0 or any items have taxAmount > 0, VAT was enabled
       const invoiceItems = inv.items as InvoiceRow[];
@@ -732,6 +741,7 @@ const SalesInvoice: React.FC<SalesInvoiceProps> = ({
     setSplitBankId(banks.length > 0 ? banks[0].id : null);
     setInvoiceBranchId(getUserBranchId(currentUser));
     setSafeBranchName(getUserBranchName(currentUser));
+    setInvoiceNotes("");
     setIsReadOnly(false);
     setPreviewData(null);
     justSavedRef.current = false;
@@ -1218,9 +1228,14 @@ const SalesInvoice: React.FC<SalesInvoiceProps> = ({
       }
       
       const invoiceData: any = {
-        customerId: paymentMethod === "cash" && !selectedCustomer 
-          ? null 
-          : selectedCustomer?.id,
+        customerId:
+          paymentMethod === "cash" && !selectedCustomer
+            ? null
+            : selectedCustomer?.id,
+        customerName:
+          paymentMethod === "cash" && !selectedCustomer
+            ? customerQuery.trim() || undefined
+            : undefined,
         date: invoiceDetails.invoiceDate,
         items: finalItems.map((item) => ({
           id: item.id,
@@ -1245,7 +1260,7 @@ const SalesInvoice: React.FC<SalesInvoiceProps> = ({
                 ? paymentTargetId?.toString() || safeBranchId?.toString() || null
                 : paymentTargetId?.toString() || null)
             : null,
-        notes: "",
+        notes: invoiceNotes || "",
         allowInsufficientStock: allowSellingLessThanStock,
       };
 
@@ -1275,9 +1290,17 @@ const SalesInvoice: React.FC<SalesInvoiceProps> = ({
         ? {
             id: selectedCustomer.id,
             name: selectedCustomer.name,
-            address: fullCustomer?.nationalAddress || fullCustomer?.address || undefined,
+            address:
+              fullCustomer?.nationalAddress ||
+              fullCustomer?.address ||
+              undefined,
             taxNumber: fullCustomer?.taxNumber || undefined,
             commercialReg: fullCustomer?.commercialReg || undefined,
+          }
+        : customerQuery.trim()
+        ? {
+            id: "",
+            name: customerQuery.trim(),
           }
         : null;
 
@@ -1306,6 +1329,7 @@ const SalesInvoice: React.FC<SalesInvoiceProps> = ({
             ...invoiceDetails,
             userName: currentUser?.name || currentUser?.fullName || "غير محدد",
             branchName: resolvedBranchName || "غير محدد",
+            notes: invoiceNotes || undefined,
           },
           zatcaUuid: updatedInvoice?.zatcaUuid,
           zatcaSequentialNumber: updatedInvoice?.zatcaSequentialNumber,
@@ -1353,6 +1377,7 @@ const SalesInvoice: React.FC<SalesInvoiceProps> = ({
             ...updatedInvoiceDetails,
             userName: currentUser?.name || currentUser?.fullName || "غير محدد",
             branchName: resolvedBranchName || "غير محدد",
+            notes: invoiceNotes || undefined,
           },
           zatcaUuid: savedInvoice?.zatcaUuid,
           zatcaSequentialNumber: savedInvoice?.zatcaSequentialNumber,
@@ -2015,8 +2040,20 @@ const SalesInvoice: React.FC<SalesInvoiceProps> = ({
 
         <div className="bg-gray-50 -mx-6 -mb-6 mt-4 p-6 rounded-b-lg">
           <div className="flex justify-between items-start">
-            <div className="w-1/2">
-              <div className="mt-6 pt-4 text-center text-sm text-gray-600 font-semibold border-t-2 border-dashed border-gray-300 mr-4">
+            <div className="w-1/2 space-y-4">
+              <div>
+                <label className="block text-sm font-bold mb-2">
+                  ملاحظات الفاتورة / معلومات إضافية عن العميل:
+                </label>
+                <textarea
+                  className="w-full p-3 border-2 border-brand-blue rounded-md bg-white shadow-inner focus:outline-none focus:ring-2 focus:ring-brand-blue"
+                  rows={4}
+                  value={invoiceNotes}
+                  onChange={(e) => setInvoiceNotes(e.target.value)}
+                  disabled={isReadOnly}
+                ></textarea>
+              </div>
+              <div className="mt-2 pt-4 text-center text-sm text-gray-600 font-semibold border-t-2 border-dashed border-gray-300 mr-4">
                 استلمت البضاعة كاملة و بجودة سليمة
               </div>
             </div>
@@ -2273,9 +2310,17 @@ const SalesInvoice: React.FC<SalesInvoiceProps> = ({
             ? {
                 id: selectedCustomer.id,
                 name: selectedCustomer.name,
-                address: fullCustomer?.nationalAddress || fullCustomer?.address || undefined,
+                address:
+                  fullCustomer?.nationalAddress ||
+                  fullCustomer?.address ||
+                  undefined,
                 taxNumber: fullCustomer?.taxNumber || undefined,
                 commercialReg: fullCustomer?.commercialReg || undefined,
+              }
+            : customerQuery.trim()
+            ? {
+                id: "",
+                name: customerQuery.trim(),
               }
             : null;
           // Get current invoice if viewing existing one
@@ -2293,6 +2338,7 @@ const SalesInvoice: React.FC<SalesInvoiceProps> = ({
               ...invoiceDetails,
               userName: currentUser?.name || currentUser?.fullName || "غير محدد",
               branchName: resolvedBranchName || "غير محدد",
+              notes: invoiceNotes || undefined,
             },
             // Include ZATCA fields from current invoice if available
             zatcaUuid: currentInvoice?.zatcaUuid,

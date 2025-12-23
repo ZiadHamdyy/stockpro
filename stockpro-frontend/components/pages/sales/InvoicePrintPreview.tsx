@@ -33,6 +33,7 @@ interface InvoicePrintPreviewProps {
       invoiceDate: string;
       userName: string;
       branchName: string;
+      notes?: string;
     };
     zatcaUuid?: string;
     zatcaSequentialNumber?: number;
@@ -238,6 +239,11 @@ const InvoicePrintPreview: React.FC<InvoicePrintPreviewProps> = ({
       <div class="info-row"><span>رقم الفاتورة:</span><span>${details.invoiceNumber}</span></div>
       <div class="info-row"><span>التاريخ:</span><span>${details.invoiceDate}</span></div>
       <div class="info-row"><span>العميل:</span><span>${customer?.name || "نقدي"}</span></div>
+      ${
+        details.notes
+          ? `<div class="info-row"><span>ملاحظات:</span><span>${details.notes}</span></div>`
+          : ""
+      }
       <div class="info-row"><span>الموظف:</span><span>${details.userName || "غير محدد"}</span></div>
       <table class="items-table">
         <thead>

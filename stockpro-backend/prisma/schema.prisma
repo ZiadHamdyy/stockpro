@@ -734,6 +734,7 @@ model SalesInvoice {
   code                String
   date                DateTime            @default(now())
   customerId          String?
+  customerName        String?
   items               Json
   subtotal            Float               @default(0)
   discount            Float               @default(0)

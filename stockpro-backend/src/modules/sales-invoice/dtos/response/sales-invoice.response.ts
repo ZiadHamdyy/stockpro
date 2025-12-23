@@ -5,6 +5,7 @@ export class SalesInvoiceResponse {
   code: string;
   date: Date;
   customerId?: string;
+  customerName?: string | null;
   customer?: {
     id: string;
     name: string;
