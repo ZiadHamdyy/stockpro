@@ -30,7 +30,7 @@ const DailySalesReturns: React.FC<DailySalesReturnsProps> = ({ title }) => {
   const { data: branches = [] } = useGetBranchesQuery();
   const currentUser = useAppSelector(selectCurrentUser);
   const { hasPermission } = useUserPermissions();
-  
+
   // Helper function to get user's branch ID
   const getUserBranchId = (user: any): string | null => {
     if (!user) return null;
@@ -40,7 +40,7 @@ const DailySalesReturns: React.FC<DailySalesReturnsProps> = ({ title }) => {
     if (branch && typeof branch === "object") return branch.id || null;
     return null;
   };
-  
+
   // Get current user's branch ID
   const userBranchId = getUserBranchId(currentUser);
   const canSearchAllBranches = useMemo(
@@ -82,12 +82,27 @@ const DailySalesReturns: React.FC<DailySalesReturnsProps> = ({ title }) => {
   const [endDate, setEndDate] = useState(defaultEndDate);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedBranchId, setSelectedBranchId] = useState<string>("");
+  const [invoiceType, setInvoiceType] = useState<string>("");
+
+  const getInvoiceTypeLabel = (paymentMethod?: string | null) => {
+    if (!paymentMethod) return "-";
+    switch (paymentMethod) {
+      case "CASH":
+        return "نقدي";
+      case "CREDIT":
+        return "آجل";
+      default:
+        return "-";
+    }
+  };
 
   const filteredReturns = useMemo(() => {
     return salesReturns.filter((sale) => {
       const saleDate = sale.date.substring(0, 10); // Extract just the date part
       const matchesDateRange = saleDate >= startDate && saleDate <= endDate;
       const matchesBranch = !selectedBranchId || sale.branchId === selectedBranchId;
+       const matchesInvoiceType =
+        !invoiceType || sale.paymentMethod === invoiceType;
       const matchesSearch =
         !searchTerm ||
         sale.code.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -99,9 +114,14 @@ const DailySalesReturns: React.FC<DailySalesReturnsProps> = ({ title }) => {
           sale.branch.name
             .toLowerCase()
             .includes(searchTerm.toLowerCase()));
-      return matchesDateRange && matchesBranch && matchesSearch;
+      return (
+        matchesDateRange &&
+        matchesBranch &&
+        matchesInvoiceType &&
+        matchesSearch
+      );
     });
-  }, [salesReturns, startDate, endDate, searchTerm, selectedBranchId]);
+  }, [salesReturns, startDate, endDate, searchTerm, selectedBranchId, invoiceType]);
 
   const totals = filteredReturns.reduce(
     (acc, sale) => {
@@ -118,6 +138,7 @@ const DailySalesReturns: React.FC<DailySalesReturnsProps> = ({ title }) => {
     const dataToExport = filteredReturns.map((s) => ({
       التاريخ: s.date,
       "رقم المرتجع": s.code,
+      "نوع الفاتورة": getInvoiceTypeLabel(s.paymentMethod),
       العميل: s.customer?.name || "عميل نقدي",
       الفرع: s.branch?.name || "-",
       المبلغ: formatMoney(s.subtotal),
@@ -128,6 +149,7 @@ const DailySalesReturns: React.FC<DailySalesReturnsProps> = ({ title }) => {
     dataToExport.push({
       التاريخ: "الإجمالي",
       "رقم المرتجع": "",
+      "نوع الفاتورة": "",
       العميل: "",
       الفرع: "",
       المبلغ: formatMoney(totals.subtotal),
@@ -146,6 +168,7 @@ const DailySalesReturns: React.FC<DailySalesReturnsProps> = ({ title }) => {
         "الضريبة",
         "المبلغ",
         "الفرع",
+        "نوع الفاتورة",
         "العميل",
         "رقم المرتجع",
         "التاريخ",
@@ -158,6 +181,7 @@ const DailySalesReturns: React.FC<DailySalesReturnsProps> = ({ title }) => {
       formatMoney(s.tax),
       formatMoney(s.subtotal),
       s.branch?.name || "-",
+      getInvoiceTypeLabel(s.paymentMethod),
       s.customer?.name || "عميل نقدي",
       s.code,
       s.date ? new Date(s.date).toLocaleDateString() : "",
@@ -171,6 +195,7 @@ const DailySalesReturns: React.FC<DailySalesReturnsProps> = ({ title }) => {
         formatMoney(totals.subtotal),
         "",
         "",
+      "",
         "",
         "",
         "الإجمالي",
@@ -265,6 +290,16 @@ const DailySalesReturns: React.FC<DailySalesReturnsProps> = ({ title }) => {
               onChange={(e) => setSearchTerm(e.target.value)}
             />
           </div>
+          <label className="font-semibold">نوع الفاتورة:</label>
+          <select
+            value={invoiceType}
+            onChange={(e) => setInvoiceType(e.target.value)}
+            className={inputStyle + " w-40"}
+          >
+            <option value="">جميع الأنواع</option>
+            <option value="CASH">نقدي</option>
+            <option value="CREDIT">آجل</option>
+          </select>
           <label className="font-semibold">الفرع:</label>
           <select
             value={selectedBranchId}
@@ -366,6 +401,9 @@ const DailySalesReturns: React.FC<DailySalesReturnsProps> = ({ title }) => {
                 رقم المرتجع
               </th>
               <th className="px-6 py-3 text-right text-sm font-semibold text-white uppercase tracking-wider">
+                نوع الفاتورة
+              </th>
+              <th className="px-6 py-3 text-right text-sm font-semibold text-white uppercase tracking-wider">
                 العميل
               </th>
               <th className="px-6 py-3 text-right text-sm font-semibold text-white uppercase tracking-wider">
@@ -399,6 +437,9 @@ const DailySalesReturns: React.FC<DailySalesReturnsProps> = ({ title }) => {
                   </button>
                   <span className="print:inline hidden">{sale.code}</span>
                 </td>
+              <td className="px-6 py-4 whitespace-nowrap">
+                {getInvoiceTypeLabel(sale.paymentMethod)}
+              </td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   {sale.customer?.name || "عميل نقدي"}
                 </td>
@@ -422,7 +463,7 @@ const DailySalesReturns: React.FC<DailySalesReturnsProps> = ({ title }) => {
           </tbody>
           <tfoot className="bg-gray-100">
             <tr className="font-bold text-brand-dark">
-              <td colSpan={5} className="px-6 py-3 text-right">
+              <td colSpan={6} className="px-6 py-3 text-right">
                 الإجمالي
               </td>
               <td className="px-6 py-3 text-right">

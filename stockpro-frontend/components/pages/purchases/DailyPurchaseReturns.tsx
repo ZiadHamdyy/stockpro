@@ -32,7 +32,7 @@ const DailyPurchaseReturns: React.FC<DailyPurchaseReturnsProps> = ({
   const { data: branches = [] } = useGetBranchesQuery();
   const currentUser = useAppSelector(selectCurrentUser);
   const { hasPermission } = useUserPermissions();
-  
+
   // Helper function to get user's branch ID
   const getUserBranchId = (user: any): string | null => {
     if (!user) return null;
@@ -42,7 +42,7 @@ const DailyPurchaseReturns: React.FC<DailyPurchaseReturnsProps> = ({
     if (branch && typeof branch === "object") return branch.id || null;
     return null;
   };
-  
+
   // Get current user's branch ID
   const userBranchId = getUserBranchId(currentUser);
   const canSearchAllBranches = useMemo(
@@ -84,12 +84,27 @@ const DailyPurchaseReturns: React.FC<DailyPurchaseReturnsProps> = ({
   const [endDate, setEndDate] = useState(defaultEndDate);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedBranchId, setSelectedBranchId] = useState<string>("");
+  const [invoiceType, setInvoiceType] = useState<string>("");
+
+  const getInvoiceTypeLabel = (paymentMethod?: string | null) => {
+    if (!paymentMethod) return "-";
+    switch (paymentMethod) {
+      case "CASH":
+        return "نقدي";
+      case "CREDIT":
+        return "آجل";
+      default:
+        return "-";
+    }
+  };
 
   const filteredReturns = useMemo(() => {
     return purchaseReturns.filter((purchase) => {
       const purchaseDate = purchase.date.substring(0, 10); // Extract just the date part
       const matchesDateRange = purchaseDate >= startDate && purchaseDate <= endDate;
       const matchesBranch = !selectedBranchId || purchase.branchId === selectedBranchId;
+      const matchesInvoiceType =
+        !invoiceType || purchase.paymentMethod === invoiceType;
       const matchesSearch =
         !searchTerm ||
         purchase.code.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -101,9 +116,14 @@ const DailyPurchaseReturns: React.FC<DailyPurchaseReturnsProps> = ({
           purchase.branch.name
             .toLowerCase()
             .includes(searchTerm.toLowerCase()));
-      return matchesDateRange && matchesBranch && matchesSearch;
+      return (
+        matchesDateRange &&
+        matchesBranch &&
+        matchesInvoiceType &&
+        matchesSearch
+      );
     });
-  }, [purchaseReturns, startDate, endDate, searchTerm, selectedBranchId]);
+  }, [purchaseReturns, startDate, endDate, searchTerm, selectedBranchId, invoiceType]);
 
   const totals = filteredReturns.reduce(
     (acc, purchase) => {
@@ -120,6 +140,7 @@ const DailyPurchaseReturns: React.FC<DailyPurchaseReturnsProps> = ({
     const dataToExport = filteredReturns.map((p) => ({
       التاريخ: p.date,
       "رقم المرتجع": p.code,
+      "نوع الفاتورة": getInvoiceTypeLabel(p.paymentMethod),
       المورد: p.supplier?.name || "-",
       الفرع: p.branch?.name || "-",
       المبلغ: formatMoney(p.subtotal),
@@ -130,6 +151,7 @@ const DailyPurchaseReturns: React.FC<DailyPurchaseReturnsProps> = ({
     dataToExport.push({
       التاريخ: "الإجمالي",
       "رقم المرتجع": "",
+      "نوع الفاتورة": "",
       المورد: "",
       الفرع: "",
       المبلغ: formatMoney(totals.subtotal),
@@ -148,6 +170,7 @@ const DailyPurchaseReturns: React.FC<DailyPurchaseReturnsProps> = ({
         "الضريبة",
         "المبلغ",
         "الفرع",
+        "نوع الفاتورة",
         "المورد",
         "رقم المرتجع",
         "التاريخ",
@@ -160,6 +183,7 @@ const DailyPurchaseReturns: React.FC<DailyPurchaseReturnsProps> = ({
       formatMoney(p.tax),
       formatMoney(p.subtotal),
       p.branch?.name || "-",
+      getInvoiceTypeLabel(p.paymentMethod),
       p.supplier?.name || "-",
       p.code,
       p.date ? new Date(p.date).toLocaleDateString() : "",
@@ -173,6 +197,7 @@ const DailyPurchaseReturns: React.FC<DailyPurchaseReturnsProps> = ({
         formatMoney(totals.subtotal),
         "",
         "",
+      "",
         "",
         "",
         "الإجمالي",
@@ -267,6 +292,16 @@ const DailyPurchaseReturns: React.FC<DailyPurchaseReturnsProps> = ({
               onChange={(e) => setSearchTerm(e.target.value)}
             />
           </div>
+          <label className="font-semibold">نوع الفاتورة:</label>
+          <select
+            value={invoiceType}
+            onChange={(e) => setInvoiceType(e.target.value)}
+            className={inputStyle + " w-40"}
+          >
+            <option value="">جميع الأنواع</option>
+            <option value="CASH">نقدي</option>
+            <option value="CREDIT">آجل</option>
+          </select>
           <label className="font-semibold">الفرع:</label>
           <select
             value={selectedBranchId}
@@ -368,6 +403,9 @@ const DailyPurchaseReturns: React.FC<DailyPurchaseReturnsProps> = ({
                 رقم المرتجع
               </th>
               <th className="px-6 py-3 text-right text-sm font-semibold text-white uppercase tracking-wider">
+                نوع الفاتورة
+              </th>
+              <th className="px-6 py-3 text-right text-sm font-semibold text-white uppercase tracking-wider">
                 المورد
               </th>
               <th className="px-6 py-3 text-right text-sm font-semibold text-white uppercase tracking-wider">
@@ -401,6 +439,9 @@ const DailyPurchaseReturns: React.FC<DailyPurchaseReturnsProps> = ({
                   </button>
                   <span className="print:inline hidden">{purchase.code}</span>
                 </td>
+              <td className="px-6 py-4 whitespace-nowrap">
+                {getInvoiceTypeLabel(purchase.paymentMethod)}
+              </td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   {purchase.supplier?.name || "-"}
                 </td>
@@ -424,7 +465,7 @@ const DailyPurchaseReturns: React.FC<DailyPurchaseReturnsProps> = ({
           </tbody>
           <tfoot className="bg-gray-100">
             <tr className="font-bold text-brand-dark">
-              <td colSpan={5} className="px-6 py-3 text-right">
+              <td colSpan={6} className="px-6 py-3 text-right">
                 الإجمالي
               </td>
               <td className="px-6 py-3 text-right">
