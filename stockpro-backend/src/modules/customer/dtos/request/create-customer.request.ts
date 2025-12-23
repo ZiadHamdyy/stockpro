@@ -19,4 +19,8 @@ export class CreateCustomerRequest {
   @IsNumber()
   @IsOptional()
   openingBalance?: number;
+
+  @IsNumber()
+  @IsOptional()
+  creditLimit?: number;
 }

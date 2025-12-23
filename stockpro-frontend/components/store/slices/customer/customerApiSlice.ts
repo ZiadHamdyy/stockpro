@@ -21,6 +21,7 @@ export interface CreateCustomerRequest {
   nationalAddress: string;
   phone: string;
   openingBalance?: number;
+  creditLimit?: number;
 }
 
 export interface UpdateCustomerRequest {
@@ -30,6 +31,7 @@ export interface UpdateCustomerRequest {
   nationalAddress?: string;
   phone?: string;
   openingBalance?: number;
+  creditLimit?: number;
 }
 
 export const customerApiSlice = apiSlice.injectEndpoints({

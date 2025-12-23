@@ -252,6 +252,18 @@ const FinancialSystem: React.FC<FinancialSystemProps> = ({ title }) => {
       return stored ? JSON.parse(stored) : false;
     })();
 
+    const storedCreditLimitControl = (() => {
+      const stored = localStorage.getItem("creditLimitControl");
+      if (
+        stored === StrictnessLevel.BLOCK ||
+        stored === StrictnessLevel.APPROVAL ||
+        stored === StrictnessLevel.WARNING
+      ) {
+        return stored as StrictnessLevel;
+      }
+      return StrictnessLevel.BLOCK;
+    })();
+
     return {
       taxPolicy: salePriceIncludesTax ? TaxPolicy.INCLUSIVE : TaxPolicy.EXCLUSIVE,
       defaultTaxRate: 15,
@@ -265,7 +277,7 @@ const FinancialSystem: React.FC<FinancialSystemProps> = ({ title }) => {
       lockPostedPeriods: true,
       closingDate: new Date().toISOString().split('T')[0],
       preventDuplicateSupplierRef: true,
-      creditLimitControl: StrictnessLevel.BLOCK,
+      creditLimitControl: storedCreditLimitControl,
       minMarginControl: StrictnessLevel.WARNING,
       allowSellingBelowCost: allowSellingLessThanCost,
       maxCashTransactionLimit: 5000,
@@ -294,6 +306,13 @@ const FinancialSystem: React.FC<FinancialSystemProps> = ({ title }) => {
       JSON.stringify(config.allowSellingBelowCost)
     );
   }, [config.allowSellingBelowCost]);
+
+  useEffect(() => {
+    localStorage.setItem(
+      "creditLimitControl",
+      config.creditLimitControl
+    );
+  }, [config.creditLimitControl]);
 
   useEffect(() => {
     const salePriceIncludesTax = config.taxPolicy === TaxPolicy.INCLUSIVE;

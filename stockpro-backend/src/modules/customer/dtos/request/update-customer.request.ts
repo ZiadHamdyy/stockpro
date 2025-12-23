@@ -24,4 +24,8 @@ export class UpdateCustomerRequest {
   @IsOptional()
   @IsNumber()
   openingBalance?: number;
+
+  @IsOptional()
+  @IsNumber()
+  creditLimit?: number;
 }

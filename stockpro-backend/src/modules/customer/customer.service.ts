@@ -40,6 +40,7 @@ export class CustomerService {
 
     const code = await this.generateNextCode(companyId);
     const openingBalance = data.openingBalance || 0;
+    const creditLimit = data.creditLimit ?? 0;
 
     const customer = await this.prisma.customer.create({
       data: {
@@ -47,6 +48,7 @@ export class CustomerService {
         companyId,
         code,
         openingBalance,
+        creditLimit,
         currentBalance: openingBalance, // Initialize currentBalance from openingBalance
       },
     });
@@ -208,6 +210,7 @@ export class CustomerService {
       nationalAddress: customer.nationalAddress,
       phone: customer.phone,
       openingBalance: customer.openingBalance,
+      creditLimit: customer.creditLimit,
       currentBalance: customer.currentBalance,
       createdAt: customer.createdAt,
       updatedAt: customer.updatedAt,

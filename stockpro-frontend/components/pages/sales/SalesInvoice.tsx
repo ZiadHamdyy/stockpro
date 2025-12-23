@@ -218,6 +218,17 @@ const SalesInvoice: React.FC<SalesInvoiceProps> = ({
       ? safes.filter((safe) => safe.branchId === userBranchId)
       : safes;
 
+  type CreditLimitControl = 'BLOCK' | 'APPROVAL' | 'WARNING';
+
+  // Read credit limit control policy from localStorage (configured in FinancialSystem)
+  const creditLimitControl: CreditLimitControl = (() => {
+    const stored = localStorage.getItem('creditLimitControl');
+    if (stored === 'APPROVAL' || stored === 'WARNING' || stored === 'BLOCK') {
+      return stored as CreditLimitControl;
+    }
+    return 'BLOCK';
+  })();
+
   // Read allowSellingLessThanStock setting from localStorage
   const allowSellingLessThanStock = (() => {
     const stored = localStorage.getItem('allowSellingLessThanStock');
@@ -261,6 +272,7 @@ const SalesInvoice: React.FC<SalesInvoiceProps> = ({
     nationalAddress: customer.nationalAddress,
     phone: customer.phone,
     openingBalance: customer.openingBalance,
+    creditLimit: (customer as any).creditLimit ?? 0,
     currentBalance: customer.currentBalance,
   }));
 
@@ -1194,6 +1206,41 @@ const SalesInvoice: React.FC<SalesInvoiceProps> = ({
             )}) أقل من تكلفة الشراء (${formatMoney(
               effectiveCost,
             )}) للصنف: ${item.name}`,
+            "error",
+          );
+          return;
+        }
+      }
+    }
+
+    // Enforce customer credit limit for CREDIT invoices based on financial policy
+    if (paymentMethod === "credit" && selectedCustomer) {
+      const fullCustomer = (customers as any[]).find(
+        (c) => String(c.id) === String(selectedCustomer.id),
+      );
+
+      const creditLimit = fullCustomer?.creditLimit ?? 0;
+
+      // Only enforce when a positive credit limit is defined and policy is set to BLOCK
+      if (creditLimit > 0 && creditLimitControl === "BLOCK") {
+        const existingNet =
+          currentIndex >= 0 && invoices[currentIndex]
+            ? Number(invoices[currentIndex].net) || 0
+            : 0;
+
+        // currentBalance is assumed to already include existing invoices (including this one if editing)
+        const currentBalance = Number(fullCustomer?.currentBalance) || 0;
+        const netDelta = totals.net - existingNet;
+        const positiveDelta = netDelta > 0 ? netDelta : 0;
+        const projectedBalance = currentBalance + positiveDelta;
+
+        if (projectedBalance - creditLimit > 0.01) {
+          const exceededBy = projectedBalance - creditLimit;
+          showToast(
+            `لا يمكن إصدار فاتورة آجل: سيتجاوز رصيد العميل حد الائتمان المسموح به.\n` +
+              `حد الائتمان: ${formatMoney(creditLimit)} | ` +
+              `الرصيد بعد الفاتورة: ${formatMoney(projectedBalance)} | ` +
+              `قيمة التجاوز: ${formatMoney(exceededBy)}.`,
             "error",
           );
           return;
