@@ -452,6 +452,35 @@ const IncomeStatement: React.FC = () => {
       .reduce((sum, voucher) => sum + (voucher.amount || 0), 0);
   }, [apiReceiptVouchers, startDate, endDate, normalizeDate]);
 
+  // Calculate allowed discount: total sales discounts - total sales returns discounts
+  const allowedDiscount = useMemo(() => {
+    const normalizedStartDate = normalizeDate(startDate);
+    const normalizedEndDate = normalizeDate(endDate);
+
+    if (!normalizedStartDate || !normalizedEndDate) return 0;
+
+    const isInRange = (date: any) => {
+      const d = normalizeDate(date);
+      if (!d) return false;
+      return d >= normalizedStartDate && d <= normalizedEndDate;
+    };
+
+    const totalSalesDiscounts = (apiSalesInvoices as any[])
+      .filter((inv) => isInRange(inv.date || inv.invoiceDate))
+      .reduce((sum, inv) => sum + toNumber(inv.discount || 0), 0);
+
+    const totalSalesReturnsDiscounts = (apiSalesReturns as any[])
+      .filter((inv) => isInRange(inv.date || inv.invoiceDate))
+      .reduce((sum, inv) => sum + toNumber(inv.discount || 0), 0);
+
+    return totalSalesDiscounts - totalSalesReturnsDiscounts;
+  }, [apiSalesInvoices, apiSalesReturns, startDate, endDate, normalizeDate, toNumber]);
+
+  const netSalesAfterDiscount = useMemo(() => {
+    if (!financialData) return 0;
+    return financialData.netSales - allowedDiscount;
+  }, [financialData, allowedDiscount]);
+
   const statementRows = useMemo<StatementRow[]>(() => {
     if (!financialData) return [];
 
@@ -465,7 +494,8 @@ const IncomeStatement: React.FC = () => {
     addRow("الإيرادات");
     addRow("إجمالي المبيعات", financialData.totalSales);
     addRow("(-) مرتجع المبيعات", asNegative(financialData.totalSalesReturns));
-    addRow("صافي المبيعات", undefined, financialData.netSales);
+    addRow("(-) خصم مسموح به", asNegative(allowedDiscount));
+    addRow("صافي المبيعات", undefined, netSalesAfterDiscount);
 
     addRow("تكلفة البضاعة المباعة");
     addRow("رصيد مخزون أول المدة", financialData.beginningInventory);
@@ -481,7 +511,7 @@ const IncomeStatement: React.FC = () => {
       asNegative(calculatedCogs),
     );
 
-    const calculatedGrossProfit = financialData.netSales - calculatedCogs;
+    const calculatedGrossProfit = netSalesAfterDiscount - calculatedCogs;
     addRow("مجمل الربح", undefined, calculatedGrossProfit);
 
     addRow("الايرادات الاخري", calculatedOtherRevenues);
@@ -503,7 +533,7 @@ const IncomeStatement: React.FC = () => {
     addRow("صافي الربح / (الخسارة)", undefined, calculatedNetProfit);
 
     return rows;
-  }, [financialData, sortedExpenseTypes, calculatedEndingInventory, calculatedOtherRevenues]);
+  }, [financialData, sortedExpenseTypes, calculatedEndingInventory, calculatedOtherRevenues, allowedDiscount, netSalesAfterDiscount]);
 
   const formatExportValue = (value?: number | null): string => {
     if (value === null || value === undefined) return "";
@@ -772,11 +802,18 @@ const IncomeStatement: React.FC = () => {
                 </Td>
                 <Td></Td>
               </tr>
+              <tr>
+                <Td className="text-red-600">(-) خصم مسموح به</Td>
+                <Td className={`font-mono text-left text-red-600 ${getNegativeNumberClass(allowedDiscount)}`}>
+                  ({formatNumber(allowedDiscount)})
+                </Td>
+                <Td></Td>
+              </tr>
               <tr className="font-bold bg-gray-100">
                 <Td>صافي المبيعات</Td>
                 <Td></Td>
-                <Td className={`font-mono text-left text-lg ${getNegativeNumberClass(financialData.netSales)}`}>
-                  {formatNumber(financialData.netSales)}
+                <Td className={`font-mono text-left text-lg ${getNegativeNumberClass(netSalesAfterDiscount)}`}>
+                  {formatNumber(netSalesAfterDiscount)}
                 </Td>
               </tr>
 
@@ -817,8 +854,8 @@ const IncomeStatement: React.FC = () => {
               <tr className="font-bold text-xl bg-green-100 text-green-800">
                 <Td>مجمل الربح</Td>
                 <Td></Td>
-                <Td className={`font-mono text-left ${getNegativeNumberClass(financialData.netSales - (financialData.beginningInventory + financialData.netPurchases - calculatedEndingInventory))}`}>
-                  {formatNumber(financialData.netSales - (financialData.beginningInventory + financialData.netPurchases - calculatedEndingInventory))}
+                <Td className={`font-mono text-left ${getNegativeNumberClass(netSalesAfterDiscount - (financialData.beginningInventory + financialData.netPurchases - calculatedEndingInventory))}`}>
+                  {formatNumber(netSalesAfterDiscount - (financialData.beginningInventory + financialData.netPurchases - calculatedEndingInventory))}
                 </Td>
               </tr>
 
@@ -857,12 +894,12 @@ const IncomeStatement: React.FC = () => {
               </tr>
 
               <tr
-                className={`font-bold text-2xl text-white ${(financialData.netSales - (financialData.beginningInventory + financialData.netPurchases - calculatedEndingInventory) + calculatedOtherRevenues - financialData.totalExpenses) >= 0 ? "bg-brand-green" : "bg-red-200"}`}
+                className={`font-bold text-2xl text-white ${(netSalesAfterDiscount - (financialData.beginningInventory + financialData.netPurchases - calculatedEndingInventory) + calculatedOtherRevenues - financialData.totalExpenses) >= 0 ? "bg-brand-green" : "bg-red-200"}`}
               >
                 <Td>صافي الربح / (الخسارة)</Td>
                 <Td></Td>
-                <Td className={`font-mono text-left ${getNegativeNumberClass(financialData.netSales - (financialData.beginningInventory + financialData.netPurchases - calculatedEndingInventory) + calculatedOtherRevenues - financialData.totalExpenses)}`}>
-                  {formatNumber(financialData.netSales - (financialData.beginningInventory + financialData.netPurchases - calculatedEndingInventory) + calculatedOtherRevenues - financialData.totalExpenses)}
+                <Td className={`font-mono text-left ${getNegativeNumberClass(netSalesAfterDiscount - (financialData.beginningInventory + financialData.netPurchases - calculatedEndingInventory) + calculatedOtherRevenues - financialData.totalExpenses)}`}>
+                  {formatNumber(netSalesAfterDiscount - (financialData.beginningInventory + financialData.netPurchases - calculatedEndingInventory) + calculatedOtherRevenues - financialData.totalExpenses)}
                 </Td>
               </tr>
             </tbody>
