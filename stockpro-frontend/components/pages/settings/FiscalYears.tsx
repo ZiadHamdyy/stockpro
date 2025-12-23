@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import { useToast } from '../../common/ToastProvider';
 import { useModal } from '../../common/ModalProvider';
 import { LockIcon, EyeIcon, CheckIcon, XIcon } from '../../icons';
@@ -12,10 +12,277 @@ import {
   type FiscalYear,
 } from '../../store/slices/fiscalYear/fiscalYearApiSlice';
 import { formatNumber } from '../../../utils/formatting';
+import { useGetIncomeStatementQuery } from '../../store/slices/incomeStatement/incomeStatementApiSlice';
+import { useGetItemsQuery } from '../../store/slices/items/itemsApi';
+import { useGetSalesInvoicesQuery } from '../../store/slices/salesInvoice/salesInvoiceApiSlice';
+import { useGetPurchaseInvoicesQuery } from '../../store/slices/purchaseInvoice/purchaseInvoiceApiSlice';
+import { useGetSalesReturnsQuery } from '../../store/slices/salesReturn/salesReturnApiSlice';
+import { useGetPurchaseReturnsQuery } from '../../store/slices/purchaseReturn/purchaseReturnApiSlice';
+import { useGetStoreReceiptVouchersQuery } from '../../store/slices/storeReceiptVoucher/storeReceiptVoucherApi';
+import { useGetStoreIssueVouchersQuery } from '../../store/slices/storeIssueVoucher/storeIssueVoucherApi';
+import { useGetStoreTransferVouchersQuery } from '../../store/slices/storeTransferVoucher/storeTransferVoucherApi';
+import { useGetStoresQuery } from '../../store/slices/store/storeApi';
+import { useGetReceiptVouchersQuery } from '../../store/slices/receiptVoucherApiSlice';
 
 interface FiscalYearsProps {
     title?: string;
 }
+
+// Component to calculate and display retained earnings for a single fiscal year
+const FiscalYearRow: React.FC<{
+    year: FiscalYear;
+    onToggleStatus: (year: FiscalYear) => void;
+    isClosing: boolean;
+    isReopening: boolean;
+}> = ({ year, onToggleStatus, isClosing, isReopening }) => {
+    const startDate = year.startDate.split('T')[0];
+    const endDate = year.endDate.split('T')[0];
+    
+    // Fetch income statement data for this fiscal year
+    const { data: incomeStatementData } = useGetIncomeStatementQuery(
+        { startDate, endDate },
+        { skip: !startDate || !endDate }
+    );
+
+    // Fetch data for inventory and other revenues calculation
+    const { data: apiItems = [] } = useGetItemsQuery(undefined);
+    const { data: apiSalesInvoices = [] } = useGetSalesInvoicesQuery();
+    const { data: apiPurchaseInvoices = [] } = useGetPurchaseInvoicesQuery();
+    const { data: apiSalesReturns = [] } = useGetSalesReturnsQuery();
+    const { data: apiPurchaseReturns = [] } = useGetPurchaseReturnsQuery();
+    const { data: storeReceiptVouchers = [] } = useGetStoreReceiptVouchersQuery(undefined);
+    const { data: storeIssueVouchers = [] } = useGetStoreIssueVouchersQuery(undefined);
+    const { data: storeTransferVouchers = [] } = useGetStoreTransferVouchersQuery(undefined);
+    const { data: stores = [] } = useGetStoresQuery(undefined);
+    const { data: apiReceiptVouchers = [] } = useGetReceiptVouchersQuery(undefined);
+
+    // Helper to normalize date
+    const normalizeDate = useCallback((date: any): string => {
+        if (!date) return "";
+        if (typeof date === "string") {
+            if (/^\d{4}-\d{2}-\d{2}$/.test(date)) return date;
+            return date.substring(0, 10);
+        }
+        if (date instanceof Date) {
+            return date.toISOString().split("T")[0];
+        }
+        try {
+            const parsed = new Date(date);
+            if (!isNaN(parsed.getTime())) {
+                return parsed.toISOString().split("T")[0];
+            }
+        } catch {
+            // ignore
+        }
+        return "";
+    }, []);
+
+    const toNumber = useCallback((value: any): number => {
+        const parsed = Number(value);
+        return Number.isFinite(parsed) ? parsed : 0;
+    }, []);
+
+    // Calculate ending inventory (same logic as IncomeStatement)
+    const calculatedEndingInventory = useMemo(() => {
+        const normalizedEndDate = normalizeDate(endDate);
+        if (!normalizedEndDate) return 0;
+
+        const items = (apiItems as any[])
+            .filter((item) => {
+                const itemType = (item.type || item.itemType || "").toUpperCase();
+                return itemType !== "SERVICE";
+            });
+
+        if (items.length === 0) return 0;
+
+        const transformedPurchaseInvoices = (apiPurchaseInvoices as any[]).map((inv) => ({
+            ...inv,
+            items: inv.items.map((item) => ({
+                id: item.id,
+                qty: item.qty,
+                price: item.price,
+            })),
+        }));
+
+        const getLastPurchasePrice = (itemCode: string): number | null => {
+            const relevantInvoices = transformedPurchaseInvoices
+                .filter((inv) => {
+                    const txDate = normalizeDate(inv.date) || normalizeDate(inv.invoiceDate);
+                    return txDate && txDate <= normalizedEndDate;
+                })
+                .sort((a, b) => {
+                    const dateA = normalizeDate(a.date) || normalizeDate(a.invoiceDate) || "";
+                    const dateB = normalizeDate(b.date) || normalizeDate(b.invoiceDate) || "";
+                    return dateB.localeCompare(dateA);
+                });
+
+            for (const inv of relevantInvoices) {
+                for (const invItem of inv.items) {
+                    if (invItem.id === itemCode && invItem.price) {
+                        return invItem.price;
+                    }
+                }
+            }
+            return null;
+        };
+
+        const valuationData = items.map((item) => {
+            let balance = toNumber((item as any).openingBalance ?? 0);
+
+            const filterByDate = (tx: any) => {
+                const txDate = normalizeDate(tx.date) || normalizeDate(tx.invoiceDate) || normalizeDate(tx.transactionDate);
+                return txDate && txDate <= normalizedEndDate;
+            };
+
+            (apiPurchaseInvoices as any[]).filter(filterByDate).forEach((inv) =>
+                inv.items.forEach((i) => {
+                    if (i.id === item.code) balance += toNumber(i.qty);
+                }),
+            );
+            (apiSalesReturns as any[]).filter(filterByDate).forEach((inv) =>
+                inv.items.forEach((i) => {
+                    if (i.id === item.code) balance += toNumber(i.qty);
+                }),
+            );
+            (storeReceiptVouchers as any[]).filter(filterByDate).forEach((v) =>
+                v.items.forEach((i) => {
+                    if ((i.item?.code || i.itemId) === item.code) balance += toNumber(i.quantity);
+                }),
+            );
+
+            (apiSalesInvoices as any[]).filter(filterByDate).forEach((inv) =>
+                inv.items.forEach((i) => {
+                    if (i.id === item.code) balance -= toNumber(i.qty);
+                }),
+            );
+            (apiPurchaseReturns as any[]).filter(filterByDate).forEach((inv) =>
+                inv.items.forEach((i) => {
+                    if (i.id === item.code) balance -= toNumber(i.qty);
+                }),
+            );
+            (storeIssueVouchers as any[]).filter(filterByDate).forEach((v) =>
+                v.items.forEach((i) => {
+                    if ((i.item?.code || i.itemId) === item.code) balance -= toNumber(i.quantity);
+                }),
+            );
+
+            const fallbackPrice = toNumber(item.initialPurchasePrice ?? item.purchasePrice ?? 0);
+            const lastPurchasePrice = getLastPurchasePrice(item.code);
+            const cost = lastPurchasePrice ?? fallbackPrice;
+
+            return balance * cost;
+        });
+
+        return valuationData.reduce((acc, value) => acc + value, 0);
+    }, [apiItems, apiSalesInvoices, apiPurchaseInvoices, apiSalesReturns, apiPurchaseReturns, storeReceiptVouchers, storeIssueVouchers, endDate, normalizeDate, toNumber]);
+
+    // Calculate other revenues (same as IncomeStatement)
+    const calculatedOtherRevenues = useMemo(() => {
+        const normalizedStartDate = normalizeDate(startDate);
+        const normalizedEndDate = normalizeDate(endDate);
+        
+        if (!normalizedStartDate || !normalizedEndDate) return 0;
+
+        return (apiReceiptVouchers as any[])
+            .filter((voucher) => {
+                if (voucher.entityType !== 'revenue') return false;
+                const voucherDate = normalizeDate(voucher.date);
+                if (!voucherDate) return false;
+                return voucherDate >= normalizedStartDate && voucherDate <= normalizedEndDate;
+            })
+            .reduce((sum, voucher) => sum + (voucher.amount || 0), 0);
+    }, [apiReceiptVouchers, startDate, endDate, normalizeDate]);
+
+    // Calculate net profit using the same formula as IncomeStatement
+    const calculatedNetProfit = useMemo(() => {
+        if (!incomeStatementData) return null;
+        
+        return incomeStatementData.netSales - 
+               (incomeStatementData.beginningInventory + incomeStatementData.netPurchases - calculatedEndingInventory) + 
+               calculatedOtherRevenues - 
+               incomeStatementData.totalExpenses;
+    }, [incomeStatementData, calculatedEndingInventory, calculatedOtherRevenues]);
+
+    const calculatedValue = calculatedNetProfit;
+
+    return (
+        <div className={`border-2 rounded-lg p-4 flex justify-between items-center ${year.status === 'OPEN' ? 'border-green-500 bg-green-50' : 'border-red-300 bg-red-50'}`}>
+            <div>
+                <div className="flex items-center gap-3">
+                    <h3 className="text-xl font-bold text-brand-dark">{year.name}</h3>
+                    {year.status === 'OPEN' ? (
+                        <span className="px-2 py-1 text-xs rounded-full bg-green-200 text-green-800 font-bold flex items-center gap-1">
+                            <EyeIcon className="w-3 h-3"/> مفتوحة
+                        </span>
+                    ) : (
+                        <span className="px-2 py-1 text-xs rounded-full bg-red-200 text-red-800 font-bold flex items-center gap-1">
+                            <LockIcon className="w-3 h-3"/> مغلقة
+                        </span>
+                    )}
+                </div>
+                <p className="text-sm text-gray-600 mt-1">
+                    من: <span className="font-mono font-bold">{startDate}</span> إلى: <span className="font-mono font-bold">{endDate}</span>
+                </p>
+            </div>
+            
+            <div className="flex items-center gap-4">
+                <div className="text-center px-4 border-l border-gray-300 hidden md:block">
+                    <p className="text-xs text-gray-500">الأرباح (الخسائر) المبقاة</p>
+                    <p className={`font-bold text-lg ${calculatedValue !== null && calculatedValue !== undefined ? (calculatedValue >= 0 ? 'text-green-600' : 'text-red-600') : 'text-gray-400'}`}>
+                        {calculatedValue !== null && calculatedValue !== undefined ? formatNumber(calculatedValue) : '---'}
+                    </p>
+                </div>
+                <PermissionWrapper
+                    requiredPermission={buildPermission(
+                        Resources.FISCAL_YEARS,
+                        Actions.UPDATE
+                    )}
+                    fallback={
+                        <button
+                            disabled
+                            className={`px-4 py-2 rounded-md font-semibold text-sm transition-colors flex items-center gap-2 cursor-not-allowed opacity-50 ${
+                                year.status === 'OPEN'
+                                    ? 'bg-red-100 text-red-700'
+                                    : 'bg-green-100 text-green-700'
+                            }`}
+                        >
+                            {year.status === 'OPEN' ? (
+                                <> <LockIcon className="w-4 h-4"/> إغلاق السنة </>
+                            ) : (
+                                <> <CheckIcon className="w-4 h-4"/> إعادة فتح </>
+                            )}
+                        </button>
+                    }
+                >
+                    <button 
+                        onClick={() => onToggleStatus(year)}
+                        disabled={
+                            isClosing || 
+                            isReopening || 
+                            (year.status === 'CLOSED' && new Date(year.startDate).getFullYear() > new Date().getFullYear())
+                        }
+                        title={
+                            year.status === 'CLOSED' && new Date(year.startDate).getFullYear() > new Date().getFullYear()
+                                ? "لا يمكن إعادة فتح فترة محاسبية لسنة مستقبلية"
+                                : undefined
+                        }
+                        className={`px-4 py-2 rounded-md font-semibold text-sm transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed ${
+                            year.status === 'OPEN' 
+                            ? 'bg-red-100 text-red-700 hover:bg-red-200' 
+                            : 'bg-green-100 text-green-700 hover:bg-green-200'
+                        }`}
+                    >
+                        {year.status === 'OPEN' ? (
+                            <> <LockIcon className="w-4 h-4"/> إغلاق السنة </>
+                        ) : (
+                            <> <CheckIcon className="w-4 h-4"/> إعادة فتح </>
+                        )}
+                    </button>
+                </PermissionWrapper>
+            </div>
+        </div>
+    );
+};
 
 const FiscalYears: React.FC<FiscalYearsProps> = ({ title }) => {
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -31,6 +298,11 @@ const FiscalYears: React.FC<FiscalYearsProps> = ({ title }) => {
     const [createFiscalYear, { isLoading: isCreating }] = useCreateFiscalYearMutation();
     const [closeFiscalYear, { isLoading: isClosing }] = useCloseFiscalYearMutation();
     const [reopenFiscalYear, { isLoading: isReopening }] = useReopenFiscalYearMutation();
+
+    const sortedFiscalYears = useMemo(() => 
+        [...fiscalYears].sort((a, b) => b.name.localeCompare(a.name)),
+        [fiscalYears]
+    );
 
     const handleAddYear = async () => {
         if (!newYear.name || !newYear.startDate || !newYear.endDate) {
@@ -133,10 +405,6 @@ const FiscalYears: React.FC<FiscalYearsProps> = ({ title }) => {
 
     const inputStyle = "mt-1 block w-full bg-brand-blue-bg border-2 border-brand-blue rounded-md shadow-sm p-2 focus:outline-none focus:ring-2 focus:ring-brand-blue";
 
-    const sortedFiscalYears = [...fiscalYears].sort((a, b) =>
-        b.name.localeCompare(a.name)
-    );
-
     if (isLoading) {
         return (
             <div className="bg-white p-6 rounded-lg shadow">
@@ -181,81 +449,13 @@ const FiscalYears: React.FC<FiscalYearsProps> = ({ title }) => {
 
             <div className="grid grid-cols-1 gap-6">
                 {sortedFiscalYears.map(year => (
-                    <div key={year.id} className={`border-2 rounded-lg p-4 flex justify-between items-center ${year.status === 'OPEN' ? 'border-green-500 bg-green-50' : 'border-red-300 bg-red-50'}`}>
-                        <div>
-                            <div className="flex items-center gap-3">
-                                <h3 className="text-xl font-bold text-brand-dark">{year.name}</h3>
-                                {year.status === 'OPEN' ? (
-                                    <span className="px-2 py-1 text-xs rounded-full bg-green-200 text-green-800 font-bold flex items-center gap-1">
-                                        <EyeIcon className="w-3 h-3"/> مفتوحة
-                                    </span>
-                                ) : (
-                                    <span className="px-2 py-1 text-xs rounded-full bg-red-200 text-red-800 font-bold flex items-center gap-1">
-                                        <LockIcon className="w-3 h-3"/> مغلقة
-                                    </span>
-                                )}
-                            </div>
-                            <p className="text-sm text-gray-600 mt-1">
-                                من: <span className="font-mono font-bold">{year.startDate.split('T')[0]}</span> إلى: <span className="font-mono font-bold">{year.endDate.split('T')[0]}</span>
-                            </p>
-                        </div>
-                        
-                        <div className="flex items-center gap-4">
-                            <div className="text-center px-4 border-l border-gray-300 hidden md:block">
-                                <p className="text-xs text-gray-500">الأرباح (الخسائر) المبقاة</p>
-                                <p className={`font-bold text-lg ${year.retainedEarnings !== null ? (year.retainedEarnings >= 0 ? 'text-green-600' : 'text-red-600') : 'text-gray-400'}`}>
-                                    {year.retainedEarnings !== null ? formatNumber(year.retainedEarnings) : '---'}
-                                </p>
-                            </div>
-                            <PermissionWrapper
-                                requiredPermission={buildPermission(
-                                    Resources.FISCAL_YEARS,
-                                    Actions.UPDATE
-                                )}
-                                fallback={
-                                    <button
-                                        disabled
-                                        className={`px-4 py-2 rounded-md font-semibold text-sm transition-colors flex items-center gap-2 cursor-not-allowed opacity-50 ${
-                                            year.status === 'OPEN'
-                                            ? 'bg-red-100 text-red-700'
-                                            : 'bg-green-100 text-green-700'
-                                        }`}
-                                    >
-                                        {year.status === 'OPEN' ? (
-                                            <> <LockIcon className="w-4 h-4"/> إغلاق السنة </>
-                                        ) : (
-                                            <> <CheckIcon className="w-4 h-4"/> إعادة فتح </>
-                                        )}
-                                    </button>
-                                }
-                            >
-                                <button 
-                                    onClick={() => confirmToggleStatus(year)}
-                                    disabled={
-                                        isClosing || 
-                                        isReopening || 
-                                        (year.status === 'CLOSED' && new Date(year.startDate).getFullYear() > new Date().getFullYear())
-                                    }
-                                    title={
-                                        year.status === 'CLOSED' && new Date(year.startDate).getFullYear() > new Date().getFullYear()
-                                            ? "لا يمكن إعادة فتح فترة محاسبية لسنة مستقبلية"
-                                            : undefined
-                                    }
-                                    className={`px-4 py-2 rounded-md font-semibold text-sm transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed ${
-                                        year.status === 'OPEN' 
-                                        ? 'bg-red-100 text-red-700 hover:bg-red-200' 
-                                        : 'bg-green-100 text-green-700 hover:bg-green-200'
-                                    }`}
-                                >
-                                    {year.status === 'OPEN' ? (
-                                        <> <LockIcon className="w-4 h-4"/> إغلاق السنة </>
-                                    ) : (
-                                        <> <CheckIcon className="w-4 h-4"/> إعادة فتح </>
-                                    )}
-                                </button>
-                            </PermissionWrapper>
-                        </div>
-                    </div>
+                    <FiscalYearRow
+                        key={year.id}
+                        year={year}
+                        onToggleStatus={confirmToggleStatus}
+                        isClosing={isClosing}
+                        isReopening={isReopening}
+                    />
                 ))}
             </div>
 
