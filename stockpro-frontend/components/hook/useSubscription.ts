@@ -5,10 +5,10 @@ import {
   useGetUsageStatsQuery,
 } from '../store/slices/subscriptionApiSlice';
 import type { LimitCheckResult, PlanLimits } from '../../types';
-import { getHostOverride } from '../store/ApiSlice';
+import { getCompanyCode } from '../store/ApiSlice';
 
 export const useSubscription = () => {
-  const hostRef = useRef<string | null>(getHostOverride());
+  const companyCodeRef = useRef<string | null>(getCompanyCode());
   
   const { 
     data: subscription, 
@@ -38,13 +38,13 @@ export const useSubscription = () => {
     refetchOnMountOrArgChange: true,
   });
 
-  // Refetch subscription data when host changes
+  // Refetch subscription data when company code changes
   useEffect(() => {
-    const currentHost = getHostOverride();
+    const currentCode = getCompanyCode();
     
-    // If host changed, refetch all subscription data
-    if (hostRef.current !== currentHost) {
-      hostRef.current = currentHost;
+    // If company code changed, refetch all subscription data
+    if (companyCodeRef.current !== currentCode) {
+      companyCodeRef.current = currentCode;
       refetchSubscription();
       refetchLimits();
       refetchUsage();
@@ -52,9 +52,9 @@ export const useSubscription = () => {
 
     // Listen for custom company switch event
     const handleCompanySwitch = () => {
-      const newHost = getHostOverride();
-      if (hostRef.current !== newHost) {
-        hostRef.current = newHost;
+      const newCode = getCompanyCode();
+      if (companyCodeRef.current !== newCode) {
+        companyCodeRef.current = newCode;
         refetchSubscription();
         refetchLimits();
         refetchUsage();
@@ -63,7 +63,7 @@ export const useSubscription = () => {
 
     // Listen for localStorage changes (cross-tab company switches)
     const handleStorageChange = (e: StorageEvent) => {
-      if (e.key === 'X-Override-Host') {
+      if (e.key === 'X-Company-Code') {
         handleCompanySwitch();
       }
     };

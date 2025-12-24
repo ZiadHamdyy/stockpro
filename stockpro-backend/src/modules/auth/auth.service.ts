@@ -170,6 +170,19 @@ export class AuthService {
   }
 
   async login(user: User, ipAddress?: string, userAgent?: string) {
+    // Get company code for the user
+    const company = await this.prisma.company.findUnique({
+      where: { id: user.companyId },
+      select: { code: true },
+    });
+
+    if (!company) {
+      throw new GenericHttpException(
+        'Company not found for user',
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+
     // Check if user already has an active session with the same IP and user agent
     if (ipAddress && userAgent) {
       const existingSession = await this.prisma.session.findFirst({
@@ -193,6 +206,7 @@ export class AuthService {
     const refreshToken = this.generateRefreshToken({
       userId: user.id,
       sessionId: 'temp', // Will be replaced after session creation
+      companyCode: company.code,
     });
 
     // Create session with refresh token (hashed in DB)
@@ -204,7 +218,7 @@ export class AuthService {
     );
 
     // Return tokens and user (refreshToken for cookie, accessToken for response)
-    return await this.appendAuthTokenToResponse(user, session, refreshToken);
+    return await this.appendAuthTokenToResponse(user, session, refreshToken, company.code);
   }
 
   async loginWithCookie(
@@ -225,10 +239,12 @@ export class AuthService {
     user: User & { permissions?: any[] },
     session: Session,
     refreshToken: string,
+    companyCode: string,
   ) {
     const accessToken = this.generateAccessToken({
       userId: user.id,
       sessionId: session.id,
+      companyCode,
     });
 
     // Load user with role and permissions
@@ -316,9 +332,11 @@ export class AuthService {
       }
 
       // Generate ONLY new access token (refresh token remains the same)
+      // Preserve companyCode from the refresh token payload
       const newAccessToken = this.generateAccessToken({
         userId: session.userId,
         sessionId: session.id,
+        companyCode: payload.companyCode,
       });
 
       // Return only the new access token

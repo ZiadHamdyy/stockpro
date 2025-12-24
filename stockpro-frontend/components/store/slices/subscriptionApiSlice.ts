@@ -1,4 +1,4 @@
-import { apiSlice, getHostOverride } from "../ApiSlice";
+import { apiSlice, getCompanyCode } from "../ApiSlice";
 import type { Subscription, PlanLimits, UsageStats } from "../../../types";
 
 interface UpdateSubscriptionRequest {
@@ -14,13 +14,13 @@ export const subscriptionApiSlice = apiSlice.injectEndpoints({
         return response.data;
       },
       providesTags: (result, error, arg, meta) => {
-        // Include host in tags so cache is company-specific
-        const host = getHostOverride();
-        return host 
-          ? [{ type: 'Subscription', id: `current-${host}` }, 'Subscription']
+        // Include company code in tags so cache is company-specific
+        const companyCode = getCompanyCode();
+        return companyCode 
+          ? [{ type: 'Subscription', id: `current-${companyCode}` }, 'Subscription']
           : ['Subscription'];
       },
-      // Force refetch when host changes by using host as part of query key
+      // Force refetch when company code changes by using code as part of query key
       keepUnusedDataFor: 0, // Don't cache across company switches
     }),
 
@@ -31,9 +31,9 @@ export const subscriptionApiSlice = apiSlice.injectEndpoints({
         return response.data;
       },
       providesTags: (result, error, arg, meta) => {
-        const host = getHostOverride();
-        return host 
-          ? [{ type: 'Subscription', id: `limits-${host}` }, 'Subscription']
+        const companyCode = getCompanyCode();
+        return companyCode 
+          ? [{ type: 'Subscription', id: `limits-${companyCode}` }, 'Subscription']
           : ['Subscription'];
       },
       keepUnusedDataFor: 0,
@@ -46,9 +46,9 @@ export const subscriptionApiSlice = apiSlice.injectEndpoints({
         return response.data;
       },
       providesTags: (result, error, arg, meta) => {
-        const host = getHostOverride();
-        return host 
-          ? [{ type: 'Subscription', id: `usage-${host}` }, 'Subscription']
+        const companyCode = getCompanyCode();
+        return companyCode 
+          ? [{ type: 'Subscription', id: `usage-${companyCode}` }, 'Subscription']
           : ['Subscription'];
       },
       keepUnusedDataFor: 0,

@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { UserIcon, LockIcon, EyeIcon, EyeOffIcon, FacebookIcon, YoutubeIcon, GlobeIcon, PhoneIcon } from "../icons";
 import { useLoginUserMutation } from "../store/slices/auth/authApi";
+import { setCompanyCode } from "../store/ApiSlice";
 import ForgotPassword from "./ForgotPassword";
 import VerifyOtp from "./VerifyOtp";
 import ResetPassword from "./ResetPassword";
@@ -31,6 +32,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [companyCodeInput, setCompanyCodeInput] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [currentPage, setCurrentPage] = useState("login");
@@ -38,14 +40,55 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
 
   const [loginUser, { isLoading }] = useLoginUserMutation();
 
+  // Helper function to decode JWT token and extract company code
+  const extractCompanyCodeFromToken = (token: string): string | null => {
+    try {
+      const parts = token.split('.');
+      if (parts.length !== 3) return null;
+      
+      const payload = parts[1];
+      const paddedPayload = payload + '='.repeat((4 - (payload.length % 4)) % 4);
+      const decodedPayload = atob(paddedPayload.replace(/-/g, '+').replace(/_/g, '/'));
+      const parsed = JSON.parse(decodedPayload);
+      
+      return parsed.companyCode || null;
+    } catch (error) {
+      console.error("Error decoding token:", error);
+      return null;
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
 
+    // Validate company code format (6-8 digits)
+    if (companyCodeInput && !/^\d{6,8}$/.test(companyCodeInput.trim())) {
+      setError("كود الشركة يجب أن يكون من 6 إلى 8 أرقام");
+      return;
+    }
+
     try {
+      // Set company code before making the login request so it's included in headers
+      const trimmedCode = companyCodeInput.trim();
+      if (trimmedCode) {
+        setCompanyCode(trimmedCode); // This sets it in localStorage via the helper function
+      }
+
       const result = await loginUser({ email, password }).unwrap();
       // Call the parent onLogin callback with user data
       const userData = (result as any)?.data?.user;
+      const accessToken = (result as any)?.data?.accessToken;
+      
+      // Extract company code from JWT token (fallback if not provided in input)
+      if (accessToken) {
+        const tokenCompanyCode = extractCompanyCodeFromToken(accessToken);
+        if (tokenCompanyCode) {
+          // Use the code from token (more reliable) and update localStorage
+          setCompanyCode(tokenCompanyCode);
+        }
+      }
+      
       onLogin(email, password, userData);
       
       // Check if user is SUPER_ADMIN and redirect accordingly
@@ -161,6 +204,28 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
                   {error}
                 </div>
               )}
+
+              <div className="space-y-2">
+                <label htmlFor="companyCode" className="block text-sm font-bold text-gray-700">كود الشركة (اختياري)</label>
+                <div className="relative group">
+                  <input
+                    id="companyCode"
+                    name="companyCode"
+                    type="text"
+                    inputMode="numeric"
+                    pattern="\d{6,8}"
+                    maxLength={8}
+                    value={companyCodeInput}
+                    onChange={(e) => {
+                      const value = e.target.value.replace(/\D/g, ''); // Only allow digits
+                      setCompanyCodeInput(value);
+                    }}
+                    className="w-full px-4 py-4 bg-gray-50 border-2 border-gray-200 rounded-xl text-gray-900 text-lg focus:ring-0 focus:border-brand-blue transition-all outline-none placeholder-gray-400 hover:bg-blue-50/50 font-mono"
+                    placeholder="123456 (6-8 أرقام)"
+                  />
+                </div>
+                <p className="text-xs text-gray-500">إذا لم تقم بإدخال كود الشركة، سيتم استخدام الكود من رمز الدخول</p>
+              </div>
 
               <div className="space-y-2">
                 <label htmlFor="email" className="block text-sm font-bold text-gray-700">البريد او اسم المستخدم</label>

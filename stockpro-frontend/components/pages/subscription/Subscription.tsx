@@ -25,7 +25,7 @@ interface CompanyFormData {
   capital: number;
   vatRate: number;
   isVatEnabled: boolean;
-  host: string;
+  code?: string;
   logo?: string;
 }
 
@@ -55,7 +55,7 @@ const Subscription: React.FC<SubscriptionProps> = ({ title }) => {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [selectedCompany, setSelectedCompany] = useState<any>(null);
-  const [hostInput, setHostInput] = useState('');
+  const [codeInput, setCodeInput] = useState('');
   const [isCreating, setIsCreating] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState<'BASIC' | 'GROWTH' | 'BUSINESS'>('BASIC');
   const [formData, setFormData] = useState<CompanyFormData>({
@@ -69,11 +69,11 @@ const Subscription: React.FC<SubscriptionProps> = ({ title }) => {
     capital: 0,
     vatRate: 15,
     isVatEnabled: true,
-    host: '',
+      code: '',
   });
 
   const handleOpenCreateModal = () => {
-    setHostInput('');
+    setCodeInput('');
     setSelectedPlan('BASIC');
     setIsCreateModalOpen(true);
   };
@@ -91,7 +91,7 @@ const Subscription: React.FC<SubscriptionProps> = ({ title }) => {
       capital: company.capital,
       vatRate: company.vatRate,
       isVatEnabled: company.isVatEnabled,
-      host: company.host,
+      code: company.code,
       logo: company.logo,
     });
     setIsEditModalOpen(true);
@@ -100,26 +100,26 @@ const Subscription: React.FC<SubscriptionProps> = ({ title }) => {
   const handleCreateCompany = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Validate host
-    const normalizedHost = hostInput.toLowerCase().trim();
+    // Validate code (6-8 digits)
+    const code = codeInput.trim();
     
-    if (!normalizedHost) {
-      showToast('يرجى إدخال اسم النطاق (Host)', 'error');
+    if (!code) {
+      showToast('يرجى إدخال كود الشركة (6-8 أرقام)', 'error');
       return;
     }
 
-    // Validate host format
-    if (!/^[a-z0-9.-]+$/.test(normalizedHost)) {
-      showToast('اسم النطاق يجب أن يحتوي فقط على أحرف صغيرة وأرقام ونقاط وشرطات', 'error');
+    // Validate code format (6-8 digits)
+    if (!/^\d{6,8}$/.test(code)) {
+      showToast('كود الشركة يجب أن يكون من 6 إلى 8 أرقام', 'error');
       return;
     }
 
     setIsCreating(true);
     try {
-      await createCompanyWithSeed({ host: normalizedHost, planType: selectedPlan }).unwrap();
+      await createCompanyWithSeed({ code, planType: selectedPlan }).unwrap();
       showToast('تم إنشاء الشركة بنجاح');
       setIsCreateModalOpen(false);
-      setHostInput('');
+      setCodeInput('');
       setSelectedPlan('BASIC');
       refetch();
     } catch (error: any) {
@@ -288,7 +288,7 @@ const Subscription: React.FC<SubscriptionProps> = ({ title }) => {
                   >
                     <div>
                       <p className="font-bold text-gray-800">{company.name}</p>
-                      <p className="text-xs text-gray-500 font-mono">{company.host}</p>
+                      <p className="text-xs text-gray-500 font-mono">{company.code}</p>
                     </div>
                     <EditIcon className="w-4 h-4 text-gray-400" />
                   </div>
@@ -625,13 +625,15 @@ const Subscription: React.FC<SubscriptionProps> = ({ title }) => {
             <form onSubmit={handleCreateCompany} className="p-4">
               <div className="mb-4">
                 <label className="block text-xs font-bold text-gray-700 mb-1">
-                  اسم النطاق (Host) *
+                  كود الشركة (6-8 أرقام) *
                 </label>
                 <input
                   type="text"
-                  value={hostInput}
-                  onChange={(e) => setHostInput(e.target.value)}
-                  placeholder="companyname.stockplus.cloud"
+                  value={codeInput}
+                  onChange={(e) => setCodeInput(e.target.value)}
+                  placeholder="123456"
+                  pattern="\d{6,8}"
+                  maxLength={8}
                   className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent font-mono"
                   required
                   disabled={isCreating}
@@ -1036,11 +1038,11 @@ const Subscription: React.FC<SubscriptionProps> = ({ title }) => {
 
                 <div>
                   <label className="block text-sm font-bold text-gray-700 mb-2">
-                    النطاق (Host)
+                    كود الشركة
                   </label>
                   <input
                     type="text"
-                    value={formData.host}
+                    value={formData.code || ''}
                     disabled
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-100 font-mono text-gray-500"
                   />

@@ -100,7 +100,7 @@ async function bootstrap(): Promise<void> {
       origin: isProduction ? frontendUrl : true, // Allow all in dev, restrict in prod
       credentials: true, // Enable cookies/credentials
       methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-      allowedHeaders: ['Content-Type', 'Authorization', 'Cookie', 'x-company-host'],
+      allowedHeaders: ['Content-Type', 'Authorization', 'Cookie', 'x-company-code', 'X-Company-Code'],
       exposedHeaders: ['Set-Cookie'],
     },
   });

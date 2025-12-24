@@ -45,7 +45,7 @@ export class SubscriptionService {
   async getCompanySubscription(companyId: string) {
     const subscription = await this.prisma.subscription.findUnique({
       where: { companyId },
-      include: { company: { select: { id: true, name: true, host: true } } },
+      include: { company: { select: { id: true, name: true, code: true } } },
     });
 
     if (!subscription) {

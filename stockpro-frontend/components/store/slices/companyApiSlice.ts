@@ -14,7 +14,7 @@ interface CompanyResponse {
   vatRate: number;
   isVatEnabled: boolean;
   logo: string | null;
-  host: string;
+  code: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -31,7 +31,7 @@ interface UpsertCompanyRequest {
   vatRate: number;
   isVatEnabled: boolean;
   logo?: string;
-  host?: string;
+  code?: string;
   companyId?: string;
 }
 
@@ -101,7 +101,7 @@ export const companyApiSlice = apiSlice.injectEndpoints({
         };
       },
     }),
-    createCompanyWithSeed: builder.mutation<CompanyResponse, { host: string; planType?: 'BASIC' | 'GROWTH' | 'BUSINESS' }>({
+    createCompanyWithSeed: builder.mutation<CompanyResponse, { code?: string; planType?: 'BASIC' | 'GROWTH' | 'BUSINESS' }>({
       query: (data) => ({
         url: "/company/create-with-seed",
         method: "POST",

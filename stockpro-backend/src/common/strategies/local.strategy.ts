@@ -40,26 +40,14 @@ export class LocalStrategy extends PassportStrategy(Strategy) {
         'LocalStrategy - No companyId from middleware, trying to find company...',
       );
 
-      // Extract host from request headers
-      let host =
-        req.get('host') ||
-        req.get('x-forwarded-host') ||
-        req.get('x-host') ||
-        (req.headers.host as string) ||
-        (req.headers['x-forwarded-host'] as string);
+      // Extract company code from request headers
+      let companyCode = req.get('x-company-code');
 
-      console.log('LocalStrategy - Raw host:', host);
+      console.log('LocalStrategy - Company code from header:', companyCode);
 
-      // Clean up the host (remove port if present)
-      if (host && typeof host === 'string') {
-        host = host.split(':')[0];
-      }
-
-      console.log('LocalStrategy - Cleaned host:', host);
-
-      if (host && typeof host === 'string') {
+      if (companyCode && typeof companyCode === 'string') {
         try {
-          const company = await this.companyService.findByHost(host);
+          const company = await this.companyService.findByCode(companyCode);
           companyId = company.id;
           console.log('LocalStrategy - Found company:', companyId);
         } catch (error) {
@@ -68,14 +56,14 @@ export class LocalStrategy extends PassportStrategy(Strategy) {
             error.message,
           );
           throw new GenericHttpException(
-            'Company not found for this host',
+            'Company not found for this code',
             HttpStatus.BAD_REQUEST,
           );
         }
       } else {
-        console.log('LocalStrategy - No host found in request');
+        console.log('LocalStrategy - No company code found in request');
         throw new GenericHttpException(
-          'Company not found for this host',
+          'Company code is required',
           HttpStatus.BAD_REQUEST,
         );
       }
@@ -86,7 +74,7 @@ export class LocalStrategy extends PassportStrategy(Strategy) {
     if (!companyId) {
       console.log('LocalStrategy - No companyId found, throwing error');
       throw new GenericHttpException(
-        'Company not found for this host',
+        'Company not found',
         HttpStatus.BAD_REQUEST,
       );
     }

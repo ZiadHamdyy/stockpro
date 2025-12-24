@@ -327,6 +327,38 @@ export class CompanyService {
     private readonly prisma: DatabaseService,
   ) {}
 
+  /**
+   * Generate a unique 6-8 digit company code
+   */
+  private async generateUniqueCode(): Promise<string> {
+    let code: string;
+    let exists: boolean;
+    const minCode = 100000; // 6 digits
+    const maxCode = 99999999; // 8 digits
+
+    do {
+      // Generate random length between 6-8 digits
+      const length = Math.floor(Math.random() * 3) + 6; // 6, 7, or 8
+      const randomNum = Math.floor(Math.random() * (maxCode - minCode + 1)) + minCode;
+      code = randomNum.toString().padStart(length, '0').slice(0, length);
+
+      // Check if code already exists
+      const existing = await this.prisma.company.findUnique({
+        where: { code },
+      });
+      exists = !!existing;
+    } while (exists);
+
+    return code;
+  }
+
+  /**
+   * Validate company code format (6-8 digits)
+   */
+  private validateCode(code: string): boolean {
+    return /^\d{6,8}$/.test(code);
+  }
+
   async getCompany(companyId: string): Promise<CompanyResponse> {
     const company = await this.prisma.company.findUnique({
       where: { id: companyId },
@@ -348,28 +380,39 @@ export class CompanyService {
   }
 
   async createCompany(data: UpsertCompanyRequest): Promise<CompanyResponse> {
-    // Host is required for creating a new company
-    if (!data.host) {
-      throw new NotFoundException('Host is required when creating a new company');
-    }
+    // Generate code if not provided
+    let code = data.code;
+    if (!code) {
+      code = await this.generateUniqueCode();
+    } else {
+      // Validate code format
+      if (!this.validateCode(code)) {
+        throw new NotFoundException(
+          'Company code must be 6-8 digits',
+        );
+      }
 
-    // Check if host already exists
-    const existingCompany = await this.prisma.company.findUnique({
-      where: { host: data.host },
-    });
+      // Check if code already exists
+      const existingCompany = await this.prisma.company.findUnique({
+        where: { code },
+      });
 
-    if (existingCompany) {
-      throw new NotFoundException(
-        `Company with host ${data.host} already exists`,
-      );
+      if (existingCompany) {
+        throw new NotFoundException(
+          `Company with code ${code} already exists`,
+        );
+      }
     }
 
     // Prepare data with logo conversion
     const companyData = {
       ...data,
-      host: data.host, // Ensure host is explicitly set
+      code,
       logo: data.logo ? base64ToBuffer(data.logo) : null,
     };
+
+    // Remove host from data if present
+    delete (companyData as any).host;
 
     const company = await this.prisma.company.create({
       data: companyData,
@@ -378,13 +421,17 @@ export class CompanyService {
     return this.mapToResponse(company);
   }
 
-  async findByHost(host: string) {
+  async findByCode(code: string) {
+    if (!this.validateCode(code)) {
+      throw new NotFoundException(`Invalid company code format: ${code}`);
+    }
+
     const company = await this.prisma.company.findUnique({
-      where: { host },
+      where: { code },
     });
 
     if (!company) {
-      throw new NotFoundException(`Company not found for host: ${host}`);
+      throw new NotFoundException(`Company not found for code: ${code}`);
     }
 
     return company;
@@ -409,25 +456,34 @@ export class CompanyService {
     });
 
     // Prepare data with logo conversion
-    const companyData = {
+    const companyData: any = {
       ...data,
       logo: data.logo ? base64ToBuffer(data.logo) : null,
     };
+
+    // Remove host if present
+    delete companyData.host;
 
     let company;
 
     if (existingCompany) {
       // Update existing company
-      // If host is being changed, check if new host is available
-      if (data.host && data.host !== existingCompany.host) {
-        const hostExists = await this.prisma.company.findUnique({
-          where: { host: data.host },
-        });
-        if (hostExists) {
+      // If code is being changed, check if new code is available
+      if (data.code && data.code !== existingCompany.code) {
+        if (!this.validateCode(data.code)) {
           throw new NotFoundException(
-            `Company with host ${data.host} already exists`,
+            'Company code must be 6-8 digits',
           );
         }
+        const codeExists = await this.prisma.company.findUnique({
+          where: { code: data.code },
+        });
+        if (codeExists) {
+          throw new NotFoundException(
+            `Company with code ${data.code} already exists`,
+          );
+        }
+        companyData.code = data.code;
       }
 
       company = await this.prisma.company.update({
@@ -435,41 +491,55 @@ export class CompanyService {
         data: companyData,
       });
     } else {
-      // Create new company - host is required for new companies
-      if (!data.host) {
-        throw new NotFoundException('Host is required when creating a new company');
+      // Create new company - generate code if not provided
+      if (!data.code) {
+        companyData.code = await this.generateUniqueCode();
+      } else {
+        if (!this.validateCode(data.code)) {
+          throw new NotFoundException('Company code must be 6-8 digits');
+        }
+        const codeExists = await this.prisma.company.findUnique({
+          where: { code: data.code },
+        });
+        if (codeExists) {
+          throw new NotFoundException(
+            `Company with code ${data.code} already exists`,
+          );
+        }
+        companyData.code = data.code;
       }
+
       company = await this.prisma.company.create({
-        data: {
-          ...companyData,
-          host: data.host,
-        },
+        data: companyData,
       });
     }
 
     return this.mapToResponse(company);
   }
 
-  async createCompanyWithSeed(host: string, planType: 'BASIC' | 'GROWTH' | 'BUSINESS' = 'BASIC'): Promise<CompanyResponse> {
-    // Normalize host to lowercase
-    const normalizedHost = host.toLowerCase().trim();
+  async createCompanyWithSeed(code?: string, planType: 'BASIC' | 'GROWTH' | 'BUSINESS' = 'BASIC'): Promise<CompanyResponse> {
+    // Generate code if not provided
+    let companyCode = code;
+    if (!companyCode) {
+      companyCode = await this.generateUniqueCode();
+    } else {
+      // Validate code format
+      if (!this.validateCode(companyCode)) {
+        throw new NotFoundException(
+          'Company code must be 6-8 digits',
+        );
+      }
 
-    // Validate host format (alphanumeric, dots, hyphens allowed)
-    if (!/^[a-z0-9.-]+$/.test(normalizedHost)) {
-      throw new NotFoundException(
-        'Host must contain only lowercase letters, numbers, dots, and hyphens',
-      );
-    }
+      // Check if code already exists
+      const existingCompany = await this.prisma.company.findUnique({
+        where: { code: companyCode },
+      });
 
-    // Check if host already exists
-    const existingCompany = await this.prisma.company.findUnique({
-      where: { host: normalizedHost },
-    });
-
-    if (existingCompany) {
-      throw new NotFoundException(
-        `Company with host ${normalizedHost} already exists`,
-      );
+      if (existingCompany) {
+        throw new NotFoundException(
+          `Company with code ${companyCode} already exists`,
+        );
+      }
     }
 
     // Create company with default data (matching seed.ts pattern)
@@ -485,12 +555,12 @@ export class CompanyService {
         capital: 0,
         vatRate: 15,
         isVatEnabled: true,
-        host: normalizedHost,
+        code: companyCode,
       },
     });
 
     // Seed all company data
-    await this.seedCompanyData(company.id, normalizedHost, company.name);
+    await this.seedCompanyData(company.id, companyCode, company.name);
 
     // Create subscription with selected plan
     await this.prisma.subscription.create({
@@ -506,7 +576,7 @@ export class CompanyService {
 
   private async seedCompanyData(
     companyId: string,
-    host: string,
+    companyCode: string,
     companyName: string,
   ): Promise<void> {
     // Generate comprehensive permissions for all menu items
@@ -953,7 +1023,7 @@ export class CompanyService {
       vatRate: company.vatRate,
       isVatEnabled: company.isVatEnabled,
       logo: company.logo ? bufferToDataUri(company.logo) : null,
-      host: company.host,
+      code: company.code,
       createdAt: company.createdAt,
       updatedAt: company.updatedAt,
     };

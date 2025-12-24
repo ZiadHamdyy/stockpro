@@ -8,20 +8,21 @@ async function main() {
 
   // Create or get system company for SUPER_ADMIN (admin)
   console.log('🏢 Creating/Getting system company...');
+  const adminCompanyCode = '1234567';
   let systemCompany = await prisma.company.findUnique({
-    where: { host: 'admin' },
+    where: { code: adminCompanyCode },
   });
 
   if (!systemCompany) {
-    // Check if there's a company with empty host that we should update
-    const companyWithEmptyHost = await prisma.company.findFirst({
-      where: { host: '' },
+    // Check if there's a company with the admin code that we should update
+    const existingCompany = await prisma.company.findFirst({
+      where: { code: adminCompanyCode },
     });
 
-    if (companyWithEmptyHost) {
-      // Update existing company with empty host to use admin
+    if (existingCompany) {
+      // Update existing company to use admin code
       systemCompany = await prisma.company.update({
-        where: { id: companyWithEmptyHost.id },
+        where: { id: existingCompany.id },
         data: {
           name: 'StockPro System',
           activity: 'System Administration',
@@ -33,14 +34,14 @@ async function main() {
           capital: 0,
           vatRate: 15,
           isVatEnabled: true,
-          host: 'admin',
+          code: adminCompanyCode,
         },
       });
       console.log('✅ Updated existing company to system company');
     } else {
       // Create new system company using upsert to handle race conditions
       systemCompany = await prisma.company.upsert({
-        where: { host: 'admin' },
+        where: { code: adminCompanyCode },
         update: {
           name: 'StockPro System',
           activity: 'System Administration',
@@ -64,7 +65,7 @@ async function main() {
           capital: 0,
           vatRate: 15,
           isVatEnabled: true,
-          host: 'admin',
+          code: adminCompanyCode,
         },
       });
       console.log('✅ Created/Updated system company');
@@ -303,7 +304,7 @@ async function main() {
   console.log('🎉 Seed process completed successfully!');
   console.log('');
   console.log('📋 Summary:');
-  console.log('   - System Company: admin');
+  console.log(`   - System Company Code: ${adminCompanyCode}`);
   console.log('   - SUPER_ADMIN Role: Created');
   console.log('   - SUPER_ADMIN User: super@stockpro.com');
   console.log('   - Password: Password#1');

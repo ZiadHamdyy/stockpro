@@ -8,40 +8,40 @@ import { setCredentials, logOut, selectCurrentToken } from "./slices/auth/auth";
 import { showToastExternal } from "../common/ToastProvider";
 import { getTokenExpirationState } from "../common/TokenExpirationContext";
 
-// Selector to get host override from Redux state or localStorage
-const selectHostOverride = (state: any): string | null => {
+// Selector to get company code from Redux state or localStorage
+const selectCompanyCode = (state: any): string | null => {
   try {
     // Check Redux state first (if you add a tenant slice later)
-    if (state?.tenant?.hostOverride) {
-      return state.tenant.hostOverride;
+    if (state?.tenant?.companyCode) {
+      return state.tenant.companyCode;
     }
-    if (state?.auth?.hostOverride) {
-      return state.auth.hostOverride;
+    if (state?.auth?.companyCode) {
+      return state.auth.companyCode;
     }
     // Fallback to localStorage
     if (typeof window !== 'undefined' && window.localStorage) {
-      return localStorage.getItem("X-Override-Host");
+      return localStorage.getItem("X-Company-Code");
     }
   } catch (error) {
-    console.error("[ApiSlice] Error reading host override:", error);
+    console.error("[ApiSlice] Error reading company code:", error);
   }
   return null;
 };
 
-// Helper function to set host override (can be called from anywhere)
-export const setHostOverride = (host: string | null) => {
-  if (host) {
-    localStorage.setItem("X-Override-Host", host);
+// Helper function to set company code (can be called from anywhere)
+export const setCompanyCode = (code: string | null) => {
+  if (code) {
+    localStorage.setItem("X-Company-Code", code);
   } else {
-    localStorage.removeItem("X-Override-Host");
+    localStorage.removeItem("X-Company-Code");
   }
   // Dispatch custom event to notify components of company switch
-  window.dispatchEvent(new CustomEvent('company-switch', { detail: { host } }));
+  window.dispatchEvent(new CustomEvent('company-switch', { detail: { code } }));
 };
 
-// Helper function to get host override
-export const getHostOverride = (): string | null => {
-  return localStorage.getItem("X-Override-Host");
+// Helper function to get company code
+export const getCompanyCode = (): string | null => {
+  return localStorage.getItem("X-Company-Code");
 };
 
 // Track if any successful API call has been made (to detect fresh page load vs active session)
@@ -145,23 +145,23 @@ const baseQuery = fetchBaseQuery({
       headers.set("authorization", `Bearer ${token}`);
     }
     
-    // Add host override header for multi-tenancy simulation
-    // Backend middleware checks: x-company-host, host, x-forwarded-host, x-host
-    const hostOverride = selectHostOverride(getState() as any);
-    if (hostOverride) {
+    // Add company code header for multi-tenancy
+    // Backend middleware checks: x-company-code header first, then falls back to JWT token
+    const companyCode = selectCompanyCode(getState() as any);
+    if (companyCode) {
       // Primary header that backend middleware checks first
-      headers.set("x-company-host", hostOverride);
+      headers.set("x-company-code", companyCode);
       
       // Debug logging (remove in production)
       if (import.meta.env.DEV) {
-        console.log("[ApiSlice] Host override headers set:", {
-          "x-company-host": hostOverride,
+        console.log("[ApiSlice] Company code header set:", {
+          "x-company-code": companyCode,
         });
       }
     } else {
-      // Debug logging when no host override is set
+      // Debug logging when no company code is set
       if (import.meta.env.DEV) {
-        console.log("[ApiSlice] No host override set - headers will not include tenant info");
+        console.log("[ApiSlice] No company code set - will use code from JWT token");
       }
     }
     

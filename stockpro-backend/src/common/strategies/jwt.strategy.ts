@@ -26,6 +26,11 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     if (!payload || !payload.userId)
       throw new GenericHttpException('Invalid token', 401);
 
+    // Validate companyCode is present in token
+    if (!payload.companyCode) {
+      throw new GenericHttpException('Company code missing from token', 401);
+    }
+
     const result = await this.authService.getUserAndSessionFromPayload(payload);
 
     if (!result) throw new GenericHttpException('Invalid token', 401);
@@ -42,6 +47,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       userName: userWithRole.name,
       branchId: userWithRole.branchId,
       branchName: (userWithRole as any).branch?.name,
+      companyCode: payload.companyCode,
     });
 
     return { ...userWithRole, session };

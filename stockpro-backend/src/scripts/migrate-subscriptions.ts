@@ -22,7 +22,7 @@ async function migrateSubscriptions() {
       select: {
         id: true,
         name: true,
-        host: true,
+        code: true,
       },
     });
 
@@ -66,7 +66,7 @@ async function migrateSubscriptions() {
           },
         });
 
-        console.log(`  ✅ Created subscription for: ${company.name} (${company.host})`);
+        console.log(`  ✅ Created subscription for: ${company.name} (${company.code})`);
         successCount++;
       } catch (error) {
         console.error(`  ❌ Failed to create subscription for: ${company.name}`, error);

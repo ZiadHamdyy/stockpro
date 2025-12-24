@@ -322,13 +322,13 @@ function generatePermissions(): Array<{
 }
 
 // Reusable function to seed a single company
-async function seedCompany(companyId: string, host: string, companyName: string) {
-  console.log(`\n🏢 Seeding company: ${companyName} (${host})...`);
+async function seedCompany(companyId: string, companyCode: string, companyName: string) {
+  console.log(`\n🏢 Seeding company: ${companyName} (${companyCode})...`);
 
   // Generate comprehensive permissions for all menu items
   const permissions = generatePermissions();
 
-  console.log(`📝 Creating permissions for ${host}...`);
+  console.log(`📝 Creating permissions for ${companyCode}...`);
   for (const permission of permissions) {
     await prisma.permission.upsert({
       where: {
@@ -345,7 +345,7 @@ async function seedCompany(companyId: string, host: string, companyName: string)
       },
     });
   }
-  console.log(`✅ Created ${permissions.length} permissions for ${host}`);
+  console.log(`✅ Created ${permissions.length} permissions for ${companyCode}`);
 
   // Create roles
   const roles = [
@@ -371,7 +371,7 @@ async function seedCompany(companyId: string, host: string, companyName: string)
     },
   ];
 
-  console.log(`👥 Creating roles for ${host}...`);
+  console.log(`👥 Creating roles for ${companyCode}...`);
   for (const role of roles) {
     await prisma.role.upsert({
       where: {
@@ -387,7 +387,7 @@ async function seedCompany(companyId: string, host: string, companyName: string)
       },
     });
   }
-  console.log(`✅ Created ${roles.length} roles for ${host}`);
+  console.log(`✅ Created ${roles.length} roles for ${companyCode}`);
 
   // Get all created roles and permissions for this company
   const createdRoles = await prisma.role.findMany({
@@ -398,7 +398,7 @@ async function seedCompany(companyId: string, host: string, companyName: string)
   });
 
   // Assign permissions to roles based on frontend rolePermissions map
-  console.log(`🔗 Assigning permissions to roles for ${host}...`);
+  console.log(`🔗 Assigning permissions to roles for ${companyCode}...`);
 
   // Manager - all permissions
   const managerRole = createdRoles.find((r) => r.name === 'مدير');
@@ -418,7 +418,7 @@ async function seedCompany(companyId: string, host: string, companyName: string)
         },
       });
     }
-    console.log(`✅ Assigned all permissions to Manager role for ${host}`);
+    console.log(`✅ Assigned all permissions to Manager role for ${companyCode}`);
   }
 
   // Accountant - financial operations and reports
@@ -524,7 +524,7 @@ async function seedCompany(companyId: string, host: string, companyName: string)
       });
     }
     console.log(
-      `✅ Assigned ${accountantPermissions.length} permissions to Accountant role for ${host}`,
+      `✅ Assigned ${accountantPermissions.length} permissions to Accountant role for ${companyCode}`,
     );
   }
 
@@ -565,7 +565,7 @@ async function seedCompany(companyId: string, host: string, companyName: string)
       });
     }
     console.log(
-      `✅ Assigned ${salespersonPermissions.length} permissions to Salesperson role for ${host}`,
+      `✅ Assigned ${salespersonPermissions.length} permissions to Salesperson role for ${companyCode}`,
     );
   }
 
@@ -604,19 +604,19 @@ async function seedCompany(companyId: string, host: string, companyName: string)
       });
     }
     console.log(
-      `✅ Assigned ${dataEntryPermissions.length} permissions to Data Entry role for ${host}`,
+      `✅ Assigned ${dataEntryPermissions.length} permissions to Data Entry role for ${companyCode}`,
     );
   }
 
   // Assign default role to existing users in this company
-  console.log(`👤 Assigning default role to existing users for ${host}...`);
+  console.log(`👤 Assigning default role to existing users for ${companyCode}...`);
   const defaultRole = createdRoles.find((r) => r.name === 'مدير');
   if (defaultRole) {
     await prisma.user.updateMany({
       where: { roleId: null, companyId },
       data: { roleId: defaultRole.id },
     });
-    console.log(`✅ Assigned default role to existing users for ${host}`);
+    console.log(`✅ Assigned default role to existing users for ${companyCode}`);
   }
 
   // Get company data for branch creation
@@ -625,7 +625,7 @@ async function seedCompany(companyId: string, host: string, companyName: string)
   });
 
   // Create default branch if none exists
-  console.log(`🏪 Creating default branch for ${host}...`);
+  console.log(`🏪 Creating default branch for ${companyCode}...`);
   let existingBranch = await prisma.branch.findFirst({
     where: { companyId },
   });
@@ -646,13 +646,13 @@ async function seedCompany(companyId: string, host: string, companyName: string)
         companyId,
       },
     });
-    console.log(`✅ Created default branch for ${host}`);
+    console.log(`✅ Created default branch for ${companyCode}`);
   } else {
-    console.log(`✅ Branch already exists for ${host}`);
+    console.log(`✅ Branch already exists for ${companyCode}`);
   }
 
   // Create expense types
-  console.log(`💰 Creating expense types for ${host}...`);
+  console.log(`💰 Creating expense types for ${companyCode}...`);
   const expenseTypes = [
     {
       name: 'مصروفات تشغيلية',
@@ -687,10 +687,10 @@ async function seedCompany(companyId: string, host: string, companyName: string)
       },
     });
   }
-  console.log(`✅ Created ${expenseTypes.length} expense types for ${host}`);
+  console.log(`✅ Created ${expenseTypes.length} expense types for ${companyCode}`);
 
   // Create or update default admin user
-  console.log(`👤 Creating/updating default admin user for ${host}...`);
+  console.log(`👤 Creating/updating default admin user for ${companyCode}...`);
   const existingAdmin = await prisma.user.findUnique({
     where: {
       email_companyId: {
@@ -725,7 +725,7 @@ async function seedCompany(companyId: string, host: string, companyName: string)
         companyId,
       },
     });
-    console.log(`✅ Created default admin user for ${host}`);
+    console.log(`✅ Created default admin user for ${companyCode}`);
     console.log(`   📧 Email: admin@stockpro.com`);
     console.log(`   🔑 Password: Password#1`);
   } else if (existingAdmin && managerRole) {
@@ -743,15 +743,15 @@ async function seedCompany(companyId: string, host: string, companyName: string)
         active: true,
       },
     });
-    console.log(`✅ Updated default admin user for ${host}`);
+    console.log(`✅ Updated default admin user for ${companyCode}`);
     console.log(`   📧 Email: admin@stockpro.com`);
     console.log(`   🔑 Password: Password#1`);
   } else {
-    console.log(`✅ Admin user already exists for ${host}`);
+    console.log(`✅ Admin user already exists for ${companyCode}`);
   }
 
   // Create default store for the default branch
-  console.log(`🏬 Creating default store for ${host}...`);
+  console.log(`🏬 Creating default store for ${companyCode}...`);
   if (existingBranch && adminUser) {
     let existingStore = await prisma.store.findUnique({
       where: { branchId: existingBranch.id },
@@ -777,16 +777,16 @@ async function seedCompany(companyId: string, host: string, companyName: string)
           companyId,
         },
       });
-      console.log(`✅ Created default store for ${host}`);
+      console.log(`✅ Created default store for ${companyCode}`);
     } else {
-      console.log(`✅ Store already exists for ${host}`);
+      console.log(`✅ Store already exists for ${companyCode}`);
     }
   } else {
-    console.log(`⚠️ Skipped store creation for ${host} (branch or admin missing)`);
+    console.log(`⚠️ Skipped store creation for ${companyCode} (branch or admin missing)`);
   }
 
   // Create default safe for the default branch
-  console.log(`💼 Creating default safe for ${host}...`);
+  console.log(`💼 Creating default safe for ${companyCode}...`);
   if (existingBranch) {
     let existingSafe = await prisma.safe.findUnique({
       where: { branchId: existingBranch.id },
@@ -818,15 +818,15 @@ async function seedCompany(companyId: string, host: string, companyName: string)
           companyId,
         },
       });
-      console.log(`✅ Created default safe for ${host}`);
+      console.log(`✅ Created default safe for ${companyCode}`);
     } else {
-      console.log(`✅ Safe already exists for ${host}`);
+      console.log(`✅ Safe already exists for ${companyCode}`);
     }
   } else {
-    console.log(`⚠️ Skipped safe creation for ${host} (branch missing)`);
+    console.log(`⚠️ Skipped safe creation for ${companyCode} (branch missing)`);
   }
 
-  console.log(`✅ Completed seeding for ${companyName} (${host})\n`);
+  console.log(`✅ Completed seeding for ${companyName} (${companyCode})\n`);
 }
 
 async function main() {
@@ -842,17 +842,17 @@ async function main() {
 
   // Define three companies
   const companies = [
-    { host: 'localhost', name: 'اسم الشركة' },
-    { host: 'firsthost', name: 'الشركة الأولى' },
-    { host: 'secondhost', name: 'الشركة الثانية' },
+    { code: '123456', name: 'اسم الشركة' },
+    { code: '234567', name: 'الشركة الأولى' },
+    { code: '345678', name: 'الشركة الثانية' },
   ];
 
   // Create or get each company and seed it
   for (const companyConfig of companies) {
-    console.log(`🏢 Creating/Getting company: ${companyConfig.name} (${companyConfig.host})...`);
+    console.log(`🏢 Creating/Getting company: ${companyConfig.name} (${companyConfig.code})...`);
     
     let company = await prisma.company.findUnique({
-      where: { host: companyConfig.host },
+      where: { code: companyConfig.code },
     });
     
     if (!company) {
@@ -868,16 +868,16 @@ async function main() {
           capital: 0,
           vatRate: 15,
           isVatEnabled: true,
-          host: companyConfig.host,
+          code: companyConfig.code,
         },
       });
-      console.log(`✅ Created company: ${companyConfig.name} (${companyConfig.host})`);
+      console.log(`✅ Created company: ${companyConfig.name} (${companyConfig.code})`);
     } else {
-      console.log(`✅ Company already exists: ${companyConfig.name} (${companyConfig.host})`);
+      console.log(`✅ Company already exists: ${companyConfig.name} (${companyConfig.code})`);
     }
 
     // Seed the company
-    await seedCompany(company.id, companyConfig.host, companyConfig.name);
+    await seedCompany(company.id, companyConfig.code, companyConfig.name);
   }
 
   console.log('🎉 Test seed process completed successfully for all three companies!');
