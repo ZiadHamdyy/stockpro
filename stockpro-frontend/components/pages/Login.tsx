@@ -62,18 +62,22 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
     e.preventDefault();
     setError("");
 
+    // Validate company code is provided
+    if (!companyCodeInput || !companyCodeInput.trim()) {
+      setError("يرجى إدخال كود الشركة");
+      return;
+    }
+
     // Validate company code format (6-8 digits)
-    if (companyCodeInput && !/^\d{6,8}$/.test(companyCodeInput.trim())) {
+    const trimmedCode = companyCodeInput.trim();
+    if (!/^\d{6,8}$/.test(trimmedCode)) {
       setError("كود الشركة يجب أن يكون من 6 إلى 8 أرقام");
       return;
     }
 
     try {
       // Set company code before making the login request so it's included in headers
-      const trimmedCode = companyCodeInput.trim();
-      if (trimmedCode) {
-        setCompanyCode(trimmedCode); // This sets it in localStorage via the helper function
-      }
+      setCompanyCode(trimmedCode); // This sets it in localStorage via the helper function
 
       const result = await loginUser({ email, password }).unwrap();
       // Call the parent onLogin callback with user data
@@ -206,7 +210,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
               )}
 
               <div className="space-y-2">
-                <label htmlFor="companyCode" className="block text-sm font-bold text-gray-700">كود الشركة (اختياري)</label>
+                <label htmlFor="companyCode" className="block text-sm font-bold text-gray-700">كود الشركة *</label>
                 <div className="relative group">
                   <input
                     id="companyCode"
@@ -215,6 +219,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
                     inputMode="numeric"
                     pattern="\d{6,8}"
                     maxLength={8}
+                    required
                     value={companyCodeInput}
                     onChange={(e) => {
                       const value = e.target.value.replace(/\D/g, ''); // Only allow digits
@@ -224,7 +229,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
                     placeholder="123456 (6-8 أرقام)"
                   />
                 </div>
-                <p className="text-xs text-gray-500">إذا لم تقم بإدخال كود الشركة، سيتم استخدام الكود من رمز الدخول</p>
+                <p className="text-xs text-gray-500">أدخل كود الشركة المكون من 6 إلى 8 أرقام</p>
               </div>
 
               <div className="space-y-2">
