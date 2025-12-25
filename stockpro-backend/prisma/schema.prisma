@@ -1197,6 +1197,13 @@ enum ZatcaStatus {
   REJECTED
 }
 
+enum SubscriptionRequestStatus {
+  PENDING
+  CONTACTED
+  APPROVED
+  REJECTED
+}
+
 model FiscalYear {
   id               String           @id @default(uuid())
   name             String
@@ -1232,4 +1239,20 @@ model Subscription {
   @@index([companyId])
   @@index([status])
   @@index([planType])
+}
+
+model SubscriptionRequest {
+  id          String                    @id @default(uuid())
+  plan        String
+  name        String
+  email       String
+  phone       String
+  companyName String?
+  status      SubscriptionRequestStatus  @default(PENDING)
+  createdAt   DateTime                  @default(now())
+  updatedAt   DateTime                  @updatedAt
+
+  @@index([status])
+  @@index([createdAt])
+  @@index([email])
 }

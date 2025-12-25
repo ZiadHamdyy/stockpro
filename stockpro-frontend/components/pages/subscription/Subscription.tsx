@@ -7,6 +7,13 @@ import {
   useCreateCompanyWithSeedMutation,
 } from '../../store/slices/companyApiSlice';
 import { useSubscription } from '../../hook/useSubscription';
+import {
+  useGetSubscriptionRequestsQuery,
+  useUpdateSubscriptionRequestStatusMutation,
+  useDeleteSubscriptionRequestMutation,
+  type SubscriptionRequest,
+  type SubscriptionRequestStatus,
+} from '../../store/slices/subscriptionRequestApiSlice';
 
 interface SubscriptionProps {
   title: string;
@@ -29,16 +36,7 @@ interface CompanyFormData {
   logo?: string;
 }
 
-interface SubscriptionRequest {
-  id: string;
-  phone: string;
-  plan: string;
-  name?: string;
-  email?: string;
-  companyName?: string;
-  createdAt?: string;
-  status?: string;
-}
+// SubscriptionRequest interface is now imported from API slice
 
 const Subscription: React.FC<SubscriptionProps> = ({ title }) => {
   const { showToast } = useToast();
@@ -48,6 +46,14 @@ const Subscription: React.FC<SubscriptionProps> = ({ title }) => {
   
   // Subscription data
   const { subscription, limits, usage, isLoading: subscriptionLoading } = useSubscription();
+  
+  // Subscription requests
+  const { data: subscriptionRequestsData, isLoading: requestsLoading, refetch: refetchRequests } = useGetSubscriptionRequestsQuery();
+  const [updateStatus] = useUpdateSubscriptionRequestStatusMutation();
+  const [deleteRequest] = useDeleteSubscriptionRequestMutation();
+  
+  // Ensure subscriptionRequests is always an array
+  const subscriptionRequests = Array.isArray(subscriptionRequestsData) ? subscriptionRequestsData : [];
 
   // Ensure companies is always an array
   const companies = Array.isArray(companiesData) ? companiesData : [];
@@ -155,49 +161,58 @@ const Subscription: React.FC<SubscriptionProps> = ({ title }) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
-  // Mock subscription requests data
-  const mockSubscriptionRequests: SubscriptionRequest[] = [
-    {
-      id: '1',
-      phone: '966501234567',
-      plan: 'الخطة الأساسية',
-      name: 'أحمد محمد',
-      email: 'ahmed@example.com',
-      companyName: 'شركة التقنية المتقدمة',
-      createdAt: '2024-01-15',
-      status: 'pending',
-    },
-    {
-      id: '2',
-      phone: '966507654321',
-      plan: 'الخطة المتقدمة',
-      name: 'فاطمة علي',
-      email: 'fatima@example.com',
-      companyName: 'مؤسسة التجارة الإلكترونية',
-      createdAt: '2024-01-16',
-      status: 'pending',
-    },
-    {
-      id: '3',
-      phone: '966509876543',
-      plan: 'الخطة المميزة',
-      name: 'خالد سعيد',
-      email: 'khalid@example.com',
-      companyName: 'شركة الخدمات اللوجستية',
-      createdAt: '2024-01-17',
-      status: 'pending',
-    },
-    {
-      id: '4',
-      phone: '966505555555',
-      plan: 'الخطة الأساسية',
-      name: 'سارة أحمد',
-      email: 'sara@example.com',
-      companyName: 'مؤسسة التطوير العقاري',
-      createdAt: '2024-01-18',
-      status: 'pending',
-    },
-  ];
+  // Map plan values to Arabic names
+  const planNames: Record<string, string> = {
+    basic: 'الخطة الأساسية',
+    pro: 'الخطة المتقدمة',
+    enterprise: 'الخطة المميزة',
+  };
+  
+  // Map status values to Arabic names
+  const statusNames: Record<SubscriptionRequestStatus, string> = {
+    PENDING: 'قيد الانتظار',
+    CONTACTED: 'تم التواصل',
+    APPROVED: 'موافق عليه',
+    REJECTED: 'مرفوض',
+  };
+  
+  // Status colors
+  const statusColors: Record<SubscriptionRequestStatus, string> = {
+    PENDING: 'bg-yellow-100 text-yellow-700',
+    CONTACTED: 'bg-blue-100 text-blue-700',
+    APPROVED: 'bg-green-100 text-green-700',
+    REJECTED: 'bg-red-100 text-red-700',
+  };
+  
+  const handleStatusUpdate = async (id: string, newStatus: SubscriptionRequestStatus) => {
+    try {
+      await updateStatus({ id, data: { status: newStatus } }).unwrap();
+      showToast('تم تحديث حالة الطلب بنجاح');
+      refetchRequests();
+    } catch (error: any) {
+      showToast(
+        error?.data?.message || 'حدث خطأ أثناء تحديث حالة الطلب',
+        'error'
+      );
+    }
+  };
+  
+  const handleDeleteRequest = async (id: string) => {
+    if (!window.confirm('هل أنت متأكد من حذف هذا الطلب؟')) {
+      return;
+    }
+    
+    try {
+      await deleteRequest(id).unwrap();
+      showToast('تم حذف الطلب بنجاح');
+      refetchRequests();
+    } catch (error: any) {
+      showToast(
+        error?.data?.message || 'حدث خطأ أثناء حذف الطلب',
+        'error'
+      );
+    }
+  };
 
   const handleOpenWhatsApp = (request: SubscriptionRequest) => {
     // Format phone number (remove spaces, ensure proper format)
@@ -207,7 +222,7 @@ const Subscription: React.FC<SubscriptionProps> = ({ title }) => {
     const messageParts = [
       'السلام عليكم ورحمة الله وبركاته',
       '',
-      `أنا مهتم بالخطة: ${request.plan}`,
+      `أنا مهتم بالخطة: ${planNames[request.plan] || request.plan}`,
     ];
     
     if (request.name) {
@@ -479,23 +494,31 @@ const Subscription: React.FC<SubscriptionProps> = ({ title }) => {
 
             {/* Subscription Requests Card */}
         <div className="bg-white rounded-xl shadow-lg p-6 mb-6 border border-gray-200">
-          <h3 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
-            <ShieldIcon className="w-5 h-5 text-orange-500" />
-            طلبات الاشتراك
-          </h3>
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-bold text-gray-800 flex items-center gap-2">
+              <ShieldIcon className="w-5 h-5 text-orange-500" />
+              طلبات الاشتراك
+            </h3>
+            {requestsLoading && (
+              <p className="text-sm text-gray-500">جاري التحميل...</p>
+            )}
+          </div>
           <div className="flex gap-6 overflow-x-auto pb-2 items-stretch">
-            {mockSubscriptionRequests.length === 0 ? (
+            {requestsLoading ? (
+              <div className="text-center text-gray-500 py-8 w-full">
+                <p className="text-sm">جاري التحميل...</p>
+              </div>
+            ) : subscriptionRequests.length === 0 ? (
               <div className="text-center text-gray-500 py-8 w-full">
                 <p className="text-sm">لا توجد طلبات اشتراك</p>
               </div>
             ) : (
-              mockSubscriptionRequests.map((request) => (
+              subscriptionRequests.map((request) => (
                 <div
                   key={request.id}
-                  onClick={() => handleOpenWhatsApp(request)}
-                  className="p-4 w-[300px] bg-gray-50 hover:bg-orange-50 rounded-lg cursor-pointer transition-all border border-gray-200 hover:border-orange-300 hover:shadow-md group flex-shrink-0 flex flex-col"
+                  className="p-4 w-[320px] bg-gray-50 hover:bg-orange-50 rounded-lg transition-all border border-gray-200 hover:border-orange-300 hover:shadow-md group flex-shrink-0 flex flex-col"
                 >
-                  <div className="flex items-start justify-between gap-3 flex-1">
+                  <div className="flex items-start justify-between gap-3 flex-1 mb-3">
                     <div className="flex-1 min-w-0 flex flex-col">
                       <div className="flex items-center gap-2 mb-2">
                         <PhoneIcon className="w-4 h-4 text-gray-500 flex-shrink-0" />
@@ -503,9 +526,12 @@ const Subscription: React.FC<SubscriptionProps> = ({ title }) => {
                           {request.phone}
                         </p>
                       </div>
-                      <div className="mb-2">
+                      <div className="mb-2 flex items-center gap-2">
                         <span className="inline-block px-2 py-1 bg-orange-100 text-orange-700 rounded text-xs font-bold">
-                          {request.plan}
+                          {planNames[request.plan] || request.plan}
+                        </span>
+                        <span className={`inline-block px-2 py-1 rounded text-xs font-bold ${statusColors[request.status]}`}>
+                          {statusNames[request.status]}
                         </span>
                       </div>
                       <div className="flex-1 flex flex-col justify-start">
@@ -520,17 +546,50 @@ const Subscription: React.FC<SubscriptionProps> = ({ title }) => {
                           </p>
                         )}
                         {request.email && (
-                          <p className="text-xs text-gray-600">
+                          <p className="text-xs text-gray-600 mb-1">
                             <span className="font-semibold">البريد:</span> {request.email}
                           </p>
                         )}
+                        <p className="text-xs text-gray-500 mt-1">
+                          {new Date(request.createdAt).toLocaleDateString('ar-SA', {
+                            year: 'numeric',
+                            month: 'short',
+                            day: 'numeric'
+                          })}
+                        </p>
                       </div>
                     </div>
-                    <div className="flex-shrink-0">
-                      <div className="bg-green-100 group-hover:bg-green-200 p-2 rounded-full transition-colors">
-                        <WhatsappIcon className="w-5 h-5 text-green-600" />
-                      </div>
-                    </div>
+                  </div>
+                  
+                  {/* Action Buttons */}
+                  <div className="flex items-center gap-2 mt-3 pt-3 border-t border-gray-200">
+                    <button
+                      onClick={() => handleOpenWhatsApp(request)}
+                      className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-green-100 hover:bg-green-200 text-green-700 rounded-lg transition-colors text-xs font-bold"
+                    >
+                      <WhatsappIcon className="w-4 h-4" />
+                      واتساب
+                    </button>
+                    <select
+                      value={request.status}
+                      onChange={(e) => handleStatusUpdate(request.id, e.target.value as SubscriptionRequestStatus)}
+                      className={`flex-1 px-2 py-2 rounded-lg text-xs font-bold border-0 ${statusColors[request.status]} cursor-pointer`}
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <option value="PENDING">قيد الانتظار</option>
+                      <option value="CONTACTED">تم التواصل</option>
+                      <option value="APPROVED">موافق عليه</option>
+                      <option value="REJECTED">مرفوض</option>
+                    </select>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDeleteRequest(request.id);
+                      }}
+                      className="px-3 py-2 bg-red-100 hover:bg-red-200 text-red-700 rounded-lg transition-colors text-xs font-bold"
+                    >
+                      <XIcon className="w-4 h-4" />
+                    </button>
                   </div>
                 </div>
               ))
@@ -584,7 +643,13 @@ const Subscription: React.FC<SubscriptionProps> = ({ title }) => {
           <div className="space-y-4">
             <div className="flex justify-between items-center">
               <span className="text-gray-600">طلبات معلقة</span>
-              <span className="font-bold text-orange-600">{mockSubscriptionRequests.length}</span>
+              <span className="font-bold text-orange-600">
+                {subscriptionRequests.filter(r => r.status === 'PENDING').length}
+              </span>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="text-gray-600">إجمالي الطلبات</span>
+              <span className="font-bold text-gray-800">{subscriptionRequests.length}</span>
             </div>
             <div className="flex justify-between items-center">
               <span className="text-gray-600">آخر شركة</span>

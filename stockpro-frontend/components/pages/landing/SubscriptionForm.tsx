@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { CheckCircleIcon } from './icons/IconCollection';
+import { useCreateSubscriptionRequestMutation } from '../../store/slices/subscriptionRequestApiSlice';
 
 export type PlanType = 'basic' | 'pro' | 'enterprise';
 
@@ -21,8 +22,8 @@ const SubscriptionForm: React.FC<SubscriptionFormProps> = ({ selectedPlan, onClo
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
   const [errors, setErrors] = useState<{ name?: string; email?: string; phone?: string }>({});
-  const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
+  const [createSubscriptionRequest, { isLoading: isSubmitting }] = useCreateSubscriptionRequestMutation();
 
   const validateForm = () => {
     const newErrors: { name?: string; email?: string; phone?: string } = {};
@@ -54,19 +55,30 @@ const SubscriptionForm: React.FC<SubscriptionFormProps> = ({ selectedPlan, onClo
       return;
     }
 
-    setIsSubmitting(true);
-
-    // Simulate API call
-    setTimeout(() => {
+    try {
+      await createSubscriptionRequest({
+        plan,
+        name,
+        email,
+        phone,
+        companyName: undefined, // Optional field
+      }).unwrap();
+      
       onSubmit({ plan, name, email, phone });
-      setIsSubmitting(false);
       setIsSuccess(true);
 
       // Close after 2 seconds
       setTimeout(() => {
         onClose();
       }, 2000);
-    }, 1000);
+    } catch (error: any) {
+      // Handle error - show error message
+      const errorMessage = error?.data?.message || 'حدث خطأ أثناء إرسال الطلب. يرجى المحاولة مرة أخرى.';
+      setErrors({ 
+        ...errors, 
+        email: errorMessage 
+      });
+    }
   };
 
   if (isSuccess) {
