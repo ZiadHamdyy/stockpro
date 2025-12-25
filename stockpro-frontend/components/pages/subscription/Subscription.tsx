@@ -168,6 +168,28 @@ const Subscription: React.FC<SubscriptionProps> = ({ title }) => {
     enterprise: 'المؤسسات',
   };
   
+  // Plan colors matching Pricing component
+  const planColors: Record<string, { badge: string; bg: string; border: string; hoverBg: string }> = {
+    basic: {
+      badge: 'bg-blue-100 text-blue-700',
+      bg: 'bg-blue-50',
+      border: 'border-blue-300',
+      hoverBg: 'hover:bg-blue-50',
+    },
+    pro: {
+      badge: 'bg-emerald-100 text-emerald-700',
+      bg: 'bg-emerald-50',
+      border: 'border-emerald-300',
+      hoverBg: 'hover:bg-emerald-50',
+    },
+    enterprise: {
+      badge: 'bg-purple-100 text-purple-700',
+      bg: 'bg-purple-50',
+      border: 'border-purple-300',
+      hoverBg: 'hover:bg-purple-50',
+    },
+  };
+  
   // Map status values to Arabic names
   const statusNames: Record<SubscriptionRequestStatus, string> = {
     PENDING: 'قيد الانتظار',
@@ -513,10 +535,12 @@ const Subscription: React.FC<SubscriptionProps> = ({ title }) => {
                 <p className="text-sm">لا توجد طلبات اشتراك</p>
               </div>
             ) : (
-              subscriptionRequests.map((request) => (
+              subscriptionRequests.map((request) => {
+                const planColor = planColors[request.plan] || planColors.basic;
+                return (
                 <div
                   key={request.id}
-                  className="p-4 w-[320px] bg-gray-50 hover:bg-orange-50 rounded-lg transition-all border border-gray-200 hover:border-orange-300 hover:shadow-md group flex-shrink-0 flex flex-col"
+                  className={`p-4 w-[320px] ${planColor.bg} ${planColor.hoverBg} rounded-lg transition-all border ${planColor.border} hover:shadow-md group flex-shrink-0 flex flex-col`}
                 >
                   <div className="flex items-start justify-between gap-3 flex-1 mb-3">
                     <div className="flex-1 min-w-0 flex flex-col">
@@ -527,7 +551,7 @@ const Subscription: React.FC<SubscriptionProps> = ({ title }) => {
                         </p>
                       </div>
                       <div className="mb-2 flex items-center gap-2">
-                        <span className="inline-block px-2 py-1 bg-orange-100 text-orange-700 rounded text-xs font-bold">
+                        <span className={`inline-block px-2 py-1 rounded text-xs font-bold ${planColor.badge}`}>
                           {planNames[request.plan] || request.plan}
                         </span>
                         <span className={`inline-block px-2 py-1 rounded text-xs font-bold ${statusColors[request.status]}`}>
@@ -592,7 +616,8 @@ const Subscription: React.FC<SubscriptionProps> = ({ title }) => {
                     </button>
                   </div>
                 </div>
-              ))
+                );
+              })
             )}
           </div>
         </div>
