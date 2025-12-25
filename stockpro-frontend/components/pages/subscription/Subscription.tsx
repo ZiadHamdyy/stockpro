@@ -163,9 +163,9 @@ const Subscription: React.FC<SubscriptionProps> = ({ title }) => {
 
   // Map plan values to Arabic names
   const planNames: Record<string, string> = {
-    basic: 'الخطة الأساسية',
-    pro: 'الخطة المتقدمة',
-    enterprise: 'الخطة المميزة',
+    basic: 'البداية',
+    pro: 'النمو',
+    enterprise: 'المؤسسات',
   };
   
   // Map status values to Arabic names
