@@ -23,6 +23,7 @@ interface PurchaseInvoicePrintPreviewProps {
       invoiceDate: string;
       userName: string | { name: string };
       branchName: string | { name: string };
+      notes?: string;
     };
   };
 }
@@ -278,6 +279,11 @@ const PurchaseInvoicePrintPreview: React.FC<
                     <p>
                       <span className="font-semibold">الموظف:</span>{' '}{renderingUser}
                     </p>
+                    {details.notes && (
+                      <p>
+                        <span className="font-semibold">ملاحظات:</span>{' '}{details.notes}
+                      </p>
+                    )}
                   </>;
                 })()}
               </div>

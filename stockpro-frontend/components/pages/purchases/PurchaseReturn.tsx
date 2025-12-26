@@ -190,6 +190,7 @@ const PurchaseReturn: React.FC<PurchaseReturnProps> = ({
     invoiceNumber: "",
     invoiceDate: new Date().toISOString().substring(0, 10),
   });
+  const [invoiceNotes, setInvoiceNotes] = useState<string>("");
   const [isReadOnly, setIsReadOnly] = useState(true);
   const [paymentTargetType, setPaymentTargetType] = useState<"safe" | "bank">(
     "safe",
@@ -242,6 +243,7 @@ const PurchaseReturn: React.FC<PurchaseReturnProps> = ({
       invoiceDate: string;
       userName: string | { name: string };
       branchName: string | { name: string };
+      notes?: string;
     };
   } | null>(null);
   const [selectedInvoiceId, setSelectedInvoiceId] = useState<string | null>(null);
@@ -325,6 +327,7 @@ const PurchaseReturn: React.FC<PurchaseReturnProps> = ({
     setPaymentTargetType("safe");
     // For safes, we don't need paymentTargetId (we send branchId instead)
     setPaymentTargetId(null);
+    setInvoiceNotes("");
     setPreviewData(null); // Clear preview data
     setIsReadOnly(false);
   };
@@ -364,6 +367,7 @@ const PurchaseReturn: React.FC<PurchaseReturnProps> = ({
       setPaymentMethod(inv.paymentMethod);
       setPaymentTargetType(inv.paymentTargetType || "safe");
       setPaymentTargetId(inv.paymentTargetId || null);
+      setInvoiceNotes((inv as any).notes || "");
       setIsReadOnly(true);
       justSavedRef.current = false; // Clear the flag after loading return
     } else if (!justSavedRef.current) {
@@ -700,7 +704,7 @@ const PurchaseReturn: React.FC<PurchaseReturnProps> = ({
                 ? userBranchId.toString()
                 : paymentTargetId?.toString() || null)
             : null,
-        notes: "",
+        notes: invoiceNotes || "",
       };
 
       // Prepare supplier data for preview
@@ -737,6 +741,7 @@ const PurchaseReturn: React.FC<PurchaseReturnProps> = ({
             ...invoiceDetails,
             userName: currentUser?.fullName || "غير محدد",
             branchName: currentUser?.branch || "غير محدد",
+            notes: invoiceNotes || undefined,
           },
         };
         
@@ -774,6 +779,7 @@ const PurchaseReturn: React.FC<PurchaseReturnProps> = ({
             ...updatedInvoiceDetails,
             userName: currentUser?.fullName || "غير محدد",
             branchName: currentUser?.branch || "غير محدد",
+            notes: invoiceNotes || undefined,
           },
         };
         
@@ -1294,8 +1300,20 @@ const PurchaseReturn: React.FC<PurchaseReturnProps> = ({
 
         <div className="bg-gray-50 -mx-6 -mb-6 mt-4 p-6 rounded-b-lg">
           <div className="flex justify-between items-start">
-            <div className="w-1/2">
-              <div className="mt-6 pt-4 text-center text-sm text-gray-600 font-semibold border-t-2 border-dashed border-gray-300 mr-4">
+            <div className="w-1/2 space-y-4">
+              <div>
+                <label className="block text-sm font-bold mb-2">
+                  ملاحظات المرتجع / معلومات إضافية عن المورد:
+                </label>
+                <textarea
+                  className="w-full p-3 border-2 border-brand-green rounded-md bg-white shadow-inner focus:outline-none focus:ring-2 focus:ring-brand-green"
+                  rows={4}
+                  value={invoiceNotes}
+                  onChange={(e) => setInvoiceNotes(e.target.value)}
+                  disabled={isReadOnly}
+                ></textarea>
+              </div>
+              <div className="mt-2 pt-4 text-center text-sm text-gray-600 font-semibold border-t-2 border-dashed border-gray-300 mr-4">
                 استلمت البضاعة كاملة و بجودة سليمة
               </div>
             </div>
@@ -1535,6 +1553,7 @@ const PurchaseReturn: React.FC<PurchaseReturnProps> = ({
               ...invoiceDetails,
               userName: currentUser?.fullName || "غير محدد",
               branchName: currentUser?.branch || "غير محدد",
+              notes: invoiceNotes || undefined,
             },
           };
         })();

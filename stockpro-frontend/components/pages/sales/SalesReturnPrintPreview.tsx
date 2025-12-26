@@ -32,6 +32,7 @@ interface SalesReturnPrintPreviewProps {
       invoiceDate: string;
       userName: string;
       branchName: string;
+      notes?: string;
     };
   };
 }
@@ -382,6 +383,12 @@ const SalesReturnPrintPreview: React.FC<SalesReturnPrintPreviewProps> = ({
                               <span className="font-semibold">الموظف:</span>{" "}
                               {currentUser?.name || details.userName}
                             </p>
+                            {details.notes && (
+                              <p>
+                                <span className="font-semibold">ملاحظات:</span>{" "}
+                                {details.notes}
+                              </p>
+                            )}
                           </div>
                         </section>
                       </>

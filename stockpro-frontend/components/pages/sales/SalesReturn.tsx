@@ -228,6 +228,7 @@ const SalesReturn: React.FC<SalesReturnProps> = ({
     invoiceNumber: "",
     invoiceDate: new Date().toISOString().substring(0, 10),
   });
+  const [invoiceNotes, setInvoiceNotes] = useState<string>("");
   const [returnBranchId, setReturnBranchId] = useState<string | null>(null);
   const [isReadOnly, setIsReadOnly] = useState(true);
   const [paymentTargetType, setPaymentTargetType] = useState<"safe" | "bank">(
@@ -283,6 +284,7 @@ const SalesReturn: React.FC<SalesReturnProps> = ({
       invoiceDate: string;
       userName: string;
       branchName: string;
+      notes?: string;
     };
   } | null>(null);
   const [originalReturnVatEnabled, setOriginalReturnVatEnabled] =
@@ -424,6 +426,7 @@ const SalesReturn: React.FC<SalesReturnProps> = ({
         : (currentUser?.branch as any)?.id) ||
       null;
     setReturnBranchId(defaultBranchId);
+    setInvoiceNotes("");
     setPreviewData(null); // Clear preview data
     setIsReadOnly(false);
     setOriginalReturnVatEnabled(false);
@@ -474,6 +477,7 @@ const SalesReturn: React.FC<SalesReturnProps> = ({
       setPaymentTargetType(ret.paymentTargetType || "safe");
       setPaymentTargetId(ret.paymentTargetId || null);
       setReturnBranchId(ret.branch?.id || ret.branchId || null);
+      setInvoiceNotes((ret as any).notes || "");
       setIsReadOnly(true);
       justSavedRef.current = false; // Clear the flag after loading return
     } else if (!justSavedRef.current) {
@@ -850,7 +854,7 @@ const SalesReturn: React.FC<SalesReturnProps> = ({
                 ? safeBranchId?.toString() || null
                 : paymentTargetId?.toString() || null)
             : null,
-        notes: "",
+        notes: invoiceNotes || "",
       };
 
       // Prepare customer data for preview
@@ -895,6 +899,7 @@ const SalesReturn: React.FC<SalesReturnProps> = ({
               typeof currentUser?.branch === "string"
                 ? currentUser.branch
                 : (currentUser?.branch as any)?.name || "غير محدد",
+            notes: invoiceNotes || undefined,
           },
         };
         
@@ -939,6 +944,7 @@ const SalesReturn: React.FC<SalesReturnProps> = ({
               typeof currentUser?.branch === "string"
                 ? currentUser.branch
                 : (currentUser?.branch as any)?.name || "غير محدد",
+            notes: invoiceNotes || undefined,
           },
         };
         
@@ -1465,8 +1471,20 @@ const SalesReturn: React.FC<SalesReturnProps> = ({
 
         <div className="bg-gray-50 -mx-6 -mb-6 mt-4 p-6 rounded-b-lg">
           <div className="flex justify-between items-start">
-            <div className="w-1/2">
-              <div className="mt-6 pt-4 text-center text-sm text-gray-600 font-semibold border-t-2 border-dashed border-gray-300 mr-4">
+            <div className="w-1/2 space-y-4">
+              <div>
+                <label className="block text-sm font-bold mb-2">
+                  ملاحظات المرتجع / معلومات إضافية عن العميل:
+                </label>
+                <textarea
+                  className="w-full p-3 border-2 border-brand-blue rounded-md bg-white shadow-inner focus:outline-none focus:ring-2 focus:ring-brand-blue"
+                  rows={4}
+                  value={invoiceNotes}
+                  onChange={(e) => setInvoiceNotes(e.target.value)}
+                  disabled={isReadOnly}
+                ></textarea>
+              </div>
+              <div className="mt-2 pt-4 text-center text-sm text-gray-600 font-semibold border-t-2 border-dashed border-gray-300 mr-4">
                 استلمت البضاعة كاملة و بجودة سليمة
               </div>
             </div>
@@ -1711,6 +1729,7 @@ const SalesReturn: React.FC<SalesReturnProps> = ({
                 typeof currentUser?.branch === "string"
                   ? currentUser.branch
                   : (currentUser?.branch as any)?.name || "غير محدد",
+              notes: invoiceNotes || undefined,
             },
           };
         })();
