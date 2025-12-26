@@ -88,11 +88,12 @@ const DailyPurchaseReturns: React.FC<DailyPurchaseReturnsProps> = ({
 
   const getInvoiceTypeLabel = (paymentMethod?: string | null) => {
     if (!paymentMethod) return "-";
-    switch (paymentMethod) {
+    const method = paymentMethod.toUpperCase();
+    switch (method) {
       case "CASH":
-        return "نقدي";
+        return "نقدا";
       case "CREDIT":
-        return "آجل";
+        return "اجل";
       default:
         return "-";
     }
@@ -104,7 +105,7 @@ const DailyPurchaseReturns: React.FC<DailyPurchaseReturnsProps> = ({
       const matchesDateRange = purchaseDate >= startDate && purchaseDate <= endDate;
       const matchesBranch = !selectedBranchId || purchase.branchId === selectedBranchId;
       const matchesInvoiceType =
-        !invoiceType || purchase.paymentMethod === invoiceType;
+        !invoiceType || purchase.paymentMethod?.toUpperCase() === invoiceType.toUpperCase();
       const matchesSearch =
         !searchTerm ||
         purchase.code.toLowerCase().includes(searchTerm.toLowerCase()) ||
