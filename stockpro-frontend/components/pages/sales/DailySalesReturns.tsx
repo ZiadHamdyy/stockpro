@@ -86,11 +86,12 @@ const DailySalesReturns: React.FC<DailySalesReturnsProps> = ({ title }) => {
 
   const getInvoiceTypeLabel = (paymentMethod?: string | null) => {
     if (!paymentMethod) return "-";
-    switch (paymentMethod) {
+    const method = paymentMethod.toUpperCase();
+    switch (method) {
       case "CASH":
-        return "نقدي";
+        return "نقدا";
       case "CREDIT":
-        return "آجل";
+        return "اجل";
       default:
         return "-";
     }
@@ -102,7 +103,7 @@ const DailySalesReturns: React.FC<DailySalesReturnsProps> = ({ title }) => {
       const matchesDateRange = saleDate >= startDate && saleDate <= endDate;
       const matchesBranch = !selectedBranchId || sale.branchId === selectedBranchId;
        const matchesInvoiceType =
-        !invoiceType || sale.paymentMethod === invoiceType;
+        !invoiceType || sale.paymentMethod?.toUpperCase() === invoiceType.toUpperCase();
       const matchesSearch =
         !searchTerm ||
         sale.code.toLowerCase().includes(searchTerm.toLowerCase()) ||
