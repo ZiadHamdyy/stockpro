@@ -403,6 +403,7 @@ const InvoicePrintPreview: React.FC<InvoicePrintPreviewProps> = ({
       ${getVisibility('customerType') ? `<div style="text-align: ${getAlignment('customerType')}; ${getPosition('customerType')}; margin-bottom: 1px; font-size: ${epson.fonts.body}px;">${paymentMethod === "cash" ? "نقدا" : "اجل"}</div>` : ''}
       ${getVisibility('customerName') ? `<div style="text-align: ${getAlignment('customerName')}; ${getPosition('customerName')}; margin-bottom: 1px; font-size: ${epson.fonts.body}px;">${customer?.name || "عميل نقدا"}</div>` : ''}
       ${getVisibility('employeeName') ? `<div style="text-align: ${getAlignment('employeeName')}; ${getPosition('employeeName')}; margin-bottom: 1px; font-size: ${epson.fonts.body}px;">${details.userName || "غير محدد"}</div>` : ''}
+      ${details.notes ? `<div style="text-align: ${getAlignment('employeeName')}; ${getPosition('employeeName')}; margin-bottom: 1px; font-size: ${epson.fonts.body}px;">ملاحظات: ${details.notes}</div>` : ''}
       <table class="items-table">
         <tbody>
           ${items
@@ -502,6 +503,11 @@ const InvoicePrintPreview: React.FC<InvoicePrintPreviewProps> = ({
             <div style="display:flex; justify-content:space-between;"><span>النوع:</span><span>${paymentMethod === "cash" ? "نقدي" : "آجل"}</span></div>
             <div style="display:flex; justify-content:space-between;"><span>الفرع:</span><span>${details.branchName}</span></div>
             <div style="display:flex; justify-content:space-between;"><span>الموظف:</span><span>${details.userName || "غير محدد"}</span></div>
+            ${
+              details.notes
+                ? `<div style="display:flex; justify-content:space-between;"><span>ملاحظات:</span><span>${details.notes}</span></div>`
+                : ""
+            }
           </div>
         </div>
         <table class="main-table">
@@ -618,7 +624,12 @@ const InvoicePrintPreview: React.FC<InvoicePrintPreviewProps> = ({
             <strong>رقم الفاتورة:</strong> ${details.invoiceNumber}<br/>
             <strong>التاريخ:</strong> ${details.invoiceDate}<br/>
             <strong>الفرع:</strong> ${details.branchName}<br/>
-            <strong>الموظف:</strong> ${details.userName || "غير محدد"}
+            <strong>الموظف:</strong> ${details.userName || "غير محدد"}<br/>
+            ${
+              details.notes
+                ? `<strong>ملاحظات:</strong> ${details.notes}`
+                : ""
+            }
           </div>
         </div>
         <table class="data-table">
@@ -742,6 +753,14 @@ const InvoicePrintPreview: React.FC<InvoicePrintPreviewProps> = ({
               <span style="display:block; font-size:12px; color:#999; font-weight:bold;">الفرع</span>
               <span style="font-size:16px;">${details.branchName}</span>
             </div>
+            ${
+              details.notes
+                ? `<div>
+                    <span style="display:block; font-size:12px; color:#999; font-weight:bold;">ملاحظات</span>
+                    <span style="font-size:16px;">${details.notes}</span>
+                  </div>`
+                : ""
+            }
           </div>
           <table class="modern-table">
             <thead>
@@ -1503,6 +1522,7 @@ const InvoicePrintPreview: React.FC<InvoicePrintPreviewProps> = ({
       ${getVisibility('customerType') ? `<div style="text-align: ${getAlignment('customerType')}; ${getPosition('customerType')}; margin-bottom: 1px; font-size: ${epson.fonts.body}px;">${paymentMethod === "cash" ? "نقدا" : "اجل"}</div>` : ''}
       ${getVisibility('customerName') ? `<div style="text-align: ${getAlignment('customerName')}; ${getPosition('customerName')}; margin-bottom: 1px; font-size: ${epson.fonts.body}px;">${customer?.name || "عميل نقدا"}</div>` : ''}
       ${getVisibility('employeeName') ? `<div style="text-align: ${getAlignment('employeeName')}; ${getPosition('employeeName')}; margin-bottom: 1px; font-size: ${epson.fonts.body}px;">${details.userName || "غير محدد"}</div>` : ''}
+      ${details.notes ? `<div style="text-align: ${getAlignment('employeeName')}; ${getPosition('employeeName')}; margin-bottom: 1px; font-size: ${epson.fonts.body}px;">ملاحظات: ${details.notes}</div>` : ''}
       <table class="items-table">
         <tbody>
           ${items
@@ -1954,6 +1974,12 @@ const InvoicePrintPreview: React.FC<InvoicePrintPreviewProps> = ({
                                     {currentUser?.name || details.userName}
                                   </p>
                                 </div>
+                                {details.notes && (
+                                  <div className="col-span-5">
+                                    <span className="font-semibold">ملاحظات:</span>
+                                    <p className="mt-1">{details.notes}</p>
+                                  </div>
+                                )}
                               </section>
 
                               {/* Buyer and Seller Information - Side by Side */}
@@ -2116,6 +2142,12 @@ const InvoicePrintPreview: React.FC<InvoicePrintPreviewProps> = ({
                                     <span className="font-semibold">الموظف:</span>{" "}
                                     {currentUser?.name || details.userName}
                                   </p>
+                                  {details.notes && (
+                                    <p>
+                                      <span className="font-semibold">ملاحظات:</span>{" "}
+                                      {details.notes}
+                                    </p>
+                                  )}
                                 </div>
                               </section>
                             </>
