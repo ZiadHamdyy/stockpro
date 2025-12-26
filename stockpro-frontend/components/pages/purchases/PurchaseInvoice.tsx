@@ -569,7 +569,10 @@ const getInvoiceBranchMeta = (invoice: any) => {
     if (e.key === "Enter") {
       e.preventDefault();
       if (field === "qty") {
-        priceInputRefs.current[index]?.focus();
+        const priceInput = priceInputRefs.current[index];
+        priceInput?.focus();
+        // Select text after focus to allow immediate typing
+        setTimeout(() => priceInput?.select(), 0);
       } else if (field === "price") {
         if (index === purchaseItems.length - 1) {
           handleAddItem();
@@ -614,7 +617,9 @@ const getInvoiceBranchMeta = (invoice: any) => {
           filteredItems[highlightedIndex],
         );
       } else {
-        qtyInputRefs.current[activeItemSearch.index]?.focus();
+        const qtyInput = qtyInputRefs.current[activeItemSearch.index];
+        qtyInput?.focus();
+        setTimeout(() => qtyInput?.select(), 0);
       }
       return;
     }
@@ -1211,6 +1216,7 @@ const getInvoiceBranchMeta = (invoice: any) => {
                         );
                         autosizeInput(e.target);
                       }}
+                      onFocus={(e) => e.target.select()}
                       onKeyDown={(e) => handleTableKeyDown(e, index, "qty")}
                       ref={(el) => {
                         if (el) qtyInputRefs.current[index] = el;
@@ -1231,6 +1237,7 @@ const getInvoiceBranchMeta = (invoice: any) => {
                         );
                         autosizeInput(e.target);
                       }}
+                      onFocus={(e) => e.target.select()}
                       onKeyDown={(e) => handleTableKeyDown(e, index, "price")}
                       ref={(el) => {
                         if (el) priceInputRefs.current[index] = el;
