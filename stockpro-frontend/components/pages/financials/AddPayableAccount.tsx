@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useModal } from "../../common/ModalProvider";
 import { useToast } from "../../common/ToastProvider";
+import { useTitle } from "../../context/TitleContext";
 import PermissionWrapper from "../../common/PermissionWrapper";
 import { Resources, Actions, buildPermission } from "../../../enums/permissions.enum";
 import {
@@ -19,10 +20,12 @@ const emptyAccount = { code: "", name: "", openingBalance: 0 } as const;
 const AddPayableAccount: React.FC<Props> = ({ title, editingId, onNavigate }) => {
   const navigate = useNavigate();
   const params = useParams();
+  const { setTitle } = useTitle();
   const accountId = params.id || editingId;
 
   const [accountData, setAccountData] = useState<PayableAccount | Omit<PayableAccount, "id" | "createdAt" | "updatedAt">>(emptyAccount);
   const [isReadOnly, setIsReadOnly] = useState(true);
+  const [accountPosition, setAccountPosition] = useState<number | null>(null);
   const isExistingAccount = "id" in accountData;
 
   const { data: accounts = [] } = useGetPayableAccountsQuery();
@@ -33,15 +36,44 @@ const AddPayableAccount: React.FC<Props> = ({ title, editingId, onNavigate }) =>
   const { showModal } = useModal();
   const { showToast } = useToast();
 
+  // Calculate account position when accounts data is available
   useEffect(() => {
-    if (accountId) {
-      const found = Array.isArray(accounts) ? accounts.find(a => a.id === accountId) : null;
-      if (found) { setAccountData(found); setIsReadOnly(true); }
+    if (Array.isArray(accounts) && accounts.length > 0 && accountId) {
+      const index = accounts.findIndex((account) => account.id === accountId);
+      const position = index !== -1 ? index + 1 : null;
+      setAccountPosition(position);
+
+      // Update title context for the header
+      if (position) {
+        setTitle(`تعديل حساب دائن #${position}`);
+      } else {
+        setTitle(`تعديل حساب دائن`);
+      }
     } else {
-      const next = (accounts || []).length > 0
-        ? Math.max(...(accounts as any).map((c: any) => parseInt(String(c.code).replace("PA-", ""), 10) || 0)) + 1
-        : 1;
-      const newCode = `PA-${String(next).padStart(3, "0")}`;
+      setAccountPosition(null);
+      setTitle(`تعديل حساب دائن`);
+    }
+  }, [accounts, accountId, setTitle]);
+
+  useEffect(() => {
+    if (accountId !== null && accountId !== undefined) {
+      const foundAccount = Array.isArray(accounts)
+        ? accounts.find((account) => account.id === accountId)
+        : null;
+      if (foundAccount) {
+        setAccountData(foundAccount);
+        setIsReadOnly(true);
+      }
+    } else {
+      const nextCodeNumber =
+        (accounts || []).length > 0
+          ? Math.max(
+              ...(accounts || []).map(
+                (c: any) => parseInt(String(c.code).replace("PA-", ""), 10) || 0,
+              ),
+            ) + 1
+          : 1;
+      const newCode = `PA-${String(nextCodeNumber).padStart(3, "0")}`;
       setAccountData({ ...emptyAccount, code: newCode });
       setIsReadOnly(false);
     }
@@ -104,6 +136,15 @@ const AddPayableAccount: React.FC<Props> = ({ title, editingId, onNavigate }) =>
     }
   };
 
+  const handleEdit = () => {
+    showModal({
+      title: "تأكيد التعديل",
+      message: "هل أنت متأكد من رغبتك في تعديل بيانات هذا الحساب؟",
+      onConfirm: () => setIsReadOnly(false),
+      type: "edit",
+    });
+  };
+
   const getCurrentIndex = () => {
     if (!("id" in accountData)) return -1;
     return Array.isArray(accounts) ? accounts.findIndex(acc => acc.id === (accountData as any).id) : -1;
@@ -129,7 +170,9 @@ const AddPayableAccount: React.FC<Props> = ({ title, editingId, onNavigate }) =>
 
   return (
     <div className="bg-white p-6 rounded-lg shadow">
-      <h1 className="text-2xl font-bold mb-4 text-brand-dark">{title}</h1>
+      <h1 className="text-2xl font-bold mb-4 text-brand-dark">
+        {accountPosition ? `تعديل حساب دائن #${accountPosition}` : title}
+      </h1>
       <form onSubmit={(e) => { e.preventDefault(); handleSave(); }} className="space-y-4">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
@@ -169,7 +212,7 @@ const AddPayableAccount: React.FC<Props> = ({ title, editingId, onNavigate }) =>
 
             {isReadOnly ? (
               <PermissionWrapper requiredPermission={buildPermission(Resources.PAYABLE_ACCOUNTS, Actions.UPDATE)}>
-                <button type="button" onClick={() => setIsReadOnly(false)} className="px-4 py-2 bg-yellow-500 text-white rounded-md hover:bg-yellow-600 font-semibold">تعديل</button>
+                <button type="button" onClick={handleEdit} className="px-4 py-2 bg-yellow-500 text-white rounded-md hover:bg-yellow-600 font-semibold">تعديل</button>
               </PermissionWrapper>
             ) : (
               <PermissionWrapper
