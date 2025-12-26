@@ -43,4 +43,5 @@ export class CompanyController {
   ): Promise<CompanyResponse> {
     return this.companyService.upsertCompany(companyId, data);
   }
+  
 }

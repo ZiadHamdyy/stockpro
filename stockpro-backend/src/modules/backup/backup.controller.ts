@@ -3,6 +3,7 @@ import type { Response } from 'express';
 import { BackupService } from './backup.service';
 import { JwtAuthenticationGuard } from '../../common/guards/strategy.guards/jwt.guard';
 import { Auth } from '../../common/decorators/auth.decorator';
+import { currentCompany } from '../../common/decorators/company.decorator';
 
 @Controller('backup')
 @UseGuards(JwtAuthenticationGuard)
@@ -11,13 +12,20 @@ export class BackupController {
 
   @Get('download')
   @Auth({ permissions: ['database_backup:create'] })
-  async downloadBackup(@Res() res: Response) {
+  async downloadBackup(
+    @Res() res: Response,
+    @currentCompany('id') companyId: string,
+    @currentCompany('code') companyCode: string,
+  ) {
     try {
-      // Create the backup
-      const backup = await this.backupService.createBackup();
+      // Create the backup for the specific company
+      const backup = await this.backupService.createBackup(
+        companyId,
+        companyCode,
+      );
 
       // Get filename
-      const filename = this.backupService.getBackupFilename();
+      const filename = this.backupService.getBackupFilename(companyCode);
 
       // Set response headers
       res.setHeader('Content-Type', 'application/sql');
