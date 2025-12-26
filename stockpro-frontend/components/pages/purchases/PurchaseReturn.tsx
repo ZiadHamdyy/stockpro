@@ -586,7 +586,10 @@ const PurchaseReturn: React.FC<PurchaseReturnProps> = ({
     if (e.key === "Enter") {
       e.preventDefault();
       if (field === "qty") {
-        priceInputRefs.current[index]?.focus();
+        const priceInput = priceInputRefs.current[index];
+        priceInput?.focus();
+        // Select text after focus to allow immediate typing
+        setTimeout(() => priceInput?.select(), 0);
       } else if (field === "price") {
         if (index === returnItems.length - 1) {
           handleAddItem();
@@ -631,7 +634,9 @@ const PurchaseReturn: React.FC<PurchaseReturnProps> = ({
           filteredItems[highlightedIndex],
         );
       } else {
-        qtyInputRefs.current[activeItemSearch.index]?.focus();
+        const qtyInput = qtyInputRefs.current[activeItemSearch.index];
+        qtyInput?.focus();
+        setTimeout(() => qtyInput?.select(), 0);
       }
       return;
     }
@@ -1227,6 +1232,7 @@ const PurchaseReturn: React.FC<PurchaseReturnProps> = ({
                         );
                         autosizeInput(e.target);
                       }}
+                      onFocus={(e) => e.target.select()}
                       onKeyDown={(e) => handleTableKeyDown(e, index, "qty")}
                       ref={(el) => {
                         if (el) qtyInputRefs.current[index] = el;
@@ -1247,6 +1253,7 @@ const PurchaseReturn: React.FC<PurchaseReturnProps> = ({
                         );
                         autosizeInput(e.target);
                       }}
+                      onFocus={(e) => e.target.select()}
                       onKeyDown={(e) => handleTableKeyDown(e, index, "price")}
                       ref={(el) => {
                         if (el) priceInputRefs.current[index] = el;
