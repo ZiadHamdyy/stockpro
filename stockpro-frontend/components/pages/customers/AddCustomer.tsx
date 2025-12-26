@@ -23,6 +23,7 @@ const emptyCustomer = {
   nationalAddress: "",
   phone: "",
   openingBalance: "",
+  creditLimit: "",
 };
 
 const AddCustomer: React.FC<AddCustomerProps> = ({
@@ -50,6 +51,10 @@ const AddCustomer: React.FC<AddCustomerProps> = ({
             customer.openingBalance === 0 || customer.openingBalance === null
               ? ""
               : customer.openingBalance,
+          creditLimit:
+            (customer as any).creditLimit === 0 || (customer as any).creditLimit === null || (customer as any).creditLimit === undefined
+              ? ""
+              : (customer as any).creditLimit,
         });
         setCurrentIndex(index);
         setCustomerPosition(index + 1);
@@ -95,6 +100,19 @@ const AddCustomer: React.FC<AddCustomerProps> = ({
     }
   };
 
+  const handleCreditLimitChange = (
+    e: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    const value = e.target.value;
+    // Allow empty string, negative sign, and valid numbers (including decimals)
+    if (value === "" || value === "-" || /^-?\d*\.?\d*$/.test(value)) {
+      setCustomerData((prev: any) => ({
+        ...prev,
+        creditLimit: value === "" || value === "-" ? value : parseFloat(value) || 0,
+      }));
+    }
+  };
+
   const onSave = async () => {
     const dataToSave = {
       ...customerData,
@@ -102,6 +120,10 @@ const AddCustomer: React.FC<AddCustomerProps> = ({
         typeof customerData.openingBalance === "string"
           ? parseFloat(customerData.openingBalance) || 0
           : customerData.openingBalance,
+      creditLimit:
+        typeof customerData.creditLimit === "string"
+          ? parseFloat(customerData.creditLimit) || 0
+          : customerData.creditLimit,
     };
     await handleSave(dataToSave, editingId || undefined);
     if (!("id" in customerData)) {
@@ -283,6 +305,24 @@ const AddCustomer: React.FC<AddCustomerProps> = ({
               inputMode="numeric"
             />
           </div>
+          <div>
+            <label
+              htmlFor="creditLimit"
+              className="block text-sm font-medium text-gray-700"
+            >
+              الحد الائتماني
+            </label>
+            <input
+              type="text"
+              name="creditLimit"
+              id="creditLimit"
+              value={customerData.creditLimit}
+              onChange={handleCreditLimitChange}
+              className={inputStyle}
+              disabled={isReadOnly}
+              inputMode="numeric"
+            />
+          </div>
         </div>
         <div className="mt-8 pt-6 border-t-2 border-gray-200 flex flex-col items-start space-y-4">
           <div className="flex justify-start gap-2">
@@ -347,6 +387,12 @@ const AddCustomer: React.FC<AddCustomerProps> = ({
                             customer.openingBalance === null
                               ? ""
                               : customer.openingBalance,
+                          creditLimit:
+                            (customer as any).creditLimit === 0 ||
+                            (customer as any).creditLimit === null ||
+                            (customer as any).creditLimit === undefined
+                              ? ""
+                              : (customer as any).creditLimit,
                         });
                       }
                       setIsReadOnly(true);

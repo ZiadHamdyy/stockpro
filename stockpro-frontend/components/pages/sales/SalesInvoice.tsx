@@ -1145,115 +1145,9 @@ const SalesInvoice: React.FC<SalesInvoiceProps> = ({
     }
   };
 
-  const handleSave = async () => {
+  // Extract the actual save logic into a separate function
+  const performSave = async () => {
     const finalItems = invoiceItems.filter((i) => i.id && i.name && i.qty > 0);
-
-    if (finalItems.length === 0) {
-      showToast("الرجاء إضافة صنف واحد على الأقل للفاتورة.", 'error');
-      return;
-    }
-
-    if (paymentMethod === "credit" && !selectedCustomer) {
-      showToast("الرجاء اختيار العميل للفواتير الآجلة.", 'error');
-      return;
-    }
-
-    // Validate split payment if enabled
-    if (paymentMethod === "cash" && isSplitPayment) {
-      const totalSplit = splitCashAmount + splitBankAmount;
-      if (Math.abs(totalSplit - totals.net) > 0.1) {
-        showToast(`مجموع المبالغ لا يساوي صافي الفاتورة.`, 'error');
-        return;
-      }
-      if (!splitSafeId || splitSafeId === "" || !splitBankId || splitBankId === "") {
-        showToast('الرجاء اختيار الخزنة والبنك لعملية الدفع المجزأة.', 'error');
-        return;
-      }
-    }
-
-    // Validate stock for STOCKED items if allowSellingLessThanStock is false
-    if (!allowSellingLessThanStock) {
-      for (const item of finalItems) {
-        const itemInfo = allItems.find((i) => i.id === item.id);
-        // Only validate stock for STOCKED items, skip SERVICE items
-        if (itemInfo && itemInfo.type === 'STOCKED') {
-          if (itemInfo.stock < item.qty) {
-            showToast(`الرصيد غير كافي لهذا الصنف: ${item.name}`, 'error');
-            return;
-          }
-        }
-      }
-    }
-
-    // Validate sale price against cost (last purchase price if available, otherwise item's purchasePrice)
-    // when selling below cost is NOT allowed
-    if (!allowSellingLessThanCost) {
-      for (const item of finalItems) {
-        const lastPurchasePrice = getLastPurchasePriceBeforeDate(
-          item.id,
-          invoiceDetails.invoiceDate,
-        );
-
-        // Fallback to item's stored purchasePrice if there is no purchase history
-        const itemInfo = allItems.find((i) => i.id === item.id);
-        const fallbackPurchasePrice =
-          itemInfo && typeof itemInfo.purchasePrice === "number"
-            ? itemInfo.purchasePrice
-            : null;
-
-        // Effective cost: prefer last purchase price, otherwise stored purchasePrice
-        const effectiveCost =
-          lastPurchasePrice !== null ? lastPurchasePrice : fallbackPurchasePrice;
-
-        // If we have a cost reference and sale price is less than it, prevent the sale
-        if (effectiveCost !== null && item.price < effectiveCost) {
-          showToast(
-            `لا يمكن البيع: سعر البيع (${formatMoney(
-              item.price,
-            )}) أقل من تكلفة الشراء (${formatMoney(
-              effectiveCost,
-            )}) للصنف: ${item.name}`,
-            "error",
-          );
-          return;
-        }
-      }
-    }
-
-    // Enforce customer credit limit for CREDIT invoices based on financial policy
-    if (paymentMethod === "credit" && selectedCustomer) {
-      const fullCustomer = (customers as any[]).find(
-        (c) => String(c.id) === String(selectedCustomer.id),
-      );
-
-      const creditLimit = fullCustomer?.creditLimit ?? 0;
-
-      // Only enforce when a positive credit limit is defined and policy is set to BLOCK
-      if (creditLimit > 0 && creditLimitControl === "BLOCK") {
-        const existingNet =
-          currentIndex >= 0 && invoices[currentIndex]
-            ? Number(invoices[currentIndex].net) || 0
-            : 0;
-
-        // currentBalance is assumed to already include existing invoices (including this one if editing)
-        const currentBalance = Number(fullCustomer?.currentBalance) || 0;
-        const netDelta = totals.net - existingNet;
-        const positiveDelta = netDelta > 0 ? netDelta : 0;
-        const projectedBalance = currentBalance + positiveDelta;
-
-        if (projectedBalance - creditLimit > 0.01) {
-          const exceededBy = projectedBalance - creditLimit;
-          showToast(
-            `لا يمكن إصدار فاتورة آجل: سيتجاوز رصيد العميل حد الائتمان المسموح به.\n` +
-              `حد الائتمان: ${formatMoney(creditLimit)} | ` +
-              `الرصيد بعد الفاتورة: ${formatMoney(projectedBalance)} | ` +
-              `قيمة التجاوز: ${formatMoney(exceededBy)}.`,
-            "error",
-          );
-          return;
-        }
-      }
-    }
 
     // Validate that the invoice date has an open period (only for new invoices)
     if (currentIndex < 0 && invoiceDetails.invoiceDate) {
@@ -1465,6 +1359,153 @@ const SalesInvoice: React.FC<SalesInvoiceProps> = ({
     } catch (error) {
       showApiErrorToast(error as any);
     }
+  };
+
+  const handleSave = async () => {
+    const finalItems = invoiceItems.filter((i) => i.id && i.name && i.qty > 0);
+
+    if (finalItems.length === 0) {
+      showToast("الرجاء إضافة صنف واحد على الأقل للفاتورة.", 'error');
+      return;
+    }
+
+    if (paymentMethod === "credit" && !selectedCustomer) {
+      showToast("الرجاء اختيار العميل للفواتير الآجلة.", 'error');
+      return;
+    }
+
+    // Validate split payment if enabled
+    if (paymentMethod === "cash" && isSplitPayment) {
+      const totalSplit = splitCashAmount + splitBankAmount;
+      if (Math.abs(totalSplit - totals.net) > 0.1) {
+        showToast(`مجموع المبالغ لا يساوي صافي الفاتورة.`, 'error');
+        return;
+      }
+      if (!splitSafeId || splitSafeId === "" || !splitBankId || splitBankId === "") {
+        showToast('الرجاء اختيار الخزنة والبنك لعملية الدفع المجزأة.', 'error');
+        return;
+      }
+    }
+
+    // Validate stock for STOCKED items if allowSellingLessThanStock is false
+    if (!allowSellingLessThanStock) {
+      for (const item of finalItems) {
+        const itemInfo = allItems.find((i) => i.id === item.id);
+        // Only validate stock for STOCKED items, skip SERVICE items
+        if (itemInfo && itemInfo.type === 'STOCKED') {
+          if (itemInfo.stock < item.qty) {
+            showToast(`الرصيد غير كافي لهذا الصنف: ${item.name}`, 'error');
+            return;
+          }
+        }
+      }
+    }
+
+    // Validate sale price against cost (last purchase price if available, otherwise item's purchasePrice)
+    // when selling below cost is NOT allowed
+    if (!allowSellingLessThanCost) {
+      for (const item of finalItems) {
+        const lastPurchasePrice = getLastPurchasePriceBeforeDate(
+          item.id,
+          invoiceDetails.invoiceDate,
+        );
+
+        // Fallback to item's stored purchasePrice if there is no purchase history
+        const itemInfo = allItems.find((i) => i.id === item.id);
+        const fallbackPurchasePrice =
+          itemInfo && typeof itemInfo.purchasePrice === "number"
+            ? itemInfo.purchasePrice
+            : null;
+
+        // Effective cost: prefer last purchase price, otherwise stored purchasePrice
+        const effectiveCost =
+          lastPurchasePrice !== null ? lastPurchasePrice : fallbackPurchasePrice;
+
+        // If we have a cost reference and sale price is less than it, prevent the sale
+        if (effectiveCost !== null && item.price < effectiveCost) {
+          showToast(
+            `لا يمكن البيع: سعر البيع (${formatMoney(
+              item.price,
+            )}) أقل من تكلفة الشراء (${formatMoney(
+              effectiveCost,
+            )}) للصنف: ${item.name}`,
+            "error",
+          );
+          return;
+        }
+      }
+    }
+
+    // Enforce customer credit limit for CREDIT invoices based on financial policy
+    if (paymentMethod === "credit" && selectedCustomer) {
+      const fullCustomer = (customers as any[]).find(
+        (c) => String(c.id) === String(selectedCustomer.id),
+      );
+
+      const creditLimit = fullCustomer?.creditLimit ?? 0;
+
+      // Only enforce when a positive credit limit is defined
+      if (creditLimit > 0) {
+        const existingNet =
+          currentIndex >= 0 && invoices[currentIndex]
+            ? Number(invoices[currentIndex].net) || 0
+            : 0;
+
+        // currentBalance is assumed to already include existing invoices (including this one if editing)
+        const currentBalance = Number(fullCustomer?.currentBalance) || 0;
+        const netDelta = totals.net - existingNet;
+        const positiveDelta = netDelta > 0 ? netDelta : 0;
+        const projectedBalance = currentBalance + positiveDelta;
+
+        if (projectedBalance - creditLimit > 0.01) {
+          const exceededBy = projectedBalance - creditLimit;
+          
+          // Handle different credit limit control modes
+          if (creditLimitControl === "BLOCK") {
+            // BLOCK mode: Prevent invoice creation
+            showToast(
+              `لا يمكن إصدار فاتورة آجل: سيتجاوز رصيد العميل حد الائتمان المسموح به.\n` +
+                `حد الائتمان: ${formatMoney(creditLimit)} | ` +
+                `الرصيد بعد الفاتورة: ${formatMoney(projectedBalance)} | ` +
+                `قيمة التجاوز: ${formatMoney(exceededBy)}.`,
+              "error",
+            );
+            return;
+          } else if (creditLimitControl === "APPROVAL") {
+            // APPROVAL mode: Show confirmation dialog
+            showModal({
+              title: "تجاوز حد الائتمان",
+              message: `سيتم تجاوز حد الائتمان للعميل.\n\n` +
+                `حد الائتمان: ${formatMoney(creditLimit)}\n` +
+                `الرصيد الحالي: ${formatMoney(currentBalance)}\n` +
+                `الرصيد بعد الفاتورة: ${formatMoney(projectedBalance)}\n` +
+                `قيمة التجاوز: ${formatMoney(exceededBy)}\n\n` +
+                `هل تريد المتابعة مع الموافقة الإدارية؟`,
+              type: "info",
+              onConfirm: async () => {
+                // User confirmed, proceed with save
+                await performSave();
+              },
+            });
+            return;
+          } else if (creditLimitControl === "WARNING") {
+            // WARNING mode: Show warning but allow proceeding
+            showToast(
+              `تحذير: سيتم تجاوز حد الائتمان للعميل.\n` +
+                `حد الائتمان: ${formatMoney(creditLimit)} | ` +
+                `الرصيد بعد الفاتورة: ${formatMoney(projectedBalance)} | ` +
+                `قيمة التجاوز: ${formatMoney(exceededBy)}.\n` +
+                `سيتم المتابعة مع التحذير.`,
+              "error",
+            );
+            // Continue with save (no return)
+          }
+        }
+      }
+    }
+
+    // All validations passed, proceed with save
+    await performSave();
   };
 
   const handleEdit = () => {
