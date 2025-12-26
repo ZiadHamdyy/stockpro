@@ -1043,7 +1043,10 @@ const SalesInvoice: React.FC<SalesInvoiceProps> = ({
       if (field === "id") {
         nameInputRefs.current[index]?.focus();
       } else if (field === "qty") {
-        priceInputRefs.current[index]?.focus();
+        const priceInput = priceInputRefs.current[index];
+        priceInput?.focus();
+        // Select text after focus to allow immediate typing
+        setTimeout(() => priceInput?.select(), 0);
       } else if (field === "price") {
         if (index === invoiceItems.length - 1) {
           handleAddItemAndFocus();
@@ -1073,10 +1076,14 @@ const SalesInvoice: React.FC<SalesInvoiceProps> = ({
         }, 0);
       } else if (filteredItems.length === 0) {
         // No search results, move to qty field
-        qtyInputRefs.current[activeItemSearch.index]?.focus();
+        const qtyInput = qtyInputRefs.current[activeItemSearch.index];
+        qtyInput?.focus();
+        setTimeout(() => qtyInput?.select(), 0);
       } else {
         // Has results but nothing highlighted, move to qty field
-        qtyInputRefs.current[activeItemSearch.index]?.focus();
+        const qtyInput = qtyInputRefs.current[activeItemSearch.index];
+        qtyInput?.focus();
+        setTimeout(() => qtyInput?.select(), 0);
       }
       return;
     }
@@ -2014,7 +2021,10 @@ const SalesInvoice: React.FC<SalesInvoiceProps> = ({
                         );
                         autosizeInput(e.target);
                       }}
-                      onFocus={() => setFocusedQtyIndex(index)}
+                      onFocus={(e) => {
+                        setFocusedQtyIndex(index);
+                        e.target.select();
+                      }}
                       onBlur={() => setTimeout(() => setFocusedQtyIndex(null), 200)}
                       onKeyDown={(e) => handleTableKeyDown(e, index, "qty")}
                       ref={(el) => {
@@ -2036,6 +2046,7 @@ const SalesInvoice: React.FC<SalesInvoiceProps> = ({
                         );
                         autosizeInput(e.target);
                       }}
+                      onFocus={(e) => e.target.select()}
                       onKeyDown={(e) => handleTableKeyDown(e, index, "price")}
                       ref={(el) => {
                         if (el) priceInputRefs.current[index] = el;
