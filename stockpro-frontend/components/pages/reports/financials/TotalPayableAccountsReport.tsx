@@ -148,6 +148,36 @@ const TotalPayableAccountsReport: React.FC<TotalPayableAccountsReportProps> = ({
       const accountId = account.id;
       const accountIdStr = accountId.toString();
 
+      // Calculate transactions before start date for opening balance
+      const receiptsBefore = receiptVouchers
+        .filter(
+          (v) => {
+            const vDate = normalizeDate(v.date);
+            const voucherAccountId = v.entity?.id?.toString() || v.entity?.id;
+            return (
+              v.entity?.type === "payable_account" &&
+              (voucherAccountId === accountIdStr || voucherAccountId == accountId) &&
+              vDate < normalizedStartDate
+            );
+          },
+        )
+        .reduce((sum, v) => sum + v.amount, 0);
+
+      const paymentsBefore = paymentVouchers
+        .filter(
+          (v) => {
+            const vDate = normalizeDate(v.date);
+            const voucherAccountId = v.entity?.id?.toString() || v.entity?.id;
+            return (
+              v.entity?.type === "payable_account" &&
+              (voucherAccountId === accountIdStr || voucherAccountId == accountId) &&
+              vDate < normalizedStartDate
+            );
+          },
+        )
+        .reduce((sum, v) => sum + v.amount, 0);
+
+      // Calculate transactions within date range
       const relevantReceipts = receiptVouchers.filter(
         (v) => {
           const vDate = normalizeDate(v.date);
@@ -177,7 +207,8 @@ const TotalPayableAccountsReport: React.FC<TotalPayableAccountsReportProps> = ({
       const receipts = relevantReceipts.reduce((sum, v) => sum + v.amount, 0);
       const payments = relevantPayments.reduce((sum, v) => sum + v.amount, 0);
 
-      const opening = account.openingBalance || 0;
+      // Opening balance = base opening balance + payments before start date - receipts before start date
+      const opening = (account.openingBalance || 0) + paymentsBefore - receiptsBefore;
       const balance = opening + payments - receipts;
 
       return {
