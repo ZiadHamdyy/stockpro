@@ -235,25 +235,52 @@ const InventoryCountPage: React.FC<InventoryCountProps> = ({ title, companyInfo 
         }
 
         try {
-            const result = await createInventoryCount({
-                storeId: selectedStoreId,
-                userId: currentUser.id,
-                branchId: userBranchId || currentUser.branchId || null,
-                date,
-                notes,
-                items: countItems.map(item => ({
-                    itemId: item.item.id,
-                    systemStock: item.systemStock,
-                    actualStock: item.actualStock,
-                    difference: item.difference,
-                    cost: item.cost,
-                })),
-            }).unwrap();
+            if (countId) {
+                // Update existing draft
+                const updated = await updateInventoryCount({
+                    id: countId,
+                    data: {
+                        storeId: selectedStoreId,
+                        userId: currentUser.id,
+                        branchId: userBranchId || currentUser.branchId || null,
+                        date,
+                        notes,
+                        items: countItems.map(item => ({
+                            itemId: item.item.id,
+                            systemStock: item.systemStock,
+                            actualStock: item.actualStock,
+                            difference: item.difference,
+                            cost: item.cost,
+                        })),
+                    }
+                }).unwrap();
 
-            setCountId(result.id);
-            setCountCode(result.code);
-            setStatus('PENDING');
-            showToast('تم حفظ الجرد كمسودة بنجاح.');
+                setCountCode(updated.code);
+                setCountItems(updated.items);
+                setStatus('PENDING');
+                showToast('تم تحديث الجرد كمسودة بنجاح.');
+            } else {
+                // Create new draft
+                const result = await createInventoryCount({
+                    storeId: selectedStoreId,
+                    userId: currentUser.id,
+                    branchId: userBranchId || currentUser.branchId || null,
+                    date,
+                    notes,
+                    items: countItems.map(item => ({
+                        itemId: item.item.id,
+                        systemStock: item.systemStock,
+                        actualStock: item.actualStock,
+                        difference: item.difference,
+                        cost: item.cost,
+                    })),
+                }).unwrap();
+
+                setCountId(result.id);
+                setCountCode(result.code);
+                setStatus('PENDING');
+                showToast('تم حفظ الجرد كمسودة بنجاح.');
+            }
         } catch (error: any) {
             showToast(error?.data?.message || 'حدث خطأ أثناء حفظ الجرد', 'error');
         }
