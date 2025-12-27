@@ -1013,6 +1013,7 @@ const ReceiptVoucher: React.FC<ReceiptVoucherProps> = ({ title }) => {
           onClose={() => setShowInfoBar(false)}
           mode="receipt"
           currentAmount={typeof voucherData.amount === 'number' ? voucherData.amount : (typeof voucherData.amount === 'string' ? parseFloat(voucherData.amount) || 0 : 0)}
+          reverseCalculation={voucherData.entity.type === 'customer' || voucherData.entity.type === 'receivable_account' || voucherData.entity.type === 'vat'}
         />
       )}
     </>

@@ -21,6 +21,7 @@ interface EntityBottomBarProps {
   onClose: () => void;
   mode?: 'payment' | 'receipt'; // 'payment' decrements balance, 'receipt' increments balance
   currentAmount?: number; // Current voucher amount to adjust balance
+  reverseCalculation?: boolean; // Reverse the calculation direction for specific entity types
 }
 
 const EntityBottomBar: React.FC<EntityBottomBarProps> = ({ 
@@ -31,18 +32,28 @@ const EntityBottomBar: React.FC<EntityBottomBarProps> = ({
   entityName, 
   onClose,
   mode,
-  currentAmount = 0
+  currentAmount = 0,
+  reverseCalculation = false
 }) => {
   if (!entityName) return null;
 
   const isCustomer = type === 'customer';
+  const isPaymentMode = mode === 'payment';
   
   // Adjust balance based on mode: payment decrements, receipt increments
-  const adjustedBalance = mode === 'payment' 
-    ? balance - (currentAmount || 0)
-    : mode === 'receipt'
-    ? balance + (currentAmount || 0)
-    : balance;
+  // If reverseCalculation is true, flip the direction
+  let adjustedBalance: number;
+  if (mode === 'payment') {
+    adjustedBalance = reverseCalculation 
+      ? balance + (currentAmount || 0)  // Reversed: increment instead of decrement
+      : balance - (currentAmount || 0); // Normal: decrement
+  } else if (mode === 'receipt') {
+    adjustedBalance = reverseCalculation 
+      ? balance - (currentAmount || 0)  // Reversed: decrement instead of increment
+      : balance + (currentAmount || 0); // Normal: increment
+  } else {
+    adjustedBalance = balance;
+  }
   
   // Icon Selection
   const getIcon = () => {
@@ -71,10 +82,24 @@ const EntityBottomBar: React.FC<EntityBottomBarProps> = ({
     }
   };
 
+  // Theme colors based on mode
+  const isGreenTheme = isPaymentMode;
+  const gradientColors = isGreenTheme 
+    ? 'from-[#065f46] to-[#10b981]' 
+    : 'from-[#1e3a8a] to-[#2563eb]';
+  const borderColor = isGreenTheme ? 'border-green-400' : 'border-blue-400';
+  const iconBgColor = isGreenTheme ? 'bg-green-500/80' : 'bg-blue-500/80';
+  const textColor = isGreenTheme ? 'text-green-100' : 'text-blue-100';
+  const textColorSecondary = isGreenTheme ? 'text-green-200' : 'text-blue-200';
+  const bgColorSecondary = isGreenTheme ? 'bg-green-800/40' : 'bg-blue-800/40';
+  const shadowColor = isGreenTheme 
+    ? 'shadow-[0_-10px_40px_rgba(5,95,70,0.2)]' 
+    : 'shadow-[0_-10px_40px_rgba(30,58,138,0.2)]';
+
   return (
-    <div className="fixed bottom-0 left-0 right-0 z-50 animate-slide-up shadow-[0_-10px_40px_rgba(30,58,138,0.2)]">
-      {/* Pure Brand Blue Background with Subtle Gradient and Texture */}
-      <div className="bg-gradient-to-r from-[#1e3a8a] to-[#2563eb] text-white border-t-4 border-blue-400 relative overflow-hidden">
+    <div className={`fixed bottom-0 left-0 right-0 z-50 animate-slide-up ${shadowColor}`}>
+      {/* Background with Gradient and Texture - Green for payment, Blue for receipt */}
+      <div className={`bg-gradient-to-r ${gradientColors} text-white border-t-4 ${borderColor} relative overflow-hidden`}>
         
         {/* Decorative Pattern Overlay */}
         <div className="absolute inset-0 opacity-10 pointer-events-none" 
@@ -85,11 +110,11 @@ const EntityBottomBar: React.FC<EntityBottomBarProps> = ({
           
           {/* 1. Identity Block - Glass Effect */}
           <div className="flex items-center gap-4 min-w-[240px] bg-white/10 px-4 py-2 rounded-xl backdrop-blur-sm border border-white/10 shadow-sm transition-transform hover:scale-105 duration-300">
-            <div className="p-2 bg-blue-500/80 rounded-lg shadow-inner">
+            <div className={`p-2 ${iconBgColor} rounded-lg shadow-inner`}>
               {getIcon()}
             </div>
             <div className="flex flex-col">
-              <span className="text-[10px] text-blue-100 font-bold uppercase tracking-wider mb-0.5">{getTypeLabel()}</span>
+              <span className={`text-[10px] ${textColor} font-bold uppercase tracking-wider mb-0.5`}>{getTypeLabel()}</span>
               <h3 className="text-base font-bold text-white truncate max-w-[200px] leading-tight drop-shadow-md">{entityName}</h3>
             </div>
           </div>
@@ -99,14 +124,14 @@ const EntityBottomBar: React.FC<EntityBottomBarProps> = ({
             
             {/* Balance Block (Primary) */}
             <div className="flex flex-col items-center group cursor-default">
-              <span className="text-[10px] text-blue-100 font-bold mb-1 opacity-80 group-hover:opacity-100 transition-opacity">
+              <span className={`text-[10px] ${textColor} font-bold mb-1 opacity-80 group-hover:opacity-100 transition-opacity`}>
                 {type === 'revenue' ? 'إجمالي المحصل (السنة)' : 'الرصيد الحالي'}
               </span>
               <div className="flex items-baseline gap-2 bg-black/20 px-4 py-1.5 rounded-lg border border-white/5 transition-all group-hover:bg-black/30 group-hover:shadow-lg">
-                <span className={`text-2xl font-black font-mono tracking-tight ${adjustedBalance > 0 ? 'text-red-300' : 'text-emerald-300'}`}>
-                  {formatNumber(Math.abs(adjustedBalance))}
+                <span className={`text-2xl font-black font-mono tracking-tight ${adjustedBalance < 0 ? 'text-red-300' : adjustedBalance > 0 ? 'text-emerald-300' : 'text-emerald-300'}`}>
+                  {formatNumber(adjustedBalance)}
                 </span>
-                <span className="text-[10px] text-blue-200 font-bold">SAR</span>
+                <span className={`text-[10px] ${textColorSecondary} font-bold`}>SAR</span>
               </div>
               {type !== 'revenue' && (
                 <span className={`text-[9px] px-2 py-0.5 mt-1 rounded-full font-bold shadow-sm ${adjustedBalance > 0 ? 'bg-red-500/80 text-white' : adjustedBalance < 0 ? 'bg-emerald-500/80 text-white' : 'bg-gray-500/50 text-gray-200'}`}>
@@ -121,13 +146,13 @@ const EntityBottomBar: React.FC<EntityBottomBarProps> = ({
             {/* Last Invoice Block (Only for Customers) */}
             {isCustomer && lastInvoice && (
               <div className="hidden md:flex flex-col items-center group cursor-default transition-transform hover:-translate-y-0.5 duration-300">
-                <span className="text-[10px] text-blue-100 font-medium mb-1 flex items-center gap-1">
+                <span className={`text-[10px] ${textColor} font-medium mb-1 flex items-center gap-1`}>
                   <FileTextIcon className="w-3 h-3 opacity-70"/> آخر فاتورة
                 </span>
                 <div className="flex items-center gap-2">
                   <span className="text-xl font-bold font-mono text-white">{formatNumber(lastInvoice.amount)}</span>
                 </div>
-                <span className="text-[10px] text-blue-200 font-mono bg-blue-800/40 px-1.5 rounded mt-0.5">{lastInvoice.date}</span>
+                <span className={`text-[10px] ${textColorSecondary} font-mono ${bgColorSecondary} px-1.5 rounded mt-0.5`}>{lastInvoice.date}</span>
               </div>
             )}
 
@@ -137,13 +162,13 @@ const EntityBottomBar: React.FC<EntityBottomBarProps> = ({
             {/* Last Receipt Block */}
             {lastReceipt && (
               <div className="hidden md:flex flex-col items-center group cursor-default transition-transform hover:-translate-y-0.5 duration-300">
-                <span className="text-[10px] text-blue-100 font-medium mb-1 flex items-center gap-1">
+                <span className={`text-[10px] ${textColor} font-medium mb-1 flex items-center gap-1`}>
                   <CheckCircleIcon className="w-3 h-3 text-emerald-300"/> {type === 'revenue' ? 'آخر عملية' : 'آخر سداد'}
                 </span>
                 <div className="flex items-center gap-2">
                   <span className="text-xl font-bold font-mono text-emerald-200 group-hover:text-white transition-colors">{formatNumber(lastReceipt.amount)}</span>
                 </div>
-                <span className="text-[10px] text-blue-200 font-mono bg-blue-800/40 px-1.5 rounded mt-0.5">{lastReceipt.date}</span>
+                <span className={`text-[10px] ${textColorSecondary} font-mono ${bgColorSecondary} px-1.5 rounded mt-0.5`}>{lastReceipt.date}</span>
               </div>
             )}
           </div>

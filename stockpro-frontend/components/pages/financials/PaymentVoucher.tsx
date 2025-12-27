@@ -842,7 +842,6 @@ const PaymentVoucher: React.FC<PaymentVoucherProps> = ({ title }) => {
                 {isVatEnabled && (
                   <option value="expense-Type">مصروفات ضريبية</option>
                 )}
-                <option value="revenue">إيراد</option>
                 <option value="receivable_account">أرصدة مدينة أخرى</option>
                 <option value="payable_account">أرصدة دائنة أخرى</option>
                 <option value="current_account">حساب جاري</option>
@@ -1206,6 +1205,7 @@ const PaymentVoucher: React.FC<PaymentVoucherProps> = ({ title }) => {
           onClose={() => setShowInfoBar(false)}
           mode="payment"
           currentAmount={typeof voucherData.amount === 'number' ? voucherData.amount : (typeof voucherData.amount === 'string' ? parseFloat(voucherData.amount) || 0 : 0)}
+          reverseCalculation={voucherData.entity.type === 'customer' || voucherData.entity.type === 'expense' || voucherData.entity.type === 'expense-Type' || voucherData.entity.type === 'receivable_account'}
         />
       )}
     </>
