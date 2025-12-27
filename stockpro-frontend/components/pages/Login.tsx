@@ -20,7 +20,7 @@ const StockProLogo: React.FC<{ size?: 'normal' | 'large', variant?: 'light' | 'd
   return (
     <div className="flex flex-col items-center gap-4">
       <img
-        src="/images/45011ec1-339d-4270-afe4-c93b43308fb4.jpeg"
+        src="/stockpro.jpeg"
         alt="StockPro"
         className={`${imgSize} h-auto ${bgClass}`}
       />
