@@ -275,6 +275,7 @@ const TotalRevenuesReport: React.FC<TotalRevenuesReportProps> = ({
                 table { font-size: 13px; }
                 th { font-size: 13px; font-weight: bold; }
                 td { font-size: 13px; }
+                @page { size: landscape; }
                 @media print {
                     body { -webkit-print-color-adjust: exact !important; color-adjust: exact !important; font-size: 14px !important; }
                     .no-print, .no-print * { display: none !important; visibility: hidden !important; }
@@ -282,8 +283,8 @@ const TotalRevenuesReport: React.FC<TotalRevenuesReportProps> = ({
                     thead { display: table-header-group; }
                     tfoot { display: table-footer-group; }
                     table { width: 100%; border-collapse: collapse; font-size: 13px !important; }
-                    th { font-size: 13px !important; font-weight: bold !important; }
-                    td { font-size: 13px !important; }
+                    th { font-size: 13px !important; font-weight: bold !important; border-left: 1px solid #D1D5DB !important; }
+                    td { font-size: 13px !important; border-left: 1px solid #D1D5DB !important; }
                     .bg-brand-green { background-color: #059669 !important; }
                     .text-white { color: white !important; }
                     .bg-gray-50 { background-color: #F9FAFB !important; }
@@ -477,18 +478,18 @@ const TotalRevenuesReport: React.FC<TotalRevenuesReportProps> = ({
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-brand-green">
               <tr>
-                <th className="px-4 py-3 text-right text-sm font-semibold text-white uppercase sticky right-0 bg-brand-green z-10">
+                <th className="px-4 py-3 text-right text-sm font-semibold text-white uppercase sticky right-0 bg-brand-green z-10 border-l border-gray-300">
                   اسم البند
                 </th>
                 {months.map((month) => (
                   <th
                     key={month}
-                    className="px-4 py-3 text-center text-sm font-semibold text-white uppercase"
+                    className="px-4 py-3 text-center text-sm font-semibold text-white uppercase border-l border-gray-300"
                   >
                     {month}
                   </th>
                 ))}
-                <th className="px-4 py-3 text-center text-sm font-semibold text-white uppercase">
+                <th className="px-4 py-3 text-center text-sm font-semibold text-white uppercase border-l border-gray-300">
                   الإجمالي
                 </th>
               </tr>
@@ -501,18 +502,18 @@ const TotalRevenuesReport: React.FC<TotalRevenuesReportProps> = ({
                 );
                 return (
                   <tr key={idx} className="hover:bg-brand-green-bg">
-                    <td className="px-4 py-4 font-medium text-brand-dark whitespace-nowrap sticky right-0 bg-white hover:bg-brand-green-bg z-10">
+                    <td className="px-4 py-4 font-medium text-brand-dark whitespace-nowrap sticky right-0 bg-white hover:bg-brand-green-bg z-10 border-l border-gray-300">
                       {item.name}
                     </td>
                     {item.monthly.map((amount, index) => (
                       <td
                         key={index}
-                        className={`px-4 py-4 text-center whitespace-nowrap ${getNegativeNumberClass(amount)}`}
+                        className={`px-4 py-4 text-center whitespace-nowrap border-l border-gray-300 ${getNegativeNumberClass(amount)}`}
                       >
                         {amount > 0 ? formatNumber(amount) : "-"}
                       </td>
                     ))}
-                    <td className={`px-4 py-4 font-bold text-center whitespace-nowrap ${getNegativeNumberClass(itemTotal)}`}>
+                    <td className={`px-4 py-4 font-bold text-center whitespace-nowrap border-l border-gray-300 ${getNegativeNumberClass(itemTotal)}`}>
                       {formatNumber(itemTotal)}
                     </td>
                   </tr>
@@ -521,18 +522,18 @@ const TotalRevenuesReport: React.FC<TotalRevenuesReportProps> = ({
             </tbody>
             <tfoot className="bg-brand-green text-white">
               <tr className="font-bold">
-                <td className="px-4 py-3 text-right text-white sticky right-0 bg-brand-green z-10">
+                <td className="px-4 py-3 text-right text-white sticky right-0 bg-brand-green z-10 border-l border-gray-300">
                   الإجمالي الشهري
                 </td>
                 {monthlyTotals.map((total, index) => (
                   <td
                     key={index}
-                    className={`px-4 py-3 text-center text-white whitespace-nowrap ${getNegativeNumberClassForTotal(total)}`}
+                    className={`px-4 py-3 text-center text-white whitespace-nowrap border-l border-gray-300 ${getNegativeNumberClassForTotal(total)}`}
                   >
                     {formatNumber(total)}
                   </td>
                 ))}
-                <td className={`px-4 py-3 text-center text-white whitespace-nowrap ${getNegativeNumberClassForTotal(grandTotal)}`}>
+                <td className={`px-4 py-3 text-center text-white whitespace-nowrap border-l border-gray-300 ${getNegativeNumberClassForTotal(grandTotal)}`}>
                   {formatNumber(grandTotal)}
                 </td>
               </tr>
