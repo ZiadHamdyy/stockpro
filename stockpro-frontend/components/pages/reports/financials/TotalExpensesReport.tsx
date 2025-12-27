@@ -118,6 +118,9 @@ const TotalExpensesReport: React.FC<TotalExpensesReportProps> = ({
         branches.find((b) => b.id === voucher.branchId)?.name || 
         "غير محدد";
       
+      // Use priceBeforeTax if available (expense before tax), otherwise use amount
+      const expenseAmount = voucher.priceBeforeTax ?? voucher.amount;
+      
       return {
         id: voucher.id,
         code: voucher.code,
@@ -127,7 +130,7 @@ const TotalExpensesReport: React.FC<TotalExpensesReportProps> = ({
           name: voucher.entityName,
         },
         expenseCode: voucher.expenseCode?.name || voucher.entityName,
-        amount: voucher.amount,
+        amount: expenseAmount,
         branchId: voucher.branchId,
         branchName: branchName,
       };
