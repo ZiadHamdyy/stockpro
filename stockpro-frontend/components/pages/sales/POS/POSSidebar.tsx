@@ -52,7 +52,7 @@ const FunctionButton: React.FC<{
   return (
     <button 
       onClick={onClick}
-      className={`group relative w-full flex items-center gap-4 px-4 bg-royal-700 transition-all h-[calc(100%/12)] border-b border-white/5 hover:bg-royal-600 active:bg-black/10 duration-200 overflow-hidden`}
+      className={`group relative w-full flex items-center gap-4 px-4 bg-brand-blue transition-all h-[calc(100%/12)] border-b border-white/5 hover:bg-blue-700 active:bg-black/10 duration-200 overflow-hidden`}
     >
       {/* Icon Container - Always Colored */}
       <div className={`p-2 rounded-lg flex items-center justify-center transition-all duration-200 ${style.iconBg} ${style.iconText} group-hover:scale-110 shadow-sm ring-1 ring-white/10`}>
@@ -65,7 +65,7 @@ const FunctionButton: React.FC<{
       </span>
       
       {/* F-Key Badge */}
-      <span className="absolute top-1 left-1 text-[10px] font-mono text-royal-300 opacity-60 group-hover:opacity-100 group-hover:text-gold-400 font-bold px-1">
+      <span className="absolute top-1 left-1 text-[10px] font-mono text-blue-300 opacity-60 group-hover:opacity-100 group-hover:text-gold-400 font-bold px-1">
         {config.key}
       </span>
 
@@ -92,7 +92,7 @@ const Sidebar: React.FC<SidebarProps> = ({ onFunctionClick }) => {
   ];
 
   return (
-    <div className="w-full h-full flex flex-col bg-royal-700 shadow-xl p-2">
+    <div className="w-full h-full flex flex-col bg-brand-blue shadow-xl p-2">
       {buttons.map((btn) => (
         <FunctionButton 
           key={btn.key}

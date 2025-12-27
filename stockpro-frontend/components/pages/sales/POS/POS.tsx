@@ -184,6 +184,7 @@ const POS: React.FC<POSProps> = () => {
         nationalAddress: cust.nationalAddress ?? "",
         phone: cust.phone ?? "",
         openingBalance: Number(cust.openingBalance ?? 0),
+        creditLimit: Number(cust.creditLimit ?? 0),
         currentBalance: Number(cust.currentBalance ?? 0),
       })),
     [customersData],
@@ -743,19 +744,19 @@ const POS: React.FC<POSProps> = () => {
   }, [cartItems, activeTabId, tabs, totals, isPaymentModalOpen, nextTabId]);
 
   return (
-    <div className="flex flex-col bg-royal-50 font-sans text-sm overflow-hidden -m-6" style={{ height: 'calc(100vh - 4rem)' }}>
+    <div className="flex flex-col bg-brand-blue-bg font-sans text-sm overflow-hidden -m-6" style={{ height: 'calc(100vh - 4rem)' }}>
         
-      {/* TOP HEADER - LIGHTER ROYAL BLUE THEME (royal-700) */}
-      <div className="bg-royal-700 p-2 border-b-4 border-gold-500 shadow-xl z-30 flex flex-col gap-2 h-auto relative overflow-visible flex-shrink-0">
+      {/* TOP HEADER - BRAND BLUE THEME (matching sidebar) */}
+      <div className="bg-brand-blue p-2 border-b-4 border-gold-500 shadow-xl z-30 flex flex-col gap-2 h-auto relative overflow-visible flex-shrink-0">
         {/* Second Row: Operational Fields */}
-          <div className="flex items-center gap-3 overflow-x-auto pb-1 no-scrollbar px-1 pt-1 border-t border-royal-600 relative overflow-visible">
+          <div className="flex items-center gap-3 overflow-x-auto pb-1 no-scrollbar px-1 pt-1 border-t border-blue-900 relative overflow-visible">
           
             <div className="flex flex-col min-w-[140px] relative w-40">
               <div className="flex items-center gap-2 mb-1">
                 <UsersIcon className="w-[14px] h-[14px] text-gold-400" />
-                <span className="text-[10px] text-royal-200 font-medium">نوع العميل</span>
+                <span className="text-[10px] text-blue-200 font-medium">نوع العميل</span>
               </div>
-              <div className="relative bg-royal-800 border-2 border-royal-600 rounded-md p-1 flex items-center w-full">
+              <div className="relative bg-blue-900 border-2 border-blue-700 rounded-md p-1 flex items-center w-full">
                 <button
                   onClick={() => {
                     setCustomerType("cash");
@@ -769,7 +770,7 @@ const POS: React.FC<POSProps> = () => {
                   }}
                   className={`w-1/2 py-2 rounded text-xs font-bold transition-all duration-200 ${
                     customerType === "cash" 
-                      ? "bg-royal-600 text-white shadow" 
+                      ? "bg-blue-700 text-white shadow" 
                       : "text-white opacity-70"
                   }`}
                 >
@@ -787,7 +788,7 @@ const POS: React.FC<POSProps> = () => {
                   }}
                   className={`w-1/2 py-2 rounded text-xs font-bold transition-all duration-200 ${
                     customerType === "credit" 
-                      ? "bg-royal-600 text-white shadow" 
+                      ? "bg-blue-700 text-white shadow" 
                       : "text-white opacity-70"
                   }`}
                 >
@@ -805,9 +806,9 @@ const POS: React.FC<POSProps> = () => {
               <div className="flex flex-col min-w-[140px] relative w-[300px]">
                 <div className="flex items-center gap-2 mb-1">
                   <UserIcon className="w-[14px] h-[14px] text-gold-400" />
-                  <span className="text-[10px] text-royal-200 font-medium">العميل</span>
-                </div>
-                <div className="h-9 w-full bg-royal-800/30 border border-royal-600 rounded flex items-center px-2 shadow-inner hover:border-gold-400/50 transition-colors">
+                <span className="text-[10px] text-blue-200 font-medium">العميل</span>
+              </div>
+              <div className="h-9 w-full bg-blue-900/30 border border-blue-700 rounded flex items-center px-2 shadow-inner hover:border-gold-400/50 transition-colors">
                   <span className="text-white font-bold text-xs opacity-50">{selectedCustomer?.name || "-- عميل عام --"}</span>
                 </div>
               </div>
@@ -816,9 +817,9 @@ const POS: React.FC<POSProps> = () => {
             <div className="flex flex-col min-w-[140px] relative w-[300px]" ref={customerRef}>
               <div className="flex items-center gap-2 mb-1">
                 <UserIcon className="w-[14px] h-[14px] text-gold-400" />
-                <span className="text-[10px] text-royal-200 font-medium">العميل</span>
+                <span className="text-[10px] text-blue-200 font-medium">العميل</span>
               </div>
-              <div className="relative h-9 w-full bg-royal-800/30 border border-royal-600 rounded flex items-center px-2 shadow-inner hover:border-gold-400/50 transition-colors">
+              <div className="relative h-9 w-full bg-blue-900/30 border border-blue-700 rounded flex items-center px-2 shadow-inner hover:border-gold-400/50 transition-colors">
                 <input
                   ref={customerInputRef}
                   type="text"
@@ -846,7 +847,7 @@ const POS: React.FC<POSProps> = () => {
                 />
                 {isCustomerDropdownOpen && (
                   <div 
-                    className="fixed z-[9999] bg-royal-800 border-2 border-royal-600 rounded-md shadow-lg max-h-60 overflow-y-auto"
+                    className="fixed z-[9999] bg-blue-900 border-2 border-blue-700 rounded-md shadow-lg max-h-60 overflow-y-auto"
                     style={{
                       top: `${dropdownPosition.top}px`,
                       left: `${dropdownPosition.left}px`,
@@ -857,7 +858,7 @@ const POS: React.FC<POSProps> = () => {
                       <div
                         key={customer.id}
                         onClick={() => handleSelectCustomer(customer)}
-                        className="p-2 cursor-pointer hover:bg-royal-600 text-white text-xs"
+                        className="p-2 cursor-pointer hover:bg-blue-700 text-white text-xs"
                       >
                         {customer.name}
                       </div>
@@ -878,16 +879,16 @@ const POS: React.FC<POSProps> = () => {
               <div className="flex flex-col flex-1 max-w-2xl mx-2">
                 <div className="flex items-center gap-2 mb-1">
                   <BarcodeIcon className="w-[14px] h-[14px] text-gold-400" />
-                  <span className="text-[10px] text-royal-200 font-medium">البحث</span>
+                  <span className="text-[10px] text-blue-200 font-medium">البحث</span>
                 </div>
                 <div className="relative group">
-                  <div className="absolute inset-y-0 right-0 pr-2 flex items-center pointer-events-none text-royal-300">
+                  <div className="absolute inset-y-0 right-0 pr-2 flex items-center pointer-events-none text-blue-300">
                     <BarcodeIcon className="w-4 h-4" />
                   </div>
                   <input 
                     type="text" 
                     placeholder="بحث غير متاح"
-                    className="block w-full rounded border border-royal-600 pl-8 pr-8 py-1.5 bg-royal-800/30 text-white shadow-inner opacity-50 cursor-not-allowed text-xs font-bold h-9"
+                    className="block w-full rounded border border-blue-700 pl-8 pr-8 py-1.5 bg-blue-900/30 text-white shadow-inner opacity-50 cursor-not-allowed text-xs font-bold h-9"
                     disabled
                   />
                 </div>
@@ -897,17 +898,17 @@ const POS: React.FC<POSProps> = () => {
             <div className="flex flex-col flex-1 max-w-2xl mx-2">
               <div className="flex items-center gap-2 mb-1">
                 <BarcodeIcon className="w-[14px] h-[14px] text-gold-400" />
-                <span className="text-[10px] text-royal-200 font-medium">البحث</span>
+                <span className="text-[10px] text-blue-200 font-medium">البحث</span>
               </div>
               <div className="relative group">
-                <div className="absolute inset-y-0 right-0 pr-2 flex items-center pointer-events-none text-royal-300 group-focus-within:text-gold-400 transition-colors">
+                <div className="absolute inset-y-0 right-0 pr-2 flex items-center pointer-events-none text-blue-300 group-focus-within:text-gold-400 transition-colors">
                   <BarcodeIcon className="w-4 h-4" />
                 </div>
                 <input 
                   ref={searchInputRef}
                   type="text" 
                   placeholder="مسح الباركود أو البحث عن صنف (F1)"
-                  className="block w-full rounded border border-royal-600 pl-8 pr-8 py-1.5 bg-royal-800/30 text-white shadow-inner focus:border-gold-400 focus:ring-0 transition-all font-bold placeholder-royal-300 text-xs h-9"
+                  className="block w-full rounded border border-blue-700 pl-8 pr-8 py-1.5 bg-blue-900/30 text-white shadow-inner focus:border-gold-400 focus:ring-0 transition-all font-bold placeholder-blue-300 text-xs h-9"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   onKeyDown={handleSearchKeyDown}
@@ -920,11 +921,11 @@ const POS: React.FC<POSProps> = () => {
           <div className="flex flex-col min-w-[140px]">
             <div className="flex items-center gap-2 mb-1">
               <GridIcon className="w-[14px] h-[14px] text-gold-400" />
-              <span className="text-[10px] text-royal-200 font-medium">الأصناف</span>
+              <span className="text-[10px] text-blue-200 font-medium">الأصناف</span>
             </div>
             <button 
               onClick={() => setShowProductGrid(!showProductGrid)}
-              className={`flex items-center gap-2 px-3 py-1.5 rounded border transition-all shadow-sm h-9 ${!showProductGrid ? 'bg-gold-500 text-royal-900 border-gold-600 font-bold' : 'bg-royal-600 text-royal-200 border-royal-500 hover:text-white'}`}
+              className={`flex items-center gap-2 px-3 py-1.5 rounded border transition-all shadow-sm h-9 ${!showProductGrid ? 'bg-gold-500 text-blue-900 border-gold-600 font-bold' : 'bg-blue-700 text-blue-200 border-blue-600 hover:text-white'}`}
             >
               {showProductGrid ? <GridIcon className="w-4 h-4" /> : <MaximizeIcon className="w-4 h-4" />}
               <span className="text-xs">{showProductGrid ? 'إخفاء الأصناف' : 'إظهار الأصناف'}</span>
@@ -942,10 +943,10 @@ const POS: React.FC<POSProps> = () => {
         </div> */}
 
         {/* CENTER: Invoice Table (Tabs + Table) */}
-        <div className="flex-1 flex flex-col gap-0 order-2 overflow-hidden shadow-xl rounded-lg border border-royal-200 bg-white relative z-0 min-h-0">
+        <div className="flex-1 flex flex-col gap-0 order-2 overflow-hidden shadow-xl rounded-lg border border-blue-200 bg-white relative z-0 min-h-0">
           
           {/* TABS HEADER */}
-          <div className="flex items-end gap-1 px-2 pt-2 bg-royal-100 border-b border-royal-200 overflow-x-auto no-scrollbar">
+          <div className="flex items-end gap-1 px-2 pt-2 bg-blue-100 border-b border-blue-200 overflow-x-auto no-scrollbar">
             {tabs.map(tab => (
               <div 
                 key={tab.id}
@@ -953,8 +954,8 @@ const POS: React.FC<POSProps> = () => {
                 className={`
                   relative group flex items-center gap-2 px-5 py-1 rounded-t-lg cursor-pointer select-none transition-all
                   ${activeTabId === tab.id 
-                    ? 'bg-white text-royal-900 shadow-[0_-2px_5px_rgba(0,0,0,0.05)] z-10 border-t-4 border-royal-800 font-bold' 
-                    : 'bg-royal-200/50 text-royal-600 hover:bg-royal-200 hover:text-royal-800 mt-1 border-t-4 border-transparent'}
+                    ? 'bg-white text-blue-900 shadow-[0_-2px_5px_rgba(0,0,0,0.05)] z-10 border-t-4 border-brand-blue font-bold' 
+                    : 'bg-blue-200/50 text-blue-700 hover:bg-blue-200 hover:text-blue-900 mt-1 border-t-4 border-transparent'}
                 `}
                 style={{ minWidth: '140px' }}
               >
@@ -975,7 +976,7 @@ const POS: React.FC<POSProps> = () => {
             {/* New Tab Button */}
             <button 
               onClick={handleNewTab}
-              className="mb-1 ml-1 p-2 rounded-lg bg-royal-300 text-royal-800 hover:bg-royal-400 hover:text-white shadow-sm transition-all"
+              className="mb-1 ml-1 p-2 rounded-lg bg-blue-300 text-blue-800 hover:bg-blue-400 hover:text-white shadow-sm transition-all"
               title="فاتورة جديدة"
             >
               <PlusIcon className="w-4 h-4" />
@@ -1005,7 +1006,7 @@ const POS: React.FC<POSProps> = () => {
 
         {/* LEFT: Product Catalog (Conditional) */}
         {showProductGrid && (
-          <div className="w-[28%] flex flex-col shadow-xl rounded-lg overflow-hidden border border-royal-200 bg-white order-3 animate-fade-in-right min-h-0">
+          <div className="w-[28%] flex flex-col shadow-xl rounded-lg overflow-hidden border border-blue-200 bg-white order-3 animate-fade-in-right min-h-0">
             <ProductGrid 
               items={filteredItems} 
               onAdd={addToCart}
@@ -1060,7 +1061,7 @@ const POS: React.FC<POSProps> = () => {
               >
                 <span>عميل نقدي (افتراضي)</span>
                 {!selectedCustomer && (
-                  <span className="text-blue-600">✓</span>
+                  <span className="text-brand-blue">✓</span>
                 )}
               </div>
               {customers?.map((cust) => (
@@ -1076,14 +1077,14 @@ const POS: React.FC<POSProps> = () => {
                     setIsCustomerDropdownOpen(false);
                     setIsCustomerModalOpen(false);
                   }}
-                  className={`p-3 rounded-lg border cursor-pointer flex justify-between items-center transition-colors ${selectedCustomer?.id === cust.id.toString() ? "bg-blue-50 border-blue-500 text-blue-800" : "border-gray-200 hover:bg-gray-50"}`}
+                  className={`p-3 rounded-lg border cursor-pointer flex justify-between items-center transition-colors ${selectedCustomer?.id === cust.id.toString() ? "bg-blue-50 border-brand-blue text-blue-800" : "border-gray-200 hover:bg-gray-50"}`}
                 >
                   <div>
                     <p className="font-bold">{cust.name}</p>
                     <p className="text-xs text-gray-500">{cust.phone}</p>
                   </div>
                   {selectedCustomer?.id === cust.id.toString() && (
-                    <span className="text-blue-600">✓</span>
+                    <span className="text-brand-blue">✓</span>
                   )}
                 </div>
               ))}

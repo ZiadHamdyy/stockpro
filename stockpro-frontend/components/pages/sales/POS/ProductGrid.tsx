@@ -36,7 +36,7 @@ const ProductGrid: React.FC<ProductGridProps> = ({
             onClick={() => onSelectCategory(cat.id)}
             className={`px-3 py-1.5 whitespace-nowrap text-xs font-bold rounded-full transition-all border ${
               activeCategory === cat.id 
-                ? 'bg-blue-600 text-white border-blue-700 shadow-sm' 
+                ? 'bg-brand-blue text-white border-blue-900 shadow-sm' 
                 : 'bg-white text-gray-600 border-gray-300 hover:bg-gray-50'
             }`}
           >
@@ -68,7 +68,7 @@ const ProductGrid: React.FC<ProductGridProps> = ({
                     {item.name}
                   </h3>
                   <div className="flex flex-col items-center gap-1">
-                    <span className="bg-blue-50 text-blue-700 text-xs font-black px-2 py-0.5 rounded">
+                    <span className="bg-blue-50 text-brand-blue text-xs font-black px-2 py-0.5 rounded">
                       {formatNumber(item.salePrice)}
                     </span>
                     <span className={`text-[10px] ${item.stock > 0 ? 'text-emerald-600' : 'text-red-500'}`}>

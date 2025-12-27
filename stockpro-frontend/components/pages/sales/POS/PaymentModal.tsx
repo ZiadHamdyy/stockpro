@@ -573,7 +573,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-royal-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-2 sm:p-6 font-sans">
+    <div className="fixed inset-0 bg-blue-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-2 sm:p-6 font-sans">
       
       {/* Receipt for Printing - Thermal Format */}
       <div id="printable-receipt" className="hidden">
@@ -701,25 +701,25 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
 
       {/* Main UI */}
       {!showReceipt ? (
-        <div className="bg-white w-full max-w-6xl h-[90vh] rounded-2xl overflow-hidden shadow-2xl flex flex-col md:flex-row border border-royal-300">
+        <div className="bg-white w-full max-w-6xl h-[90vh] rounded-2xl overflow-hidden shadow-2xl flex flex-col md:flex-row border border-blue-300">
           
           {/* Left Side: Input & Display */}
-          <div className="flex-1 p-6 flex flex-col gap-4 border-l border-royal-200 bg-white">
+          <div className="flex-1 p-6 flex flex-col gap-4 border-l border-blue-200 bg-white">
             <div className="flex justify-between items-center mb-1">
-              <h2 className="text-2xl font-black text-royal-900 flex items-center gap-2">
+              <h2 className="text-2xl font-black text-blue-900 flex items-center gap-2">
                 <CoinsIcon className="w-6 h-6 text-gold-500" />
                 تحصيل الدفعات
-                <span className="text-sm font-normal text-royal-600">
+                <span className="text-sm font-normal text-brand-blue">
                   ({paymentMode === 'safe' ? 'خزنة' : paymentMode === 'bank' ? 'بنك' : 'مقسوم'})
                 </span>
               </h2>
-              <button onClick={onClose} className="p-2 hover:bg-red-100 hover:text-red-500 rounded-full text-royal-400 transition">
+              <button onClick={onClose} className="p-2 hover:bg-red-100 hover:text-red-500 rounded-full text-blue-400 transition">
                 <XIcon className="w-6 h-6" />
               </button>
             </div>
 
             {/* Big Display Screen */}
-            <div className="p-5 rounded-2xl shadow-lg mb-2 relative overflow-hidden flex flex-col justify-between h-40 border-b-4 bg-royal-900 border-gold-500 transition-all duration-300">
+            <div className="p-5 rounded-2xl shadow-lg mb-2 relative overflow-hidden flex flex-col justify-between h-40 border-b-4 bg-blue-900 border-gold-500 transition-all duration-300">
               {paymentMode === 'split' ? (
                 // Split Payment Display - Full details
                 <>
@@ -773,8 +773,8 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
             </div>
 
             {/* Payment Mode Selection UI */}
-            <div className="flex-1 bg-royal-50 rounded-xl border border-royal-200 overflow-hidden flex flex-col">
-              <div className="bg-royal-200 p-2 text-xs font-bold text-royal-700 flex justify-between px-4">
+            <div className="flex-1 bg-blue-50 rounded-xl border border-blue-200 overflow-hidden flex flex-col">
+              <div className="bg-blue-200 p-2 text-xs font-bold text-brand-blue flex justify-between px-4">
                 <span>
                   {paymentMode === 'safe' ? 'الخزنة المختارة' : 
                    paymentMode === 'bank' ? 'البنك المختار' : 
@@ -787,7 +787,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
                   <div className="space-y-2">
                     {selectedSafe && (
                       <div className="bg-white p-3 rounded-lg shadow-sm border-r-4 border-green-500">
-                        <div className="flex items-center gap-2 text-royal-800 font-bold">
+                        <div className="flex items-center gap-2 text-blue-800 font-bold">
                           <BanknoteIcon className="w-5 h-5 text-green-600" />
                           <span>{selectedSafe.name}</span>
                         </div>
@@ -804,7 +804,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
                       <select
                         value={selectedBankId || ""}
                         onChange={(e) => setSelectedBankId(e.target.value || null)}
-                        className="flex-1 bg-white border-2 border-royal-600 rounded-md shadow-sm text-black focus:outline-none focus:ring-2 focus:ring-royal-500 focus:border-royal-500 py-2 px-3 font-semibold"
+                        className="flex-1 bg-white border-2 border-brand-blue rounded-md shadow-sm text-black focus:outline-none focus:ring-2 focus:ring-brand-blue focus:border-brand-blue py-2 px-3 font-semibold"
                       >
                         <option value="">اختر البنك...</option>
                         {banks.map((bank) => (
@@ -819,12 +819,12 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
                         <label className="text-sm font-medium text-gray-700 whitespace-nowrap">
                           طريقة التحويل:
                         </label>
-                        <div className="relative bg-royal-100 border-2 border-royal-600 rounded-md p-1 flex items-center flex-1">
+                        <div className="relative bg-blue-100 border-2 border-brand-blue rounded-md p-1 flex items-center flex-1">
                           <button
                             onClick={() => setBankTransactionType("POS")}
                             className={`w-1/2 py-2 rounded text-sm font-semibold ${
                               bankTransactionType === "POS"
-                                ? "bg-royal-600 text-white shadow"
+                                ? "bg-brand-blue text-white shadow"
                                 : "text-gray-600"
                             } transition-all duration-200`}
                           >
@@ -834,7 +834,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
                             onClick={() => setBankTransactionType("TRANSFER")}
                             className={`w-1/2 py-2 rounded text-sm font-semibold ${
                               bankTransactionType === "TRANSFER"
-                                ? "bg-royal-600 text-white shadow"
+                                ? "bg-brand-blue text-white shadow"
                                 : "text-gray-600"
                             } transition-all duration-200`}
                           >
@@ -855,7 +855,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
                           اختر البنك:
                         </label>
                         <select
-                          className="flex-1 bg-white border-2 border-royal-600 rounded-md shadow-sm text-black focus:outline-none focus:ring-2 focus:ring-royal-500 focus:border-royal-500 py-2 px-3 font-semibold"
+                          className="flex-1 bg-white border-2 border-brand-blue rounded-md shadow-sm text-black focus:outline-none focus:ring-2 focus:ring-brand-blue focus:border-brand-blue py-2 px-3 font-semibold"
                           value={splitBankId || ""}
                           onChange={(e) =>
                             setSplitBankId(e.target.value ? e.target.value : null)
@@ -875,12 +875,12 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
                         <label className="text-sm font-medium text-gray-700 whitespace-nowrap">
                           طريقة التحويل:
                         </label>
-                        <div className="relative bg-royal-100 border-2 border-royal-600 rounded-md p-1 flex items-center flex-1">
+                        <div className="relative bg-blue-100 border-2 border-brand-blue rounded-md p-1 flex items-center flex-1">
                           <button
                             onClick={() => setBankTransactionType("POS")}
                             className={`w-1/2 py-2 rounded text-sm font-semibold ${
                               bankTransactionType === "POS"
-                                ? "bg-royal-600 text-white shadow"
+                                ? "bg-brand-blue text-white shadow"
                                 : "text-gray-600"
                             } transition-all duration-200`}
                           >
@@ -890,7 +890,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
                             onClick={() => setBankTransactionType("TRANSFER")}
                             className={`w-1/2 py-2 rounded text-sm font-semibold ${
                               bankTransactionType === "TRANSFER"
-                                ? "bg-royal-600 text-white shadow"
+                                ? "bg-brand-blue text-white shadow"
                                 : "text-gray-600"
                             } transition-all duration-200`}
                           >
@@ -901,7 +901,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
                           <span className="text-sm font-medium text-gray-700 whitespace-nowrap">
                             الخزنة:
                           </span>
-                          <div className="bg-white border-2 border-royal-600 rounded-md shadow-sm px-3 py-2 font-semibold text-gray-900 min-w-[120px] text-center">
+                          <div className="bg-white border-2 border-brand-blue rounded-md shadow-sm px-3 py-2 font-semibold text-gray-900 min-w-[120px] text-center">
                             {splitSafe?.name || 'الخزنة الافتراضية'}
                           </div>
                         </div>
@@ -917,12 +917,12 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
               <div className="h-48 grid grid-cols-4 gap-2">
                 <div className="flex flex-col gap-2">
                   {[5, 10, 50, 100, 500].map(amt => (
-                    <button key={amt} onClick={() => setCurrentInput(amt.toString())} className="flex-1 bg-royal-100 text-royal-800 font-bold rounded-lg hover:bg-royal-200 transition-colors shadow-sm text-lg">{amt}</button>
+                    <button key={amt} onClick={() => setCurrentInput(amt.toString())} className="flex-1 bg-blue-100 text-blue-800 font-bold rounded-lg hover:bg-blue-200 transition-colors shadow-sm text-lg">{amt}</button>
                   ))}
                 </div>
                 <div className="col-span-3 grid grid-cols-3 gap-2">
                   {[1,2,3,4,5,6,7,8,9, '.', 0].map(n => (
-                    <button key={n} onClick={() => handleNumClick(n.toString())} className="bg-white text-royal-900 text-3xl font-bold rounded-lg border border-royal-200 hover:bg-royal-50 shadow-sm transition-colors active:bg-royal-200">{n}</button>
+                    <button key={n} onClick={() => handleNumClick(n.toString())} className="bg-white text-blue-900 text-3xl font-bold rounded-lg border border-blue-200 hover:bg-blue-50 shadow-sm transition-colors active:bg-blue-200">{n}</button>
                   ))}
                   <button onClick={handleBackspace} onDoubleClick={handleClearInput} className="bg-red-50 text-red-500 rounded-lg hover:bg-red-100 flex items-center justify-center transition-colors shadow-sm active:bg-red-200"><DeleteIcon className="w-8 h-8" /></button>
                 </div>
@@ -931,7 +931,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
           </div>
 
           {/* Right Side: Payment Mode Buttons */}
-          <div className="w-full md:w-80 bg-royal-800 p-4 flex flex-col gap-3">
+          <div className="w-full md:w-80 bg-brand-blue p-4 flex flex-col gap-3">
             <h3 className="text-white font-bold text-sm uppercase flex items-center gap-2 mb-2">
               <WalletIcon className="w-4 h-4 text-gold-400" />
               اختر طريقة الدفع
@@ -962,7 +962,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
                 onClick={() => setPaymentMode('bank')}
                 className={`w-full p-4 rounded-xl flex items-center gap-3 transition-all border border-transparent hover:scale-[1.02] shadow-md active:scale-95 ${
                   paymentMode === 'bank' 
-                    ? 'bg-blue-600 text-white border-2 border-gold-400' 
+                    ? 'bg-brand-blue text-white border-2 border-gold-400' 
                     : 'bg-blue-700/50 text-white/80'
                 }`}
                 title="اختصار: F5"
@@ -1020,7 +1020,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
                     className={`w-full p-3 rounded-xl flex items-center gap-3 transition-all border border-transparent hover:scale-[1.02] shadow-md active:scale-95 ${
                       !currentInput
                         ? 'opacity-40 cursor-not-allowed bg-blue-700/30 text-white/50'
-                        : 'bg-blue-600 text-white'
+                        : 'bg-brand-blue text-white'
                     }`}
                     title="اختصار: F8"
                   >
@@ -1039,14 +1039,14 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
             <button
               onClick={handleProcessPayment}
               disabled={!isPaymentReady || isProcessing}
-              className={`w-full py-4 rounded-xl font-bold text-lg shadow-xl flex items-center justify-center gap-2 transition-all transform active:scale-95 mt-auto border-2 border-royal-900 ${
+              className={`w-full py-4 rounded-xl font-bold text-lg shadow-xl flex items-center justify-center gap-2 transition-all transform active:scale-95 mt-auto border-2 border-blue-900 ${
                 !isPaymentReady 
                   ? 'bg-gray-400 text-gray-200 cursor-not-allowed' 
-                  : 'bg-gold-500 text-royal-900 hover:bg-gold-400'
+                  : 'bg-gold-500 text-blue-900 hover:bg-gold-400'
               }`}
             >
               {isProcessing ? (
-                <span className="animate-spin w-6 h-6 border-2 border-royal-900 border-t-transparent rounded-full"></span>
+                <span className="animate-spin w-6 h-6 border-2 border-blue-900 border-t-transparent rounded-full"></span>
               ) : (
                 <>
                   <CheckIcon className="w-6 h-6" />
@@ -1059,33 +1059,33 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
         </div>
       ) : (
         /* Success Screen */
-        <div className="bg-white w-full max-w-md p-8 rounded-3xl shadow-2xl text-center space-y-6 animate-fade-in-up border-4 border-royal-900">
+        <div className="bg-white w-full max-w-md p-8 rounded-3xl shadow-2xl text-center space-y-6 animate-fade-in-up border-4 border-blue-900">
           <div className="w-24 h-24 bg-gold-100 rounded-full flex items-center justify-center mx-auto text-gold-600 shadow-inner">
             <CheckIcon className="w-12 h-12" />
           </div>
           <div>
-            <h2 className="text-2xl font-black text-royal-900">تم الحفظ بنجاح</h2>
+            <h2 className="text-2xl font-black text-blue-900">تم الحفظ بنجاح</h2>
             <p className="text-gray-500 mt-2 font-mono">#{transactionId}</p>
           </div>
           
-          <div className="bg-royal-50 p-4 rounded-xl text-left space-y-2 text-sm border border-royal-100">
+          <div className="bg-blue-50 p-4 rounded-xl text-left space-y-2 text-sm border border-blue-100">
             <div className="flex justify-between border-b pb-2 mb-2">
-              <span className="text-royal-500">الإجمالي المطلوب</span>
+              <span className="text-blue-500">الإجمالي المطلوب</span>
               <span className="font-bold text-lg">{formatNumber(totalAmount)}</span>
             </div>
             {paymentMode === 'split' ? (
               <>
-                <div className="flex justify-between font-bold text-royal-800">
+                <div className="flex justify-between font-bold text-blue-800">
                   <span>نقدي - {splitSafe?.name}</span>
                   <span>{formatNumber(splitCashAmount)}</span>
                 </div>
-                <div className="flex justify-between font-bold text-royal-800">
+                <div className="flex justify-between font-bold text-blue-800">
                   <span>بنك - {splitBank?.name}</span>
                   <span>{formatNumber(splitBankAmount)}</span>
                 </div>
               </>
             ) : (
-              <div className="flex justify-between font-bold text-royal-800">
+              <div className="flex justify-between font-bold text-blue-800">
                 <span>{paymentMode === 'safe' ? `خزنة - ${selectedSafe?.name}` : `بنك - ${selectedBank?.name}`}</span>
                 <span>{formatNumber(totalAmount)}</span>
               </div>
@@ -1095,14 +1095,14 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
           <div className="flex gap-3">
             <button 
               onClick={handlePrint}
-              className="flex-1 py-3 bg-royal-100 text-royal-900 rounded-xl font-bold hover:bg-royal-200 transition flex items-center justify-center gap-2"
+              className="flex-1 py-3 bg-blue-100 text-blue-900 rounded-xl font-bold hover:bg-blue-200 transition flex items-center justify-center gap-2"
             >
               <PrintIcon className="w-5 h-5" />
               <span>طباعة (Enter)</span>
             </button>
             <button 
               onClick={handleNewInvoice}
-              className="flex-1 py-3 bg-royal-900 text-white rounded-xl font-bold hover:bg-royal-800 transition"
+              className="flex-1 py-3 bg-brand-blue text-white rounded-xl font-bold hover:bg-blue-700 transition"
             >
               فاتورة جديدة (F3)
             </button>
