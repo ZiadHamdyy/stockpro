@@ -38,6 +38,7 @@ import InternalTransfers from "../components/pages/financials/InternalTransfers"
 import ExpensesList from "../components/pages/financials/ExpensesList";
 import ExpenseCodes from "../components/pages/financials/ExpenseCodes";
 import ExpenseTypes from "../components/pages/financials/ExpenseTypes";
+import RevenueCodes from "../components/pages/financials/RevenueCodes";
 import AddCurrentAccount from "../components/pages/financials/AddCurrentAccount";
 import CurrentAccountsList from "../components/pages/financials/CurrentAccountsList";
 import AddReceivableAccount from "../components/pages/financials/AddReceivableAccount";
@@ -75,10 +76,14 @@ import SafeStatementReport from "../components/pages/reports/financials/SafeStat
 import BankStatementReport from "../components/pages/reports/financials/BankStatementReport";
 import TaxDeclarationReport from "../components/pages/reports/financials/TaxDeclarationReport";
 import VATStatementReport from "../components/pages/reports/financials/VATStatementReport";
+import RevenueStatementReport from "../components/pages/reports/financials/RevenueStatementReport";
+import TotalRevenuesReport from "../components/pages/reports/financials/TotalRevenueReport";
+import TotalCashReport from "../components/pages/reports/financials/TotalCashReport";
 import IncomeStatement from "../components/pages/final_accounts/IncomeStatement";
 import BalanceSheet from "../components/pages/final_accounts/BalanceSheet";
 import AuditTrial from "../components/pages/final_accounts/AuditTrial";
 import ZatcaInvoiceUpload from "../components/pages/zatca/ZatcaInvoiceUpload";
+import Subscription from "../components/pages/subscription/Subscription";
 // Note: You can also use enums: import { Resources, Actions, buildPermission } from '../enums/permissions.enum';
 
 /**
@@ -103,6 +108,12 @@ export const routeConfig = [
     component: HelpCenter,
     requiredPermission: "help_center-read",
     label: "مركز المساعدة",
+  },
+  {
+    path: "/subscription",
+    component: Subscription,
+    requiredPermission: "", // Handled by SubscriptionRoute wrapper
+    label: "الاشتراك والتراخيص",
   },
 
   // Settings
@@ -305,6 +316,12 @@ export const routeConfig = [
     label: "إضافة عميل",
   },
   {
+    path: "/customers/add/:id",
+    component: AddCustomer,
+    requiredPermission: "add_customer-read",
+    label: "تعديل عميل",
+  },
+  {
     path: "/customers/edit/:id",
     component: AddCustomer,
     requiredPermission: "add_customer-read",
@@ -323,6 +340,12 @@ export const routeConfig = [
     component: AddSupplier,
     requiredPermission: "add_supplier-read",
     label: "إضافة مورد",
+  },
+  {
+    path: "/suppliers/add/:id",
+    component: AddSupplier,
+    requiredPermission: "add_supplier-read",
+    label: "تعديل مورد",
   },
   {
     path: "/suppliers/edit/:id",
@@ -345,7 +368,19 @@ export const routeConfig = [
     label: "قائمة المصروفات",
   },
   {
+    path: "/financials/expenses-list",
+    component: ExpensesList,
+    requiredPermission: "expenses_list-read",
+    label: "قائمة المصروفات",
+  },
+  {
     path: "/financials/expenses/codes",
+    component: ExpenseCodes,
+    requiredPermission: "expense_codes-read",
+    label: "أكواد المصروفات",
+  },
+  {
+    path: "/financials/expense-codes",
     component: ExpenseCodes,
     requiredPermission: "expense_codes-read",
     label: "أكواد المصروفات",
@@ -356,10 +391,28 @@ export const routeConfig = [
     requiredPermission: "expense_types-read",
     label: "أنواع المصروفات",
   },
+  {
+    path: "/financials/expense-types",
+    component: ExpenseTypes,
+    requiredPermission: "expense_types-read",
+    label: "أنواع المصروفات",
+  },
+  {
+    path: "/financials/revenue-codes",
+    component: RevenueCodes,
+    requiredPermission: "revenue_codes-read",
+    label: "أنواع الإيرادات",
+  },
 
   // Financials - Current Accounts
   {
     path: "/financials/current-accounts/add",
+    component: AddCurrentAccount,
+    requiredPermission: "add_current_account-read",
+    label: "إضافة حساب جاري",
+  },
+  {
+    path: "/financials/add-current-account",
     component: AddCurrentAccount,
     requiredPermission: "add_current_account-read",
     label: "إضافة حساب جاري",
@@ -470,6 +523,12 @@ export const routeConfig = [
     label: "تقييم المخزون",
   },
   {
+    path: "/reports/items/inventory-valuation",
+    component: InventoryValuationReport,
+    requiredPermission: "inventory_valuation_report-read",
+    label: "تقييم المخزون",
+  },
+  {
     path: "/reports/financial-analysis/liquidity",
     component: LiquidityReport,
     requiredPermission: "liquidity_report-read",
@@ -572,6 +631,18 @@ export const routeConfig = [
     label: "إجمالي المصروفات",
   },
   {
+    path: "/reports/financials/revenue-statement",
+    component: RevenueStatementReport,
+    requiredPermission: "revenue_statement_report-read",
+    label: "كشف حساب إيرادات",
+  },
+  {
+    path: "/reports/financials/total-revenues",
+    component: TotalRevenuesReport,
+    requiredPermission: "total_revenues_report-read",
+    label: "إجمالي الإيرادات",
+  },
+  {
     path: "/reports/financials/current-account-statement",
     component: CurrentAccountStatementReport,
     requiredPermission: "current_account_statement_report-read",
@@ -631,6 +702,12 @@ export const routeConfig = [
     requiredPermission: "vat_statement_report-read",
     label: "كشف حساب الضريبة",
   },
+  {
+    path: "/reports/financials/total-cash",
+    component: TotalCashReport,
+    requiredPermission: "total_cash_report-read",
+    label: "إجمالي النقدية",
+  },
 
   // Final Accounts
   {
@@ -688,12 +765,12 @@ export const getLabelByPath = (path: string): string => {
     return `تعديل صنف`;
   }
 
-  if (path.startsWith("/customers/edit/")) {
+  if (path.startsWith("/customers/edit/") || (path.startsWith("/customers/add/") && path.split("/").length > 3)) {
     const customerId = path.split("/").pop();
     return `تعديل عميل #${customerId}`;
   }
 
-  if (path.startsWith("/suppliers/edit/")) {
+  if (path.startsWith("/suppliers/edit/") || (path.startsWith("/suppliers/add/") && path.split("/").length > 3)) {
     const supplierId = path.split("/").pop();
     return `تعديل مورد #${supplierId}`;
   }
