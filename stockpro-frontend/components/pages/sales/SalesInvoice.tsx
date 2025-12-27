@@ -1796,23 +1796,13 @@ const SalesInvoice: React.FC<SalesInvoiceProps> = ({
                             </div>
                             <div className="flex gap-2 items-center h-8">
                               <div className="flex-1">
-                                <select
+                                <input
+                                  type="text"
+                                  value={resolvedBranchName}
                                   className="w-full h-8 px-1 rounded-sm border-0 bg-white text-slate-900 text-xs focus:ring-1 focus:ring-blue-400 outline-none shadow-sm font-semibold"
-                                  value={splitSafeId || ""}
-                                  onChange={(e) =>
-                                    setSplitSafeId(e.target.value ? e.target.value : null)
-                                  }
-                                  // For new invoices, lock the split safe to the current branch safe (auto-selected)
-                                  // and prevent changing it. For existing invoices, allow normal interaction.
-                                  disabled={isReadOnly || currentIndex < 0}
-                                >
-                                  <option value="">اختر الخزنة...</option>
-                                  {safesForSelection.map((s) => (
-                                    <option key={s.id} value={s.id}>
-                                      {s.name}
-                                    </option>
-                                  ))}
-                                </select>
+                                  disabled={true}
+                                  readOnly
+                                />
                               </div>
                               <div className="w-24">
                                 <input
@@ -1858,23 +1848,13 @@ const SalesInvoice: React.FC<SalesInvoiceProps> = ({
                             : "اختر البنك"}
                         </label>
                         {paymentTargetType === "safe" ? (
-                          <select
-                            value={paymentTargetId || ""}
-                            onChange={(e) =>
-                              setPaymentTargetId(e.target.value || null)
-                            }
+                          <input
+                            type="text"
+                            value={resolvedBranchName}
                             className={inputStyle}
-                            // For new invoices, lock the safe to the current branch safe (auto-selected in state)
-                            // and prevent changing it. For existing invoices (view or edit), allow normal interaction.
-                            disabled={isReadOnly || currentIndex < 0}
-                          >
-                            <option value="">اختر الخزنة...</option>
-                            {safesForSelection.map((safe) => (
-                              <option key={safe.id} value={safe.id}>
-                                {safe.name}
-                              </option>
-                            ))}
-                          </select>
+                            disabled={true}
+                            readOnly
+                          />
                         ) : (
                           <select
                             value={paymentTargetId || ""}
