@@ -15,6 +15,7 @@ import { formatNumber, getNegativeNumberClass, getNegativeNumberClassForTotal } 
 import { useGetExpenseCodesQuery } from "../../../store/slices/expense/expenseApiSlice";
 import { useGetExpensePaymentVouchersQuery } from "../../../store/slices/paymentVoucherApiSlice";
 import { useGetBranchesQuery } from "../../../store/slices/branch/branchApi";
+import { useGetFiscalYearsQuery } from "../../../store/slices/fiscalYear/fiscalYearApiSlice";
 import { useAuth } from "../../../hook/Auth";
 import { getCurrentYearRange } from "../dateUtils";
 import { useUserPermissions } from "../../../hook/usePermissions";
@@ -61,6 +62,8 @@ const ExpenseStatementReport: React.FC<ExpenseStatementReportProps> = ({
     useGetExpensePaymentVouchersQuery(undefined, { skip });
   const { data: apiBranches = [], isLoading: branchesLoading } =
     useGetBranchesQuery(undefined);
+  const { data: apiFiscalYears = [], isLoading: fiscalYearsLoading } =
+    useGetFiscalYearsQuery();
 
   // Transform branches
   const branches = useMemo(() => {
@@ -104,6 +107,24 @@ const ExpenseStatementReport: React.FC<ExpenseStatementReportProps> = ({
     };
   }, []);
 
+  // Helper function to find fiscal year that contains a given date
+  const findFiscalYearForDate = useCallback((date: string) => {
+    if (!date || !apiFiscalYears.length) return null;
+    
+    const normalizedDate = normalizeDate(date);
+    if (!normalizedDate) return null;
+    
+    const dateObj = new Date(normalizedDate);
+    
+    return apiFiscalYears.find((fy: any) => {
+      const startDate = new Date(normalizeDate(fy.startDate));
+      const endDate = new Date(normalizeDate(fy.endDate));
+      // Set time to end of day for endDate to include the entire day
+      endDate.setHours(23, 59, 59, 999);
+      return dateObj >= startDate && dateObj <= endDate;
+    }) || null;
+  }, [apiFiscalYears, normalizeDate]);
+
   // Transform API data to match expected format
   const expenseCodes = useMemo(() => {
     return (apiExpenseCodes as any[]).map((code) => ({
@@ -136,7 +157,7 @@ const ExpenseStatementReport: React.FC<ExpenseStatementReportProps> = ({
     });
   }, [apiPaymentVouchers, branches, normalizeDate]);
 
-  const isLoading = expenseCodesLoading || vouchersLoading || branchesLoading;
+  const isLoading = expenseCodesLoading || vouchersLoading || branchesLoading || fiscalYearsLoading;
   const { start: defaultStartDate, end: defaultEndDate } = getCurrentYearRange();
   const [startDate, setStartDate] = useState(defaultStartDate);
   const [endDate, setEndDate] = useState(defaultEndDate);
@@ -166,6 +187,7 @@ const ExpenseStatementReport: React.FC<ExpenseStatementReportProps> = ({
   }, [canSearchAllBranches, userBranchName, selectedBranch, branches]);
   
   const [reportData, setReportData] = useState<any[]>([]);
+  const [beginningBalance, setBeginningBalance] = useState<number>(0);
 
   // Set initial selected expense code when data loads
   useEffect(() => {
@@ -183,6 +205,7 @@ const ExpenseStatementReport: React.FC<ExpenseStatementReportProps> = ({
   const handleViewReport = useCallback(() => {
     if (!selectedExpenseCodeId) {
       setReportData([]);
+      setBeginningBalance(0);
       return;
     }
     const codeId = selectedExpenseCodeId;
@@ -190,6 +213,31 @@ const ExpenseStatementReport: React.FC<ExpenseStatementReportProps> = ({
     // Normalize dates for comparison
     const normalizedStartDate = normalizeDate(startDate);
     const normalizedEndDate = normalizeDate(endDate);
+
+    // Find fiscal year that contains the start date
+    const fiscalYear = findFiscalYearForDate(normalizedStartDate);
+    
+    // Calculate beginning balance: sum of all payment vouchers from fiscal year start to selected start date
+    let calculatedBeginningBalance = 0;
+    if (fiscalYear) {
+      const fiscalYearStartDate = normalizeDate(fiscalYear.startDate);
+      
+      const beginningTransactions = paymentVouchers.filter((v) => {
+        const voucherDate = normalizeDate(v.date);
+        if (!voucherDate) return false;
+        
+        // Include transactions from fiscal year start up to (but not including) the selected start date
+        const dateMatch = voucherDate >= fiscalYearStartDate && voucherDate < normalizedStartDate;
+        const expenseMatch = v.expenseCodeId === codeId;
+        const branchMatch = selectedBranch === "all" || v.branchName === selectedBranch;
+        
+        return dateMatch && expenseMatch && branchMatch;
+      });
+      
+      calculatedBeginningBalance = beginningTransactions.reduce((sum, v) => sum + v.amount, 0);
+    }
+    
+    setBeginningBalance(calculatedBeginningBalance);
 
     const transactions = paymentVouchers
       .filter((v) => {
@@ -226,13 +274,14 @@ const ExpenseStatementReport: React.FC<ExpenseStatementReportProps> = ({
       return dateA - dateB;
     });
 
-    let balance = 0;
+    // Start balance from beginning balance
+    let balance = calculatedBeginningBalance;
     const finalData = transactions.map((t) => {
       balance += t.amount;
       return { ...t, balance };
     });
     setReportData(finalData);
-  }, [selectedExpenseCodeId, paymentVouchers, startDate, endDate, selectedBranch, normalizeDate]);
+  }, [selectedExpenseCodeId, paymentVouchers, startDate, endDate, selectedBranch, normalizeDate, findFiscalYearForDate]);
 
   useEffect(() => {
     handleViewReport();
@@ -476,7 +525,9 @@ const ExpenseStatementReport: React.FC<ExpenseStatementReportProps> = ({
                 <td colSpan={5} className="px-6 py-3">
                   رصيد أول المدة
                 </td>
-                <td className="px-6 py-3">{formatNumber(0)}</td>
+                <td className={`px-6 py-3 font-bold ${getNegativeNumberClass(beginningBalance)}`}>
+                  {formatNumber(beginningBalance)}
+                </td>
               </tr>
               {reportData.map((item, index) => (
                 <tr key={index} className="hover:bg-brand-blue-bg">
