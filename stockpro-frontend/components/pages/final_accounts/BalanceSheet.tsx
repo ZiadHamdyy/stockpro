@@ -657,16 +657,91 @@ const BalanceSheet: React.FC = () => {
       .reduce((sum, voucher) => sum + (voucher.amount || 0), 0);
   }, [apiReceiptVouchers, startDate, endDate, normalizeDate]);
 
+  // Calculate net purchases exactly as in IncomeStatement
+  // (purchases before tax - purchase discounts - purchase returns before tax + return discounts)
+  const calculatedNetPurchases = useMemo(() => {
+    const normalizedStartDate = normalizeDate(startDate);
+    const normalizedEndDate = normalizeDate(endDate);
+
+    if (!normalizedStartDate || !normalizedEndDate) return 0;
+
+    const isInRange = (date: any) => {
+      const d = normalizeDate(date);
+      if (!d) return false;
+      return d >= normalizedStartDate && d <= normalizedEndDate;
+    };
+
+    const { totalPurchasesBeforeTax, totalPurchasesDiscount } = (apiPurchaseInvoices as any[])
+      .filter((inv) => isInRange(inv.date || inv.invoiceDate))
+      .reduce(
+        (acc, inv) => {
+          acc.totalPurchasesBeforeTax += toNumber(inv.subtotal || 0);
+          acc.totalPurchasesDiscount += toNumber(inv.discount || 0);
+          return acc;
+        },
+        { totalPurchasesBeforeTax: 0, totalPurchasesDiscount: 0 },
+      );
+
+    const { totalPurchaseReturnsBeforeTax, totalReturnsDiscount } = (apiPurchaseReturns as any[])
+      .filter((inv) => isInRange(inv.date || inv.invoiceDate))
+      .reduce(
+        (acc, inv) => {
+          acc.totalPurchaseReturnsBeforeTax += toNumber(inv.subtotal || 0);
+          acc.totalReturnsDiscount += toNumber(inv.discount || 0);
+          return acc;
+        },
+        { totalPurchaseReturnsBeforeTax: 0, totalReturnsDiscount: 0 },
+      );
+
+    return (
+      totalPurchasesBeforeTax -
+      totalPurchasesDiscount -
+      totalPurchaseReturnsBeforeTax +
+      totalReturnsDiscount
+    );
+  }, [apiPurchaseInvoices, apiPurchaseReturns, startDate, endDate, normalizeDate, toNumber]);
+
+  // Calculate allowed discount exactly as in IncomeStatement
+  // total sales discounts - total sales returns discounts
+  const allowedDiscount = useMemo(() => {
+    const normalizedStartDate = normalizeDate(startDate);
+    const normalizedEndDate = normalizeDate(endDate);
+
+    if (!normalizedStartDate || !normalizedEndDate) return 0;
+
+    const isInRange = (date: any) => {
+      const d = normalizeDate(date);
+      if (!d) return false;
+      return d >= normalizedStartDate && d <= normalizedEndDate;
+    };
+
+    const totalSalesDiscounts = (apiSalesInvoices as any[])
+      .filter((inv) => isInRange(inv.date || inv.invoiceDate))
+      .reduce((sum, inv) => sum + toNumber(inv.discount || 0), 0);
+
+    const totalSalesReturnsDiscounts = (apiSalesReturns as any[])
+      .filter((inv) => isInRange(inv.date || inv.invoiceDate))
+      .reduce((sum, inv) => sum + toNumber(inv.discount || 0), 0);
+
+    return totalSalesDiscounts - totalSalesReturnsDiscounts;
+  }, [apiSalesInvoices, apiSalesReturns, startDate, endDate, normalizeDate, toNumber]);
+
+  // Calculate net sales after discount exactly as in IncomeStatement
+  const netSalesAfterDiscount = useMemo(() => {
+    if (!incomeStatementData) return 0;
+    return incomeStatementData.netSales - allowedDiscount;
+  }, [incomeStatementData, allowedDiscount]);
+
   // Calculate net profit exactly as in IncomeStatement
-  // Formula: netSales - (beginningInventory + netPurchases - calculatedEndingInventory) + calculatedOtherRevenues - totalExpenses
+  // Formula: netSalesAfterDiscount - (beginningInventory + calculatedNetPurchases - calculatedEndingInventory) + calculatedOtherRevenues - totalExpenses
   const calculatedNetProfit = useMemo(() => {
     if (!incomeStatementData) return 0;
     
-    return incomeStatementData.netSales - 
-           (incomeStatementData.beginningInventory + incomeStatementData.netPurchases - calculatedInventoryValue) + 
+    return netSalesAfterDiscount - 
+           (incomeStatementData.beginningInventory + calculatedNetPurchases - calculatedInventoryValue) + 
            calculatedOtherRevenues - 
            incomeStatementData.totalExpenses;
-  }, [incomeStatementData, calculatedInventoryValue, calculatedOtherRevenues]);
+  }, [incomeStatementData, calculatedInventoryValue, calculatedOtherRevenues, netSalesAfterDiscount, calculatedNetPurchases]);
 
   // Calculate retained earnings with fiscal year logic
   const calculatedRetainedEarnings = useMemo(() => {
