@@ -59,17 +59,19 @@ const ItemProfitabilityReport: React.FC<ItemProfitabilityReportProps> = ({ title
     }, []);
 
     const items = useMemo<Item[]>(() => {
-        return apiItems.map((item) => ({
-            id: parseInt(item.id) || 0,
-            code: item.code,
-            name: item.name,
-            group: item.group?.name || '',
-            unit: item.unit?.name || '',
-            purchasePrice: item.purchasePrice,
-            salePrice: item.salePrice,
-            stock: item.stock,
-            reorderLimit: item.reorderLimit
-        }));
+        return apiItems
+            .filter((item) => item.type !== 'SERVICE') // Exclude service items
+            .map((item) => ({
+                id: parseInt(item.id) || 0,
+                code: item.code,
+                name: item.name,
+                group: item.group?.name || '',
+                unit: item.unit?.name || '',
+                purchasePrice: item.purchasePrice,
+                salePrice: item.salePrice,
+                stock: item.stock,
+                reorderLimit: item.reorderLimit
+            }));
     }, [apiItems]);
 
     const salesInvoices = useMemo<Invoice[]>(() => {
