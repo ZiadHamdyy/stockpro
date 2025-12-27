@@ -306,7 +306,6 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
           {/* Social Media Footer (Emerald Green Bar) */}
           <div className="bg-emerald-600 p-5 w-full mt-auto shadow-[0_-4px_15px_-3px_rgba(0,0,0,0.1)] relative z-20">
             <div className="flex flex-col md:flex-row justify-between items-center gap-4 px-4 md:px-8">
-              <span className="text-white font-bold text-sm whitespace-nowrap tracking-wide opacity-90">تواصل معنا:</span>
               <div className="flex justify-center gap-4">
                 <a href="https://www.facebook.com/profile.php?id=61583833056151" target="_blank" rel="noopener noreferrer" className="bg-white hover:bg-blue-50 p-2 rounded-full shadow-lg transition-all duration-300 hover:scale-110 hover:-translate-y-1 w-10 h-10 flex items-center justify-center group" title="Facebook">
                   <FacebookIcon className="w-5 h-5 text-[#1877F2]" />
@@ -317,11 +316,13 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
                 <button onClick={() => navigate('/')} className="bg-white hover:bg-cyan-50 p-2 rounded-full shadow-lg transition-all duration-300 hover:scale-110 hover:-translate-y-1 w-10 h-10 flex items-center justify-center group" title="Website">
                   <GlobeIcon className="w-5 h-5 text-[#00A4EF]" />
                 </button>
-                <a href="https://wa.me/966552403483" target="_blank" rel="noopener noreferrer" className="bg-white hover:bg-green-50 p-2 rounded-full shadow-lg transition-all duration-300 hover:scale-110 hover:-translate-y-1 w-10 h-10 flex items-center justify-center group" title="WhatsApp: 00966552403483">
+                <a href="https://wa.me/966552403483" target="_blank" rel="noopener noreferrer" className="bg-white hover:bg-green-50 px-3 py-2 rounded-full shadow-lg transition-all duration-300 hover:scale-110 hover:-translate-y-1 flex items-center justify-center gap-2 group" title="WhatsApp: 00966552403483">
                   <PhoneIcon className="w-5 h-5 text-[#25D366]" />
+                  <span className="text-[#25D366] font-semibold text-sm whitespace-nowrap">00966552403483</span>
                 </a>
-                <a href="https://wa.me/201019607485" target="_blank" rel="noopener noreferrer" className="bg-white hover:bg-green-50 p-2 rounded-full shadow-lg transition-all duration-300 hover:scale-110 hover:-translate-y-1 w-10 h-10 flex items-center justify-center group" title="WhatsApp: 00201019607485">
+                <a href="https://wa.me/201019607485" target="_blank" rel="noopener noreferrer" className="bg-white hover:bg-green-50 px-3 py-2 rounded-full shadow-lg transition-all duration-300 hover:scale-110 hover:-translate-y-1 flex items-center justify-center gap-2 group" title="WhatsApp: 00201019607485">
                   <PhoneIcon className="w-5 h-5 text-[#25D366]" />
+                  <span className="text-[#25D366] font-semibold text-sm whitespace-nowrap">00201019607485</span>
                 </a>
               </div>
             </div>
