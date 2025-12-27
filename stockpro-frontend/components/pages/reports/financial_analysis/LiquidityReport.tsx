@@ -116,6 +116,7 @@ const LiquidityReport: React.FC<LiquidityReportProps> = ({ title }) => {
             nationalAddress: customer.nationalAddress || '',
             phone: customer.phone || '',
             openingBalance: customer.openingBalance || 0,
+            creditLimit: customer.creditLimit || 0,
             currentBalance: customer.currentBalance || 0
         }));
     }, [apiCustomers]);
