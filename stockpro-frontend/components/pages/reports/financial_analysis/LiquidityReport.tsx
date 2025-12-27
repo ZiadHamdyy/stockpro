@@ -1647,12 +1647,31 @@ const LiquidityReport: React.FC<LiquidityReportProps> = ({ title }) => {
         }
     };
 
-    const getRatioStatus = (ratio: number) => {
-        if (ratio > 2) return { label: 'ممتاز جدًا', classes: 'bg-emerald-100 text-emerald-800 border-emerald-500' };
-        if (ratio >= 1.5) return { label: 'جيد جدًا', classes: 'bg-blue-100 text-blue-800 border-blue-500' };
-        if (ratio >= 1.0) return { label: 'مقبول', classes: 'bg-yellow-100 text-yellow-800 border-yellow-500' };
-        if (ratio >= 0.8) return { label: 'ضعيف', classes: 'bg-orange-100 text-orange-800 border-orange-500' };
+    // Current Ratio Status (نسبة التداول)
+    const getCurrentRatioStatus = (ratio: number) => {
+        if (ratio > 2) return { label: 'ممتاز', classes: 'bg-emerald-100 text-emerald-800 border-emerald-500' };
+        if (ratio >= 1.5) return { label: 'جيد', classes: 'bg-blue-100 text-blue-800 border-blue-500' };
+        if (ratio >= 1.0) return { label: 'ضعيف', classes: 'bg-yellow-100 text-yellow-800 border-yellow-500' };
+        if (ratio >= 0.5) return { label: 'خطر شديد', classes: 'bg-red-100 text-red-800 border-red-500' };
         return { label: 'خطر شديد', classes: 'bg-red-100 text-red-800 border-red-500' };
+    };
+
+    // Quick Ratio Status (نسبة السيولة السريعة)
+    const getQuickRatioStatus = (ratio: number) => {
+        if (ratio > 2) return { label: 'ممتاز جدا', classes: 'bg-emerald-100 text-emerald-800 border-emerald-500' };
+        if (ratio >= 1.5) return { label: 'جيد جدا', classes: 'bg-blue-100 text-blue-800 border-blue-500' };
+        if (ratio >= 1.0) return { label: 'جيد', classes: 'bg-yellow-100 text-yellow-800 border-yellow-500' };
+        if (ratio >= 0.5) return { label: 'ضعيف', classes: 'bg-orange-100 text-orange-800 border-orange-500' };
+        return { label: 'ضعيف جدا', classes: 'bg-red-100 text-red-800 border-red-500' };
+    };
+
+    // Cash Ratio Status (نسبة النقدية)
+    const getCashRatioStatus = (ratio: number) => {
+        if (ratio > 2) return { label: 'ممتاز جدا - لكن هناك نقد خامل غير مستثمر', classes: 'bg-emerald-100 text-emerald-800 border-emerald-500' };
+        if (ratio >= 1.5) return { label: 'جيد جدا', classes: 'bg-blue-100 text-blue-800 border-blue-500' };
+        if (ratio >= 1.0) return { label: 'جيد', classes: 'bg-yellow-100 text-yellow-800 border-yellow-500' };
+        if (ratio >= 0.5) return { label: 'مقبول', classes: 'bg-yellow-100 text-yellow-800 border-yellow-500' };
+        return { label: 'ضعيف', classes: 'bg-orange-100 text-orange-800 border-orange-500' };
     };
 
     const handlePrint = () => {
@@ -1898,8 +1917,9 @@ const LiquidityReport: React.FC<LiquidityReportProps> = ({ title }) => {
         );
     }
 
-    const quickStatus = getRatioStatus(analysis.quickRatio);
-    const cashStatus = getRatioStatus(analysis.cashRatio);
+    const currentStatus = getCurrentRatioStatus(analysis.currentRatio);
+    const quickStatus = getQuickRatioStatus(analysis.quickRatio);
+    const cashStatus = getCashRatioStatus(analysis.cashRatio);
 
     return (
         <div className="bg-white p-4 rounded-lg shadow space-y-3">
@@ -1949,8 +1969,11 @@ const LiquidityReport: React.FC<LiquidityReportProps> = ({ title }) => {
                         <h3 className="font-bold text-gray-600">نسبة التداول (Current Ratio)</h3>
                         <ActivityIcon className="text-blue-500 w-6 h-6"/>
                     </div>
-                    <p className="text-3xl font-bold text-brand-dark">{analysis.currentRatio.toFixed(2)}</p>
-                    <p className="text-xs text-gray-500 mt-2">المعيار المقبول: 1.5 - 2.0</p>
+                    <div className="flex items-center gap-3 mt-1">
+                        <p className="text-3xl font-bold text-brand-dark">{analysis.currentRatio.toFixed(2)}</p>
+                        <span className={`px-3 py-1 text-xs font-bold rounded-full border ${currentStatus.classes}`}>{currentStatus.label}</span>
+                    </div>
+                    <p className="text-xs text-gray-500 mt-2">المعيار المقبول: 1.5 - 2.0 (مع تدرج الألوان حسب النتيجة)</p>
                     <p className="text-sm text-gray-600 mt-3 bg-gray-50 p-2 rounded">قدرة الشركة على سداد ديونها قصيرة الأجل باستخدام جميع أصولها المتداولة.</p>
                 </div>
 
@@ -1980,123 +2003,6 @@ const LiquidityReport: React.FC<LiquidityReportProps> = ({ title }) => {
                     </div>
                     <p className="text-xs text-gray-500 mt-2">المعيار: يعتمد على النشاط (مع تدرج الألوان حسب النتيجة)</p>
                     <p className="text-sm text-gray-600 mt-3 bg-gray-50 p-2 rounded">السيولة النقدية الفورية المتوفرة لتغطية الالتزامات الحالية.</p>
-                </div>
-            </div>
-
-            {/* Rating Scale Table */}
-            <div className="mt-4 mb-4 border rounded-xl overflow-hidden shadow">
-                <div className="bg-gray-100 p-3 border-b">
-                    <h3 className="font-bold text-gray-800 text-sm text-center">جدول تقييم نسب السيولة</h3>
-                </div>
-                <div className="overflow-x-auto">
-                    <table className="w-full text-sm border-collapse" dir="rtl">
-                        <thead>
-                            <tr className="bg-gray-100">
-                                <th className="p-3 text-xs font-bold text-gray-700 border border-gray-300 bg-gray-100"></th>
-                                <th className="p-3 text-xs font-bold text-gray-700 border border-gray-300 bg-gray-100">نسبة النقدية</th>
-                                <th className="p-3 text-xs font-bold text-gray-700 border border-gray-300 bg-gray-100">نسبة السيولة السريعة</th>
-                                <th className="p-3 text-xs font-bold text-gray-700 border border-gray-300 bg-gray-100">نسبة التداول</th>
-                                <th className="p-3 text-xs font-bold text-gray-700 border border-gray-300 bg-gray-100">الرقم المتوقع للنتيجة</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr>
-                                <td className="p-3 text-xs border border-gray-300 bg-orange-100 text-center align-middle" rowSpan={5} style={{ verticalAlign: 'middle', width: '100px' }}>
-                                    <div className="flex items-center justify-center h-full" style={{ writingMode: 'vertical-rl', textOrientation: 'mixed' }}>
-                                        <span className="font-semibold">مع تفعيل الألوان الأخرى</span>
-                                    </div>
-                                </td>
-                                <td className="p-3 text-xs border border-gray-300 text-center align-middle">
-                                    <span className="px-3 py-1.5 rounded bg-emerald-100 text-emerald-800 border border-emerald-500 font-semibold inline-block">
-                                        ممتاز جداً - لكن هناك نقد خامل غير مستثمر
-                                    </span>
-                                </td>
-                                <td className="p-3 text-xs border border-gray-300 text-center align-middle">
-                                    <span className="px-3 py-1.5 rounded bg-emerald-100 text-emerald-800 border border-emerald-500 font-semibold inline-block">
-                                        ممتاز جداً
-                                    </span>
-                                </td>
-                                <td className="p-3 text-xs border border-gray-300 text-center align-middle">
-                                    <span className="px-3 py-1.5 rounded bg-emerald-100 text-emerald-800 border border-emerald-500 font-semibold inline-block">
-                                        ممتاز
-                                    </span>
-                                </td>
-                                <td className="p-3 text-xs border border-gray-300 text-center font-bold align-middle">{'>'}2</td>
-                            </tr>
-                            <tr className="bg-gray-50">
-                                <td className="p-3 text-xs border border-gray-300 text-center align-middle">
-                                    <span className="px-3 py-1.5 rounded bg-blue-100 text-blue-800 border border-blue-500 font-semibold inline-block">
-                                        جيد جداً
-                                    </span>
-                                </td>
-                                <td className="p-3 text-xs border border-gray-300 text-center align-middle">
-                                    <span className="px-3 py-1.5 rounded bg-blue-100 text-blue-800 border border-blue-500 font-semibold inline-block">
-                                        جيد جداً
-                                    </span>
-                                </td>
-                                <td className="p-3 text-xs border border-gray-300 text-center align-middle">
-                                    <span className="px-3 py-1.5 rounded bg-blue-100 text-blue-800 border border-blue-500 font-semibold inline-block">
-                                        جيد
-                                    </span>
-                                </td>
-                                <td className="p-3 text-xs border border-gray-300 text-center font-bold align-middle">1.5 : 2</td>
-                            </tr>
-                            <tr>
-                                <td className="p-3 text-xs border border-gray-300 text-center align-middle">
-                                    <span className="px-3 py-1.5 rounded bg-yellow-100 text-yellow-800 border border-yellow-500 font-semibold inline-block">
-                                        جيد
-                                    </span>
-                                </td>
-                                <td className="p-3 text-xs border border-gray-300 text-center align-middle">
-                                    <span className="px-3 py-1.5 rounded bg-yellow-100 text-yellow-800 border border-yellow-500 font-semibold inline-block">
-                                        جيد
-                                    </span>
-                                </td>
-                                <td className="p-3 text-xs border border-gray-300 text-center align-middle">
-                                    <span className="px-3 py-1.5 rounded bg-yellow-100 text-yellow-800 border border-yellow-500 font-semibold inline-block">
-                                        ضعيف
-                                    </span>
-                                </td>
-                                <td className="p-3 text-xs border border-gray-300 text-center font-bold align-middle">1</td>
-                            </tr>
-                            <tr className="bg-gray-50">
-                                <td className="p-3 text-xs border border-gray-300 text-center align-middle">
-                                    <span className="px-3 py-1.5 rounded bg-yellow-100 text-yellow-800 border border-yellow-500 font-semibold inline-block">
-                                        مقبول
-                                    </span>
-                                </td>
-                                <td className="p-3 text-xs border border-gray-300 text-center align-middle">
-                                    <span className="px-3 py-1.5 rounded bg-orange-100 text-orange-800 border border-orange-500 font-semibold inline-block">
-                                        ضعيف
-                                    </span>
-                                </td>
-                                <td className="p-3 text-xs border border-gray-300 text-center align-middle">
-                                    <span className="px-3 py-1.5 rounded bg-red-100 text-red-800 border border-red-500 font-semibold inline-block">
-                                        خطر شديد
-                                    </span>
-                                </td>
-                                <td className="p-3 text-xs border border-gray-300 text-center font-bold align-middle">0.5</td>
-                            </tr>
-                            <tr>
-                                <td className="p-3 text-xs border border-gray-300 text-center align-middle">
-                                    <span className="px-3 py-1.5 rounded bg-orange-100 text-orange-800 border border-orange-500 font-semibold inline-block">
-                                        ضعيف
-                                    </span>
-                                </td>
-                                <td className="p-3 text-xs border border-gray-300 text-center align-middle">
-                                    <span className="px-3 py-1.5 rounded bg-red-100 text-red-800 border border-red-500 font-semibold inline-block">
-                                        ضعيف جداً
-                                    </span>
-                                </td>
-                                <td className="p-3 text-xs border border-gray-300 text-center align-middle">
-                                    <span className="px-3 py-1.5 rounded bg-red-100 text-red-800 border border-red-500 font-semibold inline-block">
-                                        خطر شديد
-                                    </span>
-                                </td>
-                                <td className="p-3 text-xs border border-gray-300 text-center font-bold align-middle">{'<'}0.50</td>
-                            </tr>
-                        </tbody>
-                    </table>
                 </div>
             </div>
 
