@@ -6,6 +6,7 @@ import { SalesTable } from './SalesTable';
 import { BarChartIcon, BuildingIcon, CalendarIcon, PrintIcon, TrendingUpIcon, DollarSignIcon, ActivityIcon, Loader2Icon, ChevronDownIcon } from '../../../../icons';
 import { useGetBranchesQuery } from '../../../../store/slices/branch/branchApi';
 import { useGetAnnualSalesReportQuery } from '../../../../store/slices/annualSales/annualSalesApiSlice';
+import ReportHeader from '../../ReportHeader';
 
 interface AnnualSalesProps {
   title?: string;
@@ -186,7 +187,7 @@ const AnnualSales: React.FC<AnnualSalesProps> = ({ title }) => {
 
   return (
   <div
-    className="min-h-screen bg-[#f1f5f9] text-slate-800 pb-12 font-sans print:scale-90 print:origin-top print:[max-height:100vh]"
+    className="min-h-screen bg-[#f1f5f9] text-slate-800 pb-12 font-sans print:scale-95 print:origin-top print:[max-height:100vh]"
     dir="rtl"
   >
       {/* Navbar */}
@@ -254,45 +255,69 @@ const AnnualSales: React.FC<AnnualSalesProps> = ({ title }) => {
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8 print:py-4 print:space-y-4">
         
+        {/* Report Header - Company Info - Print Only */}
+        <div className="print:block hidden">
+          <ReportHeader title={title || 'تقرير المبيعات السنوي'} />
+        </div>
+
+        {/* Report Metadata - Print Only */}
+        <div className="px-6 py-4 text-base print:block hidden border-t-2 border-b-2 mt-2 mb-4 bg-gray-50">
+          <div className="flex justify-between items-start">
+            <div className="space-y-2 text-right">
+              <p className="text-lg font-bold text-gray-800">
+                <span className="text-brand-blue">اسم التقرير:</span> {title || 'تقرير المبيعات السنوي'}
+              </p>
+              <p className="text-base text-gray-700">
+                <span className="font-semibold text-gray-800">السنة:</span> {selectedYear}
+              </p>
+            </div>
+            <div className="space-y-2 text-right">
+              <p className="text-base text-gray-700">
+                <span className="font-semibold text-gray-800">التاريخ:</span> {new Date().toLocaleDateString('ar-EG', { year: 'numeric', month: 'long', day: 'numeric' })}
+              </p>
+            </div>
+          </div>
+        </div>
+        
         {/* Top Stats Cards - Colorful & Cheerful */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 print:grid-cols-3 print:gap-4">
           
           {/* Card 1: Total Sales - Blue/Indigo */}
-          <div className="group relative bg-gradient-to-br from-blue-600 to-indigo-700 p-6 rounded-2xl shadow-lg hover:shadow-2xl hover:-translate-y-1 transition-all duration-300 cursor-default overflow-hidden print:bg-white print:border print:border-slate-300 print:shadow-none print:text-black print:p-4">
-            {/* Abstract Shapes */}
-            <div className="absolute top-0 right-0 w-32 h-32 bg-white opacity-10 rounded-full -translate-y-1/2 translate-x-1/2 blur-2xl group-hover:opacity-20 transition-opacity"></div>
+          <div className="group relative bg-gradient-to-br from-blue-600 to-indigo-700 p-6 rounded-2xl shadow-lg hover:shadow-2xl hover:-translate-y-1 transition-all duration-300 cursor-default overflow-hidden print:!bg-white print:border-2 print:border-slate-400 print:shadow-none print:text-black print:p-4 print:rounded-lg print:from-white print:to-white">
+            {/* Abstract Shapes - Hidden in Print */}
+            <div className="absolute top-0 right-0 w-32 h-32 bg-white opacity-10 rounded-full -translate-y-1/2 translate-x-1/2 blur-2xl group-hover:opacity-20 transition-opacity print:hidden"></div>
             
             <div className="flex justify-between items-start mb-4 relative z-10 print:mb-2">
-              <div className="p-3 bg-white/10 backdrop-blur-sm rounded-xl text-white border border-white/10 group-hover:scale-110 transition-transform">
+              <div className="p-3 bg-white/10 backdrop-blur-sm rounded-xl text-white border border-white/10 group-hover:scale-110 transition-transform print:hidden">
                 <DollarSignIcon className="w-6 h-6" />
               </div>
-              <span className="text-xs font-bold text-white/90 bg-white/20 px-2.5 py-1 rounded-lg backdrop-blur-md">YTD</span>
+              <span className="text-xs font-bold text-white/90 bg-white/20 px-2.5 py-1 rounded-lg backdrop-blur-md print:hidden">YTD</span>
             </div>
             <div className="relative z-10">
-              <p className="text-sm font-medium text-blue-100 mb-1 print:text-[11px] print:text-slate-500">
+              <p className="text-sm font-medium text-blue-100 mb-1 print:text-[11px] print:text-slate-700 print:font-semibold">
                 إجمالي المبيعات السنوية
               </p>
-              <h3 className="text-3xl font-extrabold text-white tabular-nums tracking-tight print:text-black print:text-2xl">
+              <h3 className="text-3xl font-extrabold text-white tabular-nums tracking-tight print:text-black print:text-xl print:font-bold">
                 {formatCurrency(totalSales)}
               </h3>
             </div>
           </div>
 
           {/* Card 2: Best Month - Emerald/Teal */}
-          <div className="group relative bg-gradient-to-br from-emerald-500 to-teal-600 p-6 rounded-2xl shadow-lg hover:shadow-2xl hover:-translate-y-1 transition-all duration-300 cursor-default overflow-hidden print:bg-white print:border print:border-slate-300 print:shadow-none print:text-black print:p-4">
-             <div className="absolute bottom-0 left-0 w-24 h-24 bg-white opacity-10 rounded-full translate-y-1/2 -translate-x-1/2 blur-2xl group-hover:opacity-20 transition-opacity"></div>
+          <div className="group relative bg-gradient-to-br from-emerald-500 to-teal-600 p-6 rounded-2xl shadow-lg hover:shadow-2xl hover:-translate-y-1 transition-all duration-300 cursor-default overflow-hidden print:!bg-white print:border-2 print:border-slate-400 print:shadow-none print:text-black print:p-4 print:rounded-lg print:from-white print:to-white">
+             <div className="absolute bottom-0 left-0 w-24 h-24 bg-white opacity-10 rounded-full translate-y-1/2 -translate-x-1/2 blur-2xl group-hover:opacity-20 transition-opacity print:hidden"></div>
 
             <div className="flex justify-between items-start mb-4 relative z-10 print:mb-2">
-              <div className="p-3 bg-white/10 backdrop-blur-sm rounded-xl text-white border border-white/10 group-hover:scale-110 transition-transform">
+              <div className="p-3 bg-white/10 backdrop-blur-sm rounded-xl text-white border border-white/10 group-hover:scale-110 transition-transform print:hidden">
                 <TrendingUpIcon className="w-6 h-6" />
               </div>
             </div>
             <div className="relative z-10">
-              <p className="text-sm font-medium text-emerald-100 mb-1 print:text-[11px] print:text-slate-500">
+              <p className="text-sm font-medium text-emerald-100 mb-1 print:text-[11px] print:text-slate-700 print:font-semibold">
                 الشهر الأفضل أداءً
               </p>
               <div className="flex items-baseline gap-2">
-                <h3 className="text-3xl font-extrabold text-white print:text-black print:text-2xl">
+                <h3 className="text-3xl font-extrabold text-white print:text-black print:text-xl print:font-bold">
                   {bestMonth.monthName}
                 </h3>
               </div>
@@ -300,20 +325,20 @@ const AnnualSales: React.FC<AnnualSalesProps> = ({ title }) => {
           </div>
 
           {/* Card 3: Average - Amber/Orange */}
-          <div className="group relative bg-gradient-to-br from-amber-500 to-orange-600 p-6 rounded-2xl shadow-lg hover:shadow-2xl hover:-translate-y-1 transition-all duration-300 cursor-default overflow-hidden print:bg-white print:border print:border-slate-300 print:shadow-none print:text-black print:p-4">
-             <div className="absolute top-1/2 left-1/2 w-40 h-40 bg-white opacity-10 rounded-full -translate-x-1/2 -translate-y-1/2 blur-3xl group-hover:opacity-20 transition-opacity"></div>
+          <div className="group relative bg-gradient-to-br from-amber-500 to-orange-600 p-6 rounded-2xl shadow-lg hover:shadow-2xl hover:-translate-y-1 transition-all duration-300 cursor-default overflow-hidden print:!bg-white print:border-2 print:border-slate-400 print:shadow-none print:text-black print:p-4 print:rounded-lg print:from-white print:to-white">
+             <div className="absolute top-1/2 left-1/2 w-40 h-40 bg-white opacity-10 rounded-full -translate-x-1/2 -translate-y-1/2 blur-3xl group-hover:opacity-20 transition-opacity print:hidden"></div>
 
             <div className="flex justify-between items-start mb-4 relative z-10 print:mb-2">
-              <div className="p-3 bg-white/10 backdrop-blur-sm rounded-xl text-white border border-white/10 group-hover:scale-110 transition-transform">
+              <div className="p-3 bg-white/10 backdrop-blur-sm rounded-xl text-white border border-white/10 group-hover:scale-110 transition-transform print:hidden">
                 <ActivityIcon className="w-6 h-6" />
               </div>
-              <span className="text-xs font-bold text-white/90 bg-white/20 px-2.5 py-1 rounded-lg backdrop-blur-md">AVG</span>
+              <span className="text-xs font-bold text-white/90 bg-white/20 px-2.5 py-1 rounded-lg backdrop-blur-md print:hidden">AVG</span>
             </div>
             <div className="relative z-10">
-              <p className="text-sm font-medium text-amber-100 mb-1 print:text-[11px] print:text-slate-500">
+              <p className="text-sm font-medium text-amber-100 mb-1 print:text-[11px] print:text-slate-700 print:font-semibold">
                 متوسط المبيعات الشهري
               </p>
-              <h3 className="text-3xl font-extrabold text-white tabular-nums tracking-tight print:text-black print:text-2xl">
+              <h3 className="text-3xl font-extrabold text-white tabular-nums tracking-tight print:text-black print:text-xl print:font-bold">
                  {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'SAR', notation: "compact", maximumFractionDigits: 1 }).format(totalSales / 12)}
               </h3>
             </div>
@@ -333,8 +358,8 @@ const AnnualSales: React.FC<AnnualSalesProps> = ({ title }) => {
 
         {/* Content Grid */}
         <div className="space-y-8">
-          {/* Chart Section */}
-          <section className="print-card break-inside-avoid print:w-full print:[max-width:100%] print:overflow-hidden">
+          {/* Chart Section - Hidden in Print */}
+          <section className="print-card break-inside-avoid print:w-full print:[max-width:100%] print:overflow-hidden print:hidden">
             <SalesChart 
               data={salesData} 
               branches={branches} 
