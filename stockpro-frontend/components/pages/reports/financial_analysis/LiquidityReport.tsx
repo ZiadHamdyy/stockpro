@@ -1983,6 +1983,123 @@ const LiquidityReport: React.FC<LiquidityReportProps> = ({ title }) => {
                 </div>
             </div>
 
+            {/* Rating Scale Table */}
+            <div className="mt-4 mb-4 border rounded-xl overflow-hidden shadow">
+                <div className="bg-gray-100 p-3 border-b">
+                    <h3 className="font-bold text-gray-800 text-sm text-center">جدول تقييم نسب السيولة</h3>
+                </div>
+                <div className="overflow-x-auto">
+                    <table className="w-full text-sm border-collapse" dir="rtl">
+                        <thead>
+                            <tr className="bg-gray-100">
+                                <th className="p-3 text-xs font-bold text-gray-700 border border-gray-300 bg-gray-100"></th>
+                                <th className="p-3 text-xs font-bold text-gray-700 border border-gray-300 bg-gray-100">نسبة النقدية</th>
+                                <th className="p-3 text-xs font-bold text-gray-700 border border-gray-300 bg-gray-100">نسبة السيولة السريعة</th>
+                                <th className="p-3 text-xs font-bold text-gray-700 border border-gray-300 bg-gray-100">نسبة التداول</th>
+                                <th className="p-3 text-xs font-bold text-gray-700 border border-gray-300 bg-gray-100">الرقم المتوقع للنتيجة</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td className="p-3 text-xs border border-gray-300 bg-orange-100 text-center align-middle" rowSpan={5} style={{ verticalAlign: 'middle', width: '100px' }}>
+                                    <div className="flex items-center justify-center h-full" style={{ writingMode: 'vertical-rl', textOrientation: 'mixed' }}>
+                                        <span className="font-semibold">مع تفعيل الألوان الأخرى</span>
+                                    </div>
+                                </td>
+                                <td className="p-3 text-xs border border-gray-300 text-center align-middle">
+                                    <span className="px-3 py-1.5 rounded bg-emerald-100 text-emerald-800 border border-emerald-500 font-semibold inline-block">
+                                        ممتاز جداً - لكن هناك نقد خامل غير مستثمر
+                                    </span>
+                                </td>
+                                <td className="p-3 text-xs border border-gray-300 text-center align-middle">
+                                    <span className="px-3 py-1.5 rounded bg-emerald-100 text-emerald-800 border border-emerald-500 font-semibold inline-block">
+                                        ممتاز جداً
+                                    </span>
+                                </td>
+                                <td className="p-3 text-xs border border-gray-300 text-center align-middle">
+                                    <span className="px-3 py-1.5 rounded bg-emerald-100 text-emerald-800 border border-emerald-500 font-semibold inline-block">
+                                        ممتاز
+                                    </span>
+                                </td>
+                                <td className="p-3 text-xs border border-gray-300 text-center font-bold align-middle">{'>'}2</td>
+                            </tr>
+                            <tr className="bg-gray-50">
+                                <td className="p-3 text-xs border border-gray-300 text-center align-middle">
+                                    <span className="px-3 py-1.5 rounded bg-blue-100 text-blue-800 border border-blue-500 font-semibold inline-block">
+                                        جيد جداً
+                                    </span>
+                                </td>
+                                <td className="p-3 text-xs border border-gray-300 text-center align-middle">
+                                    <span className="px-3 py-1.5 rounded bg-blue-100 text-blue-800 border border-blue-500 font-semibold inline-block">
+                                        جيد جداً
+                                    </span>
+                                </td>
+                                <td className="p-3 text-xs border border-gray-300 text-center align-middle">
+                                    <span className="px-3 py-1.5 rounded bg-blue-100 text-blue-800 border border-blue-500 font-semibold inline-block">
+                                        جيد
+                                    </span>
+                                </td>
+                                <td className="p-3 text-xs border border-gray-300 text-center font-bold align-middle">1.5 : 2</td>
+                            </tr>
+                            <tr>
+                                <td className="p-3 text-xs border border-gray-300 text-center align-middle">
+                                    <span className="px-3 py-1.5 rounded bg-yellow-100 text-yellow-800 border border-yellow-500 font-semibold inline-block">
+                                        جيد
+                                    </span>
+                                </td>
+                                <td className="p-3 text-xs border border-gray-300 text-center align-middle">
+                                    <span className="px-3 py-1.5 rounded bg-yellow-100 text-yellow-800 border border-yellow-500 font-semibold inline-block">
+                                        جيد
+                                    </span>
+                                </td>
+                                <td className="p-3 text-xs border border-gray-300 text-center align-middle">
+                                    <span className="px-3 py-1.5 rounded bg-yellow-100 text-yellow-800 border border-yellow-500 font-semibold inline-block">
+                                        ضعيف
+                                    </span>
+                                </td>
+                                <td className="p-3 text-xs border border-gray-300 text-center font-bold align-middle">1</td>
+                            </tr>
+                            <tr className="bg-gray-50">
+                                <td className="p-3 text-xs border border-gray-300 text-center align-middle">
+                                    <span className="px-3 py-1.5 rounded bg-yellow-100 text-yellow-800 border border-yellow-500 font-semibold inline-block">
+                                        مقبول
+                                    </span>
+                                </td>
+                                <td className="p-3 text-xs border border-gray-300 text-center align-middle">
+                                    <span className="px-3 py-1.5 rounded bg-orange-100 text-orange-800 border border-orange-500 font-semibold inline-block">
+                                        ضعيف
+                                    </span>
+                                </td>
+                                <td className="p-3 text-xs border border-gray-300 text-center align-middle">
+                                    <span className="px-3 py-1.5 rounded bg-red-100 text-red-800 border border-red-500 font-semibold inline-block">
+                                        خطر شديد
+                                    </span>
+                                </td>
+                                <td className="p-3 text-xs border border-gray-300 text-center font-bold align-middle">0.5</td>
+                            </tr>
+                            <tr>
+                                <td className="p-3 text-xs border border-gray-300 text-center align-middle">
+                                    <span className="px-3 py-1.5 rounded bg-orange-100 text-orange-800 border border-orange-500 font-semibold inline-block">
+                                        ضعيف
+                                    </span>
+                                </td>
+                                <td className="p-3 text-xs border border-gray-300 text-center align-middle">
+                                    <span className="px-3 py-1.5 rounded bg-red-100 text-red-800 border border-red-500 font-semibold inline-block">
+                                        ضعيف جداً
+                                    </span>
+                                </td>
+                                <td className="p-3 text-xs border border-gray-300 text-center align-middle">
+                                    <span className="px-3 py-1.5 rounded bg-red-100 text-red-800 border border-red-500 font-semibold inline-block">
+                                        خطر شديد
+                                    </span>
+                                </td>
+                                <td className="p-3 text-xs border border-gray-300 text-center font-bold align-middle">{'<'}0.50</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
             {/* Detailed Breakdown */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                 <div className="border rounded-xl overflow-hidden">
