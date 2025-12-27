@@ -1620,8 +1620,8 @@ const BalanceSheet: React.FC = () => {
               </tr>
               <tr>
                 <Td> الأرباح ( الخسائر ) المبقاة</Td>
-                <Td className={`font-mono text-left ${getNegativeNumberClass(calculatedNetProfit)}`}>
-                  {formatNumber(calculatedNetProfit)}
+                <Td className={`font-mono text-left ${getNegativeNumberClass(displayData.retainedEarnings)}`}>
+                  {formatNumber(displayData.retainedEarnings)}
                 </Td>
               </tr>
               <tr className="font-bold bg-green-100 text-green-800">
