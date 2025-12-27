@@ -203,7 +203,8 @@ const CustomerBalanceReport: React.FC<CustomerBalanceReportProps> = ({
     branchesLoading ||
     receiptVouchersLoading ||
     paymentVouchersLoading;
-  const { end: defaultEndDate } = getCurrentYearRange();
+  const { start: defaultStartDate, end: defaultEndDate } = getCurrentYearRange();
+  const [startDate, setStartDate] = useState(defaultStartDate);
   const [endDate, setEndDate] = useState(defaultEndDate);
   const [reportData, setReportData] = useState<any[]>([]);
   const [hideZeroBalance, setHideZeroBalance] = useState(false);
@@ -218,82 +219,156 @@ const CustomerBalanceReport: React.FC<CustomerBalanceReportProps> = ({
       const customerIdStr = customer.id.toString();
       const customerId = customer.id;
 
-      const totalSales = salesInvoices
+      // Calculate opening balance up to start date
+      const openingSales = salesInvoices
         .filter(
           (inv) => {
             const invDate = normalizeDate(inv.date);
             const invCustomerId = inv.customerOrSupplier?.id || inv.customerId?.toString() || (inv.customer?.id?.toString());
-            return (invCustomerId === customerIdStr || invCustomerId == customerId) && invDate <= endDate;
+            return (invCustomerId === customerIdStr || invCustomerId == customerId) && invDate < startDate;
           }
         )
         .reduce((sum, inv) => sum + (inv.totals?.net || inv.net || 0), 0);
 
-      const totalReturns = salesReturns
+      const openingReturns = salesReturns
         .filter(
           (inv) => {
             const invDate = normalizeDate(inv.date);
             const invCustomerId = inv.customerOrSupplier?.id || inv.customerId?.toString() || (inv.customer?.id?.toString());
-            return (invCustomerId === customerIdStr || invCustomerId == customerId) && invDate <= endDate;
+            return (invCustomerId === customerIdStr || invCustomerId == customerId) && invDate < startDate;
           }
         )
         .reduce((sum, inv) => sum + (inv.totals?.net || inv.net || 0), 0);
 
-      // Cash sales returns are counted in both debit and credit (like cash invoices)
-      const totalCashReturns = salesReturns
+      const openingCashReturns = salesReturns
         .filter(
           (inv) => {
             const invDate = normalizeDate(inv.date);
             const invCustomerId = inv.customerOrSupplier?.id || inv.customerId?.toString() || (inv.customer?.id?.toString());
             return inv.paymentMethod === "cash" &&
               (invCustomerId === customerIdStr || invCustomerId == customerId) &&
-              invDate <= endDate;
+              invDate < startDate;
           }
         )
         .reduce((sum, inv) => sum + toNumber(inv.totals?.net || inv.net || 0), 0);
 
-      // Cash invoices are already paid, so they should reduce receivables (credit)
-      const totalCashInvoices = salesInvoices
+      const openingCashInvoices = salesInvoices
         .filter(
           (inv) => {
             const invDate = normalizeDate(inv.date);
             const invCustomerId = inv.customerOrSupplier?.id || inv.customerId?.toString() || (inv.customer?.id?.toString());
             return inv.paymentMethod === "cash" &&
               (invCustomerId === customerIdStr || invCustomerId == customerId) &&
-              invDate <= endDate;
+              invDate < startDate;
           }
         )
         .reduce((sum, inv) => sum + toNumber(inv.totals?.net || inv.net || 0), 0);
 
-      const totalReceipts = receiptVouchers
+      const openingReceipts = receiptVouchers
         .filter(
           (v) => {
             const vDate = normalizeDate(v.date);
             const voucherCustomerId = v.entity?.id?.toString() || v.entity?.id;
             return v.entity?.type === "customer" &&
               (voucherCustomerId === customerIdStr || voucherCustomerId == customerId) &&
-              vDate <= endDate;
+              vDate < startDate;
           }
         )
         .reduce((sum, v) => sum + v.amount, 0);
 
-      const totalPayments = paymentVouchers // Refunds to customer
+      const openingPayments = paymentVouchers
         .filter(
           (v) => {
             const vDate = normalizeDate(v.date);
             const voucherCustomerId = v.entity?.id?.toString() || v.entity?.id;
             return v.entity?.type === "customer" &&
               (voucherCustomerId === customerIdStr || voucherCustomerId == customerId) &&
-              vDate <= endDate;
+              vDate < startDate;
           }
         )
         .reduce((sum, v) => sum + v.amount, 0);
 
-      const opening = customer.openingBalance;
-      // Total Debit: all sales invoices, cash sales returns, payment vouchers (all increase what customer owes)
-      const totalDebit = totalSales + totalCashReturns + totalPayments;
-      // Total Credit: cash sales invoices, all sales returns, receipt vouchers (all decrease what customer owes)
-      const totalCredit = totalCashInvoices + totalReturns + totalReceipts;
-      // Balance = Beginning Balance + Total Debit - Total Credit
+      // Opening balance = customer.openingBalance + openingDebit - openingCredit
+      const openingDebit = openingSales + openingCashReturns + openingPayments;
+      const openingCredit = openingCashInvoices + openingReturns + openingReceipts;
+      const opening = customer.openingBalance + openingDebit - openingCredit;
+
+      // Calculate period transactions (between start and end date)
+      const periodSales = salesInvoices
+        .filter(
+          (inv) => {
+            const invDate = normalizeDate(inv.date);
+            const invCustomerId = inv.customerOrSupplier?.id || inv.customerId?.toString() || (inv.customer?.id?.toString());
+            return (invCustomerId === customerIdStr || invCustomerId == customerId) && 
+              invDate >= startDate && invDate <= endDate;
+          }
+        )
+        .reduce((sum, inv) => sum + (inv.totals?.net || inv.net || 0), 0);
+
+      const periodReturns = salesReturns
+        .filter(
+          (inv) => {
+            const invDate = normalizeDate(inv.date);
+            const invCustomerId = inv.customerOrSupplier?.id || inv.customerId?.toString() || (inv.customer?.id?.toString());
+            return (invCustomerId === customerIdStr || invCustomerId == customerId) && 
+              invDate >= startDate && invDate <= endDate;
+          }
+        )
+        .reduce((sum, inv) => sum + (inv.totals?.net || inv.net || 0), 0);
+
+      const periodCashReturns = salesReturns
+        .filter(
+          (inv) => {
+            const invDate = normalizeDate(inv.date);
+            const invCustomerId = inv.customerOrSupplier?.id || inv.customerId?.toString() || (inv.customer?.id?.toString());
+            return inv.paymentMethod === "cash" &&
+              (invCustomerId === customerIdStr || invCustomerId == customerId) &&
+              invDate >= startDate && invDate <= endDate;
+          }
+        )
+        .reduce((sum, inv) => sum + toNumber(inv.totals?.net || inv.net || 0), 0);
+
+      const periodCashInvoices = salesInvoices
+        .filter(
+          (inv) => {
+            const invDate = normalizeDate(inv.date);
+            const invCustomerId = inv.customerOrSupplier?.id || inv.customerId?.toString() || (inv.customer?.id?.toString());
+            return inv.paymentMethod === "cash" &&
+              (invCustomerId === customerIdStr || invCustomerId == customerId) &&
+              invDate >= startDate && invDate <= endDate;
+          }
+        )
+        .reduce((sum, inv) => sum + toNumber(inv.totals?.net || inv.net || 0), 0);
+
+      const periodReceipts = receiptVouchers
+        .filter(
+          (v) => {
+            const vDate = normalizeDate(v.date);
+            const voucherCustomerId = v.entity?.id?.toString() || v.entity?.id;
+            return v.entity?.type === "customer" &&
+              (voucherCustomerId === customerIdStr || voucherCustomerId == customerId) &&
+              vDate >= startDate && vDate <= endDate;
+          }
+        )
+        .reduce((sum, v) => sum + v.amount, 0);
+
+      const periodPayments = paymentVouchers
+        .filter(
+          (v) => {
+            const vDate = normalizeDate(v.date);
+            const voucherCustomerId = v.entity?.id?.toString() || v.entity?.id;
+            return v.entity?.type === "customer" &&
+              (voucherCustomerId === customerIdStr || voucherCustomerId == customerId) &&
+              vDate >= startDate && vDate <= endDate;
+          }
+        )
+        .reduce((sum, v) => sum + v.amount, 0);
+
+      // Period Debit: all sales invoices, cash sales returns, payment vouchers (all increase what customer owes)
+      const totalDebit = periodSales + periodCashReturns + periodPayments;
+      // Period Credit: cash sales invoices, all sales returns, receipt vouchers (all decrease what customer owes)
+      const totalCredit = periodCashInvoices + periodReturns + periodReceipts;
+      // Balance = Opening Balance (at start date) + Period Debit - Period Credit
       const balance = opening + totalDebit - totalCredit;
 
       return {
@@ -313,6 +388,7 @@ const CustomerBalanceReport: React.FC<CustomerBalanceReportProps> = ({
     salesReturns,
     receiptVouchers,
     paymentVouchers,
+    startDate,
     endDate,
     normalizeDate,
   ]);
@@ -417,7 +493,10 @@ const CustomerBalanceReport: React.FC<CustomerBalanceReportProps> = ({
         <div className="px-6 py-4 text-base print:block hidden border-t-2 border-b-2 mt-2 mb-4 bg-gray-50">
           <div className="space-y-2 text-right">
             <p className="text-base text-gray-700">
-              <span className="font-semibold text-gray-800">التاريخ:</span> {new Date().toLocaleDateString('ar-EG', { year: 'numeric', month: 'long', day: 'numeric' })}
+              <span className="font-semibold text-gray-800">تاريخ التقرير:</span> {new Date().toLocaleDateString('ar-EG', { year: 'numeric', month: 'long', day: 'numeric' })}
+            </p>
+            <p className="text-base text-gray-700">
+              <span className="font-semibold text-gray-800">الفترة:</span> من {new Date(startDate).toLocaleDateString('ar-EG', { year: 'numeric', month: 'long', day: 'numeric' })} إلى {new Date(endDate).toLocaleDateString('ar-EG', { year: 'numeric', month: 'long', day: 'numeric' })}
             </p>
           </div>
         </div>
@@ -433,6 +512,13 @@ const CustomerBalanceReport: React.FC<CustomerBalanceReportProps> = ({
                 </option>
               ))}
             </select>
+            <label className="font-semibold">من تاريخ:</label>
+            <input
+              type="date"
+              className={inputStyle}
+              value={startDate}
+              onChange={(e) => setStartDate(e.target.value)}
+            />
             <label className="font-semibold">الرصيد حتى تاريخ:</label>
             <input
               type="date"
