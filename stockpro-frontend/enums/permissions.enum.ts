@@ -134,6 +134,7 @@ export enum Resources {
   FINAL_ACCOUNTS = "final_accounts",
   INCOME_STATEMENT = "income_statement",
   BALANCE_SHEET = "balance_sheet",
+  AUDIT_TRAIL = "audit_trail",
 }
 
 /**

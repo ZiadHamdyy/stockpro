@@ -9,9 +9,12 @@ export class AppService {
     return 'Hello World!';
   }
 
-  async getDashboardStats() {
+  async getDashboardStats(companyId: string) {
     // Calculate total sales invoices net amount
     const salesAggregate = await this.prisma.salesInvoice.aggregate({
+      where: {
+        companyId,
+      },
       _sum: {
         net: true,
       },
@@ -19,6 +22,9 @@ export class AppService {
 
     // Calculate total sales returns net amount
     const returnsAggregate = await this.prisma.salesReturn.aggregate({
+      where: {
+        companyId,
+      },
       _sum: {
         net: true,
       },
@@ -26,16 +32,27 @@ export class AppService {
 
     // Calculate total purchase invoices net amount
     const purchasesAggregate = await this.prisma.purchaseInvoice.aggregate({
+      where: {
+        companyId,
+      },
       _sum: {
         net: true,
       },
     });
 
     // Count total items
-    const totalItems = await this.prisma.item.count();
+    const totalItems = await this.prisma.item.count({
+      where: {
+        companyId,
+      },
+    });
 
     // Count total customers
-    const totalCustomers = await this.prisma.customer.count();
+    const totalCustomers = await this.prisma.customer.count({
+      where: {
+        companyId,
+      },
+    });
 
     const totalSales = salesAggregate._sum.net || 0;
     const totalReturns = returnsAggregate._sum.net || 0;
@@ -52,7 +69,7 @@ export class AppService {
     };
   }
 
-  async getMonthlyStats() {
+  async getMonthlyStats(companyId: string) {
     const currentYear = new Date().getFullYear();
     const startDate = new Date(`${currentYear}-01-01`);
     const endDate = new Date(`${currentYear + 1}-01-01`);
@@ -60,6 +77,7 @@ export class AppService {
     // Get all sales invoices for the current year
     const salesInvoices = await this.prisma.salesInvoice.findMany({
       where: {
+        companyId,
         date: {
           gte: startDate,
           lt: endDate,
@@ -74,6 +92,7 @@ export class AppService {
     // Get all sales returns for the current year
     const salesReturns = await this.prisma.salesReturn.findMany({
       where: {
+        companyId,
         date: {
           gte: startDate,
           lt: endDate,
@@ -88,6 +107,7 @@ export class AppService {
     // Get all purchase invoices for the current year
     const purchaseInvoices = await this.prisma.purchaseInvoice.findMany({
       where: {
+        companyId,
         date: {
           gte: startDate,
           lt: endDate,
@@ -102,6 +122,7 @@ export class AppService {
     // Get all purchase returns for the current year
     const purchaseReturns = await this.prisma.purchaseReturn.findMany({
       where: {
+        companyId,
         date: {
           gte: startDate,
           lt: endDate,
@@ -149,9 +170,12 @@ export class AppService {
     };
   }
 
-  async getSalesByItemGroup() {
+  async getSalesByItemGroup(companyId: string) {
     // Get all sales invoices
     const salesInvoices = await this.prisma.salesInvoice.findMany({
+      where: {
+        companyId,
+      },
       select: {
         items: true,
       },
@@ -159,6 +183,9 @@ export class AppService {
 
     // Get all items to map item codes to group IDs
     const items = await this.prisma.item.findMany({
+      where: {
+        companyId,
+      },
       select: {
         code: true,
         groupId: true,
@@ -187,6 +214,9 @@ export class AppService {
 
     // Get item group names
     const itemGroups = await this.prisma.itemGroup.findMany({
+      where: {
+        companyId,
+      },
       select: {
         id: true,
         name: true,

@@ -15,20 +15,20 @@ export class AppController {
 
   @Get('dashboard/stats')
   @UseGuards(JwtAuthenticationGuard)
-  async getDashboardStats() {
-    return this.appService.getDashboardStats();
+  async getDashboardStats(@currentCompany('id') companyId: string) {
+    return this.appService.getDashboardStats(companyId);
   }
 
   @Get('dashboard/monthly-stats')
   @UseGuards(JwtAuthenticationGuard)
-  async getMonthlyStats() {
-    return this.appService.getMonthlyStats();
+  async getMonthlyStats(@currentCompany('id') companyId: string) {
+    return this.appService.getMonthlyStats(companyId);
   }
 
   @Get('dashboard/sales-by-item-group')
   @UseGuards(JwtAuthenticationGuard)
-  async getSalesByItemGroup() {
-    return this.appService.getSalesByItemGroup();
+  async getSalesByItemGroup(@currentCompany('id') companyId: string) {
+    return this.appService.getSalesByItemGroup(companyId);
   }
 
   @Get('annual-sales-report')

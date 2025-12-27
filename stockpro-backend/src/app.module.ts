@@ -44,6 +44,7 @@ import { IncomeStatementModule } from './modules/income-statement/income-stateme
 import { ReceivableAccountModule } from './modules/receivable-account/receivable-account.module';
 import { PayableAccountModule } from './modules/payable-account/payable-account.module';
 import { BalanceSheetModule } from './modules/balance-sheet/balance-sheet.module';
+import { AuditTrialModule } from './modules/audit-trial/audit-trial.module';
 import { BackupModule } from './modules/backup/backup.module';
 import { ReportPdfModule } from './modules/report-pdf/report-pdf.module.js';
 import { PriceQuotationModule } from './modules/price-quotation/price-quotation.module';
@@ -92,6 +93,7 @@ import { ZatcaModule } from './modules/zatca/zatca.module';
     InternalTransferModule,
     IncomeStatementModule,
     BalanceSheetModule,
+    AuditTrialModule,
     BackupModule,
     ReportPdfModule,
     ReceivableAccountModule,

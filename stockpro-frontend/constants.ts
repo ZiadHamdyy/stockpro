@@ -500,6 +500,11 @@ export const MENU_ITEMS: MenuItem[] = [
         label: "قائمة المركز المالي",
         icon: BookOpenCheckIcon,
       },
+      {
+        key: "audit_trail",
+        label: "ميزان المراجعة",
+        icon: ListIcon,
+      },
     ],
   },
   { key: "help_center", label: "مركز المساعدة", icon: HelpIcon },

@@ -268,6 +268,7 @@ const MENU_ITEMS: MenuItem[] = [
     children: [
       { key: 'income_statement', label: 'قائمة الدخل' },
       { key: 'balance_sheet', label: 'قائمة المركز المالي' },
+      { key: 'audit_trail', label: 'ميزان المراجعة' },
     ],
   },
   {

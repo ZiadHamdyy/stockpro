@@ -139,6 +139,7 @@ export const getPathFromMenuKey = (key: string): string => {
     // Final Accounts
     income_statement: "/final-accounts/income-statement",
     balance_sheet: "/final-accounts/balance-sheet",
+    audit_trail: "/final-accounts/audit-trial",
   };
 
   return pathMap[key] || "/dashboard";
@@ -241,6 +242,7 @@ export const getMenuKeyFromPath = (path: string): string => {
     "/reports/financials/tax-declaration": "tax_declaration_report",
     "/final-accounts/income-statement": "income_statement",
     "/final-accounts/balance-sheet": "balance_sheet",
+    "/final-accounts/audit-trial": "audit_trail",
   };
 
   return pathToKeyMap[path] || "";

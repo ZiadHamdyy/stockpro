@@ -77,6 +77,7 @@ import TaxDeclarationReport from "../components/pages/reports/financials/TaxDecl
 import VATStatementReport from "../components/pages/reports/financials/VATStatementReport";
 import IncomeStatement from "../components/pages/final_accounts/IncomeStatement";
 import BalanceSheet from "../components/pages/final_accounts/BalanceSheet";
+import AuditTrial from "../components/pages/final_accounts/AuditTrial";
 import ZatcaInvoiceUpload from "../components/pages/zatca/ZatcaInvoiceUpload";
 // Note: You can also use enums: import { Resources, Actions, buildPermission } from '../enums/permissions.enum';
 
@@ -643,6 +644,12 @@ export const routeConfig = [
     component: BalanceSheet,
     requiredPermission: "balance_sheet-read",
     label: "قائمة المركز المالي",
+  },
+  {
+    path: "/final-accounts/audit-trial",
+    component: AuditTrial,
+    requiredPermission: "audit_trail-read",
+    label: "ميزان المراجعة",
   },
 ];
 

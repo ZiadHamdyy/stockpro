@@ -105,6 +105,7 @@ import TaxDeclarationReport from "./components/pages/reports/financials/TaxDecla
 import VATStatementReport from "./components/pages/reports/financials/VATStatementReport";
 import IncomeStatement from "./components/pages/final_accounts/IncomeStatement";
 import BalanceSheet from "./components/pages/final_accounts/BalanceSheet";
+import AuditTrial from "./components/pages/final_accounts/AuditTrial";
 import PrintSettingsPage from "./components/pages/settings/PrintSettings";
 import HelpCenter from "./components/pages/support/HelpCenter";
 import Subscription from "./components/pages/subscription/Subscription";
@@ -1829,6 +1830,14 @@ const AppContent = () => {
               element={
                 <ProtectedRoute requiredPermission="balance_sheet-read">
                   <BalanceSheet />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/final-accounts/audit-trial"
+              element={
+                <ProtectedRoute requiredPermission="audit_trail-read">
+                  <AuditTrial />
                 </ProtectedRoute>
               }
             />
