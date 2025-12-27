@@ -202,6 +202,64 @@ const VATStatementReport: React.FC<VATStatementReportProps> = ({ title, companyI
         };
     }, []);
 
+    // Calculate opening balance based on transactions before start date
+    const openingBalance = useMemo(() => {
+        const normalizedStartDate = normalizeDate(startDate);
+        
+        const filterByBranch = (inv: Invoice) => selectedBranch === 'all' || inv.branchName === selectedBranch;
+        const filterBeforeStartDate = (inv: Invoice) => {
+            const invDate = normalizeDate(inv.date);
+            return invDate < normalizedStartDate;
+        };
+        const filterVoucherByBranch = (v: PaymentVoucher & { branchName?: string }) => 
+            selectedBranch === 'all' || v.branchName === selectedBranch;
+        const filterVoucherBeforeStartDate = (v: PaymentVoucher) => {
+            const vDate = normalizeDate(v.date);
+            return vDate < normalizedStartDate;
+        };
+        const filterReceiptVoucherByBranch = (v: ReceiptVoucher & { branchName?: string }) => 
+            selectedBranch === 'all' || v.branchName === selectedBranch;
+        const filterReceiptVoucherBeforeStartDate = (v: ReceiptVoucher) => {
+            const vDate = normalizeDate(v.date);
+            return vDate < normalizedStartDate;
+        };
+
+        // Calculate debit (VAT collected) before start date
+        const debitBefore = 
+            // Sales Invoices tax
+            salesInvoices.filter(filterBeforeStartDate).filter(filterByBranch).reduce((sum, inv) => sum + (inv.tax || 0), 0) +
+            // Purchase Returns tax
+            purchaseReturns.filter(filterBeforeStartDate).filter(filterByBranch).reduce((sum, inv) => sum + (inv.tax || 0), 0) +
+            // VAT from Receipt Vouchers
+            receiptVouchers
+                .filter(v => v.entityType === 'vat' && v.amount && v.amount > 0)
+                .filter(filterReceiptVoucherBeforeStartDate)
+                .filter(filterReceiptVoucherByBranch)
+                .reduce((sum, v) => sum + (v.amount || 0), 0);
+
+        // Calculate credit (VAT paid) before start date
+        const creditBefore = 
+            // Purchase Invoices tax
+            purchaseInvoices.filter(filterBeforeStartDate).filter(filterByBranch).reduce((sum, inv) => sum + (inv.tax || 0), 0) +
+            // Sales Returns tax
+            salesReturns.filter(filterBeforeStartDate).filter(filterByBranch).reduce((sum, inv) => sum + (inv.tax || 0), 0) +
+            // Expense-Type Tax from Payment Vouchers
+            paymentVouchers
+                .filter(v => v.entityType === 'expense-Type' && v.taxPrice && v.taxPrice > 0)
+                .filter(filterVoucherBeforeStartDate)
+                .filter(filterVoucherByBranch)
+                .reduce((sum, v) => sum + (v.taxPrice || 0), 0) +
+            // VAT from Payment Vouchers
+            paymentVouchers
+                .filter(v => v.entityType === 'vat' && v.amount && v.amount > 0)
+                .filter(filterVoucherBeforeStartDate)
+                .filter(filterVoucherByBranch)
+                .reduce((sum, v) => sum + (v.amount || 0), 0);
+
+        // Opening balance = Credit - Debit (positive means we owe VAT, negative means we're owed VAT)
+        return creditBefore - debitBefore;
+    }, [selectedBranch, startDate, salesInvoices, salesReturns, purchaseInvoices, purchaseReturns, paymentVouchers, receiptVouchers, normalizeDate]);
+
     const handleViewReport = useCallback(() => {
         const normalizedStartDate = normalizeDate(startDate);
         const normalizedEndDate = normalizeDate(endDate);
@@ -337,8 +395,8 @@ const VATStatementReport: React.FC<VATStatementReportProps> = ({ title, companyI
         // Sort by date
         transactions.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 
-        // Calculate running balance
-        let balance = 0;
+        // Calculate running balance starting from opening balance
+        let balance = openingBalance;
         const finalData = transactions.map(t => {
             if (t.type === 'credit') balance += t.tax;
             else balance -= t.tax;
@@ -347,7 +405,7 @@ const VATStatementReport: React.FC<VATStatementReportProps> = ({ title, companyI
         });
 
         setReportData(finalData);
-    }, [selectedBranch, startDate, endDate, salesInvoices, salesReturns, purchaseInvoices, purchaseReturns, paymentVouchers, receiptVouchers, normalizeDate]);
+    }, [selectedBranch, startDate, endDate, salesInvoices, salesReturns, purchaseInvoices, purchaseReturns, paymentVouchers, receiptVouchers, openingBalance, normalizeDate]);
     
     useEffect(() => {
         handleViewReport();
@@ -355,7 +413,7 @@ const VATStatementReport: React.FC<VATStatementReportProps> = ({ title, companyI
 
     const totalDebit = reportData.filter(d => d.type === 'debit').reduce((sum, d) => sum + d.tax, 0);
     const totalCredit = reportData.filter(d => d.type === 'credit').reduce((sum, d) => sum + d.tax, 0);
-    const netTax = totalCredit - totalDebit;
+    const netTax = openingBalance + totalCredit - totalDebit;
 
     const handlePrint = () => {
         const reportContent = document.getElementById("printable-area");
@@ -592,6 +650,14 @@ const VATStatementReport: React.FC<VATStatementReportProps> = ({ title, companyI
                             </tr>
                         </thead>
                         <tbody className="bg-white divide-y divide-gray-200">
+                            <tr className="bg-gray-50">
+                                <td colSpan={5} className="px-6 py-3">
+                                    رصيد أول المدة
+                                </td>
+                                <td className={`px-6 py-3 ${getNegativeNumberClass(openingBalance)}`}>
+                                    {formatNumber(openingBalance)}
+                                </td>
+                            </tr>
                             {reportData.map((row, i) => (
                                 <tr key={i} className="hover:bg-brand-blue-bg">
                                     <td className="px-6 py-4 w-36">{row.date.substring(0, 10)}</td>
