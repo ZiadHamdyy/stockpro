@@ -77,6 +77,7 @@ import TaxDeclarationReport from "../components/pages/reports/financials/TaxDecl
 import VATStatementReport from "../components/pages/reports/financials/VATStatementReport";
 import IncomeStatement from "../components/pages/final_accounts/IncomeStatement";
 import BalanceSheet from "../components/pages/final_accounts/BalanceSheet";
+import ZatcaInvoiceUpload from "../components/pages/zatca/ZatcaInvoiceUpload";
 // Note: You can also use enums: import { Resources, Actions, buildPermission } from '../enums/permissions.enum';
 
 /**
@@ -157,6 +158,14 @@ export const routeConfig = [
     component: FinancialSystem,
     requiredPermission: "financial_system-read",
     label: "إعدادات النظام المالي",
+  },
+
+  // ZATCA
+  {
+    path: "/zatca/upload",
+    component: ZatcaInvoiceUpload,
+    requiredPermission: "zatca_upload-read",
+    label: "رفع الفواتير (ZATCA)",
   },
 
   // Items
