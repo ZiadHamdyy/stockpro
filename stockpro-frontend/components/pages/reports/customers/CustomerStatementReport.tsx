@@ -215,7 +215,6 @@ const CustomerStatementReport: React.FC<CustomerStatementReportProps> = ({
   const customerRef = useRef<HTMLDivElement>(null);
 
   const [reportData, setReportData] = useState<any[]>([]);
-  const [openingBalance, setOpeningBalance] = useState(0);
 
   const filteredCustomers = customerQuery
     ? customers.filter((c) =>
@@ -229,48 +228,11 @@ const CustomerStatementReport: React.FC<CustomerStatementReportProps> = ({
   );
   const selectedCustomerName = selectedCustomer?.name || "غير محدد";
 
-  const handleSelectCustomer = (customer: any) => {
-    setSelectedCustomerId(customer.id.toString());
-    setCustomerQuery(customer.name);
-    setIsCustomerDropdownOpen(false);
-  };
-
-  // Update customer query when selected customer changes (only if customer is selected and query doesn't match)
-  useEffect(() => {
-    if (selectedCustomer) {
-      const expectedQuery = selectedCustomer.name;
-      // Only update if the current query doesn't match the selected customer
-      // This prevents overwriting user input when they're typing
-      if (customerQuery !== expectedQuery) {
-        setCustomerQuery(expectedQuery);
-      }
-    }
-  }, [selectedCustomer, customerQuery]);
-
-  // Close dropdown when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (customerRef.current && !customerRef.current.contains(event.target as Node)) {
-        setIsCustomerDropdownOpen(false);
-      }
-    };
-
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
-  }, []);
-
-  const handleViewReport = useCallback(() => {
-    if (!selectedCustomer) {
-      setReportData([]);
-      setOpeningBalance(0);
-      return;
-    }
-
+  // Calculate opening balance based on transactions before start date
+  const openingBalance = useMemo(() => {
+    if (!selectedCustomer) return 0;
+    
     const normalizedStartDate = normalizeDate(startDate);
-    const normalizedEndDate = normalizeDate(endDate);
-
     const customerId = selectedCustomer.id;
     const customerIdStr = customerId.toString();
 
@@ -322,13 +284,53 @@ const CustomerStatementReport: React.FC<CustomerStatementReportProps> = ({
       )
       .reduce((sum, v) => sum + v.amount, 0);
 
-    const currentOpeningBalance =
-      selectedCustomer.openingBalance +
-      salesBefore +
-      paymentsBefore -
-      returnsBefore -
-      receiptsBefore;
-    setOpeningBalance(currentOpeningBalance);
+    // Opening balance = base opening balance + sales (debit) + payments (refunds, debit) - returns (credit) - receipts (credit)
+    return (selectedCustomer.openingBalance || 0) + salesBefore + paymentsBefore - returnsBefore - receiptsBefore;
+  }, [selectedCustomer, salesInvoices, salesReturns, receiptVouchers, paymentVouchers, startDate, normalizeDate]);
+
+  const handleSelectCustomer = (customer: any) => {
+    setSelectedCustomerId(customer.id.toString());
+    setCustomerQuery(customer.name);
+    setIsCustomerDropdownOpen(false);
+  };
+
+  // Update customer query when selected customer changes (only if customer is selected and query doesn't match)
+  useEffect(() => {
+    if (selectedCustomer) {
+      const expectedQuery = selectedCustomer.name;
+      // Only update if the current query doesn't match the selected customer
+      // This prevents overwriting user input when they're typing
+      if (customerQuery !== expectedQuery) {
+        setCustomerQuery(expectedQuery);
+      }
+    }
+  }, [selectedCustomer, customerQuery]);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (customerRef.current && !customerRef.current.contains(event.target as Node)) {
+        setIsCustomerDropdownOpen(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
+
+  const handleViewReport = useCallback(() => {
+    if (!selectedCustomer) {
+      setReportData([]);
+      return;
+    }
+
+    const normalizedStartDate = normalizeDate(startDate);
+    const normalizedEndDate = normalizeDate(endDate);
+
+    const customerId = selectedCustomer.id;
+    const customerIdStr = customerId.toString();
 
     const transactions: {
       date: string;
@@ -450,7 +452,8 @@ const CustomerStatementReport: React.FC<CustomerStatementReportProps> = ({
       return dateA - dateB;
     });
 
-    let balance = currentOpeningBalance;
+    // Calculate running balance starting from opening balance
+    let balance = openingBalance;
     const finalData = transactions.map((t) => {
       balance = balance + t.debit - t.credit;
       return { ...t, balance };
@@ -464,6 +467,7 @@ const CustomerStatementReport: React.FC<CustomerStatementReportProps> = ({
     paymentVouchers,
     startDate,
     endDate,
+    openingBalance,
     normalizeDate,
   ]);
 
