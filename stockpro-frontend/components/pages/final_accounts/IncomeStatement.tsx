@@ -61,6 +61,16 @@ const IncomeStatement: React.FC = () => {
     });
   }, []);
 
+  // Format date from YYYY-MM-DD to DD-MM-YYYY
+  const formatDateForDisplay = useCallback((dateString: string): string => {
+    if (!dateString) return "";
+    const parts = dateString.split("-");
+    if (parts.length === 3) {
+      return `${parts[2]}-${parts[1]}-${parts[0]}`;
+    }
+    return dateString;
+  }, []);
+
   // Fetch expense types to display dynamically
   const { data: expenseTypes = [] } = useGetExpenseTypesQuery();
 
@@ -742,12 +752,12 @@ const IncomeStatement: React.FC = () => {
         <ReportHeader title={title} />
         
         <div className="mb-4 text-sm print:mb-2 hidden print:block">
-          <p className="flex justify-between items-center gap-4 flex-wrap text-lg font-semibold text-brand-dark">
+          <p className="flex justify-between items-center gap-4 flex-wrap text-sm font-semibold text-brand-dark">
             <span>
-              الفترة من {startDate} إلى {endDate}
+              الفترة من {formatDateForDisplay(startDate)} إلى {formatDateForDisplay(endDate)}
             </span>
             <span>
-              <strong>تاريخ الطباعة:</strong> {currentDate}
+              {currentDate}
             </span>
             {currentUser && (
               <span>
