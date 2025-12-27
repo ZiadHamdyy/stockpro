@@ -85,27 +85,20 @@ const SalesReturn: React.FC<SalesReturnProps> = ({
     if (branch && typeof branch === "object") return branch.id || null;
     return null;
   };
-  
-  // Helper to get a displayable SAFE name (not branch) for the current or saved return
-  const getDisplaySafeName = (
-    ret: any | null,
-    user: User | null,
-    allSafes: Safe[],
-  ): string => {
-    // Resolve a branchId from the return (if existing) or fall back to user's branch
-    const resolveBranchIdFromReturn = (r: any): string | null => {
-      if (!r) return null;
-      return r.branch?.id || r.branchId || null;
-    };
 
-    const branchIdFromReturn = resolveBranchIdFromReturn(ret);
-    const branchIdFromUser = getUserBranchId(user);
-    const branchId = branchIdFromReturn || branchIdFromUser;
-    if (!branchId) return "";
+  const extractBranchName = (value: any): string => {
+    if (!value) return "";
+    if (typeof value === "string") return value;
+    if (typeof value === "object") {
+      return value.name || value.title || "";
+    }
+    return "";
+  };
 
-    // Find the first safe for that branch (this is considered the "current" safe)
-    const safeForBranch = allSafes.find((s) => s.branchId === branchId);
-    return safeForBranch?.name || "";
+  const getUserBranchName = (user: User | null): string => {
+    if (!user) return "";
+    if ((user as any)?.branchName) return (user as any).branchName;
+    return extractBranchName((user as any)?.branch);
   };
   
   // Get current user's branch ID
@@ -230,6 +223,9 @@ const SalesReturn: React.FC<SalesReturnProps> = ({
   });
   const [invoiceNotes, setInvoiceNotes] = useState<string>("");
   const [returnBranchId, setReturnBranchId] = useState<string | null>(null);
+  const [safeBranchName, setSafeBranchName] = useState<string>(
+    () => getUserBranchName(currentUser),
+  );
   const [isReadOnly, setIsReadOnly] = useState(true);
   const [paymentTargetType, setPaymentTargetType] = useState<"safe" | "bank">(
     "safe",
@@ -295,6 +291,7 @@ const SalesReturn: React.FC<SalesReturnProps> = ({
   const invoiceRef = useRef<HTMLDivElement>(null);
   const [sourceInvoiceQtyById, setSourceInvoiceQtyById] = useState<Record<string, number>>({});
   const [focusIndex, setFocusIndex] = useState<number | null>(null);
+  const resolvedBranchName = safeBranchName || getUserBranchName(currentUser);
 
   const effectiveVatEnabled = currentIndex >= 0 ? originalReturnVatEnabled : isVatEnabled;
 
@@ -426,6 +423,7 @@ const SalesReturn: React.FC<SalesReturnProps> = ({
         : (currentUser?.branch as any)?.id) ||
       null;
     setReturnBranchId(defaultBranchId);
+    setSafeBranchName(getUserBranchName(currentUser));
     setInvoiceNotes("");
     setPreviewData(null); // Clear preview data
     setIsReadOnly(false);
@@ -477,6 +475,8 @@ const SalesReturn: React.FC<SalesReturnProps> = ({
       setPaymentTargetType(ret.paymentTargetType || "safe");
       setPaymentTargetId(ret.paymentTargetId || null);
       setReturnBranchId(ret.branch?.id || ret.branchId || null);
+      const branchNameFromReturn = extractBranchName(ret.branch) || ret.branchName || "";
+      setSafeBranchName(branchNameFromReturn || getUserBranchName(currentUser));
       setInvoiceNotes((ret as any).notes || "");
       setIsReadOnly(true);
       justSavedRef.current = false; // Clear the flag after loading return
@@ -1248,13 +1248,7 @@ const SalesReturn: React.FC<SalesReturnProps> = ({
                   {paymentTargetType === "safe" ? (
                     <input
                       type="text"
-                      // For new returns, show the default safe of the current branch (locked).
-                      // For existing returns, show the saved safe if available, otherwise the branch safe.
-                      value={getDisplaySafeName(
-                        currentIndex >= 0 ? returns[currentIndex] : null,
-                        currentUser,
-                        safes,
-                      )}
+                      value={resolvedBranchName}
                       className={inputStyle}
                       disabled={true}
                       readOnly
