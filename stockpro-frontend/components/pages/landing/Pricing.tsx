@@ -157,8 +157,6 @@ const PricingPage: React.FC<PricingPageProps> = ({ prices, onPriceChange }) => {
   };
 
   const handleFormSubmit = (data: { plan: PlanType; name: string; email: string; phone: string }) => {
-    // For now, just log the data. Later this will be sent to backend
-    console.log('Subscription request:', data);
     // The form component will handle success state and close
   };
 

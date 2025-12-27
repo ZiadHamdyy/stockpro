@@ -51,12 +51,6 @@ const ItemGroups: React.FC<ItemGroupsProps> = ({ title }) => {
     }
   }, [apiGroups, dispatch]);
 
-  // Debug logging
-  console.log("ItemGroups - Redux Data:", groups);
-  console.log("ItemGroups - API Data:", apiGroups);
-  console.log("ItemGroups - Loading:", apiLoading);
-  console.log("ItemGroups - Error:", error);
-
   const handleOpenModal = (group: ItemGroup | null = null) => {
     setGroupToEdit(group);
     setIsModalOpen(true);

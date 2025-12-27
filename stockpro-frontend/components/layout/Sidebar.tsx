@@ -120,19 +120,6 @@ const Sidebar: React.FC<SidebarProps> = ({
     [menuFilteredByPermissions, subscription?.planType, subscriptionLoading]
   );
 
-  // Debug logging for filtering state
-  useEffect(() => {
-    console.log('[Sidebar] Filtering state:', {
-      subscription,
-      planType: subscription?.planType,
-      isLoading: subscriptionLoading,
-      menuFilteredBySubscription: menuFilteredBySubscription.length,
-      hasFinancialAnalysis: menuFilteredBySubscription.some(
-        item => item.key === 'reports' && 
-        item.children?.some(child => child.key === 'financial_analysis')
-      ),
-    });
-  }, [subscription, subscriptionLoading, menuFilteredBySubscription]);
 
   const filteredMenu = useMemo(
     () => filterMenuItems(menuFilteredBySubscription, searchTerm),

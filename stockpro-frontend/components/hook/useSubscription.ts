@@ -81,17 +81,6 @@ export const useSubscription = () => {
   const isLoading = subscriptionLoading || limitsLoading || usageLoading;
   const error = subscriptionError || limitsError || usageError;
 
-  // Debug logging for subscription state
-  useEffect(() => {
-    console.log('[useSubscription] Subscription state:', {
-      subscription,
-      planType: subscription?.planType,
-      isLoading: subscriptionLoading,
-      error: subscriptionError,
-      rawData: subscription,
-    });
-  }, [subscription, subscriptionLoading, subscriptionError]);
-
   // Error handling for missing subscription
   useEffect(() => {
     if (subscriptionError) {

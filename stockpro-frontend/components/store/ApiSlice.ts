@@ -151,18 +151,6 @@ const baseQuery = fetchBaseQuery({
     if (companyCode) {
       // Primary header that backend middleware checks first
       headers.set("x-company-code", companyCode);
-      
-      // Debug logging (remove in production)
-      if (import.meta.env.DEV) {
-        console.log("[ApiSlice] Company code header set:", {
-          "x-company-code": companyCode,
-        });
-      }
-    } else {
-      // Debug logging when no company code is set
-      if (import.meta.env.DEV) {
-        console.log("[ApiSlice] No company code set - will use code from JWT token");
-      }
     }
     
     return headers;

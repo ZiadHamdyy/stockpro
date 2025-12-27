@@ -72,18 +72,6 @@ const PermissionTree: React.FC<{
             (isPermissionsResource && selectedRoleName === "مدير") ||
             (node.key === "company_data" && englishAction === "read");
 
-          // Debug logging
-          if (node.key === "dashboard" && action === "قراءة") {
-            console.log("Checkbox state:", {
-              nodeKey: node.key,
-              action,
-              permissionKey,
-              isChecked,
-              isDisabled,
-              permissionsSize: permissions.size,
-            });
-          }
-
           return (
             <div
               key={action}
@@ -100,11 +88,6 @@ const PermissionTree: React.FC<{
                 checked={isChecked}
                 disabled={isDisabled}
                 onChange={(e) => {
-                  console.log("Checkbox onChange triggered:", {
-                    nodeKey: node.key,
-                    action,
-                    checked: e.target.checked,
-                  });
                   onPermissionChange(node.key, action, e.target.checked);
                 }}
               />

@@ -141,16 +141,6 @@ export const usePermissions = () => {
     return getAllKeys(permissionTreeData);
   }, [permissionTreeData]);
 
-  // Debug: Log permissions fetch status
-  useEffect(() => {
-    console.log("Permissions fetch status:", {
-      allPermissionsCount: allPermissions.length,
-      permissionsLoading,
-      permissionsError,
-      firstFewPermissions: allPermissions.slice(0, 5),
-    });
-  }, [allPermissions, permissionsLoading, permissionsError]);
-
   // Check if user is authenticated
   const isAuthenticated = !!currentUser;
 
@@ -207,7 +197,6 @@ export const usePermissions = () => {
             existingPermissions &&
             existingPermissions.size !== rolePermissions.size
           ) {
-            console.log("Skipping permission update - manual changes detected");
             return prev;
           }
           return {
@@ -224,12 +213,6 @@ export const usePermissions = () => {
     action: string,
     isChecked: boolean,
   ) => {
-    console.log("handlePermissionChange called:", {
-      itemKey,
-      action,
-      isChecked,
-      selectedRole,
-    });
     setPermissions((prev) => {
       const newPermissions = { ...prev };
       const rolePermissions = new Set(newPermissions[selectedRole] || []);
@@ -239,20 +222,11 @@ export const usePermissions = () => {
         ]
       }`;
 
-      console.log("Before update:", {
-        permissionKey,
-        rolePermissions: Array.from(rolePermissions),
-      });
-
       if (isChecked) {
         rolePermissions.add(permissionKey);
       } else {
         rolePermissions.delete(permissionKey);
       }
-
-      console.log("After update:", {
-        rolePermissions: Array.from(rolePermissions),
-      });
 
       newPermissions[selectedRole] = rolePermissions;
       return newPermissions;

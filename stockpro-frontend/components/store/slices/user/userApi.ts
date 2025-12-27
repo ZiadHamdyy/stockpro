@@ -66,22 +66,17 @@ export const userSlice = apiSlice.injectEndpoints({
           response.data.data &&
           Array.isArray(response.data.data)
         ) {
-          console.log("Returning response.data.data:", response.data.data);
-          console.log("Response.data.data length:", response.data.data.length);
           return response.data.data;
         }
         // Fallback for direct data array
         if (response && response.data && Array.isArray(response.data)) {
-          console.log("Returning response.data:", response.data);
           return response.data;
         }
         // Fallback if response is already an array
         if (Array.isArray(response)) {
-          console.log("Returning response as array:", response);
           return response;
         }
         // Return empty array if no valid data
-        console.log("Returning empty array - no valid data found");
         return [];
       },
       providesTags: ["User"],

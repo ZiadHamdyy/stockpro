@@ -51,12 +51,6 @@ const Units: React.FC<UnitsProps> = ({ title }) => {
     }
   }, [apiUnits, dispatch]);
 
-  // Debug logging
-  console.log("Units - Redux Data:", units);
-  console.log("Units - API Data:", apiUnits);
-  console.log("Units - Loading:", apiLoading);
-  console.log("Units - Error:", error);
-
   const handleOpenModal = (unit: Unit | null = null) => {
     setUnitToEdit(unit);
     setIsModalOpen(true);
