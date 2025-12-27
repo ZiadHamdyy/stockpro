@@ -331,12 +331,50 @@ const IncomeStatement: React.FC = () => {
     return null;
   }, [transformedPurchaseInvoices, normalizeDate]);
 
+  // Helper function to calculate weighted average cost up to a reference date
+  const calculateWeightedAverageCost = useCallback((item: any, referenceDate: string): number | null => {
+    const normalizedReferenceDate = normalizeDate(referenceDate);
+    if (!normalizedReferenceDate) return null;
+
+    const itemCode = item.code;
+    const openingBalance = toNumber((item as any).openingBalance ?? 0);
+    const initialPurchasePrice = toNumber(item.initialPurchasePrice ?? item.purchasePrice ?? 0);
+
+    // Get all purchase invoices up to the reference date (no branch filtering - all branches)
+    const relevantInvoices = transformedPurchaseInvoices
+      .filter((inv) => {
+        const txDate = normalizeDate(inv.date) || normalizeDate(inv.invoiceDate);
+        return txDate && txDate <= normalizedReferenceDate;
+      });
+
+    // Start with opening balance at initialPurchasePrice
+    let totalCost = openingBalance > 0 ? openingBalance * initialPurchasePrice : 0;
+    let totalQty = openingBalance;
+
+    // Add purchase invoices to the weighted average
+    for (const inv of relevantInvoices) {
+      for (const invItem of inv.items) {
+        if (invItem.id === itemCode && invItem.total && invItem.qty) {
+          totalCost += invItem.total; // Use total invoice value per item
+          totalQty += invItem.qty;
+        }
+      }
+    }
+
+    // If no purchases and no opening balance, return initialPurchasePrice if it exists
+    if (totalQty === 0) {
+      return initialPurchasePrice > 0 ? initialPurchasePrice : null;
+    }
+    
+    return totalCost / totalQty;
+  }, [transformedPurchaseInvoices, normalizeDate, toNumber]);
+
   // Calculate inventory value using the same logic as LiquidityReport
   const calculatedEndingInventory = useMemo(() => {
     const normalizedEndDate = normalizeDate(endDate);
     if (!normalizedEndDate || transformedItems.length === 0) return 0;
 
-    const valuationMethod = "purchasePrice"; // Use purchase price valuation method
+    const valuationMethod = "averageCost"; // Use average cost valuation method
 
     const valuationData = transformedItems.map((item) => {
       // Use StoreItem's openingBalance as base, or 0 if not available
@@ -405,9 +443,15 @@ const IncomeStatement: React.FC = () => {
       const fallbackPrice =
         toNumber(item.initialPurchasePrice ?? item.purchasePrice ?? 0);
       
-      if (valuationMethod === "purchasePrice") {
-        const lastPurchasePrice = getLastPurchasePriceBeforeDate(item.code, priceReferenceDate);
-        cost = lastPurchasePrice ?? fallbackPrice;
+      if (valuationMethod === "averageCost") {
+        const avgCost = calculateWeightedAverageCost(item, priceReferenceDate);
+        // Fallback to last purchase price if no purchases found
+        if (avgCost === null) {
+          const lastPurchasePrice = getLastPurchasePriceBeforeDate(item.code, priceReferenceDate);
+          cost = lastPurchasePrice ?? fallbackPrice;
+        } else {
+          cost = avgCost;
+        }
       } else {
         cost = fallbackPrice;
       }
@@ -439,6 +483,7 @@ const IncomeStatement: React.FC = () => {
     normalizeDate,
     toNumber,
     getLastPurchasePriceBeforeDate,
+    calculateWeightedAverageCost,
   ]);
 
   // Calculate other revenues exactly as in RevenueStatementReport
