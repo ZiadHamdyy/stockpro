@@ -292,6 +292,14 @@ const SalesReturn: React.FC<SalesReturnProps> = ({
   const [sourceInvoiceQtyById, setSourceInvoiceQtyById] = useState<Record<string, number>>({});
   const [focusIndex, setFocusIndex] = useState<number | null>(null);
   const resolvedBranchName = safeBranchName || getUserBranchName(currentUser);
+  
+  // Get safe name for current branch
+  const getSafeNameForBranch = useMemo(() => {
+    const targetBranchId = returnBranchId || userBranchId;
+    if (!targetBranchId) return "";
+    const branchSafe = safes.find((s) => s.branchId === targetBranchId);
+    return branchSafe?.name || "";
+  }, [returnBranchId, userBranchId, safes]);
 
   const effectiveVatEnabled = currentIndex >= 0 ? originalReturnVatEnabled : isVatEnabled;
 
@@ -1248,7 +1256,7 @@ const SalesReturn: React.FC<SalesReturnProps> = ({
                   {paymentTargetType === "safe" ? (
                     <input
                       type="text"
-                      value={resolvedBranchName}
+                      value={getSafeNameForBranch}
                       className={inputStyle}
                       disabled={true}
                       readOnly

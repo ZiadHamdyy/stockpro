@@ -275,6 +275,14 @@ const getInvoiceBranchMeta = (invoice: any) => {
   } | null>(null);
   const [focusIndex, setFocusIndex] = useState<number | null>(null);
   const resolvedBranchName = safeBranchName || getUserBranchName(currentUser);
+  
+  // Get safe name for current branch
+  const getSafeNameForBranch = useMemo(() => {
+    const targetBranchId = invoiceBranchId || userBranchId;
+    if (!targetBranchId) return "";
+    const branchSafe = safes.find((s) => s.branchId === targetBranchId);
+    return branchSafe?.name || "";
+  }, [invoiceBranchId, userBranchId, safes]);
 
   const hasPrintableItems = useMemo(
     () =>
@@ -1067,7 +1075,7 @@ const getInvoiceBranchMeta = (invoice: any) => {
                   {paymentTargetType === "safe" ? (
                     <input
                       type="text"
-                      value={resolvedBranchName}
+                      value={getSafeNameForBranch}
                       className={inputStyle}
                       disabled={true}
                       readOnly

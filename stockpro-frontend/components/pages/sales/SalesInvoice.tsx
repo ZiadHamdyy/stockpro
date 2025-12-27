@@ -452,6 +452,14 @@ const SalesInvoice: React.FC<SalesInvoiceProps> = ({
   const [focusIndex, setFocusIndex] = useState<number | null>(null);
   const [focusedQtyIndex, setFocusedQtyIndex] = useState<number | null>(null);
   const resolvedBranchName = safeBranchName || getUserBranchName(currentUser);
+  
+  // Get safe name for current branch
+  const getSafeNameForBranch = useMemo(() => {
+    const targetBranchId = invoiceBranchId || userBranchId;
+    if (!targetBranchId) return "";
+    const branchSafe = safes.find((s) => s.branchId === targetBranchId);
+    return branchSafe?.name || "";
+  }, [invoiceBranchId, userBranchId, safes]);
 
   const focusedItemData = useMemo(() => {
     if (focusedQtyIndex !== null && invoiceItems[focusedQtyIndex] && invoiceItems[focusedQtyIndex].id) {
@@ -1798,7 +1806,7 @@ const SalesInvoice: React.FC<SalesInvoiceProps> = ({
                               <div className="flex-1">
                                 <input
                                   type="text"
-                                  value={resolvedBranchName}
+                                  value={getSafeNameForBranch}
                                   className="w-full h-8 px-1 rounded-sm border-0 bg-white text-slate-900 text-xs focus:ring-1 focus:ring-blue-400 outline-none shadow-sm font-semibold"
                                   disabled={true}
                                   readOnly
@@ -1850,7 +1858,7 @@ const SalesInvoice: React.FC<SalesInvoiceProps> = ({
                         {paymentTargetType === "safe" ? (
                           <input
                             type="text"
-                            value={resolvedBranchName}
+                            value={getSafeNameForBranch}
                             className={inputStyle}
                             disabled={true}
                             readOnly

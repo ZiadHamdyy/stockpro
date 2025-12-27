@@ -252,6 +252,13 @@ const PurchaseReturn: React.FC<PurchaseReturnProps> = ({
   const invoiceRef = useRef<HTMLDivElement>(null);
   const [sourceInvoiceQtyById, setSourceInvoiceQtyById] = useState<Record<string, number>>({});
   const [focusIndex, setFocusIndex] = useState<number | null>(null);
+  
+  // Get safe name for current branch
+  const getSafeNameForBranch = useMemo(() => {
+    if (!userBranchId) return "";
+    const branchSafe = safes.find((s) => s.branchId === userBranchId);
+    return branchSafe?.name || "";
+  }, [userBranchId, safes]);
 
   const hasPrintableItems = useMemo(
     () =>
@@ -1081,9 +1088,7 @@ const PurchaseReturn: React.FC<PurchaseReturnProps> = ({
                   {paymentTargetType === "safe" ? (
                     <input
                       type="text"
-                      value={typeof currentUser?.branch === 'string' 
-                        ? currentUser.branch 
-                        : (currentUser?.branch as any)?.name || currentUser?.branch || ""}
+                      value={getSafeNameForBranch}
                       className={inputStyle}
                       disabled={true}
                       readOnly
