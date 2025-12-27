@@ -142,8 +142,37 @@ const StagnantItemsReport: React.FC<StagnantItemsReportProps> = ({ title }) => {
 
     const printPages = useMemo(() => {
         const pages: typeof reportData[] = [];
-        for (let i = 0; i < reportData.length; i += PRINT_PAGE_SIZE) {
-            pages.push(reportData.slice(i, i + PRINT_PAGE_SIZE));
+        // First page has extra headers (company header, date info, alert banner), so reduce items significantly
+        // Headers take up approximately 12-15 rows worth of space, so use only 6 items on first page to be safe
+        const FIRST_PAGE_SIZE = 6;
+        // Subsequent pages also need to account for page header, so use slightly less than full size
+        // Reduce to 15 items to ensure no overflow even with variable content heights
+        const SUBSEQUENT_PAGE_SIZE = PRINT_PAGE_SIZE - 5; // Reduced to 15 to prevent overflow
+        if (reportData.length > 0) {
+            // First page with reduced size
+            pages.push(reportData.slice(0, FIRST_PAGE_SIZE));
+            // Remaining pages with adjusted size to prevent overflow
+            let remaining = reportData.length - FIRST_PAGE_SIZE;
+            let currentIdx = FIRST_PAGE_SIZE;
+            while (remaining > 0) {
+                // For the last page, if it would have very few items (1-3), merge with previous page
+                // BUT only if merging won't make the previous page >= 16 items (which would cause overflow)
+                if (remaining <= 3 && pages.length > 0) {
+                    const lastPage = pages[pages.length - 1];
+                    const mergedSize = lastPage.length + remaining;
+                    // Only merge if the resulting page won't be >= 16 items (SUBSEQUENT_PAGE_SIZE + 1)
+                    if (mergedSize < 16) {
+                        // Merge last few items with previous page
+                        pages[pages.length - 1] = [...lastPage, ...reportData.slice(currentIdx)];
+                        break;
+                    }
+                    // If merging would cause overflow, create a separate small page instead
+                }
+                const pageSize = Math.min(SUBSEQUENT_PAGE_SIZE, remaining);
+                pages.push(reportData.slice(currentIdx, currentIdx + pageSize));
+                currentIdx += pageSize;
+                remaining -= pageSize;
+            }
         }
         return pages;
     }, [reportData]);
@@ -152,6 +181,7 @@ const StagnantItemsReport: React.FC<StagnantItemsReportProps> = ({ title }) => {
         const printWindow = window.open("", "_blank", "width=1200,height=800");
         if (!printWindow) return;
 
+        // Since we now prevent pages with >= 16 items in printPages, totalPages should equal printPages.length
         const totalPages = Math.max(printPages.length, 1);
         const currentDate = new Date().toLocaleDateString('ar-EG', { year: 'numeric', month: 'long', day: 'numeric' });
 
@@ -235,14 +265,15 @@ const StagnantItemsReport: React.FC<StagnantItemsReportProps> = ({ title }) => {
         // Generate pages
         const bodyPages = printPages
             .map(
-                (pageItems, idx) => `
+                (pageItems, idx) => {
+                    return `
                 <div class="page">
                     <div class="page-header">
                         <h2 class="title">${title}</h2>
                         <div class="page-number">(${totalPages} / ${idx + 1})</div>
                     </div>
-                    ${idx === 0 ? companyHeader : `<div style="margin-bottom: 16px; text-align: center;"><h2 style="font-size: 20px; font-weight: bold; color: #1F2937; margin: 0;">${title}</h2></div>`}
-                    ${dateInfo}
+                    ${idx === 0 ? companyHeader : ''}
+                    ${idx === 0 ? dateInfo : ''}
                     ${alertBanner(idx)}
                     <table>
                         <thead>${tableHeader}</thead>
@@ -273,9 +304,31 @@ const StagnantItemsReport: React.FC<StagnantItemsReportProps> = ({ title }) => {
                                 .join("")}
                         </tbody>
                     </table>
-                </div>`
+                </div>`;
+                }
             )
-            .join("");
+            .join("") + 
+            // Overflow page generation should not be needed now since we prevent pages with >= 16 items
+            // But keep it as a safety net
+            (totalPages > printPages.length ? (() => {
+                return Array.from({ length: totalPages - printPages.length }, (_, i) => {
+                    const overflowPageIdx = printPages.length + i;
+                    return `
+                    <div class="page">
+                        <div class="page-header">
+                            <h2 class="title">${title}</h2>
+                            <div class="page-number">(${totalPages} / ${overflowPageIdx + 1})</div>
+                        </div>
+                        <table>
+                            <thead>${tableHeader}</thead>
+                            <tbody>
+                                <!-- Overflow content will be rendered here by browser -->
+                            </tbody>
+                        </table>
+                    </div>
+                `;
+                }).join("");
+            })() : "");
 
         const html = `
             <!DOCTYPE html>
@@ -310,39 +363,14 @@ const StagnantItemsReport: React.FC<StagnantItemsReportProps> = ({ title }) => {
                         font-weight: 700;
                         color: #1F2937;
                     }
-                    table { 
-                        width: 100%; 
-                        border-collapse: collapse; 
-                        font-size: 12px; 
-                        margin-top: 16px;
-                    }
-                    th, td { 
-                        border: 1px solid #E5E7EB; 
-                        padding: 6px 8px; 
-                        text-align: right; 
-                    }
-                    thead { 
-                        background: #1E40AF !important; 
-                        color: #FFFFFF !important; 
-                    }
-                    tbody tr:nth-child(odd) { 
-                        background: #F8FAFC !important; 
-                    }
-                    tbody tr:nth-child(even) { 
-                        background: #FFFFFF !important; 
-                    }
-                    tr { 
-                        page-break-inside: avoid; 
-                        break-inside: avoid; 
-                    }
-                    .page { 
-                        page-break-after: always; 
-                        break-after: page; 
-                    }
-                    .page:last-of-type { 
-                        page-break-after: auto; 
-                        break-after: auto; 
-                    }
+                    table { width: 100%; border-collapse: collapse; font-size: 12px; }
+                    th, td { border: 1px solid #E5E7EB; padding: 6px 8px; text-align: right; }
+                    thead { background: #1E40AF !important; color: #FFFFFF !important; }
+                    tbody tr:nth-child(odd) { background: #F8FAFC !important; }
+                    tbody tr:nth-child(even) { background: #FFFFFF !important; }
+                    tr { page-break-inside: avoid; break-inside: avoid; }
+                    .page { page-break-after: always; break-after: page; }
+                    .page:last-of-type { page-break-after: auto; break-after: auto; }
                 </style>
             </head>
             <body>
