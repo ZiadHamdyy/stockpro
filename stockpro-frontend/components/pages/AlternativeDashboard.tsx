@@ -31,12 +31,12 @@ const QuickActionButton: React.FC<{
     return (
         <button 
             onClick={onClick} 
-            className="group relative bg-slate-200 hover:bg-slate-300 rounded-lg p-2 shadow-sm border border-slate-300 flex flex-col items-center justify-center gap-1 h-20 active:scale-95 transition-all duration-300 hover:shadow-lg hover:border-slate-400 w-full"
+            className="group relative bg-gradient-to-br from-slate-50 to-slate-100 hover:from-slate-100 hover:to-slate-200 rounded-xl p-2.5 shadow-md border border-slate-300/80 flex flex-col items-center justify-center gap-1.5 h-22 active:scale-95 transition-all duration-300 hover:shadow-xl hover:border-slate-400 hover:-translate-y-0.5 w-full backdrop-blur-sm"
         >
-            <div className={`w-8 h-8 rounded-lg ${colorClass} flex items-center justify-center text-white shadow-sm group-hover:scale-110 transition-transform duration-300 ring-2 ring-white/50 group-hover:ring-white`}>
-                {React.cloneElement(icon as React.ReactElement<any>, { className: "w-4 h-4" })}
+            <div className={`w-9 h-9 rounded-xl ${colorClass} flex items-center justify-center text-white shadow-lg group-hover:scale-110 transition-transform duration-300 ring-2 ring-white/60 group-hover:ring-white group-hover:shadow-xl`}>
+                {React.cloneElement(icon as React.ReactElement<any>, { className: "w-5 h-5" })}
             </div>
-            <span className="text-xs font-extrabold text-slate-700 group-hover:text-slate-900 transition-colors text-center leading-tight whitespace-nowrap">{title}</span>
+            <span className="text-[11px] font-extrabold text-slate-700 group-hover:text-slate-900 transition-colors text-center leading-tight whitespace-nowrap" style={{ fontFamily: 'Cairo, sans-serif' }}>{title}</span>
         </button>
     );
 };
@@ -50,21 +50,22 @@ const SummaryCard: React.FC<{
     accentColor: string; 
 }> = ({ title, value, subValue, isPositive, icon, accentColor }) => {
     return (
-        <div className="bg-slate-200 rounded-lg p-2.5 shadow-sm border border-slate-300 relative overflow-hidden group hover:-translate-y-0.5 transition-all duration-300 h-full flex flex-col justify-between hover:border-slate-400 hover:shadow-lg">
-            <div className={`absolute top-0 right-0 w-1 h-full ${accentColor}`}></div>
-            <div className="flex justify-between items-center mb-1 pl-1">
+        <div className="bg-gradient-to-br from-slate-50 to-slate-100 rounded-xl p-3 shadow-md border border-slate-300/80 relative overflow-hidden group hover:-translate-y-1 transition-all duration-300 h-full flex flex-col justify-between hover:border-slate-400 hover:shadow-xl backdrop-blur-sm">
+            <div className={`absolute top-0 right-0 w-1.5 h-full ${accentColor} shadow-lg`}></div>
+            <div className="absolute top-0 right-0 w-20 h-20 bg-gradient-to-br from-white/30 to-transparent rounded-full blur-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+            <div className="flex justify-between items-center mb-1.5 pl-1 relative z-10">
                 <div className="flex flex-col">
-                    <span className="text-xs font-extrabold text-slate-600 uppercase tracking-wider">{title}</span>
-                    <h3 className="text-xl font-black text-slate-800 tracking-tight mt-0.5">{value}</h3>
+                    <span className="text-[11px] font-extrabold text-slate-600 uppercase tracking-wider" style={{ fontFamily: 'Cairo, sans-serif' }}>{title}</span>
+                    <h3 className="text-2xl font-black text-slate-800 tracking-tight mt-1" style={{ fontFamily: 'Cairo, sans-serif' }}>{value}</h3>
                 </div>
-                <div className={`w-8 h-8 rounded-lg flex items-center justify-center transition-colors shadow-sm ${accentColor.replace('bg-', 'text-').replace('500', '50') + ' bg-opacity-20'}`}>
-                    {React.cloneElement(icon as React.ReactElement<any>, { className: `w-4 h-4 ${accentColor.replace('bg-', 'text-')}` })}
+                <div className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all shadow-lg group-hover:scale-110 ${accentColor.replace('bg-', 'text-').replace('500', '50') + ' bg-opacity-20'} border-2 ${accentColor.replace('bg-', 'border-').replace('500', '200')}`}>
+                    {React.cloneElement(icon as React.ReactElement<any>, { className: `w-5 h-5 ${accentColor.replace('bg-', 'text-')}` })}
                 </div>
             </div>
             {subValue && (
-                <div className="flex items-center gap-1 pl-1">
-                    <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-md flex items-center gap-0.5 border ${isPositive ? 'bg-emerald-100 text-emerald-800 border-emerald-200' : 'bg-rose-100 text-rose-800 border-rose-200'}`}>
-                        {isPositive ? <TrendingUpIcon className="w-2.5 h-2.5"/> : <TrendingDownIcon className="w-2.5 h-2.5"/>}
+                <div className="flex items-center gap-1 pl-1 relative z-10">
+                    <span className={`text-[10px] font-bold px-2 py-1 rounded-lg flex items-center gap-1 border shadow-sm ${isPositive ? 'bg-emerald-100 text-emerald-800 border-emerald-300' : 'bg-rose-100 text-rose-800 border-rose-300'}`}>
+                        {isPositive ? <TrendingUpIcon className="w-3 h-3"/> : <TrendingDownIcon className="w-3 h-3"/>}
                         {subValue}
                     </span>
                 </div>
@@ -544,7 +545,6 @@ const AlternativeDashboard: React.FC<{ title: string }> = ({ title }) => {
                         const meta = chart.getDatasetMeta(0);
                         const total = dataset.data.reduce((acc: number, val: number) => acc + val, 0);
 
-                        ctx.font = 'bold 10px Cairo';
                         ctx.textAlign = 'center';
                         ctx.textBaseline = 'middle';
                         ctx.fillStyle = '#fff';
@@ -565,44 +565,69 @@ const AlternativeDashboard: React.FC<{ title: string }> = ({ title }) => {
                             const textY = y + Math.sin(middleAngle) * midRadius;
 
                             // Only draw if segment is large enough
-                            if (endAngle - startAngle > 0.2) {
+                            const arcSize = endAngle - startAngle;
+                            if (arcSize > 0.15) {
                                 ctx.save();
                                 // Shadow for text readability
-                                ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
-                                ctx.shadowBlur = 4;
+                                ctx.shadowColor = 'rgba(0, 0, 0, 0.6)';
+                                ctx.shadowBlur = 5;
                                 
-                                // Draw Percentage
-                                ctx.font = 'bold 11px Cairo';
+                                // Draw Percentage and Label together
+                                ctx.font = 'bold 10px Cairo';
+                                const fullText = `${percentage} ${label}`;
+                                ctx.fillText(fullText, textX, textY);
+                                
+                                ctx.restore();
+                            } else if (arcSize > 0.08) {
+                                // For smaller segments, show only percentage
+                                ctx.save();
+                                ctx.shadowColor = 'rgba(0, 0, 0, 0.6)';
+                                ctx.shadowBlur = 5;
+                                ctx.font = 'bold 9px Cairo';
                                 ctx.fillText(percentage, textX, textY);
-                                
-                                // Draw Label below
-                                ctx.font = '9px Cairo';
-                                ctx.fillText(label.split(' ')[1] || label, textX, textY + 12);
-                                
                                 ctx.restore();
                             }
                         });
                     }
                 };
 
+                // Generate more colors for multiple branches
+                const branchColors = [
+                    '#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', 
+                    '#ef4444', '#06b6d4', '#a855f7', '#f97316',
+                    '#14b8a6', '#6366f1', '#ec4899', '#84cc16'
+                ];
+                
                 chartInstances.current.branch = new Chart(ctx, {
                     type: 'doughnut',
                     data: {
                         labels: labels,
                         datasets: [{
                             data: dataValues,
-                            backgroundColor: ['#3b82f6', '#10b981', '#f59e0b', '#8b5cf6'],
-                            borderWidth: 0,
-                            hoverOffset: 5
+                            backgroundColor: labels.map((_, i) => branchColors[i % branchColors.length]),
+                            borderWidth: 2,
+                            borderColor: '#ffffff',
+                            hoverOffset: 8,
+                            hoverBorderWidth: 3
                         }]
                     },
                     options: {
                         responsive: true,
                         maintainAspectRatio: false,
                         cutout: '75%', 
-                        plugins: { legend: { display: false }, tooltip: { titleFont: { family: 'Cairo' }, bodyFont: { family: 'Cairo' } } }
+                        plugins: { 
+                            legend: { display: false }, 
+                            tooltip: { 
+                                titleFont: { family: 'Cairo', size: 12 }, 
+                                bodyFont: { family: 'Cairo', size: 11 },
+                                backgroundColor: 'rgba(15, 23, 42, 0.95)',
+                                padding: 12,
+                                cornerRadius: 8,
+                                displayColors: true
+                            } 
+                        }
                     },
-                    plugins: [centerTextPlugin]
+                    plugins: [centerTextPlugin, segmentLabelPlugin]
                 });
             }
         }
@@ -685,7 +710,7 @@ const AlternativeDashboard: React.FC<{ title: string }> = ({ title }) => {
                     }
                 };
 
-                // Plugin to draw percentage text ON the liquidity segments
+                // Plugin to draw percentage and label text ON the liquidity segments
                 const segmentLabelPluginLiquidity = {
                     id: 'segmentLabelPluginLiquidity',
                     afterDatasetsDraw(chart: any) {
@@ -703,6 +728,7 @@ const AlternativeDashboard: React.FC<{ title: string }> = ({ title }) => {
                             if (!value || total === 0) return;
 
                             const percentage = ((value / total) * 100).toFixed(0) + '%';
+                            const label = chart.data.labels[index];
 
                             const { startAngle, endAngle, outerRadius, innerRadius, x, y } = element;
                             const middleAngle = startAngle + (endAngle - startAngle) / 2;
@@ -712,11 +738,22 @@ const AlternativeDashboard: React.FC<{ title: string }> = ({ title }) => {
                             const textY = y + Math.sin(middleAngle) * midRadius;
 
                             // Only draw if the arc is large enough so text does not overlap
-                            if (endAngle - startAngle > 0.25) {
+                            const arcSize = endAngle - startAngle;
+                            if (arcSize > 0.2) {
                                 ctx.save();
-                                ctx.font = 'bold 11px Cairo';
-                                ctx.shadowColor = 'rgba(0, 0, 0, 0.45)';
-                                ctx.shadowBlur = 4;
+                                ctx.shadowColor = 'rgba(0, 0, 0, 0.6)';
+                                ctx.shadowBlur = 5;
+                                ctx.font = 'bold 10px Cairo';
+                                // Draw percentage and label together: "33% بنوك"
+                                const fullText = `${percentage} ${label}`;
+                                ctx.fillText(fullText, textX, textY);
+                                ctx.restore();
+                            } else if (arcSize > 0.1) {
+                                // For smaller segments, show only percentage
+                                ctx.save();
+                                ctx.shadowColor = 'rgba(0, 0, 0, 0.6)';
+                                ctx.shadowBlur = 5;
+                                ctx.font = 'bold 9px Cairo';
                                 ctx.fillText(percentage, textX, textY);
                                 ctx.restore();
                             }
@@ -821,38 +858,61 @@ const AlternativeDashboard: React.FC<{ title: string }> = ({ title }) => {
             
             {/* 1. TOP HEADER SECTION */}
             <div className="shrink-0 p-3 pb-1 z-20 relative">
-                <div className="relative w-full rounded-2xl overflow-hidden shadow-lg border border-blue-800 h-[85px] flex items-center transition-all">
+                <div className="relative w-full rounded-2xl overflow-hidden shadow-2xl border-2 border-blue-700/50 h-[95px] flex items-center transition-all hover:border-blue-600/70">
                     <div className="absolute inset-0 z-0 bg-gradient-to-r from-blue-900 via-[#1e40af] to-blue-800">
-                         <div className="absolute inset-0 opacity-[0.1]" 
-                             style={{ backgroundImage: 'radial-gradient(circle, #ffffff 1px, transparent 1px)', backgroundSize: '15px 15px' }}>
+                         <div className="absolute inset-0 opacity-[0.12]" 
+                             style={{ backgroundImage: 'radial-gradient(circle, #ffffff 1px, transparent 1px)', backgroundSize: '18px 18px' }}>
                         </div>
+                        {/* Animated gradient overlay */}
+                        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent animate-pulse"></div>
                     </div>
 
                     <div className="relative z-10 w-full px-6 grid grid-cols-3 gap-4 items-center text-white">
-                        {/* Right: Info */}
-                        <div className="flex flex-col items-start border-l border-white/20 pl-6 h-full justify-center">
-                            <div className="flex items-center gap-2 mb-1">
-                                <div className="p-1 bg-blue-500/20 rounded-lg backdrop-blur-sm border border-blue-400/30">
-                                     <ActivityIcon className="w-4 h-4 text-blue-300" />
+                        {/* Right: Company Info with Logo */}
+                        <div className="flex items-center gap-4 border-l border-white/20 pl-6 h-full justify-center">
+                            {/* Logo */}
+                            {company?.logo && (
+                                <div className="flex-shrink-0">
+                                    <img 
+                                        src={company.logo} 
+                                        alt="Company Logo" 
+                                        className="h-16 w-16 object-contain rounded-lg bg-white/10 p-1.5 border-2 border-white/20 shadow-lg backdrop-blur-sm"
+                                    />
                                 </div>
-                                <h2 className="text-base font-bold truncate text-white tracking-wide">{company?.name || "الشركة"}</h2>
-                            </div>
-                            <div className="flex items-center gap-2 px-2 py-0.5 bg-black/20 rounded-full border border-white/10">
-                                <div className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-pulse shadow-[0_0_8px_rgba(52,211,153,0.8)]"></div>
-                                <p className="text-blue-100 text-[9px] font-bold tracking-wider">النظام متصل</p>
+                            )}
+                            {/* Company Name */}
+                            <div className="flex flex-col items-start gap-1.5">
+                                <div className="bg-gradient-to-r from-white/20 to-white/5 backdrop-blur-md rounded-xl px-4 py-2 border border-white/30 shadow-lg">
+                                    <h2 className="text-lg font-extrabold text-white tracking-wide drop-shadow-lg" style={{ fontFamily: 'Cairo, sans-serif' }}>
+                                        {company?.name || "الشركة"}
+                                    </h2>
+                                </div>
+                                <div className="flex items-center gap-2 px-2.5 py-1 bg-black/30 rounded-full border border-white/20 backdrop-blur-sm">
+                                    <div className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-pulse shadow-[0_0_8px_rgba(52,211,153,0.8)]"></div>
+                                    <p className="text-blue-100 text-[9px] font-bold tracking-wider">النظام متصل</p>
+                                </div>
                             </div>
                         </div>
 
-                        {/* Center: Logo */}
+                        {/* Center: Stock.Pro Logo - Bigger and Better */}
                         <div className="flex justify-center group relative cursor-default">
-                            <div className="absolute -inset-10 bg-blue-500/20 rounded-full blur-3xl opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none"></div>
+                            <div className="absolute -inset-12 bg-blue-500/30 rounded-full blur-3xl opacity-50 group-hover:opacity-70 transition-opacity duration-700 pointer-events-none"></div>
                             
                             <div className="relative flex items-baseline transform group-hover:scale-105 transition-transform duration-500 ease-out">
-                                <h1 className="text-5xl font-black tracking-widest drop-shadow-2xl font-sans text-transparent bg-clip-text bg-gradient-to-b from-white via-blue-50 to-blue-200">
+                                <h1 className="text-7xl font-black tracking-[0.2em] drop-shadow-2xl" style={{ 
+                                    fontFamily: 'Cairo, sans-serif',
+                                    background: 'linear-gradient(135deg, #ffffff 0%, #e0e7ff 50%, #c7d2fe 100%)',
+                                    WebkitBackgroundClip: 'text',
+                                    WebkitTextFillColor: 'transparent',
+                                    textShadow: '0 4px 20px rgba(255,255,255,0.3)'
+                                }}>
                                     Pro
                                 </h1>
-                                <span className="text-5xl font-black text-amber-400 animate-pulse mx-1 drop-shadow-[0_0_10px_rgba(251,191,36,0.6)]">.</span>
-                                <h1 className="text-5xl font-black tracking-widest drop-shadow-2xl font-sans text-blue-200 group-hover:text-white transition-colors duration-300">
+                                <span className="text-7xl font-black text-amber-400 animate-pulse mx-2 drop-shadow-[0_0_15px_rgba(251,191,36,0.8)]">.</span>
+                                <h1 className="text-7xl font-black tracking-[0.2em] drop-shadow-2xl group-hover:text-white transition-colors duration-300" style={{ 
+                                    fontFamily: 'Cairo, sans-serif',
+                                    color: '#bfdbfe'
+                                }}>
                                     Stock
                                 </h1>
                             </div>
@@ -860,21 +920,20 @@ const AlternativeDashboard: React.FC<{ title: string }> = ({ title }) => {
 
                         {/* Left: Clock */}
                         <div className="flex justify-end">
-                            <div className="bg-slate-100/95 border-2 border-slate-300 rounded-xl px-4 py-1.5 flex items-center gap-3 shadow-lg min-w-[240px] justify-between group hover:border-blue-400 transition-all duration-300">
+                            <div className="bg-gradient-to-br from-slate-50 to-slate-100/95 border-2 border-slate-300/80 rounded-xl px-4 py-2 flex items-center gap-3 shadow-xl min-w-[240px] justify-between group hover:border-blue-400 hover:shadow-2xl transition-all duration-300 backdrop-blur-sm">
                                 <div className="text-right flex flex-col justify-center">
-                                    
                                     <div className="flex items-baseline gap-1 dir-ltr">
-                                        <span className="font-mono text-sm font-black text-slate-800 tracking-wider leading-none">
+                                        <span className="font-mono text-base font-black text-slate-800 tracking-wider leading-none">
                                             {getFormattedTime().split(' ')[0]} 
                                         </span>
-                                        <span className="text-sm font-bold text-slate-500 uppercase ml-1">{getFormattedTime().split(' ')[1]}</span>
+                                        <span className="text-xs font-bold text-slate-500 uppercase ml-1">{getFormattedTime().split(' ')[1]}</span>
                                     </div>
-                                    <span className="block text-slate-600 text-2xl font-bold tracking-widest mb-0.5 uppercase group-hover:text-blue-600 transition-colors">
+                                    <span className="block text-slate-700 text-xl font-extrabold tracking-widest mb-0.5 uppercase group-hover:text-blue-700 transition-colors" style={{ fontFamily: 'Cairo, sans-serif' }}>
                                         {getFormattedDate()}
                                     </span>
                                 </div>
-                                <div className="bg-slate-200 p-2 rounded-lg shadow-inner border border-slate-300">
-                                    <ClockIcon className="w-6 h-6 text-slate-600 group-hover:text-blue-600 transition-colors" />
+                                <div className="bg-gradient-to-br from-blue-50 to-blue-100 p-2.5 rounded-lg shadow-inner border border-blue-200 group-hover:border-blue-300 transition-colors">
+                                    <ClockIcon className="w-6 h-6 text-blue-700 group-hover:text-blue-800 transition-colors" />
                                 </div>
                             </div>
                         </div>
@@ -889,11 +948,12 @@ const AlternativeDashboard: React.FC<{ title: string }> = ({ title }) => {
                 <div className="grid grid-cols-1 xl:grid-cols-2 gap-3 shrink-0">
                     
                     {/* Actions Panel */}
-                    <div className="bg-[#1e40af] p-3 rounded-2xl border-2 border-blue-800 shadow-lg flex flex-col relative overflow-hidden">
+                    <div className="bg-gradient-to-br from-[#1e40af] to-[#1e3a8a] p-3 rounded-2xl border-2 border-blue-700/50 shadow-xl flex flex-col relative overflow-hidden hover:shadow-2xl transition-all duration-300">
                         <div className="absolute top-0 left-0 w-full h-full opacity-5 bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI4IiBoZWlnaHQ9IjgiPgo8cmVjdCB3aWR0aD0iOCIgaGVpZ2h0PSI4IiBmaWxsPSIjZmZmIiBmaWxsLW9wYWNpdHk9IjAuMSIvPgo8L3N2Zz4=')]"></div>
+                        <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full blur-3xl"></div>
                         <div className="flex items-center gap-2 mb-2 relative z-10">
-                            <div className="p-1 bg-white/20 rounded text-white shadow backdrop-blur-sm"><ShoppingCartIcon className="w-3 h-3"/></div>
-                            <h3 className="text-white font-extrabold text-xl tracking-wide">الوصول السريع</h3>
+                            <div className="p-1.5 bg-white/25 rounded-lg text-white shadow-lg backdrop-blur-sm border border-white/20"><ShoppingCartIcon className="w-4 h-4"/></div>
+                            <h3 className="text-white font-extrabold text-xl tracking-wide drop-shadow-lg" style={{ fontFamily: 'Cairo, sans-serif' }}>الوصول السريع</h3>
                         </div>
                         <div className="grid grid-cols-3 sm:grid-cols-6 xl:grid-cols-3 gap-2 relative z-10">
                             <QuickActionButton title="فاتورة مبيعات" icon={<ShoppingCartIcon/>} colorClass="bg-blue-600" onClick={() => handleNavigate('sales_invoice', 'فاتورة مبيعات')} />
@@ -906,11 +966,12 @@ const AlternativeDashboard: React.FC<{ title: string }> = ({ title }) => {
                     </div>
 
                     {/* Summary Panel */}
-                    <div className="bg-[#1e40af] p-3 rounded-2xl border-2 border-blue-800 shadow-lg flex flex-col relative overflow-hidden">
+                    <div className="bg-gradient-to-br from-[#1e40af] to-[#1e3a8a] p-3 rounded-2xl border-2 border-blue-700/50 shadow-xl flex flex-col relative overflow-hidden hover:shadow-2xl transition-all duration-300">
                         <div className="absolute top-0 right-0 w-full h-full bg-gradient-to-bl from-white/5 to-transparent pointer-events-none"></div>
+                        <div className="absolute bottom-0 left-0 w-32 h-32 bg-white/5 rounded-full blur-3xl"></div>
                         <div className="flex items-center gap-2 mb-2 relative z-10">
-                            <div className="p-1 bg-white/20 rounded text-white shadow backdrop-blur-sm"><ActivityIcon className="w-3 h-3"/></div>
-                            <h3 className="text-white font-extrabold text-xl tracking-wide">الأداء السنوي</h3>
+                            <div className="p-1.5 bg-white/25 rounded-lg text-white shadow-lg backdrop-blur-sm border border-white/20"><ActivityIcon className="w-4 h-4"/></div>
+                            <h3 className="text-white font-extrabold text-xl tracking-wide drop-shadow-lg" style={{ fontFamily: 'Cairo, sans-serif' }}>الأداء السنوي</h3>
                         </div>
                         <div className="grid grid-cols-2 gap-2 relative z-10">
                             <SummaryCard 
@@ -954,10 +1015,11 @@ const AlternativeDashboard: React.FC<{ title: string }> = ({ title }) => {
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-3 flex-1 min-h-0">
                     
                     {/* Main Chart - Financial Performance */}
-                    <div className="lg:col-span-6 bg-[#1e40af] rounded-2xl shadow-lg border-2 border-blue-800 p-3 flex flex-col relative overflow-hidden">
+                    <div className="lg:col-span-6 bg-gradient-to-br from-[#1e40af] to-[#1e3a8a] rounded-2xl shadow-xl border-2 border-blue-700/50 p-3 flex flex-col relative overflow-hidden hover:shadow-2xl transition-all duration-300">
+                        <div className="absolute top-0 left-0 w-24 h-24 bg-white/5 rounded-full blur-2xl"></div>
                         <div className="flex justify-between items-center mb-2 shrink-0 relative z-10">
-                            <h3 className="font-extrabold text-white flex items-center gap-2 text-lg">
-                                <div className="w-1.5 h-6 bg-blue-400 rounded-full"></div> الأداء المالي التاريخي
+                            <h3 className="font-extrabold text-white flex items-center gap-2 text-lg drop-shadow-lg" style={{ fontFamily: 'Cairo, sans-serif' }}>
+                                <div className="w-2 h-7 bg-blue-400 rounded-full shadow-lg shadow-blue-400/50"></div> الأداء المالي التاريخي
                             </h3>
                             
                             {/* NEW FILTERS with Branch Select */}
@@ -1005,10 +1067,11 @@ const AlternativeDashboard: React.FC<{ title: string }> = ({ title }) => {
                     </div>
 
                     {/* Branch Sales - With Labels on Arc & Professional Center Text */}
-                    <div className="lg:col-span-3 bg-[#1e40af] rounded-2xl shadow-lg border-2 border-blue-800 p-3 flex flex-col relative overflow-hidden">
+                    <div className="lg:col-span-3 bg-gradient-to-br from-[#1e40af] to-[#1e3a8a] rounded-2xl shadow-xl border-2 border-blue-700/50 p-3 flex flex-col relative overflow-hidden hover:shadow-2xl transition-all duration-300">
+                        <div className="absolute top-0 right-0 w-20 h-20 bg-white/5 rounded-full blur-2xl"></div>
                         <div className="flex justify-between items-center mb-2 shrink-0 relative z-10">
-                            <h3 className="font-extrabold text-white flex items-center gap-2 text-lg">
-                                 <div className="w-1.5 h-6 bg-indigo-400 rounded-full"></div> مبيعات الفروع
+                            <h3 className="font-extrabold text-white flex items-center gap-2 text-lg drop-shadow-lg" style={{ fontFamily: 'Cairo, sans-serif' }}>
+                                 <div className="w-2 h-7 bg-indigo-400 rounded-full shadow-lg shadow-indigo-400/50"></div> مبيعات الفروع
                             </h3>
                         </div>
                         <div className="flex-1 flex flex-col min-h-0 gap-2 relative z-10">
@@ -1021,10 +1084,11 @@ const AlternativeDashboard: React.FC<{ title: string }> = ({ title }) => {
                     </div>
 
                     {/* Liquidity - With Center Text */}
-                    <div className="lg:col-span-3 bg-[#1e40af] rounded-2xl shadow-lg border-2 border-blue-800 p-3 flex flex-col relative overflow-hidden">
+                    <div className="lg:col-span-3 bg-gradient-to-br from-[#1e40af] to-[#1e3a8a] rounded-2xl shadow-xl border-2 border-blue-700/50 p-3 flex flex-col relative overflow-hidden hover:shadow-2xl transition-all duration-300">
+                        <div className="absolute top-0 right-0 w-20 h-20 bg-white/5 rounded-full blur-2xl"></div>
                         <div className="flex justify-between items-center mb-2 shrink-0 relative z-10">
-                            <h3 className="font-extrabold text-white flex items-center gap-2 text-lg">
-                                 <div className="w-1.5 h-6 bg-emerald-400 rounded-full"></div> توزيع السيولة
+                            <h3 className="font-extrabold text-white flex items-center gap-2 text-lg drop-shadow-lg" style={{ fontFamily: 'Cairo, sans-serif' }}>
+                                 <div className="w-2 h-7 bg-emerald-400 rounded-full shadow-lg shadow-emerald-400/50"></div> توزيع السيولة
                             </h3>
                         </div>
                          <div className="flex-1 flex flex-col min-h-0 gap-2 relative z-10">
