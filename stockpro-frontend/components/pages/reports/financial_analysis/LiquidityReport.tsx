@@ -559,42 +559,89 @@ const LiquidityReport: React.FC<LiquidityReportProps> = ({ title }) => {
         };
 
         // VAT position (same logic as BalanceSheet/VAT statement)
-        let vatDebit = 0;
-        let vatCredit = 0;
+        // Calculate opening VAT position (transactions before start date)
+        let vatDebitBefore = 0;
+        let vatCreditBefore = 0;
+
+        const filterBeforeStartDate = (record: any) => {
+            const recordDate = normalizeDate(record?.date);
+            return recordDate < normalizedStartDate;
+        };
+
+        // Opening VAT Debit (VAT collected before start date)
+        (apiSalesInvoices as any[]).filter(filterBeforeStartDate).forEach((inv) => {
+            const tax = inv.tax ?? inv.totals?.tax ?? 0;
+            vatDebitBefore += tax;
+        });
+
+        (apiPurchaseReturns as any[]).filter(filterBeforeStartDate).forEach((inv) => {
+            const tax = inv.tax ?? inv.totals?.tax ?? 0;
+            vatDebitBefore += tax;
+        });
+
+        (apiReceiptVouchers as any[]).filter((v) => v.entityType === "vat" && v.amount && v.amount > 0).filter(filterBeforeStartDate).forEach((v) => {
+            vatDebitBefore += v.amount ?? 0;
+        });
+
+        // Opening VAT Credit (VAT paid before start date)
+        (apiPurchaseInvoices as any[]).filter(filterBeforeStartDate).forEach((inv) => {
+            const tax = inv.tax ?? inv.totals?.tax ?? 0;
+            vatCreditBefore += tax;
+        });
+
+        (apiSalesReturns as any[]).filter(filterBeforeStartDate).forEach((inv) => {
+            const tax = inv.tax ?? inv.totals?.tax ?? 0;
+            vatCreditBefore += tax;
+        });
+
+        (apiPaymentVouchers as any[]).filter((v) => v.entityType === "expense-Type" && v.taxPrice && v.taxPrice > 0).filter(filterBeforeStartDate).forEach((v) => {
+            vatCreditBefore += v.taxPrice ?? 0;
+        });
+
+        (apiPaymentVouchers as any[]).filter((v) => v.entityType === "vat" && v.amount && v.amount > 0).filter(filterBeforeStartDate).forEach((v) => {
+            vatCreditBefore += v.amount ?? 0;
+        });
+
+        // Calculate period VAT (transactions within date range)
+        let vatDebitPeriod = 0;
+        let vatCreditPeriod = 0;
 
         (apiSalesInvoices as any[]).filter(filterByDate).forEach((inv) => {
             const tax = inv.tax ?? inv.totals?.tax ?? 0;
-            vatDebit += tax;
+            vatDebitPeriod += tax;
         });
 
         (apiPurchaseReturns as any[]).filter(filterByDate).forEach((inv) => {
             const tax = inv.tax ?? inv.totals?.tax ?? 0;
-            vatDebit += tax;
+            vatDebitPeriod += tax;
         });
 
         (apiPurchaseInvoices as any[]).filter(filterByDate).forEach((inv) => {
             const tax = inv.tax ?? inv.totals?.tax ?? 0;
-            vatCredit += tax;
+            vatCreditPeriod += tax;
         });
 
         (apiSalesReturns as any[]).filter(filterByDate).forEach((inv) => {
             const tax = inv.tax ?? inv.totals?.tax ?? 0;
-            vatCredit += tax;
+            vatCreditPeriod += tax;
         });
 
         (apiPaymentVouchers as any[]).filter((v) => v.entityType === "expense-Type" && v.taxPrice && v.taxPrice > 0).filter(filterByDate).forEach((v) => {
-            vatCredit += v.taxPrice ?? 0;
+            vatCreditPeriod += v.taxPrice ?? 0;
         });
 
         (apiReceiptVouchers as any[]).filter((v) => v.entityType === "vat" && v.amount && v.amount > 0).filter(filterByDate).forEach((v) => {
-            vatDebit += v.amount ?? 0;
+            vatDebitPeriod += v.amount ?? 0;
         });
 
         (apiPaymentVouchers as any[]).filter((v) => v.entityType === "vat" && v.amount && v.amount > 0).filter(filterByDate).forEach((v) => {
-            vatCredit += v.amount ?? 0;
+            vatCreditPeriod += v.amount ?? 0;
         });
 
-        const vatNet = vatCredit - vatDebit;
+        // Total VAT = Opening VAT + Period VAT
+        const totalVatDebit = vatDebitBefore + vatDebitPeriod;
+        const totalVatCredit = vatCreditBefore + vatCreditPeriod;
+        const vatNet = totalVatCredit - totalVatDebit;
         const vatAsset = vatNet > 0 ? vatNet : 0;
         const vatLiabilityFromNet = vatNet < 0 ? Math.abs(vatNet) : 0;
 
