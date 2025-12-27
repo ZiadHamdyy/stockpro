@@ -1,9 +1,9 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import { Branch, SalesRecord } from '../types';
 import { FilterPanel } from './FilterPanel';
 import { SalesChart } from './SalesChart';
 import { SalesTable } from './SalesTable';
-import { BarChartIcon, BuildingIcon, CalendarIcon, PrintIcon, TrendingUpIcon, DollarSignIcon, ActivityIcon, Loader2Icon } from '../../../../icons';
+import { BarChartIcon, BuildingIcon, CalendarIcon, PrintIcon, TrendingUpIcon, DollarSignIcon, ActivityIcon, Loader2Icon, ChevronDownIcon } from '../../../../icons';
 import { useGetBranchesQuery } from '../../../../store/slices/branch/branchApi';
 import { useGetAnnualSalesReportQuery } from '../../../../store/slices/annualSales/annualSalesApiSlice';
 
@@ -32,8 +32,11 @@ const ARABIC_MONTHS = [
 ];
 
 const AnnualSales: React.FC<AnnualSalesProps> = ({ title }) => {
-  const selectedYear = new Date().getFullYear();
+  const currentYear = new Date().getFullYear();
+  const [selectedYear, setSelectedYear] = useState(currentYear);
   const [selectedBranches, setSelectedBranches] = useState<string[]>([]);
+  const [isYearDropdownOpen, setIsYearDropdownOpen] = useState(false);
+  const yearDropdownRef = useRef<HTMLDivElement>(null);
 
   // Fetch branches
   const { data: apiBranches = [], isLoading: branchesLoading } = useGetBranchesQuery();
@@ -58,6 +61,38 @@ const AnnualSales: React.FC<AnnualSalesProps> = ({ title }) => {
       setSelectedBranches(branches.map(b => b.id));
     }
   }, [branches, selectedBranches.length]);
+
+  // Generate years list (from current year going backwards to 2000)
+  const years = useMemo(() => {
+    const yearsList = [];
+    for (let y = currentYear; y >= 2000; y--) {
+      yearsList.push(y);
+    }
+    return yearsList;
+  }, [currentYear]);
+
+  // Handle year selection
+  const handleSelectYear = useCallback((year: number) => {
+    setSelectedYear(year);
+    setIsYearDropdownOpen(false);
+  }, []);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (yearDropdownRef.current && !yearDropdownRef.current.contains(event.target as Node)) {
+        setIsYearDropdownOpen(false);
+      }
+    };
+
+    if (isYearDropdownOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isYearDropdownOpen]);
 
   // Transform sales report data to SalesRecord format
   const salesData: SalesRecord[] = useMemo(() => {
@@ -174,10 +209,31 @@ const AnnualSales: React.FC<AnnualSalesProps> = ({ title }) => {
             
             <div className="flex items-center gap-4">
               <div className="hidden md:flex items-center gap-3 text-sm font-medium text-slate-500 print:hidden">
-                <span className="flex items-center gap-2 bg-slate-50 px-4 py-2 rounded-full border border-slate-200">
-                  <CalendarIcon className="w-4 h-4 text-slate-400" />
-                  {selectedYear}
-                </span>
+                <div className="relative" ref={yearDropdownRef}>
+                  <button
+                    onClick={() => setIsYearDropdownOpen(!isYearDropdownOpen)}
+                    className="flex items-center gap-2 bg-slate-50 px-4 py-2 rounded-full border border-slate-200 hover:bg-slate-100 transition-colors cursor-pointer"
+                  >
+                    <CalendarIcon className="w-4 h-4 text-slate-400" />
+                    {selectedYear}
+                    <ChevronDownIcon className="w-4 h-4 text-slate-400" />
+                  </button>
+                  {isYearDropdownOpen && (
+                    <div className="absolute z-50 left-0 mt-2 bg-white border border-slate-200 rounded-xl shadow-lg max-h-60 overflow-y-auto min-w-[120px]">
+                      {years.map((year) => (
+                        <button
+                          key={year}
+                          onClick={() => handleSelectYear(year)}
+                          className={`w-full px-4 py-2.5 text-right hover:bg-slate-50 transition-colors ${
+                            year === selectedYear ? 'bg-indigo-50 text-indigo-600 font-semibold' : 'text-slate-700'
+                          }`}
+                        >
+                          {year}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
                 <span className="flex items-center gap-2 bg-slate-50 px-4 py-2 rounded-full border border-slate-200">
                   <BuildingIcon className="w-4 h-4 text-slate-400" />
                   {selectedBranches.length} فروع
