@@ -154,6 +154,7 @@ export const getMenuKeyFromPath = (path: string): string => {
   const pathToKeyMap: Record<string, string> = {
     "/dashboard": "dashboard",
     "/subscription": "subscription",
+    "/subscription/renewal": "subscription_renewal",
     "/settings/company-data": "company_data",
     "/settings/fiscal-years": "fiscal_years",
     "/settings/branches-data": "branches_data",
