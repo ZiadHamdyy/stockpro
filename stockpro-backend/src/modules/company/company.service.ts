@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { DatabaseService } from '../../configs/database/database.service';
 import { UpsertCompanyRequest } from './dtos/request/upsert-company.request';
 import { CompanyResponse } from './dtos/response/company.response';
@@ -518,7 +518,12 @@ export class CompanyService {
     return this.mapToResponse(company);
   }
 
-  async createCompanyWithSeed(code?: string, planType: 'BASIC' | 'GROWTH' | 'BUSINESS' = 'BASIC'): Promise<CompanyResponse> {
+  async createCompanyWithSeed(
+    code?: string,
+    planType: 'BASIC' | 'GROWTH' | 'BUSINESS' = 'BASIC',
+    startDate?: Date,
+    endDate?: Date,
+  ): Promise<CompanyResponse> {
     // Generate code if not provided
     let companyCode = code;
     if (!companyCode) {
@@ -543,6 +548,15 @@ export class CompanyService {
       }
     }
 
+    // Validate dates if provided
+    if (startDate && endDate) {
+      if (endDate <= startDate) {
+        throw new BadRequestException(
+          'End date must be after start date',
+        );
+      }
+    }
+
     // Create company with default data (matching seed.ts pattern)
     const company = await this.prisma.company.create({
       data: {
@@ -563,12 +577,14 @@ export class CompanyService {
     // Seed all company data
     await this.seedCompanyData(company.id, companyCode, company.name);
 
-    // Create subscription with selected plan
+    // Create subscription with selected plan and dates
     await this.prisma.subscription.create({
       data: {
         companyId: company.id,
         planType: planType,
         status: 'ACTIVE',
+        startDate: startDate || new Date(),
+        endDate: endDate || null,
       },
     });
 

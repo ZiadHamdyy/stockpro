@@ -101,7 +101,7 @@ export const companyApiSlice = apiSlice.injectEndpoints({
         };
       },
     }),
-    createCompanyWithSeed: builder.mutation<CompanyResponse, { code?: string; planType?: 'BASIC' | 'GROWTH' | 'BUSINESS' }>({
+    createCompanyWithSeed: builder.mutation<CompanyResponse, { code?: string; planType?: 'BASIC' | 'GROWTH' | 'BUSINESS'; startDate?: string; endDate?: string }>({
       query: (data) => ({
         url: "/company/create-with-seed",
         method: "POST",

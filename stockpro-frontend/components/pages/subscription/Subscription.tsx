@@ -64,6 +64,8 @@ const Subscription: React.FC<SubscriptionProps> = ({ title }) => {
   const [codeInput, setCodeInput] = useState('');
   const [isCreating, setIsCreating] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState<'BASIC' | 'GROWTH' | 'BUSINESS'>('BASIC');
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
   const [formData, setFormData] = useState<CompanyFormData>({
     name: '',
     activity: '',
@@ -81,6 +83,8 @@ const Subscription: React.FC<SubscriptionProps> = ({ title }) => {
   const handleOpenCreateModal = () => {
     setCodeInput('');
     setSelectedPlan('BASIC');
+    setStartDate('');
+    setEndDate('');
     setIsCreateModalOpen(true);
   };
 
@@ -120,13 +124,39 @@ const Subscription: React.FC<SubscriptionProps> = ({ title }) => {
       return;
     }
 
+    // Validate dates
+    if (!startDate) {
+      showToast('يرجى إدخال تاريخ البداية', 'error');
+      return;
+    }
+
+    if (!endDate) {
+      showToast('يرجى إدخال تاريخ النهاية', 'error');
+      return;
+    }
+
+    // Validate end date is after start date
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+    if (end <= start) {
+      showToast('تاريخ النهاية يجب أن يكون بعد تاريخ البداية', 'error');
+      return;
+    }
+
     setIsCreating(true);
     try {
-      await createCompanyWithSeed({ code, planType: selectedPlan }).unwrap();
+      await createCompanyWithSeed({ 
+        code, 
+        planType: selectedPlan,
+        startDate: startDate,
+        endDate: endDate,
+      }).unwrap();
       showToast('تم إنشاء الشركة بنجاح');
       setIsCreateModalOpen(false);
       setCodeInput('');
       setSelectedPlan('BASIC');
+      setStartDate('');
+      setEndDate('');
       refetch();
     } catch (error: any) {
       showToast(
@@ -731,6 +761,37 @@ const Subscription: React.FC<SubscriptionProps> = ({ title }) => {
                 <p className="text-xs text-gray-500 mt-1">
                   سيتم إنشاء الشركة تلقائياً مع جميع البيانات الافتراضية
                 </p>
+              </div>
+
+              {/* Date Selection */}
+              <div className="mb-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-bold text-gray-700 mb-1">
+                    تاريخ البداية *
+                  </label>
+                  <input
+                    type="date"
+                    value={startDate}
+                    onChange={(e) => setStartDate(e.target.value)}
+                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                    required
+                    disabled={isCreating}
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-gray-700 mb-1">
+                    تاريخ النهاية *
+                  </label>
+                  <input
+                    type="date"
+                    value={endDate}
+                    onChange={(e) => setEndDate(e.target.value)}
+                    min={startDate || undefined}
+                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                    required
+                    disabled={isCreating}
+                  />
+                </div>
               </div>
 
               {/* Plan Selection */}

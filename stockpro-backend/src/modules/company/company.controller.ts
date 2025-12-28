@@ -31,8 +31,22 @@ export class CompanyController {
 
   @Post('create-with-seed')
   @Auth({ permissions: ['subscription:create'] })
-  async createCompanyWithSeed(@Body() body: { code?: string; planType?: 'BASIC' | 'GROWTH' | 'BUSINESS' }): Promise<CompanyResponse> {
-    return this.companyService.createCompanyWithSeed(body.code, body.planType);
+  async createCompanyWithSeed(
+    @Body() body: {
+      code?: string;
+      planType?: 'BASIC' | 'GROWTH' | 'BUSINESS';
+      startDate?: string;
+      endDate?: string;
+    },
+  ): Promise<CompanyResponse> {
+    const startDate = body.startDate ? new Date(body.startDate) : undefined;
+    const endDate = body.endDate ? new Date(body.endDate) : undefined;
+    return this.companyService.createCompanyWithSeed(
+      body.code,
+      body.planType,
+      startDate,
+      endDate,
+    );
   }
 
   @Put()
