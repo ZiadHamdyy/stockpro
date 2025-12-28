@@ -384,6 +384,37 @@ export class SubscriptionService {
   }
 
   /**
+   * Get subscription by company code
+   */
+  async getSubscriptionByCode(code: string): Promise<any> {
+    // Validate code format (6-8 digits)
+    if (!/^\d{6,8}$/.test(code)) {
+      throw new BadRequestException('Company code must be 6-8 digits');
+    }
+
+    // Find company by code
+    const company = await this.prisma.company.findUnique({
+      where: { code },
+    });
+
+    if (!company) {
+      throw new NotFoundException(`Company not found for code: ${code}`);
+    }
+
+    // Get subscription for this company
+    const subscription = await this.prisma.subscription.findUnique({
+      where: { companyId: company.id },
+      include: { company: { select: { id: true, name: true, code: true } } },
+    });
+
+    if (!subscription) {
+      throw new NotFoundException(`Subscription not found for company code: ${code}`);
+    }
+
+    return subscription;
+  }
+
+  /**
    * Renew subscription by company code
    */
   async renewSubscriptionByCode(

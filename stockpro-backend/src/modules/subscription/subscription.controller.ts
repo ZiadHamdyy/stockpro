@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body } from '@nestjs/common';
+import { Controller, Get, Post, Body, Query } from '@nestjs/common';
 import { SubscriptionService } from './subscription.service';
 import { Auth } from '../../common/decorators/auth.decorator';
 import { currentCompany } from '../../common/decorators/company.decorator';
@@ -62,6 +62,17 @@ export class SubscriptionController {
       startDate,
       endDate,
     );
+  }
+
+  /**
+   * Get subscription by company code (superadmin only)
+   */
+  @Get('by-code')
+  @Auth({ permissions: ['subscription:read'] })
+  async getSubscriptionByCode(
+    @Query('code') code: string,
+  ): Promise<SubscriptionResponse> {
+    return this.subscriptionService.getSubscriptionByCode(code);
   }
 
   /**

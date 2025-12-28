@@ -78,6 +78,13 @@ export const subscriptionApiSlice = apiSlice.injectEndpoints({
       }),
       invalidatesTags: ['Subscription'],
     }),
+
+    getSubscriptionByCode: builder.query<Subscription, string>({
+      query: (code) => `/subscriptions/by-code?code=${code}`,
+      transformResponse: (response: { data: Subscription }): Subscription => {
+        return response.data;
+      },
+    }),
   }),
   overrideExisting: false,
 });
@@ -88,5 +95,7 @@ export const {
   useGetUsageStatsQuery,
   useUpgradePlanMutation,
   useRenewSubscriptionMutation,
+  useGetSubscriptionByCodeQuery,
+  useLazyGetSubscriptionByCodeQuery,
 } = subscriptionApiSlice;
 

@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { ShieldIcon } from '../../icons';
 import { useToast } from '../../common/ToastProvider';
-import { useRenewSubscriptionMutation } from '../../store/slices/subscriptionApiSlice';
+import { useRenewSubscriptionMutation, useLazyGetSubscriptionByCodeQuery } from '../../store/slices/subscriptionApiSlice';
 
 interface SubscriptionRenewalProps {
   title: string;
@@ -9,13 +10,69 @@ interface SubscriptionRenewalProps {
 
 const SubscriptionRenewal: React.FC<SubscriptionRenewalProps> = ({ title }) => {
   const { showToast } = useToast();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [renewSubscription, { isLoading: isRenewing }] = useRenewSubscriptionMutation();
+  const [getSubscriptionByCode, { data: currentSubscription, isLoading: isLoadingSubscription, error: subscriptionError }] = useLazyGetSubscriptionByCodeQuery();
 
   const [codeInput, setCodeInput] = useState('');
   const [selectedPlan, setSelectedPlan] = useState<'BASIC' | 'GROWTH' | 'BUSINESS'>('BASIC');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [renewedSubscription, setRenewedSubscription] = useState<any>(null);
+  const [companyName, setCompanyName] = useState<string>('');
+
+  // Check for code in URL params on mount
+  useEffect(() => {
+    const codeFromUrl = searchParams.get('code');
+    if (codeFromUrl) {
+      setCodeInput(codeFromUrl);
+      // Fetch subscription if code is in URL
+      if (/^\d{6,8}$/.test(codeFromUrl)) {
+        getSubscriptionByCode(codeFromUrl);
+      }
+    }
+  }, [searchParams, getSubscriptionByCode]);
+
+  // Fetch subscription when code is entered and valid
+  const handleCodeChange = (value: string) => {
+    setCodeInput(value);
+    setCompanyName('');
+    setSelectedPlan('BASIC');
+    setStartDate('');
+    setEndDate('');
+    setRenewedSubscription(null);
+
+    // If code is valid format, fetch subscription
+    if (/^\d{6,8}$/.test(value.trim())) {
+      getSubscriptionByCode(value.trim());
+    }
+  };
+
+  // Update form when subscription data is loaded
+  useEffect(() => {
+    if (currentSubscription) {
+      setSelectedPlan(currentSubscription.planType as 'BASIC' | 'GROWTH' | 'BUSINESS');
+      setStartDate(new Date(currentSubscription.startDate).toISOString().split('T')[0]);
+      if (currentSubscription.endDate) {
+        setEndDate(new Date(currentSubscription.endDate).toISOString().split('T')[0]);
+      }
+      // Check if company info is included in response
+      if ((currentSubscription as any).company) {
+        setCompanyName((currentSubscription as any).company.name);
+      }
+    }
+  }, [currentSubscription]);
+
+  // Show error if subscription not found
+  useEffect(() => {
+    if (subscriptionError && codeInput.trim() && /^\d{6,8}$/.test(codeInput.trim())) {
+      // Don't show error if it's just "not found" - that's expected for new companies
+      if (subscriptionError && 'status' in subscriptionError && subscriptionError.status === 404) {
+        // Subscription doesn't exist - that's okay, user can create one
+        setCompanyName('');
+      }
+    }
+  }, [subscriptionError, codeInput]);
 
   const handleRenewSubscription = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -63,11 +120,8 @@ const SubscriptionRenewal: React.FC<SubscriptionRenewalProps> = ({ title }) => {
 
       showToast('تم تجديد الاشتراك بنجاح');
       setRenewedSubscription(result);
-      // Reset form
-      setCodeInput('');
-      setSelectedPlan('BASIC');
-      setStartDate('');
-      setEndDate('');
+      // Refetch subscription to get updated data
+      getSubscriptionByCode(code);
     } catch (error: any) {
       showToast(
         error?.data?.message || 'حدث خطأ أثناء تجديد الاشتراك',
@@ -136,18 +190,80 @@ const SubscriptionRenewal: React.FC<SubscriptionRenewalProps> = ({ title }) => {
             <label className="block text-sm font-bold text-gray-700 mb-2">
               كود الشركة (6-8 أرقام) *
             </label>
-            <input
-              type="text"
-              value={codeInput}
-              onChange={(e) => setCodeInput(e.target.value)}
-              placeholder="123456"
-              pattern="\d{6,8}"
-              maxLength={8}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent font-mono"
-              required
-              disabled={isRenewing}
-            />
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={codeInput}
+                onChange={(e) => handleCodeChange(e.target.value)}
+                onBlur={() => {
+                  if (codeInput.trim() && /^\d{6,8}$/.test(codeInput.trim())) {
+                    getSubscriptionByCode(codeInput.trim());
+                  }
+                }}
+                placeholder="123456"
+                pattern="\d{6,8}"
+                maxLength={8}
+                className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent font-mono"
+                required
+                disabled={isRenewing || isLoadingSubscription}
+              />
+              {isLoadingSubscription && (
+                <div className="flex items-center px-4 text-gray-500">
+                  <span className="text-sm">جاري التحميل...</span>
+                </div>
+              )}
+            </div>
+            {companyName && (
+              <p className="text-sm text-green-600 mt-2 font-semibold">
+                ✓ {companyName}
+              </p>
+            )}
+            {subscriptionError && 'status' in subscriptionError && subscriptionError.status === 404 && codeInput.trim() && /^\d{6,8}$/.test(codeInput.trim()) && (
+              <p className="text-sm text-orange-600 mt-2">
+                لا يوجد اشتراك لهذه الشركة - يمكنك إنشاء اشتراك جديد
+              </p>
+            )}
           </div>
+
+          {/* Current Subscription Info */}
+          {currentSubscription && (
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+              <div className="flex items-center justify-between mb-3">
+                <h4 className="text-sm font-bold text-blue-800">الاشتراك الحالي:</h4>
+                <span className="text-xs text-blue-600 bg-blue-100 px-2 py-1 rounded">
+                  يمكنك تحديث البيانات أدناه
+                </span>
+              </div>
+              <div className="grid grid-cols-2 gap-3 text-sm">
+                <div>
+                  <span className="text-gray-600">الخطة:</span>
+                  <span className="font-bold text-gray-800 mr-2">
+                    {planNames[currentSubscription.planType] || currentSubscription.planType}
+                  </span>
+                </div>
+                <div>
+                  <span className="text-gray-600">الحالة:</span>
+                  <span className="font-bold text-gray-800 mr-2">
+                    {currentSubscription.status === 'ACTIVE' ? 'نشط' : currentSubscription.status}
+                  </span>
+                </div>
+                <div>
+                  <span className="text-gray-600">تاريخ البداية:</span>
+                  <span className="font-bold text-gray-800 mr-2">
+                    {new Date(currentSubscription.startDate).toLocaleDateString('ar-SA')}
+                  </span>
+                </div>
+                <div>
+                  <span className="text-gray-600">تاريخ النهاية:</span>
+                  <span className="font-bold text-gray-800 mr-2">
+                    {currentSubscription.endDate 
+                      ? new Date(currentSubscription.endDate).toLocaleDateString('ar-SA')
+                      : 'غير محدد'}
+                  </span>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Date Selection */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -264,15 +380,31 @@ const SubscriptionRenewal: React.FC<SubscriptionRenewalProps> = ({ title }) => {
           {/* Submit Button */}
           <div className="flex justify-end gap-3 pt-4 border-t border-gray-200">
             <button
+              type="button"
+              onClick={() => {
+                setCodeInput('');
+                setCompanyName('');
+                setSelectedPlan('BASIC');
+                setStartDate('');
+                setEndDate('');
+                setRenewedSubscription(null);
+                setSearchParams({});
+              }}
+              className="px-4 py-2 text-sm border border-gray-300 text-gray-700 rounded-lg font-bold hover:bg-gray-50 transition-colors"
+              disabled={isRenewing}
+            >
+              إعادة تعيين
+            </button>
+            <button
               type="submit"
               className={`px-6 py-2 text-sm rounded-lg font-bold transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
                 selectedPlan === 'BASIC' ? 'bg-orange-600 hover:bg-orange-700' :
                 selectedPlan === 'GROWTH' ? 'bg-blue-600 hover:bg-blue-700' :
                 'bg-purple-600 hover:bg-purple-700'
               } text-white`}
-              disabled={isRenewing}
+              disabled={isRenewing || isLoadingSubscription}
             >
-              {isRenewing ? 'جاري التجديد...' : 'تجديد الاشتراك'}
+              {isRenewing ? 'جاري التجديد...' : currentSubscription ? 'تحديث الاشتراك' : 'إنشاء اشتراك جديد'}
             </button>
           </div>
         </form>

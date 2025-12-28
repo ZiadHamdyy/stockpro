@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { ShieldIcon, XIcon, PlusIcon, EditIcon, WhatsappIcon, PhoneIcon, BarChartIcon, BellIcon } from '../../icons';
 import { useToast } from '../../common/ToastProvider';
 import {
@@ -40,6 +41,7 @@ interface CompanyFormData {
 
 const Subscription: React.FC<SubscriptionProps> = ({ title }) => {
   const { showToast } = useToast();
+  const navigate = useNavigate();
   const { data: companiesData, isLoading, refetch } = useGetAllCompaniesQuery();
   const [createCompanyWithSeed] = useCreateCompanyWithSeedMutation();
   const [updateCompany] = useUpsertCompanyMutation();
@@ -350,14 +352,35 @@ const Subscription: React.FC<SubscriptionProps> = ({ title }) => {
                 {companies.slice(0, 5).map((company: any) => (
                   <div
                     key={company.id}
-                    onClick={() => handleOpenEditModal(company)}
-                    className="flex items-center justify-between p-3 bg-gray-50 hover:bg-gray-100 rounded-lg cursor-pointer transition-colors"
+                    className="flex items-center justify-between p-3 bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors"
                   >
-                    <div>
+                    <div 
+                      onClick={() => handleOpenEditModal(company)}
+                      className="flex-1 cursor-pointer"
+                    >
                       <p className="font-bold text-gray-800">{company.name}</p>
                       <p className="text-xs text-gray-500 font-mono">{company.code}</p>
                     </div>
-                    <EditIcon className="w-4 h-4 text-gray-400" />
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          navigate(`/subscription/renewal?code=${company.code}`);
+                        }}
+                        className="px-3 py-1.5 bg-orange-600 hover:bg-orange-700 text-white rounded-lg text-xs font-bold transition-colors flex items-center gap-1"
+                        title="عرض/تجديد الاشتراك"
+                      >
+                        <ShieldIcon className="w-3 h-3" />
+                        الاشتراك
+                      </button>
+                      <button
+                        onClick={() => handleOpenEditModal(company)}
+                        className="p-1.5 hover:bg-gray-200 rounded transition-colors"
+                        title="تعديل بيانات الشركة"
+                      >
+                        <EditIcon className="w-4 h-4 text-gray-400" />
+                      </button>
+                    </div>
                   </div>
                 ))}
                 {companies.length > 5 && (
