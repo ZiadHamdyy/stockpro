@@ -161,16 +161,16 @@ const SubscriptionRenewal: React.FC<SubscriptionRenewalProps> = ({ title }) => {
   return (
     <div className="p-6 max-w-[1200px] mx-auto animate-fade-in font-sans text-slate-800">
       {/* Header Card */}
-      <div className="bg-gradient-to-r from-orange-500 via-amber-500 to-orange-600 rounded-2xl shadow-xl overflow-hidden mb-6 min-h-[200px] relative">
+      <div className="bg-gradient-to-r from-orange-500 via-amber-500 to-orange-600 rounded-2xl shadow-xl overflow-hidden mb-4 min-h-[80px] relative">
         <div className="absolute inset-0 opacity-10" 
              style={{ backgroundImage: 'radial-gradient(circle, #ffffff 1px, transparent 1px)', backgroundSize: '30px 30px' }}>
         </div>
         
-        <div className="relative z-10 p-8">
-          <div className="flex items-center gap-4 mb-4">
-            <ShieldIcon className="w-12 h-12 text-white" />
+        <div className="relative z-10 p-4">
+          <div className="flex items-center gap-3 mb-2">
+            <ShieldIcon className="w-9 h-9 text-white" />
             <div>
-              <h2 className="text-2xl font-bold text-white mb-1">{title}</h2>
+              <h2 className="text-xl font-bold text-white mb-1">{title}</h2>
               <p className="text-orange-100 text-sm">تجديد اشتراك الشركة باستخدام كود الشركة</p>
             </div>
           </div>
