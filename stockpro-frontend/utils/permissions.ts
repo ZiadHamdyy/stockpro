@@ -102,6 +102,12 @@ export const hasReadPermissionForKey = (
     return false;
   }
   
+  // Special case: subscription and subscription_renewal are always allowed
+  // (they are protected by route-level SUPER_ADMIN checks)
+  if (menuKey === 'subscription' || menuKey === 'subscription_renewal') {
+    return true;
+  }
+  
   // Special case: print_settings requires both read and update permissions
   if (menuKey === 'print_settings') {
     return permissionSet.has('print_settings-read') && permissionSet.has('print_settings-update');

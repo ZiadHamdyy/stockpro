@@ -8,6 +8,7 @@ export const getPathFromMenuKey = (key: string): string => {
 
     // Subscription
     subscription: "/subscription",
+    subscription_renewal: "/subscription/renewal",
 
     // Settings
     company_data: "/settings/company-data",
