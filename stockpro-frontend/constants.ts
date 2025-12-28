@@ -43,6 +43,7 @@ export const MENU_ITEMS: MenuItem[] = [
       { key: "stores_data", label: "بيانات المخازن", icon: DatabaseIcon },
       { key: "users_data", label: "بيانات المستخدمين", icon: DatabaseIcon },
       { key: "permissions", label: "الصلاحيات", icon: DatabaseIcon },
+      { key: "subscription_data", label: "بيانات الاشتراك", icon: ShieldIcon },
       { key: "audit_log", label: "سجل العمليات", icon: ActivityIcon },
       { key: "print_settings", label: "إعدادات الطباعة", icon: PrintIcon },
       { key: "financial_system", label: "إعدادات النظام المالي", icon: SettingsIcon },

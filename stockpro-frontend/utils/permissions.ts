@@ -97,15 +97,16 @@ export const isMenuItemVisible = (
 export const hasReadPermissionForKey = (
   menuKey: string,
   permissionSet: Set<string>,
+  currentUser?: any,
 ): boolean => {
   if (!permissionSet || permissionSet.size === 0) {
     return false;
   }
   
-  // Special case: subscription and subscription_renewal are always allowed
-  // (they are protected by route-level SUPER_ADMIN checks)
+  // Special case: subscription and subscription_renewal are only for SUPER_ADMIN
   if (menuKey === 'subscription' || menuKey === 'subscription_renewal') {
-    return true;
+    const isSuperAdmin = currentUser?.role?.name === 'SUPER_ADMIN';
+    return isSuperAdmin || false;
   }
   
   // Special case: print_settings requires both read and update permissions
@@ -123,6 +124,7 @@ export const hasReadPermissionForKey = (
 export const filterMenuByReadPermissions = (
   items: MenuItem[],
   permissionSet: Set<string>,
+  currentUser?: any,
 ): MenuItem[] => {
   if (!Array.isArray(items) || items.length === 0) {
     return [];
@@ -135,7 +137,7 @@ export const filterMenuByReadPermissions = (
           ? filterRecursively(item.children)
           : undefined;
         const canSeeItem =
-          hasReadPermissionForKey(item.key, permissionSet) ||
+          hasReadPermissionForKey(item.key, permissionSet, currentUser) ||
           (filteredChildren && filteredChildren.length > 0);
 
         if (!canSeeItem) {

@@ -10,6 +10,8 @@ import {
 import { filterMenuByReadPermissions } from "../../utils/permissions";
 import { useSubscription } from "../hook/useSubscription";
 import { filterMenuBySubscription } from "../../utils/subscriptionFilter";
+import { useSelector } from "react-redux";
+import { selectCurrentUser } from "../store/slices/auth/auth";
 
 interface SidebarProps {
   searchTerm: string;
@@ -82,10 +84,11 @@ const Sidebar: React.FC<SidebarProps> = ({
   const location = useLocation();
   const [openMenus, setOpenMenus] = useState<Record<string, boolean>>({});
   const { subscription, isLoading: subscriptionLoading } = useSubscription();
+  const currentUser = useSelector(selectCurrentUser);
 
   const menuFilteredByPermissions = useMemo(
-    () => filterMenuByReadPermissions(MENU_ITEMS, permissionSet),
-    [permissionSet],
+    () => filterMenuByReadPermissions(MENU_ITEMS, permissionSet, currentUser),
+    [permissionSet, currentUser],
   ); // hides pages without read access and prunes empty groups
 
   // Filter menu items by subscription plan

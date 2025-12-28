@@ -14,6 +14,7 @@ export enum Resources {
   STORES_DATA = "stores_data",
   USERS_DATA = "users_data",
   PERMISSIONS = "permissions",
+  SUBSCRIPTION_DATA = "subscription_data",
   AUDIT_LOG = "audit_log",
   PRINT_SETTINGS = "print_settings",
   FINANCIAL_SYSTEM = "financial_system",

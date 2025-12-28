@@ -32,6 +32,7 @@ import BranchesData from "./components/pages/settings/BranchesData";
 import StoresData from "./components/pages/settings/StoresData";
 import UsersData from "./components/pages/settings/UsersData";
 import Permissions from "./components/pages/settings/Permissions";
+import SubscriptionData from "./components/pages/settings/SubscriptionData";
 import AuditLog from "./components/pages/settings/AuditLog";
 import FinancialSystem from "./components/pages/settings/financial-system/FinancialSystem";
 import AddItem from "./components/pages/items/AddItem";
@@ -869,6 +870,14 @@ const AppContent = () => {
               element={
                 <ProtectedRoute requiredPermission="permissions-read">
                   <Permissions title={currentPageTitle} />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/settings/subscription-data"
+              element={
+                <ProtectedRoute requiredPermission="subscription_data-read">
+                  <SubscriptionData title={currentPageTitle} />
                 </ProtectedRoute>
               }
             />

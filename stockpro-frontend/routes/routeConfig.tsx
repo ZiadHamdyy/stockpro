@@ -6,6 +6,7 @@ import BranchesData from "../components/pages/settings/BranchesData";
 import StoresData from "../components/pages/settings/StoresData";
 import UsersData from "../components/pages/settings/UsersData";
 import Permissions from "../components/pages/settings/Permissions";
+import SubscriptionData from "../components/pages/settings/SubscriptionData";
 import AuditLog from "../components/pages/settings/AuditLog";
 import PrintSettings from "../components/pages/settings/PrintSettings";
 import FinancialSystem from "../components/pages/settings/financial-system/FinancialSystem";
@@ -159,6 +160,12 @@ export const routeConfig = [
     component: Permissions,
     requiredPermission: "permissions-read",
     label: "الصلاحيات",
+  },
+  {
+    path: "/settings/subscription-data",
+    component: SubscriptionData,
+    requiredPermission: "subscription_data-read",
+    label: "بيانات الاشتراك",
   },
   {
     path: "/settings/audit-log",
