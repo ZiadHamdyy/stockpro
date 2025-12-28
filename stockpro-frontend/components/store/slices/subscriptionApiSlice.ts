@@ -5,6 +5,13 @@ interface UpdateSubscriptionRequest {
   planType: 'BASIC' | 'GROWTH' | 'BUSINESS';
 }
 
+interface RenewSubscriptionRequest {
+  code: string;
+  planType: 'BASIC' | 'GROWTH' | 'BUSINESS';
+  startDate: string;
+  endDate: string;
+}
+
 export const subscriptionApiSlice = apiSlice.injectEndpoints({
   endpoints: (builder) => ({
     getCurrentSubscription: builder.query<Subscription, void>({
@@ -62,6 +69,15 @@ export const subscriptionApiSlice = apiSlice.injectEndpoints({
       }),
       invalidatesTags: ['Subscription'],
     }),
+
+    renewSubscription: builder.mutation<Subscription, RenewSubscriptionRequest>({
+      query: (data) => ({
+        url: '/subscriptions/renew',
+        method: 'POST',
+        body: data,
+      }),
+      invalidatesTags: ['Subscription'],
+    }),
   }),
   overrideExisting: false,
 });
@@ -71,5 +87,6 @@ export const {
   useGetPlanLimitsQuery,
   useGetUsageStatsQuery,
   useUpgradePlanMutation,
+  useRenewSubscriptionMutation,
 } = subscriptionApiSlice;
 

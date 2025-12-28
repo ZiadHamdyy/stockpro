@@ -3,6 +3,7 @@ import { SubscriptionService } from './subscription.service';
 import { Auth } from '../../common/decorators/auth.decorator';
 import { currentCompany } from '../../common/decorators/company.decorator';
 import { UpdateSubscriptionRequest } from './dtos/request/update-subscription.request';
+import { RenewSubscriptionRequest } from './dtos/request/renew-subscription.request';
 import { SubscriptionResponse } from './dtos/response/subscription.response';
 import { PlanLimitsResponse } from './dtos/response/plan-limits.response';
 import { UsageStatsResponse } from './dtos/response/usage-stats.response';
@@ -53,7 +54,32 @@ export class SubscriptionController {
     @currentCompany('id') companyId: string,
     @Body() data: UpdateSubscriptionRequest,
   ): Promise<SubscriptionResponse> {
-    return this.subscriptionService.updateSubscription(companyId, data.planType);
+    const startDate = data.startDate ? new Date(data.startDate) : undefined;
+    const endDate = data.endDate ? new Date(data.endDate) : undefined;
+    return this.subscriptionService.updateSubscription(
+      companyId,
+      data.planType,
+      startDate,
+      endDate,
+    );
+  }
+
+  /**
+   * Renew subscription by company code (superadmin only)
+   */
+  @Post('renew')
+  @Auth({ permissions: ['subscription:update'] })
+  async renewSubscription(
+    @Body() data: RenewSubscriptionRequest,
+  ): Promise<SubscriptionResponse> {
+    const startDate = new Date(data.startDate);
+    const endDate = new Date(data.endDate);
+    return this.subscriptionService.renewSubscriptionByCode(
+      data.code,
+      data.planType,
+      startDate,
+      endDate,
+    );
   }
 }
 

@@ -1,4 +1,4 @@
-import { Injectable, ForbiddenException, NotFoundException } from '@nestjs/common';
+import { Injectable, ForbiddenException, NotFoundException, BadRequestException } from '@nestjs/common';
 import { DatabaseService } from '../../configs/database/database.service';
 import {
   PLAN_LIMITS,
@@ -317,7 +317,18 @@ export class SubscriptionService {
   async updateSubscription(
     companyId: string,
     planType: SubscriptionPlanType,
+    startDate?: Date,
+    endDate?: Date,
   ): Promise<any> {
+    // Validate dates if provided
+    if (startDate && endDate) {
+      if (endDate <= startDate) {
+        throw new BadRequestException(
+          'End date must be after start date',
+        );
+      }
+    }
+
     const subscription = await this.prisma.subscription.findUnique({
       where: { companyId },
     });
@@ -329,14 +340,24 @@ export class SubscriptionService {
           companyId,
           planType,
           status: SubscriptionStatus.ACTIVE,
+          startDate: startDate || new Date(),
+          endDate: endDate || null,
         },
       });
     }
 
     // Update existing subscription
+    const updateData: any = { planType };
+    if (startDate !== undefined) {
+      updateData.startDate = startDate;
+    }
+    if (endDate !== undefined) {
+      updateData.endDate = endDate;
+    }
+
     return this.prisma.subscription.update({
       where: { companyId },
-      data: { planType },
+      data: updateData,
     });
   }
 
@@ -360,6 +381,64 @@ export class SubscriptionService {
     const subscription = await this.getCompanySubscription(companyId);
     const limits = PLAN_LIMITS[subscription.planType];
     return limits.financialAnalysisEnabled;
+  }
+
+  /**
+   * Renew subscription by company code
+   */
+  async renewSubscriptionByCode(
+    code: string,
+    planType: SubscriptionPlanType,
+    startDate: Date,
+    endDate: Date,
+  ): Promise<any> {
+    // Validate code format (6-8 digits)
+    if (!/^\d{6,8}$/.test(code)) {
+      throw new BadRequestException('Company code must be 6-8 digits');
+    }
+
+    // Find company by code
+    const company = await this.prisma.company.findUnique({
+      where: { code },
+    });
+
+    if (!company) {
+      throw new NotFoundException(`Company not found for code: ${code}`);
+    }
+
+    // Validate dates
+    if (endDate <= startDate) {
+      throw new BadRequestException('End date must be after start date');
+    }
+
+    // Check if subscription exists
+    const existingSubscription = await this.prisma.subscription.findUnique({
+      where: { companyId: company.id },
+    });
+
+    if (existingSubscription) {
+      // Update existing subscription
+      return this.prisma.subscription.update({
+        where: { companyId: company.id },
+        data: {
+          planType,
+          startDate,
+          endDate,
+          status: SubscriptionStatus.ACTIVE,
+        },
+      });
+    } else {
+      // Create new subscription
+      return this.prisma.subscription.create({
+        data: {
+          companyId: company.id,
+          planType,
+          startDate,
+          endDate,
+          status: SubscriptionStatus.ACTIVE,
+        },
+      });
+    }
   }
 }
 

@@ -109,6 +109,7 @@ import AuditTrial from "./components/pages/final_accounts/AuditTrial";
 import PrintSettingsPage from "./components/pages/settings/PrintSettings";
 import HelpCenter from "./components/pages/support/HelpCenter";
 import Subscription from "./components/pages/subscription/Subscription";
+import SubscriptionRenewal from "./components/pages/subscription/SubscriptionRenewal";
 
 import {
   initialBranches,
@@ -484,6 +485,22 @@ const SubscriptionRoute = () => {
   );
 };
 
+// Subscription Renewal route wrapper that redirects non-superadmins
+const SubscriptionRenewalRoute = () => {
+  const currentUser = useAppSelector(selectCurrentUser);
+  const isSuperAdmin = currentUser?.role?.name === 'SUPER_ADMIN';
+  
+  if (!isSuperAdmin) {
+    return <Navigate to="/dashboard" replace />;
+  }
+  
+  return (
+    <ProtectedRoute requiredPermission="subscription-read">
+      <SubscriptionRenewal title="تجديد الاشتراكات" />
+    </ProtectedRoute>
+  );
+};
+
 const AppContent = () => {
   const location = useLocation();
   const navigate = useNavigate();
@@ -804,6 +821,7 @@ const AppContent = () => {
 
             {/* Subscription */}
             <Route path="/subscription" element={<SubscriptionRoute />} />
+            <Route path="/subscription/renewal" element={<SubscriptionRenewalRoute />} />
 
             {/* Settings */}
             <Route

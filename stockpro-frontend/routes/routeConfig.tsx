@@ -84,6 +84,7 @@ import BalanceSheet from "../components/pages/final_accounts/BalanceSheet";
 import AuditTrial from "../components/pages/final_accounts/AuditTrial";
 import ZatcaInvoiceUpload from "../components/pages/zatca/ZatcaInvoiceUpload";
 import Subscription from "../components/pages/subscription/Subscription";
+import SubscriptionRenewal from "../components/pages/subscription/SubscriptionRenewal";
 // Note: You can also use enums: import { Resources, Actions, buildPermission } from '../enums/permissions.enum';
 
 /**
@@ -114,6 +115,12 @@ export const routeConfig = [
     component: Subscription,
     requiredPermission: "", // Handled by SubscriptionRoute wrapper
     label: "الاشتراك والتراخيص",
+  },
+  {
+    path: "/subscription/renewal",
+    component: SubscriptionRenewal,
+    requiredPermission: "", // Handled by SubscriptionRenewalRoute wrapper
+    label: "تجديد الاشتراكات",
   },
 
   // Settings
