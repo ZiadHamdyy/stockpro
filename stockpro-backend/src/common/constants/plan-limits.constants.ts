@@ -24,14 +24,14 @@ export interface PlanLimits {
 
 export const PLAN_LIMITS: Record<'BASIC' | 'GROWTH' | 'BUSINESS', PlanLimits> = {
   BASIC: {
-    users: 3,
-    branches: 2,
-    stores: 2,
-    safes: 2,
+    users: 1,
+    branches: 1,
+    stores: 1,
+    safes: 1,
     banks: 2,
-    invoicesPerMonth: 500, // sales + purchase + returns
-    customers: 10,
-    suppliers: 10,
+    invoicesPerMonth: -1, // unlimited
+    customers: 50,
+    suppliers: 50,
     items: 500,
     priceQuotationsPerMonth: 50,
     financialVouchersPerMonth: 100, // receipt + payment + internal transfers
@@ -42,14 +42,14 @@ export const PLAN_LIMITS: Record<'BASIC' | 'GROWTH' | 'BUSINESS', PlanLimits> = 
     financialAnalysisEnabled: false,
   },
   GROWTH: {
-    users: 10,
-    branches: 5,
-    stores: 5,
-    safes: 5,
+    users: 5,
+    branches: 3,
+    stores: 3,
+    safes: 3,
     banks: 5,
-    invoicesPerMonth: 2000,
-    customers: 50,
-    suppliers: 50,
+    invoicesPerMonth: -1, // unlimited
+    customers: 500,
+    suppliers: 500,
     items: 5000,
     priceQuotationsPerMonth: 200,
     financialVouchersPerMonth: 500,

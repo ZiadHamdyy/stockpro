@@ -3,8 +3,31 @@ import type { MenuItem } from '../types';
 /**
  * Define which menu keys require GROWTH or BUSINESS plan
  * Format: { menuKey: ['PLAN1', 'PLAN2', ...] }
+ * If a menu key is not listed, it's available for all plans (including BASIC)
  */
 const RESTRICTED_MENU_KEYS: Record<string, string[]> = {
+  // BASIC Plan - Hide these items (require GROWTH or BUSINESS)
+  permissions: ['GROWTH', 'BUSINESS'],
+  zatca: ['GROWTH', 'BUSINESS'],
+  store_transfer: ['GROWTH', 'BUSINESS'],
+  inventory_count: ['GROWTH', 'BUSINESS'],
+  revenue_codes: ['BUSINESS'], // Financials page - only BUSINESS plan
+  add_receivable_account: ['GROWTH', 'BUSINESS'],
+  receivable_accounts_list: ['GROWTH', 'BUSINESS'],
+  add_payable_account: ['GROWTH', 'BUSINESS'],
+  payable_accounts_list: ['GROWTH', 'BUSINESS'],
+  inventory_valuation_report: ['GROWTH', 'BUSINESS'],
+  revenue_statement_report: ['GROWTH', 'BUSINESS'],
+  payable_account_statement_report: ['GROWTH', 'BUSINESS'],
+  receivable_account_statement_report: ['GROWTH', 'BUSINESS'],
+  total_payable_accounts_report: ['GROWTH', 'BUSINESS'],
+  total_receivable_accounts_report: ['GROWTH', 'BUSINESS'],
+  total_revenues_report: ['GROWTH', 'BUSINESS'],
+  final_accounts: ['GROWTH', 'BUSINESS'],
+  income_statement: ['GROWTH', 'BUSINESS'],
+  balance_sheet: ['GROWTH', 'BUSINESS'],
+  audit_trail: ['GROWTH', 'BUSINESS'],
+  
   // Financial Analysis section - requires GROWTH or BUSINESS
   financial_analysis: ['GROWTH', 'BUSINESS'],
   liquidity_report: ['GROWTH', 'BUSINESS'],

@@ -868,7 +868,7 @@ const AppContent = () => {
             <Route
               path="/settings/permissions"
               element={
-                <ProtectedRoute requiredPermission="permissions-read">
+                <ProtectedRoute requiredPermission="permissions-read" requiresSubscription="GROWTH">
                   <Permissions title={currentPageTitle} />
                 </ProtectedRoute>
               }
@@ -974,7 +974,7 @@ const AppContent = () => {
             <Route
               path="/warehouse/transfer"
               element={
-                <ProtectedRoute requiredPermission="store_transfer-read">
+                <ProtectedRoute requiredPermission="store_transfer-read" requiresSubscription="GROWTH">
                   <StoreTransfer title={currentPageTitle} />
                 </ProtectedRoute>
               }
@@ -982,7 +982,7 @@ const AppContent = () => {
             <Route
               path="/warehouse/inventory-count"
               element={
-                <ProtectedRoute requiredPermission="inventory_count-read">
+                <ProtectedRoute requiredPermission="inventory_count-read" requiresSubscription="GROWTH">
                   <InventoryCount
                     title={currentPageTitle}
                     companyInfo={companyInfo}
@@ -1232,7 +1232,7 @@ const AppContent = () => {
             <Route
               path="/financials/revenue-codes"
               element={
-                <ProtectedRoute requiredPermission="revenue_codes-read">
+                <ProtectedRoute requiredPermission="revenue_codes-read" requiresSubscription="BUSINESS">
                   <RevenueCodes title={currentPageTitle} />
                 </ProtectedRoute>
               }
@@ -1301,7 +1301,7 @@ const AppContent = () => {
             <Route
               path="/financials/receivable-accounts/add"
               element={
-                <ProtectedRoute requiredPermission="add_receivable_account-read">
+                <ProtectedRoute requiredPermission="add_receivable_account-read" requiresSubscription="GROWTH">
                   <AddReceivableAccount title={currentPageTitle} />
                 </ProtectedRoute>
               }
@@ -1309,7 +1309,7 @@ const AppContent = () => {
             <Route
               path="/financials/receivable-accounts/add/:id"
               element={
-                <ProtectedRoute requiredPermission="add_receivable_account-read">
+                <ProtectedRoute requiredPermission="add_receivable_account-read" requiresSubscription="GROWTH">
                   <AddReceivableAccount title={currentPageTitle} />
                 </ProtectedRoute>
               }
@@ -1317,7 +1317,7 @@ const AppContent = () => {
             <Route
               path="/financials/receivable-accounts/list"
               element={
-                <ProtectedRoute requiredPermission="receivable_accounts_list-read">
+                <ProtectedRoute requiredPermission="receivable_accounts_list-read" requiresSubscription="GROWTH">
                   <ReceivableAccountsList title={currentPageTitle} />
                 </ProtectedRoute>
               }
@@ -1325,7 +1325,7 @@ const AppContent = () => {
             <Route
               path="/financials/payable-accounts/add"
               element={
-                <ProtectedRoute requiredPermission="add_payable_account-read">
+                <ProtectedRoute requiredPermission="add_payable_account-read" requiresSubscription="GROWTH">
                   <AddPayableAccount title={currentPageTitle} />
                 </ProtectedRoute>
               }
@@ -1333,7 +1333,7 @@ const AppContent = () => {
             <Route
               path="/financials/payable-accounts/add/:id"
               element={
-                <ProtectedRoute requiredPermission="add_payable_account-read">
+                <ProtectedRoute requiredPermission="add_payable_account-read" requiresSubscription="GROWTH">
                   <AddPayableAccount title={currentPageTitle} />
                 </ProtectedRoute>
               }
@@ -1341,7 +1341,7 @@ const AppContent = () => {
             <Route
               path="/financials/payable-accounts/list"
               element={
-                <ProtectedRoute requiredPermission="payable_accounts_list-read">
+                <ProtectedRoute requiredPermission="payable_accounts_list-read" requiresSubscription="GROWTH">
                   <PayableAccountsList title={currentPageTitle} />
                 </ProtectedRoute>
               }
@@ -1408,7 +1408,7 @@ const AppContent = () => {
             <Route
               path="/reports/items/valuation"
               element={
-                <ProtectedRoute requiredPermission="inventory_valuation_report-read">
+                <ProtectedRoute requiredPermission="inventory_valuation_report-read" requiresSubscription="GROWTH">
                   <InventoryValuationReport
                     title={currentPageTitle}
                     companyInfo={companyInfo}
@@ -1497,7 +1497,7 @@ const AppContent = () => {
             <Route
               path="/reports/items/inventory-valuation"
               element={
-                <ProtectedRoute requiredPermission="inventory_valuation_report-read">
+                <ProtectedRoute requiredPermission="inventory_valuation_report-read" requiresSubscription="GROWTH">
                   <InventoryValuationReport
                     title={currentPageTitle}
                     companyInfo={companyInfo}
@@ -1647,7 +1647,7 @@ const AppContent = () => {
             <Route
               path="/reports/financials/revenue-statement"
               element={
-                <ProtectedRoute requiredPermission="revenue_statement_report-read">
+                <ProtectedRoute requiredPermission="revenue_statement_report-read" requiresSubscription="GROWTH">
                   <RevenueStatementReport
                     title={currentPageTitle}
                     companyInfo={companyInfo}
@@ -1659,7 +1659,7 @@ const AppContent = () => {
             <Route
               path="/reports/financials/total-revenues"
               element={
-                <ProtectedRoute requiredPermission="total_revenues_report-read">
+                <ProtectedRoute requiredPermission="total_revenues_report-read" requiresSubscription="GROWTH">
                   <TotalRevenuesReport
                     title={currentPageTitle}
                     companyInfo={companyInfo}
@@ -1699,7 +1699,7 @@ const AppContent = () => {
             <Route
               path="/reports/financials/receivable-account-statement"
               element={
-                <ProtectedRoute requiredPermission="receivable_account_statement_report-read">
+                <ProtectedRoute requiredPermission="receivable_account_statement_report-read" requiresSubscription="GROWTH">
                   <ReceivableAccountStatementReport
                     title={currentPageTitle}
                     companyInfo={companyInfo}
@@ -1713,7 +1713,7 @@ const AppContent = () => {
             <Route
               path="/reports/financials/total-receivable-accounts"
               element={
-                <ProtectedRoute requiredPermission="total_receivable_accounts_report-read">
+                <ProtectedRoute requiredPermission="total_receivable_accounts_report-read" requiresSubscription="GROWTH">
                   <TotalReceivableAccountsReport
                     title={currentPageTitle}
                     companyInfo={companyInfo}
@@ -1727,7 +1727,7 @@ const AppContent = () => {
             <Route
               path="/reports/financials/payable-account-statement"
               element={
-                <ProtectedRoute requiredPermission="payable_account_statement_report-read">
+                <ProtectedRoute requiredPermission="payable_account_statement_report-read" requiresSubscription="GROWTH">
                   <PayableAccountStatementReport
                     title={currentPageTitle}
                     companyInfo={companyInfo}
@@ -1741,7 +1741,7 @@ const AppContent = () => {
             <Route
               path="/reports/financials/total-payable-accounts"
               element={
-                <ProtectedRoute requiredPermission="total_payable_accounts_report-read">
+                <ProtectedRoute requiredPermission="total_payable_accounts_report-read" requiresSubscription="GROWTH">
                   <TotalPayableAccountsReport
                     title={currentPageTitle}
                     companyInfo={companyInfo}
@@ -1823,7 +1823,7 @@ const AppContent = () => {
             <Route
               path="/zatca/upload"
               element={
-                <ProtectedRoute requiredPermission="zatca_upload-read">
+                <ProtectedRoute requiredPermission="zatca_upload-read" requiresSubscription="GROWTH">
                   <ZatcaInvoiceUpload
                     title={currentPageTitle}
                     companyInfo={companyInfo}
@@ -1847,7 +1847,7 @@ const AppContent = () => {
             <Route
               path="/final-accounts/income-statement"
               element={
-                <ProtectedRoute requiredPermission="income_statement-read">
+                <ProtectedRoute requiredPermission="income_statement-read" requiresSubscription="GROWTH">
                   <IncomeStatement />
                 </ProtectedRoute>
               }
@@ -1855,7 +1855,7 @@ const AppContent = () => {
             <Route
               path="/final-accounts/balance-sheet"
               element={
-                <ProtectedRoute requiredPermission="balance_sheet-read">
+                <ProtectedRoute requiredPermission="balance_sheet-read" requiresSubscription="GROWTH">
                   <BalanceSheet />
                 </ProtectedRoute>
               }
@@ -1863,7 +1863,7 @@ const AppContent = () => {
             <Route
               path="/final-accounts/audit-trial"
               element={
-                <ProtectedRoute requiredPermission="audit_trail-read">
+                <ProtectedRoute requiredPermission="audit_trail-read" requiresSubscription="GROWTH">
                   <AuditTrial />
                 </ProtectedRoute>
               }
