@@ -195,9 +195,9 @@ const Subscription: React.FC<SubscriptionProps> = ({ title }) => {
 
   // Map plan values to Arabic names
   const planNames: Record<string, string> = {
-    basic: 'باقة البداية',
-    pro: 'باقة النمو',
-    enterprise: 'الباقة الاحترافية',
+    basic: 'البداية',
+    pro: 'النمو',
+    enterprise: 'الاحترافية',
   };
   
   // Plan colors matching Pricing component
@@ -834,7 +834,7 @@ const Subscription: React.FC<SubscriptionProps> = ({ title }) => {
                     }`}
                   >
                     <div className="text-center mb-2">
-                      <h4 className="text-base font-bold text-gray-800 mb-0.5">باقة البداية</h4>
+                      <h4 className="text-base font-bold text-gray-800 mb-0.5">الأساسية</h4>
                       <div className="inline-block px-2 py-0.5 bg-orange-100 text-orange-700 rounded-full text-xs font-bold">
                         BASIC
                       </div>
@@ -940,7 +940,7 @@ const Subscription: React.FC<SubscriptionProps> = ({ title }) => {
                     }`}
                   >
                     <div className="text-center mb-2">
-                      <h4 className="text-base font-bold text-gray-800 mb-0.5">باقة النمو</h4>
+                      <h4 className="text-base font-bold text-gray-800 mb-0.5">المتوسطة</h4>
                       <div className="inline-block px-2 py-0.5 bg-blue-100 text-blue-700 rounded-full text-xs font-bold">
                         GROWTH
                       </div>
@@ -1046,7 +1046,7 @@ const Subscription: React.FC<SubscriptionProps> = ({ title }) => {
                     }`}
                   >
                     <div className="text-center mb-2">
-                      <h4 className="text-base font-bold text-gray-800 mb-0.5">الباقة الاحترافية</h4>
+                      <h4 className="text-base font-bold text-gray-800 mb-0.5">الاحترافية</h4>
                       <div className="inline-block px-2 py-0.5 bg-purple-100 text-purple-700 rounded-full text-xs font-bold">
                         BUSINESS
                       </div>
