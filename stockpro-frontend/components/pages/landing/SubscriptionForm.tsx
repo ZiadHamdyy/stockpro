@@ -13,7 +13,7 @@ interface SubscriptionFormProps {
 const planNames: Record<PlanType, string> = {
   basic: 'البداية',
   pro: 'النمو',
-  enterprise: 'المؤسسات',
+  enterprise: 'الاحترافية',
 };
 
 const SubscriptionForm: React.FC<SubscriptionFormProps> = ({ selectedPlan, onClose, onSubmit }) => {

@@ -393,7 +393,7 @@ const PricingPage: React.FC<PricingPageProps> = ({ prices, onPriceChange }) => {
             popular={true}
           />
           <PricingCard 
-            plan="المؤسسات"
+            plan="الاحترافية"
             planKey="enterprise"
             monthlyPrice={prices.enterprise}
             yearlyPrice={yearlyPrices.enterprise}

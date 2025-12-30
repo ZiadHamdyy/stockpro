@@ -197,7 +197,7 @@ const Subscription: React.FC<SubscriptionProps> = ({ title }) => {
   const planNames: Record<string, string> = {
     basic: 'البداية',
     pro: 'النمو',
-    enterprise: 'المؤسسات',
+    enterprise: 'الاحترافية',
   };
   
   // Plan colors matching Pricing component
