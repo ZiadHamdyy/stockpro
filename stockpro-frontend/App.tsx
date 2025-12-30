@@ -982,7 +982,7 @@ const AppContent = () => {
             <Route
               path="/warehouse/inventory-count"
               element={
-                <ProtectedRoute requiredPermission="inventory_count-read" requiresSubscription="GROWTH">
+                <ProtectedRoute requiredPermission="inventory_count-read" requiresSubscription="BUSINESS">
                   <InventoryCount
                     title={currentPageTitle}
                     companyInfo={companyInfo}
@@ -1422,7 +1422,7 @@ const AppContent = () => {
               element={
                 <ProtectedRoute 
                   requiredPermission="liquidity_report-read"
-                  requiresSubscription="GROWTH"
+                  requiresSubscription="BUSINESS"
                 >
                   <LiquidityReport title={currentPageTitle} />
                 </ProtectedRoute>
@@ -1433,7 +1433,7 @@ const AppContent = () => {
               element={
                 <ProtectedRoute 
                   requiredPermission="financial_performance_report-read"
-                  requiresSubscription="GROWTH"
+                  requiresSubscription="BUSINESS"
                 >
                   <FinancialPerformanceReport title={currentPageTitle} />
                 </ProtectedRoute>
@@ -1444,7 +1444,7 @@ const AppContent = () => {
               element={
                 <ProtectedRoute 
                   requiredPermission="item_profitability_report-read"
-                  requiresSubscription="GROWTH"
+                  requiresSubscription="BUSINESS"
                 >
                   <ItemProfitabilityReport title={currentPageTitle} />
                 </ProtectedRoute>
@@ -1455,7 +1455,7 @@ const AppContent = () => {
               element={
                 <ProtectedRoute 
                   requiredPermission="debt_aging_report-read"
-                  requiresSubscription="GROWTH"
+                  requiresSubscription="BUSINESS"
                 >
                   <DebtAgingReport title={currentPageTitle} />
                 </ProtectedRoute>
@@ -1466,7 +1466,7 @@ const AppContent = () => {
               element={
                 <ProtectedRoute 
                   requiredPermission="stagnant_items_report-read"
-                  requiresSubscription="GROWTH"
+                  requiresSubscription="BUSINESS"
                 >
                   <StagnantItemsReport title={currentPageTitle} />
                 </ProtectedRoute>
@@ -1477,7 +1477,7 @@ const AppContent = () => {
               element={
                 <ProtectedRoute 
                   requiredPermission="vip_customers_report-read"
-                  requiresSubscription="GROWTH"
+                  requiresSubscription="BUSINESS"
                 >
                   <VipCustomersReport title={currentPageTitle} />
                 </ProtectedRoute>
@@ -1488,7 +1488,7 @@ const AppContent = () => {
               element={
                 <ProtectedRoute 
                   requiredPermission="annual_sales_report-read"
-                  requiresSubscription="GROWTH"
+                  requiresSubscription="BUSINESS"
                 >
                   <AnnualSales title={currentPageTitle} />
                 </ProtectedRoute>
@@ -1647,7 +1647,7 @@ const AppContent = () => {
             <Route
               path="/reports/financials/revenue-statement"
               element={
-                <ProtectedRoute requiredPermission="revenue_statement_report-read" requiresSubscription="GROWTH">
+                <ProtectedRoute requiredPermission="revenue_statement_report-read" requiresSubscription="BUSINESS">
                   <RevenueStatementReport
                     title={currentPageTitle}
                     companyInfo={companyInfo}
@@ -1659,7 +1659,7 @@ const AppContent = () => {
             <Route
               path="/reports/financials/total-revenues"
               element={
-                <ProtectedRoute requiredPermission="total_revenues_report-read" requiresSubscription="GROWTH">
+                <ProtectedRoute requiredPermission="total_revenues_report-read" requiresSubscription="BUSINESS">
                   <TotalRevenuesReport
                     title={currentPageTitle}
                     companyInfo={companyInfo}
