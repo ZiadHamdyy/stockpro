@@ -60,9 +60,9 @@ const defaultImages: AppImages = {
 };
 
 const defaultPrices: AppPrices = {
-  basic: '99 ر.س',
-  pro: '199 ر.س',
-  enterprise: '399 ر.س',
+  basic: '24.50 ر.س',
+  pro: '99 ر.س',
+  enterprise: '199 ر.س',
 };
 
 const defaultFeatureSummaries: FeatureSummary[] = [
