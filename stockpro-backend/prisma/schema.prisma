@@ -1204,6 +1204,11 @@ enum SubscriptionRequestStatus {
   REJECTED
 }
 
+enum SubscriptionRequestType {
+  SUBSCRIPTION
+  TRIAL
+}
+
 model FiscalYear {
   id               String           @id @default(uuid())
   name             String
@@ -1242,17 +1247,22 @@ model Subscription {
 }
 
 model SubscriptionRequest {
-  id          String                    @id @default(uuid())
-  plan        String
-  name        String
-  email       String
-  phone       String
-  companyName String?
-  status      SubscriptionRequestStatus  @default(PENDING)
-  createdAt   DateTime                  @default(now())
-  updatedAt   DateTime                  @updatedAt
+  id               String                    @id @default(uuid())
+  type             SubscriptionRequestType    @default(SUBSCRIPTION)
+  plan             String?
+  name             String
+  email             String
+  phone             String
+  companyName       String?
+  status           SubscriptionRequestStatus  @default(PENDING)
+  trialDurationDays Int?                     @default(14)
+  trialStartDate   DateTime?
+  trialEndDate     DateTime?
+  createdAt        DateTime                  @default(now())
+  updatedAt        DateTime                  @updatedAt
 
   @@index([status])
+  @@index([type])
   @@index([createdAt])
   @@index([email])
 }

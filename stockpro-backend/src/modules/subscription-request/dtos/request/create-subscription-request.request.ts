@@ -1,9 +1,15 @@
-import { IsString, IsEmail, IsOptional, IsIn } from 'class-validator';
+import { IsString, IsEmail, IsOptional, IsIn, IsEnum } from 'class-validator';
+import { SubscriptionRequestType } from '@prisma/client';
 
 export class CreateSubscriptionRequestDto {
+  @IsEnum(SubscriptionRequestType)
+  @IsOptional()
+  type?: SubscriptionRequestType;
+
   @IsString()
   @IsIn(['basic', 'pro', 'enterprise'])
-  plan: string;
+  @IsOptional()
+  plan?: string;
 
   @IsString()
   name: string;

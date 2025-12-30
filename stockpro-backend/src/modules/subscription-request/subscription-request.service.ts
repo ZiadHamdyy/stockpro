@@ -3,7 +3,7 @@ import { DatabaseService } from '../../configs/database/database.service';
 import { CreateSubscriptionRequestDto } from './dtos/request/create-subscription-request.request';
 import { UpdateSubscriptionRequestStatusDto } from './dtos/request/update-subscription-request-status.request';
 import { SubscriptionRequestResponseDto } from './dtos/response/subscription-request.response';
-import { SubscriptionRequestStatus } from '@prisma/client';
+import { SubscriptionRequestStatus, SubscriptionRequestType } from '@prisma/client';
 
 @Injectable()
 export class SubscriptionRequestService {
@@ -12,14 +12,19 @@ export class SubscriptionRequestService {
   async create(
     data: CreateSubscriptionRequestDto,
   ): Promise<SubscriptionRequestResponseDto> {
+    const requestType = data.type || SubscriptionRequestType.SUBSCRIPTION;
+    const isTrial = requestType === SubscriptionRequestType.TRIAL;
+    
     const request = await this.prisma.subscriptionRequest.create({
       data: {
-        plan: data.plan,
+        type: requestType,
+        plan: isTrial ? null : data.plan || null,
         name: data.name,
         email: data.email,
         phone: data.phone,
         companyName: data.companyName || null,
         status: SubscriptionRequestStatus.PENDING,
+        trialDurationDays: isTrial ? 14 : null,
       },
     });
 
@@ -28,8 +33,12 @@ export class SubscriptionRequestService {
 
   async findAll(
     status?: SubscriptionRequestStatus,
+    type?: SubscriptionRequestType,
   ): Promise<SubscriptionRequestResponseDto[]> {
-    const where = status ? { status } : {};
+    const where: any = {};
+    if (status) where.status = status;
+    if (type) where.type = type;
+    
     const requests = await this.prisma.subscriptionRequest.findMany({
       where,
       orderBy: { createdAt: 'desc' },
@@ -89,12 +98,16 @@ export class SubscriptionRequestService {
   ): SubscriptionRequestResponseDto {
     return {
       id: request.id,
+      type: request.type,
       plan: request.plan,
       name: request.name,
       email: request.email,
       phone: request.phone,
       companyName: request.companyName,
       status: request.status,
+      trialDurationDays: request.trialDurationDays,
+      trialStartDate: request.trialStartDate,
+      trialEndDate: request.trialEndDate,
       createdAt: request.createdAt,
       updatedAt: request.updatedAt,
     };

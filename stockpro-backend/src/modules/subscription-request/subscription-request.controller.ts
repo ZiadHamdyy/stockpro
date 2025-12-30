@@ -17,7 +17,7 @@ import { UpdateSubscriptionRequestStatusDto } from './dtos/request/update-subscr
 import { SubscriptionRequestResponseDto } from './dtos/response/subscription-request.response';
 import { JwtAuthenticationGuard } from '../../common/guards/strategy.guards/jwt.guard';
 import { Auth } from '../../common/decorators/auth.decorator';
-import { SubscriptionRequestStatus } from '@prisma/client';
+import { SubscriptionRequestStatus, SubscriptionRequestType } from '@prisma/client';
 
 @Controller('subscription-requests')
 export class SubscriptionRequestController {
@@ -39,8 +39,9 @@ export class SubscriptionRequestController {
   @Auth({ permissions: ['subscription:read'] })
   async findAll(
     @Query('status') status?: SubscriptionRequestStatus,
+    @Query('type') type?: SubscriptionRequestType,
   ): Promise<SubscriptionRequestResponseDto[]> {
-    return this.subscriptionRequestService.findAll(status);
+    return this.subscriptionRequestService.findAll(status, type);
   }
 
   @Get(':id')

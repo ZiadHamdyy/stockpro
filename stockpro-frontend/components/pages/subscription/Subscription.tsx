@@ -10,6 +10,7 @@ import {
 import { useSubscription } from '../../hook/useSubscription';
 import {
   useGetSubscriptionRequestsQuery,
+  useGetTrialRequestsQuery,
   useUpdateSubscriptionRequestStatusMutation,
   useDeleteSubscriptionRequestMutation,
   type SubscriptionRequest,
@@ -49,13 +50,17 @@ const Subscription: React.FC<SubscriptionProps> = ({ title }) => {
   // Subscription data
   const { subscription, limits, usage, isLoading: subscriptionLoading } = useSubscription();
   
-  // Subscription requests
-  const { data: subscriptionRequestsData, isLoading: requestsLoading, refetch: refetchRequests } = useGetSubscriptionRequestsQuery();
+  // Subscription requests (only SUBSCRIPTION type)
+  const { data: subscriptionRequestsData, isLoading: requestsLoading, refetch: refetchRequests } = useGetSubscriptionRequestsQuery({ type: 'SUBSCRIPTION' });
   const [updateStatus] = useUpdateSubscriptionRequestStatusMutation();
   const [deleteRequest] = useDeleteSubscriptionRequestMutation();
   
-  // Ensure subscriptionRequests is always an array
+  // Trial requests (only TRIAL type)
+  const { data: trialRequestsData, isLoading: trialRequestsLoading, refetch: refetchTrialRequests } = useGetTrialRequestsQuery();
+  
+  // Ensure arrays are always arrays
   const subscriptionRequests = Array.isArray(subscriptionRequestsData) ? subscriptionRequestsData : [];
+  const trialRequests = Array.isArray(trialRequestsData) ? trialRequestsData : [];
 
   // Ensure companies is always an array
   const companies = Array.isArray(companiesData) ? companiesData : [];
@@ -662,6 +667,117 @@ const Subscription: React.FC<SubscriptionProps> = ({ title }) => {
                       onClick={(e) => {
                         e.stopPropagation();
                         handleDeleteRequest(request.id);
+                      }}
+                      className="px-3 py-2 bg-red-100 hover:bg-red-200 text-red-700 rounded-lg transition-colors text-xs font-bold"
+                    >
+                      <XIcon className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+                );
+              })
+            )}
+          </div>
+        </div>
+
+      {/* Trial Requests Card */}
+        <div className="bg-white rounded-xl shadow-lg p-6 mb-6 border border-gray-200">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-bold text-gray-800 flex items-center gap-2">
+              <ShieldIcon className="w-5 h-5 text-emerald-500" />
+              طلبات النسخة التجريبية المجانية
+            </h3>
+            {trialRequestsLoading && (
+              <p className="text-sm text-gray-500">جاري التحميل...</p>
+            )}
+          </div>
+          <div className="flex gap-6 overflow-x-auto pb-2 items-stretch">
+            {trialRequestsLoading ? (
+              <div className="text-center text-gray-500 py-8 w-full">
+                <p className="text-sm">جاري التحميل...</p>
+              </div>
+            ) : trialRequests.length === 0 ? (
+              <div className="text-center text-gray-500 py-8 w-full">
+                <p className="text-sm">لا توجد طلبات نسخة تجريبية</p>
+              </div>
+            ) : (
+              trialRequests.map((request) => {
+                return (
+                <div
+                  key={request.id}
+                  className="p-4 w-[320px] bg-emerald-50 hover:bg-emerald-100 rounded-lg transition-all border border-emerald-300 hover:shadow-md group flex-shrink-0 flex flex-col"
+                >
+                  <div className="flex items-start justify-between gap-3 flex-1 mb-3">
+                    <div className="flex-1 min-w-0 flex flex-col">
+                      <div className="flex items-center gap-2 mb-2">
+                        <PhoneIcon className="w-4 h-4 text-gray-500 flex-shrink-0" />
+                        <p className="font-bold text-gray-800 text-sm truncate">
+                          {request.phone}
+                        </p>
+                      </div>
+                      <div className="mb-2 flex items-center gap-2">
+                        <span className="inline-block px-2 py-1 bg-emerald-100 text-emerald-700 rounded text-xs font-bold">
+                          تجريبي {request.trialDurationDays || 14} يوم
+                        </span>
+                        <span className={`inline-block px-2 py-1 rounded text-xs font-bold ${statusColors[request.status]}`}>
+                          {statusNames[request.status]}
+                        </span>
+                      </div>
+                      <div className="flex-1 flex flex-col justify-start">
+                        {request.name && (
+                          <p className="text-xs text-gray-600 mb-1">
+                            <span className="font-semibold">الاسم:</span> {request.name}
+                          </p>
+                        )}
+                        {request.companyName && (
+                          <p className="text-xs text-gray-600 mb-1">
+                            <span className="font-semibold">الشركة:</span> {request.companyName}
+                          </p>
+                        )}
+                        {request.email && (
+                          <p className="text-xs text-gray-600 mb-1">
+                            <span className="font-semibold">البريد:</span> {request.email}
+                          </p>
+                        )}
+                        <p className="text-xs text-gray-500 mt-1">
+                          {new Date(request.createdAt).toLocaleDateString('ar-SA', {
+                            year: 'numeric',
+                            month: 'short',
+                            day: 'numeric'
+                          })}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  {/* Action Buttons */}
+                  <div className="flex items-center gap-2 mt-3 pt-3 border-t border-emerald-200">
+                    <button
+                      onClick={() => handleOpenWhatsApp(request)}
+                      className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-green-100 hover:bg-green-200 text-green-700 rounded-lg transition-colors text-xs font-bold"
+                    >
+                      <WhatsappIcon className="w-4 h-4" />
+                      واتساب
+                    </button>
+                    <select
+                      value={request.status}
+                      onChange={(e) => {
+                        handleStatusUpdate(request.id, e.target.value as SubscriptionRequestStatus);
+                        refetchTrialRequests();
+                      }}
+                      className={`flex-1 px-2 py-2 rounded-lg text-xs font-bold border-0 ${statusColors[request.status]} cursor-pointer`}
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <option value="PENDING">قيد الانتظار</option>
+                      <option value="CONTACTED">تم التواصل</option>
+                      <option value="APPROVED">موافق عليه</option>
+                      <option value="REJECTED">مرفوض</option>
+                    </select>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDeleteRequest(request.id);
+                        refetchTrialRequests();
                       }}
                       className="px-3 py-2 bg-red-100 hover:bg-red-200 text-red-700 rounded-lg transition-colors text-xs font-bold"
                     >
