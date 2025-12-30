@@ -844,21 +844,21 @@ const Subscription: React.FC<SubscriptionProps> = ({ title }) => {
                       <div className="flex justify-between gap-2">
                         <div className="flex-1 flex justify-between">
                           <span className="text-gray-600">المستخدمين</span>
-                          <span className="font-bold text-gray-800">3</span>
+                          <span className="font-bold text-gray-800">1</span>
                         </div>
                         <div className="flex-1 flex justify-between">
                           <span className="text-gray-600">الفروع</span>
-                          <span className="font-bold text-gray-800">2</span>
+                          <span className="font-bold text-gray-800">1</span>
                         </div>
                       </div>
                       <div className="flex justify-between gap-2">
                         <div className="flex-1 flex justify-between">
                           <span className="text-gray-600">المخازن</span>
-                          <span className="font-bold text-gray-800">2</span>
+                          <span className="font-bold text-gray-800">1</span>
                         </div>
                         <div className="flex-1 flex justify-between">
                           <span className="text-gray-600">الخزائن</span>
-                          <span className="font-bold text-gray-800">2</span>
+                          <span className="font-bold text-gray-800">1</span>
                         </div>
                       </div>
                       <div className="flex justify-between gap-2">
@@ -874,16 +874,16 @@ const Subscription: React.FC<SubscriptionProps> = ({ title }) => {
                       <div className="flex justify-between gap-2">
                         <div className="flex-1 flex justify-between">
                           <span className="text-gray-600">العملاء</span>
-                          <span className="font-bold text-gray-800">10</span>
+                          <span className="font-bold text-gray-800">50</span>
                         </div>
                         <div className="flex-1 flex justify-between">
                           <span className="text-gray-600">الموردين</span>
-                          <span className="font-bold text-gray-800">10</span>
+                          <span className="font-bold text-gray-800">50</span>
                         </div>
                       </div>
                       <div className="flex justify-between">
                         <span className="text-gray-600">الفواتير/شهر</span>
-                        <span className="font-bold text-gray-800">500</span>
+                        <span className="font-bold text-green-600">∞</span>
                       </div>
                       <div className="flex justify-between gap-2">
                         <div className="flex-1 flex justify-between">
@@ -950,21 +950,21 @@ const Subscription: React.FC<SubscriptionProps> = ({ title }) => {
                       <div className="flex justify-between gap-2">
                         <div className="flex-1 flex justify-between">
                           <span className="text-gray-600">المستخدمين</span>
-                          <span className="font-bold text-gray-800">10</span>
+                          <span className="font-bold text-gray-800">5</span>
                         </div>
                         <div className="flex-1 flex justify-between">
                           <span className="text-gray-600">الفروع</span>
-                          <span className="font-bold text-gray-800">5</span>
+                          <span className="font-bold text-gray-800">3</span>
                         </div>
                       </div>
                       <div className="flex justify-between gap-2">
                         <div className="flex-1 flex justify-between">
                           <span className="text-gray-600">المخازن</span>
-                          <span className="font-bold text-gray-800">10</span>
+                          <span className="font-bold text-gray-800">3</span>
                         </div>
                         <div className="flex-1 flex justify-between">
                           <span className="text-gray-600">الخزائن</span>
-                          <span className="font-bold text-gray-800">5</span>
+                          <span className="font-bold text-gray-800">3</span>
                         </div>
                       </div>
                       <div className="flex justify-between gap-2">
@@ -980,50 +980,50 @@ const Subscription: React.FC<SubscriptionProps> = ({ title }) => {
                       <div className="flex justify-between gap-2">
                         <div className="flex-1 flex justify-between">
                           <span className="text-gray-600">العملاء</span>
-                          <span className="font-bold text-gray-800">100</span>
+                          <span className="font-bold text-gray-800">500</span>
                         </div>
                         <div className="flex-1 flex justify-between">
                           <span className="text-gray-600">الموردين</span>
-                          <span className="font-bold text-gray-800">100</span>
+                          <span className="font-bold text-gray-800">500</span>
                         </div>
                       </div>
                       <div className="flex justify-between">
                         <span className="text-gray-600">الفواتير/شهر</span>
-                        <span className="font-bold text-gray-800">5000</span>
+                        <span className="font-bold text-green-600">∞</span>
                       </div>
                       <div className="flex justify-between gap-2">
                         <div className="flex-1 flex justify-between">
                           <span className="text-gray-600">عروض/شهر</span>
-                          <span className="font-bold text-gray-800">500</span>
+                          <span className="font-bold text-gray-800">200</span>
                         </div>
                         <div className="flex-1 flex justify-between">
                           <span className="text-gray-600">سندات/شهر</span>
-                          <span className="font-bold text-gray-800">1000</span>
+                          <span className="font-bold text-gray-800">500</span>
                         </div>
                       </div>
                       <div className="flex justify-between gap-2">
                         <div className="flex-1 flex justify-between">
                           <span className="text-gray-600">ح.جارية</span>
-                          <span className="font-bold text-gray-800">50</span>
+                          <span className="font-bold text-gray-800">20</span>
                         </div>
                         <div className="flex-1 flex justify-between">
                           <span className="text-gray-600">مصروفات/شهر</span>
-                          <span className="font-bold text-gray-800">100</span>
+                          <span className="font-bold text-gray-800">50</span>
                         </div>
                       </div>
                       <div className="flex justify-between gap-2">
                         <div className="flex-1 flex justify-between">
                           <span className="text-gray-600">المدينين</span>
-                          <span className="font-bold text-gray-800">20</span>
+                          <span className="font-bold text-gray-800">10</span>
                         </div>
                         <div className="flex-1 flex justify-between">
                           <span className="text-gray-600">الدائنين</span>
-                          <span className="font-bold text-gray-800">20</span>
+                          <span className="font-bold text-gray-800">10</span>
                         </div>
                       </div>
                       <div className="flex justify-between">
                         <span className="text-gray-600">التحليل المالي</span>
-                        <span className="font-bold text-green-600">✓</span>
+                        <span className="font-bold text-red-600">✗</span>
                       </div>
                     </div>
                     
