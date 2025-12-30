@@ -11,20 +11,20 @@ interface PricingCardProps {
   yearlyPrice: string;
   features: string[];
   popular?: boolean;
-  isYearly: boolean;
   onPriceChange: (newPrice: string) => void;
   onSubscribe: (plan: 'basic' | 'pro' | 'enterprise') => void;
 }
 
-const PricingCard: React.FC<PricingCardProps> = ({ plan, planKey, monthlyPrice, yearlyPrice, features, popular = false, isYearly, onPriceChange, onSubscribe }) => {
+const PricingCard: React.FC<PricingCardProps> = ({ plan, planKey, monthlyPrice, yearlyPrice, features, popular = false, onPriceChange, onSubscribe }) => {
   const [isEditing, setIsEditing] = useState(false);
-  const currentPrice = isYearly ? yearlyPrice : monthlyPrice;
-  const [editingPrice, setEditingPrice] = useState(currentPrice);
+  const [editingMonthlyPrice, setEditingMonthlyPrice] = useState(monthlyPrice);
+  const [editingYearlyPrice, setEditingYearlyPrice] = useState(yearlyPrice);
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    setEditingPrice(currentPrice);
-  }, [currentPrice]);
+    setEditingMonthlyPrice(monthlyPrice);
+    setEditingYearlyPrice(yearlyPrice);
+  }, [monthlyPrice, yearlyPrice]);
 
   useEffect(() => {
     if (isEditing) {
@@ -34,11 +34,11 @@ const PricingCard: React.FC<PricingCardProps> = ({ plan, planKey, monthlyPrice, 
   }, [isEditing]);
 
   const handleSave = () => {
-    const numericValue = editingPrice.replace(/[^0-9.]/g, '');
+    const numericValue = editingMonthlyPrice.replace(/[^0-9.]/g, '');
     if (numericValue.trim()) {
       onPriceChange(numericValue.trim() + ' ر.س');
     } else {
-      setEditingPrice(currentPrice);
+      setEditingMonthlyPrice(monthlyPrice);
     }
     setIsEditing(false);
   };
@@ -47,7 +47,7 @@ const PricingCard: React.FC<PricingCardProps> = ({ plan, planKey, monthlyPrice, 
     if (e.key === 'Enter') {
       handleSave();
     } else if (e.key === 'Escape') {
-      setEditingPrice(currentPrice);
+      setEditingMonthlyPrice(monthlyPrice);
       setIsEditing(false);
     }
   };
@@ -80,10 +80,16 @@ const PricingCard: React.FC<PricingCardProps> = ({ plan, planKey, monthlyPrice, 
   return (
     <div className={`rounded-3xl p-8 flex flex-col bg-gradient-to-br ${colors.bgGradient} transition-all duration-300 ${popular ? `border-2 ${colors.border} shadow-2xl scale-105 z-10 relative` : `border-2 border-white/80 shadow-lg hover:shadow-xl`} hover:-translate-y-2`}>
       {popular && (
-        <div className={`absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-gradient-to-r ${colors.badgeGradient} text-white text-sm font-bold px-6 py-2 rounded-full shadow-xl`}>
-            الأكثر طلباً
+        <div className={`absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-gradient-to-r ${colors.badgeGradient} text-white text-sm font-bold px-6 py-2 rounded-full shadow-xl flex items-center gap-2`}>
+          <span>⭐</span>
+          <span>الأكثر اختياراً</span>
         </div>
       )}
+      {/* Discount Banner */}
+      <div className={`text-center mb-3 ${planKey === 'basic' ? 'bg-blue-500' : planKey === 'pro' ? 'bg-orange-500' : 'bg-blue-800'} text-white py-2 px-4 rounded-lg text-xs font-bold`}>
+        {planKey === 'basic' || planKey === 'pro' ? 'عرض ال 50% خصم' : 'عرض ال 550 خصم'}
+      </div>
+      
       <h3 className={`text-2xl font-black text-center mb-2 bg-gradient-to-r ${colors.gradient} bg-clip-text text-transparent`}>{plan}</h3>
       <div className="text-center mb-4">
         <span className={`inline-block px-3 py-1 rounded-full text-xs font-bold ${
@@ -94,46 +100,51 @@ const PricingCard: React.FC<PricingCardProps> = ({ plan, planKey, monthlyPrice, 
           {planKey === 'basic' ? 'BASIC' : planKey === 'pro' ? 'GROWTH' : 'BUSINESS'}
         </span>
       </div>
-      <p className="text-center text-slate-600 text-sm mb-6 font-medium">
-        {planKey === 'basic' ? 'مثالية للشركات الناشئة' : 
-         planKey === 'pro' ? 'مثالية للشركات المتوسطة' : 
-         'مثالية للشركات الكبيرة'}
-      </p>
       
       <div 
-        className="text-center my-6 h-16 flex items-center justify-center relative group" 
+        className="text-center my-6 flex flex-col items-center justify-center relative group" 
         onClick={() => !isEditing && setIsEditing(true)}
       >
         {isEditing ? (
-          <div className="flex items-baseline justify-center">
-            <input
-              ref={inputRef}
-              type="text"
-              value={editingPrice.replace(/[^0-9.]/g, '')}
-              onChange={(e) => {
-                const numericValue = e.target.value.replace(/[^0-9.]/g, '');
-                setEditingPrice(numericValue);
-              }}
-              onBlur={handleSave}
-              onKeyDown={handleKeyDown}
-              className={`text-5xl font-black bg-gradient-to-r ${colors.priceGradient} bg-clip-text text-transparent bg-white border-2 ${colors.border} rounded-md w-40 text-center p-0`}
-            />
-             <span className="text-slate-400 mr-2 text-sm font-medium">{isYearly ? '/سنوياً' : '/شهرياً'}</span>
+          <div className="flex flex-col items-center gap-2">
+            <div className="flex items-baseline justify-center">
+              <input
+                ref={inputRef}
+                type="text"
+                value={editingMonthlyPrice.replace(/[^0-9.]/g, '')}
+                onChange={(e) => {
+                  const numericValue = e.target.value.replace(/[^0-9.]/g, '');
+                  setEditingMonthlyPrice(numericValue);
+                }}
+                onBlur={handleSave}
+                onKeyDown={handleKeyDown}
+                className={`text-4xl font-black bg-gradient-to-r ${colors.priceGradient} bg-clip-text text-transparent bg-white border-2 ${colors.border} rounded-md w-32 text-center p-0`}
+              />
+              <span className="text-slate-400 mr-2 text-sm font-medium">/شهرياً</span>
+            </div>
+            <div className="flex items-baseline justify-center">
+              <input
+                type="text"
+                value={editingYearlyPrice.replace(/[^0-9.]/g, '')}
+                onChange={(e) => {
+                  const numericValue = e.target.value.replace(/[^0-9.]/g, '');
+                  setEditingYearlyPrice(numericValue);
+                }}
+                onBlur={handleSave}
+                className={`text-2xl font-black bg-gradient-to-r ${colors.priceGradient} bg-clip-text text-transparent bg-white border-2 ${colors.border} rounded-md w-28 text-center p-0`}
+              />
+              <span className="text-slate-400 mr-2 text-xs font-medium">سنوياً</span>
+            </div>
           </div>
         ) : (
           <div className="cursor-pointer">
-            <span className={`text-5xl font-black bg-gradient-to-r ${colors.priceGradient} bg-clip-text text-transparent`}>{currentPrice}</span>
-            <span className="text-slate-500 text-sm font-medium mr-2">{isYearly ? '/سنوياً' : '/شهرياً'}</span>
-            {isYearly && (() => {
-              const monthly = parseFloat(monthlyPrice.replace(/[^0-9.]/g, '')) || 0;
-              const yearly = parseFloat(yearlyPrice.replace(/[^0-9.]/g, '')) || 0;
-              const savings = monthly > 0 && yearly > 0 ? ((monthly * 12 - yearly) / (monthly * 12) * 100).toFixed(0) : '0';
-              return savings !== '0' ? (
-                <div className="text-xs text-emerald-600 font-bold mt-1">
-                  توفير {savings}%
-                </div>
-              ) : null;
-            })()}
+            <div className="flex items-baseline justify-center mb-2">
+              <span className={`text-5xl font-black bg-gradient-to-r ${colors.priceGradient} bg-clip-text text-transparent`}>{monthlyPrice}</span>
+              <span className="text-slate-500 text-sm font-medium mr-2">/شهرياً</span>
+            </div>
+            <div className="flex items-baseline justify-center">
+              <span className={`text-2xl font-bold bg-gradient-to-r ${colors.priceGradient} bg-clip-text text-transparent`}>سنوياً {yearlyPrice}</span>
+            </div>
             <div className="absolute -top-4 right-0 left-0 mx-auto w-max opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
               <p className="text-[10px] bg-slate-800 text-white px-2 py-1 rounded">اضغط للتعديل</p>
             </div>
@@ -145,114 +156,99 @@ const PricingCard: React.FC<PricingCardProps> = ({ plan, planKey, monthlyPrice, 
 
       {/* Detailed Plan Features */}
       <div className="mb-8 flex-grow space-y-3">
-        {/* Plan Limits Grid */}
-        <div className="grid grid-cols-2 gap-2 text-xs">
-          <div className="flex justify-between items-center p-2 bg-white/60 rounded-lg">
-            <span className="text-slate-600">المستخدمين</span>
-            <span className="font-bold text-slate-800">
-              {planKey === 'basic' ? '1' : planKey === 'pro' ? '5' : '∞'}
-            </span>
-          </div>
-          <div className="flex justify-between items-center p-2 bg-white/60 rounded-lg">
-            <span className="text-slate-600">الفروع</span>
-            <span className="font-bold text-slate-800">
-              {planKey === 'basic' ? '1' : planKey === 'pro' ? '3' : '∞'}
-            </span>
-          </div>
-          <div className="flex justify-between items-center p-2 bg-white/60 rounded-lg">
-            <span className="text-slate-600">المخازن</span>
-            <span className="font-bold text-slate-800">
-              {planKey === 'basic' ? '1' : planKey === 'pro' ? '3' : '∞'}
-            </span>
-          </div>
-          <div className="flex justify-between items-center p-2 bg-white/60 rounded-lg">
-            <span className="text-slate-600">الخزائن</span>
-            <span className="font-bold text-slate-800">
-              {planKey === 'basic' ? '1' : planKey === 'pro' ? '3' : '∞'}
-            </span>
-          </div>
-          <div className="flex justify-between items-center p-2 bg-white/60 rounded-lg">
-            <span className="text-slate-600">البنوك</span>
-            <span className="font-bold text-slate-800">
-              {planKey === 'basic' ? '2' : planKey === 'pro' ? '5' : '∞'}
-            </span>
-          </div>
-          <div className="flex justify-between items-center p-2 bg-white/60 rounded-lg">
-            <span className="text-slate-600">الأصناف</span>
-            <span className="font-bold text-slate-800">
-              {planKey === 'basic' ? '500' : planKey === 'pro' ? '5,000' : '∞'}
-            </span>
-          </div>
-          <div className="flex justify-between items-center p-2 bg-white/60 rounded-lg">
-            <span className="text-slate-600">العملاء</span>
-            <span className="font-bold text-slate-800">
-              {planKey === 'basic' ? '50' : planKey === 'pro' ? '500' : '∞'}
-            </span>
-          </div>
-          <div className="flex justify-between items-center p-2 bg-white/60 rounded-lg">
-            <span className="text-slate-600">الموردين</span>
-            <span className="font-bold text-slate-800">
-              {planKey === 'basic' ? '50' : planKey === 'pro' ? '500' : '∞'}
-            </span>
-          </div>
-        </div>
-
-        {/* Monthly Limits */}
-        <div className="space-y-2 pt-2 border-t border-white/40">
-          <div className="flex justify-between items-center text-xs">
-            <span className="text-slate-600">الفواتير/شهر</span>
-            <span className={`font-bold ${planKey === 'enterprise' ? 'text-green-600' : 'text-slate-800'}`}>
-              {planKey === 'basic' || planKey === 'pro' ? '∞' : '∞'}
-            </span>
-          </div>
-          <div className="flex justify-between items-center text-xs">
-            <span className="text-slate-600">عروض الأسعار/شهر</span>
-            <span className={`font-bold ${planKey === 'enterprise' ? 'text-green-600' : 'text-slate-800'}`}>
-              {planKey === 'basic' ? '50' : planKey === 'pro' ? '200' : '∞'}
-            </span>
-          </div>
-          <div className="flex justify-between items-center text-xs">
-            <span className="text-slate-600">السندات المالية/شهر</span>
-            <span className={`font-bold ${planKey === 'enterprise' ? 'text-green-600' : 'text-slate-800'}`}>
-              {planKey === 'basic' ? '100' : planKey === 'pro' ? '500' : '∞'}
-            </span>
-          </div>
-        </div>
-
-        {/* Advanced Features */}
-        <div className="space-y-2 pt-2 border-t border-white/40">
-          {features.map((feature: string, index: number) => (
-            <div key={index} className="flex items-center text-slate-700 group/item">
-              <div className={`bg-gradient-to-br ${colors.gradient} rounded-full p-1 ml-3 flex-shrink-0 group-hover/item:scale-110 transition-transform`}>
-                <CheckCircleIcon className="w-3 h-3 text-white" />
-              </div>
-              <span className="text-xs font-semibold">{feature}</span>
+        {/* Features List with Icons */}
+        <div className="space-y-2.5">
+          {/* Users */}
+          <div className="flex items-center text-slate-700">
+            <div className={`bg-gradient-to-br ${colors.gradient} rounded-full p-1.5 ml-3 flex-shrink-0`}>
+              <CheckCircleIcon className="w-4 h-4 text-white" />
             </div>
-          ))}
-        </div>
+            <span className="text-sm font-semibold">
+              عدد المستخدمين: {planKey === 'basic' ? '1' : planKey === 'pro' ? '1-5' : '1-15'}
+            </span>
+          </div>
 
-        {/* Special Features */}
-        <div className="pt-2 border-t border-white/40 space-y-1.5">
-          <div className="flex justify-between items-center text-xs">
-            <span className="text-slate-600">الحسابات الجارية</span>
-            <span className={`font-bold ${planKey === 'enterprise' ? 'text-green-600' : 'text-slate-800'}`}>
-              {planKey === 'basic' ? '5' : planKey === 'pro' ? '20' : '∞'}
+          {/* Invoices */}
+          <div className="flex items-center text-slate-700">
+            <div className={`bg-gradient-to-br ${colors.gradient} rounded-full p-1.5 ml-3 flex-shrink-0`}>
+              <CheckCircleIcon className="w-4 h-4 text-white" />
+            </div>
+            <span className="text-sm font-semibold">
+              الفواتير: غير محدود {planKey === 'basic' ? '(مرحلة 1)' : '(مرحلة 2)'}
             </span>
           </div>
-          <div className="flex justify-between items-center text-xs">
-            <span className="text-slate-600">المدينين والدائنين</span>
-            <span className={`font-bold ${
-              planKey === 'basic' ? 'text-red-600' : planKey === 'enterprise' ? 'text-green-600' : 'text-slate-800'
-            }`}>
-              {planKey === 'basic' ? '✗ غير متاح' : planKey === 'pro' ? '10 لكل' : '∞'}
+
+          {/* Branches */}
+          <div className="flex items-center text-slate-700">
+            <div className={`bg-gradient-to-br ${colors.gradient} rounded-full p-1.5 ml-3 flex-shrink-0`}>
+              <CheckCircleIcon className="w-4 h-4 text-white" />
+            </div>
+            <span className="text-sm font-semibold">
+              الفروع: {planKey === 'basic' ? '1' : planKey === 'pro' ? '1-5' : '1-5'}
             </span>
           </div>
-          <div className="flex justify-between items-center text-xs">
-            <span className="text-slate-600">التحليل المالي</span>
-            <span className={`font-bold ${
-              planKey === 'basic' || planKey === 'pro' ? 'text-red-600' : 'text-green-600'
-            }`}>
-              {planKey === 'enterprise' ? '✓ متاح' : '✗ غير متاح'}
+
+          {/* Inventory */}
+          <div className="flex items-center text-slate-700">
+            <div className={`bg-gradient-to-br ${colors.gradient} rounded-full p-1.5 ml-3 flex-shrink-0`}>
+              <CheckCircleIcon className="w-4 h-4 text-white" />
+            </div>
+            <span className="text-sm font-semibold">
+              المخزون: {planKey === 'basic' ? 'إضافة - صرف' : planKey === 'pro' ? 'إدارة كاملة مع تحويلات' : 'إدارة مخزون احترافية + جرد ذكي'}
+            </span>
+          </div>
+
+          {/* Customers/Suppliers */}
+          <div className="flex items-center text-slate-700">
+            <div className={`bg-gradient-to-br ${colors.gradient} rounded-full p-1.5 ml-3 flex-shrink-0`}>
+              <CheckCircleIcon className="w-4 h-4 text-white" />
+            </div>
+            <span className="text-sm font-semibold">
+              العملاء: {planKey === 'basic' ? '50 عميل / مورد' : planKey === 'pro' ? '500 عميل / مورد' : 'غير محدود'}
+            </span>
+          </div>
+
+          {/* Accounts */}
+          {(planKey === 'basic' || planKey === 'enterprise') && (
+            <div className="flex items-center text-slate-700">
+              <div className={`bg-gradient-to-br ${colors.gradient} rounded-full p-1.5 ml-3 flex-shrink-0`}>
+                <CheckCircleIcon className="w-4 h-4 text-white" />
+              </div>
+              <span className="text-sm font-semibold">
+                الحسابات: {planKey === 'basic' ? 'أساسية' : 'احترافية'}
+              </span>
+            </div>
+          )}
+
+          {/* Reports */}
+          <div className="flex items-center text-slate-700">
+            <div className={`bg-gradient-to-br ${colors.gradient} rounded-full p-1.5 ml-3 flex-shrink-0`}>
+              <CheckCircleIcon className="w-4 h-4 text-white" />
+            </div>
+            <span className="text-sm font-semibold">
+              التقارير: {planKey === 'basic' ? 'مبيعات ومشتريات' : planKey === 'pro' ? 'متقدمة وتفصيلية - أرياح وحركات صنف' : 'تحليل مالي ومؤشرات أداء'}
+            </span>
+          </div>
+
+          {/* Permissions */}
+          {(planKey === 'pro' || planKey === 'enterprise') && (
+            <div className="flex items-center text-slate-700">
+              <div className={`bg-gradient-to-br ${colors.gradient} rounded-full p-1.5 ml-3 flex-shrink-0`}>
+                <CheckCircleIcon className="w-4 h-4 text-white" />
+              </div>
+              <span className="text-sm font-semibold">
+                الصلاحيات: {planKey === 'pro' ? 'صلاحيات متقدمة' : 'رقابة وصلاحيات'}
+              </span>
+            </div>
+          )}
+
+          {/* Support */}
+          <div className="flex items-center text-slate-700">
+            <div className={`bg-gradient-to-br ${colors.gradient} rounded-full p-1.5 ml-3 flex-shrink-0`}>
+              <CheckCircleIcon className="w-4 h-4 text-white" />
+            </div>
+            <span className="text-sm font-semibold">
+              الدعم: {planKey === 'basic' ? 'بريد إلكتروني / تذكرة' : planKey === 'pro' ? 'محادثة مباشرة' : 'أولوية قصوى - محير حساب'}
             </span>
           </div>
         </div>
@@ -286,7 +282,6 @@ const yearlyPrices = {
 const PricingPage: React.FC<PricingPageProps> = ({ prices, onPriceChange }) => {
   const [selectedPlan, setSelectedPlan] = useState<PlanType | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [isYearly, setIsYearly] = useState(false);
 
   const handleSubscribe = (plan: 'basic' | 'pro' | 'enterprise') => {
     setSelectedPlan(plan);
@@ -328,86 +323,35 @@ const PricingPage: React.FC<PricingPageProps> = ({ prices, onPriceChange }) => {
           <p className="mt-4 text-lg text-slate-700 max-w-2xl mx-auto leading-relaxed font-medium">
             اختر الخطة المناسبة لحجم شركتك. يمكنك الترقية أو الإلغاء في أي وقت. جميع الخطط تشمل دعم فني وضمان الجودة.
           </p>
-          
-          {/* Monthly/Yearly Toggle */}
-          <div className="flex items-center justify-center gap-4 mt-8">
-            <span className={`text-sm font-bold transition-colors ${!isYearly ? 'text-slate-800' : 'text-slate-400'}`}>
-              شهرياً
-            </span>
-            <button
-              onClick={() => setIsYearly(!isYearly)}
-              className={`relative inline-flex h-8 w-14 items-center rounded-full transition-colors ${
-                isYearly ? 'bg-gradient-to-r from-emerald-500 to-emerald-600' : 'bg-slate-300'
-              }`}
-            >
-              <span
-                className={`inline-block h-6 w-6 transform rounded-full bg-white transition-transform ${
-                  isYearly ? 'translate-x-7' : 'translate-x-1'
-                }`}
-              />
-            </button>
-            <span className={`text-sm font-bold transition-colors ${isYearly ? 'text-slate-800' : 'text-slate-400'}`}>
-              سنوياً
-            </span>
-            {isYearly && (
-              <span className="text-xs text-emerald-600 font-bold bg-emerald-50 px-3 py-1 rounded-full border border-emerald-200">
-                توفير حتى 17%
-              </span>
-            )}
-          </div>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-7xl mx-auto items-stretch">
           <PricingCard 
-            plan="البداية"
+            plan="باقة البداية"
             planKey="basic"
             monthlyPrice={prices.basic}
             yearlyPrice={yearlyPrices.basic}
-            isYearly={isYearly}
             onPriceChange={(value) => onPriceChange('basic', value)}
             onSubscribe={handleSubscribe}
-            features={[
-              "فواتير المبيعات والمشتريات",
-              "إدارة المخزون الأساسية",
-              "إدارة العملاء والموردين",
-              "تقارير أساسية",
-              "نقطة بيع (POS)",
-              "دعم فني عبر البريد الإلكتروني"
-            ]}
+            features={[]}
           />
           <PricingCard 
-            plan="النمو"
+            plan="باقة النمو"
             planKey="pro"
             monthlyPrice={prices.pro}
             yearlyPrice={yearlyPrices.pro}
-            isYearly={isYearly}
             onPriceChange={(value) => onPriceChange('pro', value)}
             onSubscribe={handleSubscribe}
-            features={[
-              "كل مميزات البداية",
-              "إدارة متقدمة للمخزون",
-              "تقارير تحليلية متقدمة",
-              "ربط مع المتجر الإلكتروني",
-              "نسخ احتياطية تلقائية",
-              "دعم فني ذو أولوية"
-            ]}
+            features={[]}
             popular={true}
           />
           <PricingCard 
-            plan="الاحترافية"
+            plan="الباقة الاحترافية"
             planKey="enterprise"
             monthlyPrice={prices.enterprise}
             yearlyPrice={yearlyPrices.enterprise}
-            isYearly={isYearly}
             onPriceChange={(value) => onPriceChange('enterprise', value)}
             onSubscribe={handleSubscribe}
-            features={[
-              "كل مميزات باقة النمو",
-              "التحليل المالي المتقدم",
-              "ربط الفروع المتعددة",
-              "API مفتوح للربط",
-              "مدير حساب مخصص",
-              "دعم فني 24/7"
-            ]}
+            features={[]}
           />
         </div>
 
