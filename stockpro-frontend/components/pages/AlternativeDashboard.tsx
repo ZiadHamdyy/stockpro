@@ -142,7 +142,7 @@ const AlternativeDashboard: React.FC<{ title: string }> = ({ title }) => {
             })
             .reduce((sum, v) => sum + (v.amount || 0), 0);
         
-        // Calculate receivables (credit sales)
+        // Calculate receivables (credit sales) - keep for payables calculation
         const receivables = salesInvoices
             .filter(i => i.paymentMethod === 'credit')
             .reduce((sum, i) => sum + (i.net || 0), 0);
@@ -152,27 +152,14 @@ const AlternativeDashboard: React.FC<{ title: string }> = ({ title }) => {
             .filter(i => i.paymentMethod === 'credit')
             .reduce((sum, i) => sum + (i.net || 0), 0);
         
-        // Calculate cash balance from safes (use currentBalance if available)
-        const cashBalance = safes.reduce((sum, s) => {
-            const balance = (s as any).currentBalance !== undefined 
-                ? (s as any).currentBalance 
-                : s.openingBalance || 0;
-            return sum + balance;
-        }, 0);
-        
-        // Calculate bank balance (use currentBalance if available, otherwise openingBalance)
-        const bankBalance = banks.reduce((sum, b) => {
-            const balance = (b as any).currentBalance !== undefined 
-                ? (b as any).currentBalance 
-                : b.openingBalance || 0;
-            return sum + balance;
-        }, 0);
-        
-        // Get inventory value from balance sheet
+        // Use balance sheet data for liquidity calculation
+        const cashBalance = balanceSheet?.cashInSafes || 0;
+        const bankBalance = balanceSheet?.cashInBanks || 0;
+        const receivablesFromBalanceSheet = balanceSheet?.receivables || 0;
         const inventoryValue = balanceSheet?.inventory || 0;
         
-        // Calculate total liquidity
-        const totalLiquidity = cashBalance + bankBalance + inventoryValue + receivables;
+        // Calculate total liquidity from balance sheet
+        const totalLiquidity = cashBalance + bankBalance + inventoryValue + receivablesFromBalanceSheet;
 
         // Calculate branch stats from sales invoices grouped by branch
         const branchStats = branches.map(branch => {
@@ -194,8 +181,8 @@ const AlternativeDashboard: React.FC<{ title: string }> = ({ title }) => {
             totalExpenses, 
             receivables, 
             payables, 
-            cashBalance, 
-            bankBalance, 
+            cashBalance: balanceSheet?.cashInSafes || 0, 
+            bankBalance: balanceSheet?.cashInBanks || 0, 
             inventoryValue, 
             totalLiquidity, 
             branchStats 
@@ -591,11 +578,11 @@ const AlternativeDashboard: React.FC<{ title: string }> = ({ title }) => {
                     }
                 };
 
-                // Generate more colors for multiple branches
+                // Generate more colors for multiple branches - using program colors (blue and green)
                 const branchColors = [
-                    '#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', 
-                    '#ef4444', '#06b6d4', '#a855f7', '#f97316',
-                    '#14b8a6', '#6366f1', '#ec4899', '#84cc16'
+                    '#3b82f6', '#10b981', '#1e40af', '#047857',
+                    '#3b82f6', '#10b981', '#1e40af', '#047857',
+                    '#3b82f6', '#10b981', '#1e40af', '#047857'
                 ];
                 
                 chartInstances.current.branch = new Chart(ctx, {
@@ -614,7 +601,7 @@ const AlternativeDashboard: React.FC<{ title: string }> = ({ title }) => {
                     options: {
                         responsive: true,
                         maintainAspectRatio: false,
-                        cutout: '75%', 
+                        cutout: '60%', 
                         plugins: { 
                             legend: { display: false }, 
                             tooltip: { 
@@ -635,13 +622,18 @@ const AlternativeDashboard: React.FC<{ title: string }> = ({ title }) => {
 
     // --- Chart 3: Liquidity (Center Text) ---
     useEffect(() => {
-        if (liquidityChartRef.current && !isLoading) {
+        if (liquidityChartRef.current && !isLoading && balanceSheet) {
             const ctx = liquidityChartRef.current.getContext('2d');
             if (ctx) {
                 if (chartInstances.current.liquidity) chartInstances.current.liquidity.destroy();
                 
                 const labels = ['نقدية', 'بنوك', 'مخزون', 'مديونيات'];
-                const dataValues = [stats.cashBalance, stats.bankBalance, stats.inventoryValue, stats.receivables];
+                const dataValues = [
+                    balanceSheet.cashInSafes || 0, 
+                    balanceSheet.cashInBanks || 0, 
+                    balanceSheet.inventory || 0, 
+                    balanceSheet.receivables || 0
+                ];
                 const total = dataValues.reduce((a, b) => a + b, 0);
 
                 // Plugin for Center Text
@@ -767,7 +759,7 @@ const AlternativeDashboard: React.FC<{ title: string }> = ({ title }) => {
                         labels: labels,
                         datasets: [{
                             data: dataValues,
-                            backgroundColor: ['#10b981', '#3b82f6', '#6366f1', '#f59e0b'],
+                            backgroundColor: ['#10b981', '#3b82f6', '#1e40af', '#047857'],
                             borderWidth: 0,
                             hoverOffset: 5
                         }]
@@ -775,15 +767,14 @@ const AlternativeDashboard: React.FC<{ title: string }> = ({ title }) => {
                     options: {
                         responsive: true,
                         maintainAspectRatio: false,
-                        // Smaller cutout to make the circle border thicker (closer to the example design)
-                        cutout: '65%',
+                        cutout: '60%',
                         plugins: { legend: { display: false }, tooltip: { titleFont: { family: 'Cairo' }, bodyFont: { family: 'Cairo' } } }
                     },
                     plugins: [centerTextPluginLiquidity, segmentLabelPluginLiquidity]
                 });
             }
         }
-    }, [stats, isLoading]);
+    }, [balanceSheet, isLoading]);
 
     // Cleanup charts on unmount
     useEffect(() => {
@@ -899,19 +890,16 @@ const AlternativeDashboard: React.FC<{ title: string }> = ({ title }) => {
                             <div className="absolute -inset-12 bg-blue-500/30 rounded-full blur-3xl opacity-50 group-hover:opacity-70 transition-opacity duration-700 pointer-events-none"></div>
                             
                             <div className="relative flex items-baseline transform group-hover:scale-105 transition-transform duration-500 ease-out">
-                                <h1 className="text-7xl font-black tracking-[0.2em] drop-shadow-2xl" style={{ 
+                                <h1 className="text-7xl font-black tracking-[0.2em] drop-shadow-2xl text-white" style={{ 
                                     fontFamily: 'Cairo, sans-serif',
-                                    background: 'linear-gradient(135deg, #ffffff 0%, #e0e7ff 50%, #c7d2fe 100%)',
-                                    WebkitBackgroundClip: 'text',
-                                    WebkitTextFillColor: 'transparent',
-                                    textShadow: '0 4px 20px rgba(255,255,255,0.3)'
+                                    fontWeight: 900
                                 }}>
                                     Pro
                                 </h1>
                                 <span className="text-7xl font-black text-amber-400 animate-pulse mx-2 drop-shadow-[0_0_15px_rgba(251,191,36,0.8)]">.</span>
-                                <h1 className="text-7xl font-black tracking-[0.2em] drop-shadow-2xl group-hover:text-white transition-colors duration-300" style={{ 
+                                <h1 className="text-7xl font-black tracking-[0.2em] drop-shadow-2xl text-white" style={{ 
                                     fontFamily: 'Cairo, sans-serif',
-                                    color: '#bfdbfe'
+                                    fontWeight: 900
                                 }}>
                                     Stock
                                 </h1>
