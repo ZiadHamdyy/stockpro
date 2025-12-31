@@ -125,7 +125,7 @@ ${createSupportTicketDto.details}
 
     // Send email to support
     await this.emailService.sendMail({
-      to: 'support@stockpro.com',
+      to: 'stock.pro83@gmail.com',
       subject,
       text,
       html,
