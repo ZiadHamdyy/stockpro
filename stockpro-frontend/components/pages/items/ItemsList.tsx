@@ -279,7 +279,7 @@ const ItemsList: React.FC<ItemsListProps> = ({ title, onNavigate }) => {
           table { width: 100%; border-collapse: collapse; font-size: 12px; }
           th, td { border: 1px solid #E5E7EB; padding: 6px 8px; text-align: right; }
           thead { background: #1E40AF !important; color: #FFFFFF !important; }
-          tbody tr:nth-child(odd) { background: #F8FAFC !important; }
+          tbody tr:nth-child(odd) { background: #D1D5DB !important; }
           tbody tr:nth-child(even) { background: #FFFFFF !important; }
           tr { page-break-inside: avoid; break-inside: avoid; }
           .page { page-break-after: always; break-after: page; }
@@ -324,6 +324,8 @@ const ItemsList: React.FC<ItemsListProps> = ({ title, onNavigate }) => {
             tfoot { display: table-footer-group; }
             tr { page-break-inside: avoid; page-break-after: auto; break-inside: avoid; }
             th, td { padding: 4px 6px !important; }
+            tbody tr:nth-child(odd) { background: #D1D5DB !important; }
+            tbody tr:nth-child(even) { background: #FFFFFF !important; }
             .print-page {
               page-break-after: always;
               break-after: page;
