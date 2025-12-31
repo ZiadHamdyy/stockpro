@@ -337,7 +337,16 @@ const StagnantItemsReport: React.FC<StagnantItemsReportProps> = ({ title }) => {
                 <meta charset="UTF-8" />
                 <title>${title}</title>
                 <style>
-                    @page { size: A4 landscape; margin: 10mm; }
+                    @page { 
+                        size: A4 landscape; 
+                        margin: 10mm;
+                        @bottom-center {
+                            content: counter(page) " / " counter(pages);
+                            font-family: "Cairo", sans-serif;
+                            font-size: 12px;
+                            color: #1F2937;
+                        }
+                    }
                     body {
                         font-family: 'Cairo', sans-serif;
                         margin: 0;
@@ -363,11 +372,14 @@ const StagnantItemsReport: React.FC<StagnantItemsReportProps> = ({ title }) => {
                         font-weight: 700;
                         color: #1F2937;
                     }
-                    table { width: 100%; border-collapse: collapse; font-size: 12px; }
-                    th, td { border: 1px solid #E5E7EB; padding: 6px 8px; text-align: right; }
-                    thead { background: #1E40AF !important; color: #FFFFFF !important; }
-                    tbody tr:nth-child(odd) { background: #F8FAFC !important; }
-                    tbody tr:nth-child(even) { background: #FFFFFF !important; }
+                    table { width: 100%; border-collapse: collapse; font-size: 13px !important; }
+                    th, td { border: 1px solid #E5E7EB; padding: 6px 8px !important; text-align: right; }
+                    thead { background: #1E40AF !important; color: #FFFFFF !important; display: table-header-group; }
+                    tfoot { display: table-row-group !important; }
+                    tbody tr:first-child { background: #FFFFFF !important; }
+                    tbody tr:nth-child(2n+2) { background: #D1D5DB !important; }
+                    tbody tr:nth-child(2n+3) { background: #FFFFFF !important; }
+                    tfoot tr { page-break-inside: avoid !important; break-inside: avoid !important; }
                     tr { page-break-inside: avoid; break-inside: avoid; }
                     .page { page-break-after: always; break-after: page; }
                     .page:last-of-type { page-break-after: auto; break-after: auto; }
