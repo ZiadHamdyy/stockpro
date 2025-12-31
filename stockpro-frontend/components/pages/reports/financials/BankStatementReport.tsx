@@ -4,7 +4,7 @@ import type { CompanyInfo, Bank, User, Voucher } from "../../../../types";
 import { ExcelIcon, PdfIcon, PrintIcon, SearchIcon } from "../../../icons";
 import ReportHeader from "../ReportHeader";
 import PermissionWrapper from '../../../common/PermissionWrapper';
-import { formatNumber, getNegativeNumberClass, getNegativeNumberClassForTotal } from "../../../../utils/formatting";
+import { formatNumber, getNegativeNumberClass, getNegativeNumberClassForTotal, exportToExcel } from "../../../../utils/formatting";
 import { useGetBanksQuery } from "../../../store/slices/bank/bankApiSlice";
 import { useGetInternalTransfersQuery } from "../../../store/slices/internalTransferApiSlice";
 import { useGetSalesInvoicesQuery } from "../../../store/slices/salesInvoice/salesInvoiceApiSlice";
@@ -783,6 +783,42 @@ const BankStatementReport: React.FC<BankStatementReportProps> = ({
   const inputStyle =
     "p-2 border-2 border-brand-blue rounded-md focus:outline-none focus:ring-2 focus:ring-brand-blue bg-brand-blue-bg";
 
+  const handleExcelExport = () => {
+    const dataToExport = [
+      {
+        التاريخ: "رصيد أول المدة",
+        البيان: "",
+        المرجع: "",
+        "مدين (إيداع)": "",
+        "دائن (سحب)": "",
+        الرصيد: formatNumber(openingBalance),
+      },
+      ...reportData.map((item) => {
+        const categoryLabel = (item as any).category === "pos" ? "pos" : (item as any).category === "transfer" ? "تحويل" : "";
+        const displayDescription = categoryLabel 
+          ? `${item.description} - ${categoryLabel}`
+          : item.description;
+        return {
+          التاريخ: item.date.substring(0, 10),
+          البيان: displayDescription,
+          المرجع: item.ref,
+          "مدين (إيداع)": formatNumber(item.debit),
+          "دائن (سحب)": formatNumber(item.credit),
+          الرصيد: formatNumber(item.balance),
+        };
+      }),
+      {
+        التاريخ: "الإجمالي",
+        البيان: "",
+        المرجع: "",
+        "مدين (إيداع)": formatNumber(totalDebit),
+        "دائن (سحب)": formatNumber(totalCredit),
+        الرصيد: formatNumber(finalBalance),
+      },
+    ];
+    exportToExcel(dataToExport, `كشف_حساب_بنك_${selectedBank?.name || "جميع_البنوك"}`);
+  };
+
   const handlePrint = () => {
     const reportContent = document.getElementById("printable-area");
     if (!reportContent) return;
@@ -1002,12 +1038,13 @@ const BankStatementReport: React.FC<BankStatementReportProps> = ({
             }
           >
             <div className="no-print flex items-center gap-2">
-              <button
-                title="تصدير Excel"
-                className="p-3 border-2 border-gray-200 rounded-md hover:bg-gray-100"
-              >
-                <ExcelIcon className="w-6 h-6" />
-              </button>
+            <button
+              onClick={handleExcelExport}
+              title="تصدير Excel"
+              className="p-3 border-2 border-gray-200 rounded-md hover:bg-gray-100"
+            >
+              <ExcelIcon className="w-6 h-6" />
+            </button>
               <button
                 title="تصدير PDF"
                 className="p-3 border-2 border-gray-200 rounded-md hover:bg-gray-100"
