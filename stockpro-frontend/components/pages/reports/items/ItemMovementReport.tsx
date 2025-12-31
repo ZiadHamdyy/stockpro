@@ -644,6 +644,8 @@ const ItemMovementReport: React.FC<ItemMovementReportProps> = ({
                     table { width: 100%; border-collapse: collapse; font-size: 13px !important; }
                     th { font-size: 13px !important; font-weight: bold !important; }
                     td { font-size: 13px !important; }
+                    tbody tr:nth-child(odd) { background: #D1D5DB !important; }
+                    tbody tr:nth-child(even) { background: #FFFFFF !important; }
                     .bg-brand-blue { background-color: #1E40AF !important; }
                     .text-white { color: white !important; }
                     .bg-gray-50 { background-color: #F9FAFB !important; }
