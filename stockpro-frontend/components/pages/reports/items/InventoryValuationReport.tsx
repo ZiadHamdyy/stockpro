@@ -3,7 +3,7 @@ import type { CompanyInfo, User } from "../../../../types";
 import { ExcelIcon, PdfIcon, PrintIcon, SearchIcon } from "../../../icons";
 import ReportHeader from "../ReportHeader";
 import PermissionWrapper from "../../../common/PermissionWrapper";
-import { formatNumber, getNegativeNumberClass, getNegativeNumberClassForTotal } from "../../../../utils/formatting";
+import { formatNumber, getNegativeNumberClass, getNegativeNumberClassForTotal, exportToExcel } from "../../../../utils/formatting";
 import { useGetItemsQuery } from "../../../store/slices/items/itemsApi";
 import { useGetBranchesQuery } from "../../../store/slices/branch/branchApi";
 import { useGetStoresQuery, useGetAllStoreItemsQuery } from "../../../store/slices/store/storeApi";
@@ -632,6 +632,28 @@ const InventoryValuationReport: React.FC<InventoryValuationReportProps> = ({
 
   const totalValue = reportData.reduce((acc, item) => acc + item.value, 0);
 
+  const handleExcelExport = () => {
+    const dataToExport = [
+      ...reportData.map((item) => ({
+        "كود الصنف": item.code,
+        "اسم الصنف": item.name,
+        الوحدة: item.unit,
+        الرصيد: formatNumber(item.balance),
+        السعر: formatNumber(item.cost),
+        "القيمة الإجمالية": formatNumber(item.value),
+      })),
+      {
+        "كود الصنف": "الإجمالي",
+        "اسم الصنف": "",
+        الوحدة: "",
+        الرصيد: "",
+        السعر: "",
+        "القيمة الإجمالية": formatNumber(totalValue),
+      },
+    ];
+    exportToExcel(dataToExport, "تقرير_تقييم_المخزون");
+  };
+
   const handlePrint = () => {
     const reportContent = document.getElementById("printable-area");
     if (!reportContent) return;
@@ -829,6 +851,7 @@ const InventoryValuationReport: React.FC<InventoryValuationReportProps> = ({
           >
             <div className="no-print flex items-center gap-2">
               <button
+                onClick={handleExcelExport}
                 title="تصدير Excel"
                 className="p-3 border-2 border-gray-200 rounded-md hover:bg-gray-100"
               >
