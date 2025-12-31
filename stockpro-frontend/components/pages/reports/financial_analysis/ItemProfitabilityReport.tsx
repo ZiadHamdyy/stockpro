@@ -361,7 +361,16 @@ const ItemProfitabilityReport: React.FC<ItemProfitabilityReportProps> = ({ title
                 <meta charset="UTF-8" />
                 <title>${title}</title>
                 <style>
-                    @page { size: A4 landscape; margin: 10mm; }
+                    @page { 
+                        size: A4 landscape; 
+                        margin: 10mm;
+                        @bottom-center {
+                            content: counter(page) " / " counter(pages);
+                            font-family: "Cairo", sans-serif;
+                            font-size: 12px;
+                            color: #1F2937;
+                        }
+                    }
                     body {
                         font-family: 'Cairo', sans-serif;
                         margin: 0;
@@ -390,23 +399,34 @@ const ItemProfitabilityReport: React.FC<ItemProfitabilityReportProps> = ({ title
                     table { 
                         width: 100%; 
                         border-collapse: collapse; 
-                        font-size: 12px; 
+                        font-size: 13px !important; 
                         margin-top: 16px;
                     }
                     th, td { 
                         border: 1px solid #E5E7EB; 
-                        padding: 6px 8px; 
+                        padding: 6px 8px !important; 
                         text-align: right; 
                     }
                     thead { 
                         background: #1E40AF !important; 
                         color: #FFFFFF !important; 
+                        display: table-header-group;
                     }
-                    tbody tr:nth-child(odd) { 
-                        background: #F8FAFC !important; 
+                    tfoot { 
+                        display: table-row-group !important; 
                     }
-                    tbody tr:nth-child(even) { 
+                    tbody tr:first-child { 
                         background: #FFFFFF !important; 
+                    }
+                    tbody tr:nth-child(2n+2) { 
+                        background: #D1D5DB !important; 
+                    }
+                    tbody tr:nth-child(2n+3) { 
+                        background: #FFFFFF !important; 
+                    }
+                    tfoot tr { 
+                        page-break-inside: avoid !important; 
+                        break-inside: avoid !important; 
                     }
                     tr { 
                         page-break-inside: avoid; 
