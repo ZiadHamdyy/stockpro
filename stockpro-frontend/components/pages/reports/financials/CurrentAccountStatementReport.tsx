@@ -13,7 +13,7 @@ import {
   Resources,
   buildPermission,
 } from "../../../../enums/permissions.enum";
-import { formatNumber, getNegativeNumberClass, getNegativeNumberClassForTotal } from "../../../../utils/formatting";
+import { formatNumber, getNegativeNumberClass, getNegativeNumberClassForTotal, exportToExcel } from "../../../../utils/formatting";
 import { useGetCurrentAccountsQuery } from "../../../store/slices/currentAccounts/currentAccountsApi";
 import { useGetBranchesQuery } from "../../../store/slices/branch/branchApi";
 import { useGetReceiptVouchersQuery } from "../../../store/slices/receiptVoucherApiSlice";
@@ -402,6 +402,43 @@ const CurrentAccountStatementReport: React.FC<
   const inputStyle =
     "p-2 border-2 border-brand-blue rounded-md focus:outline-none focus:ring-2 focus:ring-brand-blue bg-brand-blue-bg";
 
+  const handleExcelExport = () => {
+    let runningBalance = openingBalance;
+    const dataToExport = [
+      {
+        التاريخ: "رصيد أول المدة",
+        الفرع: "",
+        البيان: "",
+        المرجع: "",
+        مدين: "",
+        دائن: "",
+        الرصيد: formatNumber(openingBalance),
+      },
+      ...reportData.map((item) => {
+        runningBalance = runningBalance + item.debit - item.credit;
+        return {
+          التاريخ: item.date.substring(0, 10),
+          الفرع: item.branchName || "",
+          البيان: item.description,
+          المرجع: item.ref,
+          مدين: formatNumber(item.debit),
+          دائن: formatNumber(item.credit),
+          الرصيد: formatNumber(runningBalance),
+        };
+      }),
+      {
+        التاريخ: "الإجمالي",
+        الفرع: "",
+        البيان: "",
+        المرجع: "",
+        مدين: formatNumber(totalDebit),
+        دائن: formatNumber(totalCredit),
+        الرصيد: formatNumber(finalBalance),
+      },
+    ];
+    exportToExcel(dataToExport, `كشف_حساب_جاري_${selectedAccount?.name || "جميع_الحسابات"}`);
+  };
+
   const handlePrint = () => {
     const reportContent = document.getElementById("printable-area");
     if (!reportContent) return;
@@ -596,6 +633,7 @@ const CurrentAccountStatementReport: React.FC<
           >
             <div className="no-print flex items-center gap-2">
               <button
+                onClick={handleExcelExport}
                 title="تصدير Excel"
                 className="p-3 border-2 border-gray-200 rounded-md hover:bg-gray-100"
               >
