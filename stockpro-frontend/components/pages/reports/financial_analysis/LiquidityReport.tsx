@@ -429,16 +429,27 @@ const LiquidityReport: React.FC<LiquidityReportProps> = ({ title }) => {
             });
 
         // Find the most recent purchase price for this item
+        // Use actual cost per unit (total/qty) to account for discounts or adjustments
         for (const inv of relevantInvoices) {
             for (const invItem of inv.items) {
-                if (invItem.id === itemCode && invItem.price) {
-                    return invItem.price;
+                if (invItem.id === itemCode) {
+                    // Calculate actual cost per unit from total and quantity
+                    const itemTotal = toNumber(invItem.total);
+                    const itemQty = toNumber(invItem.qty);
+                    
+                    if (itemTotal && itemQty && itemQty > 0) {
+                        // Use actual cost per unit (total/qty) from the last purchase
+                        return itemTotal / itemQty;
+                    } else if (invItem.price) {
+                        // Fall back to price if total/qty is not available
+                        return invItem.price;
+                    }
                 }
             }
         }
 
         return null;
-    }, [transformedPurchaseInvoices, normalizeDate]);
+    }, [transformedPurchaseInvoices, normalizeDate, toNumber]);
 
     // Calculate inventory value using the same logic as BalanceSheet (for all branches)
     const calculatedInventoryValue = useMemo(() => {
