@@ -155,7 +155,52 @@ const DataTableModal: React.FC<DataTableModalProps> = ({
       "<html><head><title>طباعة - " + title + "</title>",
     );
     printWindow?.document.write(
-      `<style>body { font-family: Cairo, sans-serif; direction: rtl; } table { width: 100%; border-collapse: collapse; } th, td { border: 1px solid #ddd; padding: 8px; text-align: right; } thead { background-color: ${printHeaderColor}; color: white; } </style>`,
+      '<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet">',
+    );
+    printWindow?.document.write(
+      `<style>
+        @page {
+          @bottom-center {
+            content: counter(page) " / " counter(pages);
+            font-family: "Cairo", sans-serif;
+            font-size: 12px;
+            color: #1F2937;
+          }
+        }
+        body { 
+          font-family: "Cairo", sans-serif; 
+          direction: rtl; 
+          -webkit-print-color-adjust: exact;
+          print-color-adjust: exact;
+        } 
+        table { 
+          width: 100%; 
+          border-collapse: collapse; 
+          font-size: 13px;
+        } 
+        th, td { 
+          border: 1px solid #E5E7EB; 
+          padding: 6px 8px; 
+          text-align: right; 
+        } 
+        thead { 
+          background-color: ${printHeaderColor} !important; 
+          color: white !important; 
+          display: table-header-group;
+        }
+        tbody tr:first-child { background: #FFFFFF !important; }
+        tbody tr:nth-child(2n+2) { background: #D1D5DB !important; }
+        tbody tr:nth-child(2n+3) { background: #FFFFFF !important; }
+        tfoot { 
+          display: table-row-group !important; 
+          background-color: ${printHeaderColor} !important; 
+          color: white !important;
+        }
+        tfoot tr { 
+          page-break-inside: avoid !important; 
+          break-inside: avoid !important; 
+        }
+      </style>`,
     );
     if (companyInfo) {
       printWindow?.document.write(
@@ -166,7 +211,11 @@ const DataTableModal: React.FC<DataTableModalProps> = ({
     printWindow?.document.write(tableContent);
     printWindow?.document.write("</body></html>");
     printWindow?.document.close();
-    printWindow?.print();
+    printWindow?.focus();
+    setTimeout(() => {
+      printWindow?.print();
+      printWindow?.close();
+    }, 500);
   };
 
   const inputStyle = `w-full pr-10 pl-4 py-3 ${inputBgClass} border-2 ${inputBorderClass} rounded-md text-black placeholder-gray-500 focus:outline-none focus:ring-2 ${inputRingClass}`;
