@@ -447,7 +447,7 @@ const SupplierBalanceReport: React.FC<SupplierBalanceReportProps> = ({
   );
 
   const inputStyle =
-    "p-2 border-2 border-brand-blue rounded-md focus:outline-none focus:ring-2 focus:ring-brand-blue bg-brand-blue-bg";
+    "p-2 bg-brand-green-bg border-2 border-brand-green rounded-md text-black placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-brand-green";
 
   const handlePrint = () => {
     const reportContent = document.getElementById("printable-area");
@@ -488,13 +488,13 @@ const SupplierBalanceReport: React.FC<SupplierBalanceReportProps> = ({
                     tbody tr:nth-child(2n+2) { background: #D1D5DB !important; }
                     tbody tr:nth-child(2n+3) { background: #FFFFFF !important; }
                     tfoot tr { page-break-inside: avoid !important; break-inside: avoid !important; }
-                    .bg-brand-blue { background-color: #1E40AF !important; }
+                    .bg-brand-green { background-color: #059669 !important; }
                     .text-white { color: white !important; }
                     .bg-gray-50 { background-color: #F9FAFB !important; }
                     .bg-gray-100 { background-color: #F3F4F6 !important; }
                     .bg-green-100 { background-color: #D1FAE5 !important; }
                     .bg-red-100 { background-color: #FEE2E2 !important; }
-                    .text-brand-blue { color: #1E40AF !important; }
+                    .text-brand-green { color: #059669 !important; }
                     .text-gray-700 { color: #374151 !important; }
                     .text-gray-800 { color: #1F2937 !important; }
                     .text-green-600 { color: #059669 !important; }
@@ -521,7 +521,7 @@ const SupplierBalanceReport: React.FC<SupplierBalanceReportProps> = ({
       <div className="bg-white p-6 rounded-lg shadow">
         <div className="flex justify-center items-center h-64">
           <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand-blue mx-auto mb-4"></div>
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand-green mx-auto mb-4"></div>
             <p className="text-gray-600">جاري تحميل البيانات...</p>
           </div>
         </div>
@@ -571,7 +571,7 @@ const SupplierBalanceReport: React.FC<SupplierBalanceReportProps> = ({
             />
             <button
               onClick={handleViewReport}
-              className="px-6 py-2 bg-brand-blue text-white rounded-md hover:bg-blue-800 font-semibold flex items-center gap-2"
+              className="px-6 py-2 bg-brand-green text-white rounded-md hover:bg-green-700 font-semibold flex items-center gap-2"
             >
               <SearchIcon className="w-5 h-5" />
               <span>عرض التقرير</span>
@@ -581,7 +581,7 @@ const SupplierBalanceReport: React.FC<SupplierBalanceReportProps> = ({
                 type="checkbox"
                 checked={hideZeroBalance}
                 onChange={(e) => setHideZeroBalance(e.target.checked)}
-                className="w-4 h-4 text-brand-blue border-2 border-gray-300 rounded focus:ring-2 focus:ring-brand-blue"
+                className="w-4 h-4 text-brand-green border-2 border-gray-300 rounded focus:ring-2 focus:ring-brand-green"
               />
               <span className="font-semibold text-gray-700">إخفاء الموردين برصيد صفر</span>
             </label>
@@ -641,9 +641,9 @@ const SupplierBalanceReport: React.FC<SupplierBalanceReportProps> = ({
           </PermissionWrapper>
         </div>
 
-        <div className="overflow-x-auto border-2 border-brand-blue rounded-lg">
+        <div className="overflow-x-auto border-2 border-brand-green rounded-lg">
           <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-brand-blue">
+            <thead className="bg-brand-green">
               <tr>
                 <th className="px-6 py-3 text-right text-sm font-semibold text-white uppercase w-28">
                   كود المورد
@@ -667,7 +667,7 @@ const SupplierBalanceReport: React.FC<SupplierBalanceReportProps> = ({
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
               {filteredReportData.map((item) => (
-                <tr key={item.id} className="hover:bg-brand-blue-bg">
+                <tr key={item.id} className="hover:bg-brand-green-bg">
                   <td className="px-6 py-4 w-28">{item.code}</td>
                   <td className="px-6 py-4 font-medium text-brand-dark w-64">
                     {item.name}
@@ -687,7 +687,7 @@ const SupplierBalanceReport: React.FC<SupplierBalanceReportProps> = ({
                 </tr>
               ))}
             </tbody>
-            <tfoot className="bg-brand-blue text-white">
+            <tfoot className="bg-brand-green text-white">
               <tr className="font-bold">
                 <td colSpan={2} className="px-6 py-3 text-right text-white">
                   الإجمالي

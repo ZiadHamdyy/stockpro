@@ -470,7 +470,7 @@ const SupplierStatementReport: React.FC<SupplierStatementReportProps> = ({
   const finalBalance = openingBalance + totalDebit - totalCredit;
 
   const inputStyle =
-    "p-2 border-2 border-brand-blue rounded-md focus:outline-none focus:ring-2 focus:ring-brand-blue bg-brand-blue-bg";
+    "p-2 bg-brand-green-bg border-2 border-brand-green rounded-md text-black placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-brand-green";
 
   const handlePrint = () => {
     const reportContent = document.getElementById("printable-area");
@@ -511,7 +511,7 @@ const SupplierStatementReport: React.FC<SupplierStatementReportProps> = ({
                     tbody tr:nth-child(2n+2) { background: #D1D5DB !important; }
                     tbody tr:nth-child(2n+3) { background: #FFFFFF !important; }
                     tfoot tr { page-break-inside: avoid !important; break-inside: avoid !important; }
-                    .bg-brand-blue { background-color: #1E40AF !important; }
+                    .bg-brand-green { background-color: #059669 !important; }
                     .text-white { color: white !important; }
                     .bg-gray-50 { background-color: #F9FAFB !important; }
                     .bg-gray-100 { background-color: #F3F4F6 !important; }
@@ -520,7 +520,7 @@ const SupplierStatementReport: React.FC<SupplierStatementReportProps> = ({
                     .text-brand-dark { color: #1F2937 !important; }
                     .text-green-600 { color: #059669 !important; }
                     .text-red-600 { color: #DC2626 !important; }
-                    .text-brand-blue { color: #1E40AF !important; }
+                    .text-brand-green { color: #059669 !important; }
                     .text-gray-700 { color: #374151 !important; }
                     .text-gray-800 { color: #1F2937 !important; }
                     .flex { display: flex !important; }
@@ -544,7 +544,7 @@ const SupplierStatementReport: React.FC<SupplierStatementReportProps> = ({
       <div className="bg-white p-6 rounded-lg shadow">
         <div className="flex justify-center items-center h-64">
           <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand-blue mx-auto mb-4"></div>
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand-green mx-auto mb-4"></div>
             <p className="text-gray-600">جاري تحميل البيانات...</p>
           </div>
         </div>
@@ -560,7 +560,7 @@ const SupplierStatementReport: React.FC<SupplierStatementReportProps> = ({
           <div className="flex justify-between items-start">
             <div className="space-y-2 text-right">
               <p className="text-lg font-bold text-gray-800">
-                <span className="text-brand-blue">المورد:</span> {selectedSupplierName}
+                <span className="text-brand-green">المورد:</span> {selectedSupplierName}
               </p>
               <p className="text-base text-gray-700">
                 <span className="font-semibold text-gray-800">الفترة من:</span> {startDate} 
@@ -600,7 +600,7 @@ const SupplierStatementReport: React.FC<SupplierStatementReportProps> = ({
                       <div
                         key={supplier.id}
                         onClick={() => handleSelectSupplier(supplier)}
-                        className="p-2 cursor-pointer hover:bg-brand-blue-bg"
+                        className="p-2 cursor-pointer hover:bg-brand-green-bg"
                       >
                         {supplier.name}
                       </div>
@@ -629,7 +629,7 @@ const SupplierStatementReport: React.FC<SupplierStatementReportProps> = ({
             />
             <button
               onClick={handleViewReport}
-              className="px-6 py-2 bg-brand-blue text-white rounded-md hover:bg-blue-800 font-semibold flex items-center gap-2"
+              className="px-6 py-2 bg-brand-green text-white rounded-md hover:bg-green-700 font-semibold flex items-center gap-2"
             >
               <SearchIcon className="w-5 h-5" />
               <span>عرض التقرير</span>
@@ -690,9 +690,9 @@ const SupplierStatementReport: React.FC<SupplierStatementReportProps> = ({
           </PermissionWrapper>
         </div>
 
-        <div className="overflow-x-auto border-2 border-brand-blue rounded-lg">
+        <div className="overflow-x-auto border-2 border-brand-green rounded-lg">
           <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-brand-blue">
+            <thead className="bg-brand-green">
               <tr>
                 <th className="px-6 py-3 text-right text-sm font-semibold text-white uppercase w-36">
                   التاريخ
@@ -724,7 +724,7 @@ const SupplierStatementReport: React.FC<SupplierStatementReportProps> = ({
                 </td>
               </tr>
               {reportData.map((item, index) => (
-                <tr key={index} className="hover:bg-brand-blue-bg">
+                <tr key={index} className="hover:bg-brand-green-bg">
                   <td className="px-6 py-4 w-36">{item.date.substring(0, 10)}</td>
                   <td className="px-6 py-4 font-medium text-brand-dark">
                     {item.description}
@@ -767,7 +767,7 @@ const SupplierStatementReport: React.FC<SupplierStatementReportProps> = ({
                               }
                             }
                           }}
-                          className="text-brand-blue hover:underline font-semibold no-print cursor-pointer"
+                          className="text-brand-green hover:underline font-semibold no-print cursor-pointer"
                           title={`فتح ${item.link.label}`}
                         >
                           {item.voucherCode}
@@ -790,7 +790,7 @@ const SupplierStatementReport: React.FC<SupplierStatementReportProps> = ({
                 </tr>
               ))}
             </tbody>
-            <tfoot className="bg-brand-blue text-white">
+            <tfoot className="bg-brand-green text-white">
               <tr className="font-bold text-white">
                 <td colSpan={3} className="px-6 py-3 text-right text-white">
                   الإجمالي
