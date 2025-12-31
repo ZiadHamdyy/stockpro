@@ -56,6 +56,29 @@ const Banks: React.FC<BanksProps> = ({ title }) => {
 
   return (
     <>
+      <style>{`
+        @page {
+          @bottom-center {
+            content: counter(page) " / " counter(pages);
+            font-family: "Cairo", sans-serif;
+            font-size: 12px;
+            color: #1F2937;
+          }
+        }
+        @media print {
+          .no-print { display: none !important; }
+          body { -webkit-print-color-adjust: exact !important; color-adjust: exact !important; }
+          thead { display: table-header-group; }
+          tfoot { display: table-row-group !important; }
+          table { width: 100%; border-collapse: collapse; }
+          th { padding: 6px 8px !important; }
+          td { padding: 6px 8px !important; }
+          tbody tr:first-child { background: #FFFFFF !important; }
+          tbody tr:nth-child(2n+2) { background: #D1D5DB !important; }
+          tbody tr:nth-child(2n+3) { background: #FFFFFF !important; }
+          tfoot tr { page-break-inside: avoid !important; break-inside: avoid !important; }
+        }
+      `}</style>
       <div className="bg-white p-6 rounded-lg shadow">
         <h1 className="text-2xl font-bold mb-4 text-brand-dark">{title}</h1>
         <div className="flex justify-between items-center mb-6 no-print">
