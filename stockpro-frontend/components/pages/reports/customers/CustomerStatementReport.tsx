@@ -10,7 +10,7 @@ import type {
 import { ExcelIcon, PdfIcon, PrintIcon, SearchIcon } from "../../../icons";
 import ReportHeader from "../ReportHeader";
 import PermissionWrapper from "../../../common/PermissionWrapper";
-import { formatNumber, getNegativeNumberClass, getNegativeNumberClassForTotal } from "../../../../utils/formatting";
+import { formatNumber, getNegativeNumberClass, getNegativeNumberClassForTotal, exportToExcel } from "../../../../utils/formatting";
 import { useGetCustomersQuery } from "../../../store/slices/customer/customerApiSlice";
 import { useGetSalesInvoicesQuery } from "../../../store/slices/salesInvoice/salesInvoiceApiSlice";
 import { useGetSalesReturnsQuery } from "../../../store/slices/salesReturn/salesReturnApiSlice";
@@ -482,6 +482,36 @@ const CustomerStatementReport: React.FC<CustomerStatementReportProps> = ({
   const inputStyle =
     "p-2 border-2 border-brand-blue rounded-md focus:outline-none focus:ring-2 focus:ring-brand-blue bg-brand-blue-bg";
 
+  const handleExcelExport = () => {
+    const dataToExport = [
+      {
+        التاريخ: "رصيد أول المدة",
+        البيان: "",
+        المرجع: "",
+        مدين: "",
+        دائن: "",
+        الرصيد: formatNumber(openingBalance),
+      },
+      ...reportData.map((item) => ({
+        التاريخ: item.date.substring(0, 10),
+        البيان: item.description,
+        المرجع: item.voucherCode,
+        مدين: formatNumber(item.debit),
+        دائن: formatNumber(item.credit),
+        الرصيد: formatNumber(item.balance),
+      })),
+      {
+        التاريخ: "الإجمالي",
+        البيان: "",
+        المرجع: "",
+        مدين: formatNumber(totalDebit),
+        دائن: formatNumber(totalCredit),
+        الرصيد: formatNumber(finalBalance),
+      },
+    ];
+    exportToExcel(dataToExport, `كشف_حساب_عميل_${selectedCustomerName || "جميع_العملاء"}`);
+  };
+
   const handlePrint = () => {
     const reportContent = document.getElementById("printable-area");
     if (!reportContent) return;
@@ -680,6 +710,7 @@ const CustomerStatementReport: React.FC<CustomerStatementReportProps> = ({
           >
             <div className="no-print flex items-center gap-2">
               <button
+                onClick={handleExcelExport}
                 title="تصدير Excel"
                 className="p-3 border-2 border-gray-200 rounded-md hover:bg-gray-100"
               >
