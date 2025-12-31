@@ -5,6 +5,7 @@ import {
   IsArray,
   ValidateNested,
   IsUUID,
+  IsDateString,
 } from 'class-validator';
 import { Type } from 'class-transformer';
 
@@ -32,6 +33,10 @@ export class CreateStoreIssueVoucherDto {
   @IsOptional()
   @IsString()
   notes?: string;
+
+  @IsOptional()
+  @IsDateString()
+  date?: string;
 
   @IsArray()
   @ValidateNested({ each: true })

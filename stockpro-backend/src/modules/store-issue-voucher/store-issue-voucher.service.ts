@@ -25,10 +25,10 @@ export class StoreIssueVoucherService {
     createStoreIssueVoucherDto: CreateStoreIssueVoucherDto,
     userBranchId: string,
   ) {
-    const { items, storeId, ...voucherData } = createStoreIssueVoucherDto;
+    const { items, storeId, date, ...voucherData } = createStoreIssueVoucherDto;
 
-    // Check if date is in a closed period (date defaults to now() in database)
-    const voucherDate = new Date();
+    // Use provided date or default to current date
+    const voucherDate = date ? new Date(date) : new Date();
     
     // Check if there is an open period for this date
     const hasOpenPeriod = await this.fiscalYearService.hasOpenPeriodForDate(companyId, voucherDate);
@@ -71,6 +71,7 @@ export class StoreIssueVoucherService {
       return tx.storeIssueVoucher.create({
         data: {
           ...voucherData,
+          date: voucherDate,
           storeId,
           voucherNumber,
           companyId,
