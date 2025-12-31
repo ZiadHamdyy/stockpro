@@ -484,7 +484,7 @@ const FinancialPerformanceReport: React.FC<FinancialPerformanceReportProps> = ({
                                 <td className="p-3 border-l border-blue-800">{formatNumber(reportData.reduce((s, i) => s + i.sales, 0))}</td>
                                 <td className="p-3 border-l border-blue-800">{formatNumber(reportData.reduce((s, i) => s + i.purchases, 0))}</td>
                                 <td className="p-3 border-l border-blue-800">{formatNumber(reportData.reduce((s, i) => s + i.expenses, 0))}</td>
-                                <td className="p-3 bg-emerald-700 text-lg">{formatNumber(reportData.reduce((s, i) => s + i.net, 0))}</td>
+                                <td className={`p-3 text-lg ${reportData.reduce((s, i) => s + i.net, 0) < 0 ? 'bg-red-700' : 'bg-emerald-700'}`}>{formatNumber(reportData.reduce((s, i) => s + i.net, 0))}</td>
                             </tr>
                         </tfoot>
                     </table>
