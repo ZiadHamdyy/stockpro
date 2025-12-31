@@ -11,7 +11,7 @@ import {
   Resources,
   buildPermission,
 } from "../../../../enums/permissions.enum";
-import { formatNumber, getNegativeNumberClass, getNegativeNumberClassForTotal } from "../../../../utils/formatting";
+import { formatNumber, getNegativeNumberClass, getNegativeNumberClassForTotal, exportToExcel } from "../../../../utils/formatting";
 import { useGetExpenseCodesQuery } from "../../../store/slices/expense/expenseApiSlice";
 import { useGetExpensePaymentVouchersQuery } from "../../../store/slices/paymentVoucherApiSlice";
 import { useGetBranchesQuery } from "../../../store/slices/branch/branchApi";
@@ -292,6 +292,38 @@ const ExpenseStatementReport: React.FC<ExpenseStatementReportProps> = ({
   const inputStyle =
     "p-2 border-2 border-brand-blue rounded-md focus:outline-none focus:ring-2 focus:ring-brand-blue bg-brand-blue-bg";
 
+  const handleExcelExport = () => {
+    const finalBalance = beginningBalance + totalAmount;
+    const dataToExport = [
+      {
+        التاريخ: "رصيد أول المدة",
+        الفرع: "",
+        البيان: "",
+        المرجع: "",
+        المبلغ: "",
+        "الرصيد التراكمي": formatNumber(beginningBalance),
+      },
+      ...reportData.map((item) => ({
+        التاريخ: item.date.substring(0, 10),
+        الفرع: item.branchName || "",
+        البيان: item.description,
+        المرجع: item.ref,
+        المبلغ: formatNumber(item.amount),
+        "الرصيد التراكمي": formatNumber(item.balance),
+      })),
+      {
+        التاريخ: "الإجمالي",
+        الفرع: "",
+        البيان: "",
+        المرجع: "",
+        المبلغ: formatNumber(totalAmount),
+        "الرصيد التراكمي": formatNumber(finalBalance),
+      },
+    ];
+    const expenseCodeName = apiExpenseCodes.find((ec: any) => ec.id.toString() === selectedExpenseCodeId)?.name || "جميع_أكواد_المصروفات";
+    exportToExcel(dataToExport, `كشف_مصروف_${expenseCodeName}`);
+  };
+
   const handlePrint = () => {
     const reportContent = document.getElementById("printable-area");
     if (!reportContent) return;
@@ -486,6 +518,7 @@ const ExpenseStatementReport: React.FC<ExpenseStatementReportProps> = ({
           >
             <div className="no-print flex items-center gap-2">
               <button
+                onClick={handleExcelExport}
                 title="تصدير Excel"
                 className="p-3 border-2 border-gray-200 rounded-md hover:bg-gray-100"
               >
