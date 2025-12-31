@@ -23,6 +23,7 @@ import { useGetStoreIssueVouchersQuery } from '../../store/slices/storeIssueVouc
 import { useGetStoreTransferVouchersQuery } from '../../store/slices/storeTransferVoucher/storeTransferVoucherApi';
 import { useGetStoresQuery } from '../../store/slices/store/storeApi';
 import { useGetReceiptVouchersQuery } from '../../store/slices/receiptVoucherApiSlice';
+import { useGetPaymentVouchersQuery } from '../../store/slices/paymentVoucherApiSlice';
 
 interface FiscalYearsProps {
     title?: string;
@@ -55,6 +56,8 @@ const FiscalYearRow: React.FC<{
     const { data: storeTransferVouchers = [] } = useGetStoreTransferVouchersQuery(undefined);
     const { data: stores = [] } = useGetStoresQuery(undefined);
     const { data: apiReceiptVouchers = [] } = useGetReceiptVouchersQuery(undefined);
+    const { data: apiPaymentVouchers = [] } = useGetPaymentVouchersQuery(undefined);
+    const { data: fiscalYears = [] } = useGetFiscalYearsQuery();
 
     // Helper to normalize date
     const normalizeDate = useCallback((date: any): string => {
@@ -193,17 +196,191 @@ const FiscalYearRow: React.FC<{
             .reduce((sum, voucher) => sum + (voucher.amount || 0), 0);
     }, [apiReceiptVouchers, startDate, endDate, normalizeDate]);
 
-    // Calculate net profit using the same formula as IncomeStatement
+    // Calculate net purchases (same as IncomeStatement)
+    const calculatedNetPurchases = useMemo(() => {
+        const normalizedStartDate = normalizeDate(startDate);
+        const normalizedEndDate = normalizeDate(endDate);
+
+        if (!normalizedStartDate || !normalizedEndDate) return 0;
+
+        const isInRange = (date: any) => {
+            const d = normalizeDate(date);
+            if (!d) return false;
+            return d >= normalizedStartDate && d <= normalizedEndDate;
+        };
+
+        const { totalPurchasesBeforeTax, totalPurchasesDiscount } = (apiPurchaseInvoices as any[])
+            .filter((inv) => isInRange(inv.date || inv.invoiceDate))
+            .reduce(
+                (acc, inv) => {
+                    acc.totalPurchasesBeforeTax += toNumber(inv.subtotal || 0);
+                    acc.totalPurchasesDiscount += toNumber(inv.discount || 0);
+                    return acc;
+                },
+                { totalPurchasesBeforeTax: 0, totalPurchasesDiscount: 0 },
+            );
+
+        const { totalPurchaseReturnsBeforeTax, totalReturnsDiscount } = (apiPurchaseReturns as any[])
+            .filter((inv) => isInRange(inv.date || inv.invoiceDate))
+            .reduce(
+                (acc, inv) => {
+                    acc.totalPurchaseReturnsBeforeTax += toNumber(inv.subtotal || 0);
+                    acc.totalReturnsDiscount += toNumber(inv.discount || 0);
+                    return acc;
+                },
+                { totalPurchaseReturnsBeforeTax: 0, totalReturnsDiscount: 0 },
+            );
+
+        return (
+            totalPurchasesBeforeTax -
+            totalPurchasesDiscount -
+            totalPurchaseReturnsBeforeTax +
+            totalReturnsDiscount
+        );
+    }, [apiPurchaseInvoices, apiPurchaseReturns, startDate, endDate, normalizeDate, toNumber]);
+
+    // Calculate total sales from invoices (subtotal + tax, before discount)
+    const calculatedTotalSales = useMemo(() => {
+        const normalizedStartDate = normalizeDate(startDate);
+        const normalizedEndDate = normalizeDate(endDate);
+
+        if (!normalizedStartDate || !normalizedEndDate) return 0;
+
+        const isInRange = (date: any) => {
+            const d = normalizeDate(date);
+            if (!d) return false;
+            return d >= normalizedStartDate && d <= normalizedEndDate;
+        };
+
+        return (apiSalesInvoices as any[])
+            .filter((inv) => isInRange(inv.date || inv.invoiceDate))
+            .reduce((sum, inv) => {
+                const subtotal = toNumber(inv.subtotal || inv.totals?.subtotal || 0);
+                const tax = toNumber(inv.tax || inv.totals?.tax || 0);
+                return sum + subtotal + tax;
+            }, 0);
+    }, [apiSalesInvoices, startDate, endDate, normalizeDate, toNumber]);
+
+    // Calculate total sales returns from invoices (subtotal + tax, before discount)
+    const calculatedTotalSalesReturns = useMemo(() => {
+        const normalizedStartDate = normalizeDate(startDate);
+        const normalizedEndDate = normalizeDate(endDate);
+
+        if (!normalizedStartDate || !normalizedEndDate) return 0;
+
+        const isInRange = (date: any) => {
+            const d = normalizeDate(date);
+            if (!d) return false;
+            return d >= normalizedStartDate && d <= normalizedEndDate;
+        };
+
+        return (apiSalesReturns as any[])
+            .filter((inv) => isInRange(inv.date || inv.invoiceDate))
+            .reduce((sum, inv) => {
+                const subtotal = toNumber(inv.subtotal || inv.totals?.subtotal || 0);
+                const tax = toNumber(inv.tax || inv.totals?.tax || 0);
+                return sum + subtotal + tax;
+            }, 0);
+    }, [apiSalesReturns, startDate, endDate, normalizeDate, toNumber]);
+
+    // Calculate allowed discount (same as IncomeStatement)
+    const allowedDiscount = useMemo(() => {
+        const normalizedStartDate = normalizeDate(startDate);
+        const normalizedEndDate = normalizeDate(endDate);
+
+        if (!normalizedStartDate || !normalizedEndDate) return 0;
+
+        const isInRange = (date: any) => {
+            const d = normalizeDate(date);
+            if (!d) return false;
+            return d >= normalizedStartDate && d <= normalizedEndDate;
+        };
+
+        const totalSalesDiscounts = (apiSalesInvoices as any[])
+            .filter((inv) => isInRange(inv.date || inv.invoiceDate))
+            .reduce((sum, inv) => sum + toNumber(inv.discount || 0), 0);
+
+        const totalSalesReturnsDiscounts = (apiSalesReturns as any[])
+            .filter((inv) => isInRange(inv.date || inv.invoiceDate))
+            .reduce((sum, inv) => sum + toNumber(inv.discount || 0), 0);
+
+        return totalSalesDiscounts - totalSalesReturnsDiscounts;
+    }, [apiSalesInvoices, apiSalesReturns, startDate, endDate, normalizeDate, toNumber]);
+
+    // Calculate net sales after discount (same as IncomeStatement)
+    // Calculate from scratch: totalSales - totalSalesReturns - allowedDiscount
+    // This ensures discounts are definitely included in the calculation
+    const netSalesAfterDiscount = useMemo(() => {
+        return calculatedTotalSales - calculatedTotalSalesReturns - allowedDiscount;
+    }, [calculatedTotalSales, calculatedTotalSalesReturns, allowedDiscount]);
+
+    // Calculate net profit using the same formula as IncomeStatement (exact match)
     const calculatedNetProfit = useMemo(() => {
         if (!incomeStatementData) return null;
         
-        return incomeStatementData.netSales - 
-               (incomeStatementData.beginningInventory + incomeStatementData.netPurchases - calculatedEndingInventory) + 
+        return netSalesAfterDiscount - 
+               (incomeStatementData.beginningInventory + calculatedNetPurchases - calculatedEndingInventory) + 
                calculatedOtherRevenues - 
                incomeStatementData.totalExpenses;
-    }, [incomeStatementData, calculatedEndingInventory, calculatedOtherRevenues]);
+    }, [incomeStatementData, calculatedEndingInventory, calculatedOtherRevenues, calculatedNetPurchases, netSalesAfterDiscount]);
 
-    const calculatedValue = calculatedNetProfit;
+    // Calculate retained earnings with fiscal year logic (same as BalanceSheet.tsx)
+    const calculatedRetainedEarnings = useMemo(() => {
+        const normalizedStartDate = normalizeDate(startDate);
+        const normalizedEndDate = normalizeDate(endDate);
+        const periodStartDate = new Date(normalizedStartDate);
+
+        // Find all CLOSED fiscal years that ended before the current period start date
+        const previousClosedFiscalYears = fiscalYears.filter((fy) => {
+            if (fy.status !== "CLOSED") return false;
+            const fyEndDate = new Date(normalizeDate(fy.endDate));
+            return fyEndDate < periodStartDate;
+        });
+
+        // Sum retained earnings from all previous closed fiscal years
+        const previousRetainedEarnings = previousClosedFiscalYears.reduce(
+            (sum, fiscalYear) => sum + (fiscalYear.retainedEarnings || 0),
+            0,
+        );
+
+        // Use calculated net profit (same calculation as IncomeStatement)
+        const currentPeriodNetProfit = calculatedNetProfit || 0;
+
+        // Include profit_and_loss vouchers in retained earnings calculation
+        const profitAndLossReceipts = apiReceiptVouchers
+            .filter((v) => v.entityType === "profit_and_loss")
+            .filter((v) => {
+                const vDate = normalizeDate(v.date);
+                return vDate >= normalizedStartDate && vDate <= normalizedEndDate;
+            })
+            .reduce((sum, v) => sum + (v.amount || 0), 0);
+
+        const profitAndLossPayments = apiPaymentVouchers
+            .filter((v) => v.entityType === "profit_and_loss")
+            .filter((v) => {
+                const vDate = normalizeDate(v.date);
+                return vDate >= normalizedStartDate && vDate <= normalizedEndDate;
+            })
+            .reduce((sum, v) => sum + (v.amount || 0), 0);
+
+        // Return accumulated retained earnings (previous years + current period + P&L vouchers)
+        return (
+            previousRetainedEarnings +
+            currentPeriodNetProfit +
+            profitAndLossReceipts -
+            profitAndLossPayments
+        );
+    }, [
+        fiscalYears,
+        calculatedNetProfit,
+        normalizeDate,
+        startDate,
+        endDate,
+        apiReceiptVouchers,
+        apiPaymentVouchers,
+    ]);
+
+    const calculatedValue = calculatedRetainedEarnings;
 
     return (
         <div className={`border-2 rounded-lg p-4 flex justify-between items-center ${year.status === 'OPEN' ? 'border-green-500 bg-green-50' : 'border-red-300 bg-red-50'}`}>
