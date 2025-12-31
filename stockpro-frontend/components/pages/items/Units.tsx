@@ -151,7 +151,16 @@ const Units: React.FC<UnitsProps> = ({ title }) => {
         <meta charset="UTF-8" />
         <title>${title}</title>
         <style>
-          @page { size: A4 landscape; margin: 10mm; }
+          @page {
+            size: A4 landscape;
+            margin: 10mm;
+            @bottom-center {
+              content: counter(page) " / " counter(pages);
+              font-family: 'Cairo', sans-serif;
+              font-size: 12px;
+              color: #1F2937;
+            }
+          }
           body {
             font-family: 'Cairo', sans-serif;
             margin: 0;
@@ -173,9 +182,7 @@ const Units: React.FC<UnitsProps> = ({ title }) => {
             color: #1F2937;
           }
           .page-number {
-            font-size: 12px;
-            font-weight: 700;
-            color: #1F2937;
+            display: none;
           }
           table { width: 100%; border-collapse: collapse; font-size: 12px; }
           th, td { border: 1px solid #E5E7EB; padding: 6px 8px; text-align: right; }
