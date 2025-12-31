@@ -776,6 +776,14 @@ const IncomeStatement: React.FC = () => {
           .bg-red-200 {
             background-color: #FECACA !important;
           }
+          thead tr.bg-brand-green th {
+            padding-top: 1rem !important;
+            padding-bottom: 1rem !important;
+          }
+          tbody tr.bg-brand-green td {
+            padding-top: 1rem !important;
+            padding-bottom: 1rem !important;
+          }
         }
       </style>`,
     );
@@ -918,13 +926,13 @@ const IncomeStatement: React.FC = () => {
           <table className="min-w-full text-sm">
             <thead>
               <tr className="bg-brand-green text-white text-sm">
-                <th className="px-2 py-2 text-right font-semibold text-white w-3/5">
+                <th className="px-2 py-4 text-right font-semibold text-white w-3/5">
                   البيان
                 </th>
-                <th className="px-2 py-2 text-left font-semibold text-white">
+                <th className="px-2 py-4 text-left font-semibold text-white">
                   جزئي
                 </th>
-                <th className="px-2 py-2 text-left font-semibold text-white">
+                <th className="px-2 py-4 text-left font-semibold text-white">
                   كلي
                 </th>
               </tr>
@@ -1043,9 +1051,9 @@ const IncomeStatement: React.FC = () => {
               <tr
                 className={`font-bold text-2xl text-white ${(netSalesAfterDiscount - (financialData.beginningInventory + calculatedNetPurchases - calculatedEndingInventory) + calculatedOtherRevenues - financialData.totalExpenses) >= 0 ? "bg-brand-green" : "bg-red-200"}`}
               >
-                <Td>صافي الربح / (الخسارة)</Td>
-                <Td></Td>
-                <Td className={`font-mono text-left ${getNegativeNumberClass(netSalesAfterDiscount - (financialData.beginningInventory + calculatedNetPurchases - calculatedEndingInventory) + calculatedOtherRevenues - financialData.totalExpenses)}`}>
+                <Td className="py-4">صافي الربح / (الخسارة)</Td>
+                <Td className="py-4"></Td>
+                <Td className={`py-4 font-mono text-left ${getNegativeNumberClass(netSalesAfterDiscount - (financialData.beginningInventory + calculatedNetPurchases - calculatedEndingInventory) + calculatedOtherRevenues - financialData.totalExpenses)}`}>
                   {formatNumber(netSalesAfterDiscount - (financialData.beginningInventory + calculatedNetPurchases - calculatedEndingInventory) + calculatedOtherRevenues - financialData.totalExpenses)}
                 </Td>
               </tr>

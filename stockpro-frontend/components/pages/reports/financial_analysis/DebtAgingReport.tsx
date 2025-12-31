@@ -501,7 +501,7 @@ const DebtAgingReport: React.FC<DebtAgingReportProps> = ({ title }) => {
                     <table className="min-w-full text-sm text-center">
                         <thead className="bg-brand-blue text-white">
                             <tr>
-                                <th className="p-3">#</th>
+                                <th className="p-3">م</th>
                                 <th className="p-3 text-right">العميل</th>
                                 <th className="p-3 font-bold bg-blue-800">الرصيد القائم</th>
                                 <th className="p-3 bg-green-600">1-30 يوم</th>
