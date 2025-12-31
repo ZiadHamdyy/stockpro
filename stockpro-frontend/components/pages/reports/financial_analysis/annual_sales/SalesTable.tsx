@@ -37,32 +37,114 @@ export const SalesTable: React.FC<SalesTableProps> = ({ data, branches, selected
           @bottom-center {
             content: counter(page) " / " counter(pages);
             font-family: "Cairo", sans-serif;
-            font-size: 12px;
+            font-size: 10px;
             color: #1F2937;
           }
+          size: A4;
+          margin: 0.5cm 0.5cm 1cm 0.5cm;
         }
         @media print {
-          body { -webkit-print-color-adjust: exact !important; color-adjust: exact !important; font-size: 14px !important; }
-          .no-print, .no-print * { display: none !important; visibility: hidden !important; }
-          thead { display: table-header-group; }
-          tfoot { display: table-row-group !important; }
-          table { width: 100%; border-collapse: collapse; font-size: 13px !important; }
-          th { font-size: 13px !important; font-weight: bold !important; padding: 6px 8px !important; }
-          td { font-size: 13px !important; padding: 6px 8px !important; }
+          * {
+            -webkit-print-color-adjust: exact !important;
+            color-adjust: exact !important;
+            print-color-adjust: exact !important;
+          }
+          body { 
+            -webkit-print-color-adjust: exact !important; 
+            color-adjust: exact !important; 
+            font-size: 12px !important;
+            margin: 0 !important;
+            padding: 0 !important;
+          }
+          .no-print, .no-print * { 
+            display: none !important; 
+            visibility: hidden !important; 
+            margin: 0 !important;
+            padding: 0 !important;
+          }
+          thead { 
+            display: table-header-group !important; 
+            page-break-inside: avoid !important;
+            break-inside: avoid !important;
+          }
+          tfoot { 
+            display: table-footer-group !important; 
+            page-break-inside: avoid !important;
+            break-inside: avoid !important;
+          }
+          table { 
+            width: 100% !important; 
+            max-width: 100% !important;
+            border-collapse: collapse !important; 
+            font-size: 11px !important;
+            table-layout: fixed !important;
+            page-break-inside: auto !important;
+          }
+          th { 
+            font-size: 11px !important; 
+            font-weight: bold !important; 
+            padding: 12px 6px !important;
+            height: auto !important;
+            vertical-align: middle !important;
+            page-break-inside: avoid !important;
+            break-inside: avoid !important;
+          }
+          td { 
+            font-size: 11px !important; 
+            padding: 12px 6px !important;
+            height: auto !important;
+            min-height: 40px !important;
+            vertical-align: middle !important;
+            word-wrap: break-word !important;
+            overflow-wrap: break-word !important;
+          }
+          tbody tr { 
+            page-break-inside: avoid !important;
+            break-inside: avoid !important;
+            height: auto !important;
+            min-height: 35px !important;
+          }
           tbody tr:first-child { background: #FFFFFF !important; }
           tbody tr:nth-child(2n+2) { background: #D1D5DB !important; }
           tbody tr:nth-child(2n+3) { background: #FFFFFF !important; }
-          tfoot tr { page-break-inside: avoid !important; break-inside: avoid !important; }
-          .bg-\\[\\#1e293b\\] { background-color: #1e293b !important; }
-          .bg-\\[\\#0f172a\\] { background-color: #0f172a !important; }
-          .bg-\\[\\#020617\\] { background-color: #020617 !important; }
+          .bg-\\[\\#1e293b\\] { background-color: #1E40AF !important; }
+          .bg-\\[\\#0f172a\\] { background-color: #1E40AF !important; }
+          .bg-\\[\\#020617\\] { background-color: #1E40AF !important; }
+          .bg-\\[\\#1E40AF\\] { background-color: #1E40AF !important; }
           .text-white { color: white !important; }
+          .print-card { 
+            margin: 0 !important; 
+            padding: 0 !important;
+            page-break-inside: auto !important;
+            break-inside: auto !important;
+          }
+          .print-card > div:first-child { 
+            padding: 8px 12px !important; 
+            margin-bottom: 0 !important;
+            page-break-after: avoid !important;
+            break-after: avoid !important;
+          }
+          .print-card > div:last-child {
+            margin: 0 !important;
+            padding: 0 !important;
+          }
+          /* Ensure table container uses full height */
+          .overflow-x-auto {
+            overflow: visible !important;
+            width: 100% !important;
+            height: auto !important;
+          }
+          /* Make sure table fills available space */
+          html, body {
+            height: auto !important;
+            width: 100% !important;
+          }
         }
       `}</style>
-      <div className="bg-white rounded-2xl shadow-[0_2px_15px_-3px_rgba(0,0,0,0.07),0_10px_20px_-2px_rgba(0,0,0,0.04)] border border-slate-300 overflow-hidden flex flex-col h-full print-card print:shadow-none">
-      <div className="p-6 border-b border-slate-300 flex justify-between items-center bg-white print:p-4">
-        <h3 className="text-xl font-bold text-[#0f172a] flex items-center gap-3 print:text-lg">
-          <span className="w-1.5 h-6 bg-emerald-600 rounded-full"></span>
+      <div className="bg-white rounded-2xl shadow-[0_2px_15px_-3px_rgba(0,0,0,0.07),0_10px_20px_-2px_rgba(0,0,0,0.04)] border border-slate-300 overflow-hidden flex flex-col h-full print-card print:shadow-none print:mt-0 print:rounded-none print:border-0">
+      <div className="p-6 border-b border-slate-300 flex justify-between items-center bg-white print:p-1 print:pb-0.5 print:border-b-0">
+        <h3 className="text-xl font-bold text-[#0f172a] flex items-center gap-3 print:text-xs print:font-semibold print:mb-0">
+          <span className="w-1.5 h-6 bg-emerald-600 rounded-full print:hidden"></span>
           جدول البيانات التفصيلي
         </h3>
         <button className="text-sm flex items-center gap-2 text-slate-600 hover:text-indigo-600 transition-colors font-bold bg-slate-100 hover:bg-slate-200 px-4 py-2 rounded-lg border border-slate-300 no-print">
@@ -71,26 +153,26 @@ export const SalesTable: React.FC<SalesTableProps> = ({ data, branches, selected
         </button>
       </div>
       
-      <div className="overflow-x-auto">
-        <table className="w-full text-sm text-right border-collapse print:text-xs">
-          <thead className="bg-[#1e293b] text-white font-bold print:text-xs">
+      <div className="overflow-x-auto print:overflow-visible print:w-full">
+        <table className="w-full text-sm text-right border-collapse print:text-[11px]">
+          <thead className="bg-[#1E40AF] text-white font-bold print:text-[11px] print:sticky print:top-0">
             <tr>
-              <th className="px-6 py-4 whitespace-nowrap min-w-[100px] border border-slate-600 text-slate-200 print:px-4 print:py-2">
+              <th className="px-6 py-4 whitespace-nowrap min-w-[100px] border border-blue-700 text-slate-200 print:px-2 print:py-3 print:text-[11px]" style={{ width: visibleBranches.length > 0 ? `${100 / (visibleBranches.length + 2)}%` : '15%' }}>
                 الشهر
               </th>
               {visibleBranches.map(branch => (
                 <th
                   key={branch.id}
-                  className="px-6 py-4 whitespace-nowrap font-bold border border-slate-600 print:px-4 print:py-2"
-                  style={{ color: '#fff' }}
+                  className="px-6 py-4 whitespace-nowrap font-bold border border-blue-700 print:px-2 print:py-3 print:text-[11px]"
+                  style={{ color: '#fff', width: `${100 / (visibleBranches.length + 2)}%` }}
                 >
-                  <div className="flex flex-col items-start gap-1">
-                    <span>{branch.name}</span>
-                    <span className="h-1 w-8 rounded-full" style={{ backgroundColor: branch.color }}></span>
+                  <div className="flex flex-col items-start gap-1 print:gap-0 print:items-center">
+                    <span className="print:text-[11px]">{branch.name}</span>
+                    <span className="h-1 w-8 rounded-full print:hidden" style={{ backgroundColor: branch.color }}></span>
                   </div>
                 </th>
               ))}
-              <th className="px-6 py-4 whitespace-nowrap bg-slate-900 text-white font-extrabold text-center border border-slate-600 print:px-4 print:py-2">
+              <th className="px-6 py-4 whitespace-nowrap bg-[#1E40AF] text-white font-extrabold text-center border border-blue-700 print:px-2 print:py-3 print:text-[11px]" style={{ width: visibleBranches.length > 0 ? `${100 / (visibleBranches.length + 2)}%` : '15%' }}>
                 الإجمالي
               </th>
             </tr>
@@ -101,23 +183,23 @@ export const SalesTable: React.FC<SalesTableProps> = ({ data, branches, selected
               return (
                 <tr 
                   key={record.monthIndex} 
-                  className={`transition-colors print:text-xs ${
+                  className={`transition-colors print:text-[11px] print:min-h-[35px] ${
                     index % 2 === 0 ? 'bg-white' : 'bg-slate-200'
-                  } hover:bg-indigo-100`}
+                  } hover:bg-indigo-100 print:hover:bg-inherit`}
                 >
-                  <td className="px-6 py-4 font-bold text-slate-800 border border-slate-300 print:px-4 print:py-2">
+                  <td className="px-6 py-4 font-bold text-slate-800 border border-slate-300 print:px-2 print:py-3 print:text-[11px]">
                     {record.monthName}
                   </td>
                   {visibleBranches.map(branch => (
                     <td
                       key={branch.id}
-                      className="px-6 py-4 text-slate-700 font-semibold tabular-nums font-mono tracking-tight border border-slate-300 print:px-4 print:py-2"
+                      className="px-6 py-4 text-slate-700 font-semibold tabular-nums font-mono tracking-tight border border-slate-300 print:px-2 print:py-3 print:text-[11px] print:text-center"
                     >
                       {formatCurrency(record.data[branch.id] || 0)}
                     </td>
                   ))}
                   <td
-                    className={`px-6 py-4 font-bold text-[#0f172a] tabular-nums text-center border border-slate-300 font-mono tracking-tight print:px-4 print:py-2 ${
+                    className={`px-6 py-4 font-bold text-[#0f172a] tabular-nums text-center border border-slate-300 font-mono tracking-tight print:px-2 print:py-3 print:text-[11px] ${
                       index % 2 === 0 ? 'bg-slate-100' : 'bg-slate-300'
                     }`}
                   >
@@ -127,18 +209,26 @@ export const SalesTable: React.FC<SalesTableProps> = ({ data, branches, selected
               );
             })}
           </tbody>
-          <tfoot className="bg-[#0f172a] text-white font-bold print:bg-slate-200 print:text-black print:border-t-2 print:border-black print:text-xs">
-            <tr>
-              <td className="px-6 py-5 border border-slate-700 print:px-4 print:py-3">الإجمالي السنوي</td>
+          <tfoot className="hidden print:table-footer-group">
+            <tr className={`print:font-bold ${
+              data.length % 2 === 0 ? 'print:bg-white' : 'print:bg-slate-200'
+            }`}>
+              <td className={`px-6 py-4 border border-slate-300 print:px-2 print:py-3 print:text-[11px] print:font-bold ${
+                data.length % 2 === 0 ? 'bg-white' : 'bg-slate-200'
+              }`}>الإجمالي السنوي</td>
               {visibleBranches.map(branch => (
                 <td
                   key={branch.id}
-                  className="px-6 py-5 tabular-nums text-emerald-300 print:text-black font-mono border border-slate-700 print:px-4 print:py-3"
+                  className={`px-6 py-4 tabular-nums font-mono border border-slate-300 print:px-2 print:py-3 print:text-[11px] print:text-center print:font-bold ${
+                    data.length % 2 === 0 ? 'bg-white' : 'bg-slate-200'
+                  }`}
                 >
                   {formatCurrency(branchTotals[branch.id])}
                 </td>
               ))}
-              <td className="px-6 py-5 tabular-nums text-white text-base bg-[#020617] text-center print:text-black print:bg-slate-300 font-mono border border-slate-700 print:px-4 print:py-3">
+              <td className={`px-6 py-4 tabular-nums text-center font-mono border border-slate-300 print:px-2 print:py-3 print:text-[11px] print:font-bold ${
+                data.length % 2 === 0 ? 'bg-slate-100' : 'bg-slate-300'
+              }`}>
                  {formatCurrency(Object.values(branchTotals).reduce((a, b) => a + b, 0))}
               </td>
             </tr>
