@@ -28,6 +28,37 @@ const getUserBranchId = (user: User | null): string | null => {
   return null;
 };
 
+// Helper function to get quarter dates
+const getQuarterDates = (quarter: string, year: number): { start: string; end: string } => {
+  switch (quarter) {
+    case "Q1":
+      return {
+        start: `${year}-01-01`,
+        end: `${year}-03-31`,
+      };
+    case "Q2":
+      return {
+        start: `${year}-04-01`,
+        end: `${year}-06-30`,
+      };
+    case "Q3":
+      return {
+        start: `${year}-07-01`,
+        end: `${year}-09-30`,
+      };
+    case "Q4":
+      return {
+        start: `${year}-10-01`,
+        end: `${year}-12-31`,
+      };
+    default:
+      return {
+        start: `${year}-01-01`,
+        end: `${year}-12-31`,
+      };
+  }
+};
+
 interface TaxDeclarationReportProps {
   title: string;
   companyInfo: CompanyInfo;
@@ -144,13 +175,16 @@ const TaxDeclarationReport: React.FC<TaxDeclarationReportProps> = ({
   const [startDate, setStartDate] = useState(defaultStartDate);
   const [endDate, setEndDate] = useState(defaultEndDate);
   
+  // Quarter selection state
+  const [selectedQuarter, setSelectedQuarter] = useState<string>("");
+  
   // Branch filter state - default based on permission
   const [selectedBranch, setSelectedBranch] = useState<string>(() => {
     // Compute initial value based on permission check
     const hasSearchPermission = hasPermission(
       buildPermission(Resources.TAX_DECLARATION_REPORT, Actions.SEARCH),
     );
-    return hasSearchPermission ? "all" : "";
+    return hasSearchPermission ? "" : "";
   });
   
   // Sync selectedBranch when permission changes or branches load
@@ -164,6 +198,16 @@ const TaxDeclarationReport: React.FC<TaxDeclarationReportProps> = ({
       setSelectedBranch("");
     }
   }, [canSearchAllBranches, userBranchName, selectedBranch, branches]);
+
+  // Update dates when quarter is selected
+  useEffect(() => {
+    if (selectedQuarter) {
+      const currentYear = new Date().getFullYear();
+      const quarterDates = getQuarterDates(selectedQuarter, currentYear);
+      setStartDate(quarterDates.start);
+      setEndDate(quarterDates.end);
+    }
+  }, [selectedQuarter]);
   const [reportData, setReportData] = useState({
     salesSubtotal: 0,
     salesTax: 0,
@@ -196,7 +240,7 @@ const TaxDeclarationReport: React.FC<TaxDeclarationReportProps> = ({
     const normalizedEndDate = normalizeDate(endDate);
 
     const filterByBranch = (inv: Invoice) =>
-      selectedBranch === "all" || inv.branchName === selectedBranch;
+      !selectedBranch || inv.branchName === selectedBranch;
     const filterByDate = (inv: Invoice) => {
       const invDate = normalizeDate(inv.date);
       return invDate >= normalizedStartDate && invDate <= normalizedEndDate;
@@ -221,7 +265,7 @@ const TaxDeclarationReport: React.FC<TaxDeclarationReportProps> = ({
       .filter((v) => {
         const voucherDate = new Date(v.date).toISOString().substring(0, 10);
         const dateMatch = voucherDate >= startDate && voucherDate <= endDate;
-        const branchMatch = selectedBranch === "all" || 
+        const branchMatch = !selectedBranch || 
           (v.branch?.name === selectedBranch) ||
           (branches.find((b) => b.id === v.branchId)?.name === selectedBranch);
         // Only include "expense-Type" payment vouchers with expense codes
@@ -321,6 +365,7 @@ const TaxDeclarationReport: React.FC<TaxDeclarationReportProps> = ({
     purchaseReturns,
     apiPaymentVouchers,
     branches,
+    companyInfo,
   ]);
 
   useEffect(() => {
@@ -459,7 +504,7 @@ const TaxDeclarationReport: React.FC<TaxDeclarationReportProps> = ({
           <div className="flex justify-between items-start">
             <div className="space-y-2 text-right">
               <p className="text-base text-gray-700">
-                <span className="font-semibold text-gray-800">الفرع:</span> {selectedBranch === "all" ? "جميع الفروع" : selectedBranch}
+                <span className="font-semibold text-gray-800">الفرع:</span> {selectedBranch || "جميع الفروع"}
               </p>
               <p className="text-base text-gray-700">
                 <span className="font-semibold text-gray-800">الفترة من:</span> {startDate} 
@@ -478,11 +523,21 @@ const TaxDeclarationReport: React.FC<TaxDeclarationReportProps> = ({
           <div className="flex items-center gap-4 flex-wrap">
             <select
               className={inputStyle}
+              value={selectedQuarter}
+              onChange={(e) => setSelectedQuarter(e.target.value)}
+            >
+              <option value="">اختر الربع</option>
+              <option value="Q1">الربع الأول</option>
+              <option value="Q2">الربع الثاني</option>
+              <option value="Q3">الربع الثالث</option>
+              <option value="Q4">الربع الرابع</option>
+            </select>
+            <select
+              className={inputStyle}
               value={selectedBranch}
               onChange={(e) => setSelectedBranch(e.target.value)}
               disabled={!canSearchAllBranches}
             >
-              {canSearchAllBranches && <option value="all">جميع الفروع</option>}
               {branches.map((branch) => (
                 <option key={branch.id} value={branch.name}>
                   {branch.name}
