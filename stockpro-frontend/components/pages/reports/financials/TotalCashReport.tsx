@@ -9,7 +9,7 @@ import type {
 import { ExcelIcon, PdfIcon, PrintIcon, SearchIcon } from "../../../icons";
 import ReportHeader from "../ReportHeader";
 import PermissionWrapper from "../../../common/PermissionWrapper";
-import { formatNumber, getNegativeNumberClass, getNegativeNumberClassForTotal } from "../../../../utils/formatting";
+import { formatNumber, getNegativeNumberClass, getNegativeNumberClassForTotal, exportToExcel } from "../../../../utils/formatting";
 import { useGetSafesQuery } from "../../../store/slices/safe/safeApiSlice";
 import { useGetBanksQuery } from "../../../store/slices/bank/bankApiSlice";
 import { useGetInternalTransfersQuery } from "../../../store/slices/internalTransferApiSlice";
@@ -893,6 +893,30 @@ const TotalCashReport: React.FC<TotalCashReportProps> = ({
   const inputStyle =
     "p-2 border-2 border-brand-blue rounded-md focus:outline-none focus:ring-2 focus:ring-brand-blue bg-brand-blue-bg";
 
+  const handleExcelExport = () => {
+    const dataToExport = [
+      ...filteredReportData.map((item) => ({
+        النوع: item.type === "safe" ? "خزنة" : "بنك",
+        الكود: item.code,
+        الاسم: item.name,
+        "رصيد أول المدة": formatNumber(item.opening),
+        "إجمالي وارد": formatNumber(item.debit),
+        "إجمالي صادر": formatNumber(item.credit),
+        "الرصيد الحالي": formatNumber(item.balance),
+      })),
+      {
+        النوع: "الإجمالي",
+        الكود: "",
+        الاسم: "",
+        "رصيد أول المدة": formatNumber(totals.opening),
+        "إجمالي وارد": formatNumber(totals.debit),
+        "إجمالي صادر": formatNumber(totals.credit),
+        "الرصيد الحالي": formatNumber(totals.balance),
+      },
+    ];
+    exportToExcel(dataToExport, "تقرير_إجمالي_النقدية");
+  };
+
   const handlePrint = () => {
     const reportContent = document.getElementById("printable-area");
     if (!reportContent) return;
@@ -1060,6 +1084,7 @@ const TotalCashReport: React.FC<TotalCashReportProps> = ({
           >
             <div className="no-print flex items-center gap-2">
               <button
+                onClick={handleExcelExport}
                 title="تصدير Excel"
                 className="p-3 border-2 border-gray-200 rounded-md hover:bg-gray-100"
               >
