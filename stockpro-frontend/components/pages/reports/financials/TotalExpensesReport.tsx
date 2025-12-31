@@ -8,7 +8,7 @@ import {
   Resources,
   buildPermission,
 } from "../../../../enums/permissions.enum";
-import { formatNumber, getNegativeNumberClass, getNegativeNumberClassForTotal } from "../../../../utils/formatting";
+import { formatNumber, getNegativeNumberClass, getNegativeNumberClassForTotal, exportToExcel } from "../../../../utils/formatting";
 import { useGetExpensePaymentVouchersQuery } from "../../../store/slices/paymentVoucherApiSlice";
 import { useGetBranchesQuery } from "../../../store/slices/branch/branchApi";
 import { useAuth } from "../../../hook/Auth";
@@ -244,6 +244,33 @@ const TotalExpensesReport: React.FC<TotalExpensesReportProps> = ({
   );
   const grandTotal = monthlyTotals.reduce((sum, total) => sum + total, 0);
 
+  const handleExcelExport = () => {
+    const dataToExport = [
+      ...reportData.map((item) => {
+        const itemTotal = item.monthly.reduce((sum, val) => sum + val, 0);
+        const row: any = {
+          "اسم البند": item.name,
+        };
+        months.forEach((month, index) => {
+          row[month] = item.monthly[index] > 0 ? formatNumber(item.monthly[index]) : "-";
+        });
+        row["الإجمالي"] = formatNumber(itemTotal);
+        return row;
+      }),
+      (() => {
+        const totalRow: any = {
+          "اسم البند": "الإجمالي الشهري",
+        };
+        months.forEach((month, index) => {
+          totalRow[month] = formatNumber(monthlyTotals[index]);
+        });
+        totalRow["الإجمالي"] = formatNumber(grandTotal);
+        return totalRow;
+      })(),
+    ];
+    exportToExcel(dataToExport, `تقرير_إجمالي_المصروفات_${year}`);
+  };
+
   if (isLoading) {
     return (
       <div className="bg-white p-6 rounded-lg shadow">
@@ -464,6 +491,7 @@ const TotalExpensesReport: React.FC<TotalExpensesReportProps> = ({
           >
             <div className="no-print flex items-center gap-2">
               <button
+                onClick={handleExcelExport}
                 title="تصدير Excel"
                 className="p-3 border-2 border-gray-200 rounded-md hover:bg-gray-100"
               >
