@@ -276,22 +276,23 @@ const TaxDeclarationReport: React.FC<TaxDeclarationReportProps> = ({
         return dateMatch && branchMatch && v.entityType === "expense-Type" && v.expenseCodeId;
       });
 
-    // Get VAT rate from company info (default to 15% if not available)
-    const vatRate = (companyInfo.vatRate || 15) / 100;
+    // Get VAT settings from company info
+    const isVatEnabled = companyInfo.isVatEnabled || false;
+    const vatRate = isVatEnabled && companyInfo.vatRate ? companyInfo.vatRate / 100 : 0;
 
     const salesSubtotal = filteredSales.reduce(
       (sum, inv) => sum + (inv.subtotal || 0),
       0,
     );
-    // Calculate tax as: VAT rate * sales subtotal
-    const salesTax = salesSubtotal * vatRate;
+    // Calculate tax as: VAT rate * sales subtotal (only if VAT is enabled)
+    const salesTax = isVatEnabled ? salesSubtotal * vatRate : 0;
 
     const returnsSubtotal = filteredReturns.reduce(
       (sum, inv) => sum + (inv.subtotal || 0),
       0,
     );
-    // Calculate tax as: VAT rate * returns subtotal
-    const returnsTax = returnsSubtotal * vatRate;
+    // Calculate tax as: VAT rate * returns subtotal (only if VAT is enabled)
+    const returnsTax = isVatEnabled ? returnsSubtotal * vatRate : 0;
 
     // 1. Purchase invoices subtotal (before tax) from search date
     const purchasesSubtotal = filteredPurchases.reduce(

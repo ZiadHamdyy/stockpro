@@ -28,6 +28,7 @@ import { useGetStoresQuery } from '../../../store/slices/store/storeApi';
 import { useGetStoreReceiptVouchersQuery } from '../../../store/slices/storeReceiptVoucher/storeReceiptVoucherApi';
 import { useGetStoreIssueVouchersQuery } from '../../../store/slices/storeIssueVoucher/storeIssueVoucherApi';
 import { useGetStoreTransferVouchersQuery } from '../../../store/slices/storeTransferVoucher/storeTransferVoucherApi';
+import { useGetCompanyQuery } from '../../../store/slices/companyApiSlice';
 
 const resolveRecordAmount = (record: any): number => {
     if (!record) return 0;
@@ -77,6 +78,7 @@ const LiquidityReport: React.FC<LiquidityReportProps> = ({ title }) => {
     const { data: storeReceiptVouchers = [] } = useGetStoreReceiptVouchersQuery(undefined);
     const { data: storeIssueVouchers = [] } = useGetStoreIssueVouchersQuery(undefined);
     const { data: storeTransferVouchers = [] } = useGetStoreTransferVouchersQuery(undefined);
+    const { data: company } = useGetCompanyQuery();
 
     const isLoading = safesLoading || banksLoading || customersLoading || suppliersLoading || itemsLoading || salesLoading || purchasesLoading || salesReturnsLoading || purchaseReturnsLoading || receiptsLoading || paymentsLoading || balanceSheetLoading;
 
@@ -571,6 +573,9 @@ const LiquidityReport: React.FC<LiquidityReportProps> = ({ title }) => {
         };
 
         // VAT position (same logic as BalanceSheet/VAT statement)
+        // Check if VAT is enabled
+        const isVatEnabled = company?.isVatEnabled || false;
+        
         // Calculate opening VAT position (transactions before start date)
         let vatDebitBefore = 0;
         let vatCreditBefore = 0;
@@ -650,12 +655,12 @@ const LiquidityReport: React.FC<LiquidityReportProps> = ({ title }) => {
             vatCreditPeriod += v.amount ?? 0;
         });
 
-        // Total VAT = Opening VAT + Period VAT
-        const totalVatDebit = vatDebitBefore + vatDebitPeriod;
-        const totalVatCredit = vatCreditBefore + vatCreditPeriod;
-        const vatNet = totalVatCredit - totalVatDebit;
-        const vatAsset = vatNet > 0 ? vatNet : 0;
-        const vatLiabilityFromNet = vatNet < 0 ? Math.abs(vatNet) : 0;
+        // Total VAT = Opening VAT + Period VAT (only if VAT is enabled)
+        const totalVatDebit = isVatEnabled ? (vatDebitBefore + vatDebitPeriod) : 0;
+        const totalVatCredit = isVatEnabled ? (vatCreditBefore + vatCreditPeriod) : 0;
+        const vatNet = isVatEnabled ? (totalVatCredit - totalVatDebit) : 0;
+        const vatAsset = isVatEnabled && vatNet > 0 ? vatNet : 0;
+        const vatLiabilityFromNet = isVatEnabled && vatNet < 0 ? Math.abs(vatNet) : 0;
 
         // Calculate total cash for all safes using the same logic as SafeStatementReport
         const calculateSafeFinalBalance = (safe: Safe): number => {
@@ -1647,7 +1652,7 @@ const LiquidityReport: React.FC<LiquidityReportProps> = ({ title }) => {
             currentRatio, quickRatio, cashRatio,
             safetyStatus, safetyMessage
         };
-    }, [balanceSheetData, banks, customers, defaultEndDate, defaultStartDate, items, normalizeDate, paymentVouchers, purchaseInvoices, apiPurchaseReturns, receiptVouchers, safes, salesInvoices, apiSalesReturns, suppliers, apiInternalTransfers, apiSalesInvoices, apiPurchaseInvoices, apiReceiptVouchers, apiPaymentVouchers, calculatedInventoryValue]);
+    }, [balanceSheetData, banks, customers, defaultEndDate, defaultStartDate, items, normalizeDate, paymentVouchers, purchaseInvoices, apiPurchaseReturns, receiptVouchers, safes, salesInvoices, apiSalesReturns, suppliers, apiInternalTransfers, apiSalesInvoices, apiPurchaseInvoices, apiReceiptVouchers, apiPaymentVouchers, calculatedInventoryValue, company]);
 
     const getStatusColor = (status: string) => {
         switch(status) {

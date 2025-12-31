@@ -66,6 +66,9 @@ const DailyPurchaseReturns: React.FC<DailyPurchaseReturnsProps> = ({
     });
   }, [allPurchaseReturns, canSearchAllBranches, userBranchId]);
 
+  const isVatEnabled = company?.isVatEnabled || false;
+  const vatRate = company?.vatRate || 0;
+  
   const companyInfo: CompanyInfo = company || {
     name: "",
     activity: "",
@@ -76,8 +79,8 @@ const DailyPurchaseReturns: React.FC<DailyPurchaseReturnsProps> = ({
     currency: "SAR",
     logo: null,
     capital: 0,
-    vatRate: 15,
-    isVatEnabled: false,
+    vatRate: vatRate,
+    isVatEnabled: isVatEnabled,
   };
   const { start: defaultStartDate, end: defaultEndDate } = getCurrentYearRange();
   const [startDate, setStartDate] = useState(defaultStartDate);
@@ -145,7 +148,7 @@ const DailyPurchaseReturns: React.FC<DailyPurchaseReturnsProps> = ({
       المورد: p.supplier?.name || "-",
       الفرع: p.branch?.name || "-",
       المبلغ: formatMoney(p.subtotal),
-      الضريبة: formatMoney(p.tax),
+      ...(isVatEnabled && { الضريبة: formatMoney(p.tax) }),
       الخصم: formatMoney(p.discount),
       "صافي المبلغ": formatMoney(p.net),
     }));
@@ -156,7 +159,7 @@ const DailyPurchaseReturns: React.FC<DailyPurchaseReturnsProps> = ({
       المورد: "",
       الفرع: "",
       المبلغ: formatMoney(totals.subtotal),
-      الضريبة: formatMoney(totals.tax),
+      ...(isVatEnabled && { الضريبة: formatMoney(totals.tax) }),
       الخصم: formatMoney(totals.discount),
       "صافي المبلغ": formatMoney(totals.net),
     });
@@ -164,41 +167,45 @@ const DailyPurchaseReturns: React.FC<DailyPurchaseReturnsProps> = ({
   };
 
   const handlePdfExport = () => {
-    const head = [
-      [
-        "صافي المبلغ",
-        "الخصم",
-        "الضريبة",
-        "المبلغ",
-        "الفرع",
-        "نوع الفاتورة",
-        "المورد",
-        "رقم المرتجع",
-        "التاريخ",
-        "م",
-      ],
+    const headColumns = [
+      "صافي المبلغ",
+      "الخصم",
+      ...(isVatEnabled ? ["الضريبة"] : []),
+      "المبلغ",
+      "الفرع",
+      "نوع الفاتورة",
+      "المورد",
+      "رقم المرتجع",
+      "التاريخ",
+      "م",
     ];
-    const body = filteredReturns.map((p, i) => [
-      formatMoney(p.net),
-      formatMoney(p.discount),
-      formatMoney(p.tax),
-      formatMoney(p.subtotal),
-      p.branch?.name || "-",
-      getInvoiceTypeLabel(p.paymentMethod),
-      p.supplier?.name || "-",
-      p.code,
-      p.date ? new Date(p.date).toLocaleDateString() : "",
-      (i + 1).toString(),
-    ]);
+    const head = [headColumns];
+    
+    const body = filteredReturns.map((p, i) => {
+      const row = [
+        formatMoney(p.net),
+        formatMoney(p.discount),
+        ...(isVatEnabled ? [formatMoney(p.tax)] : []),
+        formatMoney(p.subtotal),
+        p.branch?.name || "-",
+        getInvoiceTypeLabel(p.paymentMethod),
+        p.supplier?.name || "-",
+        p.code,
+        p.date ? new Date(p.date).toLocaleDateString() : "",
+        (i + 1).toString(),
+      ];
+      return row;
+    });
+    
     const footer = [
       [
         formatMoney(totals.net),
         formatMoney(totals.discount),
-        formatMoney(totals.tax),
+        ...(isVatEnabled ? [formatMoney(totals.tax)] : []),
         formatMoney(totals.subtotal),
         "",
         "",
-      "",
+        "",
         "",
         "",
         "الإجمالي",
@@ -433,9 +440,11 @@ const DailyPurchaseReturns: React.FC<DailyPurchaseReturnsProps> = ({
               <th className="px-6 py-3 text-right text-sm font-semibold text-white uppercase tracking-wider">
                 المبلغ
               </th>
-              <th className="px-6 py-3 text-right text-sm font-semibold text-white uppercase tracking-wider">
-                الضريبة
-              </th>
+              {isVatEnabled && (
+                <th className="px-6 py-3 text-right text-sm font-semibold text-white uppercase tracking-wider">
+                  الضريبة
+                </th>
+              )}
               <th className="px-6 py-3 text-right text-sm font-semibold text-white uppercase tracking-wider">
                 الخصم
               </th>
@@ -470,9 +479,11 @@ const DailyPurchaseReturns: React.FC<DailyPurchaseReturnsProps> = ({
                 <td className="px-6 py-4 whitespace-nowrap">
                   {formatMoney(purchase.subtotal)}
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  {formatMoney(purchase.tax)}
-                </td>
+                {isVatEnabled && (
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    {formatMoney(purchase.tax)}
+                  </td>
+                )}
                 <td className="px-6 py-4 whitespace-nowrap">
                   {formatMoney(purchase.discount)}
                 </td>
@@ -490,7 +501,9 @@ const DailyPurchaseReturns: React.FC<DailyPurchaseReturnsProps> = ({
               <td className="px-6 py-3 text-right">
                 {formatMoney(totals.subtotal)}
               </td>
-              <td className="px-6 py-3 text-right">{formatMoney(totals.tax)}</td>
+              {isVatEnabled && (
+                <td className="px-6 py-3 text-right">{formatMoney(totals.tax)}</td>
+              )}
               <td className="px-6 py-3 text-right">
                 {formatMoney(totals.discount)}
               </td>

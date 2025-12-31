@@ -42,6 +42,9 @@ const VATStatementReport: React.FC<VATStatementReportProps> = ({ title, companyI
     const navigate = useNavigate();
     const { hasPermission } = useUserPermissions();
     
+    // Check if VAT is enabled
+    const isVatEnabled = companyInfo.isVatEnabled || false;
+    
     // Check if user has SEARCH permission to view all branches
     const canSearchAllBranches = useMemo(
         () =>
@@ -563,6 +566,13 @@ const VATStatementReport: React.FC<VATStatementReportProps> = ({ title, companyI
         <div className="bg-white p-6 rounded-lg shadow">
             <div id="printable-area">
                 <ReportHeader title={title} />
+                {!isVatEnabled && (
+                    <div className="bg-yellow-50 border-2 border-yellow-400 rounded-lg p-4 mb-4">
+                        <p className="text-yellow-800 font-semibold text-center">
+                            ⚠️ تنبيه: الضريبة معطلة في إعدادات الشركة. لن يتم عرض أي بيانات ضريبية.
+                        </p>
+                    </div>
+                )}
                 <div className="px-6 py-4 text-base print:block hidden border-t-2 border-b-2 mt-2 mb-4 bg-gray-50">
                     <div className="flex justify-between items-start">
                         <div className="space-y-2 text-right">

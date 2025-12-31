@@ -87,13 +87,21 @@ export class PurchaseInvoiceService {
     // Generate next code
     const code = await this.generateNextCode(companyId);
 
+    // Get company VAT settings
+    const company = await this.prisma.company.findUnique({
+      where: { id: companyId },
+      select: { vatRate: true, isVatEnabled: true },
+    });
+    const vatRate = company?.vatRate || 0;
+    const isVatEnabled = company?.isVatEnabled || false;
+
     // Calculate totals
     const subtotal = data.items.reduce(
       (sum, item) => sum + item.qty * item.price,
       0,
     );
     const discount = data.discount || 0;
-    const tax = subtotal * 0.15; // 15% VAT
+    const tax = isVatEnabled && vatRate > 0 ? subtotal * (vatRate / 100) : 0;
     const net = subtotal - discount + tax;
 
     // Get store from branch
@@ -409,6 +417,14 @@ export class PurchaseInvoiceService {
     // Get old items to restore stock
     const oldItems = existingInvoice.items as any[];
 
+    // Get company VAT settings
+    const company = await this.prisma.company.findUnique({
+      where: { id: companyId },
+      select: { vatRate: true, isVatEnabled: true },
+    });
+    const vatRate = company?.vatRate || 0;
+    const isVatEnabled = company?.isVatEnabled || false;
+
     // Calculate new totals
     const items = data.items || (existingInvoice.items as any[]) || [];
     const subtotal = items.reduce(
@@ -419,7 +435,7 @@ export class PurchaseInvoiceService {
       data.discount !== undefined
         ? data.discount
         : existingInvoice.discount || 0;
-    const tax = subtotal * 0.15; // 15% VAT
+    const tax = isVatEnabled && vatRate > 0 ? subtotal * (vatRate / 100) : 0;
     const net = subtotal - discount + tax;
 
     const updated = await this.prisma.$transaction(async (tx) => {

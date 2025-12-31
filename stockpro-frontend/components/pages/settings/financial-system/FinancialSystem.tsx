@@ -256,8 +256,7 @@ const FinancialSystem: React.FC<FinancialSystemProps> = ({ title }) => {
       const stored = localStorage.getItem("creditLimitControl");
       if (
         stored === StrictnessLevel.BLOCK ||
-        stored === StrictnessLevel.APPROVAL ||
-        stored === StrictnessLevel.WARNING
+        stored === StrictnessLevel.APPROVAL
       ) {
         return stored as StrictnessLevel;
       }
@@ -302,7 +301,7 @@ const FinancialSystem: React.FC<FinancialSystemProps> = ({ title }) => {
       closingDate: new Date().toISOString().split('T')[0],
       preventDuplicateSupplierRef: true,
       creditLimitControl: storedCreditLimitControl,
-      minMarginControl: StrictnessLevel.WARNING,
+      minMarginControl: StrictnessLevel.BLOCK,
       allowSellingBelowCost: allowSellingLessThanCost,
       maxCashTransactionLimit: 5000,
       requireCostCenterForExpenses: true,
@@ -375,8 +374,7 @@ const FinancialSystem: React.FC<FinancialSystemProps> = ({ title }) => {
     if (config.allowSellingBelowCost) score -= 20;
     
     // Medium risk: Credit limit control (weak enforcement)
-    if (config.creditLimitControl === StrictnessLevel.WARNING) score -= 15;
-    else if (config.creditLimitControl === StrictnessLevel.APPROVAL) score -= 5;
+    if (config.creditLimitControl === StrictnessLevel.APPROVAL) score -= 5;
     
     // Medium risk: Discount controls (no manager approval required)
     if (!config.requireManagerApprovalForDiscount) score -= 10;
@@ -550,8 +548,7 @@ const FinancialSystem: React.FC<FinancialSystemProps> = ({ title }) => {
                   icon={Ban}
                   options={[
                     { value: StrictnessLevel.BLOCK, label: 'منع إصدار الفاتورة' },
-                    { value: StrictnessLevel.APPROVAL, label: 'طلب موافقة إدارية' },
-                    { value: StrictnessLevel.WARNING, label: 'تحذير فقط' }
+                    { value: StrictnessLevel.APPROVAL, label: 'طلب موافقة إدارية' }
                   ]}
               />
               
