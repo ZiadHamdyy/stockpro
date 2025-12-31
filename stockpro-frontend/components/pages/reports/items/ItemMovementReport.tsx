@@ -633,6 +633,14 @@ const ItemMovementReport: React.FC<ItemMovementReportProps> = ({
                 td { font-size: 13px; }
                 .print-only.hidden { display: block !important; }
                 .print-only { display: block !important; }
+                @page {
+                    @bottom-center {
+                        content: counter(page) " / " counter(pages);
+                        font-family: "Cairo", sans-serif;
+                        font-size: 12px;
+                        color: #1F2937;
+                    }
+                }
                 @media print {
                     body { -webkit-print-color-adjust: exact !important; color-adjust: exact !important; font-size: 14px !important; }
                     .no-print, .no-print * { display: none !important; visibility: hidden !important; }
@@ -640,12 +648,14 @@ const ItemMovementReport: React.FC<ItemMovementReportProps> = ({
                     .print-only { display: block !important; }
                     .print\\:inline { display: inline !important; }
                     thead { display: table-header-group; }
-                    tfoot { display: table-footer-group; }
+                    tfoot { display: table-row-group !important; }
                     table { width: 100%; border-collapse: collapse; font-size: 13px !important; }
-                    th { font-size: 13px !important; font-weight: bold !important; }
-                    td { font-size: 13px !important; }
-                    tbody tr:nth-child(odd) { background: #D1D5DB !important; }
-                    tbody tr:nth-child(even) { background: #FFFFFF !important; }
+                    th { font-size: 13px !important; font-weight: bold !important; padding: 6px 8px !important; }
+                    td { font-size: 13px !important; padding: 6px 8px !important; }
+                    tbody tr:first-child { background: #FFFFFF !important; }
+                    tbody tr:nth-child(2n+2) { background: #D1D5DB !important; }
+                    tbody tr:nth-child(2n+3) { background: #FFFFFF !important; }
+                    tfoot tr { page-break-inside: avoid !important; break-inside: avoid !important; }
                     .bg-brand-blue { background-color: #1E40AF !important; }
                     .text-white { color: white !important; }
                     .bg-gray-50 { background-color: #F9FAFB !important; }
