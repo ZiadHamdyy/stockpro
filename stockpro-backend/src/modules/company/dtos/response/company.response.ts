@@ -14,4 +14,5 @@ export class CompanyResponse {
   code: string;
   createdAt: Date;
   updatedAt: Date;
+  financialSettings?: any;
 }

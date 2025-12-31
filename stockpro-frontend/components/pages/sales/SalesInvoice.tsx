@@ -47,6 +47,8 @@ import { useGetPurchaseInvoicesQuery } from "../../store/slices/purchaseInvoice/
 import { useGetPurchaseReturnsQuery } from "../../store/slices/purchaseReturn/purchaseReturnApiSlice";
 import { useGetSalesReturnsQuery } from "../../store/slices/salesReturn/salesReturnApiSlice";
 import { useGetFiscalYearsQuery } from "../../store/slices/fiscalYear/fiscalYearApiSlice";
+import { useGetFinancialSettingsQuery } from "../../store/slices/financialSettings/financialSettingsApi";
+import { TaxPolicy } from "../settings/financial-system/types";
 import { showApiErrorToast } from "../../../utils/errorToast";
 import { formatMoney } from "../../../utils/formatting";
 import { guardPrint } from "../../utils/printGuard";
@@ -221,32 +223,13 @@ const SalesInvoice: React.FC<SalesInvoiceProps> = ({
 
   type CreditLimitControl = 'BLOCK' | 'APPROVAL';
 
-  // Read credit limit control policy from localStorage (configured in FinancialSystem)
-  const creditLimitControl: CreditLimitControl = (() => {
-    const stored = localStorage.getItem('creditLimitControl');
-    if (stored === 'APPROVAL' || stored === 'BLOCK') {
-      return stored as CreditLimitControl;
-    }
-    return 'BLOCK';
-  })();
-
-  // Read allowSellingLessThanStock setting from localStorage
-  const allowSellingLessThanStock = (() => {
-    const stored = localStorage.getItem('allowSellingLessThanStock');
-    return stored ? JSON.parse(stored) : false;
-  })();
-
-  // Read salePriceIncludesTax setting from localStorage
-  const salePriceIncludesTaxSetting = (() => {
-    const stored = localStorage.getItem('salePriceIncludesTax');
-    return stored ? JSON.parse(stored) : false;
-  })();
-
-  // Read allowSellingLessThanCost setting from localStorage
-  const allowSellingLessThanCost = (() => {
-    const stored = localStorage.getItem('allowSellingLessThanCost');
-    return stored ? JSON.parse(stored) : false;
-  })();
+  // Read financial settings from Redux
+  const { data: financialSettings } = useGetFinancialSettingsQuery();
+  
+  const creditLimitControl: CreditLimitControl = financialSettings?.creditLimitControl || 'BLOCK';
+  const allowSellingLessThanStock = financialSettings?.allowNegativeStock || false;
+  const salePriceIncludesTaxSetting = financialSettings?.taxPolicy === TaxPolicy.INCLUSIVE || false;
+  const allowSellingLessThanCost = financialSettings?.allowSellingBelowCost || false;
 
   // Transform data for component
   const allItems: SelectableItem[] = (items as any[]).map((item) => ({

@@ -32,7 +32,8 @@ import { useGetStoreIssueVouchersQuery } from "../../store/slices/storeIssueVouc
 import { useGetStoreTransferVouchersQuery } from "../../store/slices/storeTransferVoucher/storeTransferVoucherApi";
 import { useGetSuppliersQuery } from "../../store/slices/supplier/supplierApiSlice";
 import { useAuth } from "../../hook/Auth";
-import { getInventoryValuationMethod } from "../../../utils/financialSystem";
+import { useGetFinancialSettingsQuery } from "../../store/slices/financialSettings/financialSettingsApi";
+import { ValuationMethod } from "../../pages/settings/financial-system/types";
 
 const flipSign = (value: number) => (value === 0 ? 0 : value * -1);
 
@@ -54,37 +55,26 @@ const BalanceSheet: React.FC = () => {
   const [startDate, setStartDate] = useState(`${currentYear}-01-01`);
   const [endDate, setEndDate] = useState(`${currentYear}-12-31`);
   
-  // Track inventory valuation method from localStorage to trigger recalculation when it changes
-  const [inventoryValuationMethod, setInventoryValuationMethod] = useState(() => getInventoryValuationMethod());
+  // Get inventory valuation method from Redux
+  const { data: financialSettings } = useGetFinancialSettingsQuery();
   
-  // Update valuation method when localStorage changes or component mounts
-  useEffect(() => {
-    const checkValuationMethod = () => {
-      const currentMethod = getInventoryValuationMethod();
-      setInventoryValuationMethod(currentMethod);
-    };
+  // Map inventory valuation method to valuation method string
+  const inventoryValuationMethod = useMemo(() => {
+    if (!financialSettings?.inventoryValuationMethod) {
+      return "averageCost"; // Default
+    }
     
-    // Check on mount and when endDate changes (user might have changed setting in another tab)
-    checkValuationMethod();
+    if (financialSettings.inventoryValuationMethod === ValuationMethod.WEIGHTED_AVERAGE) {
+      return "averageCost";
+    }
     
-    // Listen for storage events (when localStorage changes in another tab/window)
-    window.addEventListener('storage', checkValuationMethod);
+    if (financialSettings.inventoryValuationMethod === ValuationMethod.FIFO || 
+        financialSettings.inventoryValuationMethod === ValuationMethod.LAST_PURCHASE_PRICE) {
+      return "purchasePrice";
+    }
     
-    // Listen for custom event when inventoryValuationMethod changes in FinancialSystem
-    const handleInventoryValuationMethodChange = () => {
-      checkValuationMethod();
-    };
-    window.addEventListener('inventoryValuationMethodChanged', handleInventoryValuationMethodChange);
-    
-    // Also check periodically in case localStorage was changed in same tab
-    const interval = setInterval(checkValuationMethod, 1000);
-    
-    return () => {
-      window.removeEventListener('storage', checkValuationMethod);
-      window.removeEventListener('inventoryValuationMethodChanged', handleInventoryValuationMethodChange);
-      clearInterval(interval);
-    };
-  }, [endDate]);
+    return "averageCost"; // Default fallback
+  }, [financialSettings?.inventoryValuationMethod]);
 
   // COMPANY-WIDE DATA FETCHING: All queries use undefined to fetch ALL company data
   // Backend APIs filter by companyId only, ensuring all branches are included

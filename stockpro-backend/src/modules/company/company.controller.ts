@@ -57,5 +57,20 @@ export class CompanyController {
   ): Promise<CompanyResponse> {
     return this.companyService.upsertCompany(companyId, data);
   }
+
+  @Get('financial-settings')
+  @Auth({ permissions: ['financial_system:read'] })
+  async getFinancialSettings(@currentCompany('id') companyId: string): Promise<any> {
+    return this.companyService.getFinancialSettings(companyId);
+  }
+
+  @Put('financial-settings')
+  @Auth({ permissions: ['financial_system:update'] })
+  async updateFinancialSettings(
+    @Body() financialSettings: any,
+    @currentCompany('id') companyId: string,
+  ): Promise<any> {
+    return this.companyService.updateFinancialSettings(companyId, financialSettings);
+  }
   
 }

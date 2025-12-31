@@ -25,6 +25,7 @@ import {
 } from '../../../icons';
 import { PricingConfig, ValuationMethod, TaxPolicy, RoundingMethod, StrictnessLevel } from './types';
 import { Switch } from './Switch';
+import { useGetFinancialSettingsQuery, useUpdateFinancialSettingsMutation } from '../../../store/slices/financialSettings/financialSettingsApi';
 
 // --- UI Components ---
 
@@ -233,135 +234,46 @@ interface FinancialSystemProps {
 }
 
 const FinancialSystem: React.FC<FinancialSystemProps> = ({ title }) => {
+  // --- Redux Hooks ---
+  const { data: fetchedConfig, isLoading, error } = useGetFinancialSettingsQuery();
+  const [updateFinancialSettings, { isLoading: isSaving }] = useUpdateFinancialSettingsMutation();
+
   // --- State ---
-  // Initialize from localStorage for backward compatibility
-  const [config, setConfig] = useState<PricingConfig>(() => {
-    // Read from localStorage
-    const allowSellingLessThanStock = (() => {
-      const stored = localStorage.getItem("allowSellingLessThanStock");
-      return stored ? JSON.parse(stored) : false;
-    })();
-    
-    const salePriceIncludesTax = (() => {
-      const stored = localStorage.getItem("salePriceIncludesTax");
-      return stored ? JSON.parse(stored) : false;
-    })();
-    
-    const allowSellingLessThanCost = (() => {
-      const stored = localStorage.getItem("allowSellingLessThanCost");
-      return stored ? JSON.parse(stored) : false;
-    })();
+  // Initialize from Redux query result, with defaults if not loaded yet
+  const defaultConfig: PricingConfig = {
+    taxPolicy: TaxPolicy.EXCLUSIVE,
+    defaultTaxRate: 15,
+    baseCurrency: 'SAR',
+    enableMultiCurrency: false,
+    roundingMethod: RoundingMethod.NEAREST_0_05,
+    inventoryValuationMethod: ValuationMethod.WEIGHTED_AVERAGE,
+    cogsMethod: ValuationMethod.WEIGHTED_AVERAGE,
+    autoUpdateSalePriceOnPurchase: false,
+    defaultMarginPercentage: 25,
+    lockPostedPeriods: true,
+    closingDate: new Date().toISOString().split('T')[0],
+    preventDuplicateSupplierRef: true,
+    creditLimitControl: StrictnessLevel.BLOCK,
+    minMarginControl: StrictnessLevel.BLOCK,
+    allowSellingBelowCost: false,
+    maxCashTransactionLimit: 5000,
+    requireCostCenterForExpenses: true,
+    allowNegativeStock: false,
+    reserveStockOnOrder: true,
+    maxDiscountPercentage: 15,
+    requireManagerApprovalForDiscount: true,
+    activePriceLists: { 'أساسي': true, 'جملة': false, 'كبار العملاء (VIP)': true },
+  };
 
-    const storedCreditLimitControl = (() => {
-      const stored = localStorage.getItem("creditLimitControl");
-      if (
-        stored === StrictnessLevel.BLOCK ||
-        stored === StrictnessLevel.APPROVAL
-      ) {
-        return stored as StrictnessLevel;
-      }
-      return StrictnessLevel.BLOCK;
-    })();
-
-    const storedCogsMethod = (() => {
-      const stored = localStorage.getItem("cogsMethod");
-      if (
-        stored === ValuationMethod.WEIGHTED_AVERAGE ||
-        stored === ValuationMethod.LAST_PURCHASE_PRICE ||
-        stored === ValuationMethod.FIFO
-      ) {
-        return stored as ValuationMethod;
-      }
-      return ValuationMethod.WEIGHTED_AVERAGE;
-    })();
-
-    const storedInventoryValuationMethod = (() => {
-      const stored = localStorage.getItem("inventoryValuationMethod");
-      if (
-        stored === ValuationMethod.WEIGHTED_AVERAGE ||
-        stored === ValuationMethod.LAST_PURCHASE_PRICE ||
-        stored === ValuationMethod.FIFO
-      ) {
-        return stored as ValuationMethod;
-      }
-      return ValuationMethod.WEIGHTED_AVERAGE;
-    })();
-
-    return {
-      taxPolicy: salePriceIncludesTax ? TaxPolicy.INCLUSIVE : TaxPolicy.EXCLUSIVE,
-      defaultTaxRate: 15,
-      baseCurrency: 'SAR',
-      enableMultiCurrency: false,
-      roundingMethod: RoundingMethod.NEAREST_0_05,
-      inventoryValuationMethod: storedInventoryValuationMethod,
-      cogsMethod: storedCogsMethod,
-      autoUpdateSalePriceOnPurchase: false,
-      defaultMarginPercentage: 25,
-      lockPostedPeriods: true,
-      closingDate: new Date().toISOString().split('T')[0],
-      preventDuplicateSupplierRef: true,
-      creditLimitControl: storedCreditLimitControl,
-      minMarginControl: StrictnessLevel.BLOCK,
-      allowSellingBelowCost: allowSellingLessThanCost,
-      maxCashTransactionLimit: 5000,
-      requireCostCenterForExpenses: true,
-      allowNegativeStock: allowSellingLessThanStock,
-      reserveStockOnOrder: true,
-      maxDiscountPercentage: 15,
-      requireManagerApprovalForDiscount: true,
-      activePriceLists: { 'أساسي': true, 'جملة': false, 'كبار العملاء (VIP)': true },
-    };
-  });
-
+  const [config, setConfig] = useState<PricingConfig>(defaultConfig);
   const [showToast, setShowToast] = useState(false);
 
-  // --- Sync to localStorage for backward compatibility ---
+  // Update local state when data is fetched
   useEffect(() => {
-    localStorage.setItem(
-      "allowSellingLessThanStock",
-      JSON.stringify(config.allowNegativeStock)
-    );
-  }, [config.allowNegativeStock]);
-
-  useEffect(() => {
-    localStorage.setItem(
-      "allowSellingLessThanCost",
-      JSON.stringify(config.allowSellingBelowCost)
-    );
-  }, [config.allowSellingBelowCost]);
-
-  useEffect(() => {
-    localStorage.setItem(
-      "creditLimitControl",
-      config.creditLimitControl
-    );
-  }, [config.creditLimitControl]);
-
-  useEffect(() => {
-    const salePriceIncludesTax = config.taxPolicy === TaxPolicy.INCLUSIVE;
-    localStorage.setItem(
-      "salePriceIncludesTax",
-      JSON.stringify(salePriceIncludesTax)
-    );
-  }, [config.taxPolicy]);
-
-  useEffect(() => {
-    localStorage.setItem(
-      "cogsMethod",
-      config.cogsMethod
-    );
-    // Dispatch custom event to notify other components
-    window.dispatchEvent(new CustomEvent('cogsMethodChanged', { detail: config.cogsMethod }));
-  }, [config.cogsMethod]);
-
-  useEffect(() => {
-    localStorage.setItem(
-      "inventoryValuationMethod",
-      config.inventoryValuationMethod
-    );
-    // Dispatch custom event to notify other components
-    window.dispatchEvent(new CustomEvent('inventoryValuationMethodChanged', { detail: config.inventoryValuationMethod }));
-  }, [config.inventoryValuationMethod]);
+    if (fetchedConfig) {
+      setConfig(fetchedConfig);
+    }
+  }, [fetchedConfig]);
 
   // --- Calculations for Policy Strength ---
   const policyStrength = useMemo(() => {
@@ -404,12 +316,40 @@ const FinancialSystem: React.FC<FinancialSystemProps> = ({ title }) => {
     }));
   };
 
-  const handleSave = () => {
-    setShowToast(true);
-    setTimeout(() => setShowToast(false), 3000);
+  const handleSave = async () => {
+    try {
+      await updateFinancialSettings(config).unwrap();
+      setShowToast(true);
+      setTimeout(() => setShowToast(false), 3000);
+    } catch (error) {
+      console.error('Failed to save financial settings:', error);
+      // You might want to show an error toast here
+    }
   };
 
   // --- Render ---
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-[#eceff4] pb-24 font-sans text-slate-900 flex items-center justify-center">
+        <div className="text-center">
+          <RefreshCw className="w-8 h-8 animate-spin mx-auto mb-4 text-blue-600" />
+          <p className="text-slate-600 font-medium">جاري تحميل الإعدادات...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-[#eceff4] pb-24 font-sans text-slate-900 flex items-center justify-center">
+        <div className="text-center">
+          <AlertOctagon className="w-8 h-8 mx-auto mb-4 text-red-600" />
+          <p className="text-slate-600 font-medium">حدث خطأ أثناء تحميل الإعدادات</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-[#eceff4] pb-24 font-sans text-slate-900">
       
@@ -431,9 +371,22 @@ const FinancialSystem: React.FC<FinancialSystemProps> = ({ title }) => {
                </div>
                
                <div className="flex items-center gap-3">
-                  <button onClick={handleSave} className="px-6 py-2.5 text-xs font-bold text-blue-950 bg-white hover:bg-gray-50 rounded-lg shadow-lg hover:shadow-xl transition-all flex items-center gap-2 transform hover:-translate-y-0.5 active:scale-95">
-                    <Save className="w-4 h-4" />
-                    حفظ وتطبيق
+                  <button 
+                    onClick={handleSave} 
+                    disabled={isSaving}
+                    className="px-6 py-2.5 text-xs font-bold text-blue-950 bg-white hover:bg-gray-50 rounded-lg shadow-lg hover:shadow-xl transition-all flex items-center gap-2 transform hover:-translate-y-0.5 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {isSaving ? (
+                      <>
+                        <RefreshCw className="w-4 h-4 animate-spin" />
+                        جاري الحفظ...
+                      </>
+                    ) : (
+                      <>
+                        <Save className="w-4 h-4" />
+                        حفظ وتطبيق
+                      </>
+                    )}
                   </button>
                </div>
             </div>

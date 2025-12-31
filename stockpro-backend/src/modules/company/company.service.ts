@@ -519,6 +519,75 @@ export class CompanyService {
     return this.mapToResponse(company);
   }
 
+  async getFinancialSettings(companyId: string): Promise<any> {
+    const company = await this.prisma.company.findUnique({
+      where: { id: companyId },
+      select: { financialSettings: true },
+    });
+
+    if (!company) {
+      throw new NotFoundException('Company not found');
+    }
+
+    // Return default settings if none exist
+    if (!company.financialSettings) {
+      return this.getDefaultFinancialSettings();
+    }
+
+    return company.financialSettings;
+  }
+
+  async updateFinancialSettings(companyId: string, financialSettings: any): Promise<any> {
+    const company = await this.prisma.company.findUnique({
+      where: { id: companyId },
+    });
+
+    if (!company) {
+      throw new NotFoundException('Company not found');
+    }
+
+    // Merge with existing settings to preserve any fields not being updated
+    const existingSettings = company.financialSettings || this.getDefaultFinancialSettings();
+    const mergedSettings = {
+      ...existingSettings,
+      ...financialSettings,
+    };
+
+    await this.prisma.company.update({
+      where: { id: companyId },
+      data: { financialSettings: mergedSettings },
+    });
+
+    return mergedSettings;
+  }
+
+  private getDefaultFinancialSettings(): any {
+    return {
+      taxPolicy: 'EXCLUSIVE',
+      defaultTaxRate: 15,
+      baseCurrency: 'SAR',
+      enableMultiCurrency: false,
+      roundingMethod: 'NEAREST_0_05',
+      inventoryValuationMethod: 'WEIGHTED_AVERAGE',
+      cogsMethod: 'WEIGHTED_AVERAGE',
+      autoUpdateSalePriceOnPurchase: false,
+      defaultMarginPercentage: 25,
+      lockPostedPeriods: true,
+      closingDate: new Date().toISOString().split('T')[0],
+      preventDuplicateSupplierRef: true,
+      creditLimitControl: 'BLOCK',
+      minMarginControl: 'BLOCK',
+      allowSellingBelowCost: false,
+      maxCashTransactionLimit: 5000,
+      requireCostCenterForExpenses: true,
+      allowNegativeStock: false,
+      reserveStockOnOrder: true,
+      maxDiscountPercentage: 15,
+      requireManagerApprovalForDiscount: true,
+      activePriceLists: { 'أساسي': true, 'جملة': false, 'كبار العملاء (VIP)': true },
+    };
+  }
+
   async createCompanyWithSeed(
     code?: string,
     planType: 'BASIC' | 'GROWTH' | 'BUSINESS' = 'BASIC',
@@ -1044,6 +1113,7 @@ export class CompanyService {
       code: company.code,
       createdAt: company.createdAt,
       updatedAt: company.updatedAt,
+      financialSettings: company.financialSettings || null,
     };
   }
 }

@@ -26,7 +26,8 @@ import { useGetStoreTransferVouchersQuery } from "../../store/slices/storeTransf
 import { useGetStoresQuery } from "../../store/slices/store/storeApi";
 import { useGetReceiptVouchersQuery } from "../../store/slices/receiptVoucherApiSlice";
 import { useAuth } from "../../hook/Auth";
-import { getCogsValuationMethod } from "../../../utils/financialSystem";
+import { useGetFinancialSettingsQuery } from "../../store/slices/financialSettings/financialSettingsApi";
+import { ValuationMethod } from "../../pages/settings/financial-system/types";
 
 type StatementRow = {
   statement: string;
@@ -54,37 +55,25 @@ const IncomeStatement: React.FC = () => {
   const [startDate, setStartDate] = useState(`${currentYear}-01-01`);
   const [endDate, setEndDate] = useState(`${currentYear}-12-31`);
   
-  // Track COGS valuation method from localStorage to trigger recalculation when it changes
-  const [cogsValuationMethod, setCogsValuationMethod] = useState(() => getCogsValuationMethod());
+  // Get COGS valuation method from Redux
+  const { data: financialSettings } = useGetFinancialSettingsQuery();
   
-  // Update valuation method when localStorage changes or component mounts
-  useEffect(() => {
-    const checkValuationMethod = () => {
-      const currentMethod = getCogsValuationMethod();
-      setCogsValuationMethod(currentMethod);
-    };
+  // Map COGS method to valuation method string
+  const cogsValuationMethod = useMemo(() => {
+    if (!financialSettings?.cogsMethod) {
+      return "averageCost"; // Default
+    }
     
-    // Check on mount and when endDate changes (user might have changed setting in another tab)
-    checkValuationMethod();
+    if (financialSettings.cogsMethod === ValuationMethod.WEIGHTED_AVERAGE) {
+      return "averageCost";
+    }
     
-    // Listen for storage events (when localStorage changes in another tab/window)
-    window.addEventListener('storage', checkValuationMethod);
+    if (financialSettings.cogsMethod === ValuationMethod.LAST_PURCHASE_PRICE) {
+      return "purchasePrice";
+    }
     
-    // Listen for custom event when cogsMethod changes in FinancialSystem
-    const handleCogsMethodChange = () => {
-      checkValuationMethod();
-    };
-    window.addEventListener('cogsMethodChanged', handleCogsMethodChange);
-    
-    // Also check periodically in case localStorage was changed in same tab
-    const interval = setInterval(checkValuationMethod, 1000);
-    
-    return () => {
-      window.removeEventListener('storage', checkValuationMethod);
-      window.removeEventListener('cogsMethodChanged', handleCogsMethodChange);
-      clearInterval(interval);
-    };
-  }, [endDate]);
+    return "averageCost"; // Default fallback
+  }, [financialSettings?.cogsMethod]);
 
   const {
     data: financialData,

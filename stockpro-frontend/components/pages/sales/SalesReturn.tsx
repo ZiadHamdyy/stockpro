@@ -36,6 +36,8 @@ import { useGetBanksQuery } from "../../store/slices/bank/bankApiSlice";
 import { useGetSafesQuery } from "../../store/slices/safe/safeApiSlice";
 import { useGetCompanyQuery } from "../../store/slices/companyApiSlice";
 import { useGetSalesInvoicesQuery } from "../../store/slices/salesInvoice/salesInvoiceApiSlice";
+import { useGetFinancialSettingsQuery } from "../../store/slices/financialSettings/financialSettingsApi";
+import { TaxPolicy } from "../settings/financial-system/types";
 import { guardPrint } from "../../utils/printGuard";
 import {
   Actions,
@@ -147,11 +149,9 @@ const SalesReturn: React.FC<SalesReturnProps> = ({
     !canSearchAllBranches && userStore ? { storeId: userStore.id } : undefined;
   const { data: items = [] } = useGetItemsQuery(itemsQueryParams);
 
-  // Company-level sale price includes tax setting
-  const salePriceIncludesTaxSetting = (() => {
-    const stored = localStorage.getItem('salePriceIncludesTax');
-    return stored ? JSON.parse(stored) : false;
-  })();
+  // Company-level sale price includes tax setting from Redux
+  const { data: financialSettings } = useGetFinancialSettingsQuery();
+  const salePriceIncludesTaxSetting = financialSettings?.taxPolicy === TaxPolicy.INCLUSIVE || false;
 
   // Transform data for component
   const allItems: SelectableItem[] = (items as any[]).map((item) => ({

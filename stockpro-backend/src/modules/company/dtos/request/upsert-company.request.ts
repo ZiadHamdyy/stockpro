@@ -1,4 +1,4 @@
-import { IsString, IsNumber, IsBoolean, IsOptional, Matches } from 'class-validator';
+import { IsString, IsNumber, IsBoolean, IsOptional, Matches, IsObject } from 'class-validator';
 
 export class UpsertCompanyRequest {
   @IsString()
@@ -39,4 +39,8 @@ export class UpsertCompanyRequest {
   @IsString()
   @Matches(/^\d{6,8}$/, { message: 'Company code must be 6-8 digits' })
   code?: string;
+
+  @IsOptional()
+  @IsObject()
+  financialSettings?: any;
 }

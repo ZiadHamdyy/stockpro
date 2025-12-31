@@ -35,6 +35,8 @@ import { useGetSafesQuery } from '../../../store/slices/safe/safeApiSlice';
 import { useGetBanksQuery } from '../../../store/slices/bank/bankApiSlice';
 import { useGetCompanyQuery } from '../../../store/slices/companyApiSlice';
 import { useGetStoresQuery } from '../../../store/slices/store/storeApi';
+import { useGetFinancialSettingsQuery } from '../../../store/slices/financialSettings/financialSettingsApi';
+import { TaxPolicy } from '../../settings/financial-system/types';
 import {
   useCreateSalesInvoiceMutation,
   type CreateSalesInvoiceRequest,
@@ -136,11 +138,9 @@ const POS: React.FC<POSProps> = () => {
     [canSearchAllBranches, safesData, userBranchId],
   );
 
-  // Read salePriceIncludesTax setting from localStorage
-  const salePriceIncludesTaxSetting = (() => {
-    const stored = localStorage.getItem('salePriceIncludesTax');
-    return stored ? JSON.parse(stored) : false;
-  })();
+  // Read salePriceIncludesTax setting from Redux
+  const { data: financialSettings } = useGetFinancialSettingsQuery();
+  const salePriceIncludesTaxSetting = financialSettings?.taxPolicy === TaxPolicy.INCLUSIVE || false;
 
   const items: Item[] = useMemo(
     () =>
