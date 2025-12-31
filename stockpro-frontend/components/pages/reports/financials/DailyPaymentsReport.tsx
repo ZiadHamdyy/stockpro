@@ -8,7 +8,7 @@ import {
   Resources,
   buildPermission,
 } from "../../../../enums/permissions.enum";
-import { formatNumber, getNegativeNumberClass, getNegativeNumberClassForTotal } from "../../../../utils/formatting";
+import { formatNumber, getNegativeNumberClass, getNegativeNumberClassForTotal, exportToExcel } from "../../../../utils/formatting";
 import { useGetPaymentVouchersQuery } from "../../../store/slices/paymentVoucherApiSlice";
 import { useGetBranchesQuery } from "../../../store/slices/branch/branchApi";
 import { useAuth } from "../../../hook/Auth";
@@ -205,6 +205,36 @@ const DailyPaymentsReport: React.FC<DailyPaymentsReportProps> = ({
     { amount: 0, priceBeforeTax: 0, taxPrice: 0 },
   );
 
+  const handleExcelExport = () => {
+    const dataToExport = [
+      ...filteredVouchers.map((voucher, index) => ({
+        م: index + 1,
+        التاريخ: voucher.date.substring(0, 10),
+        "رقم السند": voucher.code,
+        الفرع: voucher.branchName || "",
+        "صرفنا لـ": voucher.entity?.name || "",
+        النوع: voucher.paymentMethod === "safe" ? "نقداً" : "بنك",
+        المبلغ: formatNumber(voucher.amount),
+        "قبل الضريبة": formatNumber(voucher.priceBeforeTax || 0),
+        "قيمة الضريبة": formatNumber(voucher.taxPrice || 0),
+        البيان: voucher.description || "",
+      })),
+      {
+        م: "الإجمالي",
+        التاريخ: "",
+        "رقم السند": "",
+        الفرع: "",
+        "صرفنا لـ": "",
+        النوع: "",
+        المبلغ: formatNumber(totals.amount),
+        "قبل الضريبة": formatNumber(totals.priceBeforeTax),
+        "قيمة الضريبة": formatNumber(totals.taxPrice),
+        البيان: "",
+      },
+    ];
+    exportToExcel(dataToExport, "تقرير_المدفوعات_اليومية");
+  };
+
   const handlePrint = () => {
     const reportContent = document.getElementById("printable-area");
     if (!reportContent) return;
@@ -391,6 +421,7 @@ const DailyPaymentsReport: React.FC<DailyPaymentsReportProps> = ({
         >
           <div className="no-print flex items-center gap-2">
             <button
+              onClick={handleExcelExport}
               title="تصدير Excel"
               className="p-3 border-2 border-gray-200 rounded-md hover:bg-gray-100"
             >
