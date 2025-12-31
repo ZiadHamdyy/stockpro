@@ -86,7 +86,31 @@ const PayableAccountsList: React.FC<Props> = ({ title, onNavigate }) => {
   if (error) return <div className="bg-white p-6 rounded-lg shadow"><div className="flex justify-center items-center h-64"><div className="text-lg text-red-600">حدث خطأ أثناء تحميل البيانات</div></div></div>;
 
   return (
-    <div className="bg-white p-6 rounded-lg shadow">
+    <>
+      <style>{`
+        @page {
+          @bottom-center {
+            content: counter(page) " / " counter(pages);
+            font-family: "Cairo", sans-serif;
+            font-size: 12px;
+            color: #1F2937;
+          }
+        }
+        @media print {
+          .no-print { display: none !important; }
+          body { -webkit-print-color-adjust: exact !important; color-adjust: exact !important; }
+          thead { display: table-header-group; }
+          tfoot { display: table-row-group !important; }
+          table { width: 100%; border-collapse: collapse; }
+          th { padding: 6px 8px !important; }
+          td { padding: 6px 8px !important; }
+          tbody tr:first-child { background: #FFFFFF !important; }
+          tbody tr:nth-child(2n+2) { background: #D1D5DB !important; }
+          tbody tr:nth-child(2n+3) { background: #FFFFFF !important; }
+          tfoot tr { page-break-inside: avoid !important; break-inside: avoid !important; }
+        }
+      `}</style>
+      <div className="bg-white p-6 rounded-lg shadow">
       <div className="flex justify-between items-center mb-4 border-b pb-4 no-print">
         <h1 className="text-2xl font-bold text-brand-dark">{title}</h1>
         <PermissionWrapper requiredPermission={buildPermission(Resources.PAYABLE_ACCOUNTS, Actions.CREATE)} fallback={<button disabled className="px-6 py-2 bg-gray-400 text-white rounded-md cursor-not-allowed opacity-50 font-semibold transition-colors">إضافة حساب جديد</button>}>
@@ -158,7 +182,8 @@ const PayableAccountsList: React.FC<Props> = ({ title, onNavigate }) => {
           </tbody>
         </table>
       </div>
-    </div>
+      </div>
+    </>
   );
 };
 
