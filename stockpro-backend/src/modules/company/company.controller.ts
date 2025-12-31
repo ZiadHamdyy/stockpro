@@ -72,5 +72,20 @@ export class CompanyController {
   ): Promise<any> {
     return this.companyService.updateFinancialSettings(companyId, financialSettings);
   }
+
+  @Get('print-settings')
+  @Auth({ permissions: ['print_settings:read'] })
+  async getPrintSettings(@currentCompany('id') companyId: string): Promise<any> {
+    return this.companyService.getPrintSettings(companyId);
+  }
+
+  @Put('print-settings')
+  @Auth({ permissions: ['print_settings:update'] })
+  async updatePrintSettings(
+    @Body() printSettings: any,
+    @currentCompany('id') companyId: string,
+  ): Promise<any> {
+    return this.companyService.updatePrintSettings(companyId, printSettings);
+  }
   
 }

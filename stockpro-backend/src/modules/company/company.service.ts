@@ -1114,6 +1114,38 @@ export class CompanyService {
       createdAt: company.createdAt,
       updatedAt: company.updatedAt,
       financialSettings: company.financialSettings || null,
+      printSettings: company.printSettings || null,
     };
+  }
+
+  async getPrintSettings(companyId: string): Promise<any> {
+    const company = await this.prisma.company.findUnique({
+      where: { id: companyId },
+      select: { printSettings: true },
+    });
+
+    if (!company) {
+      throw new NotFoundException('Company not found');
+    }
+
+    // Return null if no settings exist (frontend will handle defaults)
+    return company.printSettings;
+  }
+
+  async updatePrintSettings(companyId: string, printSettings: any): Promise<any> {
+    const company = await this.prisma.company.findUnique({
+      where: { id: companyId },
+    });
+
+    if (!company) {
+      throw new NotFoundException('Company not found');
+    }
+
+    await this.prisma.company.update({
+      where: { id: companyId },
+      data: { printSettings },
+    });
+
+    return printSettings;
   }
 }

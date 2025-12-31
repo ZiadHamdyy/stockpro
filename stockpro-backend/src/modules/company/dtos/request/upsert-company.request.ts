@@ -43,4 +43,8 @@ export class UpsertCompanyRequest {
   @IsOptional()
   @IsObject()
   financialSettings?: any;
+
+  @IsOptional()
+  @IsObject()
+  printSettings?: any;
 }

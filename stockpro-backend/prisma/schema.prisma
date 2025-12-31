@@ -216,6 +216,7 @@ model Company {
   updatedAt         DateTime           @updatedAt
   logo              Bytes?
   financialSettings Json?
+  printSettings     Json?
   users             User[]
   roles             Role[]
   permissions       Permission[]

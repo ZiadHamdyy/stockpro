@@ -13,7 +13,7 @@ import {
   ChevronRightIcon,
 } from '../../../icons';
 import { formatNumber } from '../../../../utils/formatting';
-import { loadPrintSettings } from '../../../../utils/printSettingsStorage';
+import { useGetPrintSettingsQuery } from '../../../store/slices/printSettings/printSettingsApi';
 import { useGetCompanyQuery } from '../../../store/slices/companyApiSlice';
 
 // Simple icon components for missing icons
@@ -119,19 +119,18 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
     isVatEnabled: company?.isVatEnabled ?? false,
   }), [company]);
 
-  // Load print settings
-  const printSettings: PrintSettings = useMemo(() => {
-    const loaded = loadPrintSettings();
-    return loaded || {
-      template: "thermal",
-      showLogo: true,
-      showTaxNumber: true,
-      showAddress: true,
-      headerText: "فاتورة ضريبية مبسطة",
-      footerText: "شكراً لتعاملكم معنا",
-      termsText: "",
-    };
-  }, []);
+  // Load print settings from Redux
+  const { data: printSettingsData } = useGetPrintSettingsQuery();
+  const defaultPrintSettings: PrintSettings = {
+    template: "thermal",
+    showLogo: true,
+    showTaxNumber: true,
+    showAddress: true,
+    headerText: "فاتورة ضريبية مبسطة",
+    footerText: "شكراً لتعاملكم معنا",
+    termsText: "",
+  };
+  const printSettings: PrintSettings = printSettingsData || defaultPrintSettings;
 
   // Calculations
   const totalAmount = Math.abs(total);

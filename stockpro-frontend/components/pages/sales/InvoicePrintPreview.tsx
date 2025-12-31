@@ -8,7 +8,7 @@ import { guardPrint } from "../../utils/printGuard";
 import { useToast } from "../../common/ToastProvider";
 import { useSelector } from "react-redux";
 import type { RootState } from "../../store/store";
-import { savePrintSettings } from "../../../utils/printSettingsStorage";
+import { useUpdatePrintSettingsMutation } from "../../store/slices/printSettings/printSettingsApi";
 
 interface InvoicePrintPreviewProps {
   isOpen: boolean;
@@ -51,12 +51,14 @@ const InvoicePrintPreview: React.FC<InvoicePrintPreviewProps> = ({
   invoiceData,
   printSettings,
 }) => {
+  const [updatePrintSettings] = useUpdatePrintSettingsMutation();
+  const { showToast } = useToast();
+
   if (!isOpen) return null;
 
   const { companyInfo, vatRate, isVatEnabled, items, totals, paymentMethod, customer, details, zatcaUuid, zatcaSequentialNumber, zatcaStatus, zatcaIssueDateTime, zatcaHash } =
     invoiceData;
   const currentUser = useSelector((state: RootState) => state.auth.user);
-  const { showToast } = useToast();
 
   // Default settings if none provided - optimized for page fitting
   const getDefaultEpsonSettings = (): import("../../../types").EpsonSettings => ({
@@ -1557,15 +1559,20 @@ const InvoicePrintPreview: React.FC<InvoicePrintPreviewProps> = ({
   `;
   };
 
-  const handleSaveEpsonPreview = () => {
+  const handleSaveEpsonPreview = async () => {
     if (template === 'epson') {
-      // Save the current epson preview settings to localStorage
+      // Save the current epson preview settings to database
       const updatedSettings: PrintSettings = {
         ...settings,
         epsonSettings: epsonPreviewSettings,
       };
-      savePrintSettings(updatedSettings);
-      showToast('تم حفظ إعدادات إبسون.');
+      try {
+        await updatePrintSettings(updatedSettings).unwrap();
+        showToast('تم حفظ إعدادات إبسون.');
+      } catch (error) {
+        console.error('Failed to save print settings:', error);
+        showToast('حدث خطأ أثناء حفظ الإعدادات', 'error');
+      }
     } else {
       showToast('تم حفظ إعدادات إبسون. استخدم زر الحفظ في صفحة الإعدادات لحفظ التغييرات الدائمة.');
     }
@@ -1585,13 +1592,15 @@ const InvoicePrintPreview: React.FC<InvoicePrintPreviewProps> = ({
       }
       current[path[path.length - 1]] = value;
       
-      // Save to localStorage immediately when template is epson
+      // Save to database immediately when template is epson
       if (template === 'epson') {
         const updatedSettings: PrintSettings = {
           ...settings,
           epsonSettings: updated,
         };
-        savePrintSettings(updatedSettings);
+        updatePrintSettings(updatedSettings).catch(error => {
+          console.error('Failed to save print settings:', error);
+        });
       }
       
       return updated;

@@ -522,6 +522,7 @@ export const apiSlice = createApi({
     "SubscriptionRequest",
     "AnnualSalesReport",
     "FinancialSettings",
+    "PrintSettings",
   ],
   endpoints: () => ({}),
 });

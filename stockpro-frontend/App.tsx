@@ -162,7 +162,7 @@ import type {
   Notification,
   PrintSettings,
 } from "./types";
-import { loadPrintSettings } from "./utils/printSettingsStorage";
+import { useGetPrintSettingsQuery } from "./components/store/slices/printSettings/printSettingsApi";
 import { ToastProvider, useToast } from "./components/common/ToastProvider";
 import { ModalProvider } from "./components/common/ModalProvider";
 import { TokenExpirationProvider } from "./components/common/TokenExpirationContext";
@@ -595,19 +595,19 @@ const AppContent = () => {
     StoreTransferVoucher[]
   >(initialStoreTransferVouchers);
   const [notifications, setNotifications] = useState<Notification[]>([]);
-  const [printSettings, setPrintSettings] = useState<PrintSettings>(() => {
-    const defaultSettings: PrintSettings = {
-      template: "default",
-      showLogo: true,
-      showTaxNumber: true,
-      showAddress: true,
-      headerText: "",
-      footerText: "",
-      termsText: "",
-    };
-    const loaded = loadPrintSettings();
-    return loaded || defaultSettings;
-  });
+  
+  // Load print settings from Redux
+  const { data: printSettingsData } = useGetPrintSettingsQuery();
+  const defaultPrintSettings: PrintSettings = {
+    template: "default",
+    showLogo: true,
+    showTaxNumber: true,
+    showAddress: true,
+    headerText: "",
+    footerText: "",
+    termsText: "",
+  };
+  const printSettings = printSettingsData || defaultPrintSettings;
 
   const itemBalances = useMemo(() => {
     const balances = new Map<string, number>();
@@ -897,8 +897,6 @@ const AppContent = () => {
                 <ProtectedRoute requiredPermission={['print_settings-read', 'print_settings-update']}>
                   <PrintSettingsPage
                     title={currentPageTitle}
-                    settings={printSettings}
-                    onSave={setPrintSettings}
                   />
                 </ProtectedRoute>
               }

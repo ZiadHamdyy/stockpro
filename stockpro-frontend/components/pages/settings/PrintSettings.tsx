@@ -1,14 +1,12 @@
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import type { PrintSettings as PrintSettingsType, EpsonSettings } from '../../../types';
-import { PrintIcon, CheckCircleIcon } from '../../icons';
+import { PrintIcon, CheckCircleIcon, RefreshCwIcon } from '../../icons';
 import { useToast } from '../../common/ToastProvider';
-import { savePrintSettings } from '../../../utils/printSettingsStorage';
+import { useGetPrintSettingsQuery, useUpdatePrintSettingsMutation } from '../../store/slices/printSettings/printSettingsApi';
 
 interface PrintSettingsProps {
     title: string;
-    settings: PrintSettingsType;
-    onSave: (settings: PrintSettingsType) => void;
 }
 
 const TemplatePreview: React.FC<{ 
@@ -244,15 +242,37 @@ const getDefaultEpsonSettings = (): EpsonSettings => ({
     columnOrder: ['itemCode', 'itemName', 'itemQty', 'itemPrice', 'itemTaxable', 'itemDiscount', 'itemTaxRate', 'itemTax', 'itemTotal'],
 });
 
-const PrintSettings: React.FC<PrintSettingsProps> = ({ title, settings, onSave }) => {
+const PrintSettings: React.FC<PrintSettingsProps> = ({ title }) => {
     const { showToast } = useToast();
-    const [localSettings, setLocalSettings] = React.useState<PrintSettingsType>(() => {
-        const base = { ...settings };
-        if (base.template === 'epson' && !base.epsonSettings) {
-            base.epsonSettings = getDefaultEpsonSettings();
+    const { data: fetchedSettings, isLoading, error } = useGetPrintSettingsQuery();
+    const [updatePrintSettings, { isLoading: isSaving }] = useUpdatePrintSettingsMutation();
+
+    // Default settings
+    const defaultSettings: PrintSettingsType = {
+        template: "default",
+        showLogo: true,
+        showTaxNumber: true,
+        showAddress: true,
+        headerText: "",
+        footerText: "",
+        termsText: "",
+    };
+
+    const [localSettings, setLocalSettings] = React.useState<PrintSettingsType>(defaultSettings);
+
+    // Update local state when data is fetched
+    useEffect(() => {
+        if (fetchedSettings) {
+            const base = { ...fetchedSettings };
+            if (base.template === 'epson' && !base.epsonSettings) {
+                base.epsonSettings = getDefaultEpsonSettings();
+            }
+            setLocalSettings(base);
+        } else if (!isLoading && !fetchedSettings) {
+            // No settings in database, use defaults
+            setLocalSettings(defaultSettings);
         }
-        return base;
-    });
+    }, [fetchedSettings, isLoading]);
 
     const handleChange = (field: keyof PrintSettingsType, value: any) => {
         setLocalSettings(prev => {
@@ -278,11 +298,36 @@ const PrintSettings: React.FC<PrintSettingsProps> = ({ title, settings, onSave }
         });
     };
 
-    const handleSave = () => {
-        onSave(localSettings);
-        savePrintSettings(localSettings);
-        showToast('تم حفظ إعدادات الطباعة وتطبيق النموذج الجديد.');
+    const handleSave = async () => {
+        try {
+            await updatePrintSettings(localSettings).unwrap();
+            showToast('تم حفظ إعدادات الطباعة وتطبيق النموذج الجديد.');
+        } catch (error) {
+            console.error('Failed to save print settings:', error);
+            showToast('حدث خطأ أثناء حفظ الإعدادات', 'error');
+        }
     };
+
+    if (isLoading) {
+        return (
+            <div className="min-h-screen bg-[#eceff4] pb-24 font-sans text-slate-900 flex items-center justify-center">
+                <div className="text-center">
+                    <RefreshCwIcon className="w-8 h-8 animate-spin mx-auto mb-4 text-blue-600" />
+                    <p className="text-slate-600 font-medium">جاري تحميل الإعدادات...</p>
+                </div>
+            </div>
+        );
+    }
+
+    if (error) {
+        return (
+            <div className="min-h-screen bg-[#eceff4] pb-24 font-sans text-slate-900 flex items-center justify-center">
+                <div className="text-center">
+                    <p className="text-slate-600 font-medium">حدث خطأ أثناء تحميل الإعدادات</p>
+                </div>
+            </div>
+        );
+    }
 
     const inputStyle = "w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-blue focus:border-brand-blue transition-all bg-gray-50 focus:bg-white text-gray-800";
     const labelStyle = "block text-sm font-bold text-gray-700 mb-2";
@@ -697,10 +742,18 @@ const PrintSettings: React.FC<PrintSettingsProps> = ({ title, settings, onSave }
 
                     <div className="mt-8 pt-6 border-t border-gray-100">
                         <button 
-                            onClick={handleSave} 
-                            className="w-full py-4 bg-brand-blue text-white rounded-xl font-bold text-lg shadow-lg hover:bg-blue-800 hover:shadow-xl transform transition hover:-translate-y-1 active:translate-y-0"
+                            onClick={handleSave}
+                            disabled={isSaving}
+                            className="w-full py-4 bg-brand-blue text-white rounded-xl font-bold text-lg shadow-lg hover:bg-blue-800 hover:shadow-xl transform transition hover:-translate-y-1 active:translate-y-0 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                         >
-                            حفظ وتطبيق الإعدادات
+                            {isSaving ? (
+                                <>
+                                    <RefreshCwIcon className="w-5 h-5 animate-spin" />
+                                    جاري الحفظ...
+                                </>
+                            ) : (
+                                'حفظ وتطبيق الإعدادات'
+                            )}
                         </button>
                     </div>
                 </section>
