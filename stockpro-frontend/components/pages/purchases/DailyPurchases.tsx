@@ -213,16 +213,34 @@ const DailyPurchases: React.FC<DailyPurchasesProps> = ({ title }) => {
 
   return (
     <div className="bg-white p-6 rounded-lg shadow print-scale-sm">
-      <style>{`@media print {
-        .no-print { display: none !important; }
-        .print-scale-sm { font-size: 12px; }
-        .print-scale-sm h1 { font-size: 18px; margin-bottom: 8px; }
-        .print-scale-sm .p-6 { padding: 12px; }
-        .print-scale-sm .px-6 { padding-left: 12px; padding-right: 12px; }
-        .print-scale-sm .py-4 { padding-top: 8px; padding-bottom: 8px; }
-        .print-scale-sm .py-3 { padding-top: 6px; padding-bottom: 6px; }
-        .print-scale-sm table th, .print-scale-sm table td { padding: 4px 6px !important; }
-      }`}</style>
+      <style>{`
+        @page {
+          @bottom-center {
+            content: counter(page) " / " counter(pages);
+            font-family: "Cairo", sans-serif;
+            font-size: 12px;
+            color: #1F2937;
+          }
+        }
+        @media print {
+          .no-print { display: none !important; }
+          .print-scale-sm { font-size: 12px; }
+          .print-scale-sm h1 { font-size: 18px; margin-bottom: 8px; }
+          .print-scale-sm .p-6 { padding: 12px; }
+          .print-scale-sm .px-6 { padding-left: 12px; padding-right: 12px; }
+          .print-scale-sm .py-4 { padding-top: 8px; padding-bottom: 8px; }
+          .print-scale-sm .py-3 { padding-top: 6px; padding-bottom: 6px; }
+          body { -webkit-print-color-adjust: exact !important; color-adjust: exact !important; }
+          thead { display: table-header-group; }
+          tfoot { display: table-row-group !important; }
+          table { width: 100%; border-collapse: collapse; }
+          .print-scale-sm table th, .print-scale-sm table td { padding: 6px 8px !important; }
+          tbody tr:first-child { background: #FFFFFF !important; }
+          tbody tr:nth-child(2n+2) { background: #D1D5DB !important; }
+          tbody tr:nth-child(2n+3) { background: #FFFFFF !important; }
+          tfoot tr { page-break-inside: avoid !important; break-inside: avoid !important; }
+        }
+      `}</style>
       <div className="border-2 border-brand-green rounded-lg mb-4 bg-white">
         <DocumentHeader companyInfo={companyInfo} />
       </div>
