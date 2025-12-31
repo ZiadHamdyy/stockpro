@@ -219,12 +219,12 @@ const SalesInvoice: React.FC<SalesInvoiceProps> = ({
       ? safes.filter((safe) => safe.branchId === userBranchId)
       : safes;
 
-  type CreditLimitControl = 'BLOCK' | 'APPROVAL' | 'WARNING';
+  type CreditLimitControl = 'BLOCK' | 'APPROVAL';
 
   // Read credit limit control policy from localStorage (configured in FinancialSystem)
   const creditLimitControl: CreditLimitControl = (() => {
     const stored = localStorage.getItem('creditLimitControl');
-    if (stored === 'APPROVAL' || stored === 'WARNING' || stored === 'BLOCK') {
+    if (stored === 'APPROVAL' || stored === 'BLOCK') {
       return stored as CreditLimitControl;
     }
     return 'BLOCK';
@@ -1514,17 +1514,6 @@ const SalesInvoice: React.FC<SalesInvoiceProps> = ({
               },
             });
             return;
-          } else if (creditLimitControl === "WARNING") {
-            // WARNING mode: Show warning but allow proceeding
-            showToast(
-              `تحذير: سيتم تجاوز حد الائتمان للعميل.\n` +
-                `حد الائتمان: ${formatMoney(creditLimit)} | ` +
-                `الرصيد بعد الفاتورة: ${formatMoney(projectedBalance)} | ` +
-                `قيمة التجاوز: ${formatMoney(exceededBy)}.\n` +
-                `سيتم المتابعة مع التحذير.`,
-              "error",
-            );
-            // Continue with save (no return)
           }
         }
       }

@@ -18,7 +18,6 @@ export enum RoundingMethod {
 export enum StrictnessLevel {
   BLOCK = 'BLOCK',
   APPROVAL = 'APPROVAL',
-  WARNING = 'WARNING',
 }
 
 export interface PricingConfig {
