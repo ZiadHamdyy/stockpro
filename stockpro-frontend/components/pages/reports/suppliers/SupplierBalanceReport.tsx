@@ -10,7 +10,7 @@ import type {
 import { ExcelIcon, PdfIcon, PrintIcon, SearchIcon } from "../../../icons";
 import ReportHeader from "../ReportHeader";
 import PermissionWrapper from "../../../common/PermissionWrapper";
-import { formatNumber, getNegativeNumberClass, getNegativeNumberClassForTotal } from "../../../../utils/formatting";
+import { formatNumber, getNegativeNumberClass, getNegativeNumberClassForTotal, exportToExcel } from "../../../../utils/formatting";
 import { useGetSuppliersQuery } from "../../../store/slices/supplier/supplierApiSlice";
 import { useGetPurchaseInvoicesQuery } from "../../../store/slices/purchaseInvoice/purchaseInvoiceApiSlice";
 import { useGetPurchaseReturnsQuery } from "../../../store/slices/purchaseReturn/purchaseReturnApiSlice";
@@ -449,6 +449,28 @@ const SupplierBalanceReport: React.FC<SupplierBalanceReportProps> = ({
   const inputStyle =
     "p-2 bg-brand-green-bg border-2 border-brand-green rounded-md text-black placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-brand-green";
 
+  const handleExcelExport = () => {
+    const dataToExport = [
+      ...filteredReportData.map((item) => ({
+        "كود المورد": item.code,
+        "اسم المورد": item.name,
+        "رصيد أول المدة": formatNumber(item.opening),
+        "إجمالي مدين": formatNumber(item.debit),
+        "إجمالي دائن": formatNumber(item.credit),
+        "الرصيد الحالي": formatNumber(item.balance),
+      })),
+      {
+        "كود المورد": "الإجمالي",
+        "اسم المورد": "",
+        "رصيد أول المدة": formatNumber(totals.opening),
+        "إجمالي مدين": formatNumber(totals.debit),
+        "إجمالي دائن": formatNumber(totals.credit),
+        "الرصيد الحالي": formatNumber(totals.balance),
+      },
+    ];
+    exportToExcel(dataToExport, "تقرير_رصيد_الموردين");
+  };
+
   const handlePrint = () => {
     const reportContent = document.getElementById("printable-area");
     if (!reportContent) return;
@@ -619,6 +641,7 @@ const SupplierBalanceReport: React.FC<SupplierBalanceReportProps> = ({
           >
             <div className="no-print flex items-center gap-2">
               <button
+                onClick={handleExcelExport}
                 title="تصدير Excel"
                 className="p-3 border-2 border-gray-200 rounded-md hover:bg-gray-100"
               >
