@@ -25,6 +25,7 @@ import { useModal } from "../../common/ModalProvider";
 import { useToast } from "../../common/ToastProvider";
 import BarcodeScannerModal from "../../common/BarcodeScannerModal";
 import ItemContextBar from "../../common/ItemContextBar";
+import CreditEntityBalanceBar from "../../common/CreditEntityBalanceBar";
 import {
   useGetSalesInvoicesQuery,
   useCreateSalesInvoiceMutation,
@@ -451,6 +452,7 @@ const SalesInvoice: React.FC<SalesInvoiceProps> = ({
 
   const [focusIndex, setFocusIndex] = useState<number | null>(null);
   const [focusedQtyIndex, setFocusedQtyIndex] = useState<number | null>(null);
+  const [showBalanceBar, setShowBalanceBar] = useState(false);
   const resolvedBranchName = safeBranchName || getUserBranchName(currentUser);
   
   // Get safe name for current branch
@@ -460,6 +462,22 @@ const SalesInvoice: React.FC<SalesInvoiceProps> = ({
     const branchSafe = safes.find((s) => s.branchId === targetBranchId);
     return branchSafe?.name || "";
   }, [invoiceBranchId, userBranchId, safes]);
+
+  // Get current balance for selected customer
+  const selectedCustomerBalance = useMemo(() => {
+    if (!selectedCustomer) return 0;
+    const customer = allCustomers.find((c) => String(c.id) === String(selectedCustomer.id));
+    return customer?.currentBalance || 0;
+  }, [selectedCustomer, allCustomers]);
+
+  // Show balance bar when credit payment and customer is selected
+  useEffect(() => {
+    if (paymentMethod === "credit" && selectedCustomer && !isReadOnly) {
+      setShowBalanceBar(true);
+    } else {
+      setShowBalanceBar(false);
+    }
+  }, [paymentMethod, selectedCustomer, isReadOnly]);
 
   const focusedItemData = useMemo(() => {
     if (focusedQtyIndex !== null && invoiceItems[focusedQtyIndex] && invoiceItems[focusedQtyIndex].id) {
@@ -2477,6 +2495,15 @@ const SalesInvoice: React.FC<SalesInvoiceProps> = ({
             onClose={() => setFocusedQtyIndex(null)}
           />
         </div>
+      )}
+      {showBalanceBar && selectedCustomer && (
+        <CreditEntityBalanceBar
+          entityName={selectedCustomer.name}
+          currentBalance={selectedCustomerBalance}
+          theme="blue"
+          entityType="customer"
+          onClose={() => setShowBalanceBar(false)}
+        />
       )}
     </>
   );

@@ -27,6 +27,7 @@ import { useToast } from "../../common/ToastProvider";
 import { showApiErrorToast } from "../../../utils/errorToast";
 import { formatMoney } from "../../../utils/formatting";
 import BarcodeScannerModal from "../../common/BarcodeScannerModal";
+import CreditEntityBalanceBar from "../../common/CreditEntityBalanceBar";
 import {
   useGetPurchaseInvoicesQuery,
   useCreatePurchaseInvoiceMutation,
@@ -274,6 +275,7 @@ const getInvoiceBranchMeta = (invoice: any) => {
     };
   } | null>(null);
   const [focusIndex, setFocusIndex] = useState<number | null>(null);
+  const [showBalanceBar, setShowBalanceBar] = useState(false);
   const resolvedBranchName = safeBranchName || getUserBranchName(currentUser);
   
   // Get safe name for current branch
@@ -283,6 +285,22 @@ const getInvoiceBranchMeta = (invoice: any) => {
     const branchSafe = safes.find((s) => s.branchId === targetBranchId);
     return branchSafe?.name || "";
   }, [invoiceBranchId, userBranchId, safes]);
+
+  // Get current balance for selected supplier
+  const selectedSupplierBalance = useMemo(() => {
+    if (!selectedSupplier) return 0;
+    const supplier = allSuppliers.find((s) => String(s.id) === String(selectedSupplier.id));
+    return supplier?.currentBalance || 0;
+  }, [selectedSupplier, allSuppliers]);
+
+  // Show balance bar when credit payment and supplier is selected
+  useEffect(() => {
+    if (paymentMethod === "credit" && selectedSupplier && !isReadOnly) {
+      setShowBalanceBar(true);
+    } else {
+      setShowBalanceBar(false);
+    }
+  }, [paymentMethod, selectedSupplier, isReadOnly]);
 
   const hasPrintableItems = useMemo(
     () =>
@@ -1588,6 +1606,15 @@ const getInvoiceBranchMeta = (invoice: any) => {
         onClose={() => setIsScannerOpen(false)}
         onScanSuccess={handleScanSuccess}
       />
+      {showBalanceBar && selectedSupplier && (
+        <CreditEntityBalanceBar
+          entityName={selectedSupplier.name}
+          currentBalance={selectedSupplierBalance}
+          theme="green"
+          entityType="supplier"
+          onClose={() => setShowBalanceBar(false)}
+        />
+      )}
     </>
   );
 };
