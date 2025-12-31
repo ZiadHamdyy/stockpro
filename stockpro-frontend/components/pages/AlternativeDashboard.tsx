@@ -116,7 +116,6 @@ const AlternativeDashboard: React.FC<{ title: string }> = ({ title }) => {
     // Filters State
     const [timeRange, setTimeRange] = useState<'6m' | '1y'>('6m');
     const [currentTime, setCurrentTime] = useState(new Date());
-    const [barMetric, setBarMetric] = useState<'sales' | 'profit' | 'both'>('sales');
     const [selectedBranch, setSelectedBranch] = useState<string>('all');
 
     useEffect(() => {
@@ -128,11 +127,28 @@ const AlternativeDashboard: React.FC<{ title: string }> = ({ title }) => {
 
     // --- Stats Calculation ---
     const stats = useMemo(() => {
-        // Calculate total sales from sales invoices
-        const totalSales = salesInvoices.reduce((sum, inv) => sum + (inv.net || 0), 0);
+        // Get current year for filtering
+        const currentYear = new Date().getFullYear();
         
-        // Calculate total purchases from purchase invoices
-        const totalPurchases = purchaseInvoices.reduce((sum, inv) => sum + (inv.net || 0), 0);
+        // Filter sales invoices for current year only
+        const currentYearSalesInvoices = salesInvoices.filter(inv => {
+            if (!inv.date) return false;
+            const invoiceYear = new Date(inv.date).getFullYear();
+            return invoiceYear === currentYear;
+        });
+        
+        // Filter purchase invoices for current year only
+        const currentYearPurchaseInvoices = purchaseInvoices.filter(inv => {
+            if (!inv.date) return false;
+            const invoiceYear = new Date(inv.date).getFullYear();
+            return invoiceYear === currentYear;
+        });
+        
+        // Calculate total sales from current year sales invoices only
+        const totalSales = currentYearSalesInvoices.reduce((sum, inv) => sum + (inv.net || 0), 0);
+        
+        // Calculate total purchases from current year purchase invoices only
+        const totalPurchases = currentYearPurchaseInvoices.reduce((sum, inv) => sum + (inv.net || 0), 0);
         
         // Calculate total expenses from payment vouchers with expense entityType
         const totalExpenses = expensePaymentVouchers
@@ -142,13 +158,13 @@ const AlternativeDashboard: React.FC<{ title: string }> = ({ title }) => {
             })
             .reduce((sum, v) => sum + (v.amount || 0), 0);
         
-        // Calculate receivables (credit sales) - keep for payables calculation
-        const receivables = salesInvoices
+        // Calculate receivables (credit sales) from current year only
+        const receivables = currentYearSalesInvoices
             .filter(i => i.paymentMethod === 'credit')
             .reduce((sum, i) => sum + (i.net || 0), 0);
         
-        // Calculate payables (credit purchases)
-        const payables = purchaseInvoices
+        // Calculate payables (credit purchases) from current year only
+        const payables = currentYearPurchaseInvoices
             .filter(i => i.paymentMethod === 'credit')
             .reduce((sum, i) => sum + (i.net || 0), 0);
         
@@ -161,10 +177,10 @@ const AlternativeDashboard: React.FC<{ title: string }> = ({ title }) => {
         // Calculate total liquidity from balance sheet
         const totalLiquidity = cashBalance + bankBalance + inventoryValue + receivablesFromBalanceSheet;
 
-        // Calculate branch stats from sales invoices grouped by branch
+        // Calculate branch stats from current year sales invoices grouped by branch
         const branchStats = branches.map(branch => {
-            // Filter sales invoices by branchId or branch name
-            const branchSales = salesInvoices
+            // Filter sales invoices by branchId or branch name and current year
+            const branchSales = currentYearSalesInvoices
                 .filter(inv => {
                     const invBranchId = inv.branchId || inv.branch?.id;
                     const invBranchName = inv.branch?.name;
@@ -330,8 +346,6 @@ const AlternativeDashboard: React.FC<{ title: string }> = ({ title }) => {
                 // Extract labels and data
                 const labels = monthlyData.map(d => d.monthName);
                 const salesData = monthlyData.map(d => d.sales);
-                // Calculate profit (sales - purchases)
-                const profitData = monthlyData.map(d => d.sales - d.purchases);
 
                 const datasets = [];
                 
@@ -340,37 +354,17 @@ const AlternativeDashboard: React.FC<{ title: string }> = ({ title }) => {
                 salesGradient.addColorStop(0, '#3b82f6'); // Lighter Blue top
                 salesGradient.addColorStop(1, '#1e3a8a'); // Darker Blue bottom
 
-                if (barMetric === 'sales' || barMetric === 'both') {
-                    datasets.push({
-                        label: 'المبيعات',
-                        data: salesData,
-                        backgroundColor: salesGradient,
-                        hoverBackgroundColor: '#2563eb',
-                        borderRadius: 6,
-                        barPercentage: 0.6,
-                        categoryPercentage: 0.7,
-                        order: 2,
-                        borderWidth: 0,
-                    });
-                }
-
-                if (barMetric === 'profit' || barMetric === 'both') {
-                    datasets.push({
-                        type: 'line',
-                        label: 'الربح',
-                        data: profitData,
-                        borderColor: '#f59e0b',
-                        backgroundColor: 'rgba(245, 158, 11, 0.1)',
-                        borderWidth: 3,
-                        pointBackgroundColor: '#fff',
-                        pointBorderColor: '#f59e0b',
-                        pointRadius: 5,
-                        pointHoverRadius: 7,
-                        tension: 0.4,
-                        order: 1,
-                        fill: true
-                    });
-                }
+                datasets.push({
+                    label: 'المبيعات',
+                    data: salesData,
+                    backgroundColor: salesGradient,
+                    hoverBackgroundColor: '#2563eb',
+                    borderRadius: 6,
+                    barPercentage: 0.6,
+                    categoryPercentage: 0.7,
+                    order: 2,
+                    borderWidth: 0,
+                });
 
                 // Plugin to draw values ON TOP of bars
                 const drawValuesPlugin = {
@@ -444,7 +438,7 @@ const AlternativeDashboard: React.FC<{ title: string }> = ({ title }) => {
                 });
             }
         }
-    }, [timeRange, barMetric, selectedBranch, salesInvoices, purchaseInvoices, branches, salesInvoicesLoading, purchaseInvoicesLoading]);
+    }, [timeRange, selectedBranch, salesInvoices, purchaseInvoices, branches, salesInvoicesLoading, purchaseInvoicesLoading]);
 
     // --- Chart 2: Branch Sales (With Labels & Percentage On Segments) ---
     useEffect(() => {
@@ -1040,11 +1034,6 @@ const AlternativeDashboard: React.FC<{ title: string }> = ({ title }) => {
                                     >
                                         سنة
                                     </button>
-                                </div>
-                                <div className="flex bg-blue-900/50 p-0.5 rounded-lg border border-blue-700/50 backdrop-blur-sm">
-                                    <button onClick={() => setBarMetric('sales')} className={`px-2 py-1 text-[10px] rounded-md font-bold transition-all ${barMetric === 'sales' ? 'bg-white text-blue-900 shadow-sm' : 'text-blue-200 hover:text-white'}`}>مبيعات</button>
-                                    <button onClick={() => setBarMetric('profit')} className={`px-2 py-1 text-[10px] rounded-md font-bold transition-all ${barMetric === 'profit' ? 'bg-white text-blue-900 shadow-sm' : 'text-blue-200 hover:text-white'}`}>أرباح</button>
-                                    <button onClick={() => setBarMetric('both')} className={`px-2 py-1 text-[10px] rounded-md font-bold transition-all ${barMetric === 'both' ? 'bg-white text-blue-900 shadow-sm' : 'text-blue-200 hover:text-white'}`}>الكل</button>
                                 </div>
                             </div>
                         </div>
