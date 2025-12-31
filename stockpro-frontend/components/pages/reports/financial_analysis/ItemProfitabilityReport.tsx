@@ -60,7 +60,11 @@ const ItemProfitabilityReport: React.FC<ItemProfitabilityReportProps> = ({ title
 
     const items = useMemo<Item[]>(() => {
         return apiItems
-            .filter((item) => item.type !== 'SERVICE') // Exclude service items
+            .filter((item) => {
+                // Exclude service items - check for 'SERVICE' (case-insensitive)
+                const itemType = item.type?.toUpperCase();
+                return itemType !== 'SERVICE';
+            })
             .map((item) => ({
                 id: parseInt(item.id) || 0,
                 code: item.code,
@@ -70,7 +74,8 @@ const ItemProfitabilityReport: React.FC<ItemProfitabilityReportProps> = ({ title
                 purchasePrice: item.purchasePrice,
                 salePrice: item.salePrice,
                 stock: item.stock,
-                reorderLimit: item.reorderLimit
+                reorderLimit: item.reorderLimit,
+                type: item.type // Preserve type for additional filtering if needed
             }));
     }, [apiItems]);
 
