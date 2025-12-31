@@ -11,7 +11,7 @@ import {
   Resources,
   buildPermission,
 } from "../../../../enums/permissions.enum";
-import { formatNumber, getNegativeNumberClass, getNegativeNumberClassForTotal } from "../../../../utils/formatting";
+import { formatNumber, getNegativeNumberClass, getNegativeNumberClassForTotal, exportToExcel } from "../../../../utils/formatting";
 import { useGetRevenueCodesQuery } from "../../../store/slices/revenueCode/revenueCodeApiSlice";
 import { useGetReceiptVouchersQuery } from "../../../store/slices/receiptVoucherApiSlice";
 import { useGetBranchesQuery } from "../../../store/slices/branch/branchApi";
@@ -245,6 +245,38 @@ const RevenueStatementReport: React.FC<RevenueStatementReportProps> = ({
   const inputStyle =
     "p-2 border-2 border-brand-green rounded-md focus:outline-none focus:ring-2 focus:ring-brand-green bg-brand-green-bg";
 
+  const handleExcelExport = () => {
+    const finalBalance = totalAmount;
+    const dataToExport = [
+      {
+        التاريخ: "رصيد أول المدة",
+        الفرع: "",
+        البيان: "",
+        المرجع: "",
+        المبلغ: "",
+        "الرصيد التراكمي": formatNumber(0),
+      },
+      ...reportData.map((item) => ({
+        التاريخ: item.date.substring(0, 10),
+        الفرع: item.branchName || "",
+        البيان: item.description,
+        المرجع: item.ref,
+        المبلغ: formatNumber(item.amount),
+        "الرصيد التراكمي": formatNumber(item.balance),
+      })),
+      {
+        التاريخ: "الإجمالي",
+        الفرع: "",
+        البيان: "",
+        المرجع: "",
+        المبلغ: formatNumber(totalAmount),
+        "الرصيد التراكمي": formatNumber(finalBalance),
+      },
+    ];
+    const revenueCodeName = apiRevenueCodes.find((rc: any) => rc.id.toString() === selectedRevenueCodeId)?.name || "جميع_أكواد_الإيرادات";
+    exportToExcel(dataToExport, `كشف_إيراد_${revenueCodeName}`);
+  };
+
   const handlePrint = () => {
     const reportContent = document.getElementById("printable-area");
     if (!reportContent) return;
@@ -439,6 +471,7 @@ const RevenueStatementReport: React.FC<RevenueStatementReportProps> = ({
           >
             <div className="no-print flex items-center gap-2">
               <button
+                onClick={handleExcelExport}
                 title="تصدير Excel"
                 className="p-3 border-2 border-gray-200 rounded-md hover:bg-gray-100"
               >
