@@ -31,7 +31,35 @@ export const SalesTable: React.FC<SalesTableProps> = ({ data, branches, selected
   });
 
   return (
-    <div className="bg-white rounded-2xl shadow-[0_2px_15px_-3px_rgba(0,0,0,0.07),0_10px_20px_-2px_rgba(0,0,0,0.04)] border border-slate-300 overflow-hidden flex flex-col h-full print-card print:shadow-none">
+    <>
+      <style>{`
+        @page {
+          @bottom-center {
+            content: counter(page) " / " counter(pages);
+            font-family: "Cairo", sans-serif;
+            font-size: 12px;
+            color: #1F2937;
+          }
+        }
+        @media print {
+          body { -webkit-print-color-adjust: exact !important; color-adjust: exact !important; font-size: 14px !important; }
+          .no-print, .no-print * { display: none !important; visibility: hidden !important; }
+          thead { display: table-header-group; }
+          tfoot { display: table-row-group !important; }
+          table { width: 100%; border-collapse: collapse; font-size: 13px !important; }
+          th { font-size: 13px !important; font-weight: bold !important; padding: 6px 8px !important; }
+          td { font-size: 13px !important; padding: 6px 8px !important; }
+          tbody tr:first-child { background: #FFFFFF !important; }
+          tbody tr:nth-child(2n+2) { background: #D1D5DB !important; }
+          tbody tr:nth-child(2n+3) { background: #FFFFFF !important; }
+          tfoot tr { page-break-inside: avoid !important; break-inside: avoid !important; }
+          .bg-\\[\\#1e293b\\] { background-color: #1e293b !important; }
+          .bg-\\[\\#0f172a\\] { background-color: #0f172a !important; }
+          .bg-\\[\\#020617\\] { background-color: #020617 !important; }
+          .text-white { color: white !important; }
+        }
+      `}</style>
+      <div className="bg-white rounded-2xl shadow-[0_2px_15px_-3px_rgba(0,0,0,0.07),0_10px_20px_-2px_rgba(0,0,0,0.04)] border border-slate-300 overflow-hidden flex flex-col h-full print-card print:shadow-none">
       <div className="p-6 border-b border-slate-300 flex justify-between items-center bg-white print:p-4">
         <h3 className="text-xl font-bold text-[#0f172a] flex items-center gap-3 print:text-lg">
           <span className="w-1.5 h-6 bg-emerald-600 rounded-full"></span>
@@ -124,5 +152,6 @@ export const SalesTable: React.FC<SalesTableProps> = ({ data, branches, selected
         </div>
       )}
     </div>
+    </>
   );
 };
