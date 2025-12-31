@@ -343,6 +343,33 @@ const FinancialPerformanceReport: React.FC<FinancialPerformanceReportProps> = ({
 
     return (
         <div className="bg-white p-6 rounded-lg shadow">
+            <style>{`
+                @page {
+                    @bottom-center {
+                        content: counter(page) " / " counter(pages);
+                        font-family: "Cairo", sans-serif;
+                        font-size: 12px;
+                        color: #1F2937;
+                    }
+                }
+                @media print {
+                    body { -webkit-print-color-adjust: exact !important; color-adjust: exact !important; font-size: 14px !important; }
+                    .no-print, .no-print * { display: none !important; visibility: hidden !important; }
+                    thead { display: table-header-group; }
+                    tfoot { display: table-row-group !important; }
+                    table { width: 100%; border-collapse: collapse; font-size: 13px !important; }
+                    th { font-size: 13px !important; font-weight: bold !important; padding: 6px 8px !important; }
+                    td { font-size: 13px !important; padding: 6px 8px !important; }
+                    tbody tr:first-child { background: #FFFFFF !important; }
+                    tbody tr:nth-child(2n+2) { background: #D1D5DB !important; }
+                    tbody tr:nth-child(2n+3) { background: #FFFFFF !important; }
+                    tfoot tr { page-break-inside: avoid !important; break-inside: avoid !important; }
+                    .bg-blue-900 { background-color: #1E3A8A !important; }
+                    .bg-emerald-700 { background-color: #047857 !important; }
+                    .bg-red-700 { background-color: #B91C1C !important; }
+                    .text-white { color: white !important; }
+                }
+            `}</style>
             <div id="printable-area">
                 <ReportHeader title={title} />
                 <div className="text-right mb-2 flex justify-between items-center">
