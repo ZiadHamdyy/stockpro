@@ -287,7 +287,9 @@ export class IncomeStatementService {
         false, // Include all transactions up to and including balanceDate
       );
 
-      if (balance > 0) {
+      // Calculate inventory value for all balances (including negative ones)
+      // Negative balances will result in negative values, which will be subtracted from totalValue
+      if (balance !== 0) {
         // Find the last purchase price before or on the priceDate
         const lastPurchasePrice = await this.getLastPurchasePriceBeforeDate(
           companyId,
@@ -467,7 +469,7 @@ export class IncomeStatementService {
     // Note: Store transfers don't affect total inventory balance
     // (they just move items between stores)
 
-    return Math.max(0, balance); // Ensure non-negative balance
+    return balance; // Return actual balance (can be negative)
   }
 
   /**
