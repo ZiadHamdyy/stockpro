@@ -7,13 +7,9 @@ import {
 } from '../../icons';
 import { useToast } from '../../common/ToastProvider';
 import { useGetSalesInvoicesQuery } from '../../store/slices/salesInvoice/salesInvoiceApiSlice';
-import { useGetPurchaseInvoicesQuery } from '../../store/slices/purchaseInvoice/purchaseInvoiceApiSlice';
 import { useGetSalesReturnsQuery } from '../../store/slices/salesReturn/salesReturnApiSlice';
-import { useGetPurchaseReturnsQuery } from '../../store/slices/purchaseReturn/purchaseReturnApiSlice';
 import type { SalesInvoice } from '../../store/slices/salesInvoice/salesInvoiceApiSlice';
-import type { PurchaseInvoice } from '../../store/slices/purchaseInvoice/purchaseInvoiceApiSlice';
 import type { SalesReturn } from '../../store/slices/salesReturn/salesReturnApiSlice';
-import type { PurchaseReturn } from '../../store/slices/purchaseReturn/purchaseReturnApiSlice';
 
 interface ZatcaInvoiceUploadProps {
     title: string;
@@ -48,9 +44,7 @@ const ZatcaInvoiceUpload: React.FC<ZatcaInvoiceUploadProps> = ({ title, companyI
     
     // --- Data Fetching ---
     const { data: salesInvoices = [] } = useGetSalesInvoicesQuery();
-    const { data: purchaseInvoices = [] } = useGetPurchaseInvoicesQuery();
     const { data: salesReturns = [] } = useGetSalesReturnsQuery();
-    const { data: purchaseReturns = [] } = useGetPurchaseReturnsQuery();
     
     // --- State ---
     const [startDate, setStartDate] = useState(() => {
@@ -87,20 +81,6 @@ const ZatcaInvoiceUpload: React.FC<ZatcaInvoiceUploadProps> = ({ title, companyI
         };
     };
 
-    const transformPurchaseInvoice = (invoice: PurchaseInvoice): SimulatedInvoice => {
-        const hasSupplier = !!invoice.supplier;
-        return {
-            id: invoice.code,
-            date: invoice.date.substring(0, 10), // Ensure YYYY-MM-DD format
-            customerName: invoice.supplier?.name || 'مورد نقدي',
-            amount: invoice.subtotal,
-            vat: invoice.tax,
-            total: invoice.net,
-            status: 'pending',
-            type: hasSupplier ? 'Standard' : 'Simplified',
-        };
-    };
-
     const transformSalesReturn = (returnRecord: SalesReturn): SimulatedInvoice => {
         const hasCustomer = !!returnRecord.customer;
         return {
@@ -115,30 +95,14 @@ const ZatcaInvoiceUpload: React.FC<ZatcaInvoiceUploadProps> = ({ title, companyI
         };
     };
 
-    const transformPurchaseReturn = (returnRecord: PurchaseReturn): SimulatedInvoice => {
-        const hasSupplier = !!returnRecord.supplier;
-        return {
-            id: returnRecord.code,
-            date: returnRecord.date.substring(0, 10), // Ensure YYYY-MM-DD format
-            customerName: returnRecord.supplier?.name || 'مورد نقدي',
-            amount: returnRecord.subtotal,
-            vat: returnRecord.tax,
-            total: returnRecord.net,
-            status: 'pending',
-            type: hasSupplier ? 'Standard' : 'Simplified',
-        };
-    };
-
     // --- Combine All Data Sources ---
     useEffect(() => {
         const transformedData: SimulatedInvoice[] = [
             ...salesInvoices.map(transformSalesInvoice),
-            ...purchaseInvoices.map(transformPurchaseInvoice),
             ...salesReturns.map(transformSalesReturn),
-            ...purchaseReturns.map(transformPurchaseReturn),
         ];
         setDataList(transformedData);
-    }, [salesInvoices, purchaseInvoices, salesReturns, purchaseReturns]);
+    }, [salesInvoices, salesReturns]);
 
     // --- Computed Values ---
     const filteredData = useMemo(() => {
