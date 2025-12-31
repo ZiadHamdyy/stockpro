@@ -3,7 +3,7 @@ import type { CompanyInfo, User } from "../../../../types";
 import { ExcelIcon, PdfIcon, PrintIcon, SearchIcon } from "../../../icons";
 import ReportHeader from "../ReportHeader";
 import PermissionWrapper from "../../../common/PermissionWrapper";
-import { formatNumber, getNegativeNumberClass } from "../../../../utils/formatting";
+import { formatNumber, getNegativeNumberClass, exportToExcel } from "../../../../utils/formatting";
 import { useGetItemsQuery, useGetItemGroupsQuery, type ItemGroup } from "../../../store/slices/items/itemsApi";
 import { useGetBranchesQuery } from "../../../store/slices/branch/branchApi";
 import { useGetStoresQuery } from "../../../store/slices/store/storeApi";
@@ -450,6 +450,20 @@ const ItemBalanceReport: React.FC<ItemBalanceReportProps> = ({
     handleViewReport();
   }, [handleViewReport]);
 
+  const handleExcelExport = () => {
+    const dataToExport = reportData.map((item) => ({
+      الكود: item.code,
+      الاسم: item.name,
+      "مجموعة الأصناف": item.group,
+      الوحدة: item.unit,
+      "رصيد أول المدة": formatNumber(item.openingBalance),
+      "إجمالي وارد": formatNumber(item.totalIncoming),
+      "إجمالي صادر": formatNumber(item.totalOutgoing),
+      "الرصيد الحالي": formatNumber(item.balance),
+    }));
+    exportToExcel(dataToExport, "تقرير_رصيد_الأصناف");
+  };
+
   const handlePrint = () => {
     const reportContent = document.getElementById("printable-area");
     if (!reportContent) return;
@@ -645,6 +659,7 @@ const ItemBalanceReport: React.FC<ItemBalanceReportProps> = ({
           >
             <div className="no-print flex items-center gap-2">
               <button
+                onClick={handleExcelExport}
                 title="تصدير Excel"
                 className="p-3 border-2 border-gray-200 rounded-md hover:bg-gray-100"
               >
