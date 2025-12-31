@@ -9,7 +9,7 @@ import {
   Resources,
   buildPermission,
 } from "../../../../enums/permissions.enum";
-import { formatNumber, getNegativeNumberClass, getNegativeNumberClassForTotal } from "../../../../utils/formatting";
+import { formatNumber, getNegativeNumberClass, getNegativeNumberClassForTotal, exportToExcel } from "../../../../utils/formatting";
 import { useGetReceiptVouchersQuery } from "../../../store/slices/receiptVoucherApiSlice";
 import { useGetBranchesQuery } from "../../../store/slices/branch/branchApi";
 import { useAuth } from "../../../hook/Auth";
@@ -203,6 +203,32 @@ const DailyCollectionsReport: React.FC<DailyCollectionsReportProps> = ({
     { amount: 0 },
   );
 
+  const handleExcelExport = () => {
+    const dataToExport = [
+      ...filteredVouchers.map((voucher, index) => ({
+        م: index + 1,
+        التاريخ: voucher.date.substring(0, 10),
+        "رقم السند": voucher.code,
+        الفرع: voucher.branchName || "",
+        "قبضنا من": voucher.entity?.name || "",
+        النوع: voucher.paymentMethod === "safe" ? "نقداً" : "بنك",
+        المبلغ: formatNumber(voucher.amount),
+        البيان: voucher.description || "",
+      })),
+      {
+        م: "الإجمالي",
+        التاريخ: "",
+        "رقم السند": "",
+        الفرع: "",
+        "قبضنا من": "",
+        النوع: "",
+        المبلغ: formatNumber(totals.amount),
+        البيان: "",
+      },
+    ];
+    exportToExcel(dataToExport, "تقرير_التحصيلات_اليومية");
+  };
+
   const handlePrint = () => {
     const reportContent = document.getElementById("printable-area");
     if (!reportContent) return;
@@ -385,6 +411,7 @@ const DailyCollectionsReport: React.FC<DailyCollectionsReportProps> = ({
               }
             >
               <button
+                onClick={handleExcelExport}
                 title="تصدير Excel"
                 className="p-3 border-2 border-gray-200 rounded-md hover:bg-gray-100"
               >
