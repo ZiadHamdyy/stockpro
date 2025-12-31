@@ -1581,9 +1581,9 @@ const BalanceSheet: React.FC = () => {
                   hasDiscrepancy ? "bg-yellow-600" : "bg-gray-700"
                 }`}
               >
-                <Td>إجمالي الأصول</Td>
+                <Td className="py-4">إجمالي الأصول</Td>
                 <Td
-                  className={`text-left font-mono text-lg ${getNegativeNumberClass(
+                  className={`text-left font-mono text-lg py-4 ${getNegativeNumberClass(
                     displayData.cashInSafes +
                       displayData.cashInBanks +
                       displayData.receivables +
@@ -1675,9 +1675,9 @@ const BalanceSheet: React.FC = () => {
                   hasDiscrepancy ? "bg-yellow-600" : "bg-gray-700"
                 }`}
               >
-                <Td>إجمالي الالتزامات وحقوق الملكية</Td>
+                <Td className="py-4">إجمالي الالتزامات وحقوق الملكية</Td>
                 <Td
-                  className={`text-left font-mono text-lg ${getNegativeNumberClass(
+                  className={`text-left font-mono text-lg py-4 ${getNegativeNumberClass(
                     displayData.payables +
                       displayData.otherPayables +
                       vatLiability +
