@@ -170,12 +170,29 @@ const UsersData: React.FC<UsersDataProps> = ({ title }) => {
     <>
       <style>
         {`
+          @page {
+            size: A4 landscape;
+            margin: 10mm;
+            @bottom-center {
+              content: counter(page) " / " counter(pages);
+              font-family: "Cairo", sans-serif;
+              font-size: 12px;
+              color: #1F2937;
+            }
+          }
           @media print {
-            @page { size: A4 landscape; margin: 10mm; }
             .no-print { display: none !important; }
+            body { -webkit-print-color-adjust: exact !important; color-adjust: exact !important; }
             .overflow-x-auto { overflow: visible !important; }
-            table { font-size: 12px !important; }
-            th, td { padding: 4px 6px !important; }
+            thead { display: table-header-group; }
+            tfoot { display: table-row-group !important; }
+            table { font-size: 12px !important; width: 100%; border-collapse: collapse; }
+            th { padding: 6px 8px !important; }
+            td { padding: 6px 8px !important; }
+            tbody tr:first-child { background: #FFFFFF !important; }
+            tbody tr:nth-child(2n+2) { background: #D1D5DB !important; }
+            tbody tr:nth-child(2n+3) { background: #FFFFFF !important; }
+            tfoot tr { page-break-inside: avoid !important; break-inside: avoid !important; }
           }
         `}
       </style>
