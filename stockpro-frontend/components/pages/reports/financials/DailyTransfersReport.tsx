@@ -8,7 +8,7 @@ import {
   Resources,
   buildPermission,
 } from "../../../../enums/permissions.enum";
-import { formatNumber, getNegativeNumberClass, getNegativeNumberClassForTotal } from "../../../../utils/formatting";
+import { formatNumber, getNegativeNumberClass, getNegativeNumberClassForTotal, exportToExcel } from "../../../../utils/formatting";
 import { useGetInternalTransfersQuery } from "../../../store/slices/internalTransferApiSlice";
 import { useGetBranchesQuery } from "../../../store/slices/branch/branchApi";
 import { useAuth } from "../../../hook/Auth";
@@ -198,6 +198,32 @@ const DailyTransfersReport: React.FC<DailyTransfersReportProps> = ({
     },
     { amount: 0 },
   );
+
+  const handleExcelExport = () => {
+    const dataToExport = [
+      ...filteredTransfers.map((transfer, index) => ({
+        م: index + 1,
+        التاريخ: transfer.date ? transfer.date.substring(0, 10) : "",
+        "رقم السند": transfer.code || "",
+        الفرع: transfer.branchName || "",
+        "من الحساب": `${transfer.fromType === "safe" ? "خزنة: " : "بنك: "}${transfer.fromAccountName || ""}`,
+        "إلى الحساب": `${transfer.toType === "safe" ? "خزنة: " : "بنك: "}${transfer.toAccountName || ""}`,
+        المبلغ: formatNumber(transfer.amount),
+        البيان: transfer.description || "",
+      })),
+      {
+        م: "الإجمالي",
+        التاريخ: "",
+        "رقم السند": "",
+        الفرع: "",
+        "من الحساب": "",
+        "إلى الحساب": "",
+        المبلغ: formatNumber(totals.amount),
+        البيان: "",
+      },
+    ];
+    exportToExcel(dataToExport, "تقرير_التحويلات_اليومية");
+  };
 
   const handlePrint = () => {
     const reportContent = document.getElementById("printable-area");
@@ -404,6 +430,7 @@ const DailyTransfersReport: React.FC<DailyTransfersReportProps> = ({
           >
             <div className="no-print flex items-center gap-2">
               <button
+                onClick={handleExcelExport}
                 title="تصدير Excel"
                 className="p-3 border-2 border-gray-200 rounded-md hover:bg-gray-100"
               >
