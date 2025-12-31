@@ -1,13 +1,45 @@
 
 import React, { useState } from 'react';
 import { HelpIcon, PhoneIcon, WhatsappIcon, MailIcon, GlobeIcon, SearchIcon, DownloadIcon, ChevronDownIcon } from '../../icons';
+import { useAuth } from '../../hook/Auth';
+import { useGetCompanyQuery } from '../../store/slices/companyApiSlice';
+import { useCreateSupportTicketMutation } from '../../store/slices/support/supportApi';
+import { useToast } from '../../common/ToastProvider';
+
+const extractBranchName = (value: any): string => {
+  if (!value) return "";
+  if (typeof value === "string") return value;
+  if (typeof value === "object") {
+    return value.name || value.title || "";
+  }
+  return "";
+};
+
+const getUserBranchName = (user: any): string => {
+  if (!user) return "";
+  if (user.branchName) return user.branchName;
+  return extractBranchName(user?.branch);
+};
 
 const HelpCenter: React.FC<{ title: string }> = ({ title }) => {
     const [faqOpen, setFaqOpen] = useState<number | null>(null);
+    const { User } = useAuth();
+    const { data: company } = useGetCompanyQuery();
+    const [createSupportTicket, { isLoading: isSubmitting }] = useCreateSupportTicketMutation();
+    const { showToast } = useToast();
+
+    // Form state
+    const [formData, setFormData] = useState({
+        name: '',
+        phone: '',
+        problemType: 'مشكلة تقنية',
+        title: '',
+        details: '',
+    });
 
     const faqs = [
         { q: "كيف يمكنني تغيير كلمة المرور؟", a: "يمكنك تغيير كلمة المرور من خلال الذهاب إلى الإعدادات > بيانات المستخدمين، ثم اختيار المستخدم والضغط على تعديل." },
-        { q: "كيف أقوم بعمل نسخة احتياطية؟", a: "من القائمة الجانبية، اذهب إلى الإعدادات > قاعدة البيانات > نسخة احتياطية. سيتم تحميل ملف JSON يحتوي على جميع بياناتك." },
+        { q: "كيف أقوم بعمل نسخة احتياطية؟", a: "من القائمة الجانبية، اذهب إلى الإعدادات > قاعدة البيانات > نسخة احتياطية. سيتم تحميل ملف SQL يحتوي على جميع بياناتك." },
         { q: "هل يدعم البرنامج الفاتورة الإلكترونية؟", a: "نعم، البرنامج يدعم الفاتورة الإلكترونية المتوافقة مع هيئة الزكاة والضريبة والجمارك (ZATCA) ويقوم بتوليد رمز QR مشفر." },
         { q: "كيف أضيف شعار شركتي؟", a: "من الإعدادات > بيانات الشركة، يمكنك رفع صورة الشعار التي ستظهر في جميع الفواتير والتقارير." },
         { q: "كيف يمكنني إضافة مستخدم جديد؟", a: "من قائمة الإعدادات، اختر 'بيانات المستخدمين' ثم اضغط على زر 'إضافة مستخدم جديد'. ستحتاج إلى تحديد الصلاحيات والفرع الخاص بالمستخدم." },
@@ -15,6 +47,48 @@ const HelpCenter: React.FC<{ title: string }> = ({ title }) => {
 
     const toggleFaq = (index: number) => {
         setFaqOpen(faqOpen === index ? null : index);
+    };
+
+    const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+        const { name, value } = e.target;
+        setFormData(prev => ({
+            ...prev,
+            [name]: value
+        }));
+    };
+
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        
+        // Validate form
+        if (!formData.name.trim() || !formData.phone.trim() || !formData.title.trim() || !formData.details.trim()) {
+            showToast('يرجى ملء جميع الحقول المطلوبة', 'error');
+            return;
+        }
+
+        try {
+            await createSupportTicket({
+                name: formData.name,
+                phone: formData.phone,
+                problemType: formData.problemType,
+                title: formData.title,
+                details: formData.details,
+            }).unwrap();
+
+            showToast('تم إرسال التذكرة بنجاح!', 'success');
+            
+            // Reset form
+            setFormData({
+                name: '',
+                phone: '',
+                problemType: 'مشكلة تقنية',
+                title: '',
+                details: '',
+            });
+        } catch (error: any) {
+            console.error('Error submitting support ticket:', error);
+            showToast(error?.data?.message || 'حدث خطأ أثناء إرسال التذكرة', 'error');
+        }
     };
 
     return (
@@ -126,37 +200,79 @@ const HelpCenter: React.FC<{ title: string }> = ({ title }) => {
                         <div className="w-2 h-8 bg-brand-blue rounded-full"></div>
                         فتح تذكرة دعم جديدة
                     </h3>
-                    <form className="space-y-4">
+                    <form onSubmit={handleSubmit} className="space-y-4">
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-1">الاسم</label>
-                                <input type="text" className="w-full p-3 border border-cyan-200 bg-cyan-50 rounded-lg focus:ring-2 focus:ring-brand-blue focus:border-brand-blue focus:outline-none transition-shadow" placeholder="اسمك الكامل" />
+                                <input 
+                                    type="text" 
+                                    name="name"
+                                    value={formData.name}
+                                    onChange={handleInputChange}
+                                    className="w-full p-3 border border-cyan-200 bg-cyan-50 rounded-lg focus:ring-2 focus:ring-brand-blue focus:border-brand-blue focus:outline-none transition-shadow" 
+                                    placeholder="اسمك الكامل" 
+                                    required
+                                />
                             </div>
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-1">رقم الهاتف</label>
-                                <input type="text" className="w-full p-3 border border-cyan-200 bg-cyan-50 rounded-lg focus:ring-2 focus:ring-brand-blue focus:border-brand-blue focus:outline-none transition-shadow" placeholder="05xxxxxxxx" />
+                                <input 
+                                    type="text" 
+                                    name="phone"
+                                    value={formData.phone}
+                                    onChange={handleInputChange}
+                                    className="w-full p-3 border border-cyan-200 bg-cyan-50 rounded-lg focus:ring-2 focus:ring-brand-blue focus:border-brand-blue focus:outline-none transition-shadow" 
+                                    placeholder="05xxxxxxxx" 
+                                    required
+                                />
                             </div>
                         </div>
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">نوع المشكلة</label>
-                            <select className="w-full p-3 border border-cyan-200 bg-cyan-50 rounded-lg focus:ring-2 focus:ring-brand-blue focus:outline-none">
-                                <option>مشكلة تقنية</option>
-                                <option>استفسار مالي</option>
-                                <option>طلب ميزة جديدة</option>
-                                <option>أخرى</option>
+                            <select 
+                                name="problemType"
+                                value={formData.problemType}
+                                onChange={handleInputChange}
+                                className="w-full p-3 border border-cyan-200 bg-cyan-50 rounded-lg focus:ring-2 focus:ring-brand-blue focus:outline-none"
+                                required
+                            >
+                                <option value="مشكلة تقنية">مشكلة تقنية</option>
+                                <option value="استفسار مالي">استفسار مالي</option>
+                                <option value="طلب ميزة جديدة">طلب ميزة جديدة</option>
+                                <option value="أخرى">أخرى</option>
                             </select>
                         </div>
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">عنوان المشكلة</label>
-                            <input type="text" className="w-full p-3 border border-cyan-200 bg-cyan-50 rounded-lg focus:ring-2 focus:ring-brand-blue focus:border-brand-blue focus:outline-none transition-shadow" placeholder="ملخص قصير للمشكلة" />
+                            <input 
+                                type="text" 
+                                name="title"
+                                value={formData.title}
+                                onChange={handleInputChange}
+                                className="w-full p-3 border border-cyan-200 bg-cyan-50 rounded-lg focus:ring-2 focus:ring-brand-blue focus:border-brand-blue focus:outline-none transition-shadow" 
+                                placeholder="ملخص قصير للمشكلة" 
+                                required
+                            />
                         </div>
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">التفاصيل</label>
-                            <textarea rows={4} className="w-full p-3 border border-cyan-200 bg-cyan-50 rounded-lg focus:ring-2 focus:ring-brand-blue focus:border-brand-blue focus:outline-none transition-shadow" placeholder="يرجى وصف المشكلة بالتفصيل..."></textarea>
+                            <textarea 
+                                rows={4} 
+                                name="details"
+                                value={formData.details}
+                                onChange={handleInputChange}
+                                className="w-full p-3 border border-cyan-200 bg-cyan-50 rounded-lg focus:ring-2 focus:ring-brand-blue focus:border-brand-blue focus:outline-none transition-shadow" 
+                                placeholder="يرجى وصف المشكلة بالتفصيل..."
+                                required
+                            ></textarea>
                         </div>
                         <div className="flex justify-end pt-2">
-                            <button type="button" className="px-10 py-3 bg-brand-blue text-white rounded-lg hover:bg-blue-800 font-bold shadow-md transition-all hover:-translate-y-0.5 active:translate-y-0 flex items-center gap-2">
-                                <span>إرسال التذكرة</span>
+                            <button 
+                                type="submit" 
+                                disabled={isSubmitting}
+                                className="px-10 py-3 bg-brand-blue text-white rounded-lg hover:bg-blue-800 font-bold shadow-md transition-all hover:-translate-y-0.5 active:translate-y-0 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                                <span>{isSubmitting ? 'جاري الإرسال...' : 'إرسال التذكرة'}</span>
                                 <MailIcon className="w-5 h-5" />
                             </button>
                         </div>

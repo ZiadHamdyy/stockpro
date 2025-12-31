@@ -54,6 +54,7 @@ import { FiscalYearModule } from './modules/fiscal-year/fiscal-year.module';
 import { SubscriptionModule } from './modules/subscription/subscription.module';
 import { SubscriptionRequestModule } from './modules/subscription-request/subscription-request.module';
 import { ZatcaModule } from './modules/zatca/zatca.module';
+import { SupportModule } from './modules/support/support.module';
 
 @Module({
   imports: [
@@ -105,6 +106,7 @@ import { ZatcaModule } from './modules/zatca/zatca.module';
     SubscriptionModule,
     SubscriptionRequestModule,
     ZatcaModule,
+    SupportModule,
   ],
   controllers: [AppController],
   providers: [
