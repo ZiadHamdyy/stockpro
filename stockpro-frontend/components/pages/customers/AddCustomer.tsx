@@ -50,11 +50,11 @@ const AddCustomer: React.FC<AddCustomerProps> = ({
           openingBalance:
             customer.openingBalance === 0 || customer.openingBalance === null
               ? ""
-              : customer.openingBalance,
+              : String(customer.openingBalance),
           creditLimit:
             (customer as any).creditLimit === 0 || (customer as any).creditLimit === null || (customer as any).creditLimit === undefined
               ? ""
-              : (customer as any).creditLimit,
+              : String((customer as any).creditLimit),
         });
         setCurrentIndex(index);
         setCustomerPosition(index + 1);
@@ -386,13 +386,13 @@ const AddCustomer: React.FC<AddCustomerProps> = ({
                             customer.openingBalance === 0 ||
                             customer.openingBalance === null
                               ? ""
-                              : customer.openingBalance,
+                              : String(customer.openingBalance),
                           creditLimit:
                             (customer as any).creditLimit === 0 ||
                             (customer as any).creditLimit === null ||
                             (customer as any).creditLimit === undefined
                               ? ""
-                              : (customer as any).creditLimit,
+                              : String((customer as any).creditLimit),
                         });
                       }
                       setIsReadOnly(true);
