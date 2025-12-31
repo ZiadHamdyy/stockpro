@@ -13,6 +13,7 @@ import {
 import { useGetSalesInvoicesQuery } from '../../../store/slices/salesInvoice/salesInvoiceApiSlice';
 import { useGetPurchaseInvoicesQuery } from '../../../store/slices/purchaseInvoice/purchaseInvoiceApiSlice';
 import { useGetPaymentVouchersQuery } from '../../../store/slices/paymentVoucherApiSlice';
+import { useAuth } from '../../../hook/Auth';
 
 declare var Chart: any;
 
@@ -35,6 +36,7 @@ const FinancialPerformanceReport: React.FC<FinancialPerformanceReportProps> = ({
     const { data: apiSalesInvoices = [], isLoading: salesLoading } = useGetSalesInvoicesQuery();
     const { data: apiPurchaseInvoices = [], isLoading: purchasesLoading } = useGetPurchaseInvoicesQuery();
     const { data: apiPaymentVouchers = [], isLoading: vouchersLoading } = useGetPaymentVouchersQuery();
+    const { User } = useAuth();
 
     const isLoading = salesLoading || purchasesLoading || vouchersLoading;
 
@@ -343,8 +345,13 @@ const FinancialPerformanceReport: React.FC<FinancialPerformanceReportProps> = ({
         <div className="bg-white p-6 rounded-lg shadow">
             <div id="printable-area">
                 <ReportHeader title={title} />
-                <div className="text-right mb-2">
-                    <span className="font-semibold text-gray-800">التاريخ:</span> {new Date().toLocaleDateString('ar-EG', { year: 'numeric', month: 'long', day: 'numeric' })}
+                <div className="text-right mb-2 flex justify-between items-center">
+                    <div>
+                        <span className="font-semibold text-gray-800">المستخدم:</span> {User?.name || 'غير محدد'}
+                    </div>
+                    <div>
+                        <span className="font-semibold text-gray-800">التاريخ:</span> {new Date().toLocaleDateString('ar-EG', { year: 'numeric', month: 'long', day: 'numeric' })}
+                    </div>
                 </div>
                 
                 {/* Controls (screen only) */}
