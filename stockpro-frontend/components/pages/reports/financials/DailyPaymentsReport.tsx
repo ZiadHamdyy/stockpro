@@ -232,13 +232,13 @@ const DailyPaymentsReport: React.FC<DailyPaymentsReportProps> = ({
                     table { width: 100%; border-collapse: collapse; font-size: 13px !important; }
                     th { font-size: 13px !important; font-weight: bold !important; }
                     td { font-size: 13px !important; }
-                    .bg-brand-blue { background-color: #1E40AF !important; }
+                    .bg-brand-green { background-color: #059669 !important; }
                     .text-white { color: white !important; }
                     .bg-gray-50 { background-color: #F9FAFB !important; }
                     .bg-gray-100 { background-color: #F3F4F6 !important; }
                     .bg-green-100 { background-color: #D1FAE5 !important; }
                     .bg-red-100 { background-color: #FEE2E2 !important; }
-                    .text-brand-blue { color: #1E40AF !important; }
+                    .text-brand-green { color: #059669 !important; }
                     .text-gray-700 { color: #374151 !important; }
                     .text-gray-800 { color: #1F2937 !important; }
                     .text-green-600 { color: #059669 !important; }
@@ -261,14 +261,14 @@ const DailyPaymentsReport: React.FC<DailyPaymentsReportProps> = ({
   };
 
   const inputStyle =
-    "p-2 border-2 border-brand-blue rounded-md focus:outline-none focus:ring-2 focus:ring-brand-blue bg-brand-blue-bg";
+    "p-2 bg-brand-green-bg border-2 border-brand-green rounded-md text-black placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-brand-green";
 
   if (isLoading) {
     return (
       <div className="bg-white p-6 rounded-lg shadow">
         <div className="flex justify-center items-center h-64">
           <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand-blue mx-auto mb-4"></div>
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand-green mx-auto mb-4"></div>
             <p className="text-gray-600">جاري تحميل البيانات...</p>
           </div>
         </div>
@@ -352,7 +352,7 @@ const DailyPaymentsReport: React.FC<DailyPaymentsReportProps> = ({
             />
             <button 
               onClick={() => refetchVouchers()}
-              className="px-6 py-2 bg-brand-blue text-white rounded-md hover:bg-blue-800 font-semibold flex items-center gap-2"
+              className="px-6 py-2 bg-brand-green text-white rounded-md hover:bg-green-700 font-semibold flex items-center gap-2"
             >
               <SearchIcon className="w-5 h-5" />
               <span>عرض التقرير</span>
@@ -413,9 +413,9 @@ const DailyPaymentsReport: React.FC<DailyPaymentsReportProps> = ({
         </PermissionWrapper>
         </div>
 
-        <div className="overflow-x-auto border-2 border-brand-blue rounded-lg">
+        <div className="overflow-x-auto border-2 border-brand-green rounded-lg">
           <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-brand-blue">
+            <thead className="bg-brand-green">
               <tr>
                 <th className="px-6 py-3 text-right text-sm font-semibold text-white uppercase">
                   م
@@ -451,7 +451,7 @@ const DailyPaymentsReport: React.FC<DailyPaymentsReportProps> = ({
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
               {filteredVouchers.map((voucher, index) => (
-                <tr key={voucher.id} className="hover:bg-brand-blue-bg">
+                <tr key={voucher.id} className="hover:bg-brand-green-bg">
                   <td className="px-6 py-4">{index + 1}</td>
                   <td className="px-6 py-4 w-36">{voucher.date.substring(0, 10)}</td>
                   <td className="px-6 py-4">
@@ -468,7 +468,7 @@ const DailyPaymentsReport: React.FC<DailyPaymentsReportProps> = ({
                           console.error("Voucher ID is missing:", voucher);
                         }
                       }}
-                      className="text-brand-blue hover:underline font-semibold no-print cursor-pointer"
+                      className="text-brand-green hover:underline font-semibold no-print cursor-pointer"
                       title="فتح سند الصرف"
                     >
                       {voucher.code}
@@ -493,7 +493,7 @@ const DailyPaymentsReport: React.FC<DailyPaymentsReportProps> = ({
                 </tr>
               ))}
             </tbody>
-            <tfoot className="bg-brand-blue text-white">
+            <tfoot className="bg-brand-green text-white">
               <tr className="font-bold text-white">
                 <td colSpan={6} className="px-6 py-3 text-right text-white">
                   الإجمالي
