@@ -277,14 +277,16 @@ const TotalRevenuesReport: React.FC<TotalRevenuesReportProps> = ({
                 td { font-size: 13px; }
                 @page { size: landscape; }
                 @media print {
-                    body { -webkit-print-color-adjust: exact !important; color-adjust: exact !important; font-size: 14px !important; }
+                    body { -webkit-print-color-adjust: exact !important; color-adjust: exact !important; font-size: 14px !important; margin: 0; padding: 10px; }
                     .no-print, .no-print * { display: none !important; visibility: hidden !important; }
                     #printable-container { overflow: visible !important; }
                     thead { display: table-header-group; }
                     tfoot { display: table-footer-group; }
-                    table { width: 100%; border-collapse: collapse; font-size: 13px !important; }
-                    th { font-size: 13px !important; font-weight: bold !important; border-left: 1px solid #D1D5DB !important; }
-                    td { font-size: 13px !important; border-left: 1px solid #D1D5DB !important; }
+                    table { width: 100%; border-collapse: collapse; font-size: 12px !important; }
+                    th { font-size: 12px !important; font-weight: bold !important; border-left: 1px solid #D1D5DB !important; padding: 6px 8px !important; }
+                    td { font-size: 12px !important; border-left: 1px solid #D1D5DB !important; padding: 4px 8px !important; }
+                    tfoot td { padding: 4px 8px !important; }
+                    tfoot th { padding: 4px 8px !important; }
                     .bg-brand-green { background-color: #059669 !important; }
                     .text-white { color: white !important; }
                     .bg-gray-50 { background-color: #F9FAFB !important; }
@@ -522,18 +524,18 @@ const TotalRevenuesReport: React.FC<TotalRevenuesReportProps> = ({
             </tbody>
             <tfoot className="bg-brand-green text-white">
               <tr className="font-bold">
-                <td className="px-4 py-3 text-right text-white sticky right-0 bg-brand-green z-10 border-l border-gray-300">
+                <td className="px-2 py-1 text-right text-white sticky right-0 bg-brand-green z-10 border-l border-gray-300">
                   الإجمالي الشهري
                 </td>
                 {monthlyTotals.map((total, index) => (
                   <td
                     key={index}
-                    className={`px-4 py-3 text-center text-white whitespace-nowrap border-l border-gray-300 ${getNegativeNumberClassForTotal(total)}`}
+                    className={`px-2 py-1 text-center text-white whitespace-nowrap border-l border-gray-300 ${getNegativeNumberClassForTotal(total)}`}
                   >
                     {formatNumber(total)}
                   </td>
                 ))}
-                <td className={`px-4 py-3 text-center text-white whitespace-nowrap border-l border-gray-300 ${getNegativeNumberClassForTotal(grandTotal)}`}>
+                <td className={`px-2 py-1 text-center text-white whitespace-nowrap border-l border-gray-300 ${getNegativeNumberClassForTotal(grandTotal)}`}>
                   {formatNumber(grandTotal)}
                 </td>
               </tr>
