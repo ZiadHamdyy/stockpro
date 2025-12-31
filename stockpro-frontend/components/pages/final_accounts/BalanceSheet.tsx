@@ -36,6 +36,18 @@ import { getInventoryValuationMethod } from "../../../utils/financialSystem";
 
 const flipSign = (value: number) => (value === 0 ? 0 : value * -1);
 
+/**
+ * Balance Sheet Component
+ * 
+ * IMPORTANT: This component displays COMPANY-WIDE financial data.
+ * All calculations aggregate data across ALL branches regardless of:
+ * - User's branch assignment
+ * - User permissions
+ * - Branch filters
+ * 
+ * The backend services already aggregate correctly by companyId only.
+ * Frontend calculations ensure all data is processed without branch filtering.
+ */
 const BalanceSheet: React.FC = () => {
   const title = "قائمة المركز المالي";
   const currentYear = new Date().getFullYear();
@@ -74,6 +86,8 @@ const BalanceSheet: React.FC = () => {
     };
   }, [endDate]);
 
+  // COMPANY-WIDE DATA FETCHING: All queries use undefined to fetch ALL company data
+  // Backend APIs filter by companyId only, ensuring all branches are included
   // VAT-related data (same sources as VATStatementReport)
   const { data: apiSalesInvoices = [] } = useGetSalesInvoicesQuery(undefined);
   const { data: apiSalesReturns = [] } = useGetSalesReturnsQuery(undefined);
@@ -93,7 +107,8 @@ const BalanceSheet: React.FC = () => {
     { skip: !startDate || !endDate }
   );
 
-  // Inventory calculation data (same as InventoryValuationReport)
+  // COMPANY-WIDE DATA: Inventory calculation data (same as InventoryValuationReport)
+  // All queries fetch data for entire company, not filtered by branch
   const { data: apiItems = [] } = useGetItemsQuery(undefined);
   const { data: branches = [] } = useGetBranchesQuery(undefined);
   const { data: stores = [] } = useGetStoresQuery(undefined);
@@ -383,7 +398,11 @@ const BalanceSheet: React.FC = () => {
     return totalCost / totalQty;
   }, [transformedPurchaseInvoices, normalizeDate, toNumber]);
 
-  // Calculate inventory value using the same logic as InventoryValuationReport (for all branches)
+  /**
+   * Calculate inventory value - COMPANY-WIDE calculation
+   * Aggregates inventory across ALL branches and stores
+   * No branch filtering is applied - all transactions from all branches are included
+   */
   const calculatedInventoryValue = useMemo(() => {
     const normalizedEndDate = normalizeDate(endDate);
     if (!normalizedEndDate || items.length === 0) return 0;
@@ -551,7 +570,11 @@ const BalanceSheet: React.FC = () => {
     });
   }, [apiPaymentVouchers, normalizeDate]);
 
-  // Calculate payables using the same logic as SupplierBalanceReport
+  /**
+   * Calculate payables - COMPANY-WIDE calculation
+   * Aggregates supplier balances across ALL branches
+   * All purchase invoices, returns, and vouchers from all branches are included
+   */
   const calculatedPayables = useMemo(() => {
     const normalizedEndDate = normalizeDate(endDate);
     if (!normalizedEndDate) return 0;
@@ -674,8 +697,11 @@ const BalanceSheet: React.FC = () => {
     toNumber,
   ]);
 
-  // Calculate other revenues exactly as in IncomeStatement
-  // Sum of all receipt vouchers with entityType === 'revenue' within date range
+  /**
+   * Calculate other revenues - COMPANY-WIDE calculation
+   * Sum of all receipt vouchers with entityType === 'revenue' within date range
+   * Includes vouchers from all branches
+   */
   const calculatedOtherRevenues = useMemo(() => {
     const normalizedStartDate = normalizeDate(startDate);
     const normalizedEndDate = normalizeDate(endDate);
@@ -695,8 +721,11 @@ const BalanceSheet: React.FC = () => {
       .reduce((sum, voucher) => sum + (voucher.amount || 0), 0);
   }, [apiReceiptVouchers, startDate, endDate, normalizeDate]);
 
-  // Calculate net purchases exactly as in IncomeStatement
-  // (purchases before tax - purchase discounts - purchase returns before tax + return discounts)
+  /**
+   * Calculate net purchases - COMPANY-WIDE calculation
+   * (purchases before tax - purchase discounts - purchase returns before tax + return discounts)
+   * Includes all purchase invoices and returns from all branches
+   */
   const calculatedNetPurchases = useMemo(() => {
     const normalizedStartDate = normalizeDate(startDate);
     const normalizedEndDate = normalizeDate(endDate);
@@ -739,8 +768,11 @@ const BalanceSheet: React.FC = () => {
     );
   }, [apiPurchaseInvoices, apiPurchaseReturns, startDate, endDate, normalizeDate, toNumber]);
 
-  // Calculate allowed discount exactly as in IncomeStatement
-  // total sales discounts - total sales returns discounts
+  /**
+   * Calculate allowed discount - COMPANY-WIDE calculation
+   * total sales discounts - total sales returns discounts
+   * Includes discounts from all sales invoices and returns across all branches
+   */
   const allowedDiscount = useMemo(() => {
     const normalizedStartDate = normalizeDate(startDate);
     const normalizedEndDate = normalizeDate(endDate);
@@ -781,7 +813,11 @@ const BalanceSheet: React.FC = () => {
            incomeStatementData.totalExpenses;
   }, [incomeStatementData, calculatedInventoryValue, calculatedOtherRevenues, netSalesAfterDiscount, calculatedNetPurchases]);
 
-  // Calculate retained earnings with fiscal year logic
+  /**
+   * Calculate retained earnings - COMPANY-WIDE calculation
+   * Includes retained earnings from all previous closed fiscal years
+   * Plus current period net profit and P&L vouchers from all branches
+   */
   const calculatedRetainedEarnings = useMemo(() => {
     const normalizedStartDate = normalizeDate(startDate);
     const normalizedEndDate = normalizeDate(endDate);
@@ -879,9 +915,19 @@ const BalanceSheet: React.FC = () => {
     };
   }, [balanceSheetData, calculatedRetainedEarnings, calculatedInventoryValue, calculatedPayables]);
 
-  // Compute VAT net from مدين/دائن totals (same logic as VATStatementReport)
-  // Includes opening balance (transactions before startDate) to carry forward to future
+  /**
+   * Compute VAT net - COMPANY-WIDE calculation
+   * Calculates VAT from مدين/دائن totals (same logic as VATStatementReport)
+   * Includes opening balance (transactions before startDate) to carry forward to future
+   * All VAT transactions from all branches are included
+   */
   const vatNetFromStatement = useMemo(() => {
+    // Check if VAT is enabled
+    const isVatEnabled = companyInfo?.isVatEnabled || false;
+    if (!isVatEnabled) {
+      return 0;
+    }
+    
     const normalizedStartDate = normalizeDate(startDate);
     const normalizedEndDate = normalizeDate(endDate);
 
@@ -1059,6 +1105,7 @@ const BalanceSheet: React.FC = () => {
     normalizeDate,
     startDate,
     endDate,
+    companyInfo,
   ]);
 
   const handlePrint = () => {

@@ -36,6 +36,18 @@ type StatementRow = {
 
 const asNegative = (value: number): number => (value === 0 ? 0 : -Math.abs(value));
 
+/**
+ * Income Statement Component
+ * 
+ * IMPORTANT: This component displays COMPANY-WIDE financial data.
+ * All calculations aggregate data across ALL branches regardless of:
+ * - User's branch assignment
+ * - User permissions
+ * - Branch filters
+ * 
+ * The backend services already aggregate correctly by companyId only.
+ * Frontend calculations ensure all data is processed without branch filtering.
+ */
 const IncomeStatement: React.FC = () => {
   const title = "قائمة الدخل";
   const currentYear = new Date().getFullYear();
@@ -107,6 +119,8 @@ const IncomeStatement: React.FC = () => {
   // Fetch expense types to display dynamically
   const { data: expenseTypes = [] } = useGetExpenseTypesQuery();
 
+  // COMPANY-WIDE DATA FETCHING: All queries use undefined to fetch ALL company data
+  // Backend APIs filter by companyId only, ensuring all branches are included
   // Fetch data for inventory calculation
   const { data: apiItems = [] } = useGetItemsQuery(undefined);
   const { data: apiSalesInvoices = [] } = useGetSalesInvoicesQuery();
@@ -402,7 +416,11 @@ const IncomeStatement: React.FC = () => {
     return totalCost / totalQty;
   }, [transformedPurchaseInvoices, normalizeDate, toNumber]);
 
-  // Calculate inventory value using the same logic as LiquidityReport
+  /**
+   * Calculate ending inventory - COMPANY-WIDE calculation
+   * Aggregates inventory across ALL branches and stores
+   * No branch filtering is applied - all transactions from all branches are included
+   */
   const calculatedEndingInventory = useMemo(() => {
     const normalizedEndDate = normalizeDate(endDate);
     if (!normalizedEndDate || transformedItems.length === 0) return 0;
@@ -524,8 +542,11 @@ const IncomeStatement: React.FC = () => {
     cogsValuationMethod, // Include in dependencies to trigger recalculation when method changes
   ]);
 
-  // Calculate other revenues exactly as in RevenueStatementReport
-  // Sum of all receipt vouchers with entityType === 'revenue' within date range
+  /**
+   * Calculate other revenues - COMPANY-WIDE calculation
+   * Sum of all receipt vouchers with entityType === 'revenue' within date range
+   * Includes vouchers from all branches
+   */
   const calculatedOtherRevenues = useMemo(() => {
     const normalizedStartDate = normalizeDate(startDate);
     const normalizedEndDate = normalizeDate(endDate);
@@ -545,7 +566,11 @@ const IncomeStatement: React.FC = () => {
       .reduce((sum, voucher) => sum + (voucher.amount || 0), 0);
   }, [apiReceiptVouchers, startDate, endDate, normalizeDate]);
 
-  // Calculate net purchases: (purchases before tax - purchase discounts - purchase returns before tax + return discounts)
+  /**
+   * Calculate net purchases - COMPANY-WIDE calculation
+   * (purchases before tax - purchase discounts - purchase returns before tax + return discounts)
+   * Includes all purchase invoices and returns from all branches
+   */
   const calculatedNetPurchases = useMemo(() => {
     const normalizedStartDate = normalizeDate(startDate);
     const normalizedEndDate = normalizeDate(endDate);
@@ -588,7 +613,11 @@ const IncomeStatement: React.FC = () => {
     );
   }, [apiPurchaseInvoices, apiPurchaseReturns, startDate, endDate, normalizeDate, toNumber]);
 
-  // Calculate allowed discount: total sales discounts - total sales returns discounts
+  /**
+   * Calculate allowed discount - COMPANY-WIDE calculation
+   * total sales discounts - total sales returns discounts
+   * Includes discounts from all sales invoices and returns across all branches
+   */
   const allowedDiscount = useMemo(() => {
     const normalizedStartDate = normalizeDate(startDate);
     const normalizedEndDate = normalizeDate(endDate);
