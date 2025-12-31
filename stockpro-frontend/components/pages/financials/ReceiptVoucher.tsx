@@ -382,7 +382,9 @@ const ReceiptVoucher: React.FC<ReceiptVoucherProps> = ({ title }) => {
     const { type, id } = voucherData.entity;
     if (!id) return null;
     const idStr = String(id);
-    const currentVoucherId = voucherData.number;
+    // Get the current voucher's database ID (not the code) to properly exclude it from calculations
+    const currentVoucher = currentIndex >= 0 ? vouchers[currentIndex] : null;
+    const currentVoucherId = currentVoucher?.id;
 
     let balance = 0;
     let lastInvoice = undefined;
@@ -549,7 +551,8 @@ const ReceiptVoucher: React.FC<ReceiptVoucherProps> = ({ title }) => {
   }, [
     voucherData.entity.id, 
     voucherData.entity.type, 
-    voucherData.number,
+    currentIndex,
+    vouchers,
     customers, 
     suppliers, 
     currentAccounts, 
@@ -558,7 +561,6 @@ const ReceiptVoucher: React.FC<ReceiptVoucherProps> = ({ title }) => {
     payableAccounts,
     salesInvoices, 
     salesReturns, 
-    vouchers,
     paymentVouchers
   ]);
 
