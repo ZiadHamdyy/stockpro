@@ -3,7 +3,7 @@ import type { CompanyInfo, Branch, User, Invoice } from "../../../../types";
 import { ExcelIcon, PdfIcon, PrintIcon, SearchIcon } from "../../../icons";
 import ReportHeader from "../ReportHeader";
 import PermissionWrapper from "../../../common/PermissionWrapper";
-import { formatNumber, getNegativeNumberClass } from "../../../../utils/formatting";
+import { formatNumber, getNegativeNumberClass, exportToExcel } from "../../../../utils/formatting";
 import { useGetSalesInvoicesQuery } from "../../../store/slices/salesInvoice/salesInvoiceApiSlice";
 import { useGetSalesReturnsQuery } from "../../../store/slices/salesReturn/salesReturnApiSlice";
 import { useGetPurchaseInvoicesQuery } from "../../../store/slices/purchaseInvoice/purchaseInvoiceApiSlice";
@@ -327,6 +327,47 @@ const TaxDeclarationReport: React.FC<TaxDeclarationReportProps> = ({
     handleViewReport();
   }, [handleViewReport]);
 
+  const handleExcelExport = () => {
+    const dataToExport = [
+      {
+        البند: "المبيعات",
+        "القيمة بدون ضريبة": formatNumber(reportData.salesSubtotal),
+        "قيمة الضريبة": formatNumber(reportData.salesTax),
+      },
+      {
+        البند: "مرتجعات المبيعات",
+        "القيمة بدون ضريبة": formatNumber(reportData.returnsSubtotal),
+        "قيمة الضريبة": formatNumber(reportData.returnsTax),
+      },
+      {
+        البند: "المشتريات",
+        "القيمة بدون ضريبة": formatNumber(reportData.purchasesSubtotal),
+        "قيمة الضريبة": formatNumber(reportData.purchasesTax),
+      },
+      {
+        البند: "مرتجعات المشتريات",
+        "القيمة بدون ضريبة": formatNumber(reportData.purchaseReturnsSubtotal),
+        "قيمة الضريبة": formatNumber(reportData.purchaseReturnsTax),
+      },
+      {
+        البند: "ضريبة المخرجات (المبيعات)",
+        "القيمة بدون ضريبة": "",
+        "قيمة الضريبة": formatNumber(reportData.outputVat),
+      },
+      {
+        البند: "ضريبة المدخلات (المشتريات)",
+        "القيمة بدون ضريبة": "",
+        "قيمة الضريبة": formatNumber(reportData.inputVat),
+      },
+      {
+        البند: "صافي الضريبة المستحقة",
+        "القيمة بدون ضريبة": "",
+        "قيمة الضريبة": formatNumber(reportData.netVat),
+      },
+    ];
+    exportToExcel(dataToExport, "إقرار_ضريبي");
+  };
+
   const handlePrint = () => {
     const reportContent = document.getElementById("printable-area");
     if (!reportContent) return;
@@ -508,6 +549,7 @@ const TaxDeclarationReport: React.FC<TaxDeclarationReportProps> = ({
           >
             <div className="no-print flex items-center gap-2">
               <button
+                onClick={handleExcelExport}
                 title="تصدير Excel"
                 className="p-3 border-2 border-gray-200 rounded-md hover:bg-gray-100"
               >
