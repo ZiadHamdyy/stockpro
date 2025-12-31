@@ -275,18 +275,30 @@ const TotalRevenuesReport: React.FC<TotalRevenuesReportProps> = ({
                 table { font-size: 13px; }
                 th { font-size: 13px; font-weight: bold; }
                 td { font-size: 13px; }
-                @page { size: landscape; }
+                @page {
+                    size: landscape;
+                    @bottom-center {
+                        content: counter(page) " / " counter(pages);
+                        font-family: "Cairo", sans-serif;
+                        font-size: 12px;
+                        color: #1F2937;
+                    }
+                }
                 @media print {
                     body { -webkit-print-color-adjust: exact !important; color-adjust: exact !important; font-size: 14px !important; margin: 0; padding: 10px; }
                     .no-print, .no-print * { display: none !important; visibility: hidden !important; }
                     #printable-container { overflow: visible !important; }
                     thead { display: table-header-group; }
-                    tfoot { display: table-footer-group; }
+                    tfoot { display: table-row-group !important; }
                     table { width: 100%; border-collapse: collapse; font-size: 12px !important; }
                     th { font-size: 12px !important; font-weight: bold !important; border-left: 1px solid #D1D5DB !important; padding: 6px 8px !important; }
-                    td { font-size: 12px !important; border-left: 1px solid #D1D5DB !important; padding: 4px 8px !important; }
-                    tfoot td { padding: 4px 8px !important; }
-                    tfoot th { padding: 4px 8px !important; }
+                    td { font-size: 12px !important; border-left: 1px solid #D1D5DB !important; padding: 6px 8px !important; }
+                    tbody tr:first-child { background: #FFFFFF !important; }
+                    tbody tr:nth-child(2n+2) { background: #D1D5DB !important; }
+                    tbody tr:nth-child(2n+3) { background: #FFFFFF !important; }
+                    tfoot tr { page-break-inside: avoid !important; break-inside: avoid !important; }
+                    tfoot td { padding: 6px 8px !important; }
+                    tfoot th { padding: 6px 8px !important; }
                     .bg-brand-green { background-color: #059669 !important; }
                     .text-white { color: white !important; }
                     .bg-gray-50 { background-color: #F9FAFB !important; }
