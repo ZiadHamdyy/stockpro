@@ -274,6 +274,25 @@ const ReceivableAccountStatementReport: React.FC<
     return selectedAccount.openingBalance + paymentsBefore - receiptsBefore;
   }, [selectedAccount, transformedReceiptVouchers, transformedPaymentVouchers, startDate, normalizeDate]);
 
+  // Helper function to build description for statement
+  const buildDescription = (
+    voucher: any,
+    voucherType: "receipt" | "payment",
+    accountType: "receivable_account"
+  ): string => {
+    // Use voucher description if available and not empty
+    if (voucher.description && voucher.description.trim() !== "") {
+      return voucher.description;
+    }
+    
+    // Build appropriate description based on voucher type
+    if (voucherType === "payment") {
+      return "دفعه من حسابه";
+    } else {
+      return "تحصيل";
+    }
+  };
+
   const reportData = useMemo(() => {
     if (!selectedAccountId) return [];
     const accountId = selectedAccountId.toString(); // Keep as string for comparison
@@ -306,7 +325,7 @@ const ReceivableAccountStatementReport: React.FC<
         if (branchMatch) {
           transactions.push({
             date: v.date,
-            description: "سند صرف",
+            description: buildDescription(v, "payment", "receivable_account"),
             ref: v.code || v.id,
             voucherId: v.id,
             voucherType: "payment",
@@ -332,7 +351,7 @@ const ReceivableAccountStatementReport: React.FC<
         if (branchMatch) {
           transactions.push({
             date: v.date,
-            description: "سند قبض",
+            description: buildDescription(v, "receipt", "receivable_account"),
             ref: v.code || v.id,
             voucherId: v.id,
             voucherType: "receipt",
