@@ -293,14 +293,14 @@ const getInvoiceBranchMeta = (invoice: any) => {
     return supplier?.currentBalance || 0;
   }, [selectedSupplier, allSuppliers]);
 
-  // Show balance bar when credit payment and supplier is selected
+  // Show balance bar when supplier is selected
   useEffect(() => {
-    if (paymentMethod === "credit" && selectedSupplier && !isReadOnly) {
+    if (selectedSupplier && !isReadOnly) {
       setShowBalanceBar(true);
     } else {
       setShowBalanceBar(false);
     }
-  }, [paymentMethod, selectedSupplier, isReadOnly]);
+  }, [selectedSupplier, isReadOnly]);
 
   const hasPrintableItems = useMemo(
     () =>

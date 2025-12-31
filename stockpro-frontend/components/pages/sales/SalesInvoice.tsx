@@ -470,14 +470,14 @@ const SalesInvoice: React.FC<SalesInvoiceProps> = ({
     return customer?.currentBalance || 0;
   }, [selectedCustomer, allCustomers]);
 
-  // Show balance bar when credit payment and customer is selected
+  // Show balance bar when customer is selected
   useEffect(() => {
-    if (paymentMethod === "credit" && selectedCustomer && !isReadOnly) {
+    if (selectedCustomer && !isReadOnly) {
       setShowBalanceBar(true);
     } else {
       setShowBalanceBar(false);
     }
-  }, [paymentMethod, selectedCustomer, isReadOnly]);
+  }, [selectedCustomer, isReadOnly]);
 
   const focusedItemData = useMemo(() => {
     if (focusedQtyIndex !== null && invoiceItems[focusedQtyIndex] && invoiceItems[focusedQtyIndex].id) {
