@@ -23,6 +23,18 @@ interface FinancialPerformanceReportProps {
 
 const months = ['يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو', 'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'];
 
+/**
+ * Financial Performance Report Component
+ * 
+ * IMPORTANT: This component displays COMPANY-WIDE financial data.
+ * All calculations aggregate data across ALL branches regardless of:
+ * - User's branch assignment
+ * - User permissions
+ * - Branch filters
+ * 
+ * The report shows financial performance metrics (sales, purchases, expenses)
+ * aggregated across the entire company.
+ */
 const FinancialPerformanceReport: React.FC<FinancialPerformanceReportProps> = ({ title }) => {
     const currentYear = new Date().getFullYear();
     const [year, setYear] = useState(currentYear);
@@ -32,10 +44,12 @@ const FinancialPerformanceReport: React.FC<FinancialPerformanceReportProps> = ({
     const chartRef = useRef<HTMLCanvasElement>(null);
     const chartInstance = useRef<any>(null);
 
+    // COMPANY-WIDE DATA FETCHING: All queries use undefined to fetch ALL company data
+    // Backend APIs filter by companyId only, ensuring all branches are included
     // Fetch data from Redux
-    const { data: apiSalesInvoices = [], isLoading: salesLoading } = useGetSalesInvoicesQuery();
-    const { data: apiPurchaseInvoices = [], isLoading: purchasesLoading } = useGetPurchaseInvoicesQuery();
-    const { data: apiPaymentVouchers = [], isLoading: vouchersLoading } = useGetPaymentVouchersQuery();
+    const { data: apiSalesInvoices = [], isLoading: salesLoading } = useGetSalesInvoicesQuery(undefined);
+    const { data: apiPurchaseInvoices = [], isLoading: purchasesLoading } = useGetPurchaseInvoicesQuery(undefined);
+    const { data: apiPaymentVouchers = [], isLoading: vouchersLoading } = useGetPaymentVouchersQuery(undefined);
     const { User } = useAuth();
 
     const isLoading = salesLoading || purchasesLoading || vouchersLoading;

@@ -18,15 +18,28 @@ interface VIPCustomersReportProps {
     title: string;
 }
 
+/**
+ * VIP Customers Report Component
+ * 
+ * IMPORTANT: This component displays COMPANY-WIDE financial data.
+ * All calculations aggregate data across ALL branches regardless of:
+ * - User's branch assignment
+ * - User permissions
+ * - Branch filters
+ * 
+ * The report shows VIP customers analysis aggregated across the entire company.
+ */
 const VIPCustomersReport: React.FC<VIPCustomersReportProps> = ({ title }) => {
     const currentYear = new Date().getFullYear();
     const [startDate, setStartDate] = useState(`${currentYear}-01-01`);
     const [endDate, setEndDate] = useState(`${currentYear}-12-31`);
 
+    // COMPANY-WIDE DATA FETCHING: All queries use undefined to fetch ALL company data
+    // Backend APIs filter by companyId only, ensuring all branches are included
     // Fetch data from Redux
-    const { data: apiCustomers = [], isLoading: customersLoading } = useGetCustomersQuery();
-    const { data: apiSalesInvoices = [], isLoading: salesLoading } = useGetSalesInvoicesQuery();
-    const { data: apiSalesReturns = [], isLoading: returnsLoading } = useGetSalesReturnsQuery();
+    const { data: apiCustomers = [], isLoading: customersLoading } = useGetCustomersQuery(undefined);
+    const { data: apiSalesInvoices = [], isLoading: salesLoading } = useGetSalesInvoicesQuery(undefined);
+    const { data: apiSalesReturns = [], isLoading: returnsLoading } = useGetSalesReturnsQuery(undefined);
 
     const isLoading = customersLoading || salesLoading || returnsLoading;
 

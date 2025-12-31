@@ -19,6 +19,17 @@ interface ItemProfitabilityReportProps {
     title: string;
 }
 
+/**
+ * Item Profitability Report Component
+ * 
+ * IMPORTANT: This component displays COMPANY-WIDE financial data.
+ * All calculations aggregate data across ALL branches regardless of:
+ * - User's branch assignment
+ * - User permissions
+ * - Branch filters
+ * 
+ * The report shows item profitability analysis aggregated across the entire company.
+ */
 const ItemProfitabilityReport: React.FC<ItemProfitabilityReportProps> = ({ title }) => {
     const PRINT_PAGE_SIZE = 20;
     const currentYear = new Date().getFullYear();
@@ -26,10 +37,12 @@ const ItemProfitabilityReport: React.FC<ItemProfitabilityReportProps> = ({ title
     const [endDate, setEndDate] = useState(`${currentYear}-12-31`);
     const [searchTerm, setSearchTerm] = useState('');
 
+    // COMPANY-WIDE DATA FETCHING: All queries use undefined to fetch ALL company data
+    // Backend APIs filter by companyId only, ensuring all branches are included
     // Fetch data from Redux
     const { data: apiItems = [], isLoading: itemsLoading } = useGetItemsQuery(undefined);
-    const { data: apiSalesInvoices = [], isLoading: salesLoading } = useGetSalesInvoicesQuery();
-    const { data: apiSalesReturns = [], isLoading: returnsLoading } = useGetSalesReturnsQuery();
+    const { data: apiSalesInvoices = [], isLoading: salesLoading } = useGetSalesInvoicesQuery(undefined);
+    const { data: apiSalesReturns = [], isLoading: returnsLoading } = useGetSalesReturnsQuery(undefined);
     const { data: companyInfo } = useGetCompanyQuery(undefined);
 
     const isLoading = itemsLoading || salesLoading || returnsLoading;

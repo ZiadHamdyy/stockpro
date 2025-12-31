@@ -19,15 +19,28 @@ interface StagnantItemsReportProps {
     title: string;
 }
 
+/**
+ * Stagnant Items Report Component
+ * 
+ * IMPORTANT: This component displays COMPANY-WIDE financial data.
+ * All calculations aggregate data across ALL branches regardless of:
+ * - User's branch assignment
+ * - User permissions
+ * - Branch filters
+ * 
+ * The report shows stagnant items analysis aggregated across the entire company.
+ */
 const StagnantItemsReport: React.FC<StagnantItemsReportProps> = ({ title }) => {
     const PRINT_PAGE_SIZE = 20;
     const [thresholdDays, setThresholdDays] = useState(90);
     const [searchTerm, setSearchTerm] = useState('');
 
+    // COMPANY-WIDE DATA FETCHING: All queries use undefined to fetch ALL company data
+    // Backend APIs filter by companyId only, ensuring all branches are included
     // Fetch data from Redux
     const { data: apiItems = [], isLoading: itemsLoading } = useGetItemsQuery(undefined);
-    const { data: apiSalesInvoices = [], isLoading: salesLoading } = useGetSalesInvoicesQuery();
-    const { data: apiStoreIssueVouchers = [], isLoading: vouchersLoading } = useGetStoreIssueVouchersQuery();
+    const { data: apiSalesInvoices = [], isLoading: salesLoading } = useGetSalesInvoicesQuery(undefined);
+    const { data: apiStoreIssueVouchers = [], isLoading: vouchersLoading } = useGetStoreIssueVouchersQuery(undefined);
     const { data: companyInfo } = useGetCompanyQuery(undefined);
 
     const isLoading = itemsLoading || salesLoading || vouchersLoading;

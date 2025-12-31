@@ -21,11 +21,24 @@ interface DebtAgingReportProps {
     title: string;
 }
 
+/**
+ * Debt Aging Report Component
+ * 
+ * IMPORTANT: This component displays COMPANY-WIDE financial data.
+ * All calculations aggregate data across ALL branches regardless of:
+ * - User's branch assignment
+ * - User permissions
+ * - Branch filters
+ * 
+ * The report shows customer debt aging analysis aggregated across the entire company.
+ */
 const DebtAgingReport: React.FC<DebtAgingReportProps> = ({ title }) => {
     const [searchTerm, setSearchTerm] = useState('');
     const { isAuthed } = useAuth();
     const skip = !isAuthed;
 
+    // COMPANY-WIDE DATA FETCHING: All queries use undefined to fetch ALL company data
+    // Backend APIs filter by companyId only, ensuring all branches are included
     // Fetch data from API
     const { data: apiCustomers = [], isLoading: customersLoading } = useGetCustomersQuery(undefined);
     const { data: apiSalesInvoices = [], isLoading: salesInvoicesLoading } = useGetSalesInvoicesQuery(undefined);

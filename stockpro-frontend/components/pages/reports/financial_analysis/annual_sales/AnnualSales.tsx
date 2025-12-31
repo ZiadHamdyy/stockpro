@@ -12,6 +12,18 @@ interface AnnualSalesProps {
   title?: string;
 }
 
+/**
+ * Annual Sales Report Component
+ * 
+ * IMPORTANT: This component RESPECTS branch filters when branches are selected.
+ * Unlike other financial analysis reports, this report allows filtering by selected branches.
+ * 
+ * - When branches are selected via `selectedBranches`, data is filtered to show only those branches
+ * - When no branches are selected (or all are selected), data shows all branches
+ * - The report uses branch filtering to provide branch-specific sales analysis
+ * 
+ * This is different from other financial analysis reports which always show company-wide data.
+ */
 // Color palette for branches
 const BRANCH_COLORS = [
   '#3b82f6', // blue
@@ -40,9 +52,10 @@ const AnnualSales: React.FC<AnnualSalesProps> = ({ title }) => {
   const yearDropdownRef = useRef<HTMLDivElement>(null);
 
   // Fetch branches
-  const { data: apiBranches = [], isLoading: branchesLoading } = useGetBranchesQuery();
+  const { data: apiBranches = [], isLoading: branchesLoading } = useGetBranchesQuery(undefined);
 
-  // Fetch annual sales report (fetch all branches, filter on frontend)
+  // Fetch annual sales report - data is filtered by selectedBranches on the frontend
+  // The API returns all branches, and we filter based on selectedBranches state
   const { data: salesReport, isLoading: salesLoading, error: salesError } = useGetAnnualSalesReportQuery({
     year: selectedYear,
   });
@@ -138,6 +151,7 @@ const AnnualSales: React.FC<AnnualSalesProps> = ({ title }) => {
   };
 
   // Calculate high-level summary metrics
+  // NOTE: These calculations filter by selectedBranches - only include selected branches
   const totalSales = useMemo(() => {
     return salesData.reduce((acc, curr) => {
       const monthTotal = branches.reduce((sum, branch) => {

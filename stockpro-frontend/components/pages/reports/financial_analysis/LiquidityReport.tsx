@@ -54,24 +54,38 @@ interface LiquidityReportProps {
     title: string;
 }
 
+/**
+ * Liquidity Report Component
+ * 
+ * IMPORTANT: This component displays COMPANY-WIDE financial data.
+ * All calculations aggregate data across ALL branches regardless of:
+ * - User's branch assignment
+ * - User permissions
+ * - Branch filters
+ * 
+ * The report shows liquidity metrics (cash, receivables, payables, inventory)
+ * aggregated across the entire company.
+ */
 const LiquidityReport: React.FC<LiquidityReportProps> = ({ title }) => {
     const currentYear = new Date().getFullYear();
     const defaultStartDate = `${currentYear}-01-01`;
     const defaultEndDate = `${currentYear}-12-31`;
 
+    // COMPANY-WIDE DATA FETCHING: All queries use undefined to fetch ALL company data
+    // Backend APIs filter by companyId only, ensuring all branches are included
     // Fetch data from Redux
-    const { data: apiSafes = [], isLoading: safesLoading } = useGetSafesQuery();
-    const { data: apiBanks = [], isLoading: banksLoading } = useGetBanksQuery();
-    const { data: apiCustomers = [], isLoading: customersLoading } = useGetCustomersQuery();
-    const { data: apiSuppliers = [], isLoading: suppliersLoading } = useGetSuppliersQuery();
+    const { data: apiSafes = [], isLoading: safesLoading } = useGetSafesQuery(undefined);
+    const { data: apiBanks = [], isLoading: banksLoading } = useGetBanksQuery(undefined);
+    const { data: apiCustomers = [], isLoading: customersLoading } = useGetCustomersQuery(undefined);
+    const { data: apiSuppliers = [], isLoading: suppliersLoading } = useGetSuppliersQuery(undefined);
     const { data: apiItems = [], isLoading: itemsLoading } = useGetItemsQuery(undefined);
-    const { data: apiSalesInvoices = [], isLoading: salesLoading } = useGetSalesInvoicesQuery();
-    const { data: apiPurchaseInvoices = [], isLoading: purchasesLoading } = useGetPurchaseInvoicesQuery();
-    const { data: apiSalesReturns = [], isLoading: salesReturnsLoading } = useGetSalesReturnsQuery();
-    const { data: apiPurchaseReturns = [], isLoading: purchaseReturnsLoading } = useGetPurchaseReturnsQuery();
-    const { data: apiReceiptVouchers = [], isLoading: receiptsLoading } = useGetReceiptVouchersQuery();
-    const { data: apiPaymentVouchers = [], isLoading: paymentsLoading } = useGetPaymentVouchersQuery();
-    const { data: apiInternalTransfers = [] } = useGetInternalTransfersQuery();
+    const { data: apiSalesInvoices = [], isLoading: salesLoading } = useGetSalesInvoicesQuery(undefined);
+    const { data: apiPurchaseInvoices = [], isLoading: purchasesLoading } = useGetPurchaseInvoicesQuery(undefined);
+    const { data: apiSalesReturns = [], isLoading: salesReturnsLoading } = useGetSalesReturnsQuery(undefined);
+    const { data: apiPurchaseReturns = [], isLoading: purchaseReturnsLoading } = useGetPurchaseReturnsQuery(undefined);
+    const { data: apiReceiptVouchers = [], isLoading: receiptsLoading } = useGetReceiptVouchersQuery(undefined);
+    const { data: apiPaymentVouchers = [], isLoading: paymentsLoading } = useGetPaymentVouchersQuery(undefined);
+    const { data: apiInternalTransfers = [] } = useGetInternalTransfersQuery(undefined);
     const { data: balanceSheetData, isLoading: balanceSheetLoading } = useGetBalanceSheetQuery({ startDate: defaultStartDate, endDate: defaultEndDate });
     const { data: branches = [] } = useGetBranchesQuery(undefined);
     const { data: stores = [] } = useGetStoresQuery(undefined);
