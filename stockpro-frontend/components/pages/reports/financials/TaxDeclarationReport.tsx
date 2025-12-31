@@ -201,11 +201,15 @@ const TaxDeclarationReport: React.FC<TaxDeclarationReportProps> = ({
 
   // Update dates when quarter is selected
   useEffect(() => {
+    const currentYear = new Date().getFullYear();
     if (selectedQuarter) {
-      const currentYear = new Date().getFullYear();
       const quarterDates = getQuarterDates(selectedQuarter, currentYear);
       setStartDate(quarterDates.start);
       setEndDate(quarterDates.end);
+    } else {
+      // Reset to full year when no quarter is selected
+      setStartDate(`${currentYear}-01-01`);
+      setEndDate(`${currentYear}-12-31`);
     }
   }, [selectedQuarter]);
   const [reportData, setReportData] = useState({
