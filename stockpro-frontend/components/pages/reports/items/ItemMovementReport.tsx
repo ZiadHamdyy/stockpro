@@ -3,7 +3,7 @@ import type { CompanyInfo, User } from "../../../../types";
 import { ExcelIcon, PdfIcon, PrintIcon, SearchIcon } from "../../../icons";
 import ReportHeader from "../ReportHeader";
 import PermissionWrapper from "../../../common/PermissionWrapper";
-import { formatNumber, getNegativeNumberClass, getNegativeNumberClassForTotal } from "../../../../utils/formatting";
+import { formatNumber, getNegativeNumberClass, getNegativeNumberClassForTotal, exportToExcel } from "../../../../utils/formatting";
 import { useGetItemsQuery } from "../../../store/slices/items/itemsApi";
 import { useGetBranchesQuery } from "../../../store/slices/branch/branchApi";
 import { useGetStoresQuery } from "../../../store/slices/store/storeApi";
@@ -612,6 +612,42 @@ const ItemMovementReport: React.FC<ItemMovementReportProps> = ({
   const inputStyle =
     "p-2 border-2 border-brand-blue rounded-md focus:outline-none focus:ring-2 focus:ring-brand-blue bg-brand-blue-bg";
 
+  const handleExcelExport = () => {
+    const dataToExport = [
+      {
+        التاريخ: "رصيد أول المدة",
+        الفرع: "",
+        "نوع الحركة": "",
+        المرجع: "",
+        "سعر الفاتورة": "",
+        وارد: formatNumber(openingBalance),
+        صادر: "",
+        الرصيد: formatNumber(openingBalance),
+      },
+      ...reportData.map((item) => ({
+        التاريخ: item.date.substring(0, 10),
+        الفرع: item.branch,
+        "نوع الحركة": item.type,
+        المرجع: item.code,
+        "سعر الفاتورة": item.invoicePrice !== null && item.invoicePrice !== undefined ? formatNumber(item.invoicePrice) : "-",
+        وارد: formatNumber(item.inward),
+        صادر: formatNumber(item.outward),
+        الرصيد: formatNumber(item.balance),
+      })),
+      {
+        التاريخ: "الإجمالي",
+        الفرع: "",
+        "نوع الحركة": "",
+        المرجع: "",
+        "سعر الفاتورة": "",
+        وارد: formatNumber(totalInward),
+        صادر: formatNumber(totalOutward),
+        الرصيد: formatNumber(finalBalance),
+      },
+    ];
+    exportToExcel(dataToExport, `تقرير_حركة_الصنف_${selectedItemName || "جميع_الأصناف"}`);
+  };
+
   const handlePrint = () => {
     const reportContent = document.getElementById("printable-area");
     if (!reportContent) return;
@@ -836,6 +872,7 @@ const ItemMovementReport: React.FC<ItemMovementReportProps> = ({
           >
             <div className="no-print flex items-center gap-2">
               <button
+                onClick={handleExcelExport}
                 title="تصدير Excel"
                 className="p-3 border-2 border-gray-200 rounded-md hover:bg-gray-100"
               >
