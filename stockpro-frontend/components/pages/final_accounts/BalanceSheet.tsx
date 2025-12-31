@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useCallback } from "react";
+import React, { useMemo, useState, useCallback, useEffect } from "react";
 import { ExcelIcon, PdfIcon, PrintIcon } from "../../icons";
 import ReportHeader from "../reports/ReportHeader";
 import {
@@ -32,6 +32,7 @@ import { useGetStoreIssueVouchersQuery } from "../../store/slices/storeIssueVouc
 import { useGetStoreTransferVouchersQuery } from "../../store/slices/storeTransferVoucher/storeTransferVoucherApi";
 import { useGetSuppliersQuery } from "../../store/slices/supplier/supplierApiSlice";
 import { useAuth } from "../../hook/Auth";
+import { getInventoryValuationMethod } from "../../../utils/financialSystem";
 
 const flipSign = (value: number) => (value === 0 ? 0 : value * -1);
 
@@ -40,6 +41,38 @@ const BalanceSheet: React.FC = () => {
   const currentYear = new Date().getFullYear();
   const [startDate, setStartDate] = useState(`${currentYear}-01-01`);
   const [endDate, setEndDate] = useState(`${currentYear}-12-31`);
+  
+  // Track inventory valuation method from localStorage to trigger recalculation when it changes
+  const [inventoryValuationMethod, setInventoryValuationMethod] = useState(() => getInventoryValuationMethod());
+  
+  // Update valuation method when localStorage changes or component mounts
+  useEffect(() => {
+    const checkValuationMethod = () => {
+      const currentMethod = getInventoryValuationMethod();
+      setInventoryValuationMethod(currentMethod);
+    };
+    
+    // Check on mount and when endDate changes (user might have changed setting in another tab)
+    checkValuationMethod();
+    
+    // Listen for storage events (when localStorage changes in another tab/window)
+    window.addEventListener('storage', checkValuationMethod);
+    
+    // Listen for custom event when inventoryValuationMethod changes in FinancialSystem
+    const handleInventoryValuationMethodChange = () => {
+      checkValuationMethod();
+    };
+    window.addEventListener('inventoryValuationMethodChanged', handleInventoryValuationMethodChange);
+    
+    // Also check periodically in case localStorage was changed in same tab
+    const interval = setInterval(checkValuationMethod, 1000);
+    
+    return () => {
+      window.removeEventListener('storage', checkValuationMethod);
+      window.removeEventListener('inventoryValuationMethodChanged', handleInventoryValuationMethodChange);
+      clearInterval(interval);
+    };
+  }, [endDate]);
 
   // VAT-related data (same sources as VATStatementReport)
   const { data: apiSalesInvoices = [] } = useGetSalesInvoicesQuery(undefined);
@@ -355,7 +388,8 @@ const BalanceSheet: React.FC = () => {
     const normalizedEndDate = normalizeDate(endDate);
     if (!normalizedEndDate || items.length === 0) return 0;
 
-    const valuationMethod = "averageCost"; // Use average cost valuation method
+    // Use the tracked valuation method (will update when localStorage changes)
+    const valuationMethod = inventoryValuationMethod; // Use inventory valuation method from financial system settings (for Balance Sheet)
 
     const valuationData = items.map((item) => {
       // Use StoreItem's openingBalance as base, or 0 if not available
@@ -434,6 +468,9 @@ const BalanceSheet: React.FC = () => {
         } else {
           cost = avgCost;
         }
+      } else if (valuationMethod === "purchasePrice") {
+        const lastPurchasePrice = getLastPurchasePriceBeforeDate(item.code, priceReferenceDate);
+        cost = lastPurchasePrice ?? fallbackPrice;
       } else {
         cost = fallbackPrice;
       }
@@ -466,6 +503,7 @@ const BalanceSheet: React.FC = () => {
     toNumber,
     getLastPurchasePriceBeforeDate,
     calculateWeightedAverageCost,
+    inventoryValuationMethod, // Include in dependencies to trigger recalculation when method changes
   ]);
 
   // Transform vouchers to match expected structure for payables calculation

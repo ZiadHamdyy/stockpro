@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback } from "react";
+import React, { useState, useMemo, useCallback, useEffect } from "react";
 import { ExcelIcon, PdfIcon, PrintIcon } from "../../icons";
 import ReportHeader from "../reports/ReportHeader";
 import {
@@ -26,6 +26,7 @@ import { useGetStoreTransferVouchersQuery } from "../../store/slices/storeTransf
 import { useGetStoresQuery } from "../../store/slices/store/storeApi";
 import { useGetReceiptVouchersQuery } from "../../store/slices/receiptVoucherApiSlice";
 import { useAuth } from "../../hook/Auth";
+import { getCogsValuationMethod } from "../../../utils/financialSystem";
 
 type StatementRow = {
   statement: string;
@@ -40,6 +41,38 @@ const IncomeStatement: React.FC = () => {
   const currentYear = new Date().getFullYear();
   const [startDate, setStartDate] = useState(`${currentYear}-01-01`);
   const [endDate, setEndDate] = useState(`${currentYear}-12-31`);
+  
+  // Track COGS valuation method from localStorage to trigger recalculation when it changes
+  const [cogsValuationMethod, setCogsValuationMethod] = useState(() => getCogsValuationMethod());
+  
+  // Update valuation method when localStorage changes or component mounts
+  useEffect(() => {
+    const checkValuationMethod = () => {
+      const currentMethod = getCogsValuationMethod();
+      setCogsValuationMethod(currentMethod);
+    };
+    
+    // Check on mount and when endDate changes (user might have changed setting in another tab)
+    checkValuationMethod();
+    
+    // Listen for storage events (when localStorage changes in another tab/window)
+    window.addEventListener('storage', checkValuationMethod);
+    
+    // Listen for custom event when cogsMethod changes in FinancialSystem
+    const handleCogsMethodChange = () => {
+      checkValuationMethod();
+    };
+    window.addEventListener('cogsMethodChanged', handleCogsMethodChange);
+    
+    // Also check periodically in case localStorage was changed in same tab
+    const interval = setInterval(checkValuationMethod, 1000);
+    
+    return () => {
+      window.removeEventListener('storage', checkValuationMethod);
+      window.removeEventListener('cogsMethodChanged', handleCogsMethodChange);
+      clearInterval(interval);
+    };
+  }, [endDate]);
 
   const {
     data: financialData,
@@ -374,7 +407,8 @@ const IncomeStatement: React.FC = () => {
     const normalizedEndDate = normalizeDate(endDate);
     if (!normalizedEndDate || transformedItems.length === 0) return 0;
 
-    const valuationMethod = "averageCost"; // Use average cost valuation method
+    // Use the tracked valuation method (will update when localStorage changes)
+    const valuationMethod = cogsValuationMethod; // Use COGS method from financial system settings
 
     const valuationData = transformedItems.map((item) => {
       // Use StoreItem's openingBalance as base, or 0 if not available
@@ -452,6 +486,9 @@ const IncomeStatement: React.FC = () => {
         } else {
           cost = avgCost;
         }
+      } else if (valuationMethod === "purchasePrice") {
+        const lastPurchasePrice = getLastPurchasePriceBeforeDate(item.code, priceReferenceDate);
+        cost = lastPurchasePrice ?? fallbackPrice;
       } else {
         cost = fallbackPrice;
       }
@@ -484,6 +521,7 @@ const IncomeStatement: React.FC = () => {
     toNumber,
     getLastPurchasePriceBeforeDate,
     calculateWeightedAverageCost,
+    cogsValuationMethod, // Include in dependencies to trigger recalculation when method changes
   ]);
 
   // Calculate other revenues exactly as in RevenueStatementReport

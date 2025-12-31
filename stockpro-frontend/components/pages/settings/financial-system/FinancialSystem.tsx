@@ -264,14 +264,38 @@ const FinancialSystem: React.FC<FinancialSystemProps> = ({ title }) => {
       return StrictnessLevel.BLOCK;
     })();
 
+    const storedCogsMethod = (() => {
+      const stored = localStorage.getItem("cogsMethod");
+      if (
+        stored === ValuationMethod.WEIGHTED_AVERAGE ||
+        stored === ValuationMethod.LAST_PURCHASE_PRICE ||
+        stored === ValuationMethod.FIFO
+      ) {
+        return stored as ValuationMethod;
+      }
+      return ValuationMethod.WEIGHTED_AVERAGE;
+    })();
+
+    const storedInventoryValuationMethod = (() => {
+      const stored = localStorage.getItem("inventoryValuationMethod");
+      if (
+        stored === ValuationMethod.WEIGHTED_AVERAGE ||
+        stored === ValuationMethod.LAST_PURCHASE_PRICE ||
+        stored === ValuationMethod.FIFO
+      ) {
+        return stored as ValuationMethod;
+      }
+      return ValuationMethod.WEIGHTED_AVERAGE;
+    })();
+
     return {
       taxPolicy: salePriceIncludesTax ? TaxPolicy.INCLUSIVE : TaxPolicy.EXCLUSIVE,
       defaultTaxRate: 15,
       baseCurrency: 'SAR',
       enableMultiCurrency: false,
       roundingMethod: RoundingMethod.NEAREST_0_05,
-      inventoryValuationMethod: ValuationMethod.WEIGHTED_AVERAGE,
-      cogsMethod: ValuationMethod.WEIGHTED_AVERAGE,
+      inventoryValuationMethod: storedInventoryValuationMethod,
+      cogsMethod: storedCogsMethod,
       autoUpdateSalePriceOnPurchase: false,
       defaultMarginPercentage: 25,
       lockPostedPeriods: true,
@@ -321,6 +345,24 @@ const FinancialSystem: React.FC<FinancialSystemProps> = ({ title }) => {
       JSON.stringify(salePriceIncludesTax)
     );
   }, [config.taxPolicy]);
+
+  useEffect(() => {
+    localStorage.setItem(
+      "cogsMethod",
+      config.cogsMethod
+    );
+    // Dispatch custom event to notify other components
+    window.dispatchEvent(new CustomEvent('cogsMethodChanged', { detail: config.cogsMethod }));
+  }, [config.cogsMethod]);
+
+  useEffect(() => {
+    localStorage.setItem(
+      "inventoryValuationMethod",
+      config.inventoryValuationMethod
+    );
+    // Dispatch custom event to notify other components
+    window.dispatchEvent(new CustomEvent('inventoryValuationMethodChanged', { detail: config.inventoryValuationMethod }));
+  }, [config.inventoryValuationMethod]);
 
   // --- Calculations for Policy Strength ---
   const policyStrength = useMemo(() => {
@@ -481,8 +523,8 @@ const FinancialSystem: React.FC<FinancialSystemProps> = ({ title }) => {
                   onChange={(v: string) => handleChange('inventoryValuationMethod', v)}
                   help="تؤثر على قيمة المخزون في نهاية الفترة."
                   options={[
-                    { value: ValuationMethod.WEIGHTED_AVERAGE, label: 'متوسط التكلفة (WAC)' },
-                    { value: ValuationMethod.FIFO, label: 'الوارد أولاً صادر أولاً (FIFO)' },
+                    { value: ValuationMethod.WEIGHTED_AVERAGE, label: 'متوسط التكلفة' },
+                    { value: ValuationMethod.FIFO, label: 'آخر سعر شراء' },
                   ]}
               />
               
@@ -490,20 +532,13 @@ const FinancialSystem: React.FC<FinancialSystemProps> = ({ title }) => {
                   label="حساب التكلفة (قائمة الدخل)"
                   value={config.cogsMethod}
                   onChange={(v: string) => handleChange('cogsMethod', v)}
+                  help="تؤثر على حساب تكلفة البضاعة المباعة في قائمة الدخل."
                   options={[
                     { value: ValuationMethod.WEIGHTED_AVERAGE, label: 'متوسط التكلفة' },
                     { value: ValuationMethod.LAST_PURCHASE_PRICE, label: 'سعر السوق الحالي' },
                   ]}
               />
-              
-              <div className="pt-4">
-                <Switch 
-                   checked={config.autoUpdateSalePriceOnPurchase}
-                   onChange={() => handleToggle('autoUpdateSalePriceOnPurchase')}
-                   label="تحديث سعر البيع عند الشراء"
-                   description="يقوم النظام تلقائياً برفع سعر البيع للحفاظ على هامش الربح عند ارتفاع تكلفة الشراء."
-                />
-              </div>
+
            </InteractiveCard>
 
            {/* Section 4: Sales Controls */}
