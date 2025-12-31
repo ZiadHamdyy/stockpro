@@ -3,7 +3,7 @@ import type { CompanyInfo, User, Voucher } from "../../../../types";
 import { ExcelIcon, PdfIcon, PrintIcon, SearchIcon } from "../../../icons";
 import ReportHeader from "../ReportHeader";
 import PermissionWrapper from '../../../common/PermissionWrapper';
-import { formatNumber, getNegativeNumberClass, getNegativeNumberClassForTotal } from "../../../../utils/formatting";
+import { formatNumber, getNegativeNumberClass, getNegativeNumberClassForTotal, exportToExcel } from "../../../../utils/formatting";
 import { useGetPayableAccountsQuery } from "../../../store/slices/payableAccounts/payableAccountsApi";
 import { useGetReceiptVouchersQuery } from "../../../store/slices/receiptVoucherApiSlice";
 import { useGetPaymentVouchersQuery } from "../../../store/slices/paymentVoucherApiSlice";
@@ -234,6 +234,28 @@ const TotalPayableAccountsReport: React.FC<TotalPayableAccountsReportProps> = ({
     { opening: 0, debit: 0, credit: 0, balance: 0 },
   );
 
+  const handleExcelExport = () => {
+    const dataToExport = [
+      ...accountsSummary.map((item) => ({
+        "كود الحساب": item.code,
+        "اسم الحساب": item.name,
+        "رصيد أول المدة": formatNumber(item.opening),
+        "إجمالي مدين": formatNumber(item.debit),
+        "إجمالي دائن": formatNumber(item.credit),
+        "الرصيد الحالي": formatNumber(item.balance),
+      })),
+      {
+        "كود الحساب": "الإجمالي",
+        "اسم الحساب": "",
+        "رصيد أول المدة": formatNumber(totals.opening),
+        "إجمالي مدين": formatNumber(totals.debit),
+        "إجمالي دائن": formatNumber(totals.credit),
+        "الرصيد الحالي": formatNumber(totals.balance),
+      },
+    ];
+    exportToExcel(dataToExport, "تقرير_إجمالي_الحسابات_الدائنة");
+  };
+
   const handlePrint = () => {
     const reportContent = document.getElementById("printable-area");
     if (!reportContent) return;
@@ -391,6 +413,7 @@ const TotalPayableAccountsReport: React.FC<TotalPayableAccountsReportProps> = ({
           >
             <div className="no-print flex items-center gap-2">
               <button
+                onClick={handleExcelExport}
                 title="تصدير Excel"
                 className="p-3 border-2 border-gray-200 rounded-md hover:bg-gray-100"
               >
