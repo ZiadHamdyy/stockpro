@@ -489,6 +489,7 @@ const FiscalYears: React.FC<FiscalYearsProps> = ({ title }) => {
         
         // Validate date range
         const startDate = new Date(newYear.startDate!);
+        startDate.setHours(0, 0, 0, 0); // Normalize to local midnight
         const endDate = new Date(newYear.endDate!);
         
         if (startDate >= endDate) {
