@@ -291,6 +291,7 @@ const SalesReturn: React.FC<SalesReturnProps> = ({
   const invoiceRef = useRef<HTMLDivElement>(null);
   const [sourceInvoiceQtyById, setSourceInvoiceQtyById] = useState<Record<string, number>>({});
   const [focusIndex, setFocusIndex] = useState<number | null>(null);
+  const [shouldResetOnClose, setShouldResetOnClose] = useState(false);
   const resolvedBranchName = safeBranchName || getUserBranchName(currentUser);
   
   // Get safe name for current branch
@@ -962,6 +963,7 @@ const SalesReturn: React.FC<SalesReturnProps> = ({
         // useEffect will open preview once data is set
         shouldOpenPreviewRef.current = true;
         setPreviewData(previewDataToStore);
+        setShouldResetOnClose(true);
         
         // Wait for return list to refresh, then find and load the saved return
         // This ensures the return is properly tracked for navigation
@@ -1748,7 +1750,10 @@ const SalesReturn: React.FC<SalesReturnProps> = ({
               setIsPreviewOpen(false);
               setPreviewData(null); // Clear preview data when closing
               shouldOpenPreviewRef.current = false; // Reset flag
-              handleNew();
+              if (shouldResetOnClose) {
+                handleNew();
+                setShouldResetOnClose(false);
+              }
             }}
             isReturn={true}
             invoiceData={dataToPreview}

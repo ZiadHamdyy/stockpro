@@ -252,6 +252,7 @@ const PurchaseReturn: React.FC<PurchaseReturnProps> = ({
   const invoiceRef = useRef<HTMLDivElement>(null);
   const [sourceInvoiceQtyById, setSourceInvoiceQtyById] = useState<Record<string, number>>({});
   const [focusIndex, setFocusIndex] = useState<number | null>(null);
+  const [shouldResetOnClose, setShouldResetOnClose] = useState(false);
   
   // Get safe name for current branch
   const getSafeNameForBranch = useMemo(() => {
@@ -796,6 +797,7 @@ const PurchaseReturn: React.FC<PurchaseReturnProps> = ({
         // useEffect will open preview once data is set
         shouldOpenPreviewRef.current = true;
         setPreviewData(previewDataToStore);
+        setShouldResetOnClose(true);
         
         // Wait for return list to refresh, then find and load the saved return
         // This ensures the return is properly tracked for navigation
@@ -1575,7 +1577,10 @@ const PurchaseReturn: React.FC<PurchaseReturnProps> = ({
               setIsPreviewOpen(false);
               setPreviewData(null); // Clear preview data when closing
               shouldOpenPreviewRef.current = false; // Reset flag
-              handleNew();
+              if (shouldResetOnClose) {
+                handleNew();
+                setShouldResetOnClose(false);
+              }
             }}
             isReturn={true}
             invoiceData={dataToPreview}

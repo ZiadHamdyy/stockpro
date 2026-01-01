@@ -436,6 +436,7 @@ const SalesInvoice: React.FC<SalesInvoiceProps> = ({
   const [focusIndex, setFocusIndex] = useState<number | null>(null);
   const [focusedQtyIndex, setFocusedQtyIndex] = useState<number | null>(null);
   const [showBalanceBar, setShowBalanceBar] = useState(false);
+  const [shouldResetOnClose, setShouldResetOnClose] = useState(false);
   const resolvedBranchName = safeBranchName || getUserBranchName(currentUser);
   
   // Get safe name for current branch
@@ -1350,6 +1351,7 @@ const SalesInvoice: React.FC<SalesInvoiceProps> = ({
         // useEffect will open preview once data is set
         shouldOpenPreviewRef.current = true;
         setPreviewData(previewDataToStore);
+        setShouldResetOnClose(true);
         
         // Wait for invoice list to refresh, then find and load the saved invoice
         // This ensures the invoice is properly tracked for navigation
@@ -2438,7 +2440,10 @@ const SalesInvoice: React.FC<SalesInvoiceProps> = ({
               setIsPreviewOpen(false);
               setPreviewData(null); // Clear preview data when closing
               shouldOpenPreviewRef.current = false; // Reset flag
-              handleNew();
+              if (shouldResetOnClose) {
+                handleNew();
+                setShouldResetOnClose(false);
+              }
             }}
             invoiceData={dataToPreview}
             printSettings={printSettings}
