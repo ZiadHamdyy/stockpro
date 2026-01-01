@@ -42,7 +42,47 @@ const AuditTrial: React.FC = () => {
     error,
   } = useAuditTrial(fromDate, toDate);
 
-  const data = auditTrialData?.entries || [];
+  // Process and verify entries with correct calculations
+  // Based on backend logic:
+  // - Assets/Expenses: closingDebit = openingDebit + periodDebit - periodCredit (if negative, becomes closingCredit)
+  // - Liabilities/Equity/Revenue: closingCredit = openingCredit + periodCredit - periodDebit (if negative, becomes closingDebit)
+  const processedData = useMemo(() => {
+    return (auditTrialData?.entries || []).map((entry) => {
+      let calculatedClosingDebit = 0;
+      let calculatedClosingCredit = 0;
+      
+      if (entry.category === 'Assets' || entry.category === 'Expenses') {
+        // Assets and Expenses: closingDebit = openingDebit + periodDebit - periodCredit
+        const closingDebit = entry.openingBalanceDebit + entry.periodDebit - entry.periodCredit;
+        if (closingDebit > 0) {
+          calculatedClosingDebit = closingDebit;
+          calculatedClosingCredit = 0;
+        } else {
+          calculatedClosingDebit = 0;
+          calculatedClosingCredit = Math.abs(closingDebit);
+        }
+      } else {
+        // Liabilities, Equity, Revenue: closingCredit = openingCredit + periodCredit - periodDebit
+        const closingCredit = entry.openingBalanceCredit + entry.periodCredit - entry.periodDebit;
+        if (closingCredit > 0) {
+          calculatedClosingDebit = 0;
+          calculatedClosingCredit = closingCredit;
+        } else {
+          calculatedClosingDebit = Math.abs(closingCredit);
+          calculatedClosingCredit = 0;
+        }
+      }
+      
+      // Use calculated values to ensure correctness
+      return {
+        ...entry,
+        closingBalanceDebit: calculatedClosingDebit,
+        closingBalanceCredit: calculatedClosingCredit,
+      };
+    });
+  }, [auditTrialData?.entries]);
+
+  const data = processedData;
 
   const summary = useMemo((): FinancialSummary => {
     return data.reduce((acc, curr) => ({
@@ -59,7 +99,21 @@ const AuditTrial: React.FC = () => {
     });
   }, [data]);
 
-  const isClosingBalanced = Math.abs(summary.totalClosingDebit - summary.totalClosingCredit) < 0.01;
+  // Verify trial balance: total closing debit should equal total closing credit
+  const closingBalanceDifference = Math.abs(summary.totalClosingDebit - summary.totalClosingCredit);
+  const isClosingBalanced = closingBalanceDifference < 0.01;
+  
+  // Verify opening balance: total opening debit should equal total opening credit
+  const openingBalanceDifference = Math.abs(summary.totalOpeningDebit - summary.totalOpeningCredit);
+  const isOpeningBalanced = openingBalanceDifference < 0.01;
+  
+  // Verify period movements: total period debit should equal total period credit
+  const periodBalanceDifference = Math.abs(summary.totalPeriodDebit - summary.totalPeriodCredit);
+  const isPeriodBalanced = periodBalanceDifference < 0.01;
+  
+  // Overall balance check: all three should balance for a proper trial balance
+  const isFullyBalanced = isOpeningBalanced && isPeriodBalanced && isClosingBalanced;
+  
   const currency = auditTrialData?.currency || companyInfo?.currency || 'SAR';
 
   if (isLoading) {
@@ -203,24 +257,24 @@ const AuditTrial: React.FC = () => {
                       
                       {/* Financial Data Columns */}
                       <td className="px-3 py-1.5 text-center border-l border-slate-300/30 text-blue-700 group-hover:text-white">
-                        {item.openingBalanceDebit > 0 ? item.openingBalanceDebit.toLocaleString() : '—'}
+                        {item.openingBalanceDebit > 0 ? item.openingBalanceDebit.toLocaleString('ar-SA', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '—'}
                       </td>
                       <td className="px-3 py-1.5 text-center border-l-[3px] border-white text-rose-700 group-hover:text-white shadow-[3px_0_0_white]">
-                        {item.openingBalanceCredit > 0 ? item.openingBalanceCredit.toLocaleString() : '—'}
+                        {item.openingBalanceCredit > 0 ? item.openingBalanceCredit.toLocaleString('ar-SA', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '—'}
                       </td>
                       
                       <td className="px-3 py-1.5 text-center border-l border-slate-300/30 text-blue-800 bg-blue-50/10 group-hover:bg-transparent group-hover:text-white">
-                        {item.periodDebit > 0 ? item.periodDebit.toLocaleString() : '—'}
+                        {item.periodDebit > 0 ? item.periodDebit.toLocaleString('ar-SA', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '—'}
                       </td>
                       <td className="px-3 py-1.5 text-center border-l-[3px] border-white text-rose-800 bg-rose-50/10 group-hover:bg-transparent group-hover:text-white shadow-[3px_0_0_white]">
-                        {item.periodCredit > 0 ? item.periodCredit.toLocaleString() : '—'}
+                        {item.periodCredit > 0 ? item.periodCredit.toLocaleString('ar-SA', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '—'}
                       </td>
                       
                       <td className="px-3 py-1.5 text-center border-l border-slate-300/30 text-blue-900 bg-blue-100/20 group-hover:bg-transparent group-hover:text-white">
-                        {item.closingBalanceDebit > 0 ? item.closingBalanceDebit.toLocaleString() : '—'}
+                        {item.closingBalanceDebit > 0 ? item.closingBalanceDebit.toLocaleString('ar-SA', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '—'}
                       </td>
                       <td className="px-3 py-1.5 text-center text-rose-900 bg-rose-100/20 group-hover:bg-transparent group-hover:text-white">
-                        {item.closingBalanceCredit > 0 ? item.closingBalanceCredit.toLocaleString() : '—'}
+                        {item.closingBalanceCredit > 0 ? item.closingBalanceCredit.toLocaleString('ar-SA', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '—'}
                       </td>
                     </tr>
                   ))
@@ -230,37 +284,84 @@ const AuditTrial: React.FC = () => {
               <tfoot>
                 <tr className="bg-[#001a4d] text-white border-t-4 border-white">
                   <td colSpan={2} className="px-6 py-4 text-base font-black text-left pr-8 border-l border-white/10 uppercase italic">إجماليات الميزان النهائية</td>
-                  <td className="px-3 py-4 text-center border-l border-white/10 text-sm font-black text-blue-300">{summary.totalOpeningDebit.toLocaleString()}</td>
-                  <td className="px-3 py-4 text-center border-l-[3px] border-white/10 text-sm font-black text-rose-300">{summary.totalOpeningCredit.toLocaleString()}</td>
-                  <td className="px-3 py-4 text-center border-l border-white/10 text-sm font-black text-blue-300">{summary.totalPeriodDebit.toLocaleString()}</td>
-                  <td className="px-3 py-4 text-center border-l-[3px] border-white/10 text-sm font-black text-rose-300">{summary.totalPeriodCredit.toLocaleString()}</td>
-                  <td className="px-3 py-4 text-center border-l border-white/10 text-lg font-black text-blue-200 bg-blue-950 underline decoration-double">{summary.totalClosingDebit.toLocaleString()}</td>
-                  <td className="px-3 py-4 text-center text-lg font-black text-rose-200 bg-rose-950 underline decoration-double">{summary.totalClosingCredit.toLocaleString()}</td>
+                  <td className="px-3 py-4 text-center border-l border-white/10 text-sm font-black text-blue-300">
+                    {summary.totalOpeningDebit.toLocaleString('ar-SA', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  </td>
+                  <td className="px-3 py-4 text-center border-l-[3px] border-white/10 text-sm font-black text-rose-300">
+                    {summary.totalOpeningCredit.toLocaleString('ar-SA', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  </td>
+                  <td className="px-3 py-4 text-center border-l border-white/10 text-sm font-black text-blue-300">
+                    {summary.totalPeriodDebit.toLocaleString('ar-SA', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  </td>
+                  <td className="px-3 py-4 text-center border-l-[3px] border-white/10 text-sm font-black text-rose-300">
+                    {summary.totalPeriodCredit.toLocaleString('ar-SA', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  </td>
+                  <td className="px-3 py-4 text-center border-l border-white/10 text-lg font-black text-blue-200 bg-blue-950 underline decoration-double">
+                    {summary.totalClosingDebit.toLocaleString('ar-SA', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  </td>
+                  <td className="px-3 py-4 text-center text-lg font-black text-rose-200 bg-rose-950 underline decoration-double">
+                    {summary.totalClosingCredit.toLocaleString('ar-SA', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  </td>
                 </tr>
               </tfoot>
             </table>
           </div>
 
-          {/* Simplified Status Bar */}
-          <div className="mt-8 flex justify-center">
-             <div className={`w-full max-w-4xl flex items-center justify-between px-10 py-5 border-2 rounded-2xl bg-white shadow-lg ${isClosingBalanced ? 'border-emerald-500' : 'border-rose-500'}`}>
+          {/* Balance Verification Status Bar */}
+          <div className="mt-8 flex flex-col gap-4">
+            {/* Main Balance Status */}
+            <div className="flex justify-center">
+              <div className={`w-full max-w-4xl flex items-center justify-between px-10 py-5 border-2 rounded-2xl bg-white shadow-lg ${isFullyBalanced ? 'border-emerald-500' : 'border-rose-500'}`}>
                 <div className="flex items-center gap-5">
-                  <div className={`w-12 h-12 rounded-full flex items-center justify-center text-white text-xl shadow-md ${isClosingBalanced ? 'bg-emerald-500' : 'bg-rose-500 animate-pulse'}`}>
-                    <i className={`fas ${isClosingBalanced ? 'fa-check' : 'fa-exclamation-triangle'}`}></i>
+                  <div className={`w-12 h-12 rounded-full flex items-center justify-center text-white text-xl shadow-md ${isFullyBalanced ? 'bg-emerald-500' : 'bg-rose-500 animate-pulse'}`}>
+                    <i className={`fas ${isFullyBalanced ? 'fa-check' : 'fa-exclamation-triangle'}`}></i>
                   </div>
                   <div>
-                    <h4 className="text-lg font-black text-slate-800">{isClosingBalanced ? 'ميزان المراجعة متوازن' : 'يوجد فارق في التوازن المالي'}</h4>
+                    <h4 className="text-lg font-black text-slate-800">
+                      {isFullyBalanced ? 'ميزان المراجعة متوازن بالكامل' : 'يوجد فارق في التوازن المالي'}
+                    </h4>
                     <p className="text-xs font-bold text-slate-400">تنبيه آلي من النظام المحاسبي للتدقيق المالي</p>
                   </div>
                 </div>
                 
-                {!isClosingBalanced && (
+                {!isFullyBalanced && (
                   <div className="bg-rose-50 px-6 py-2.5 rounded-xl border-2 border-rose-100 flex flex-col items-center">
-                    <span className="text-[10px] font-black text-rose-400 uppercase tracking-widest">قيمة الفارق</span>
-                    <span className="text-2xl font-black text-rose-600 font-mono italic">{Math.abs(summary.totalClosingDebit - summary.totalClosingCredit).toLocaleString()}</span>
+                    <span className="text-[10px] font-black text-rose-400 uppercase tracking-widest">قيمة الفارق الإجمالي</span>
+                    <span className="text-2xl font-black text-rose-600 font-mono italic">
+                      {closingBalanceDifference.toLocaleString('ar-SA', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </span>
                   </div>
                 )}
-             </div>
+              </div>
+            </div>
+            
+            {/* Detailed Balance Breakdown */}
+            {!isFullyBalanced && (
+              <div className="flex justify-center">
+                <div className="w-full max-w-4xl bg-slate-50 border-2 border-slate-200 rounded-xl p-4">
+                  <div className="grid grid-cols-3 gap-4 text-sm">
+                    <div className={`p-3 rounded-lg border-2 ${isOpeningBalanced ? 'border-emerald-300 bg-emerald-50' : 'border-rose-300 bg-rose-50'}`}>
+                      <div className="font-black text-xs text-slate-600 mb-1">الأرصدة الافتتاحية</div>
+                      <div className={`font-bold ${isOpeningBalanced ? 'text-emerald-700' : 'text-rose-700'}`}>
+                        {isOpeningBalanced ? '✓ متوازن' : `✗ فارق: ${openingBalanceDifference.toLocaleString('ar-SA', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+                      </div>
+                    </div>
+                    <div className={`p-3 rounded-lg border-2 ${isPeriodBalanced ? 'border-emerald-300 bg-emerald-50' : 'border-rose-300 bg-rose-50'}`}>
+                      <div className="font-black text-xs text-slate-600 mb-1">حركات الفترة</div>
+                      <div className={`font-bold ${isPeriodBalanced ? 'text-emerald-700' : 'text-rose-700'}`}>
+                        {isPeriodBalanced ? '✓ متوازن' : `✗ فارق: ${periodBalanceDifference.toLocaleString('ar-SA', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+                      </div>
+                    </div>
+                    <div className={`p-3 rounded-lg border-2 ${isClosingBalanced ? 'border-emerald-300 bg-emerald-50' : 'border-rose-300 bg-rose-50'}`}>
+                      <div className="font-black text-xs text-slate-600 mb-1">الأرصدة الختامية</div>
+                      <div className={`font-bold ${isClosingBalanced ? 'text-emerald-700' : 'text-rose-700'}`}>
+                        {isClosingBalanced ? '✓ متوازن' : `✗ فارق: ${closingBalanceDifference.toLocaleString('ar-SA', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
 
         </main>
