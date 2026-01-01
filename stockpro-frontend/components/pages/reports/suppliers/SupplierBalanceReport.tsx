@@ -310,10 +310,10 @@ const SupplierBalanceReport: React.FC<SupplierBalanceReportProps> = ({
         .reduce((sum, v) => sum + v.amount, 0);
 
       // Opening balance = supplier.openingBalance + openingDebit - openingCredit
-      // Debit (decreases what we owe): cash purchases, all purchase returns, payment vouchers, receipt vouchers
-      // Credit (increases what we owe): all purchase invoices, cash purchase returns
-      const openingDebit = openingCashPurchases + openingReturns + openingPayments + openingReceipts;
-      const openingCredit = openingPurchases + openingCashReturns;
+      // Debit (decreases what we owe): cash purchases, all purchase returns, payment vouchers
+      // Credit (increases what we owe): all purchase invoices, cash purchase returns, receipt vouchers (refunds from supplier)
+      const openingDebit = openingCashPurchases + openingReturns + openingPayments;
+      const openingCredit = openingPurchases + openingCashReturns + openingReceipts;
       const opening = (supplier.openingBalance || 0) + openingDebit - openingCredit;
 
       // Calculate period transactions (between start and end date)
@@ -395,10 +395,10 @@ const SupplierBalanceReport: React.FC<SupplierBalanceReportProps> = ({
         )
         .reduce((sum, v) => sum + v.amount, 0);
 
-      // Period Debit: cash purchases, all purchase returns, payment vouchers, receipt vouchers (all decrease what we owe)
-      const totalDebit = periodCashPurchases + periodReturns + periodPayments + periodReceipts;
-      // Period Credit: all purchase invoices plus cash purchase returns (both increase what we owe)
-      const totalCredit = periodPurchases + periodCashReturns;
+      // Period Debit: cash purchases, all purchase returns, payment vouchers (all decrease what we owe)
+      const totalDebit = periodCashPurchases + periodReturns + periodPayments;
+      // Period Credit: all purchase invoices, cash purchase returns, receipt vouchers (all increase what we owe)
+      const totalCredit = periodPurchases + periodCashReturns + periodReceipts;
       // Balance = Opening Balance (at start date) + Period Debit - Period Credit
       const balance = opening + totalDebit - totalCredit;
 

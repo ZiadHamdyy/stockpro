@@ -361,7 +361,7 @@ const CustomerStatementReport: React.FC<CustomerStatementReportProps> = ({
         const isCash = inv.paymentMethod === "cash";
         transactions.push({
           date: inv.date,
-          description: "فاتورة مبيعات",
+          description: inv.description || "فاتورة مبيعات",
           ref: inv.id,
           voucherCode: inv.code || inv.id,
           debit: netAmount,
@@ -385,7 +385,7 @@ const CustomerStatementReport: React.FC<CustomerStatementReportProps> = ({
         const isCash = inv.paymentMethod === "cash";
         transactions.push({
           date: inv.date,
-          description: "مرتجع مبيعات",
+          description: inv.description || "مرتجع مبيعات",
           ref: inv.id,
           voucherCode: inv.code || inv.id,
           debit: isCash ? netAmount : 0,
@@ -406,7 +406,7 @@ const CustomerStatementReport: React.FC<CustomerStatementReportProps> = ({
       ) {
         transactions.push({
           date: v.date,
-          description: "سند قبض",
+          description: v.description || "سند قبض",
           ref: v.id,
           voucherCode: v.code || v.id,
           debit: 0,
@@ -427,7 +427,7 @@ const CustomerStatementReport: React.FC<CustomerStatementReportProps> = ({
       ) {
         transactions.push({
           date: v.date,
-          description: "سند صرف (رد مبلغ)",
+          description: v.description || "سند صرف (رد مبلغ)",
           ref: v.id,
           voucherCode: v.code || v.id,
           debit: v.amount,

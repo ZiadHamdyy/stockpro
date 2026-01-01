@@ -317,14 +317,14 @@ const SupplierStatementReport: React.FC<SupplierStatementReportProps> = ({
             vDate < normalizedStartDate;
         }
       )
-      .reduce((sum, v) => sum + v.amount, 0); // Debit
+      .reduce((sum, v) => sum + v.amount, 0); // Credit (increases what we owe)
 
     const currentOpeningBalance =
       selectedSupplier.openingBalance +
       paymentsBefore +
-      returnsBefore +
-      receiptsBefore -
-      purchasesBefore;
+      returnsBefore -
+      purchasesBefore -
+      receiptsBefore;
     setOpeningBalance(currentOpeningBalance);
 
     const transactions: {
@@ -352,7 +352,7 @@ const SupplierStatementReport: React.FC<SupplierStatementReportProps> = ({
         const isCash = inv.paymentMethod === "cash";
         transactions.push({
           date: inv.date,
-          description: "فاتورة مشتريات",
+          description: inv.description || "فاتورة مشتريات",
           ref: inv.id,
           voucherCode: inv.code || inv.id,
           debit: isCash ? netAmount : 0,
@@ -362,9 +362,8 @@ const SupplierStatementReport: React.FC<SupplierStatementReportProps> = ({
       }
     });
 
-    // Debit (Decreases what we owe)
+    // Credit (Increases what we owe) - Receipt from supplier (refund)
     receiptVouchers.forEach((v) => {
-      // Receipt from supplier (refund)
       const vDate = normalizeDate(v.date);
       const voucherSupplierId = v.entity?.id?.toString() || v.entity?.id;
       if (
@@ -375,15 +374,16 @@ const SupplierStatementReport: React.FC<SupplierStatementReportProps> = ({
       ) {
         transactions.push({
           date: v.date,
-          description: "سند قبض (رد مبلغ)",
+          description: v.description || "سند قبض (رد مبلغ)",
           ref: v.id,
           voucherCode: v.code || v.id,
-          debit: v.amount,
-          credit: 0,
+          debit: 0,
+          credit: v.amount,
           link: { page: "receipt_voucher", label: "سند قبض" },
         });
       }
     });
+    // Debit (Decreases what we owe)
     purchaseReturns.forEach((inv) => {
       const invDate = normalizeDate(inv.date);
       const invSupplierId = inv.customerOrSupplier?.id?.toString() || 
@@ -398,7 +398,7 @@ const SupplierStatementReport: React.FC<SupplierStatementReportProps> = ({
         const isCash = inv.paymentMethod === "cash";
         transactions.push({
           date: inv.date,
-          description: "مرتجع مشتريات",
+          description: inv.description || "مرتجع مشتريات",
           ref: inv.id,
           voucherCode: inv.code || inv.id,
           debit: netAmount,
@@ -418,7 +418,7 @@ const SupplierStatementReport: React.FC<SupplierStatementReportProps> = ({
       ) {
         transactions.push({
           date: v.date,
-          description: "سند صرف",
+          description: v.description || "سند صرف",
           ref: v.id,
           voucherCode: v.code || v.id,
           debit: v.amount,
