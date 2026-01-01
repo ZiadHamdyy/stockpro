@@ -26,7 +26,7 @@ import { useGetFiscalYearsQuery } from "../../store/slices/fiscalYear/fiscalYear
 import { useGetIncomeStatementQuery } from "../../store/slices/incomeStatement/incomeStatementApiSlice";
 import { useGetItemsQuery } from "../../store/slices/items/itemsApi";
 import { useGetBranchesQuery } from "../../store/slices/branch/branchApi";
-import { useGetStoresQuery } from "../../store/slices/store/storeApi";
+import { useGetStoresQuery, useGetAllStoreItemsQuery } from "../../store/slices/store/storeApi";
 import { useGetStoreReceiptVouchersQuery } from "../../store/slices/storeReceiptVoucher/storeReceiptVoucherApi";
 import { useGetStoreIssueVouchersQuery } from "../../store/slices/storeIssueVoucher/storeIssueVoucherApi";
 import { useGetStoreTransferVouchersQuery } from "../../store/slices/storeTransferVoucher/storeTransferVoucherApi";
@@ -48,6 +48,27 @@ const flipSign = (value: number) => (value === 0 ? 0 : value * -1);
  * 
  * The backend services already aggregate correctly by companyId only.
  * Frontend calculations ensure all data is processed without branch filtering.
+ * 
+ * COMPANY-WIDE CALCULATIONS:
+ * - Inventory: Opening balances aggregated from ALL StoreItems across ALL stores/branches
+ * - Payables: All supplier balances from ALL branches
+ * - Receivables: All customer balances from ALL branches (via backend)
+ * - Other Revenues: All receipt vouchers from ALL branches
+ * - Net Purchases: All purchase invoices and returns from ALL branches
+ * - VAT: All VAT transactions from ALL branches
+ * - Retained Earnings: All fiscal years and P&L vouchers from ALL branches
+ * 
+ * All API queries fetch company-wide data (no branch/store filtering):
+ * - useGetSalesInvoicesQuery(undefined) - all company sales invoices
+ * - useGetPurchaseInvoicesQuery(undefined) - all company purchase invoices
+ * - useGetSalesReturnsQuery(undefined) - all company sales returns
+ * - useGetPurchaseReturnsQuery(undefined) - all company purchase returns
+ * - useGetStoreReceiptVouchersQuery(undefined) - all company store receipts
+ * - useGetStoreIssueVouchersQuery(undefined) - all company store issues
+ * - useGetStoreTransferVouchersQuery(undefined) - all company store transfers
+ * - useGetReceiptVouchersQuery(undefined) - all company receipt vouchers
+ * - useGetPaymentVouchersQuery(undefined) - all company payment vouchers
+ * - useGetAllStoreItemsQuery() - all StoreItems across all stores/branches
  */
 const BalanceSheet: React.FC = () => {
   const title = "قائمة المركز المالي";
@@ -106,6 +127,10 @@ const BalanceSheet: React.FC = () => {
   const { data: storeIssueVouchers = [] } = useGetStoreIssueVouchersQuery(undefined);
   const { data: storeTransferVouchers = [] } = useGetStoreTransferVouchersQuery(undefined);
   const { data: apiSuppliers = [] } = useGetSuppliersQuery(undefined);
+  
+  // Fetch all StoreItems across all stores to aggregate opening balances company-wide
+  // This ensures inventory calculations include opening balances from ALL branches/stores
+  const { data: allStoreItems = [] } = useGetAllStoreItemsQuery();
 
   const {
     data: balanceSheetData,
@@ -156,7 +181,23 @@ const BalanceSheet: React.FC = () => {
     return Number.isFinite(parsed) ? parsed : 0;
   }, []);
 
+  // Aggregate opening balances from all StoreItems across all stores/branches
+  // This creates a map of item code -> total opening balance (sum across all stores)
+  const aggregatedOpeningBalances = useMemo(() => {
+    const balanceMap: Record<string, number> = {};
+    
+    (allStoreItems as any[]).forEach((storeItem) => {
+      const itemCode = storeItem.item?.code;
+      if (itemCode) {
+        balanceMap[itemCode] = (balanceMap[itemCode] || 0) + toNumber(storeItem.openingBalance || 0);
+      }
+    });
+    
+    return balanceMap;
+  }, [allStoreItems, toNumber]);
+
   // Transform API data to match expected format (for inventory calculation)
+  // Note: openingBalance will be set from aggregatedOpeningBalances in calculatedInventoryValue
   const items = useMemo(() => {
     return (apiItems as any[])
       .filter((item) => {
@@ -392,6 +433,12 @@ const BalanceSheet: React.FC = () => {
    * Calculate inventory value - COMPANY-WIDE calculation
    * Aggregates inventory across ALL branches and stores
    * No branch filtering is applied - all transactions from all branches are included
+   * 
+   * Opening balances are aggregated from ALL StoreItems across ALL stores/branches
+   * using the aggregatedOpeningBalances map which sums opening balances by item code.
+   * 
+   * All transaction types (purchases, sales, returns, store vouchers) are processed
+   * without branch filtering to ensure company-wide inventory calculation.
    */
   const calculatedInventoryValue = useMemo(() => {
     const normalizedEndDate = normalizeDate(endDate);
@@ -401,8 +448,10 @@ const BalanceSheet: React.FC = () => {
     const valuationMethod = inventoryValuationMethod; // Use inventory valuation method from financial system settings (for Balance Sheet)
 
     const valuationData = items.map((item) => {
-      // Use StoreItem's openingBalance as base, or 0 if not available
-      let balance = toNumber((item as any).openingBalance ?? 0);
+      // Use aggregated opening balance from ALL stores/branches for this item
+      // This ensures company-wide inventory calculation includes all branches
+      const itemCode = item.code;
+      let balance = aggregatedOpeningBalances[itemCode] || 0;
 
       // Filter transactions up to and including endDate (all branches)
       const filterByDate = (tx: any) => {
@@ -415,7 +464,8 @@ const BalanceSheet: React.FC = () => {
         return txDate <= normalizedEndDate;
       };
 
-      // Calculate balance across all branches
+      // Calculate balance across all branches (no branch filtering)
+      // All purchase invoices from all branches are included
       transformedPurchaseInvoices.filter(filterByDate).forEach((inv) =>
         inv.items.forEach((i) => {
           if (i.id === item.code) balance += toNumber(i.qty);
@@ -432,16 +482,19 @@ const BalanceSheet: React.FC = () => {
         }),
       );
 
+      // Subtract sales invoices from all branches (no branch filtering)
       transformedSalesInvoices.filter(filterByDate).forEach((inv) =>
         inv.items.forEach((i) => {
           if (i.id === item.code) balance -= toNumber(i.qty);
         }),
       );
+      // Subtract purchase returns from all branches (no branch filtering)
       transformedPurchaseReturns.filter(filterByDate).forEach((inv) =>
         inv.items.forEach((i) => {
           if (i.id === item.code) balance -= toNumber(i.qty);
         }),
       );
+      // Subtract store issue vouchers from all branches (no branch filtering)
       transformedStoreIssueVouchers.filter(filterByDate).forEach((v) =>
         v.items.forEach((i) => {
           if (i.id === item.code) balance -= toNumber(i.qty);
@@ -513,6 +566,7 @@ const BalanceSheet: React.FC = () => {
     getLastPurchasePriceBeforeDate,
     calculateWeightedAverageCost,
     inventoryValuationMethod, // Include in dependencies to trigger recalculation when method changes
+    aggregatedOpeningBalances, // Include aggregated opening balances from all stores
   ]);
 
   // Transform vouchers to match expected structure for payables calculation
