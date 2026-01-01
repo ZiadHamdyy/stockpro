@@ -136,24 +136,24 @@ const Cart: React.FC<CartProps> = ({
         {/* Table Header - BIGGER AND BOLDER as requested - Scrollable horizontally */}
         <div 
           ref={headerScrollRef}
-          className="bg-brand-blue text-white py-3 pr-1 shadow-md border-b-4 border-gold-500 overflow-x-auto overflow-y-hidden no-scrollbar"
+          className="bg-brand-blue text-white py-4 pr-1 shadow-md border-b-4 border-gold-500 overflow-x-auto overflow-y-hidden no-scrollbar"
           onScroll={(e) => {
             if (bodyScrollRef.current) {
               bodyScrollRef.current.scrollLeft = e.currentTarget.scrollLeft;
             }
           }}
         >
-          <div className="grid text-center items-center divide-x divide-blue-500 divide-x-reverse tracking-wide text-base font-black min-h-[48px]" style={{ gridTemplateColumns: 'minmax(60px, 0.5fr) minmax(120px, 1fr) minmax(200px, 2fr) minmax(80px, 0.8fr) minmax(100px, 1fr) minmax(100px, 1fr) minmax(80px, 0.8fr) minmax(80px, 0.8fr) minmax(120px, 1fr) minmax(60px, 0.5fr)' }}>
-            <div className="whitespace-nowrap px-2 h-full flex items-center justify-center">م</div>
-            <div className="whitespace-nowrap px-3 h-full flex items-center justify-center">رقم الصنف</div>
-            <div className="whitespace-nowrap px-4 h-full flex items-center justify-center">الصنف</div>
-            <div className="whitespace-nowrap px-2 h-full flex items-center justify-center">الوحدة</div>
-            <div className="whitespace-nowrap px-2 h-full flex items-center justify-center">الكمية</div>
-            <div className="whitespace-nowrap px-3 h-full flex items-center justify-center">السعر</div>
-            <div className="whitespace-nowrap px-2 h-full flex items-center justify-center">الخصم</div>
-            <div className="whitespace-nowrap px-2 h-full flex items-center justify-center">الضريبة</div>
-            <div className="whitespace-nowrap px-3 h-full flex items-center justify-center">الإجمالي</div>
-            <div className="whitespace-nowrap px-2 h-full flex items-center justify-center">حذف</div>
+          <div className="grid text-center items-center divide-x divide-blue-500 divide-x-reverse tracking-wide text-xl font-extrabold min-h-[56px]" style={{ gridTemplateColumns: 'minmax(60px, 0.5fr) minmax(120px, 1fr) minmax(200px, 2fr) minmax(80px, 0.8fr) minmax(100px, 1fr) minmax(100px, 1fr) minmax(80px, 0.8fr) minmax(80px, 0.8fr) minmax(120px, 1fr) minmax(60px, 0.5fr)' }}>
+            <div className="whitespace-nowrap px-2 h-full flex items-center justify-center text-white font-extrabold">م</div>
+            <div className="whitespace-nowrap px-3 h-full flex items-center justify-center text-white font-extrabold">رقم الصنف</div>
+            <div className="whitespace-nowrap px-4 h-full flex items-center justify-center text-white font-extrabold">الصنف</div>
+            <div className="whitespace-nowrap px-2 h-full flex items-center justify-center text-white font-extrabold">الوحدة</div>
+            <div className="whitespace-nowrap px-2 h-full flex items-center justify-center text-white font-extrabold">الكمية</div>
+            <div className="whitespace-nowrap px-3 h-full flex items-center justify-center text-white font-extrabold">السعر</div>
+            <div className="whitespace-nowrap px-2 h-full flex items-center justify-center text-white font-extrabold">الخصم</div>
+            <div className="whitespace-nowrap px-2 h-full flex items-center justify-center text-white font-extrabold">الضريبة</div>
+            <div className="whitespace-nowrap px-3 h-full flex items-center justify-center text-white font-extrabold">الإجمالي</div>
+            <div className="whitespace-nowrap px-2 h-full flex items-center justify-center text-white font-extrabold">حذف</div>
           </div>
         </div>
 

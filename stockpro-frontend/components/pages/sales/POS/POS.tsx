@@ -912,11 +912,11 @@ const POS: React.FC<POSProps> = () => {
     <div className="flex flex-col bg-brand-blue-bg font-sans text-sm overflow-hidden -m-6" style={{ height: 'calc(100vh - 4rem)' }}>
         
       {/* TOP HEADER - BRAND BLUE THEME (matching sidebar) */}
-      <div className="bg-brand-blue p-2 border-b-4 border-gold-500 shadow-xl z-30 flex flex-col gap-2 h-auto relative overflow-visible flex-shrink-0">
-        {/* Second Row: Operational Fields */}
-          <div className="flex items-center gap-3 overflow-x-auto pb-1 no-scrollbar px-1 pt-1 border-t border-blue-900 relative overflow-visible">
+      <div className="bg-brand-blue p-3 border-b-4 border-gold-500 shadow-xl z-30 flex flex-col gap-2 h-auto relative overflow-visible flex-shrink-0">
+        {/* Operational Fields Row */}
+          <div className="flex items-center gap-3 overflow-x-auto pb-1 no-scrollbar px-1 pt-1 relative overflow-visible w-full">
           
-            <div className="flex flex-col min-w-[140px] relative w-40">
+            <div className="flex flex-col flex-shrink-0 relative w-40">
               <div className="flex items-center gap-2 mb-1">
                 <UsersIcon className="w-[14px] h-[14px] text-gold-400" />
                 <span className="text-[10px] text-blue-200 font-medium">نوع العميل</span>
@@ -968,7 +968,7 @@ const POS: React.FC<POSProps> = () => {
               Actions.READ
             )}
             fallback={
-              <div className="flex flex-col min-w-[140px] relative w-[300px]">
+              <div className="flex flex-col flex-shrink-0 relative w-[300px]">
                 <div className="flex items-center gap-2 mb-1">
                   <UserIcon className="w-[14px] h-[14px] text-gold-400" />
                 <span className="text-[10px] text-blue-200 font-medium">العميل</span>
@@ -979,7 +979,7 @@ const POS: React.FC<POSProps> = () => {
               </div>
             }
           >
-            <div className="flex flex-col min-w-[140px] relative w-[300px]" ref={customerRef}>
+            <div className="flex flex-col flex-shrink-0 relative w-[250px]" ref={customerRef}>
               <div className="flex items-center gap-2 mb-1">
                 <UserIcon className="w-[14px] h-[14px] text-gold-400" />
                 <span className="text-[10px] text-blue-200 font-medium">العميل</span>
@@ -1034,14 +1034,14 @@ const POS: React.FC<POSProps> = () => {
             </div>
           </PermissionWrapper>
           
-          {/* Search Bar - Darkened slightly for contrast against royal-700 */}
+          {/* Search Bar - Smaller size */}
           <PermissionWrapper
             requiredPermission={buildPermission(
               Resources.SALES_INVOICE,
               Actions.SEARCH
             )}
             fallback={
-              <div className="flex flex-col flex-1 max-w-2xl mx-2">
+              <div className="flex flex-col flex-1 mx-2">
                 <div className="flex items-center gap-2 mb-1">
                   <BarcodeIcon className="w-[14px] h-[14px] text-gold-400" />
                   <span className="text-[10px] text-blue-200 font-medium">البحث</span>
@@ -1060,7 +1060,7 @@ const POS: React.FC<POSProps> = () => {
               </div>
             }
           >
-            <div className="flex flex-col flex-1 max-w-2xl mx-2">
+            <div className="flex flex-col flex-1 mx-2">
               <div className="flex items-center gap-2 mb-1">
                 <BarcodeIcon className="w-[14px] h-[14px] text-gold-400" />
                 <span className="text-[10px] text-blue-200 font-medium">البحث</span>
@@ -1081,6 +1081,39 @@ const POS: React.FC<POSProps> = () => {
               </div>
             </div>
           </PermissionWrapper>
+
+          {/* Date and Time - After Search Bar with White Background */}
+          <div className="flex flex-col w-[280px]">
+            <div className="flex items-center gap-2 mb-1">
+              <span className="text-[10px] text-blue-200 font-medium">التاريخ والوقت</span>
+            </div>
+            <div className="bg-white rounded border-2 border-gold-400 shadow-lg px-4 py-2 flex items-center justify-center gap-3">
+              {(() => {
+                const formatDateTime = (date: Date) => {
+                  const year = date.getFullYear();
+                  const month = String(date.getMonth() + 1).padStart(2, '0');
+                  const day = String(date.getDate()).padStart(2, '0');
+                  let hours = date.getHours();
+                  const ampm = hours >= 12 ? 'PM' : 'AM';
+                  hours = hours % 12;
+                  hours = hours ? hours : 12; // the hour '0' should be '12'
+                  const minutes = String(date.getMinutes()).padStart(2, '0');
+                  const seconds = String(date.getSeconds()).padStart(2, '0');
+                  return {
+                    date: `${year}-${month}-${day}`,
+                    time: `${String(hours).padStart(2, '0')}:${minutes}:${seconds} ${ampm}`
+                  };
+                };
+                const { date, time } = formatDateTime(currentTime);
+                return (
+                  <>
+                    <div className="text-2xl font-mono font-extrabold text-brand-blue text-center">{time}</div>
+                    <div className="text-xs font-mono text-brand-blue/70">{date}</div>
+                  </>
+                );
+              })()}
+            </div>
+          </div>
           
           {/* Previous Invoices Button */}
           <PermissionWrapper
@@ -1090,7 +1123,7 @@ const POS: React.FC<POSProps> = () => {
             )}
             fallback={null}
           >
-            <div className="flex flex-col min-w-[140px]">
+            <div className="flex flex-col flex-shrink-0">
               <div className="flex items-center gap-2 mb-1">
                 <FileTextIcon className="w-[14px] h-[14px] text-gold-400" />
                 <span className="text-[10px] text-blue-200 font-medium">الفواتير</span>
@@ -1106,7 +1139,7 @@ const POS: React.FC<POSProps> = () => {
           </PermissionWrapper>
 
           {/* Grid Toggle */}
-          <div className="flex flex-col min-w-[140px]">
+          <div className="flex flex-col flex-shrink-0">
             <div className="flex items-center gap-2 mb-1">
               <GridIcon className="w-[14px] h-[14px] text-gold-400" />
               <span className="text-[10px] text-blue-200 font-medium">الأصناف</span>
