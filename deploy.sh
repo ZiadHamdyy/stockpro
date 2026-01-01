@@ -68,8 +68,6 @@ create_env_file() {
     if [ ! -f .env.prod ]; then
         print_info "Creating .env.prod file from template..."
         
-        get_server_ip
-        
         # Read the template
         if [ -f env.prod.template ]; then
             cp env.prod.template .env.prod
@@ -81,7 +79,7 @@ create_env_file() {
             # Replace placeholders
             sed -i "s/your_secure_password_here/$POSTGRES_PASSWORD/g" .env.prod
             sed -i "s/your_jwt_secret_key_change_this_in_production/$JWT_SECRET/g" .env.prod
-            sed -i "s|http://your-server-ip|http://$SERVER_IP|g" .env.prod
+            sed -i "s|http://your-server-ip|http://stockplus.cloud|g" .env.prod
             
             print_success ".env.prod file created with auto-generated credentials"
             print_info "Please review and edit .env.prod before deploying if needed"
@@ -105,11 +103,8 @@ stop_existing() {
 build_frontend() {
     print_info "Building frontend with Docker..."
     
-    # Get server IP for API URL
-    get_server_ip
-    
-    # Build frontend image
-    docker build -t stockpro-frontend-build ./stockpro-frontend --build-arg VITE_BASE_BACK_URL=http://$SERVER_IP/api/v1
+    # Build frontend image with domain
+    docker build -t stockpro-frontend-build ./stockpro-frontend --build-arg VITE_BASE_BACK_URL=http://stockplus.cloud/api/v1
     
     # Create directory for frontend files
     sudo mkdir -p /var/www/stockpro
@@ -158,9 +153,6 @@ wait_for_services() {
 # Configure Nginx
 configure_nginx() {
     print_info "Configuring Nginx..."
-    
-    # Get server IP
-    get_server_ip
     
     # Copy Nginx configuration
     sudo cp nginx-stockpro.conf /etc/nginx/conf.d/stockpro.conf
@@ -218,8 +210,6 @@ seed_database() {
 
 # Display deployment summary
 display_summary() {
-    get_server_ip
-    
     echo ""
     echo "====================================="
     echo "Deployment Summary"
@@ -228,9 +218,9 @@ display_summary() {
     print_success "StockPro has been deployed successfully!"
     echo ""
     echo "Access your application at:"
-    echo "  Frontend:  http://$SERVER_IP"
-    echo "  Backend:   http://$SERVER_IP/api/v1"
-    echo "  Swagger:   http://$SERVER_IP/api/docs"
+    echo "  Frontend:  http://stockplus.cloud"
+    echo "  Backend:   http://stockplus.cloud/api/v1"
+    echo "  Swagger:   http://stockplus.cloud/api/docs"
     echo ""
     echo "Useful commands:"
     echo "  View logs:       docker compose -f docker-compose.prod.yml logs -f"
@@ -247,7 +237,6 @@ main() {
     check_docker_compose
     echo ""
     
-    get_server_ip
     create_directories
     create_env_file
     echo ""

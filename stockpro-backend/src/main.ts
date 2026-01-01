@@ -90,10 +90,10 @@ function setupSwagger(app: NestExpressApplication) {
 async function bootstrap(): Promise<void> {
   if (get('NODE_ENV').asString() === 'production') initializeLogging();
 
-  const frontendUrl = get('FRONTEND_URL')
-    .default('http://localhost:5173')
-    .asString();
   const isProduction = get('NODE_ENV').asString() === 'production';
+  const frontendUrl = get('FRONTEND_URL')
+    .default(isProduction ? 'http://stockplus.cloud' : 'http://localhost:5173')
+    .asString();
 
   const app = await NestFactory.create<NestExpressApplication>(AppModule, {
     cors: {

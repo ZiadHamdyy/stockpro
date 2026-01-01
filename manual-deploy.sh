@@ -3,7 +3,7 @@ docker compose -f /root/stockpro/docker-compose.prod.yml down
 sudo systemctl stop nginx
 
 # 2. Build and extract frontend
-docker build -t stockpro-frontend-build ./stockpro-frontend --build-arg VITE_BASE_BACK_URL=http://72.61.165.87/api/v1
+docker build -t stockpro-frontend-build ./stockpro-frontend --build-arg VITE_BASE_BACK_URL=http://stockplus.cloud/api/v1
 docker run --rm -v /var/www/stockpro:/output stockpro-frontend-build sh -c "cp -r /usr/share/nginx/html/* /output/"
 
 # 3. Start backend services

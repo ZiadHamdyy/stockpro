@@ -16,6 +16,7 @@ import { ResetPasswordRequest } from './dtos/request/reset-password.request';
 import { UpdatePasswordRequest } from './dtos/request/update-password.request';
 import { VerifyPasswordRequest } from './dtos/request/verify-password.request';
 import type { Response } from 'express';
+import { get } from 'env-var';
 import {
   base64ToBuffer,
   bufferToDataUri,
@@ -420,9 +421,12 @@ export class AuthService {
 
   // Public helper methods for cookie management
   setRefreshTokenCookie(response: Response, refreshToken: string): void {
+    // Get secure flag from environment, default to false for HTTP compatibility
+    const cookieSecure = get('COOKIE_SECURE').default('false').asBool();
+    
     response.cookie(TOKEN_CONSTANTS.COOKIE.REFRESH_TOKEN_NAME, refreshToken, {
       httpOnly: TOKEN_CONSTANTS.COOKIE.HTTP_ONLY,
-      secure: TOKEN_CONSTANTS.COOKIE.SECURE,
+      secure: cookieSecure,
       sameSite: TOKEN_CONSTANTS.COOKIE.SAME_SITE,
       // No maxAge - persistent cookie (no expiration)
       path: TOKEN_CONSTANTS.COOKIE.PATH,
