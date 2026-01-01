@@ -500,7 +500,7 @@ export class BalanceSheetService {
     for (const account of receivableAccounts) {
       let balance = account.openingBalance || 0;
 
-      // Add PaymentVouchers (debit - increases balance)
+      // Subtract PaymentVouchers (payment settles the receivable - decreases balance)
       const paymentVouchers = await this.prisma.paymentVoucher.aggregate({
         where: {
           companyId,
@@ -514,7 +514,7 @@ export class BalanceSheetService {
           amount: true,
         },
       });
-      balance += paymentVouchers._sum.amount || 0;
+      balance -= paymentVouchers._sum.amount || 0;
 
       // Subtract ReceiptVouchers (credit - decreases balance)
       const receiptVouchers = await this.prisma.receiptVoucher.aggregate({
