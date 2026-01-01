@@ -2,7 +2,7 @@ import React, { useRef, useEffect } from 'react';
 import type { InvoiceItem } from '../../../../types';
 import { formatNumber } from '../../../../utils/formatting';
 import { tafqeet } from '../../../../utils/tafqeet';
-import { DatabaseIcon, TrashIcon } from '../../../icons';
+import { DatabaseIcon, TrashIcon, PrintIcon } from '../../../icons';
 
 // Simple icon components for AI features
 const SparklesIcon: React.FC<{ className?: string }> = ({ className = "w-4 h-4" }) => (
@@ -35,6 +35,8 @@ interface CartProps {
   vatRate: number;
   currency?: string;
   onOpenPayment?: () => void;
+  isViewingSavedInvoice?: boolean;
+  onPrint?: () => void;
 }
 
 const Cart: React.FC<CartProps> = ({
@@ -52,6 +54,8 @@ const Cart: React.FC<CartProps> = ({
   vatRate,
   currency = 'SAR',
   onOpenPayment,
+  isViewingSavedInvoice = false,
+  onPrint,
 }) => {
   const scrollRef = useRef<HTMLDivElement>(null);
   const headerScrollRef = useRef<HTMLDivElement>(null);
@@ -254,28 +258,48 @@ const Cart: React.FC<CartProps> = ({
       {/* Footer Totals */}
       <div className="bg-blue-50 border-t-2 border-blue-200 p-2 text-xs">
         <div className="flex items-center justify-between gap-3">
-          <button 
-            onClick={onOpenPayment}
-            className="group relative flex items-center gap-4 p-3 bg-brand-blue transition-all h-[calc(100%/12)] border-b border-white/5 hover:bg-blue-700 active:bg-black/10 duration-200 overflow-hidden rounded-lg"
-          >
-            {/* Icon Container - Always Colored */}
-            <div className="p-2 rounded-lg flex items-center justify-center transition-all duration-200 bg-blue-500/20 text-blue-300 group-hover:scale-110 shadow-sm ring-1 ring-white/10">
-              <DatabaseIcon className="w-6 h-6" />
-            </div>
-            
-            {/* Label - Beside Icon */}
-            <span className="text-sm font-bold text-white leading-tight transition-colors group-hover:text-gold-400 group-hover:drop-shadow-sm text-right flex-1 truncate tracking-wide">
-              دفع نقدي
-            </span>
-            
-            {/* F-Key Badge */}
-            <span className="absolute top-1 left-1 text-[10px] font-mono text-blue-300 opacity-60 group-hover:opacity-100 group-hover:text-gold-400 font-bold px-1">
-              F4
-            </span>
+          {isViewingSavedInvoice ? (
+            <button 
+              onClick={onPrint}
+              className="group relative flex items-center gap-4 p-3 bg-brand-blue transition-all h-[calc(100%/12)] border-b border-white/5 hover:bg-blue-700 active:bg-black/10 duration-200 overflow-hidden rounded-lg"
+            >
+              {/* Icon Container - Always Colored */}
+              <div className="p-2 rounded-lg flex items-center justify-center transition-all duration-200 bg-blue-500/20 text-blue-300 group-hover:scale-110 shadow-sm ring-1 ring-white/10">
+                <PrintIcon className="w-6 h-6" />
+              </div>
+              
+              {/* Label - Beside Icon */}
+              <span className="text-sm font-bold text-white leading-tight transition-colors group-hover:text-gold-400 group-hover:drop-shadow-sm text-right flex-1 truncate tracking-wide">
+                طباعة
+              </span>
 
-            {/* Side Active Indicator Bar */}
-            <div className="absolute right-0 top-0 bottom-0 w-[4px] bg-transparent transition-colors group-hover:border-blue-400"></div>
-          </button>
+              {/* Side Active Indicator Bar */}
+              <div className="absolute right-0 top-0 bottom-0 w-[4px] bg-transparent transition-colors group-hover:border-blue-400"></div>
+            </button>
+          ) : (
+            <button 
+              onClick={onOpenPayment}
+              className="group relative flex items-center gap-4 p-3 bg-brand-blue transition-all h-[calc(100%/12)] border-b border-white/5 hover:bg-blue-700 active:bg-black/10 duration-200 overflow-hidden rounded-lg"
+            >
+              {/* Icon Container - Always Colored */}
+              <div className="p-2 rounded-lg flex items-center justify-center transition-all duration-200 bg-blue-500/20 text-blue-300 group-hover:scale-110 shadow-sm ring-1 ring-white/10">
+                <DatabaseIcon className="w-6 h-6" />
+              </div>
+              
+              {/* Label - Beside Icon */}
+              <span className="text-sm font-bold text-white leading-tight transition-colors group-hover:text-gold-400 group-hover:drop-shadow-sm text-right flex-1 truncate tracking-wide">
+                دفع نقدي
+              </span>
+              
+              {/* F-Key Badge */}
+              <span className="absolute top-1 left-1 text-[10px] font-mono text-blue-300 opacity-60 group-hover:opacity-100 group-hover:text-gold-400 font-bold px-1">
+                F4
+              </span>
+
+              {/* Side Active Indicator Bar */}
+              <div className="absolute right-0 top-0 bottom-0 w-[4px] bg-transparent transition-colors group-hover:border-blue-400"></div>
+            </button>
+          )}
           
           <div className="flex-1 bg-white border border-blue-300 rounded p-1 flex justify-between items-center shadow-sm">
             <span className="font-bold text-blue-800 px-2 flex-1 text-center text-xs leading-tight">{tafqeet(Math.abs(total), currency)}</span>

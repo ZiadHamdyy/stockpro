@@ -20,7 +20,7 @@ import {
   FileTextIcon,
 } from '../../../icons';
 import { useToast } from '../../../common/ToastProvider';
-import { formatNumber } from '../../../../utils/formatting';
+import { formatNumber, formatMoney } from '../../../../utils/formatting';
 import InvoicePrintPreview from '../InvoicePrintPreview';
 import { useAppSelector } from '../../../store/hooks';
 import PermissionWrapper from '../../../common/PermissionWrapper';
@@ -39,9 +39,13 @@ import { useGetFinancialSettingsQuery } from '../../../store/slices/financialSet
 import { TaxPolicy } from '../../settings/financial-system/types';
 import {
   useCreateSalesInvoiceMutation,
+  useGetSalesInvoicesQuery,
+  useGetSalesInvoiceByIdQuery,
   type CreateSalesInvoiceRequest,
+  type SalesInvoice,
 } from '../../../store/slices/salesInvoice/salesInvoiceApiSlice';
 import { showApiErrorToast } from '../../../../utils/errorToast';
+import DataTableModal from '../../../common/DataTableModal';
 import POSSidebar from './POSSidebar';
 import ProductGrid from './ProductGrid';
 import Cart from './Cart';
@@ -121,6 +125,16 @@ const POS: React.FC<POSProps> = () => {
       hasPermission(buildPermission(Resources.SALES_INVOICE, Actions.SEARCH)),
     [hasPermission],
   );
+
+  // Invoice search and retrieval
+  const { data: allInvoices = [] } = useGetSalesInvoicesQuery();
+  const filteredInvoices = useMemo(() => {
+    return allInvoices.filter((invoice: SalesInvoice) => {
+      const invoiceBranchId = invoice.branch?.id || invoice.branchId;
+      if (!canSearchAllBranches && userBranchId && invoiceBranchId !== userBranchId) return false;
+      return true;
+    });
+  }, [allInvoices, canSearchAllBranches, userBranchId]);
 
   const { data: itemsData = [] } = useGetItemsQuery(
     !canSearchAllBranches && userStore ? { storeId: userStore.id } : undefined,
@@ -230,6 +244,14 @@ const POS: React.FC<POSProps> = () => {
   const [isNoteModalOpen, setIsNoteModalOpen] = useState(false);
   const [isCalculatorOpen, setIsCalculatorOpen] = useState(false);
   const [priceCheckItem, setPriceCheckItem] = useState<Item | null>(null);
+  const [isInvoiceSearchModalOpen, setIsInvoiceSearchModalOpen] = useState(false);
+  const [selectedInvoiceId, setSelectedInvoiceId] = useState<string | null>(null);
+
+  // Fetch selected invoice details
+  const { data: selectedInvoice, isLoading: isLoadingInvoice } = useGetSalesInvoiceByIdQuery(
+    selectedInvoiceId || '',
+    { skip: !selectedInvoiceId }
+  );
   
   // Payment state
   const [paymentAmount, setPaymentAmount] = useState<string>("");
@@ -274,6 +296,27 @@ const POS: React.FC<POSProps> = () => {
       setCardBankId((prev) => prev ?? defaultBankId);
     }
   }, [paymentMethod, banks]);
+
+  // Update customer field when viewing saved invoice with customer
+  useEffect(() => {
+    if (selectedInvoiceId && selectedInvoice?.customer) {
+      setSelectedCustomer({
+        id: selectedInvoice.customer.id,
+        name: selectedInvoice.customer.name,
+      });
+      setCustomerQuery(selectedInvoice.customer.name);
+      // Set customer type based on payment method
+      if (selectedInvoice.paymentMethod === "credit") {
+        setCustomerType("credit");
+      } else {
+        setCustomerType("cash");
+      }
+    } else if (selectedInvoiceId && selectedInvoice && !selectedInvoice.customer) {
+      // Clear customer if invoice has no customer
+      setSelectedCustomer(null);
+      setCustomerQuery("");
+    }
+  }, [selectedInvoiceId, selectedInvoice]);
 
 
   useEffect(() => {
@@ -495,6 +538,35 @@ const POS: React.FC<POSProps> = () => {
     return { subtotal, tax, discount, net };
   }, [cartItems, isVatEnabled, discount]);
 
+  // Compute invoice totals when viewing saved invoice
+  const invoiceTotals = useMemo(() => {
+    if (!selectedInvoice) {
+      return totals;
+    }
+    return {
+      subtotal: selectedInvoice.subtotal || 0,
+      tax: selectedInvoice.tax || 0,
+      discount: selectedInvoice.discount || 0,
+      net: selectedInvoice.net || 0,
+    };
+  }, [selectedInvoice, totals]);
+
+  // Determine which items to display in cart
+  const displayItems = useMemo(() => {
+    if (selectedInvoiceId && selectedInvoice) {
+      // Map invoice items to ensure taxAmount is always present
+      return (selectedInvoice.items || []).map((item) => ({
+        ...item,
+        taxAmount: item.taxAmount ?? 0,
+        total: item.total ?? 0,
+      }));
+    }
+    return cartItems;
+  }, [selectedInvoiceId, selectedInvoice, cartItems]);
+
+  // Determine if viewing saved invoice
+  const isViewingSavedInvoice = Boolean(selectedInvoiceId && selectedInvoice);
+
   // Tab Management
   const handleNewTab = () => {
     const newTab: InvoiceTab = {
@@ -569,6 +641,99 @@ const POS: React.FC<POSProps> = () => {
     setIsCustomerDropdownOpen(false);
     // Don't automatically change customer type - allow customer selection for both cash and credit
   };
+
+  const handleSelectInvoiceFromSearch = (row: any) => {
+    setSelectedInvoiceId(row.id);
+    setIsInvoiceSearchModalOpen(false);
+    // Preview will open automatically when invoice loads (via useEffect)
+  };
+
+  const handlePrintSavedInvoice = () => {
+    if (selectedInvoiceId && selectedInvoice) {
+      setIsPreviewOpen(true);
+    }
+  };
+
+  // Transform SalesInvoice to InvoicePrintPreview format
+  const transformInvoiceForPreview = (invoice: SalesInvoice | undefined) => {
+    if (!invoice) return null;
+
+    return {
+      companyInfo: companyInfo,
+      vatRate,
+      isVatEnabled,
+      items: (invoice.items || []).map((item) => ({
+        ...item,
+        taxAmount: item.taxAmount ?? 0,
+        total: item.total ?? 0,
+      })),
+      totals: {
+        subtotal: invoice.subtotal || 0,
+        discount: invoice.discount || 0,
+        tax: invoice.tax || 0,
+        net: invoice.net || 0,
+      },
+      paymentMethod: invoice.paymentMethod || "cash",
+      customer: invoice.customer
+        ? {
+            id: invoice.customer.id,
+            name: invoice.customer.name,
+          }
+        : null,
+      details: {
+        invoiceNumber: invoice.code || "",
+        invoiceDate: invoice.date ? invoice.date.substring(0, 10) : new Date().toISOString().substring(0, 10),
+        userName: invoice.user?.name || currentUser?.fullName || "Cashier",
+        branchName: invoice.branch?.name || (currentUser as any)?.branch?.name || currentUser?.branch || "Main",
+        notes: invoice.notes || "",
+      },
+      zatcaUuid: invoice.zatcaUuid,
+      zatcaSequentialNumber: invoice.zatcaSequentialNumber,
+      zatcaStatus: invoice.zatcaStatus,
+      zatcaIssueDateTime: invoice.zatcaIssueDateTime,
+      zatcaHash: invoice.zatcaHash,
+    };
+  };
+
+  // Compute preview data with useMemo to ensure consistent structure
+  const previewInvoiceData = useMemo(() => {
+    if (selectedInvoiceId && selectedInvoice) {
+      const transformed = transformInvoiceForPreview(selectedInvoice);
+      if (transformed) return transformed;
+    }
+    
+    // Default to current cart data
+    return {
+      companyInfo: companyInfo,
+      vatRate,
+      isVatEnabled,
+      items: cartItems,
+      totals,
+      paymentMethod: paymentMethod === "card" ? "cash" : paymentMethod,
+      customer: selectedCustomer,
+      details: {
+        invoiceNumber,
+        invoiceDate: new Date().toISOString().substring(0, 10),
+        userName: currentUser?.fullName || "Cashier",
+        branchName:
+          (currentUser as any)?.branch?.name ||
+          currentUser?.branch ||
+          "Main",
+      },
+    };
+  }, [
+    selectedInvoiceId,
+    selectedInvoice,
+    companyInfo,
+    vatRate,
+    isVatEnabled,
+    cartItems,
+    totals,
+    paymentMethod,
+    selectedCustomer,
+    invoiceNumber,
+    currentUser,
+  ]);
 
   const handleAIAnalyze = async () => {
     // Optional: Implement AI analysis if needed
@@ -917,6 +1082,29 @@ const POS: React.FC<POSProps> = () => {
             </div>
           </PermissionWrapper>
           
+          {/* Previous Invoices Button */}
+          <PermissionWrapper
+            requiredPermission={buildPermission(
+              Resources.SALES_INVOICE,
+              Actions.READ
+            )}
+            fallback={null}
+          >
+            <div className="flex flex-col min-w-[140px]">
+              <div className="flex items-center gap-2 mb-1">
+                <FileTextIcon className="w-[14px] h-[14px] text-gold-400" />
+                <span className="text-[10px] text-blue-200 font-medium">الفواتير</span>
+              </div>
+              <button 
+                onClick={() => setIsInvoiceSearchModalOpen(true)}
+                className="flex items-center gap-2 px-3 py-1.5 rounded border transition-all shadow-sm h-9 bg-blue-700 text-blue-200 border-blue-600 hover:text-white hover:bg-blue-600"
+              >
+                <FileTextIcon className="w-4 h-4" />
+                <span className="text-xs">الفواتير السابقة</span>
+              </button>
+            </div>
+          </PermissionWrapper>
+
           {/* Grid Toggle */}
           <div className="flex flex-col min-w-[140px]">
             <div className="flex items-center gap-2 mb-1">
@@ -986,20 +1174,22 @@ const POS: React.FC<POSProps> = () => {
           {/* TABLE CONTAINER */}
           <div className="flex-1 relative z-0 overflow-hidden">
             <Cart 
-              cartItems={cartItems}
+              cartItems={displayItems}
               onUpdateQuantity={updateQty}
               onUpdatePrice={updatePrice}
               onRemoveItem={removeFromCart}
               onAnalyze={handleAIAnalyze}
-              subtotal={totals.subtotal}
-              tax={totals.tax}
-              total={totals.net}
+              subtotal={invoiceTotals.subtotal}
+              tax={invoiceTotals.tax}
+              total={invoiceTotals.net}
               isAnalyzing={isAnalyzing}
               aiInsight={aiInsight}
-              discount={discount}
+              discount={invoiceTotals.discount}
               vatRate={vatRate}
               currency={companyInfo.currency}
               onOpenPayment={() => setPaymentModalOpen(true)}
+              isViewingSavedInvoice={isViewingSavedInvoice}
+              onPrint={handlePrintSavedInvoice}
             />
           </div>
         </div>
@@ -1156,37 +1346,72 @@ const POS: React.FC<POSProps> = () => {
         </div>
       )}
 
-      <InvoicePrintPreview
-        isOpen={isPreviewOpen}
-        onClose={() => setIsPreviewOpen(false)}
-        invoiceData={{
-          companyInfo: companyInfo,
-          vatRate,
-          isVatEnabled,
-          items: cartItems,
-          totals,
-          paymentMethod: paymentMethod === "card" ? "cash" : paymentMethod,
-          customer: selectedCustomer,
-          details: {
-            invoiceNumber,
-            invoiceDate: new Date().toISOString().substring(0, 10),
-            userName: currentUser?.fullName || "Cashier",
-            branchName:
-              (currentUser as any)?.branch?.name ||
-              currentUser?.branch ||
-              "Main",
-          },
-        }}
-        printSettings={{
-          template: "thermal",
-          showLogo: true,
-          showTaxNumber: true,
-          showAddress: true,
-          headerText: "فاتورة ضريبية مبسطة",
-          footerText: "شكراً لزيارتكم",
-          termsText: "",
-        }}
+      {/* Invoice Search Modal */}
+      <DataTableModal
+        isOpen={isInvoiceSearchModalOpen}
+        onClose={() => setIsInvoiceSearchModalOpen(false)}
+        title="بحث عن فاتورة مبيعات"
+        columns={[
+          { Header: "الرقم", accessor: "code" },
+          { Header: "التاريخ", accessor: "date" },
+          { Header: "العميل", accessor: "customer" },
+          { Header: "الصافي", accessor: "total" },
+        ]}
+        data={filteredInvoices
+          .sort((a, b) => {
+            // Sort by date in descending order (newest first)
+            const dateA = a.date ? new Date(a.date).getTime() : 0;
+            const dateB = b.date ? new Date(b.date).getTime() : 0;
+            // If dates are equal, sort by createdAt (newest first)
+            if (dateA === dateB) {
+              const createdA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+              const createdB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+              return createdB - createdA;
+            }
+            return dateB - dateA;
+          })
+          .map((inv) => ({
+            id: inv.id,
+            code: inv.code,
+            date: inv.date
+              ? new Date(inv.date).toISOString().substring(0, 10)
+              : "-",
+            customer: inv.customer?.name || "-",
+            total: formatMoney(inv.net),
+          }))}
+        onSelectRow={handleSelectInvoiceFromSearch}
+        colorTheme="blue"
       />
+
+      {/* Invoice Print Preview - Show selected invoice or current cart */}
+      {(() => {
+        // Only render preview if we have data and it's open
+        // Since InvoicePrintPreview has an early return that causes hook order issues,
+        // we only render it when isOpen would be true, and always pass isOpen={true}
+        if (!isPreviewOpen || !previewInvoiceData || previewInvoiceData.items.length === 0) {
+          return null;
+        }
+        
+        return (
+          <InvoicePrintPreview
+            isOpen={true}
+            onClose={() => {
+              setIsPreviewOpen(false);
+              setSelectedInvoiceId(null); // Reset selected invoice when closing
+            }}
+            invoiceData={previewInvoiceData}
+            printSettings={{
+              template: "thermal",
+              showLogo: true,
+              showTaxNumber: true,
+              showAddress: true,
+              headerText: "فاتورة ضريبية مبسطة",
+              footerText: "شكراً لزيارتكم",
+              termsText: "",
+            }}
+          />
+        );
+      })()}
     </div>
   );
 };
