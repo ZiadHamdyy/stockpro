@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { useLocation } from "react-router-dom";
 import { useToast } from "../../common/ToastProvider";
 import { useSuppliers } from "../../hook/useSuppliers";
 import { useTitle } from "../../context/TitleContext";
@@ -38,8 +39,17 @@ const AddSupplier: React.FC<AddSupplierProps> = ({
   const [supplierPosition, setSupplierPosition] = useState<number | null>(null);
   const { setTitle } = useTitle();
   const { showToast } = useToast();
+  const location = useLocation();
 
   useEffect(() => {
+    // Only set title if we're still on this page
+    const isOnSuppliersPage = location.pathname.startsWith("/suppliers/add");
+    
+    if (!isOnSuppliersPage) {
+      setTitle("");
+      return;
+    }
+
     if (editingId !== null) {
       const index = suppliers.findIndex((s) => s.id === editingId);
       if (index !== -1) {
@@ -65,7 +75,15 @@ const AddSupplier: React.FC<AddSupplierProps> = ({
       setSupplierPosition(null);
       setTitle(`إضافة مورد`);
     }
-  }, [editingId, suppliers, setTitle]);
+  }, [editingId, suppliers, setTitle, location.pathname]);
+
+  // Reset title when navigating away from this page
+  useEffect(() => {
+    const isOnSuppliersPage = location.pathname.startsWith("/suppliers/add");
+    if (!isOnSuppliersPage) {
+      setTitle("");
+    }
+  }, [location.pathname, setTitle]);
 
   // Cleanup: Reset title when component unmounts
   useEffect(() => {

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams, useLocation } from "react-router-dom";
 import { useModal } from "../../common/ModalProvider";
 import { useToast } from "../../common/ToastProvider";
 import { useTitle } from "../../context/TitleContext";
@@ -30,6 +30,7 @@ interface AddItemProps {
 const AddItem: React.FC<AddItemProps> = ({ title, editingId, onNavigate }) => {
   const navigate = useNavigate();
   const params = useParams();
+  const location = useLocation();
   const { setTitle } = useTitle();
 
   // Get the item ID from URL parameters or props
@@ -76,6 +77,14 @@ const AddItem: React.FC<AddItemProps> = ({ title, editingId, onNavigate }) => {
 
   // Calculate item position when items data is available
   useEffect(() => {
+    // Only set title if we're still on this page
+    const isOnItemsPage = location.pathname.startsWith("/items/add");
+    
+    if (!isOnItemsPage) {
+      setTitle("");
+      return;
+    }
+
     if (Array.isArray(items) && items.length > 0 && itemId) {
       const index = items.findIndex((item) => item.id === itemId);
       const position = index !== -1 ? index + 1 : null;
@@ -93,7 +102,15 @@ const AddItem: React.FC<AddItemProps> = ({ title, editingId, onNavigate }) => {
       setCurrentIndex(-1);
       setTitle(`تعديل صنف`);
     }
-  }, [items, itemId, setTitle]);
+  }, [items, itemId, setTitle, location.pathname]);
+
+  // Reset title when navigating away from this page
+  useEffect(() => {
+    const isOnItemsPage = location.pathname.startsWith("/items/add");
+    if (!isOnItemsPage) {
+      setTitle("");
+    }
+  }, [location.pathname, setTitle]);
 
   // Cleanup: Reset title when component unmounts
   useEffect(() => {

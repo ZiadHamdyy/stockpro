@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { useLocation } from "react-router-dom";
 import { useToast } from "../../common/ToastProvider";
 import { useCustomers } from "../../hook/useCustomers";
 import { useTitle } from "../../context/TitleContext";
@@ -39,8 +40,17 @@ const AddCustomer: React.FC<AddCustomerProps> = ({
   const [customerPosition, setCustomerPosition] = useState<number | null>(null);
   const { setTitle } = useTitle();
   const { showToast } = useToast();
+  const location = useLocation();
 
   useEffect(() => {
+    // Only set title if we're still on this page
+    const isOnCustomersPage = location.pathname.startsWith("/customers/add");
+    
+    if (!isOnCustomersPage) {
+      setTitle("");
+      return;
+    }
+
     if (editingId !== null) {
       const index = customers.findIndex((c) => c.id === editingId);
       if (index !== -1) {
@@ -70,7 +80,15 @@ const AddCustomer: React.FC<AddCustomerProps> = ({
       setCustomerPosition(null);
       setTitle(`إضافة عميل`);
     }
-  }, [editingId, customers, setTitle]);
+  }, [editingId, customers, setTitle, location.pathname]);
+
+  // Reset title when navigating away from this page
+  useEffect(() => {
+    const isOnCustomersPage = location.pathname.startsWith("/customers/add");
+    if (!isOnCustomersPage) {
+      setTitle("");
+    }
+  }, [location.pathname, setTitle]);
 
   // Cleanup: Reset title when component unmounts
   useEffect(() => {

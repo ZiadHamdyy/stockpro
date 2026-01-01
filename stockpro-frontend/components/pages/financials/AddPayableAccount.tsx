@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams, useLocation } from "react-router-dom";
 import { useModal } from "../../common/ModalProvider";
 import { useToast } from "../../common/ToastProvider";
 import { useTitle } from "../../context/TitleContext";
@@ -20,6 +20,7 @@ const emptyAccount = { code: "", name: "", openingBalance: 0 } as const;
 const AddPayableAccount: React.FC<Props> = ({ title, editingId, onNavigate }) => {
   const navigate = useNavigate();
   const params = useParams();
+  const location = useLocation();
   const { setTitle } = useTitle();
   const accountId = params.id || editingId;
 
@@ -38,6 +39,14 @@ const AddPayableAccount: React.FC<Props> = ({ title, editingId, onNavigate }) =>
 
   // Calculate account position when accounts data is available
   useEffect(() => {
+    // Only set title if we're still on this page
+    const isOnPayableAccountsPage = location.pathname.startsWith("/financials/payable-accounts/add");
+    
+    if (!isOnPayableAccountsPage) {
+      setTitle("");
+      return;
+    }
+
     if (Array.isArray(accounts) && accounts.length > 0 && accountId) {
       const index = accounts.findIndex((account) => account.id === accountId);
       const position = index !== -1 ? index + 1 : null;
@@ -53,7 +62,22 @@ const AddPayableAccount: React.FC<Props> = ({ title, editingId, onNavigate }) =>
       setAccountPosition(null);
       setTitle(`تعديل حساب دائن`);
     }
-  }, [accounts, accountId, setTitle]);
+  }, [accounts, accountId, setTitle, location.pathname]);
+
+  // Reset title when navigating away from this page
+  useEffect(() => {
+    const isOnPayableAccountsPage = location.pathname.startsWith("/financials/payable-accounts/add");
+    if (!isOnPayableAccountsPage) {
+      setTitle("");
+    }
+  }, [location.pathname, setTitle]);
+
+  // Cleanup: Reset title when component unmounts
+  useEffect(() => {
+    return () => {
+      setTitle("");
+    };
+  }, [setTitle]);
 
   useEffect(() => {
     if (accountId !== null && accountId !== undefined) {

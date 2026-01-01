@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams, useLocation } from "react-router-dom";
 import { useModal } from "../../common/ModalProvider";
 import { useToast } from "../../common/ToastProvider";
 import { useTitle } from "../../context/TitleContext";
@@ -41,6 +41,7 @@ const AddCurrentAccount: React.FC<AddCurrentAccountProps> = ({
 }) => {
   const navigate = useNavigate();
   const params = useParams();
+  const location = useLocation();
   const { setTitle } = useTitle();
 
   // Get the account ID from URL parameters or props
@@ -66,6 +67,14 @@ const AddCurrentAccount: React.FC<AddCurrentAccountProps> = ({
 
   // Calculate account position when accounts data is available
   useEffect(() => {
+    // Only set title if we're still on this page
+    const isOnCurrentAccountsPage = location.pathname.startsWith("/financials/current-accounts/add");
+    
+    if (!isOnCurrentAccountsPage) {
+      setTitle("");
+      return;
+    }
+
     if (Array.isArray(accounts) && accounts.length > 0 && accountId) {
       const index = accounts.findIndex((account) => account.id === accountId);
       const position = index !== -1 ? index + 1 : null;
@@ -81,7 +90,22 @@ const AddCurrentAccount: React.FC<AddCurrentAccountProps> = ({
       setAccountPosition(null);
       setTitle(`تعديل حساب`);
     }
-  }, [accounts, accountId, setTitle]);
+  }, [accounts, accountId, setTitle, location.pathname]);
+
+  // Reset title when navigating away from this page
+  useEffect(() => {
+    const isOnCurrentAccountsPage = location.pathname.startsWith("/financials/current-accounts/add");
+    if (!isOnCurrentAccountsPage) {
+      setTitle("");
+    }
+  }, [location.pathname, setTitle]);
+
+  // Cleanup: Reset title when component unmounts
+  useEffect(() => {
+    return () => {
+      setTitle("");
+    };
+  }, [setTitle]);
 
   useEffect(() => {
     if (accountId !== null && accountId !== undefined) {
