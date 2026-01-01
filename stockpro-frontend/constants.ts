@@ -493,6 +493,11 @@ export const MENU_ITEMS: MenuItem[] = [
     icon: BookOpenCheckIcon,
     children: [
       {
+        key: "audit_trail",
+        label: "ميزان المراجعة",
+        icon: ListIcon,
+      },
+      {
         key: "income_statement",
         label: "قائمة الدخل",
         icon: BookOpenCheckIcon,
@@ -501,11 +506,6 @@ export const MENU_ITEMS: MenuItem[] = [
         key: "balance_sheet",
         label: "قائمة المركز المالي",
         icon: BookOpenCheckIcon,
-      },
-      {
-        key: "audit_trail",
-        label: "ميزان المراجعة",
-        icon: ListIcon,
       },
     ],
   },
