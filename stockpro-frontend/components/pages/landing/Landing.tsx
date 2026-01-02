@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import Navbar from './Navbar';
 import Footer from './Footer';
 import HomePage from './Hero';
@@ -82,94 +82,6 @@ const defaultStats: StatItem[] = [
 
 const Landing: React.FC = () => {
   const [currentPage, setCurrentPage] = useState<Page>('home');
-  const [images, setImages] = useState<AppImages>(defaultImages);
-  const [prices, setPrices] = useState<AppPrices>(defaultPrices);
-  const [featureSummaries, setFeatureSummaries] = useState<FeatureSummary[]>(defaultFeatureSummaries);
-  const [stats, setStats] = useState<StatItem[]>(defaultStats);
-
-
-  useEffect(() => {
-    try {
-      const savedImages = localStorage.getItem('stockProImages');
-      if (savedImages) {
-        setImages(prevImages => ({ ...prevImages, ...JSON.parse(savedImages) }));
-      }
-      const savedPrices = localStorage.getItem('stockProPrices');
-      if (savedPrices) {
-        setPrices(prevPrices => ({ ...prevPrices, ...JSON.parse(savedPrices) }));
-      }
-      const savedFeatures = localStorage.getItem('stockProFeatureSummaries');
-      if (savedFeatures) {
-        setFeatureSummaries(JSON.parse(savedFeatures));
-      }
-      const savedStats = localStorage.getItem('stockProStats');
-      if (savedStats) {
-        setStats(JSON.parse(savedStats));
-      }
-
-    } catch (error) {
-      console.error("Failed to parse data from localStorage", error);
-    }
-  }, []);
-
-  const handleImageUpload = (key: ImageKey, file: File) => {
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      const base64String = reader.result as string;
-      const newImages = { ...images, [key]: base64String };
-      setImages(newImages);
-      try {
-        localStorage.setItem('stockProImages', JSON.stringify(newImages));
-      } catch (error) {
-        console.error("Failed to save images to localStorage", error);
-      }
-    };
-    reader.readAsDataURL(file);
-  };
-
-  const handleImageUrlUpdate = (key: ImageKey, url: string) => {
-      const newImages = { ...images, [key]: url };
-      setImages(newImages);
-      try {
-        localStorage.setItem('stockProImages', JSON.stringify(newImages));
-      } catch (error) {
-        console.error("Failed to save images to localStorage", error);
-      }
-  };
-
-  const handlePriceChange = (key: PriceKey, value: string) => {
-    const newPrices = { ...prices, [key]: value };
-    setPrices(newPrices);
-    try {
-      localStorage.setItem('stockProPrices', JSON.stringify(newPrices));
-    } catch (error) {
-      console.error("Failed to save prices to localStorage", error);
-    }
-  };
-
-  const handleFeatureSummaryChange = (id: number, updatedValues: Partial<FeatureSummary>) => {
-    const newSummaries = featureSummaries.map(summary => 
-      summary.id === id ? { ...summary, ...updatedValues } : summary
-    );
-    setFeatureSummaries(newSummaries);
-    try {
-        localStorage.setItem('stockProFeatureSummaries', JSON.stringify(newSummaries));
-    } catch (error) {
-        console.error("Failed to save feature summaries to localStorage", error);
-    }
-  };
-
-  const handleStatChange = (id: number, updatedValues: Partial<StatItem>) => {
-    const newStats = stats.map(stat => 
-      stat.id === id ? { ...stat, ...updatedValues } : stat
-    );
-    setStats(newStats);
-    try {
-        localStorage.setItem('stockProStats', JSON.stringify(newStats));
-    } catch (error) {
-        console.error("Failed to save stats to localStorage", error);
-    }
-  };
 
 
   const renderPage = () => {
@@ -177,26 +89,24 @@ const Landing: React.FC = () => {
       case 'features':
         return <FeaturesPage 
                   featureImages={{
-                    featureInventory: images.featureInventory,
-                    featureInvoices: images.featureInvoices,
-                    featureReports: images.featureReports,
-                    featureCrm: images.featureCrm,
+                    featureInventory: defaultImages.featureInventory,
+                    featureInvoices: defaultImages.featureInvoices,
+                    featureReports: defaultImages.featureReports,
+                    featureCrm: defaultImages.featureCrm,
                   }} 
                 />;
       case 'pricing':
-        return <PricingPage prices={prices} onPriceChange={handlePriceChange} />;
+        return <PricingPage prices={defaultPrices} />;
       case 'contact':
         return <ContactPage />;
       case 'home':
       default:
         return <HomePage 
                   setPage={setCurrentPage}
-                  heroBgUrl={images.heroBg}
-                  dashboardUrl={images.dashboard}
-                  featureSummaries={featureSummaries}
-                  onFeatureSummaryChange={handleFeatureSummaryChange}
-                  stats={stats}
-                  onStatChange={handleStatChange}
+                  heroBgUrl={defaultImages.heroBg}
+                  dashboardUrl={defaultImages.dashboard}
+                  featureSummaries={defaultFeatureSummaries}
+                  stats={defaultStats}
                 />;
     }
   };
@@ -206,14 +116,12 @@ const Landing: React.FC = () => {
       <Navbar 
         setPage={setCurrentPage} 
         currentPage={currentPage} 
-        logoUrl={images.logo}
-        onLogoUpload={(file) => handleImageUpload('logo', file)}
-        onLogoSelect={(url) => handleImageUrlUpdate('logo', url)}
+        logoUrl={defaultImages.logo}
       />
       <main className="pt-14 md:pt-14">
         {renderPage()}
       </main>
-      <Footer logoUrl={images.logo} setPage={setCurrentPage} />
+      <Footer logoUrl={defaultImages.logo} setPage={setCurrentPage} />
     </div>
   );
 };

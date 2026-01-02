@@ -1,7 +1,6 @@
 
 import React from 'react';
 import { InventoryIcon, InvoiceIcon, ReportsIcon, CrmIcon } from './icons/IconCollection';
-import { ImageKey } from './Landing';
 
 const featuresStaticData = [
   {

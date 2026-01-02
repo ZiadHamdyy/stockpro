@@ -7,8 +7,6 @@ interface NavbarProps {
     setPage: (page: Page) => void;
     currentPage: Page;
     logoUrl: string;
-    onLogoUpload: (file: File) => void;
-    onLogoSelect: (url: string) => void;
 }
 
 const NavLink: React.FC<{

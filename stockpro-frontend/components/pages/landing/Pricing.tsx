@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState } from 'react';
 import { CheckCircleIcon } from './icons/IconCollection';
 import Modal from './Modal';
 import SubscriptionForm, { PlanType } from './SubscriptionForm';
@@ -11,46 +11,10 @@ interface PricingCardProps {
   yearlyPrice: string;
   features: string[];
   popular?: boolean;
-  onPriceChange: (newPrice: string) => void;
   onSubscribe: (plan: 'basic' | 'pro' | 'enterprise') => void;
 }
 
-const PricingCard: React.FC<PricingCardProps> = ({ plan, planKey, monthlyPrice, yearlyPrice, features, popular = false, onPriceChange, onSubscribe }) => {
-  const [isEditing, setIsEditing] = useState(false);
-  const [editingMonthlyPrice, setEditingMonthlyPrice] = useState(monthlyPrice);
-  const [editingYearlyPrice, setEditingYearlyPrice] = useState(yearlyPrice);
-  const inputRef = useRef<HTMLInputElement>(null);
-
-  useEffect(() => {
-    setEditingMonthlyPrice(monthlyPrice);
-    setEditingYearlyPrice(yearlyPrice);
-  }, [monthlyPrice, yearlyPrice]);
-
-  useEffect(() => {
-    if (isEditing) {
-      inputRef.current?.focus();
-      inputRef.current?.select();
-    }
-  }, [isEditing]);
-
-  const handleSave = () => {
-    const numericValue = editingMonthlyPrice.replace(/[^0-9.]/g, '');
-    if (numericValue.trim()) {
-      onPriceChange(numericValue.trim() + ' ر.س');
-    } else {
-      setEditingMonthlyPrice(monthlyPrice);
-    }
-    setIsEditing(false);
-  };
-
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter') {
-      handleSave();
-    } else if (e.key === 'Escape') {
-      setEditingMonthlyPrice(monthlyPrice);
-      setIsEditing(false);
-    }
-  };
+const PricingCard: React.FC<PricingCardProps> = ({ plan, planKey, monthlyPrice, yearlyPrice, features, popular = false, onSubscribe }) => {
 
   const planColors: Record<string, { gradient: string; bgGradient: string; border: string; priceGradient: string; badgeGradient: string }> = {
     basic: {
@@ -101,55 +65,14 @@ const PricingCard: React.FC<PricingCardProps> = ({ plan, planKey, monthlyPrice, 
         </span>
       </div>
       
-      <div 
-        className="text-center my-6 flex flex-col items-center justify-center relative group" 
-        onClick={() => !isEditing && setIsEditing(true)}
-      >
-        {isEditing ? (
-          <div className="flex flex-col items-center gap-2">
-            <div className="flex items-baseline justify-center">
-              <input
-                ref={inputRef}
-                type="text"
-                value={editingMonthlyPrice.replace(/[^0-9.]/g, '')}
-                onChange={(e) => {
-                  const numericValue = e.target.value.replace(/[^0-9.]/g, '');
-                  setEditingMonthlyPrice(numericValue);
-                }}
-                onBlur={handleSave}
-                onKeyDown={handleKeyDown}
-                className={`text-4xl font-black bg-gradient-to-r ${colors.priceGradient} bg-clip-text text-transparent bg-white border-2 ${colors.border} rounded-md w-32 text-center p-0`}
-              />
-              <span className="text-slate-400 mr-2 text-sm font-medium">/شهرياً</span>
-            </div>
-            <div className="flex items-baseline justify-center">
-              <input
-                type="text"
-                value={editingYearlyPrice.replace(/[^0-9.]/g, '')}
-                onChange={(e) => {
-                  const numericValue = e.target.value.replace(/[^0-9.]/g, '');
-                  setEditingYearlyPrice(numericValue);
-                }}
-                onBlur={handleSave}
-                className={`text-2xl font-black bg-gradient-to-r ${colors.priceGradient} bg-clip-text text-transparent bg-white border-2 ${colors.border} rounded-md w-28 text-center p-0`}
-              />
-              <span className="text-slate-400 mr-2 text-xs font-medium">سنوياً</span>
-            </div>
-          </div>
-        ) : (
-          <div className="cursor-pointer">
-            <div className="flex items-baseline justify-center mb-2">
-              <span className={`text-5xl font-black bg-gradient-to-r ${colors.priceGradient} bg-clip-text text-transparent`}>{monthlyPrice}</span>
-              <span className="text-slate-500 text-sm font-medium mr-2">/شهرياً</span>
-            </div>
-            <div className="flex items-baseline justify-center">
-              <span className={`text-2xl font-bold bg-gradient-to-r ${colors.priceGradient} bg-clip-text text-transparent`}>سنوياً {yearlyPrice}</span>
-            </div>
-            <div className="absolute -top-4 right-0 left-0 mx-auto w-max opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
-              <p className="text-[10px] bg-slate-800 text-white px-2 py-1 rounded">اضغط للتعديل</p>
-            </div>
-          </div>
-        )}
+      <div className="text-center my-6 flex flex-col items-center justify-center">
+        <div className="flex items-baseline justify-center mb-2">
+          <span className={`text-5xl font-black bg-gradient-to-r ${colors.priceGradient} bg-clip-text text-transparent`}>{monthlyPrice}</span>
+          <span className="text-slate-500 text-sm font-medium mr-2">/شهرياً</span>
+        </div>
+        <div className="flex items-baseline justify-center">
+          <span className={`text-2xl font-bold bg-gradient-to-r ${colors.priceGradient} bg-clip-text text-transparent`}>سنوياً {yearlyPrice}</span>
+        </div>
       </div>
 
       <div className={`w-full h-px mb-8 ${planKey === 'basic' ? 'bg-gradient-to-r from-transparent via-brand-blue/30 to-transparent' : planKey === 'pro' ? 'bg-gradient-to-r from-transparent via-brand-green/30 to-transparent' : 'bg-gradient-to-r from-transparent via-brand-blue/30 to-transparent'}`}></div>
@@ -269,7 +192,6 @@ interface PricingPageProps {
     pro: string;
     enterprise: string;
   };
-  onPriceChange: (key: 'basic' | 'pro' | 'enterprise', value: string) => void;
 }
 
 // Yearly prices
@@ -279,7 +201,7 @@ const yearlyPrices = {
   enterprise: '1194 ر.س',
 };
 
-const PricingPage: React.FC<PricingPageProps> = ({ prices, onPriceChange }) => {
+const PricingPage: React.FC<PricingPageProps> = ({ prices }) => {
   const [selectedPlan, setSelectedPlan] = useState<PlanType | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
@@ -330,7 +252,6 @@ const PricingPage: React.FC<PricingPageProps> = ({ prices, onPriceChange }) => {
             planKey="basic"
             monthlyPrice={prices.basic}
             yearlyPrice={yearlyPrices.basic}
-            onPriceChange={(value) => onPriceChange('basic', value)}
             onSubscribe={handleSubscribe}
             features={[]}
           />
@@ -339,7 +260,6 @@ const PricingPage: React.FC<PricingPageProps> = ({ prices, onPriceChange }) => {
             planKey="pro"
             monthlyPrice={prices.pro}
             yearlyPrice={yearlyPrices.pro}
-            onPriceChange={(value) => onPriceChange('pro', value)}
             onSubscribe={handleSubscribe}
             features={[]}
             popular={true}
@@ -349,7 +269,6 @@ const PricingPage: React.FC<PricingPageProps> = ({ prices, onPriceChange }) => {
             planKey="enterprise"
             monthlyPrice={prices.enterprise}
             yearlyPrice={yearlyPrices.enterprise}
-            onPriceChange={(value) => onPriceChange('enterprise', value)}
             onSubscribe={handleSubscribe}
             features={[]}
           />

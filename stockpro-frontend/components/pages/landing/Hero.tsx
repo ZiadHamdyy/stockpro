@@ -1,7 +1,7 @@
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { iconMap, IconName, ArrowLeftIcon, QuoteIcon, UsersIcon, ServerIcon, GlobeIcon, ChartBarIcon, CurrencyDollarIcon, CalculatorIcon, PieChartIcon, TrendingUpIcon, DocumentTextIcon } from './icons/IconCollection';
-import { Page, ImageKey, FeatureSummary, StatItem } from './Landing';
+import { Page, FeatureSummary, StatItem } from './Landing';
 import Modal from './Modal';
 
 // --- Floating Icons Component with DISTINCTIVE COLORS ---
@@ -40,153 +40,33 @@ const FloatingIconsBackground = () => {
     );
 };
 
-// --- Editable Text Component ---
-const EditableText: React.FC<{
-  value: string;
-  onSave: (newValue: string) => void;
-  multiline?: boolean;
-  className?: string;
-}> = ({ value, onSave, multiline = false, className = '' }) => {
-  const [isEditing, setIsEditing] = useState(false);
-  const [text, setText] = useState(value);
-  const inputRef = useRef<HTMLInputElement>(null);
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
-
-  useEffect(() => {
-    setText(value);
-  }, [value]);
-
-  useEffect(() => {
-    if (isEditing) {
-      multiline ? textareaRef.current?.focus() : inputRef.current?.focus();
-    }
-  }, [isEditing, multiline]);
-
-  const handleSave = () => {
-    setIsEditing(false);
-    onSave(text);
-  };
-
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && !multiline) {
-      handleSave();
-    } else if (e.key === 'Escape') {
-      setText(value);
-      setIsEditing(false);
-    }
-  };
-
-  if (isEditing) {
-    return multiline ? (
-      <textarea
-        ref={textareaRef}
-        value={text}
-        onChange={(e) => setText(e.target.value)}
-        onBlur={handleSave}
-        onKeyDown={handleKeyDown}
-        className={`${className} bg-white border border-brand-blue rounded-md p-1 w-full resize-none outline-none ring-2 ring-brand-blue/20`}
-        rows={3}
-      />
-    ) : (
-      <input
-        ref={inputRef}
-        type="text"
-        value={text}
-        onChange={(e) => setText(e.target.value)}
-        onBlur={handleSave}
-        onKeyDown={handleKeyDown}
-        className={`${className} bg-white border border-brand-blue rounded-md p-1 w-full outline-none ring-2 ring-brand-blue/20`}
-      />
-    );
-  }
-
-  return (
-    <div onClick={() => setIsEditing(true)} className={`${className} cursor-pointer border border-transparent hover:border-dashed hover:border-gray-300 hover:bg-white/50 rounded px-1 transition-colors`}>
-      {value}
-    </div>
-  );
-};
 
 // --- Feature Summary Card ---
 const FeatureSummaryCard: React.FC<{
   feature: FeatureSummary;
-  onUpdate: (id: number, updatedValues: Partial<FeatureSummary>) => void;
   onOpenDetails: (feature: FeatureSummary) => void;
   gradientClass?: string;
-}> = ({ feature, onUpdate, onOpenDetails, gradientClass = 'from-brand-blue-bg to-brand-blue-bg/80' }) => {
-  const [isIconPickerOpen, setIsIconPickerOpen] = useState(false);
+}> = ({ feature, onOpenDetails, gradientClass = 'from-brand-blue-bg to-brand-blue-bg/80' }) => {
   const Icon = iconMap[feature.icon];
-  const pickerRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (pickerRef.current && !pickerRef.current.contains(event.target as Node)) {
-        setIsIconPickerOpen(false);
-      }
-    };
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
-  }, [pickerRef]);
-
-  const handleIconChange = (newIcon: IconName) => {
-    onUpdate(feature.id, { icon: newIcon });
-    setIsIconPickerOpen(false);
-  };
 
   return (
     <div 
         className={`bg-gradient-to-br ${gradientClass} p-8 rounded-3xl shadow-lg border-2 border-white/80 hover:shadow-2xl hover:border-blue-300/50 transition-all duration-300 relative group cursor-pointer`}
-        onClick={(e) => {
-             if (!(e.target as HTMLElement).closest('input') && 
-                 !(e.target as HTMLElement).closest('textarea') &&
-                 !(e.target as HTMLElement).closest('.icon-picker-trigger')) {
-                 onOpenDetails(feature);
-             }
-        }}
+        onClick={() => onOpenDetails(feature)}
     >
-      <div className="relative inline-block mb-6 icon-picker-trigger">
-        <div 
-          className="p-4 bg-gradient-to-br from-brand-blue to-brand-blue/90 text-white rounded-2xl transition-all duration-300 group-hover:from-brand-blue/90 group-hover:to-brand-blue/80 group-hover:scale-110 shadow-xl"
-          onClick={(e) => {
-              e.stopPropagation();
-              setIsIconPickerOpen(prev => !prev);
-          }}
-        >
+      <div className="relative inline-block mb-6">
+        <div className="p-4 bg-gradient-to-br from-brand-blue to-brand-blue/90 text-white rounded-2xl transition-all duration-300 group-hover:from-brand-blue/90 group-hover:to-brand-blue/80 group-hover:scale-110 shadow-xl">
           <Icon className="w-8 h-8" />
         </div>
-        
-        {isIconPickerOpen && (
-          <div ref={pickerRef} onClick={(e) => e.stopPropagation()} className="absolute top-full mt-2 left-1/2 -translate-x-1/2 bg-white border rounded-xl shadow-xl p-3 z-30 grid grid-cols-3 gap-2 w-48">
-            {(Object.keys(iconMap) as IconName[]).map(iconName => {
-              const PickerIcon = iconMap[iconName];
-              return (
-                <button 
-                  key={iconName}
-                  onClick={() => handleIconChange(iconName)}
-                  className={`p-2 rounded-lg hover:bg-gray-100 text-gray-600 transition ${feature.icon === iconName ? 'bg-brand-blue-bg text-brand-blue' : ''}`}
-                >
-                  <PickerIcon className="w-6 h-6" />
-                </button>
-              );
-            })}
-          </div>
-        )}
       </div>
 
-      <div onClick={(e) => e.stopPropagation()}>
-          <EditableText
-              value={feature.title}
-              onSave={(newValue) => onUpdate(feature.id, { title: newValue })}
-              className="text-xl font-bold mb-3 text-brand-dark"
-          />
-          <EditableText
-              value={feature.description}
-              onSave={(newValue) => onUpdate(feature.id, { description: newValue })}
-              className="text-slate-500 leading-relaxed text-sm"
-              multiline
-          />
+      <div>
+          <div className="text-xl font-bold mb-3 text-brand-dark">
+              {feature.title}
+          </div>
+          <div className="text-slate-500 leading-relaxed text-sm">
+              {feature.description}
+          </div>
       </div>
     </div>
   );
@@ -260,9 +140,7 @@ interface HomePageProps {
   heroBgUrl: string;
   dashboardUrl: string;
   featureSummaries: FeatureSummary[];
-  onFeatureSummaryChange: (id: number, updatedValues: Partial<FeatureSummary>) => void;
   stats: StatItem[];
-  onStatChange: (id: number, updatedValues: Partial<StatItem>) => void;
 }
 
 // Updated with VERY PROFESSIONAL corporate backgrounds
@@ -279,7 +157,7 @@ const colorVariants: Record<string, { container: string, iconBg: string, iconTex
     violet: { container: "hover:border-brand-blue/30 hover:shadow-brand-blue-bg", iconBg: "bg-brand-blue-bg", iconText: "text-brand-blue" },
 };
 
-const HomePage: React.FC<HomePageProps> = ({ setPage, heroBgUrl, dashboardUrl, featureSummaries, onFeatureSummaryChange, stats, onStatChange }) => {
+const HomePage: React.FC<HomePageProps> = ({ setPage, heroBgUrl, dashboardUrl, featureSummaries, stats }) => {
   const [selectedFeature, setSelectedFeature] = useState<FeatureSummary | null>(null);
   const [currentBgIndex, setCurrentBgIndex] = useState(0);
 
@@ -441,16 +319,12 @@ const HomePage: React.FC<HomePageProps> = ({ setPage, heroBgUrl, dashboardUrl, f
                             </div>
                             
                             <div className="space-y-2">
-                                <EditableText
-                                    value={stat.value}
-                                    onSave={(val) => onStatChange(stat.id, { value: val })}
-                                    className={`text-4xl md:text-5xl font-black bg-gradient-to-r ${gradientMap[stat.color]} bg-clip-text text-transparent tracking-tight`}
-                                />
-                                <EditableText
-                                    value={stat.label}
-                                    onSave={(val) => onStatChange(stat.id, { label: val })}
-                                    className="text-slate-700 text-sm font-bold"
-                                />
+                                <div className={`text-4xl md:text-5xl font-black bg-gradient-to-r ${gradientMap[stat.color]} bg-clip-text text-transparent tracking-tight`}>
+                                    {stat.value}
+                                </div>
+                                <div className="text-slate-700 text-sm font-bold">
+                                    {stat.label}
+                                </div>
                             </div>
                         </div>
                     );
@@ -484,7 +358,6 @@ const HomePage: React.FC<HomePageProps> = ({ setPage, heroBgUrl, dashboardUrl, f
                         <div key={feature.id} className="transform transition-all duration-300 hover:scale-105">
                             <FeatureSummaryCard 
                               feature={feature}
-                              onUpdate={onFeatureSummaryChange}
                               onOpenDetails={(f) => setSelectedFeature(f)}
                               gradientClass={colorGradients[index % colorGradients.length]}
                             />
