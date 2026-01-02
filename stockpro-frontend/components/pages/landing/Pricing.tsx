@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState } from 'react';
 import { CheckCircleIcon } from './icons/IconCollection';
 import Modal from './Modal';
 import SubscriptionForm, { PlanType } from './SubscriptionForm';
@@ -11,68 +11,32 @@ interface PricingCardProps {
   yearlyPrice: string;
   features: string[];
   popular?: boolean;
-  onPriceChange: (newPrice: string) => void;
   onSubscribe: (plan: 'basic' | 'pro' | 'enterprise') => void;
 }
 
-const PricingCard: React.FC<PricingCardProps> = ({ plan, planKey, monthlyPrice, yearlyPrice, features, popular = false, onPriceChange, onSubscribe }) => {
-  const [isEditing, setIsEditing] = useState(false);
-  const [editingMonthlyPrice, setEditingMonthlyPrice] = useState(monthlyPrice);
-  const [editingYearlyPrice, setEditingYearlyPrice] = useState(yearlyPrice);
-  const inputRef = useRef<HTMLInputElement>(null);
-
-  useEffect(() => {
-    setEditingMonthlyPrice(monthlyPrice);
-    setEditingYearlyPrice(yearlyPrice);
-  }, [monthlyPrice, yearlyPrice]);
-
-  useEffect(() => {
-    if (isEditing) {
-      inputRef.current?.focus();
-      inputRef.current?.select();
-    }
-  }, [isEditing]);
-
-  const handleSave = () => {
-    const numericValue = editingMonthlyPrice.replace(/[^0-9.]/g, '');
-    if (numericValue.trim()) {
-      onPriceChange(numericValue.trim() + ' ر.س');
-    } else {
-      setEditingMonthlyPrice(monthlyPrice);
-    }
-    setIsEditing(false);
-  };
-
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter') {
-      handleSave();
-    } else if (e.key === 'Escape') {
-      setEditingMonthlyPrice(monthlyPrice);
-      setIsEditing(false);
-    }
-  };
+const PricingCard: React.FC<PricingCardProps> = ({ plan, planKey, monthlyPrice, yearlyPrice, features, popular = false, onSubscribe }) => {
 
   const planColors: Record<string, { gradient: string; bgGradient: string; border: string; priceGradient: string; badgeGradient: string }> = {
     basic: {
-      gradient: 'from-blue-500 to-blue-600',
-      bgGradient: 'from-blue-50 to-blue-100/50',
-      border: 'border-blue-300/50',
-      priceGradient: 'from-blue-600 to-blue-700',
-      badgeGradient: 'from-blue-500 to-blue-600',
+      gradient: 'from-brand-blue to-brand-blue/90',
+      bgGradient: 'from-brand-blue-bg to-brand-blue-bg/80',
+      border: 'border-brand-blue/30',
+      priceGradient: 'from-brand-blue to-brand-blue/80',
+      badgeGradient: 'from-brand-blue to-brand-blue/90',
     },
     pro: {
-      gradient: 'from-emerald-500 to-emerald-600',
-      bgGradient: 'from-emerald-50 to-emerald-100/50',
-      border: 'border-emerald-300/50',
-      priceGradient: 'from-emerald-600 to-emerald-700',
-      badgeGradient: 'from-emerald-500 to-emerald-600',
+      gradient: 'from-brand-green to-brand-green/90',
+      bgGradient: 'from-brand-green-bg to-brand-green-bg/80',
+      border: 'border-brand-green/30',
+      priceGradient: 'from-brand-green to-brand-green/80',
+      badgeGradient: 'from-brand-green to-brand-green/90',
     },
     enterprise: {
-      gradient: 'from-purple-500 to-purple-600',
-      bgGradient: 'from-purple-50 to-purple-100/50',
-      border: 'border-purple-300/50',
-      priceGradient: 'from-purple-600 to-purple-700',
-      badgeGradient: 'from-purple-500 to-purple-600',
+      gradient: 'from-brand-blue to-brand-blue/90',
+      bgGradient: 'from-brand-blue-bg to-brand-blue-bg/80',
+      border: 'border-brand-blue/30',
+      priceGradient: 'from-brand-blue to-brand-blue/80',
+      badgeGradient: 'from-brand-blue to-brand-blue/90',
     },
   };
   const colors = planColors[planKey];
@@ -101,58 +65,17 @@ const PricingCard: React.FC<PricingCardProps> = ({ plan, planKey, monthlyPrice, 
         </span>
       </div>
       
-      <div 
-        className="text-center my-6 flex flex-col items-center justify-center relative group" 
-        onClick={() => !isEditing && setIsEditing(true)}
-      >
-        {isEditing ? (
-          <div className="flex flex-col items-center gap-2">
-            <div className="flex items-baseline justify-center">
-              <input
-                ref={inputRef}
-                type="text"
-                value={editingMonthlyPrice.replace(/[^0-9.]/g, '')}
-                onChange={(e) => {
-                  const numericValue = e.target.value.replace(/[^0-9.]/g, '');
-                  setEditingMonthlyPrice(numericValue);
-                }}
-                onBlur={handleSave}
-                onKeyDown={handleKeyDown}
-                className={`text-4xl font-black bg-gradient-to-r ${colors.priceGradient} bg-clip-text text-transparent bg-white border-2 ${colors.border} rounded-md w-32 text-center p-0`}
-              />
-              <span className="text-slate-400 mr-2 text-sm font-medium">/شهرياً</span>
-            </div>
-            <div className="flex items-baseline justify-center">
-              <input
-                type="text"
-                value={editingYearlyPrice.replace(/[^0-9.]/g, '')}
-                onChange={(e) => {
-                  const numericValue = e.target.value.replace(/[^0-9.]/g, '');
-                  setEditingYearlyPrice(numericValue);
-                }}
-                onBlur={handleSave}
-                className={`text-2xl font-black bg-gradient-to-r ${colors.priceGradient} bg-clip-text text-transparent bg-white border-2 ${colors.border} rounded-md w-28 text-center p-0`}
-              />
-              <span className="text-slate-400 mr-2 text-xs font-medium">سنوياً</span>
-            </div>
-          </div>
-        ) : (
-          <div className="cursor-pointer">
-            <div className="flex items-baseline justify-center mb-2">
-              <span className={`text-5xl font-black bg-gradient-to-r ${colors.priceGradient} bg-clip-text text-transparent`}>{monthlyPrice}</span>
-              <span className="text-slate-500 text-sm font-medium mr-2">/شهرياً</span>
-            </div>
-            <div className="flex items-baseline justify-center">
-              <span className={`text-2xl font-bold bg-gradient-to-r ${colors.priceGradient} bg-clip-text text-transparent`}>سنوياً {yearlyPrice}</span>
-            </div>
-            <div className="absolute -top-4 right-0 left-0 mx-auto w-max opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
-              <p className="text-[10px] bg-slate-800 text-white px-2 py-1 rounded">اضغط للتعديل</p>
-            </div>
-          </div>
-        )}
+      <div className="text-center my-6 flex flex-col items-center justify-center">
+        <div className="flex items-baseline justify-center mb-2">
+          <span className={`text-5xl font-black bg-gradient-to-r ${colors.priceGradient} bg-clip-text text-transparent`}>{monthlyPrice}</span>
+          <span className="text-slate-500 text-sm font-medium mr-2">/شهرياً</span>
+        </div>
+        <div className="flex items-baseline justify-center">
+          <span className={`text-2xl font-bold bg-gradient-to-r ${colors.priceGradient} bg-clip-text text-transparent`}>سنوياً {yearlyPrice}</span>
+        </div>
       </div>
 
-      <div className={`w-full h-px mb-8 ${planKey === 'basic' ? 'bg-gradient-to-r from-transparent via-blue-200 to-transparent' : planKey === 'pro' ? 'bg-gradient-to-r from-transparent via-emerald-200 to-transparent' : 'bg-gradient-to-r from-transparent via-purple-200 to-transparent'}`}></div>
+      <div className={`w-full h-px mb-8 ${planKey === 'basic' ? 'bg-gradient-to-r from-transparent via-brand-blue/30 to-transparent' : planKey === 'pro' ? 'bg-gradient-to-r from-transparent via-brand-green/30 to-transparent' : 'bg-gradient-to-r from-transparent via-brand-blue/30 to-transparent'}`}></div>
 
       {/* Detailed Plan Features */}
       <div className="mb-8 flex-grow space-y-3">
@@ -269,7 +192,6 @@ interface PricingPageProps {
     pro: string;
     enterprise: string;
   };
-  onPriceChange: (key: 'basic' | 'pro' | 'enterprise', value: string) => void;
 }
 
 // Yearly prices
@@ -279,7 +201,7 @@ const yearlyPrices = {
   enterprise: '1194 ر.س',
 };
 
-const PricingPage: React.FC<PricingPageProps> = ({ prices, onPriceChange }) => {
+const PricingPage: React.FC<PricingPageProps> = ({ prices }) => {
   const [selectedPlan, setSelectedPlan] = useState<PlanType | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
@@ -302,21 +224,21 @@ const PricingPage: React.FC<PricingPageProps> = ({ prices, onPriceChange }) => {
 
   return (
     <>
-    <section id="pricing" className="py-24 bg-gradient-to-br from-blue-50 via-indigo-50/30 to-purple-50 relative overflow-hidden">
+    <section id="pricing" className="py-24 bg-gradient-to-br from-brand-blue-bg via-brand-blue-bg/50 to-brand-green-bg relative overflow-hidden">
       {/* Enhanced Decorational Blobs */}
       <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none">
-          <div className="absolute top-10 left-10 w-96 h-96 bg-gradient-to-br from-blue-400 to-blue-600 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-pulse"></div>
-          <div className="absolute bottom-10 right-10 w-96 h-96 bg-gradient-to-br from-emerald-400 to-emerald-600 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-pulse" style={{ animationDelay: '1s' }}></div>
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-80 h-80 bg-gradient-to-br from-purple-400 to-purple-600 rounded-full mix-blend-multiply filter blur-3xl opacity-15"></div>
+          <div className="absolute top-10 left-10 w-96 h-96 bg-gradient-to-br from-brand-blue/40 to-brand-blue rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-pulse"></div>
+          <div className="absolute bottom-10 right-10 w-96 h-96 bg-gradient-to-br from-brand-green/40 to-brand-green rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-pulse" style={{ animationDelay: '1s' }}></div>
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-80 h-80 bg-gradient-to-br from-brand-blue/40 to-brand-blue rounded-full mix-blend-multiply filter blur-3xl opacity-15"></div>
       </div>
 
       <div className="container mx-auto px-6 relative z-10">
         <div className="text-center mb-20">
-          <span className="inline-block text-emerald-600 font-bold text-sm uppercase tracking-wider bg-gradient-to-r from-emerald-100 to-blue-100 px-5 py-2 rounded-full border-2 border-emerald-200/50 shadow-md mb-4">
+          <span className="inline-block text-brand-green font-bold text-sm uppercase tracking-wider bg-gradient-to-r from-brand-green-bg to-brand-blue-bg px-5 py-2 rounded-full border-2 border-brand-green/30 shadow-md mb-4">
             خطط مرنة
           </span>
           <h2 className="text-4xl md:text-5xl font-black mb-4">
-            <span className="bg-gradient-to-r from-blue-600 via-emerald-600 to-purple-600 bg-clip-text text-transparent">
+            <span className="bg-gradient-to-r from-brand-blue via-brand-green to-brand-blue bg-clip-text text-transparent">
               استثمر في نمو أعمالك
             </span>
           </h2>
@@ -330,7 +252,6 @@ const PricingPage: React.FC<PricingPageProps> = ({ prices, onPriceChange }) => {
             planKey="basic"
             monthlyPrice={prices.basic}
             yearlyPrice={yearlyPrices.basic}
-            onPriceChange={(value) => onPriceChange('basic', value)}
             onSubscribe={handleSubscribe}
             features={[]}
           />
@@ -339,7 +260,6 @@ const PricingPage: React.FC<PricingPageProps> = ({ prices, onPriceChange }) => {
             planKey="pro"
             monthlyPrice={prices.pro}
             yearlyPrice={yearlyPrices.pro}
-            onPriceChange={(value) => onPriceChange('pro', value)}
             onSubscribe={handleSubscribe}
             features={[]}
             popular={true}
@@ -349,7 +269,6 @@ const PricingPage: React.FC<PricingPageProps> = ({ prices, onPriceChange }) => {
             planKey="enterprise"
             monthlyPrice={prices.enterprise}
             yearlyPrice={yearlyPrices.enterprise}
-            onPriceChange={(value) => onPriceChange('enterprise', value)}
             onSubscribe={handleSubscribe}
             features={[]}
           />
@@ -357,22 +276,22 @@ const PricingPage: React.FC<PricingPageProps> = ({ prices, onPriceChange }) => {
 
         {/* Trust Indicators */}
         <div className="mt-16 text-center">
-          <div className="inline-flex items-center gap-2 text-slate-700 text-sm font-semibold bg-gradient-to-r from-emerald-50 to-blue-50 px-4 py-2 rounded-full border border-emerald-200/50">
-            <div className="bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-full p-1">
+          <div className="inline-flex items-center gap-2 text-slate-700 text-sm font-semibold bg-gradient-to-r from-brand-green-bg to-brand-blue-bg px-4 py-2 rounded-full border border-brand-green/30">
+            <div className="bg-gradient-to-br from-brand-green to-brand-green/90 rounded-full p-1">
               <CheckCircleIcon className="w-4 h-4 text-white" />
             </div>
             <span>ضمان استرداد الأموال خلال 30 يوم</span>
           </div>
           <span className="mx-4 text-slate-400">•</span>
-          <div className="inline-flex items-center gap-2 text-slate-700 text-sm font-semibold bg-gradient-to-r from-blue-50 to-purple-50 px-4 py-2 rounded-full border border-blue-200/50">
-            <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-full p-1">
+          <div className="inline-flex items-center gap-2 text-slate-700 text-sm font-semibold bg-gradient-to-r from-brand-blue-bg to-brand-blue-bg px-4 py-2 rounded-full border border-brand-blue/30">
+            <div className="bg-gradient-to-br from-brand-blue to-brand-blue/90 rounded-full p-1">
               <CheckCircleIcon className="w-4 h-4 text-white" />
             </div>
             <span>لا توجد رسوم إخفاء</span>
           </div>
           <span className="mx-4 text-slate-400">•</span>
-          <div className="inline-flex items-center gap-2 text-slate-700 text-sm font-semibold bg-gradient-to-r from-purple-50 to-indigo-50 px-4 py-2 rounded-full border border-purple-200/50">
-            <div className="bg-gradient-to-br from-purple-500 to-purple-600 rounded-full p-1">
+          <div className="inline-flex items-center gap-2 text-slate-700 text-sm font-semibold bg-gradient-to-r from-brand-blue-bg to-brand-blue-bg px-4 py-2 rounded-full border border-brand-blue/30">
+            <div className="bg-gradient-to-br from-brand-blue to-brand-blue/90 rounded-full p-1">
               <CheckCircleIcon className="w-4 h-4 text-white" />
             </div>
             <span>إلغاء في أي وقت</span>

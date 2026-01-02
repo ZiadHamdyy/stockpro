@@ -84,34 +84,34 @@ const SubscriptionForm: React.FC<SubscriptionFormProps> = ({ selectedPlan, onClo
   if (isSuccess) {
     return (
       <div className="text-center py-8">
-        <div className="w-20 h-20 bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-full flex items-center justify-center mx-auto mb-6 shadow-xl">
+        <div className="w-20 h-20 bg-gradient-to-br from-brand-green to-brand-green/90 rounded-full flex items-center justify-center mx-auto mb-6 shadow-xl">
           <CheckCircleIcon className="w-12 h-12 text-white" />
         </div>
-        <h3 className="text-2xl font-black mb-3 bg-gradient-to-r from-emerald-600 to-blue-600 bg-clip-text text-transparent">تم إرسال طلبك بنجاح!</h3>
+        <h3 className="text-2xl font-black mb-3 bg-gradient-to-r from-brand-green to-brand-blue bg-clip-text text-transparent">تم إرسال طلبك بنجاح!</h3>
         <p className="text-slate-700 mb-6 font-medium">سيتم التواصل معك قريباً من قبل فريقنا</p>
-        <div className="bg-gradient-to-br from-blue-50 to-emerald-50 border-2 border-blue-200/50 rounded-xl p-5 text-sm text-slate-700 shadow-lg">
+        <div className="bg-gradient-to-br from-brand-blue-bg to-brand-green-bg border-2 border-brand-blue/30 rounded-xl p-5 text-sm text-slate-700 shadow-lg">
           <p className="font-black mb-3 text-base">تفاصيل طلبك:</p>
           <div className="space-y-2 text-right">
-            <p>الخطة: <span className="font-bold text-emerald-600">{planNames[plan]}</span></p>
-            <p>الاسم: <span className="font-bold text-blue-600">{name}</span></p>
-            <p>البريد: <span className="font-bold text-purple-600">{email}</span></p>
-            <p>الهاتف: <span className="font-bold text-indigo-600">{phone}</span></p>
+            <p>الخطة: <span className="font-bold text-brand-green">{planNames[plan]}</span></p>
+            <p>الاسم: <span className="font-bold text-brand-blue">{name}</span></p>
+            <p>البريد: <span className="font-bold text-brand-blue">{email}</span></p>
+            <p>الهاتف: <span className="font-bold text-brand-blue">{phone}</span></p>
           </div>
         </div>
       </div>
     );
   }
 
-  const planColors: Record<PlanType, { gradient: string; border: string }> = {
-    basic: { gradient: 'from-blue-500 to-blue-600', border: 'border-blue-300' },
-    pro: { gradient: 'from-emerald-500 to-emerald-600', border: 'border-emerald-300' },
-    enterprise: { gradient: 'from-purple-500 to-purple-600', border: 'border-purple-300' },
+  const planColors: Record<PlanType, { gradient: string; bgGradient: string; border: string }> = {
+    basic: { gradient: 'from-brand-blue to-brand-blue/90', bgGradient: 'from-brand-blue-bg to-brand-blue-bg/80', border: 'border-brand-blue/30' },
+    pro: { gradient: 'from-brand-green to-brand-green/90', bgGradient: 'from-brand-green-bg to-brand-green-bg/80', border: 'border-brand-green/30' },
+    enterprise: { gradient: 'from-brand-blue to-brand-blue/90', bgGradient: 'from-brand-blue-bg to-brand-blue-bg/80', border: 'border-brand-blue/30' },
   };
 
   return (
     <div className="text-right">
       <div className="mb-6">
-        <h2 className="text-3xl font-black mb-2 bg-gradient-to-r from-blue-600 via-emerald-600 to-purple-600 bg-clip-text text-transparent">ابدأ رحلتك مع Stock.Pro</h2>
+        <h2 className="text-3xl font-black mb-2 bg-gradient-to-r from-brand-blue via-brand-green to-brand-blue bg-clip-text text-transparent">ابدأ رحلتك مع Stock.Pro</h2>
         <p className="text-slate-700 font-medium">املأ البيانات التالية وسنتواصل معك قريباً</p>
       </div>
 
@@ -129,15 +129,15 @@ const SubscriptionForm: React.FC<SubscriptionFormProps> = ({ selectedPlan, onClo
                   onClick={() => setPlan(p)}
                   className={`p-4 rounded-xl border-2 transition-all duration-200 ${
                     plan === p
-                      ? `${colors.border} bg-gradient-to-br ${colors.gradient.replace('500', '50').replace('600', '100')} shadow-lg scale-105`
-                      : 'border-slate-200 bg-white hover:border-blue-300 hover:shadow-md'
+                      ? `${colors.border} bg-gradient-to-br ${colors.bgGradient} shadow-lg scale-105`
+                      : 'border-slate-200 bg-white hover:border-brand-blue/30 hover:shadow-md'
                   }`}
                 >
                   <div className={`text-sm font-black mb-1 ${plan === p ? `bg-gradient-to-r ${colors.gradient} bg-clip-text text-transparent` : 'text-slate-600'}`}>
                     {planNames[p]}
                   </div>
                   {p === 'pro' && (
-                    <span className={`text-xs font-bold ${plan === p ? 'text-white bg-gradient-to-r from-emerald-500 to-emerald-600 px-2 py-0.5 rounded-full' : 'text-emerald-600'}`}>الأكثر طلباً</span>
+                    <span className={`text-xs font-bold ${plan === p ? 'text-white bg-gradient-to-r from-brand-green to-brand-green/90 px-2 py-0.5 rounded-full' : 'text-brand-green'}`}>الأكثر طلباً</span>
                   )}
                 </button>
               );
@@ -161,7 +161,7 @@ const SubscriptionForm: React.FC<SubscriptionFormProps> = ({ selectedPlan, onClo
             className={`w-full px-4 py-3 rounded-xl border-2 transition-all ${
               errors.name
                 ? 'border-red-300 bg-red-50 focus:border-red-500 focus:ring-2 focus:ring-red-200'
-                : 'border-slate-200 focus:border-stock-primary focus:ring-2 focus:ring-blue-100'
+                : 'border-slate-200 focus:border-brand-blue focus:ring-2 focus:ring-brand-blue-bg'
             } outline-none`}
             placeholder="أدخل اسمك الكامل"
           />
@@ -184,7 +184,7 @@ const SubscriptionForm: React.FC<SubscriptionFormProps> = ({ selectedPlan, onClo
             className={`w-full px-4 py-3 rounded-xl border-2 transition-all ${
               errors.email
                 ? 'border-red-300 bg-red-50 focus:border-red-500 focus:ring-2 focus:ring-red-200'
-                : 'border-slate-200 focus:border-stock-primary focus:ring-2 focus:ring-blue-100'
+                : 'border-slate-200 focus:border-brand-blue focus:ring-2 focus:ring-brand-blue-bg'
             } outline-none`}
             placeholder="example@email.com"
           />
@@ -207,7 +207,7 @@ const SubscriptionForm: React.FC<SubscriptionFormProps> = ({ selectedPlan, onClo
             className={`w-full px-4 py-3 rounded-xl border-2 transition-all ${
               errors.phone
                 ? 'border-red-300 bg-red-50 focus:border-red-500 focus:ring-2 focus:ring-red-200'
-                : 'border-slate-200 focus:border-stock-primary focus:ring-2 focus:ring-blue-100'
+                : 'border-slate-200 focus:border-brand-blue focus:ring-2 focus:ring-brand-blue-bg'
             } outline-none`}
             placeholder="05xxxxxxxx"
           />
@@ -226,7 +226,7 @@ const SubscriptionForm: React.FC<SubscriptionFormProps> = ({ selectedPlan, onClo
           <button
             type="submit"
             disabled={isSubmitting}
-            className="flex-1 px-6 py-3 rounded-xl font-bold bg-gradient-to-r from-blue-600 to-emerald-600 text-white hover:from-blue-700 hover:to-emerald-700 transition-all shadow-lg shadow-blue-300/50 disabled:opacity-50 disabled:cursor-not-allowed hover:shadow-xl"
+            className="flex-1 px-6 py-3 rounded-xl font-bold bg-gradient-to-r from-brand-blue to-brand-green text-white hover:from-brand-blue/90 hover:to-brand-green/90 transition-all shadow-lg shadow-brand-blue/50 disabled:opacity-50 disabled:cursor-not-allowed hover:shadow-xl"
           >
             {isSubmitting ? 'جاري الإرسال...' : 'إرسال الطلب'}
           </button>

@@ -1,7 +1,6 @@
 
 import React from 'react';
 import { InventoryIcon, InvoiceIcon, ReportsIcon, CrmIcon } from './icons/IconCollection';
-import { ImageKey } from './Landing';
 
 const featuresStaticData = [
   {
@@ -75,10 +74,10 @@ interface FeatureSectionProps {
 const FeatureSection: React.FC<FeatureSectionProps> = ({ feature, index, imgSrc }) => {
     const isReversed = index % 2 !== 0;
     const colorConfigs = [
-        { gradient: 'from-blue-500 to-blue-600', bgGradient: 'from-blue-50 to-blue-100/50', border: 'border-blue-200/50', iconBg: 'from-blue-500 to-blue-600' },
-        { gradient: 'from-emerald-500 to-emerald-600', bgGradient: 'from-emerald-50 to-emerald-100/50', border: 'border-emerald-200/50', iconBg: 'from-emerald-500 to-emerald-600' },
-        { gradient: 'from-purple-500 to-purple-600', bgGradient: 'from-purple-50 to-purple-100/50', border: 'border-purple-200/50', iconBg: 'from-purple-500 to-purple-600' },
-        { gradient: 'from-indigo-500 to-indigo-600', bgGradient: 'from-indigo-50 to-indigo-100/50', border: 'border-indigo-200/50', iconBg: 'from-indigo-500 to-indigo-600' },
+        { gradient: 'from-brand-blue to-brand-blue/90', bgGradient: 'from-brand-blue-bg to-brand-blue-bg/80', border: 'border-brand-blue/30', iconBg: 'from-brand-blue to-brand-blue/90' },
+        { gradient: 'from-brand-green to-brand-green/90', bgGradient: 'from-brand-green-bg to-brand-green-bg/80', border: 'border-brand-green/30', iconBg: 'from-brand-green to-brand-green/90' },
+        { gradient: 'from-brand-blue to-brand-blue/90', bgGradient: 'from-brand-blue-bg to-brand-blue-bg/80', border: 'border-brand-blue/30', iconBg: 'from-brand-blue to-brand-blue/90' },
+        { gradient: 'from-brand-blue to-brand-blue/90', bgGradient: 'from-brand-blue-bg to-brand-blue-bg/80', border: 'border-brand-blue/30', iconBg: 'from-brand-blue to-brand-blue/90' },
     ];
     const colors = colorConfigs[index % colorConfigs.length];
     
@@ -105,10 +104,10 @@ const FeatureSection: React.FC<FeatureSectionProps> = ({ feature, index, imgSrc 
                     </ul>
                 </div>
                 <div className="lg:w-1/2 relative group perspective-1000">
-                    {index === 0 && <div className="absolute -inset-4 bg-gradient-to-r from-blue-200 to-blue-300 rounded-3xl blur-2xl opacity-60 animate-pulse"></div>}
-                    {index === 1 && <div className="absolute -inset-4 bg-gradient-to-r from-emerald-200 to-emerald-300 rounded-3xl blur-2xl opacity-60 animate-pulse"></div>}
-                    {index === 2 && <div className="absolute -inset-4 bg-gradient-to-r from-purple-200 to-purple-300 rounded-3xl blur-2xl opacity-60 animate-pulse"></div>}
-                    {index === 3 && <div className="absolute -inset-4 bg-gradient-to-r from-indigo-200 to-indigo-300 rounded-3xl blur-2xl opacity-60 animate-pulse"></div>}
+                    {index === 0 && <div className="absolute -inset-4 bg-gradient-to-r from-brand-blue/30 to-brand-blue/40 rounded-3xl blur-2xl opacity-60 animate-pulse"></div>}
+                    {index === 1 && <div className="absolute -inset-4 bg-gradient-to-r from-brand-green/30 to-brand-green/40 rounded-3xl blur-2xl opacity-60 animate-pulse"></div>}
+                    {index === 2 && <div className="absolute -inset-4 bg-gradient-to-r from-brand-blue/30 to-brand-blue/40 rounded-3xl blur-2xl opacity-60 animate-pulse"></div>}
+                    {index === 3 && <div className="absolute -inset-4 bg-gradient-to-r from-brand-blue/30 to-brand-blue/40 rounded-3xl blur-2xl opacity-60 animate-pulse"></div>}
                     <div className={`absolute -inset-2 bg-gradient-to-br ${colors.gradient} rounded-3xl blur-xl opacity-30`}></div>
                     <img 
                         src={imgSrc}
@@ -133,12 +132,12 @@ interface FeaturesPageProps {
 const FeaturesPage: React.FC<FeaturesPageProps> = ({ featureImages }) => {
   return (
     <section id="features" className="bg-white">
-      <div className="bg-gradient-to-b from-blue-50 to-white py-24 border-b border-slate-100">
+        <div className="bg-gradient-to-b from-brand-blue-bg to-white py-24 border-b border-slate-100">
         <div className="container mx-auto px-6 text-center">
-            <span className="inline-block text-emerald-600 font-bold text-sm uppercase tracking-wider bg-emerald-100/50 px-4 py-1.5 rounded-full border border-emerald-100 mb-4">
+            <span className="inline-block text-brand-green font-bold text-sm uppercase tracking-wider bg-brand-green-bg px-4 py-1.5 rounded-full border border-brand-green-bg mb-4">
               نظام متكامل
             </span>
-            <h2 className="text-4xl md:text-5xl font-black text-stock-dark mb-6">مميزات Stock.Pro بالتفصيل</h2>
+            <h2 className="text-4xl md:text-5xl font-black text-brand-dark mb-6">مميزات Stock.Pro بالتفصيل</h2>
             <p className="text-slate-600 text-lg max-w-3xl mx-auto leading-relaxed">
               اكتشف كيف يمكن لأدواتنا المتقدمة أن تساهم في نمو أعمالك وتبسيط عملياتك المحاسبية. نظام واحد شامل يغطي جميع احتياجاتك المحاسبية والإدارية.
             </p>
@@ -147,10 +146,10 @@ const FeaturesPage: React.FC<FeaturesPageProps> = ({ featureImages }) => {
       
       {featuresStaticData.map((feature, index) => {
         const bgGradients = [
-          'bg-gradient-to-br from-white to-blue-50/30',
-          'bg-gradient-to-br from-emerald-50/30 via-white to-purple-50/30',
-          'bg-gradient-to-br from-white to-indigo-50/30',
-          'bg-gradient-to-br from-purple-50/30 via-white to-blue-50/30',
+          'bg-gradient-to-br from-white to-brand-blue-bg/30',
+          'bg-gradient-to-br from-brand-green-bg/30 via-white to-brand-blue-bg/30',
+          'bg-gradient-to-br from-white to-brand-blue-bg/30',
+          'bg-gradient-to-br from-brand-blue-bg/30 via-white to-brand-blue-bg/30',
         ];
         return (
           <div key={index} className={bgGradients[index % bgGradients.length]}>
@@ -164,10 +163,10 @@ const FeaturesPage: React.FC<FeaturesPageProps> = ({ featureImages }) => {
       })}
 
       {/* Additional Features Grid */}
-      <div className="bg-gradient-to-b from-white to-blue-50 py-24">
+      <div className="bg-gradient-to-b from-white to-brand-blue-bg py-24">
         <div className="container mx-auto px-6">
           <div className="text-center mb-16">
-            <h3 className="text-3xl font-black text-stock-dark mb-4">مميزات إضافية</h3>
+            <h3 className="text-3xl font-black text-brand-dark mb-4">مميزات إضافية</h3>
             <p className="text-slate-600 max-w-2xl mx-auto">نظام متكامل يغطي جميع احتياجاتك</p>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-6xl mx-auto">
@@ -204,17 +203,17 @@ const FeaturesPage: React.FC<FeaturesPageProps> = ({ featureImages }) => {
               }
             ].map((feature, i) => {
               const gradients = [
-                'from-blue-50 to-blue-100/50',
-                'from-emerald-50 to-emerald-100/50',
-                'from-purple-50 to-purple-100/50',
-                'from-indigo-50 to-indigo-100/50',
-                'from-teal-50 to-teal-100/50',
-                'from-amber-50 to-amber-100/50',
+                'from-brand-blue-bg to-brand-blue-bg/80',
+                'from-brand-green-bg to-brand-green-bg/80',
+                'from-brand-blue-bg to-brand-blue-bg/80',
+                'from-brand-blue-bg to-brand-blue-bg/80',
+                'from-brand-green-bg to-brand-green-bg/80',
+                'from-brand-blue-bg to-brand-blue-bg/80',
               ];
               return (
-                <div key={i} className={`bg-gradient-to-br ${gradients[i % gradients.length]} p-6 rounded-2xl border-2 border-white/80 hover:border-blue-300/50 hover:shadow-xl hover:-translate-y-1 transition-all duration-300`}>
+                <div key={i} className={`bg-gradient-to-br ${gradients[i % gradients.length]} p-6 rounded-2xl border-2 border-white/80 hover:border-brand-blue/30 hover:shadow-xl hover:-translate-y-1 transition-all duration-300`}>
                   <div className="text-4xl mb-4">{feature.icon}</div>
-                  <h4 className="text-xl font-black text-stock-dark mb-2">{feature.title}</h4>
+                  <h4 className="text-xl font-black text-brand-dark mb-2">{feature.title}</h4>
                   <p className="text-slate-700 text-sm leading-relaxed font-medium">{feature.description}</p>
                 </div>
               );
