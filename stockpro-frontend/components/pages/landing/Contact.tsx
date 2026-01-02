@@ -66,17 +66,17 @@ const ContactPage: React.FC = () => {
 
   if (isSuccess) {
     return (
-      <section id="contact" className="py-20 bg-gradient-to-br from-blue-50 via-indigo-50/30 to-purple-50">
+      <section id="contact" className="py-20 bg-gradient-to-br from-brand-blue-bg via-brand-blue-bg/50 to-brand-green-bg">
         <div className="container mx-auto px-6">
-          <div className="max-w-2xl mx-auto bg-gradient-to-br from-white to-blue-50/30 p-8 md:p-12 rounded-3xl shadow-2xl border-2 border-white/80 text-center">
-            <div className="w-20 h-20 bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-full flex items-center justify-center mx-auto mb-6 shadow-xl">
+          <div className="max-w-2xl mx-auto bg-gradient-to-br from-white to-brand-blue-bg/30 p-8 md:p-12 rounded-3xl shadow-2xl border-2 border-white/80 text-center">
+            <div className="w-20 h-20 bg-gradient-to-br from-brand-green to-brand-green/90 rounded-full flex items-center justify-center mx-auto mb-6 shadow-xl">
               <CheckCircleIcon className="w-12 h-12 text-white" />
             </div>
-            <h3 className="text-2xl font-black mb-3 bg-gradient-to-r from-emerald-600 to-blue-600 bg-clip-text text-transparent">تم إرسال طلبك بنجاح!</h3>
+            <h3 className="text-2xl font-black mb-3 bg-gradient-to-r from-brand-green to-brand-blue bg-clip-text text-transparent">تم إرسال طلبك بنجاح!</h3>
             <p className="text-slate-700 mb-6 font-medium">سيتم التواصل معك قريباً من قبل فريقنا لتفعيل النسخة التجريبية المجانية لمدة 14 يوم</p>
             <button
               onClick={() => setIsSuccess(false)}
-              className="bg-gradient-to-r from-blue-600 to-emerald-600 text-white font-bold py-3 px-8 rounded-xl hover:from-blue-700 hover:to-emerald-700 transition text-base transform hover:scale-105 shadow-lg shadow-blue-300/50"
+              className="bg-gradient-to-r from-brand-blue to-brand-green text-white font-bold py-3 px-8 rounded-xl hover:from-brand-blue/90 hover:to-brand-green/90 transition text-base transform hover:scale-105 shadow-lg shadow-brand-blue/50"
             >
               إرسال طلب آخر
             </button>
@@ -87,20 +87,20 @@ const ContactPage: React.FC = () => {
   }
 
   return (
-    <section id="contact" className="py-20 bg-gradient-to-br from-blue-50 via-indigo-50/30 to-purple-50">
+    <section id="contact" className="py-20 bg-gradient-to-br from-brand-blue-bg via-brand-blue-bg/50 to-brand-green-bg">
       <div className="container mx-auto px-6">
         <div className="text-center mb-12">
-          <span className="inline-block text-emerald-600 font-bold text-sm uppercase tracking-wider bg-gradient-to-r from-emerald-100 to-blue-100 px-5 py-2 rounded-full border-2 border-emerald-200/50 shadow-md mb-4">
+          <span className="inline-block text-brand-green font-bold text-sm uppercase tracking-wider bg-gradient-to-r from-brand-green-bg to-brand-blue-bg px-5 py-2 rounded-full border-2 border-brand-green/30 shadow-md mb-4">
             نسخة تجريبية مجانية
           </span>
           <h2 className="text-4xl md:text-5xl font-black mb-4">
-            <span className="bg-gradient-to-r from-blue-600 via-emerald-600 to-purple-600 bg-clip-text text-transparent">
+            <span className="bg-gradient-to-r from-brand-blue via-brand-green to-brand-blue bg-clip-text text-transparent">
               جرب Stock.Pro مجاناً لمدة 14 يوم
             </span>
           </h2>
           <p className="mt-3 text-lg text-slate-700 font-medium">املأ البيانات التالية وسنقوم بتفعيل النسخة التجريبية المجانية لك فوراً.</p>
         </div>
-        <div className="max-w-2xl mx-auto bg-gradient-to-br from-white to-blue-50/30 p-8 md:p-12 rounded-3xl shadow-2xl border-2 border-white/80">
+        <div className="max-w-2xl mx-auto bg-gradient-to-br from-white to-brand-blue-bg/30 p-8 md:p-12 rounded-3xl shadow-2xl border-2 border-white/80">
           <form onSubmit={handleSubmit} className="space-y-6">
             <div>
               <label htmlFor="name" className="block text-sm font-bold text-slate-700 mb-2">
@@ -118,7 +118,7 @@ const ContactPage: React.FC = () => {
                 className={`w-full px-4 py-3 border-2 rounded-xl transition bg-white ${
                   errors.name
                     ? 'border-red-300 focus:ring-2 focus:ring-red-500 focus:border-red-500'
-                    : 'border-slate-200 focus:ring-2 focus:ring-blue-500 focus:border-blue-500'
+                    : 'border-slate-200 focus:ring-2 focus:ring-brand-blue focus:border-brand-blue'
                 }`}
                 placeholder="اسمك الكامل"
                 required
@@ -141,7 +141,7 @@ const ContactPage: React.FC = () => {
                 className={`w-full px-4 py-3 border-2 rounded-xl transition bg-white ${
                   errors.email
                     ? 'border-red-300 focus:ring-2 focus:ring-red-500 focus:border-red-500'
-                    : 'border-slate-200 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500'
+                    : 'border-slate-200 focus:ring-2 focus:ring-brand-green focus:border-brand-green'
                 }`}
                 placeholder="you@example.com"
                 required
@@ -164,7 +164,7 @@ const ContactPage: React.FC = () => {
                 className={`w-full px-4 py-3 border-2 rounded-xl transition bg-white ${
                   errors.phone
                     ? 'border-red-300 focus:ring-2 focus:ring-red-500 focus:border-red-500'
-                    : 'border-slate-200 focus:ring-2 focus:ring-purple-500 focus:border-purple-500'
+                    : 'border-slate-200 focus:ring-2 focus:ring-brand-blue focus:border-brand-blue'
                 }`}
                 placeholder="05xxxxxxxx"
                 required
@@ -179,7 +179,7 @@ const ContactPage: React.FC = () => {
                 id="companyName"
                 value={companyName}
                 onChange={(e) => setCompanyName(e.target.value)}
-                className="w-full px-4 py-3 border-2 border-slate-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition bg-white"
+                className="w-full px-4 py-3 border-2 border-slate-200 rounded-xl focus:ring-2 focus:ring-brand-blue focus:border-brand-blue transition bg-white"
                 placeholder="اسم شركتك"
               />
             </div>
@@ -187,7 +187,7 @@ const ContactPage: React.FC = () => {
               <button
                 type="submit"
                 disabled={isSubmitting}
-                className="bg-gradient-to-r from-blue-600 to-emerald-600 text-white font-bold py-4 px-16 rounded-xl hover:from-blue-700 hover:to-emerald-700 transition text-lg transform hover:scale-105 shadow-lg shadow-blue-300/50 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="bg-gradient-to-r from-brand-blue to-brand-green text-white font-bold py-4 px-16 rounded-xl hover:from-brand-blue/90 hover:to-brand-green/90 transition text-lg transform hover:scale-105 shadow-lg shadow-brand-blue/50 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {isSubmitting ? 'جاري الإرسال...' : 'طلب نسخة تجريبية مجانية'}
               </button>

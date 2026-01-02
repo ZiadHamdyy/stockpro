@@ -202,7 +202,7 @@ const Landing: React.FC = () => {
   };
 
   return (
-    <div className="font-sans text-slate-800 bg-blue-50 min-h-screen">
+    <div className="font-sans text-brand-text bg-brand-blue-bg min-h-screen">
       <Navbar 
         setPage={setCurrentPage} 
         currentPage={currentPage} 
