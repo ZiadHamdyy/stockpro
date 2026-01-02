@@ -104,7 +104,7 @@ build_frontend() {
     print_info "Building frontend with Docker..."
     
     # Build frontend image with domain
-    docker build -t stockpro-frontend-build ./stockpro-frontend --build-arg VITE_BASE_BACK_URL=http://stockplus.cloud/api/v1
+    docker build -t stockpro-frontend-build ./stockpro-frontend --build-arg VITE_BASE_BACK_URL=https://stockplus.cloud/api/v1
     
     # Create directory for frontend files
     sudo mkdir -p /var/www/stockpro
@@ -218,9 +218,9 @@ display_summary() {
     print_success "StockPro has been deployed successfully!"
     echo ""
     echo "Access your application at:"
-    echo "  Frontend:  http://stockplus.cloud"
-    echo "  Backend:   http://stockplus.cloud/api/v1"
-    echo "  Swagger:   http://stockplus.cloud/api/docs"
+    echo "  Frontend:  https://stockplus.cloud"
+    echo "  Backend:   https://stockplus.cloud/api/v1"
+    echo "  Swagger:   https://stockplus.cloud/api/docs"
     echo ""
     echo "Useful commands:"
     echo "  View logs:       docker compose -f docker-compose.prod.yml logs -f"
