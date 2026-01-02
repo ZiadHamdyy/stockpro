@@ -174,7 +174,7 @@ const HomePage: React.FC<HomePageProps> = ({ setPage, heroBgUrl, dashboardUrl, f
   return (
     <>
     {/* HERO SECTION - pb-0 to let image touch bottom */}
-    <section className="relative pt-8 md:pt-12 pb-0 overflow-hidden bg-gradient-to-br from-brand-blue-bg via-brand-blue-bg/50 to-brand-green-bg min-h-screen flex flex-col justify-between">
+    <section className="relative pt-8 md:pt-12 pb-0 overflow-hidden bg-gradient-to-br from-brand-blue-bg via-brand-blue-bg/50 to-brand-green-bg min-h-[60vh] flex flex-col justify-between">
       
       {/* Animated Gradient Overlay */}
       <div className="absolute inset-0 z-0 bg-gradient-to-br from-brand-blue/10 via-brand-green/10 to-brand-blue/10 animate-gradient-xy"></div>
@@ -206,61 +206,6 @@ const HomePage: React.FC<HomePageProps> = ({ setPage, heroBgUrl, dashboardUrl, f
       <FloatingIconsBackground />
 
       <div className="container mx-auto px-4 relative z-20 flex-grow flex flex-col">
-        
-        {/* Flex Layout for Far Right / Far Left positioning with reduced width and high transparency */}
-        <div className="flex flex-col md:flex-row justify-between items-stretch w-full px-0 md:px-4 mt-12 mb-auto gap-4 md:gap-20">
-            
-            {/* Right Box (First in RTL) */}
-            <div className="w-full md:w-[42%] max-w-xl bg-gradient-to-br from-white/90 via-white/80 to-brand-blue-bg/50 backdrop-blur-xl p-8 rounded-[2.5rem] border-2 border-white/40 shadow-2xl relative overflow-hidden text-right flex flex-col justify-center transition-all hover:bg-white/95 hover:shadow-3xl hover:scale-[1.02] group">
-                {/* Gradient accent line */}
-                <div className="absolute top-0 right-0 w-1 h-full bg-gradient-to-b from-brand-blue via-brand-green to-brand-blue opacity-60"></div>
-                <div className="relative z-10">
-                     <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-brand-green-bg to-brand-blue-bg border-2 border-brand-green/30 text-brand-dark text-xs font-bold mb-4 shadow-lg backdrop-blur-md">
-                        <span className="flex h-2.5 w-2.5 relative">
-                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-brand-green opacity-75"></span>
-                            <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-brand-green"></span>
-                        </span>
-                        <span className="drop-shadow-md">نظام محاسبي معتمد</span>
-                    </div>
-                    <h1 className="text-4xl md:text-6xl font-black leading-tight tracking-tight mb-4">
-                    تحكم في <span className="bg-gradient-to-r from-brand-blue to-brand-blue/80 bg-clip-text text-transparent drop-shadow-md">أرقامك</span> <br/>
-                    وضاعف <span className="bg-gradient-to-r from-brand-green to-brand-green/80 bg-clip-text text-transparent drop-shadow-md">أرباحك</span>
-                    </h1>
-                    <p className="text-lg md:text-xl text-slate-800 font-semibold drop-shadow-md">
-                      نظام محاسبي سحابي متكامل لإدارة أعمالك بكفاءة
-                    </p>
-                </div>
-            </div>
-
-            {/* Left Box (Second in RTL) */}
-            <div className="w-full md:w-[42%] max-w-xl bg-gradient-to-br from-white/90 via-brand-green-bg/30 to-white/80 backdrop-blur-xl p-8 rounded-[2.5rem] border-2 border-white/40 shadow-2xl relative overflow-hidden text-right flex flex-col justify-center transition-all hover:bg-white/95 hover:shadow-3xl hover:scale-[1.02] group">
-                {/* Gradient accent line */}
-                <div className="absolute top-0 left-0 w-1 h-full bg-gradient-to-b from-brand-green via-brand-blue to-brand-blue opacity-60"></div>
-                <div className="relative z-10">
-                    <p className="text-lg md:text-xl text-slate-900 leading-relaxed mb-8 font-semibold drop-shadow-md">
-                    منصة Stock.Pro تمنحك الرؤية الكاملة لإدارة المخزون، المبيعات، والعملاء بدقة متناهية. نظام واحد متكامل يغطي جميع احتياجاتك المحاسبية والإدارية.
-                    </p>
-
-                    <div className="flex flex-col sm:flex-row justify-start gap-4 w-full">
-                        <button
-                            onClick={() => setPage('pricing')}
-                            className="bg-gradient-to-r from-blue-600 to-blue-700 text-white font-bold py-4 px-10 rounded-xl hover:from-blue-700 hover:to-blue-800 transition-all shadow-lg shadow-blue-300/50 text-base border-2 border-transparent flex-1 justify-center transform hover:scale-105 active:scale-100 hover:shadow-xl"
-                        >
-                            ابدأ الآن مجاناً
-                        </button>
-                        <button
-                            onClick={() => setPage('features')}
-                            className="bg-gradient-to-r from-white to-brand-green-bg text-brand-dark font-bold py-4 px-10 rounded-xl hover:from-brand-green-bg hover:to-brand-green/10 transition-all border-2 border-brand-green/30 shadow-lg text-base flex items-center justify-center gap-2 flex-1 backdrop-blur-sm transform hover:scale-105 active:scale-100 hover:shadow-xl"
-                        >
-                            اكتشف المميزات
-                        </button>
-                    </div>
-                </div>
-            </div>
-
-        </div>
-
-        {/* Dashboard Preview - Moved to Absolute Bottom */}
         {/* mt-auto pushes it down. mb-0 ensures it touches bottom. */}
         <div className="relative w-full max-w-[90rem] mx-auto mt-auto mb-0 z-10 group/image">
             {/* Multi-color Gradient Glow Behind */}
