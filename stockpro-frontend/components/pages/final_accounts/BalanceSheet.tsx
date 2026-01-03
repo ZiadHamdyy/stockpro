@@ -624,12 +624,15 @@ const BalanceSheet: React.FC = () => {
 
   /**
    * Calculate payables - COMPANY-WIDE calculation
+   * Uses the exact same logic as SupplierBalanceReport
    * Aggregates supplier balances across ALL branches
    * All purchase invoices, returns, and vouchers from all branches are included
+   * Separates opening balance (before startDate) from period transactions (between startDate and endDate)
    */
   const calculatedPayables = useMemo(() => {
+    const normalizedStartDate = normalizeDate(startDate);
     const normalizedEndDate = normalizeDate(endDate);
-    if (!normalizedEndDate) return 0;
+    if (!normalizedStartDate || !normalizedEndDate) return 0;
 
     const suppliers = (apiSuppliers as any[]).map((supplier) => ({
       ...supplier,
@@ -639,8 +642,8 @@ const BalanceSheet: React.FC = () => {
       const supplierIdStr = supplier.id.toString();
       const supplierId = supplier.id;
 
-      // Total Purchases (all purchase invoices up to endDate) - Credit (increases what we owe)
-      const totalPurchases = transformedPurchaseInvoices
+      // Calculate opening balance up to start date (same as SupplierBalanceReport)
+      const openingPurchases = transformedPurchaseInvoices
         .filter(
           (inv) => {
             const invDate = normalizeDate(inv.date);
@@ -648,13 +651,12 @@ const BalanceSheet: React.FC = () => {
                                  inv.supplierId?.toString() || 
                                  (inv.supplier?.id?.toString());
             return (invSupplierId === supplierIdStr || invSupplierId == supplierId) && 
-                   invDate <= normalizedEndDate;
+                   invDate < normalizedStartDate;
           }
         )
         .reduce((sum, inv) => sum + toNumber(inv.totals?.net || inv.net || 0), 0);
 
-      // Cash purchase invoices are already paid, so they reduce what we owe (debit)
-      const totalCashPurchases = transformedPurchaseInvoices
+      const openingCashPurchases = transformedPurchaseInvoices
         .filter(
           (inv) => {
             const invDate = normalizeDate(inv.date);
@@ -663,13 +665,12 @@ const BalanceSheet: React.FC = () => {
                                  (inv.supplier?.id?.toString());
             return inv.paymentMethod === "cash" &&
                    (invSupplierId === supplierIdStr || invSupplierId == supplierId) && 
-                   invDate <= normalizedEndDate;
+                   invDate < normalizedStartDate;
           }
         )
         .reduce((sum, inv) => sum + toNumber(inv.totals?.net || inv.net || 0), 0);
 
-      // Total Returns (all purchase returns up to endDate) - Debit (reduces what we owe)
-      const totalReturns = transformedPurchaseReturns
+      const openingReturns = transformedPurchaseReturns
         .filter(
           (inv) => {
             const invDate = normalizeDate(inv.date);
@@ -677,13 +678,12 @@ const BalanceSheet: React.FC = () => {
                                  inv.supplierId?.toString() || 
                                  (inv.supplier?.id?.toString());
             return (invSupplierId === supplierIdStr || invSupplierId == supplierId) && 
-                   invDate <= normalizedEndDate;
+                   invDate < normalizedStartDate;
           }
         )
         .reduce((sum, inv) => sum + toNumber(inv.totals?.net || inv.net || 0), 0);
 
-      // Cash purchase returns are counted in both debit and credit (like cash purchases)
-      const totalCashReturns = transformedPurchaseReturns
+      const openingCashReturns = transformedPurchaseReturns
         .filter(
           (inv) => {
             const invDate = normalizeDate(inv.date);
@@ -692,44 +692,126 @@ const BalanceSheet: React.FC = () => {
                                  (inv.supplier?.id?.toString());
             return inv.paymentMethod === "cash" &&
                    (invSupplierId === supplierIdStr || invSupplierId == supplierId) && 
-                   invDate <= normalizedEndDate;
+                   invDate < normalizedStartDate;
           }
         )
         .reduce((sum, inv) => sum + toNumber(inv.totals?.net || inv.net || 0), 0);
 
-      // Payment vouchers to supplier - Debit (reduces what we owe)
-      const totalPayments = paymentVouchers
+      const openingPayments = paymentVouchers
         .filter(
           (v) => {
             const vDate = normalizeDate(v.date);
             const voucherSupplierId = v.entity?.id?.toString() || v.entity?.id;
             return v.entity?.type === "supplier" &&
                    (voucherSupplierId === supplierIdStr || voucherSupplierId == supplierId) &&
-                   vDate <= normalizedEndDate;
+                   vDate < normalizedStartDate;
           }
         )
         .reduce((sum, v) => sum + toNumber(v.amount || 0), 0);
 
-      // Receipt vouchers from supplier - Debit (reduces what we owe)
-      const totalReceipts = receiptVouchers
+      const openingReceipts = receiptVouchers
         .filter(
           (v) => {
             const vDate = normalizeDate(v.date);
             const voucherSupplierId = v.entity?.id?.toString() || v.entity?.id;
             return v.entity?.type === "supplier" &&
                    (voucherSupplierId === supplierIdStr || voucherSupplierId == supplierId) &&
-                   vDate <= normalizedEndDate;
+                   vDate < normalizedStartDate;
           }
         )
         .reduce((sum, v) => sum + toNumber(v.amount || 0), 0);
 
-      const opening = supplier.openingBalance || 0;
-      // Total Debit: cash purchases, all purchase returns, payment vouchers, receipt vouchers (all decrease what we owe)
-      const totalDebit = totalCashPurchases + totalReturns + totalPayments + totalReceipts;
-      // Total Credit: all purchase invoices plus cash purchase returns (both increase what we owe)
-      // Cash purchases are already counted in both debit and credit via totalCashPurchases
-      const totalCredit = totalPurchases + totalCashReturns;
-      // Balance = Beginning Balance + Total Debit - Total Credit
+      // Opening balance = supplier.openingBalance + openingDebit - openingCredit
+      // Debit (decreases what we owe): cash purchases, all purchase returns, payment vouchers
+      // Credit (increases what we owe): all purchase invoices, cash purchase returns, receipt vouchers (refunds from supplier)
+      const openingDebit = openingCashPurchases + openingReturns + openingPayments;
+      const openingCredit = openingPurchases + openingCashReturns + openingReceipts;
+      const opening = (supplier.openingBalance || 0) + openingDebit - openingCredit;
+
+      // Calculate period transactions (between start and end date) - same as SupplierBalanceReport
+      const periodPurchases = transformedPurchaseInvoices
+        .filter(
+          (inv) => {
+            const invDate = normalizeDate(inv.date);
+            const invSupplierId = inv.customerOrSupplier?.id?.toString() || 
+                                 inv.supplierId?.toString() || 
+                                 (inv.supplier?.id?.toString());
+            return (invSupplierId === supplierIdStr || invSupplierId == supplierId) && 
+                   invDate >= normalizedStartDate && invDate <= normalizedEndDate;
+          }
+        )
+        .reduce((sum, inv) => sum + toNumber(inv.totals?.net || inv.net || 0), 0);
+
+      const periodCashPurchases = transformedPurchaseInvoices
+        .filter(
+          (inv) => {
+            const invDate = normalizeDate(inv.date);
+            const invSupplierId = inv.customerOrSupplier?.id?.toString() || 
+                                 inv.supplierId?.toString() || 
+                                 (inv.supplier?.id?.toString());
+            return inv.paymentMethod === "cash" &&
+                   (invSupplierId === supplierIdStr || invSupplierId == supplierId) && 
+                   invDate >= normalizedStartDate && invDate <= normalizedEndDate;
+          }
+        )
+        .reduce((sum, inv) => sum + toNumber(inv.totals?.net || inv.net || 0), 0);
+
+      const periodReturns = transformedPurchaseReturns
+        .filter(
+          (inv) => {
+            const invDate = normalizeDate(inv.date);
+            const invSupplierId = inv.customerOrSupplier?.id?.toString() || 
+                                 inv.supplierId?.toString() || 
+                                 (inv.supplier?.id?.toString());
+            return (invSupplierId === supplierIdStr || invSupplierId == supplierId) && 
+                   invDate >= normalizedStartDate && invDate <= normalizedEndDate;
+          }
+        )
+        .reduce((sum, inv) => sum + toNumber(inv.totals?.net || inv.net || 0), 0);
+
+      const periodCashReturns = transformedPurchaseReturns
+        .filter(
+          (inv) => {
+            const invDate = normalizeDate(inv.date);
+            const invSupplierId = inv.customerOrSupplier?.id?.toString() || 
+                                 inv.supplierId?.toString() || 
+                                 (inv.supplier?.id?.toString());
+            return inv.paymentMethod === "cash" &&
+                   (invSupplierId === supplierIdStr || invSupplierId == supplierId) && 
+                   invDate >= normalizedStartDate && invDate <= normalizedEndDate;
+          }
+        )
+        .reduce((sum, inv) => sum + toNumber(inv.totals?.net || inv.net || 0), 0);
+
+      const periodPayments = paymentVouchers
+        .filter(
+          (v) => {
+            const vDate = normalizeDate(v.date);
+            const voucherSupplierId = v.entity?.id?.toString() || v.entity?.id;
+            return v.entity?.type === "supplier" &&
+                   (voucherSupplierId === supplierIdStr || voucherSupplierId == supplierId) &&
+                   vDate >= normalizedStartDate && vDate <= normalizedEndDate;
+          }
+        )
+        .reduce((sum, v) => sum + toNumber(v.amount || 0), 0);
+
+      const periodReceipts = receiptVouchers
+        .filter(
+          (v) => {
+            const vDate = normalizeDate(v.date);
+            const voucherSupplierId = v.entity?.id?.toString() || v.entity?.id;
+            return v.entity?.type === "supplier" &&
+                   (voucherSupplierId === supplierIdStr || voucherSupplierId == supplierId) &&
+                   vDate >= normalizedStartDate && vDate <= normalizedEndDate;
+          }
+        )
+        .reduce((sum, v) => sum + toNumber(v.amount || 0), 0);
+
+      // Period Debit: cash purchases, all purchase returns, payment vouchers (all decrease what we owe)
+      const totalDebit = periodCashPurchases + periodReturns + periodPayments;
+      // Period Credit: all purchase invoices, cash purchase returns, receipt vouchers (all increase what we owe)
+      const totalCredit = periodPurchases + periodCashReturns + periodReceipts;
+      // Balance = Opening Balance (at start date) + Period Debit - Period Credit
       const balance = opening + totalDebit - totalCredit;
 
       return balance;
@@ -744,6 +826,7 @@ const BalanceSheet: React.FC = () => {
     transformedPurchaseReturns,
     paymentVouchers,
     receiptVouchers,
+    startDate,
     endDate,
     normalizeDate,
     toNumber,
