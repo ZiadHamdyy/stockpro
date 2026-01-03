@@ -35,6 +35,7 @@ import { useAuth } from "../../hook/Auth";
 import { useGetFinancialSettingsQuery } from "../../store/slices/financialSettings/financialSettingsApi";
 import { ValuationMethod } from "../../pages/settings/financial-system/types";
 import { useGetReceivableAccountsQuery } from "../../store/slices/receivableAccounts/receivableAccountsApi";
+import { useGetPayableAccountsQuery } from "../../store/slices/payableAccounts/payableAccountsApi";
 
 const flipSign = (value: number) => (value === 0 ? 0 : value * -1);
 
@@ -129,6 +130,7 @@ const BalanceSheet: React.FC = () => {
   const { data: storeTransferVouchers = [] } = useGetStoreTransferVouchersQuery(undefined);
   const { data: apiSuppliers = [] } = useGetSuppliersQuery(undefined);
   const { data: apiReceivableAccounts = [] } = useGetReceivableAccountsQuery(undefined);
+  const { data: apiPayableAccounts = [] } = useGetPayableAccountsQuery(undefined);
   
   // Fetch all StoreItems across all stores to aggregate opening balances company-wide
   // This ensures inventory calculations include opening balances from ALL branches/stores
@@ -571,13 +573,15 @@ const BalanceSheet: React.FC = () => {
     aggregatedOpeningBalances, // Include aggregated opening balances from all stores
   ]);
 
-  // Transform vouchers to match expected structure for payables calculation
+  // Transform vouchers to match expected structure for payables and receivables calculation
   const receiptVouchers = useMemo(() => {
     return (apiReceiptVouchers as any[]).map((voucher: any) => {
       // Transform to match expected structure
+      // If voucher already has entity structure (from props), use it
+      // Otherwise, build it from API structure (same as TotalReceivableAccountsReport and TotalPayableAccountsReport)
       const entity = voucher.entity || {
         type: voucher.entityType,
-        id: voucher.customerId || voucher.supplierId || voucher.currentAccountId || "",
+        id: voucher.customerId || voucher.supplierId || voucher.currentAccountId || voucher.receivableAccountId || voucher.payableAccountId || "",
         name: voucher.entityName || "",
       };
       
@@ -597,9 +601,11 @@ const BalanceSheet: React.FC = () => {
   const paymentVouchers = useMemo(() => {
     return (apiPaymentVouchers as any[]).map((voucher: any) => {
       // Transform to match expected structure
+      // If voucher already has entity structure (from props), use it
+      // Otherwise, build it from API structure (same as TotalReceivableAccountsReport and TotalPayableAccountsReport)
       const entity = voucher.entity || {
         type: voucher.entityType,
-        id: voucher.customerId || voucher.supplierId || voucher.currentAccountId || "",
+        id: voucher.customerId || voucher.supplierId || voucher.currentAccountId || voucher.receivableAccountId || voucher.payableAccountId || "",
         name: voucher.entityName || "",
       };
       
@@ -854,6 +860,116 @@ const BalanceSheet: React.FC = () => {
   }, [apiReceivableAccounts, receiptVouchers, paymentVouchers, startDate, endDate, normalizeDate]);
 
   /**
+   * Calculate other payables - COMPANY-WIDE calculation
+   * Uses the exact same logic as TotalPayableAccountsReport
+   * Calculates balances for all payable accounts using:
+   * - Opening balance = base opening balance + payments before start date - receipts before start date
+   * - Balance = opening + payments - receipts
+   * Then sums all account balances
+   */
+  const calculatedOtherPayables = useMemo(() => {
+    const normalizedStartDate = normalizeDate(startDate);
+    const normalizedEndDate = normalizeDate(endDate);
+    
+    if (!normalizedStartDate || !normalizedEndDate) return 0;
+
+    // Transform API data to match expected format
+    const payableAccounts = (apiPayableAccounts as any[]).map((account) => ({
+      ...account,
+    }));
+
+    // Calculate account balances from vouchers (exact same logic as TotalPayableAccountsReport)
+    const accountsSummary = payableAccounts.map((account) => {
+      const accountId = account.id;
+      const accountIdStr = accountId.toString();
+
+      // Calculate transactions before start date for opening balance
+      const receiptsBefore = receiptVouchers
+        .filter(
+          (v) => {
+            const vDate = normalizeDate(v.date);
+            const voucherAccountId = v.entity?.id?.toString() || v.entity?.id;
+            return (
+              v.entity?.type === "payable_account" &&
+              (voucherAccountId === accountIdStr || voucherAccountId == accountId) &&
+              vDate < normalizedStartDate
+            );
+          },
+        )
+        .reduce((sum, v) => sum + v.amount, 0);
+
+      const paymentsBefore = paymentVouchers
+        .filter(
+          (v) => {
+            const vDate = normalizeDate(v.date);
+            const voucherAccountId = v.entity?.id?.toString() || v.entity?.id;
+            return (
+              v.entity?.type === "payable_account" &&
+              (voucherAccountId === accountIdStr || voucherAccountId == accountId) &&
+              vDate < normalizedStartDate
+            );
+          },
+        )
+        .reduce((sum, v) => sum + v.amount, 0);
+
+      // Calculate transactions within date range
+      const relevantReceipts = receiptVouchers.filter(
+        (v) => {
+          const vDate = normalizeDate(v.date);
+          const voucherAccountId = v.entity?.id?.toString() || v.entity?.id;
+          return (
+            v.entity?.type === "payable_account" &&
+            (voucherAccountId === accountIdStr || voucherAccountId == accountId) &&
+            vDate >= normalizedStartDate &&
+            vDate <= normalizedEndDate
+          );
+        },
+      );
+
+      const relevantPayments = paymentVouchers.filter(
+        (v) => {
+          const vDate = normalizeDate(v.date);
+          const voucherAccountId = v.entity?.id?.toString() || v.entity?.id;
+          return (
+            v.entity?.type === "payable_account" &&
+            (voucherAccountId === accountIdStr || voucherAccountId == accountId) &&
+            vDate >= normalizedStartDate &&
+            vDate <= normalizedEndDate
+          );
+        },
+      );
+
+      const receipts = relevantReceipts.reduce((sum, v) => sum + v.amount, 0);
+      const payments = relevantPayments.reduce((sum, v) => sum + v.amount, 0);
+
+      // Opening balance = base opening balance + payments before start date - receipts before start date
+      const opening = (account.openingBalance || 0) + paymentsBefore - receiptsBefore;
+      const balance = opening + payments - receipts;
+
+      return {
+        id: account.id,
+        code: account.code,
+        name: account.name,
+        opening,
+        debit: payments,
+        credit: receipts,
+        balance,
+      };
+    });
+
+    // Sum all account balances (same as totals.balance in TotalPayableAccountsReport)
+    const totals = accountsSummary.reduce(
+      (acc, item) => {
+        acc.balance += item.balance;
+        return acc;
+      },
+      { balance: 0 },
+    );
+
+    return totals.balance;
+  }, [apiPayableAccounts, receiptVouchers, paymentVouchers, startDate, endDate, normalizeDate]);
+
+  /**
    * Calculate other revenues - COMPANY-WIDE calculation
    * Sum of all receipt vouchers with entityType === 'revenue' within date range
    * Includes vouchers from all branches
@@ -1036,7 +1152,8 @@ const BalanceSheet: React.FC = () => {
 
     // Use calculated payables (same calculation as SupplierBalanceReport)
     const payables = flipSign(calculatedPayables);
-    const otherPayables = flipSign(balanceSheetData.otherPayables);
+    // Use calculated other payables (same calculation as TotalPayableAccountsReport)
+    const otherPayables = flipSign(calculatedOtherPayables);
     const vatPayable = flipSign(balanceSheetData.vatPayable);
     const partnersBalance = flipSign(balanceSheetData.partnersBalance);
     // Use calculated retained earnings with fiscal year logic
@@ -1072,7 +1189,7 @@ const BalanceSheet: React.FC = () => {
       totalLiabilitiesAndEquity,
       totalAssets,
     };
-  }, [balanceSheetData, calculatedRetainedEarnings, calculatedInventoryValue, calculatedPayables, calculatedOtherReceivables]);
+  }, [balanceSheetData, calculatedRetainedEarnings, calculatedInventoryValue, calculatedPayables, calculatedOtherReceivables, calculatedOtherPayables]);
 
   /**
    * Compute VAT net - COMPANY-WIDE calculation
