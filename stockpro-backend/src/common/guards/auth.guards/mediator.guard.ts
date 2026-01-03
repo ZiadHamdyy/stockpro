@@ -108,7 +108,7 @@ export class MediatorGuard implements CanActivate {
       }
 
       // Check if user has all required permissions
-      let hasAllPermissions = true;
+      const missingPermissions: string[] = [];
       for (const permission of authOpts.permissions) {
         if (
           !this.authService.hasPermission(
@@ -116,23 +116,34 @@ export class MediatorGuard implements CanActivate {
             request.user as User & { role?: any },
           )
         ) {
-          hasAllPermissions = false;
-          break;
+          missingPermissions.push(permission);
         }
       }
 
-      if (!hasAllPermissions) {
+      if (missingPermissions.length > 0) {
+        const userPermissions = request.user?.role?.rolePermissions?.map(
+          (rp: { permission: { resource: string; action: string } }) =>
+            `${rp.permission.resource}:${rp.permission.action}`,
+        ) || [];
+
         console.log(
           'MediatorGuard: Access denied - user does not have all required permissions:',
           {
-            userPermissions: request.user?.role?.rolePermissions?.map(
-              (rp: { permission: { resource: string; action: string } }) =>
-                `${rp.permission.resource}:${rp.permission.action}`,
-            ),
+            userPermissions,
             requiredPermissions: authOpts.permissions,
+            missingPermissions,
           },
         );
-        throw new GenericHttpException('Forbidden', authOpts.statusCode || 403);
+        throw new GenericHttpException(
+          'Forbidden',
+          authOpts.statusCode || 403,
+          undefined,
+          {
+            missingPermissions,
+            requiredPermissions: authOpts.permissions,
+            userPermissions,
+          },
+        );
       }
 
       console.log('MediatorGuard: Permission check passed:', {

@@ -72,6 +72,11 @@ export class HttpExceptionFilter implements ExceptionFilter {
       this.response.code = statusCode;
       this.response.message = message;
 
+      // Include exception params (like missingPermissions) in response if available
+      if (exception instanceof GenericHttpException && exception.getParams()) {
+        this.response = { ...this.response, ...exception.getParams() };
+      }
+
       return response.status(statusCode).json(this.response);
     }
 

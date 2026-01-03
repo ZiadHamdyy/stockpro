@@ -69,7 +69,16 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   // If no access, show AccessDenied page
   // This ensures users cannot access pages by typing URLs directly
   if (!hasAccess) {
-    return <AccessDenied />;
+    // Identify which specific permissions are missing
+    const requiredPermissionsArray = Array.isArray(requiredPermission)
+      ? requiredPermission
+      : [requiredPermission];
+    
+    const missingPermissions = requiredPermissionsArray.filter(
+      (perm) => !hasPermission(userPermissions, perm)
+    );
+    
+    return <AccessDenied missingPermissions={missingPermissions} />;
   }
 
   // Check subscription requirements (after permission check)

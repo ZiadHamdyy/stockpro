@@ -7,6 +7,7 @@ import type {
 import { setCredentials, logOut, selectCurrentToken } from "./slices/auth/auth";
 import { showToastExternal } from "../common/ToastProvider";
 import { getTokenExpirationState } from "../common/TokenExpirationContext";
+import { translatePermissionsToArabic } from "../../utils/permissionTranslator";
 
 // Selector to get company code from Redux state or localStorage
 const selectCompanyCode = (state: any): string | null => {
@@ -470,6 +471,18 @@ const baseQueryWithReAuth: BaseQueryFn<
   if (result?.error?.status === 409) {
     const message = "لا يمكن الحذف لوجود بيانات مرتبطة.";
     showToastExternal(message, 'error');
+  }
+
+  // Global 403 handler: show detailed permission error
+  if (result?.error?.status === 403) {
+    const errorData = result.error.data as any;
+    if (errorData?.missingPermissions && Array.isArray(errorData.missingPermissions) && errorData.missingPermissions.length > 0) {
+      const missingArabic = translatePermissionsToArabic(errorData.missingPermissions);
+      const message = `الصلاحيات المطلوبة غير متوفرة:\n${missingArabic.map(p => `• ${p}`).join('\n')}`;
+      showToastExternal(message, 'error');
+    } else {
+      showToastExternal("غير مصرح لك بهذا الإجراء.", 'error');
+    }
   }
 
   return result;

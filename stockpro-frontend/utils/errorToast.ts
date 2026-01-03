@@ -1,4 +1,5 @@
 import { showToastExternal } from "../components/common/ToastProvider";
+import { translatePermissionsToArabic } from "./permissionTranslator";
 
 type KnownError = {
   status?: number;
@@ -120,6 +121,17 @@ export function showApiErrorToast(error: unknown) {
   if (!text) {
     if (typeof message === "string" && message.trim().length > 0) {
       text = message.trim();
+    }
+  }
+
+  // Check for permission errors with missing permissions (403 status)
+  if (err.status === 403 && err.data && typeof err.data === "object") {
+    const errorData = err.data as any;
+    if (errorData?.missingPermissions && Array.isArray(errorData.missingPermissions) && errorData.missingPermissions.length > 0) {
+      const missingArabic = translatePermissionsToArabic(errorData.missingPermissions);
+      text = `الصلاحيات المطلوبة غير متوفرة:\n${missingArabic.map(p => `• ${p}`).join('\n')}`;
+      showToastExternal(text, 'error');
+      return;
     }
   }
 
