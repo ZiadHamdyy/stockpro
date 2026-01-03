@@ -34,6 +34,7 @@ import { useGetSuppliersQuery } from "../../store/slices/supplier/supplierApiSli
 import { useAuth } from "../../hook/Auth";
 import { useGetFinancialSettingsQuery } from "../../store/slices/financialSettings/financialSettingsApi";
 import { ValuationMethod } from "../../pages/settings/financial-system/types";
+import { useGetReceivableAccountsQuery } from "../../store/slices/receivableAccounts/receivableAccountsApi";
 
 const flipSign = (value: number) => (value === 0 ? 0 : value * -1);
 
@@ -127,6 +128,7 @@ const BalanceSheet: React.FC = () => {
   const { data: storeIssueVouchers = [] } = useGetStoreIssueVouchersQuery(undefined);
   const { data: storeTransferVouchers = [] } = useGetStoreTransferVouchersQuery(undefined);
   const { data: apiSuppliers = [] } = useGetSuppliersQuery(undefined);
+  const { data: apiReceivableAccounts = [] } = useGetReceivableAccountsQuery(undefined);
   
   // Fetch all StoreItems across all stores to aggregate opening balances company-wide
   // This ensures inventory calculations include opening balances from ALL branches/stores
@@ -742,6 +744,116 @@ const BalanceSheet: React.FC = () => {
   ]);
 
   /**
+   * Calculate other receivables - COMPANY-WIDE calculation
+   * Uses the exact same logic as TotalReceivableAccountsReport
+   * Calculates balances for all receivable accounts using:
+   * - Opening balance = base opening balance + payments before start date - receipts before start date
+   * - Balance = opening + payments - receipts
+   * Then sums all account balances
+   */
+  const calculatedOtherReceivables = useMemo(() => {
+    const normalizedStartDate = normalizeDate(startDate);
+    const normalizedEndDate = normalizeDate(endDate);
+    
+    if (!normalizedStartDate || !normalizedEndDate) return 0;
+
+    // Transform API data to match expected format
+    const receivableAccounts = (apiReceivableAccounts as any[]).map((account) => ({
+      ...account,
+    }));
+
+    // Calculate account balances from vouchers (exact same logic as TotalReceivableAccountsReport)
+    const accountsSummary = receivableAccounts.map((account) => {
+      const accountId = account.id;
+      const accountIdStr = accountId.toString();
+
+      // Calculate transactions before start date for opening balance
+      const receiptsBefore = receiptVouchers
+        .filter(
+          (v) => {
+            const vDate = normalizeDate(v.date);
+            const voucherAccountId = v.entity?.id?.toString() || v.entity?.id;
+            return (
+              v.entity?.type === "receivable_account" &&
+              (voucherAccountId === accountIdStr || voucherAccountId == accountId) &&
+              vDate < normalizedStartDate
+            );
+          },
+        )
+        .reduce((sum, v) => sum + v.amount, 0);
+
+      const paymentsBefore = paymentVouchers
+        .filter(
+          (v) => {
+            const vDate = normalizeDate(v.date);
+            const voucherAccountId = v.entity?.id?.toString() || v.entity?.id;
+            return (
+              v.entity?.type === "receivable_account" &&
+              (voucherAccountId === accountIdStr || voucherAccountId == accountId) &&
+              vDate < normalizedStartDate
+            );
+          },
+        )
+        .reduce((sum, v) => sum + v.amount, 0);
+
+      // Calculate transactions within date range
+      const relevantReceipts = receiptVouchers.filter(
+        (v) => {
+          const vDate = normalizeDate(v.date);
+          const voucherAccountId = v.entity?.id?.toString() || v.entity?.id;
+          return (
+            v.entity?.type === "receivable_account" &&
+            (voucherAccountId === accountIdStr || voucherAccountId == accountId) &&
+            vDate >= normalizedStartDate &&
+            vDate <= normalizedEndDate
+          );
+        },
+      );
+
+      const relevantPayments = paymentVouchers.filter(
+        (v) => {
+          const vDate = normalizeDate(v.date);
+          const voucherAccountId = v.entity?.id?.toString() || v.entity?.id;
+          return (
+            v.entity?.type === "receivable_account" &&
+            (voucherAccountId === accountIdStr || voucherAccountId == accountId) &&
+            vDate >= normalizedStartDate &&
+            vDate <= normalizedEndDate
+          );
+        },
+      );
+
+      const receipts = relevantReceipts.reduce((sum, v) => sum + v.amount, 0);
+      const payments = relevantPayments.reduce((sum, v) => sum + v.amount, 0);
+
+      // Opening balance = base opening balance + payments before start date - receipts before start date
+      const opening = (account.openingBalance || 0) + paymentsBefore - receiptsBefore;
+      const balance = opening + payments - receipts;
+
+      return {
+        id: account.id,
+        code: account.code,
+        name: account.name,
+        opening,
+        debit: payments,
+        credit: receipts,
+        balance,
+      };
+    });
+
+    // Sum all account balances (same as totals.balance in TotalReceivableAccountsReport)
+    const totals = accountsSummary.reduce(
+      (acc, item) => {
+        acc.balance += item.balance;
+        return acc;
+      },
+      { balance: 0 },
+    );
+
+    return totals.balance;
+  }, [apiReceivableAccounts, receiptVouchers, paymentVouchers, startDate, endDate, normalizeDate]);
+
+  /**
    * Calculate other revenues - COMPANY-WIDE calculation
    * Sum of all receipt vouchers with entityType === 'revenue' within date range
    * Includes vouchers from all branches
@@ -931,6 +1043,8 @@ const BalanceSheet: React.FC = () => {
     const retainedEarnings = calculatedRetainedEarnings;
     // Use calculated inventory value (same calculation as InventoryValuationReport)
     const inventory = calculatedInventoryValue;
+    // Use calculated other receivables (same calculation as TotalReceivableAccountsReport)
+    const otherReceivables = calculatedOtherReceivables;
 
     const totalLiabilities = payables + otherPayables + vatPayable;
     const totalEquity =
@@ -941,7 +1055,7 @@ const BalanceSheet: React.FC = () => {
       balanceSheetData.cashInSafes +
       balanceSheetData.cashInBanks +
       balanceSheetData.receivables +
-      balanceSheetData.otherReceivables +
+      otherReceivables +
       inventory;
 
     return {
@@ -952,12 +1066,13 @@ const BalanceSheet: React.FC = () => {
       partnersBalance,
       retainedEarnings,
       inventory,
+      otherReceivables,
       totalLiabilities,
       totalEquity,
       totalLiabilitiesAndEquity,
       totalAssets,
     };
-  }, [balanceSheetData, calculatedRetainedEarnings, calculatedInventoryValue, calculatedPayables]);
+  }, [balanceSheetData, calculatedRetainedEarnings, calculatedInventoryValue, calculatedPayables, calculatedOtherReceivables]);
 
   /**
    * Compute VAT net - COMPANY-WIDE calculation
