@@ -122,16 +122,10 @@ const Subscription: React.FC<SubscriptionProps> = ({ title }) => {
   const handleCreateCompany = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Validate code (6-8 digits)
+    // Validate code format (6-8 digits) only if provided
     const code = codeInput.trim();
     
-    if (!code) {
-      showToast('يرجى إدخال كود الشركة (6-8 أرقام)', 'error');
-      return;
-    }
-
-    // Validate code format (6-8 digits)
-    if (!/^\d{6,8}$/.test(code)) {
+    if (code && !/^\d{6,8}$/.test(code)) {
       showToast('كود الشركة يجب أن يكون من 6 إلى 8 أرقام', 'error');
       return;
     }
@@ -158,7 +152,7 @@ const Subscription: React.FC<SubscriptionProps> = ({ title }) => {
     setIsCreating(true);
     try {
       await createCompanyWithSeed({ 
-        code, 
+        code: code || undefined, 
         planType: selectedPlan,
         startDate: startDate,
         endDate: endDate,
@@ -927,17 +921,16 @@ const Subscription: React.FC<SubscriptionProps> = ({ title }) => {
             <form onSubmit={handleCreateCompany} className="p-4">
               <div className="mb-4">
                 <label className="block text-xs font-bold text-gray-700 mb-1">
-                  كود الشركة (6-8 أرقام) *
+                  كود الشركة (6-8 أرقام) - اختياري
                 </label>
                 <input
                   type="text"
                   value={codeInput}
                   onChange={(e) => setCodeInput(e.target.value)}
-                  placeholder="123456"
+                  placeholder="123456 (اختياري)"
                   pattern="\d{6,8}"
                   maxLength={8}
                   className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent font-mono"
-                  required
                   disabled={isCreating}
                 />
                 <p className="text-xs text-gray-500 mt-1">
