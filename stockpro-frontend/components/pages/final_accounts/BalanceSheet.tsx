@@ -1235,8 +1235,7 @@ const BalanceSheet: React.FC = () => {
 
     // Use calculated payables (same calculation as SupplierBalanceReport)
     const payables = flipSign(calculatedPayables);
-    // Use calculated other payables (same calculation as TotalPayableAccountsReport)
-    const otherPayables = flipSign(calculatedOtherPayables);
+    const otherPayables = flipSign(balanceSheetData.otherPayables);
     const vatPayable = flipSign(balanceSheetData.vatPayable);
     const partnersBalance = flipSign(balanceSheetData.partnersBalance);
     // Use calculated retained earnings with fiscal year logic
@@ -1272,7 +1271,7 @@ const BalanceSheet: React.FC = () => {
       totalLiabilitiesAndEquity,
       totalAssets,
     };
-  }, [balanceSheetData, calculatedRetainedEarnings, calculatedInventoryValue, calculatedPayables, calculatedOtherReceivables, calculatedOtherPayables]);
+  }, [balanceSheetData, calculatedRetainedEarnings, calculatedInventoryValue, calculatedPayables, calculatedOtherReceivables]);
 
   /**
    * Compute VAT net - COMPANY-WIDE calculation
