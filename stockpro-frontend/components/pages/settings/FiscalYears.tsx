@@ -21,9 +21,11 @@ import { useGetPurchaseReturnsQuery } from '../../store/slices/purchaseReturn/pu
 import { useGetStoreReceiptVouchersQuery } from '../../store/slices/storeReceiptVoucher/storeReceiptVoucherApi';
 import { useGetStoreIssueVouchersQuery } from '../../store/slices/storeIssueVoucher/storeIssueVoucherApi';
 import { useGetStoreTransferVouchersQuery } from '../../store/slices/storeTransferVoucher/storeTransferVoucherApi';
-import { useGetStoresQuery } from '../../store/slices/store/storeApi';
+import { useGetStoresQuery, useGetAllStoreItemsQuery } from '../../store/slices/store/storeApi';
 import { useGetReceiptVouchersQuery } from '../../store/slices/receiptVoucherApiSlice';
 import { useGetPaymentVouchersQuery } from '../../store/slices/paymentVoucherApiSlice';
+import { useGetFinancialSettingsQuery } from '../../store/slices/financialSettings/financialSettingsApi';
+import { ValuationMethod } from '../settings/financial-system/types';
 
 interface FiscalYearsProps {
     title?: string;
@@ -58,6 +60,30 @@ const FiscalYearRow: React.FC<{
     const { data: apiReceiptVouchers = [] } = useGetReceiptVouchersQuery(undefined);
     const { data: apiPaymentVouchers = [] } = useGetPaymentVouchersQuery(undefined);
     const { data: fiscalYears = [] } = useGetFiscalYearsQuery();
+    
+    // Get inventory valuation method from financial settings (same as BalanceSheet)
+    const { data: financialSettings } = useGetFinancialSettingsQuery();
+    
+    // Fetch all StoreItems across all stores to aggregate opening balances company-wide
+    const { data: allStoreItems = [] } = useGetAllStoreItemsQuery();
+    
+    // Map inventory valuation method to valuation method string (same as BalanceSheet lines 85-100)
+    const inventoryValuationMethod = useMemo(() => {
+        if (!financialSettings?.inventoryValuationMethod) {
+            return "averageCost"; // Default
+        }
+        
+        if (financialSettings.inventoryValuationMethod === ValuationMethod.WEIGHTED_AVERAGE) {
+            return "averageCost";
+        }
+        
+        if (financialSettings.inventoryValuationMethod === ValuationMethod.FIFO || 
+            financialSettings.inventoryValuationMethod === ValuationMethod.LAST_PURCHASE_PRICE) {
+            return "purchasePrice";
+        }
+        
+        return "averageCost"; // Default fallback
+    }, [financialSettings?.inventoryValuationMethod]);
 
     // Helper to normalize date
     const normalizeDate = useCallback((date: any): string => {
@@ -85,99 +111,317 @@ const FiscalYearRow: React.FC<{
         return Number.isFinite(parsed) ? parsed : 0;
     }, []);
 
-    // Calculate ending inventory (same logic as IncomeStatement)
-    const calculatedEndingInventory = useMemo(() => {
-        const normalizedEndDate = normalizeDate(endDate);
-        if (!normalizedEndDate) return 0;
+    // Aggregate opening balances from all StoreItems across all stores/branches (same as BalanceSheet lines 190-201)
+    const aggregatedOpeningBalances = useMemo(() => {
+        const balanceMap: Record<string, number> = {};
+        
+        (allStoreItems as any[]).forEach((storeItem) => {
+            const itemCode = storeItem.item?.code;
+            if (itemCode) {
+                balanceMap[itemCode] = (balanceMap[itemCode] || 0) + toNumber(storeItem.openingBalance || 0);
+            }
+        });
+        
+        return balanceMap;
+    }, [allStoreItems, toNumber]);
 
-        const items = (apiItems as any[])
-            .filter((item) => {
-                const itemType = (item.type || item.itemType || "").toUpperCase();
-                return itemType !== "SERVICE";
-            });
-
-        if (items.length === 0) return 0;
-
-        const transformedPurchaseInvoices = (apiPurchaseInvoices as any[]).map((inv) => ({
-            ...inv,
-            items: inv.items.map((item) => ({
+    // Transform purchase invoices to match expected format
+    const transformedPurchaseInvoices = useMemo(() => {
+        return (apiPurchaseInvoices as any[]).map((invoice) => ({
+            ...invoice,
+            items: invoice.items.map((item) => ({
                 id: item.id,
                 qty: item.qty,
                 price: item.price,
+                total: item.total,
             })),
         }));
+    }, [apiPurchaseInvoices]);
 
-        const getLastPurchasePrice = (itemCode: string): number | null => {
-            const relevantInvoices = transformedPurchaseInvoices
-                .filter((inv) => {
-                    const txDate = normalizeDate(inv.date) || normalizeDate(inv.invoiceDate);
-                    return txDate && txDate <= normalizedEndDate;
-                })
-                .sort((a, b) => {
-                    const dateA = normalizeDate(a.date) || normalizeDate(a.invoiceDate) || "";
-                    const dateB = normalizeDate(b.date) || normalizeDate(b.invoiceDate) || "";
-                    return dateB.localeCompare(dateA);
-                });
+    // Helper function to get last purchase price before or on a reference date (same as BalanceSheet lines 369-396)
+    const getLastPurchasePriceBeforeDate = useCallback((itemCode: string, referenceDate: string): number | null => {
+        const normalizedReferenceDate = normalizeDate(referenceDate);
+        if (!normalizedReferenceDate) return null;
 
-            for (const inv of relevantInvoices) {
-                for (const invItem of inv.items) {
-                    if (invItem.id === itemCode && invItem.price) {
-                        return invItem.price;
-                    }
+        // Get all purchase invoices up to the reference date, sorted by date descending
+        const relevantInvoices = transformedPurchaseInvoices
+            .filter((inv) => {
+                const txDate = normalizeDate(inv.date) || normalizeDate(inv.invoiceDate);
+                return txDate && txDate <= normalizedReferenceDate;
+            })
+            .sort((a, b) => {
+                const dateA = normalizeDate(a.date) || normalizeDate(a.invoiceDate) || "";
+                const dateB = normalizeDate(b.date) || normalizeDate(b.invoiceDate) || "";
+                return dateB.localeCompare(dateA); // Descending order
+            });
+
+        // Find the most recent purchase price for this item
+        for (const inv of relevantInvoices) {
+            for (const invItem of inv.items) {
+                if (invItem.id === itemCode && invItem.price) {
+                    return invItem.price;
                 }
             }
-            return null;
-        };
+        }
+
+        return null;
+    }, [transformedPurchaseInvoices, normalizeDate]);
+
+    // Helper function to calculate weighted average cost up to a reference date (same as BalanceSheet lines 398-434)
+    const calculateWeightedAverageCost = useCallback((item: any, referenceDate: string): number | null => {
+        const normalizedReferenceDate = normalizeDate(referenceDate);
+        if (!normalizedReferenceDate) return null;
+
+        const itemCode = item.code;
+        const openingBalance = toNumber((item as any).openingBalance ?? 0);
+        const initialPurchasePrice = toNumber(item.initialPurchasePrice ?? item.purchasePrice ?? 0);
+
+        // Get all purchase invoices up to the reference date
+        const relevantInvoices = transformedPurchaseInvoices
+            .filter((inv) => {
+                const txDate = normalizeDate(inv.date) || normalizeDate(inv.invoiceDate);
+                return txDate && txDate <= normalizedReferenceDate;
+            });
+
+        // Start with opening balance at initialPurchasePrice
+        let totalCost = openingBalance > 0 ? openingBalance * initialPurchasePrice : 0;
+        let totalQty = openingBalance;
+
+        // Add purchase invoices to the weighted average
+        for (const inv of relevantInvoices) {
+            for (const invItem of inv.items) {
+                if (invItem.id === itemCode && invItem.total && invItem.qty) {
+                    totalCost += invItem.total; // Use total invoice value per item
+                    totalQty += invItem.qty;
+                }
+            }
+        }
+
+        // If no purchases and no opening balance, return initialPurchasePrice if it exists
+        if (totalQty === 0) {
+            return initialPurchasePrice > 0 ? initialPurchasePrice : null;
+        }
+        
+        return totalCost / totalQty;
+    }, [transformedPurchaseInvoices, normalizeDate, toNumber]);
+
+    // Transform store vouchers to match expected format
+    const transformedStoreReceiptVouchers = useMemo(() => {
+        return (storeReceiptVouchers as any[]).map((voucher) => ({
+            ...voucher,
+            items: voucher.items.map((item) => ({
+                id: item.item?.code || item.itemId,
+                qty: item.quantity,
+            })),
+        }));
+    }, [storeReceiptVouchers]);
+
+    const transformedStoreIssueVouchers = useMemo(() => {
+        return (storeIssueVouchers as any[]).map((voucher) => ({
+            ...voucher,
+            items: voucher.items.map((item) => ({
+                id: item.item?.code || item.itemId,
+                qty: item.quantity,
+            })),
+        }));
+    }, [storeIssueVouchers]);
+
+    const transformedStoreTransferVouchers = useMemo(() => {
+        return (storeTransferVouchers as any[])
+            .filter((v) => v.status === 'ACCEPTED')
+            .map((voucher) => ({
+                ...voucher,
+                items: voucher.items.map((item) => ({
+                    id: item.item?.code || item.itemId,
+                    qty: item.quantity,
+                })),
+            }));
+    }, [storeTransferVouchers]);
+
+    // Transform sales invoices and returns to match expected format
+    const transformedSalesInvoices = useMemo(() => {
+        return (apiSalesInvoices as any[]).map((invoice) => ({
+            ...invoice,
+            items: invoice.items.map((item) => ({
+                id: item.id,
+                qty: item.qty,
+            })),
+        }));
+    }, [apiSalesInvoices]);
+
+    const transformedSalesReturns = useMemo(() => {
+        return (apiSalesReturns as any[]).map((invoice) => ({
+            ...invoice,
+            items: invoice.items.map((item) => ({
+                id: item.id,
+                qty: item.qty,
+            })),
+        }));
+    }, [apiSalesReturns]);
+
+    const transformedPurchaseReturns = useMemo(() => {
+        return (apiPurchaseReturns as any[]).map((invoice) => ({
+            ...invoice,
+            items: invoice.items.map((item) => ({
+                id: item.id,
+                qty: item.qty,
+            })),
+        }));
+    }, [apiPurchaseReturns]);
+
+    // Transform items to match expected format (same as BalanceSheet lines 205-216)
+    const items = useMemo(() => {
+        return (apiItems as any[])
+            .filter((item) => {
+                const itemType = (item.type || item.itemType || "").toUpperCase();
+                return itemType !== "SERVICE";
+            })
+            .map((item) => ({
+                ...item,
+                unit: item.unit?.name || "",
+                group: item.group?.name || "",
+            }));
+    }, [apiItems]);
+
+    /**
+     * Calculate ending inventory - COMPANY-WIDE calculation (same as BalanceSheet lines 447-574)
+     * Aggregates inventory across ALL branches and stores
+     * No branch filtering is applied - all transactions from all branches are included
+     * 
+     * Opening balances are aggregated from ALL StoreItems across ALL stores/branches
+     * using the aggregatedOpeningBalances map which sums opening balances by item code.
+     * 
+     * All transaction types (purchases, sales, returns, store vouchers) are processed
+     * without branch filtering to ensure company-wide inventory calculation.
+     */
+    const calculatedEndingInventory = useMemo(() => {
+        const normalizedEndDate = normalizeDate(endDate);
+        if (!normalizedEndDate || items.length === 0) return 0;
+
+        // Use the tracked valuation method (will update when financial settings change)
+        const valuationMethod = inventoryValuationMethod;
 
         const valuationData = items.map((item) => {
-            let balance = toNumber((item as any).openingBalance ?? 0);
+            // Use aggregated opening balance from ALL stores/branches for this item
+            // This ensures company-wide inventory calculation includes all branches
+            const itemCode = item.code;
+            let balance = aggregatedOpeningBalances[itemCode] || 0;
 
+            // Filter transactions up to and including endDate (all branches)
             const filterByDate = (tx: any) => {
-                const txDate = normalizeDate(tx.date) || normalizeDate(tx.invoiceDate) || normalizeDate(tx.transactionDate);
-                return txDate && txDate <= normalizedEndDate;
+                if (!normalizedEndDate) return false;
+                const txDate =
+                    normalizeDate(tx.date) ||
+                    normalizeDate(tx.invoiceDate) ||
+                    normalizeDate(tx.transactionDate);
+                if (!txDate) return false;
+                return txDate <= normalizedEndDate;
             };
 
-            (apiPurchaseInvoices as any[]).filter(filterByDate).forEach((inv) =>
+            // Calculate balance across all branches (no branch filtering)
+            // All purchase invoices from all branches are included
+            transformedPurchaseInvoices.filter(filterByDate).forEach((inv) =>
                 inv.items.forEach((i) => {
                     if (i.id === item.code) balance += toNumber(i.qty);
                 }),
             );
-            (apiSalesReturns as any[]).filter(filterByDate).forEach((inv) =>
+            transformedSalesReturns.filter(filterByDate).forEach((inv) =>
                 inv.items.forEach((i) => {
                     if (i.id === item.code) balance += toNumber(i.qty);
                 }),
             );
-            (storeReceiptVouchers as any[]).filter(filterByDate).forEach((v) =>
+            transformedStoreReceiptVouchers.filter(filterByDate).forEach((v) =>
                 v.items.forEach((i) => {
-                    if ((i.item?.code || i.itemId) === item.code) balance += toNumber(i.quantity);
+                    if (i.id === item.code) balance += toNumber(i.qty);
                 }),
             );
 
-            (apiSalesInvoices as any[]).filter(filterByDate).forEach((inv) =>
+            // Subtract sales invoices from all branches (no branch filtering)
+            transformedSalesInvoices.filter(filterByDate).forEach((inv) =>
                 inv.items.forEach((i) => {
                     if (i.id === item.code) balance -= toNumber(i.qty);
                 }),
             );
-            (apiPurchaseReturns as any[]).filter(filterByDate).forEach((inv) =>
+            // Subtract purchase returns from all branches (no branch filtering)
+            transformedPurchaseReturns.filter(filterByDate).forEach((inv) =>
                 inv.items.forEach((i) => {
                     if (i.id === item.code) balance -= toNumber(i.qty);
                 }),
             );
-            (storeIssueVouchers as any[]).filter(filterByDate).forEach((v) =>
+            // Subtract store issue vouchers from all branches (no branch filtering)
+            transformedStoreIssueVouchers.filter(filterByDate).forEach((v) =>
                 v.items.forEach((i) => {
-                    if ((i.item?.code || i.itemId) === item.code) balance -= toNumber(i.quantity);
+                    if (i.id === item.code) balance -= toNumber(i.qty);
                 }),
             );
 
-            const fallbackPrice = toNumber(item.initialPurchasePrice ?? item.purchasePrice ?? 0);
-            const lastPurchasePrice = getLastPurchasePrice(item.code);
-            const cost = lastPurchasePrice ?? fallbackPrice;
+            // Handle store transfers (all branches)
+            transformedStoreTransferVouchers.filter(filterByDate).forEach((v) => {
+                const fromStore = stores.find((s) => s.name === v.fromStore);
+                const toStore = stores.find((s) => s.name === v.toStore);
+                v.items.forEach((i) => {
+                    if (i.id === item.code) {
+                        const qty = toNumber(i.qty);
+                        // For all branches, transfers between stores don't affect total balance
+                        // But we need to account for transfers if they affect the item's balance
+                        // Since we're calculating for all branches, transfers are neutral
+                    }
+                });
+            });
 
-            return balance * cost;
+            // Calculate cost based on valuation method at end of the period (end date)
+            let cost = 0;
+            const priceReferenceDate = endDate;
+            const fallbackPrice =
+                toNumber(item.initialPurchasePrice ?? item.purchasePrice ?? 0);
+            
+            if (valuationMethod === "averageCost") {
+                const avgCost = calculateWeightedAverageCost(item, priceReferenceDate);
+                // Fallback to last purchase price if no purchases found
+                if (avgCost === null) {
+                    const lastPurchasePrice = getLastPurchasePriceBeforeDate(item.code, priceReferenceDate);
+                    cost = lastPurchasePrice ?? fallbackPrice;
+                } else {
+                    cost = avgCost;
+                }
+            } else if (valuationMethod === "purchasePrice") {
+                const lastPurchasePrice = getLastPurchasePriceBeforeDate(item.code, priceReferenceDate);
+                cost = lastPurchasePrice ?? fallbackPrice;
+            } else {
+                cost = fallbackPrice;
+            }
+
+            const value = balance * cost;
+
+            return {
+                ...item,
+                balance,
+                cost,
+                value,
+            };
         });
 
-        return valuationData.reduce((acc, value) => acc + value, 0);
-    }, [apiItems, apiSalesInvoices, apiPurchaseInvoices, apiSalesReturns, apiPurchaseReturns, storeReceiptVouchers, storeIssueVouchers, endDate, normalizeDate, toNumber]);
+        // Calculate total inventory value (same as BalanceSheet line 555)
+        const totalValue = valuationData.reduce((acc, item) => acc + item.value, 0);
+        return totalValue;
+    }, [
+        items,
+        endDate,
+        transformedSalesInvoices,
+        transformedSalesReturns,
+        transformedPurchaseInvoices,
+        transformedPurchaseReturns,
+        transformedStoreReceiptVouchers,
+        transformedStoreIssueVouchers,
+        transformedStoreTransferVouchers,
+        stores,
+        normalizeDate,
+        toNumber,
+        getLastPurchasePriceBeforeDate,
+        calculateWeightedAverageCost,
+        inventoryValuationMethod,
+        aggregatedOpeningBalances,
+    ]);
 
     // Calculate other revenues (same as IncomeStatement)
     const calculatedOtherRevenues = useMemo(() => {
