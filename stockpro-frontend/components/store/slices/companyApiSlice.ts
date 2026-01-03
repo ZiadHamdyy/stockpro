@@ -112,6 +112,13 @@ export const companyApiSlice = apiSlice.injectEndpoints({
         return response.data;
       },
     }),
+    deleteCompany: builder.mutation<{ message: string }, string>({
+      query: (companyId) => ({
+        url: `/company/${companyId}`,
+        method: "DELETE",
+      }),
+      invalidatesTags: ["Company"],
+    }),
   }),
 });
 
@@ -121,4 +128,5 @@ export const {
   useCreateCompanyMutation,
   useUpsertCompanyMutation,
   useCreateCompanyWithSeedMutation,
+  useDeleteCompanyMutation,
 } = companyApiSlice;

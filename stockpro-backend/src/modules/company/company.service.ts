@@ -1148,4 +1148,284 @@ export class CompanyService {
 
     return printSettings;
   }
+
+  async deleteCompany(companyId: string): Promise<void> {
+    // Verify company exists
+    const company = await this.prisma.company.findUnique({
+      where: { id: companyId },
+    });
+
+    if (!company) {
+      throw new NotFoundException('Company not found');
+    }
+
+    // Use transaction to ensure atomicity
+    await this.prisma.$transaction(async (tx) => {
+      // 1. Get IDs of vouchers and inventory counts for deleting their items
+      const storeReceiptVouchers = await tx.storeReceiptVoucher.findMany({
+        where: { companyId },
+        select: { id: true },
+      });
+      const storeReceiptVoucherIds = storeReceiptVouchers.map((v) => v.id);
+
+      const storeIssueVouchers = await tx.storeIssueVoucher.findMany({
+        where: { companyId },
+        select: { id: true },
+      });
+      const storeIssueVoucherIds = storeIssueVouchers.map((v) => v.id);
+
+      const storeTransferVouchers = await tx.storeTransferVoucher.findMany({
+        where: { companyId },
+        select: { id: true },
+      });
+      const storeTransferVoucherIds = storeTransferVouchers.map((v) => v.id);
+
+      const inventoryCounts = await tx.inventoryCount.findMany({
+        where: { companyId },
+        select: { id: true },
+      });
+      const inventoryCountIds = inventoryCounts.map((ic) => ic.id);
+
+      // Delete child records (voucher items, inventory items)
+      if (storeReceiptVoucherIds.length > 0) {
+        await tx.storeReceiptVoucherItem.deleteMany({
+          where: {
+            voucherId: { in: storeReceiptVoucherIds },
+          },
+        });
+      }
+
+      if (storeIssueVoucherIds.length > 0) {
+        await tx.storeIssueVoucherItem.deleteMany({
+          where: {
+            voucherId: { in: storeIssueVoucherIds },
+          },
+        });
+      }
+
+      if (storeTransferVoucherIds.length > 0) {
+        await tx.storeTransferVoucherItem.deleteMany({
+          where: {
+            voucherId: { in: storeTransferVoucherIds },
+          },
+        });
+      }
+
+      if (inventoryCountIds.length > 0) {
+        await tx.inventoryCountItem.deleteMany({
+          where: {
+            inventoryCountId: { in: inventoryCountIds },
+          },
+        });
+      }
+
+      // 2. Get store IDs and delete store items
+      const stores = await tx.store.findMany({
+        where: { companyId },
+        select: { id: true },
+      });
+      const storeIds = stores.map((s) => s.id);
+
+      if (storeIds.length > 0) {
+        await tx.storeItem.deleteMany({
+          where: {
+            storeId: { in: storeIds },
+          },
+        });
+      }
+
+      // 3. Delete transactional records
+      await tx.storeReceiptVoucher.deleteMany({
+        where: { companyId },
+      });
+
+      await tx.storeIssueVoucher.deleteMany({
+        where: { companyId },
+      });
+
+      await tx.storeTransferVoucher.deleteMany({
+        where: { companyId },
+      });
+
+      await tx.inventoryCount.deleteMany({
+        where: { companyId },
+      });
+
+      // 4. Delete financial transactions
+      await tx.salesInvoice.deleteMany({
+        where: { companyId },
+      });
+
+      await tx.salesReturn.deleteMany({
+        where: { companyId },
+      });
+
+      await tx.purchaseInvoice.deleteMany({
+        where: { companyId },
+      });
+
+      await tx.purchaseReturn.deleteMany({
+        where: { companyId },
+      });
+
+      await tx.paymentVoucher.deleteMany({
+        where: { companyId },
+      });
+
+      await tx.receiptVoucher.deleteMany({
+        where: { companyId },
+      });
+
+      await tx.internalTransfer.deleteMany({
+        where: { companyId },
+      });
+
+      await tx.priceQuotation.deleteMany({
+        where: { companyId },
+      });
+
+      // 5. Delete master data
+      await tx.item.deleteMany({
+        where: { companyId },
+      });
+
+      await tx.itemGroup.deleteMany({
+        where: { companyId },
+      });
+
+      await tx.unit.deleteMany({
+        where: { companyId },
+      });
+
+      await tx.customer.deleteMany({
+        where: { companyId },
+      });
+
+      await tx.supplier.deleteMany({
+        where: { companyId },
+      });
+
+      await tx.currentAccount.deleteMany({
+        where: { companyId },
+      });
+
+      await tx.receivableAccount.deleteMany({
+        where: { companyId },
+      });
+
+      await tx.payableAccount.deleteMany({
+        where: { companyId },
+      });
+
+      // 6. Delete configuration data
+      await tx.expense.deleteMany({
+        where: { companyId },
+      });
+
+      await tx.expenseCode.deleteMany({
+        where: { companyId },
+      });
+
+      await tx.expenseType.deleteMany({
+        where: { companyId },
+      });
+
+      await tx.revenueCode.deleteMany({
+        where: { companyId },
+      });
+
+      await tx.fiscalYear.deleteMany({
+        where: { companyId },
+      });
+
+      // 7. Delete company structure that references branches (before branches)
+      // Delete stores (they reference branches and users, but we delete them first)
+      await tx.store.deleteMany({
+        where: { companyId },
+      });
+
+      // Delete safes (they reference branches)
+      await tx.safe.deleteMany({
+        where: { companyId },
+      });
+
+      // Delete banks (no branch dependency)
+      await tx.bank.deleteMany({
+        where: { companyId },
+      });
+
+      // 8. Delete users and auth data (users reference branches, so delete before branches)
+      // First get all user IDs for this company
+      const users = await tx.user.findMany({
+        where: { companyId },
+        select: { id: true },
+      });
+
+      const userIds = users.map((u) => u.id);
+
+      if (userIds.length > 0) {
+        await tx.session.deleteMany({
+          where: { userId: { in: userIds } },
+        });
+
+        await tx.otp.deleteMany({
+          where: { userId: { in: userIds } },
+        });
+      }
+
+      // Delete role permissions - get role IDs first
+      const roles = await tx.role.findMany({
+        where: { companyId },
+        select: { id: true },
+      });
+      const roleIds = roles.map((r) => r.id);
+
+      if (roleIds.length > 0) {
+        await tx.rolePermission.deleteMany({
+          where: {
+            roleId: { in: roleIds },
+          },
+        });
+      }
+
+      // Delete users (must be before branches since users reference branches)
+      await tx.user.deleteMany({
+        where: { companyId },
+      });
+
+      // Delete roles
+      await tx.role.deleteMany({
+        where: { companyId },
+      });
+
+      // Delete permissions
+      await tx.permission.deleteMany({
+        where: { companyId },
+      });
+
+      // 9. Delete branches (after all references are removed)
+      await tx.branch.deleteMany({
+        where: { companyId },
+      });
+
+      // 9. Delete system data
+      await tx.notification.deleteMany({
+        where: { companyId },
+      });
+
+      await tx.auditLog.deleteMany({
+        where: { companyId },
+      });
+
+      // Delete subscription
+      await tx.subscription.deleteMany({
+        where: { companyId },
+      });
+
+      // 10. Finally delete the company
+      await tx.company.delete({
+        where: { id: companyId },
+      });
+    });
+  }
 }

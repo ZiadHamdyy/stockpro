@@ -1,4 +1,4 @@
-import { Controller, Get, Put, Post, Body, Query, UseGuards } from '@nestjs/common';
+import { Controller, Get, Put, Post, Delete, Body, Query, UseGuards, Param } from '@nestjs/common';
 import { CompanyService } from './company.service';
 import { CompanyResponse } from './dtos/response/company.response';
 import { UpsertCompanyRequest } from './dtos/request/upsert-company.request';
@@ -86,6 +86,13 @@ export class CompanyController {
     @currentCompany('id') companyId: string,
   ): Promise<any> {
     return this.companyService.updatePrintSettings(companyId, printSettings);
+  }
+
+  @Delete(':id')
+  @Auth({ permissions: ['subscription:delete'] })
+  async deleteCompany(@Param('id') companyId: string): Promise<{ message: string }> {
+    await this.companyService.deleteCompany(companyId);
+    return { message: 'Company deleted successfully' };
   }
   
 }

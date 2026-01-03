@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ShieldIcon, XIcon, PlusIcon, EditIcon, WhatsappIcon, PhoneIcon, BarChartIcon, BellIcon } from '../../icons';
+import { ShieldIcon, XIcon, PlusIcon, EditIcon, WhatsappIcon, PhoneIcon, BarChartIcon, BellIcon, TrashIcon } from '../../icons';
 import { useToast } from '../../common/ToastProvider';
 import {
   useGetAllCompaniesQuery,
   useUpsertCompanyMutation,
   useCreateCompanyWithSeedMutation,
+  useDeleteCompanyMutation,
 } from '../../store/slices/companyApiSlice';
 import { useSubscription } from '../../hook/useSubscription';
 import {
@@ -46,6 +47,7 @@ const Subscription: React.FC<SubscriptionProps> = ({ title }) => {
   const { data: companiesData, isLoading, refetch } = useGetAllCompaniesQuery();
   const [createCompanyWithSeed] = useCreateCompanyWithSeedMutation();
   const [updateCompany] = useUpsertCompanyMutation();
+  const [deleteCompany] = useDeleteCompanyMutation();
   
   // Subscription data
   const { subscription, limits, usage, isLoading: subscriptionLoading } = useSubscription();
@@ -67,7 +69,10 @@ const Subscription: React.FC<SubscriptionProps> = ({ title }) => {
 
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [selectedCompany, setSelectedCompany] = useState<any>(null);
+  const [companyToDelete, setCompanyToDelete] = useState<any>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [codeInput, setCodeInput] = useState('');
   const [isCreating, setIsCreating] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState<'BASIC' | 'GROWTH' | 'BUSINESS'>('BASIC');
@@ -273,6 +278,31 @@ const Subscription: React.FC<SubscriptionProps> = ({ title }) => {
     }
   };
 
+  const handleOpenDeleteModal = (company: any) => {
+    setCompanyToDelete(company);
+    setIsDeleteModalOpen(true);
+  };
+
+  const handleDeleteCompany = async () => {
+    if (!companyToDelete) return;
+
+    setIsDeleting(true);
+    try {
+      await deleteCompany(companyToDelete.id).unwrap();
+      showToast('تم حذف الشركة وجميع بياناتها بنجاح');
+      setIsDeleteModalOpen(false);
+      setCompanyToDelete(null);
+      refetch();
+    } catch (error: any) {
+      showToast(
+        error?.data?.message || 'حدث خطأ أثناء حذف الشركة',
+        'error'
+      );
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
   const handleOpenWhatsApp = (request: SubscriptionRequest) => {
     // Format phone number (remove spaces, ensure proper format)
     const phoneNumber = request.phone.replace(/\s+/g, '').replace(/^0/, '966');
@@ -379,11 +409,24 @@ const Subscription: React.FC<SubscriptionProps> = ({ title }) => {
                         الاشتراك
                       </button>
                       <button
-                        onClick={() => handleOpenEditModal(company)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleOpenEditModal(company);
+                        }}
                         className="p-1.5 hover:bg-gray-200 rounded transition-colors"
                         title="تعديل بيانات الشركة"
                       >
                         <EditIcon className="w-4 h-4 text-gray-400" />
+                      </button>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleOpenDeleteModal(company);
+                        }}
+                        className="p-1.5 hover:bg-red-100 rounded transition-colors"
+                        title="حذف الشركة"
+                      >
+                        <TrashIcon className="w-4 h-4 text-red-500" />
                       </button>
                     </div>
                   </div>
@@ -1477,6 +1520,70 @@ const Subscription: React.FC<SubscriptionProps> = ({ title }) => {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Company Confirmation Modal */}
+      {isDeleteModalOpen && companyToDelete && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-fade-in">
+          <div className="bg-white w-full max-w-md rounded-2xl shadow-2xl overflow-hidden">
+            <div className="bg-gradient-to-r from-red-500 to-red-600 p-5 text-white flex justify-between items-center">
+              <h3 className="text-lg font-bold flex items-center gap-2">
+                <TrashIcon className="w-5 h-5" />
+                تأكيد حذف الشركة
+              </h3>
+              <button
+                onClick={() => {
+                  setIsDeleteModalOpen(false);
+                  setCompanyToDelete(null);
+                }}
+                className="text-white hover:text-gray-200"
+                disabled={isDeleting}
+              >
+                <XIcon className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="p-6">
+              <div className="mb-6">
+                <p className="text-gray-800 font-bold mb-2">
+                  هل أنت متأكد من حذف الشركة التالية؟
+                </p>
+                <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                  <p className="font-bold text-gray-800 mb-1">{companyToDelete.name}</p>
+                  <p className="text-sm text-gray-600 font-mono">كود: {companyToDelete.code}</p>
+                </div>
+                <p className="text-sm text-red-600 mt-4 font-semibold">
+                  ⚠️ تحذير: سيتم حذف جميع البيانات المرتبطة بهذه الشركة بشكل نهائي ولا يمكن التراجع عن هذا الإجراء!
+                </p>
+                <p className="text-xs text-gray-500 mt-2">
+                  يشمل ذلك: المستخدمين، الفروع، المخازن، الأصناف، الفواتير، السندات، العملاء، الموردين، وجميع البيانات الأخرى.
+                </p>
+              </div>
+
+              <div className="flex justify-end gap-3 pt-4 border-t border-gray-200">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsDeleteModalOpen(false);
+                    setCompanyToDelete(null);
+                  }}
+                  className="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg font-bold hover:bg-gray-50 transition-colors"
+                  disabled={isDeleting}
+                >
+                  إلغاء
+                </button>
+                <button
+                  type="button"
+                  onClick={handleDeleteCompany}
+                  className="px-6 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-bold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  disabled={isDeleting}
+                >
+                  {isDeleting ? 'جاري الحذف...' : 'حذف نهائي'}
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}
