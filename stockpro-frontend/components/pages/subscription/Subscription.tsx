@@ -378,7 +378,7 @@ const Subscription: React.FC<SubscriptionProps> = ({ title }) => {
               <div className="text-center text-gray-500 py-4">لا توجد شركات مسجلة</div>
             ) : (
               <div className="space-y-2">
-                {companies.slice(0, 5).map((company: any) => (
+                {companies.map((company: any) => (
                   <div
                     key={company.id}
                     className="flex items-center justify-between p-3 bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors"
@@ -425,11 +425,6 @@ const Subscription: React.FC<SubscriptionProps> = ({ title }) => {
                     </div>
                   </div>
                 ))}
-                {companies.length > 5 && (
-                  <p className="text-xs text-gray-500 text-center pt-2">
-                    و {companies.length - 5} شركة أخرى
-                  </p>
-                )}
               </div>
             )}
           </div>
