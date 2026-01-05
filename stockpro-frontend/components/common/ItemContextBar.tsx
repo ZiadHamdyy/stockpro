@@ -271,7 +271,7 @@ const ItemContextBar: React.FC<ItemContextBarProps> = ({
                       hasStock ? "text-emerald-600" : "text-white/40"
                     }`}
                   >
-                    {s.qty}
+                    {Number(s.qty).toFixed(2)}
                   </span>
                 </div>
               );
@@ -288,7 +288,7 @@ const ItemContextBar: React.FC<ItemContextBarProps> = ({
                   : "text-white"
               }`}
             >
-              {totalStock}
+              {Number(totalStock).toFixed(2)}
             </span>
           </div>
         </div>
