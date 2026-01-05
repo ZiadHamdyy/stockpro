@@ -302,10 +302,6 @@ const StagnantItemsReport: React.FC<StagnantItemsReportProps> = ({ title }) => {
                 (pageItems, idx) => {
                     return `
                 <div class="page">
-                    <div class="page-header">
-                        <h2 class="title">${title}</h2>
-                        <div class="page-number">(${totalPages} / ${idx + 1})</div>
-                    </div>
                     ${idx === 0 ? companyHeader : ''}
                     ${idx === 0 ? dateInfo : ''}
                     ${alertBanner(idx)}
@@ -349,10 +345,6 @@ const StagnantItemsReport: React.FC<StagnantItemsReportProps> = ({ title }) => {
                     const overflowPageIdx = printPages.length + i;
                     return `
                     <div class="page">
-                        <div class="page-header">
-                            <h2 class="title">${title}</h2>
-                            <div class="page-number">(${totalPages} / ${overflowPageIdx + 1})</div>
-                        </div>
                         <table>
                             <thead>${tableHeader}</thead>
                             <tbody>
@@ -390,33 +382,54 @@ const StagnantItemsReport: React.FC<StagnantItemsReportProps> = ({ title }) => {
                         -webkit-print-color-adjust: exact;
                         print-color-adjust: exact;
                     }
-                    .page-header {
-                        display: flex;
-                        align-items: center;
-                        justify-content: space-between;
-                        margin: 0 0 12px 0;
+                    table { 
+                        width: 100%; 
+                        border-collapse: collapse; 
+                        font-size: 13px !important; 
+                        margin-top: 0;
                     }
-                    .title {
-                        margin: 0;
-                        font-size: 16px;
-                        color: #1F2937;
+                    th, td { 
+                        border: 1px solid #E5E7EB; 
+                        padding: 6px 8px !important; 
+                        text-align: right; 
                     }
-                    .page-number {
-                        font-size: 12px;
-                        font-weight: 700;
-                        color: #1F2937;
+                    thead { 
+                        background: #1E40AF !important; 
+                        color: #FFFFFF !important; 
+                        display: table-header-group;
                     }
-                    table { width: 100%; border-collapse: collapse; font-size: 13px !important; }
-                    th, td { border: 1px solid #E5E7EB; padding: 6px 8px !important; text-align: right; }
-                    thead { background: #1E40AF !important; color: #FFFFFF !important; display: table-header-group; }
-                    tfoot { display: table-row-group !important; }
-                    tbody tr:first-child { background: #FFFFFF !important; }
-                    tbody tr:nth-child(2n+2) { background: #D1D5DB !important; }
-                    tbody tr:nth-child(2n+3) { background: #FFFFFF !important; }
-                    tfoot tr { page-break-inside: avoid !important; break-inside: avoid !important; }
-                    tr { page-break-inside: avoid; break-inside: avoid; }
-                    .page { page-break-after: always; break-after: page; }
-                    .page:last-of-type { page-break-after: auto; break-after: auto; }
+                    thead tr {
+                        page-break-after: avoid;
+                        page-break-inside: avoid;
+                    }
+                    tfoot { 
+                        display: table-row-group !important; 
+                    }
+                    tbody tr:first-child { 
+                        background: #FFFFFF !important; 
+                    }
+                    tbody tr:nth-child(2n+2) { 
+                        background: #D1D5DB !important; 
+                    }
+                    tbody tr:nth-child(2n+3) { 
+                        background: #FFFFFF !important; 
+                    }
+                    tfoot tr { 
+                        page-break-inside: avoid !important; 
+                        break-inside: avoid !important; 
+                    }
+                    tr { 
+                        page-break-inside: avoid; 
+                        break-inside: avoid; 
+                    }
+                    .page { 
+                        page-break-after: always; 
+                        break-after: page; 
+                    }
+                    .page:last-of-type { 
+                        page-break-after: auto; 
+                        break-after: auto; 
+                    }
                 </style>
             </head>
             <body>
