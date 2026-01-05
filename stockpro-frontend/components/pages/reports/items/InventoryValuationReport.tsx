@@ -345,7 +345,7 @@ const InventoryValuationReport: React.FC<InventoryValuationReportProps> = ({
   const [endDate, setEndDate] = useState(defaultEndDate);
   const [valuationMethod, setValuationMethod] = useState<
     "purchasePrice" | "salePrice" | "averageCost"
-  >("purchasePrice");
+  >("averageCost");
 
   // Helper function to get last purchase price before or on a reference date
   const getLastPurchasePriceBeforeDate = useCallback((itemCode: string, referenceDate: string): number | null => {
