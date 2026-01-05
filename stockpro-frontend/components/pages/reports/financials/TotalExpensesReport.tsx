@@ -321,9 +321,10 @@ const TotalExpensesReport: React.FC<TotalExpensesReportProps> = ({
                     table { width: 100%; border-collapse: collapse; font-size: 12px !important; }
                     th { font-size: 12px !important; font-weight: bold !important; border-left: 1px solid #D1D5DB !important; padding: 6px 8px !important; }
                     td { font-size: 12px !important; border-left: 1px solid #D1D5DB !important; padding: 6px 8px !important; }
-                    tbody tr:first-child { background: #FFFFFF !important; }
-                    tbody tr:nth-child(2n+2) { background: #D1D5DB !important; }
-                    tbody tr:nth-child(2n+3) { background: #FFFFFF !important; }
+                    tbody tr:nth-child(2n+1) { background: #FFFFFF !important; }
+                    tbody tr:nth-child(2n+2) { background: #F3F4F6 !important; }
+                    tbody tr:nth-child(2n+1) td.sticky { background: #FFFFFF !important; }
+                    tbody tr:nth-child(2n+2) td.sticky { background: #F3F4F6 !important; }
                     tfoot tr { page-break-inside: avoid !important; break-inside: avoid !important; }
                     tfoot td { padding: 6px 8px !important; }
                     tfoot th { padding: 6px 8px !important; }
@@ -543,9 +544,11 @@ const TotalExpensesReport: React.FC<TotalExpensesReportProps> = ({
                   (sum, val) => sum + val,
                   0,
                 );
+                const isEvenRow = idx % 2 === 0;
+                const rowBgClass = isEvenRow ? "bg-white" : "bg-gray-100";
                 return (
-                  <tr key={idx} className="hover:bg-brand-blue-bg">
-                    <td className="px-4 py-4 font-medium text-brand-dark whitespace-nowrap sticky right-0 bg-white hover:bg-brand-blue-bg z-10 border-l border-gray-300">
+                  <tr key={idx} className={`hover:bg-brand-blue-bg ${rowBgClass}`}>
+                    <td className={`px-4 py-4 font-medium text-brand-dark whitespace-nowrap sticky right-0 ${rowBgClass} hover:bg-brand-blue-bg z-10 border-l border-gray-300`}>
                       {item.name}
                     </td>
                     {item.monthly.map((amount, index) => (
