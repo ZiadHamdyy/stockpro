@@ -374,9 +374,9 @@ const FinancialPerformanceReport: React.FC<FinancialPerformanceReportProps> = ({
                     table { width: 100%; border-collapse: collapse; font-size: 13px !important; }
                     th { font-size: 13px !important; font-weight: bold !important; padding: 6px 8px !important; }
                     td { font-size: 13px !important; padding: 6px 8px !important; }
-                    tbody tr:first-child { background: #FFFFFF !important; }
-                    tbody tr:nth-child(2n+2) { background: #D1D5DB !important; }
-                    tbody tr:nth-child(2n+3) { background: #FFFFFF !important; }
+                    tbody tr td:first-child { background: #DBEAFE !important; color: #1E3A8A !important; font-weight: bold !important; }
+                    tbody tr td:nth-child(2), tbody tr td:nth-child(3), tbody tr td:nth-child(4) { background: #FFFFFF !important; }
+                    tbody tr td:nth-child(5) { background: #D1FAE5 !important; }
                     tfoot tr { page-break-inside: avoid !important; break-inside: avoid !important; }
                     .bg-blue-900 { background-color: #1E3A8A !important; }
                     .bg-emerald-700 { background-color: #047857 !important; }
@@ -516,11 +516,11 @@ const FinancialPerformanceReport: React.FC<FinancialPerformanceReportProps> = ({
                         <tbody className="divide-y divide-gray-200">
                             {reportData.map((row, idx) => (
                                 <tr key={idx} className="hover:bg-blue-50">
-                                    <td className="p-3 font-bold text-blue-900 bg-blue-50/50">{row.month}</td>
-                                    <td className="p-3 font-mono font-medium">{formatNumber(row.sales)}</td>
-                                    <td className="p-3 font-mono text-gray-600">{formatNumber(row.purchases)}</td>
-                                    <td className="p-3 font-mono text-gray-600">{formatNumber(row.expenses)}</td>
-                                    <td className={`p-3 font-mono font-bold ${row.net >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
+                                    <td className="p-3 font-bold text-blue-900 bg-blue-100">{row.month}</td>
+                                    <td className="p-3 font-mono font-medium bg-white">{formatNumber(row.sales)}</td>
+                                    <td className="p-3 font-mono text-gray-600 bg-white">{formatNumber(row.purchases)}</td>
+                                    <td className="p-3 font-mono text-gray-600 bg-white">{formatNumber(row.expenses)}</td>
+                                    <td className={`p-3 font-mono font-bold ${row.net >= 0 ? 'text-emerald-600 bg-emerald-50' : 'text-red-600 bg-red-50'}`}>
                                         {formatNumber(row.net)}
                                     </td>
                                 </tr>
