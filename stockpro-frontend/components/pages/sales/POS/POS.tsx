@@ -290,6 +290,15 @@ const POS: React.FC<POSProps> = () => {
     return () => clearInterval(timer);
   }, []);
 
+  // Auto-focus barcode search field on page load
+  useEffect(() => {
+    // Small delay to ensure the input is rendered
+    const timer = setTimeout(() => {
+      searchInputRef.current?.focus();
+    }, 100);
+    return () => clearTimeout(timer);
+  }, []);
+
   useEffect(() => {
     if (paymentMethod === "card") {
       const defaultBankId = banks[0]?.id ? banks[0].id.toString() : null;
@@ -579,6 +588,10 @@ const POS: React.FC<POSProps> = () => {
     setActiveTabId(nextTabId);
     setNextTabId(prev => prev + 1);
     setAiInsight(null);
+    // Auto-focus barcode search field when creating new invoice
+    setTimeout(() => {
+      searchInputRef.current?.focus();
+    }, 100);
   };
 
   const handleCloseTab = (e: React.MouseEvent, tabId: number) => {
@@ -605,12 +618,20 @@ const POS: React.FC<POSProps> = () => {
         setActiveTabId(newTabs[newTabs.length - 1].id);
       }
     }
+    // Auto-focus barcode search field after closing tab
+    setTimeout(() => {
+      searchInputRef.current?.focus();
+    }, 100);
   };
 
   const handleSearchKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && filteredItems.length === 1) {
       addToCart(filteredItems[0]);
       setSearchQuery('');
+      // Keep focus on search field after adding item
+      setTimeout(() => {
+        searchInputRef.current?.focus();
+      }, 50);
     }
   };
 
@@ -852,6 +873,11 @@ const POS: React.FC<POSProps> = () => {
       setCardBankId(banks[0]?.id ? banks[0].id.toString() : null);
       setPaymentModalOpen(false);
       showToast("تم إصدار الفاتورة بنجاح");
+      
+      // Auto-focus barcode search field after payment completion
+      setTimeout(() => {
+        searchInputRef.current?.focus();
+      }, 100);
     } catch (error: any) {
       showApiErrorToast(error);
     }
@@ -900,6 +926,10 @@ const POS: React.FC<POSProps> = () => {
             setTabs(newTabs);
             setActiveTabId(newTabs[newTabs.length - 1].id);
           }
+          // Auto-focus barcode search field after closing tab
+          setTimeout(() => {
+            searchInputRef.current?.focus();
+          }, 100);
         }
       }
     };
