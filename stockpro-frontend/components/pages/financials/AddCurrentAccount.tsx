@@ -88,7 +88,7 @@ const AddCurrentAccount: React.FC<AddCurrentAccountProps> = ({
       }
     } else {
       setAccountPosition(null);
-      setTitle(`تعديل حساب`);
+      setTitle(`إضافة حساب جاري`);
     }
   }, [accounts, accountId, setTitle, location.pathname]);
 
