@@ -1825,14 +1825,14 @@ const BalanceSheet: React.FC = () => {
         <div className="px-6 py-2 text-sm print:block hidden border-t-2 mt-2">
           <p className="flex justify-between items-center gap-4 flex-wrap">
             <span>
-              <strong>التقرير من:</strong> {startDate} <strong>إلى:</strong> {endDate}
+               من: {startDate} إلى: {endDate}
             </span>
             <span>
-              <strong>تاريخ الطباعة:</strong> {currentDate}
+              {currentDate}
             </span>
             {currentUser && (
               <span>
-                <strong>المستخدم:</strong> {currentUser.name || currentUser.username || 'غير محدد'}
+                {currentUser.name || currentUser.username || 'غير محدد'}
               </span>
             )}
           </p>
