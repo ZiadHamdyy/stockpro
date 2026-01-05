@@ -718,16 +718,17 @@ const TaxDeclarationReport: React.FC<TaxDeclarationReportProps> = ({
                   {formatNumber(reportData.inputVat)}
                 </td>
               </tr>
-
+            </tbody>
+            <tfoot>
               <tr className="bg-brand-blue text-white font-bold text-lg">
                 <td colSpan={3} className="px-4 py-3 text-right">
                   ثالثاً: صافي الضريبة المستحقة
                 </td>
-                <td className={`px-4 py-3 ${getNegativeNumberClass(reportData.netVat)}`}>
+                <td className={`px-4 py-3 text-white ${getNegativeNumberClass(reportData.netVat)}`}>
                   {formatNumber(reportData.netVat)}
                 </td>
               </tr>
-            </tbody>
+            </tfoot>
           </table>
         </div>
       </div>
