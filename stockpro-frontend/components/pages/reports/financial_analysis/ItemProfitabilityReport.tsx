@@ -330,12 +330,8 @@ const ItemProfitabilityReport: React.FC<ItemProfitabilityReportProps> = ({ title
             .map(
                 (pageItems, idx) => `
                 <div class="page">
-                    <div class="page-header">
-                        <h2 class="title">${title}</h2>
-                        <div class="page-number">(${totalPages} / ${idx + 1})</div>
-                    </div>
-                    ${idx === 0 ? companyHeader : `<div style="margin-bottom: 16px; text-align: center;"><h2 style="font-size: 20px; font-weight: bold; color: #1F2937; margin: 0;">${title}</h2></div>`}
-                    ${dateInfo}
+                    ${idx === 0 ? companyHeader : ''}
+                    ${idx === 0 ? dateInfo : ''}
                     ${summaryCards(idx)}
                     <table>
                         <thead>${tableHeader}</thead>
@@ -398,27 +394,11 @@ const ItemProfitabilityReport: React.FC<ItemProfitabilityReportProps> = ({ title
                         -webkit-print-color-adjust: exact;
                         print-color-adjust: exact;
                     }
-                    .page-header {
-                        display: flex;
-                        align-items: center;
-                        justify-content: space-between;
-                        margin: 0 0 12px 0;
-                    }
-                    .title {
-                        margin: 0;
-                        font-size: 16px;
-                        color: #1F2937;
-                    }
-                    .page-number {
-                        font-size: 12px;
-                        font-weight: 700;
-                        color: #1F2937;
-                    }
                     table { 
                         width: 100%; 
                         border-collapse: collapse; 
                         font-size: 13px !important; 
-                        margin-top: 16px;
+                        margin-top: 0;
                     }
                     th, td { 
                         border: 1px solid #E5E7EB; 
@@ -429,6 +409,10 @@ const ItemProfitabilityReport: React.FC<ItemProfitabilityReportProps> = ({ title
                         background: #1E40AF !important; 
                         color: #FFFFFF !important; 
                         display: table-header-group;
+                    }
+                    thead tr {
+                        page-break-after: avoid;
+                        page-break-inside: avoid;
                     }
                     tfoot { 
                         display: table-row-group !important; 
