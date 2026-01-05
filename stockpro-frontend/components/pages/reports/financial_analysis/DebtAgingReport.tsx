@@ -446,6 +446,8 @@ const DebtAgingReport: React.FC<DebtAgingReportProps> = ({ title }) => {
                     .bg-red-600 { background-color: #DC2626 !important; }
                     .text-white { color: white !important; }
                     .text-yellow-900 { color: #713F12 !important; }
+                    .bg-blue-50 { background: transparent !important; }
+                    .bg-red-50 { background: transparent !important; }
                 }
             `}</style>
             <div id="printable-area">
