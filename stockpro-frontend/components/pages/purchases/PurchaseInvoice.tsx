@@ -35,7 +35,8 @@ import {
   useDeletePurchaseInvoiceMutation,
 } from "../../store/slices/purchaseInvoice/purchaseInvoiceApiSlice";
 import { useGetSuppliersQuery } from "../../store/slices/supplier/supplierApiSlice";
-import { useGetItemsQuery } from "../../store/slices/items/itemsApi";
+import { useGetItemsQuery, itemsApiSlice } from "../../store/slices/items/itemsApi";
+import { useAppDispatch } from "../../store/hooks";
 import { useGetBanksQuery } from "../../store/slices/bank/bankApiSlice";
 import { useGetSafesQuery } from "../../store/slices/safe/safeApiSlice";
 import { useGetCompanyQuery } from "../../store/slices/companyApiSlice";
@@ -97,6 +98,7 @@ const PurchaseInvoice: React.FC<PurchaseInvoiceProps> = ({
   onClearViewingId,
 }) => {
   // Redux hooks
+  const dispatch = useAppDispatch();
   const { data: allInvoices = [] } = useGetPurchaseInvoicesQuery();
   const { hasPermission } = useUserPermissions();
   
@@ -134,7 +136,7 @@ const PurchaseInvoice: React.FC<PurchaseInvoiceProps> = ({
   // Get items with store-specific balances (skip branch restriction if search permission exists)
   const itemsQueryParams =
     !canSearchAllBranches && userStore ? { storeId: userStore.id } : undefined;
-  const { data: items = [] } = useGetItemsQuery(itemsQueryParams);
+  const { data: items = [], refetch: refetchItems } = useGetItemsQuery(itemsQueryParams);
 
   // Transform data
   const allItems: SelectableItem[] = (items as any[]).map((item) => ({
@@ -302,6 +304,14 @@ const getInvoiceBranchMeta = (invoice: any) => {
       setShowBalanceBar(false);
     }
   }, [selectedSupplier, isReadOnly]);
+
+  // Invalidate stock and prices when component mounts or when balance bar is shown
+  useEffect(() => {
+    // Invalidate Item tag to refetch stock and prices
+    dispatch(itemsApiSlice.util.invalidateTags(["Item"]));
+    // Also refetch items directly to ensure fresh data
+    refetchItems();
+  }, [dispatch, refetchItems, showBalanceBar]);
 
   const hasPrintableItems = useMemo(
     () =>
