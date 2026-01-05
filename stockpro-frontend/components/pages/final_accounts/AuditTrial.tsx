@@ -205,8 +205,10 @@ const AuditTrial: React.FC = () => {
             </div>
             
             <div className="text-center md:text-left space-y-1">
-               <h3 className="text-lg font-black text-slate-700 underline decoration-[#002366] underline-offset-4 decoration-2">ميزان المراجعة التحليلي للفترة المحددة</h3>
+               <h3 className="text-2xl font-black text-slate-700 underline decoration-[#002366] underline-offset-4 decoration-2">ميزان المراجعة التحليلي للفترة المحددة</h3>
                <div className="text-[11px] font-bold text-slate-400 flex justify-center md:justify-end gap-3 uppercase">
+                  <span>الفترة من: {fromDate} إلى: {toDate}</span>
+                  <span>•</span>
                   <span>تاريخ التقرير: {reportDate}</span>
                   <span>•</span>
                   <span>العملة: {currency}</span>
@@ -215,7 +217,7 @@ const AuditTrial: React.FC = () => {
           </div>
           
           {/* Trial Balance Table - Integrated with Company Info */}
-          <div className="bg-white border-2 border-slate-300 shadow-2xl overflow-hidden rounded-b-[2rem] print:shadow-none print:border-slate-400">
+          <div className="bg-white border-2 border-slate-300 shadow-2xl overflow-hidden rounded-b-[2rem] print:shadow-none print:border-slate-400 print:overflow-visible">
             <table className="w-full text-right border-collapse">
               <thead>
                 <tr className="bg-[#002366] text-white">
@@ -389,7 +391,24 @@ const AuditTrial: React.FC = () => {
             .max-w-\[1450px\] { max-width: 100% !important; margin: 0 !important; }
             header { display: none !important; }
             .shadow-2xl, .shadow-lg, .shadow-sm { box-shadow: none !important; }
-            table { border: 2px solid #000 !important; }
+            table { 
+              border: 2px solid #000 !important; 
+              page-break-inside: auto !important;
+              border-collapse: collapse !important;
+            }
+            thead { 
+              display: table-header-group !important; 
+            }
+            tfoot { 
+              display: table-footer-group !important; 
+            }
+            tbody tr { 
+              page-break-inside: avoid !important; 
+              page-break-after: auto !important;
+            }
+            tfoot tr { 
+              page-break-inside: avoid !important; 
+            }
             th { background-color: #002366 !important; color: white !important; -webkit-print-color-adjust: exact; padding: 4px !important; border-color: #fff !important; }
             td { padding: 3px 6px !important; border-bottom: 1px solid #ddd !important; }
             tr.bg-slate-200\/80 { background-color: #e2e8f0 !important; -webkit-print-color-adjust: exact; }
@@ -397,6 +416,7 @@ const AuditTrial: React.FC = () => {
             .border-b-2 { border-bottom-width: 2px !important; border-color: #000 !important; }
             .border-l-\[3px\] { border-left-width: 4px !important; border-color: #fff !important; }
             .shadow-\[3px_0_0_white\] { box-shadow: 4px 0 0 white !important; }
+            .overflow-hidden { overflow: visible !important; }
           }
 
           input[type="date"]::-webkit-calendar-picker-indicator {
