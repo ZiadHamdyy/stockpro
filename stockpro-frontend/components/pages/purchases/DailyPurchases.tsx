@@ -83,6 +83,17 @@ const DailyPurchases: React.FC<DailyPurchasesProps> = ({ title }) => {
   const [selectedBranchId, setSelectedBranchId] = useState<string>("");
   const [invoiceType, setInvoiceType] = useState<string>("");
 
+  // Format date from YYYY-MM-DD to DD-MM-YYYY
+  const formatDateForDisplay = (dateString: string): string => {
+    if (!dateString) return "";
+    const date = dateString.substring(0, 10); // Extract just the date part
+    const parts = date.split("-");
+    if (parts.length === 3) {
+      return `${parts[2]}-${parts[1]}-${parts[0]}`;
+    }
+    return dateString;
+  };
+
   const getInvoiceTypeLabel = (paymentMethod?: string | null) => {
     if (!paymentMethod) return "-";
     const method = paymentMethod.toUpperCase();
@@ -148,7 +159,7 @@ const DailyPurchases: React.FC<DailyPurchasesProps> = ({ title }) => {
     };
     
     const dataToExport = filteredPurchases.map((p) => ({
-      التاريخ: p.date,
+      التاريخ: formatDateForDisplay(p.date),
       "رقم الفاتورة": p.code,
       "نوع الفاتورة": getInvoiceTypeLabel(p.paymentMethod),
       المورد: p.supplier?.name || "-",
@@ -197,7 +208,7 @@ const DailyPurchases: React.FC<DailyPurchasesProps> = ({ title }) => {
         getInvoiceTypeLabel(p.paymentMethod),
         p.supplier?.name || "-",
         p.code,
-        p.date ? new Date(p.date).toLocaleDateString() : "",
+        p.date ? formatDateForDisplay(p.date) : "",
         (i + 1).toString(),
       ];
       return row;
@@ -463,7 +474,7 @@ const DailyPurchases: React.FC<DailyPurchasesProps> = ({ title }) => {
             {filteredPurchases.map((purchase, index) => (
               <tr key={purchase.id} className="hover:bg-brand-green-bg">
                 <td className="px-6 py-4 whitespace-nowrap">{index + 1}</td>
-                <td className="px-6 py-4 whitespace-nowrap">{new Date(purchase.date).toLocaleDateString()}</td>
+                <td className="px-6 py-4 whitespace-nowrap">{formatDateForDisplay(purchase.date)}</td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   <button
                     onClick={() => navigate(`/purchases/invoice?invoiceId=${purchase.id}`)}

@@ -80,6 +80,17 @@ const DailySales: React.FC<DailySalesProps> = ({ title }) => {
   const [selectedBranchId, setSelectedBranchId] = useState<string>("");
   const [invoiceType, setInvoiceType] = useState<string>("");
 
+  // Format date from YYYY-MM-DD to DD-MM-YYYY
+  const formatDateForDisplay = (dateString: string): string => {
+    if (!dateString) return "";
+    const date = dateString.substring(0, 10); // Extract just the date part
+    const parts = date.split("-");
+    if (parts.length === 3) {
+      return `${parts[2]}-${parts[1]}-${parts[0]}`;
+    }
+    return dateString;
+  };
+
   const getInvoiceTypeLabel = (paymentMethod?: string | null) => {
     if (!paymentMethod) return "-";
     const method = paymentMethod.toUpperCase();
@@ -133,7 +144,7 @@ const DailySales: React.FC<DailySalesProps> = ({ title }) => {
 
   const handleExcelExport = () => {
     const dataToExport = filteredSales.map((s) => ({
-      التاريخ: s.date,
+      التاريخ: formatDateForDisplay(s.date),
       "رقم الفاتورة": s.code,
       "نوع الفاتورة": getInvoiceTypeLabel(s.paymentMethod),
       العميل: s.customer?.name || "عميل نقدي",
@@ -181,7 +192,7 @@ const DailySales: React.FC<DailySalesProps> = ({ title }) => {
       getInvoiceTypeLabel(s.paymentMethod),
       s.customer?.name || "عميل نقدي",
       s.code,
-      s.date ? new Date(s.date).toLocaleDateString() : "",
+      s.date ? formatDateForDisplay(s.date) : "",
       (i + 1).toString(),
     ]);
     const footer = [
@@ -442,7 +453,7 @@ const DailySales: React.FC<DailySalesProps> = ({ title }) => {
             {filteredSales.map((sale, index) => (
               <tr key={sale.id} className="hover:bg-brand-blue-bg">
                 <td className="px-6 py-4 whitespace-nowrap">{index + 1}</td>
-                <td className="px-6 py-4 whitespace-nowrap">{new Date(sale.date).toLocaleDateString()}</td>
+                <td className="px-6 py-4 whitespace-nowrap">{formatDateForDisplay(sale.date)}</td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   <button
                     onClick={() => navigate(`/sales/invoice?invoiceId=${sale.id}`)}
