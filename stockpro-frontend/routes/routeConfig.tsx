@@ -443,13 +443,13 @@ export const routeConfig = [
     path: "/financials/receivable-accounts/add",
     component: AddReceivableAccount,
     requiredPermission: "add_receivable_account-read",
-    label: "إضافة رصيد مدين"
+    label: "إضافة حساب مدين"
   },
   {
     path: "/financials/receivable-accounts/add/:id",
     component: AddReceivableAccount,
     requiredPermission: "add_receivable_account-read",
-    label: "تعديل رصيد مدين"
+    label: "تعديل حساب مدين"
   },
   {
     path: "/financials/receivable-accounts/list",
