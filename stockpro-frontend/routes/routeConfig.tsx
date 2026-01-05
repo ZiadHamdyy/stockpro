@@ -463,13 +463,13 @@ export const routeConfig = [
     path: "/financials/payable-accounts/add",
     component: AddPayableAccount,
     requiredPermission: "add_payable_account-read",
-    label: "إضافة رصيد دائن"
+    label: "إضافة حساب دائن"
   },
   {
     path: "/financials/payable-accounts/add/:id",
     component: AddPayableAccount,
     requiredPermission: "add_payable_account-read",
-    label: "تعديل رصيد دائن"
+    label: "تعديل حساب دائن"
   },
   {
     path: "/financials/payable-accounts/list",

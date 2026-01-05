@@ -60,7 +60,7 @@ const AddPayableAccount: React.FC<Props> = ({ title, editingId, onNavigate }) =>
       }
     } else {
       setAccountPosition(null);
-      setTitle(`تعديل حساب دائن`);
+      setTitle(`إضافة حساب دائن`);
     }
   }, [accounts, accountId, setTitle, location.pathname]);
 
