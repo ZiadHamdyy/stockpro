@@ -100,7 +100,7 @@ const AddItem: React.FC<AddItemProps> = ({ title, editingId, onNavigate }) => {
     } else {
       setItemPosition(null);
       setCurrentIndex(-1);
-      setTitle(`تعديل صنف`);
+      setTitle(`إضافة صنف`);
     }
   }, [items, itemId, setTitle, location.pathname]);
 
