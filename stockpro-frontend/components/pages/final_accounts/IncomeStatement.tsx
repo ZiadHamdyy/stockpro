@@ -916,14 +916,13 @@ const IncomeStatement: React.FC = () => {
         <div className="mb-4 text-sm print:mb-2 hidden print:block">
           <p className="flex justify-between items-center gap-4 flex-wrap text-sm font-semibold text-brand-dark">
             <span>
-              الفترة من {formatDateForDisplay(startDate)} إلى {formatDateForDisplay(endDate)}
+              {formatDateForDisplay(startDate)} إلى {formatDateForDisplay(endDate)}
             </span>
             <span>
               {currentDate}
             </span>
             {currentUser && (
               <span>
-                <strong>المستخدم:</strong>{" "}
                 {currentUser.name || currentUser.username || "غير محدد"}
               </span>
             )}
