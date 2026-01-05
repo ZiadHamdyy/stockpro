@@ -4,6 +4,7 @@ import DocumentHeader from "../../common/DocumentHeader";
 import PermissionWrapper from "../../common/PermissionWrapper";
 // FIX: Replaced FileTextIcon with PdfIcon
 import {
+  BarcodeIcon,
   PdfIcon,
   ListIcon,
   PrintIcon,
@@ -26,6 +27,7 @@ import { useModal } from "../../common/ModalProvider";
 import { useToast } from "../../common/ToastProvider";
 import { showApiErrorToast } from "../../../utils/errorToast";
 import { formatMoney } from "../../../utils/formatting";
+import BarcodeScannerModal from "../../common/BarcodeScannerModal";
 import {
   Actions,
   Resources,
@@ -54,6 +56,7 @@ type SelectableItem = {
   salePrice: number;
   purchasePrice: number;
   stock: number;
+  barcode?: string;
 };
 
 interface PurchaseReturnProps {
@@ -223,8 +226,11 @@ const PurchaseReturn: React.FC<PurchaseReturnProps> = ({
 
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [isSearchModalOpen, setIsSearchModalOpen] = useState(false);
+  const [isScannerOpen, setIsScannerOpen] = useState(false);
   const [currentIndex, setCurrentIndex] = useState(-1);
   const justSavedRef = useRef(false); // Flag to prevent resetting state after save
+  const barcodeInputRef = useRef<HTMLInputElement>(null);
+  const [barcodeInput, setBarcodeInput] = useState('');
   const shouldOpenPreviewRef = useRef(false); // Flag to indicate we want to open preview after data is set
   const [previewData, setPreviewData] = useState<{
     vatRate: number;
@@ -672,6 +678,49 @@ const PurchaseReturn: React.FC<PurchaseReturnProps> = ({
         break;
       default:
         break;
+    }
+  };
+
+  const handleScanSuccess = (barcode: string) => {
+    const trimmedBarcode = barcode.trim();
+    if (!trimmedBarcode) {
+      showToast("الرجاء إدخال باركود صحيح.", 'error');
+      return;
+    }
+
+    const foundItem = allItems.find((item) => {
+      if (!item.barcode) return false;
+      return item.barcode.trim().toLowerCase() === trimmedBarcode.toLowerCase();
+    });
+
+    if (foundItem) {
+      const emptyRowIndex = returnItems.findIndex((i) => !i.id && !i.name);
+      const indexToFill =
+        emptyRowIndex !== -1 ? emptyRowIndex : returnItems.length;
+
+      const newItems = [...returnItems];
+      if (emptyRowIndex === -1) {
+        newItems.push(createEmptyItem());
+      }
+
+      const item = {
+        ...newItems[indexToFill],
+        id: foundItem.id,
+        name: foundItem.name,
+        unit: foundItem.unit,
+        qty: 1,
+        price: foundItem.purchasePrice,
+      };
+      const total = item.qty * (item.price || 0);
+      item.total = total;
+      item.taxAmount = isVatEnabled ? total * (vatRate / 100) : 0;
+      newItems[indexToFill] = item;
+
+      setReturnItems(newItems);
+
+      showToast(`تم إضافة الصنف: ${foundItem.name}`);
+    } else {
+      showToast(`الصنف غير موجود. الباركود: ${trimmedBarcode}`, 'error');
     }
   };
 
@@ -1297,13 +1346,24 @@ const PurchaseReturn: React.FC<PurchaseReturnProps> = ({
             </tbody>
           </table>
         </div>
-        <button
-          onClick={handleAddItem}
-          className="mb-4 px-4 py-2 bg-gray-200 text-brand-dark rounded-md hover:bg-gray-300 font-semibold disabled:bg-gray-300 disabled:cursor-not-allowed"
-          disabled={isReadOnly}
-        >
-          اضافة سطر
-        </button>
+        <div className="flex gap-2 mb-4">
+          <button
+            onClick={handleAddItem}
+            className="px-4 py-2 bg-gray-200 text-brand-dark rounded-md hover:bg-gray-300 font-semibold disabled:bg-gray-300 disabled:cursor-not-allowed"
+            disabled={isReadOnly}
+          >
+            اضافة سطر
+          </button>
+          <button
+            type="button"
+            onClick={() => setIsScannerOpen(true)}
+            className="px-4 py-2 bg-brand-green text-white rounded-md hover:bg-green-700 font-semibold flex items-center gap-2 disabled:bg-gray-400 disabled:cursor-not-allowed"
+            disabled={isReadOnly}
+          >
+            <BarcodeIcon className="w-5 h-5" />
+            <span>مسح باركود</span>
+          </button>
+        </div>
 
         <div className="bg-gray-50 -mx-6 -mb-6 mt-4 p-6 rounded-b-lg">
           <div className="flex justify-between items-start">
@@ -1587,6 +1647,33 @@ const PurchaseReturn: React.FC<PurchaseReturnProps> = ({
           />
         );
       })()}
+      {/* Hidden barcode input field for external barcode scanner */}
+      <input
+        ref={barcodeInputRef}
+        type="text"
+        value={barcodeInput}
+        onChange={(e) => setBarcodeInput(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' && barcodeInput.trim() && !isReadOnly) {
+            e.preventDefault();
+            handleScanSuccess(barcodeInput.trim());
+            setBarcodeInput('');
+            // Refocus after processing
+            setTimeout(() => {
+              barcodeInputRef.current?.focus();
+            }, 50);
+          }
+        }}
+        tabIndex={-1}
+        className="absolute opacity-0 pointer-events-none"
+        style={{ position: 'fixed', left: '-9999px', width: '1px', height: '1px' }}
+        autoFocus={!isReadOnly}
+      />
+      <BarcodeScannerModal
+        isOpen={isScannerOpen}
+        onClose={() => setIsScannerOpen(false)}
+        onScanSuccess={handleScanSuccess}
+      />
     </>
   );
 };

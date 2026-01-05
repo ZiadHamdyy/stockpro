@@ -254,6 +254,8 @@ const getInvoiceBranchMeta = (invoice: any) => {
   const [isSearchModalOpen, setIsSearchModalOpen] = useState(false);
   const [isScannerOpen, setIsScannerOpen] = useState(false);
   const [currentIndex, setCurrentIndex] = useState(-1);
+  const barcodeInputRef = useRef<HTMLInputElement>(null);
+  const [barcodeInput, setBarcodeInput] = useState('');
   const justSavedRef = useRef(false); // Flag to prevent resetting state after save
   const shouldOpenPreviewRef = useRef(false); // Flag to indicate we want to open preview after data is set
   const [previewData, setPreviewData] = useState<{
@@ -416,6 +418,16 @@ const getInvoiceBranchMeta = (invoice: any) => {
       onClearViewingId();
     }
   }, [viewingId, invoices, onClearViewingId, showToast]);
+
+  // Auto-focus barcode input field
+  useEffect(() => {
+    if (!isReadOnly && !isPreviewOpen && !isSearchModalOpen) {
+      const timer = setTimeout(() => {
+        barcodeInputRef.current?.focus();
+      }, 100);
+      return () => clearTimeout(timer);
+    }
+  }, [isReadOnly, isPreviewOpen, isSearchModalOpen]);
 
   useEffect(() => {
     if (currentIndex >= 0 && (invoices || [])[currentIndex]) {
@@ -688,7 +700,17 @@ const getInvoiceBranchMeta = (invoice: any) => {
   };
 
   const handleScanSuccess = (barcode: string) => {
-    const foundItem = allItems.find((item) => item.barcode === barcode);
+    const trimmedBarcode = barcode.trim();
+    if (!trimmedBarcode) {
+      showToast("الرجاء إدخال باركود صحيح.", 'error');
+      return;
+    }
+
+    const foundItem = allItems.find((item) => {
+      if (!item.barcode) return false;
+      return item.barcode.trim().toLowerCase() === trimmedBarcode.toLowerCase();
+    });
+
     if (foundItem) {
       const emptyRowIndex = purchaseItems.findIndex((i) => !i.id && !i.name);
       const indexToFill =
@@ -716,7 +738,7 @@ const getInvoiceBranchMeta = (invoice: any) => {
 
       showToast(`تم إضافة الصنف: ${foundItem.name}`);
     } else {
-      showToast("الصنف غير موجود. لم يتم العثور على باركود مطابق.", 'error');
+      showToast(`الصنف غير موجود. الباركود: ${trimmedBarcode}`, 'error');
     }
   };
 
@@ -1616,6 +1638,28 @@ const getInvoiceBranchMeta = (invoice: any) => {
           />
         );
       })()}
+      {/* Hidden barcode input field for external barcode scanner */}
+      <input
+        ref={barcodeInputRef}
+        type="text"
+        value={barcodeInput}
+        onChange={(e) => setBarcodeInput(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' && barcodeInput.trim() && !isReadOnly) {
+            e.preventDefault();
+            handleScanSuccess(barcodeInput.trim());
+            setBarcodeInput('');
+            // Refocus after processing
+            setTimeout(() => {
+              barcodeInputRef.current?.focus();
+            }, 50);
+          }
+        }}
+        tabIndex={-1}
+        className="absolute opacity-0 pointer-events-none"
+        style={{ position: 'fixed', left: '-9999px', width: '1px', height: '1px' }}
+        autoFocus={!isReadOnly}
+      />
       <BarcodeScannerModal
         isOpen={isScannerOpen}
         onClose={() => setIsScannerOpen(false)}

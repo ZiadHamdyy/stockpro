@@ -3,6 +3,7 @@ import DataTableModal from "../../common/DataTableModal";
 import DocumentHeader from "../../common/DocumentHeader";
 import PermissionWrapper from "../../common/PermissionWrapper";
 import {
+  BarcodeIcon,
   PdfIcon,
   ListIcon,
   PrintIcon,
@@ -23,6 +24,7 @@ import { useModal } from "../../common/ModalProvider";
 import { useToast } from "../../common/ToastProvider";
 import { showApiErrorToast } from "../../../utils/errorToast";
 import { formatMoney } from "../../../utils/formatting";
+import BarcodeScannerModal from "../../common/BarcodeScannerModal";
 import {
   useGetSalesReturnsQuery,
   useCreateSalesReturnMutation,
@@ -54,6 +56,7 @@ type SelectableItem = {
   purchasePrice: number;
   stock: number;
   salePriceIncludesTax?: boolean;
+  barcode?: string;
 };
 
 type ReturnRow = InvoiceItem & {
@@ -258,8 +261,11 @@ const SalesReturn: React.FC<SalesReturnProps> = ({
 
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [isSearchModalOpen, setIsSearchModalOpen] = useState(false);
+  const [isScannerOpen, setIsScannerOpen] = useState(false);
   const [currentIndex, setCurrentIndex] = useState(-1);
   const justSavedRef = useRef(false); // Flag to prevent resetting state after save
+  const barcodeInputRef = useRef<HTMLInputElement>(null);
+  const [barcodeInput, setBarcodeInput] = useState('');
   const shouldOpenPreviewRef = useRef(false); // Flag to indicate we want to open preview after data is set
   const [previewData, setPreviewData] = useState<{
     companyInfo: CompanyInfo;
@@ -532,6 +538,16 @@ const SalesReturn: React.FC<SalesReturnProps> = ({
       shouldOpenPreviewRef.current = false; // Reset flag
     }
   }, [previewData]);
+
+  // Auto-focus barcode input field
+  useEffect(() => {
+    if (!isReadOnly && !isPreviewOpen && !isSearchModalOpen) {
+      const timer = setTimeout(() => {
+        barcodeInputRef.current?.focus();
+      }, 100);
+      return () => clearTimeout(timer);
+    }
+  }, [isReadOnly, isPreviewOpen, isSearchModalOpen]);
 
   useEffect(() => {
     if (currentIndex >= 0) return;
@@ -813,6 +829,52 @@ const SalesReturn: React.FC<SalesReturnProps> = ({
         break;
       default:
         break;
+    }
+  };
+
+  const handleScanSuccess = (barcode: string) => {
+    const trimmedBarcode = barcode.trim();
+    if (!trimmedBarcode) {
+      showToast("الرجاء إدخال باركود صحيح.", 'error');
+      return;
+    }
+
+    const foundItem = allItems.find((item) => {
+      if (!item.barcode) return false;
+      return item.barcode.trim().toLowerCase() === trimmedBarcode.toLowerCase();
+    });
+
+    if (foundItem) {
+      const emptyRowIndex = returnItems.findIndex((i) => !i.id && !i.name);
+      const indexToFill =
+        emptyRowIndex !== -1 ? emptyRowIndex : returnItems.length;
+
+      const newItems = [...returnItems];
+      if (emptyRowIndex === -1) {
+        newItems.push(createEmptyItem());
+      }
+
+      const salePriceIncludesTaxValue =
+        typeof foundItem.salePriceIncludesTax === "boolean"
+          ? foundItem.salePriceIncludesTax
+          : salePriceIncludesTaxSetting;
+      let item: ReturnRow = {
+        ...newItems[indexToFill],
+        id: foundItem.id,
+        name: foundItem.name,
+        unit: foundItem.unit,
+        qty: 1,
+        price: foundItem.salePrice,
+        salePriceIncludesTax: Boolean(salePriceIncludesTaxValue),
+      };
+      item = assignLineAmounts(item);
+      newItems[indexToFill] = item;
+
+      setReturnItems(newItems);
+
+      showToast(`تم إضافة الصنف: ${foundItem.name}`);
+    } else {
+      showToast(`الصنف غير موجود. الباركود: ${trimmedBarcode}`, 'error');
     }
   };
 
@@ -1465,13 +1527,24 @@ const SalesReturn: React.FC<SalesReturnProps> = ({
             </tbody>
           </table>
         </div>
-        <button
-          onClick={handleAddItem}
-          className="mb-4 px-4 py-2 bg-gray-200 text-brand-dark rounded-md hover:bg-gray-300 font-semibold disabled:bg-gray-300 disabled:cursor-not-allowed"
-          disabled={isReadOnly}
-        >
-          اضافة سطر
-        </button>
+        <div className="flex gap-2 mb-4">
+          <button
+            onClick={handleAddItem}
+            className="px-4 py-2 bg-gray-200 text-brand-dark rounded-md hover:bg-gray-300 font-semibold disabled:bg-gray-300 disabled:cursor-not-allowed"
+            disabled={isReadOnly}
+          >
+            اضافة سطر
+          </button>
+          <button
+            type="button"
+            onClick={() => setIsScannerOpen(true)}
+            className="px-4 py-2 bg-brand-blue text-white rounded-md hover:bg-blue-800 font-semibold flex items-center gap-2 disabled:bg-gray-400 disabled:cursor-not-allowed"
+            disabled={isReadOnly}
+          >
+            <BarcodeIcon className="w-5 h-5" />
+            <span>مسح باركود</span>
+          </button>
+        </div>
 
         <div className="bg-gray-50 -mx-6 -mb-6 mt-4 p-6 rounded-b-lg">
           <div className="flex justify-between items-start">
@@ -1760,6 +1833,33 @@ const SalesReturn: React.FC<SalesReturnProps> = ({
           />
         );
       })()}
+      {/* Hidden barcode input field for external barcode scanner */}
+      <input
+        ref={barcodeInputRef}
+        type="text"
+        value={barcodeInput}
+        onChange={(e) => setBarcodeInput(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' && barcodeInput.trim() && !isReadOnly) {
+            e.preventDefault();
+            handleScanSuccess(barcodeInput.trim());
+            setBarcodeInput('');
+            // Refocus after processing
+            setTimeout(() => {
+              barcodeInputRef.current?.focus();
+            }, 50);
+          }
+        }}
+        tabIndex={-1}
+        className="absolute opacity-0 pointer-events-none"
+        style={{ position: 'fixed', left: '-9999px', width: '1px', height: '1px' }}
+        autoFocus={!isReadOnly}
+      />
+      <BarcodeScannerModal
+        isOpen={isScannerOpen}
+        onClose={() => setIsScannerOpen(false)}
+        onScanSuccess={handleScanSuccess}
+      />
     </>
   );
 };
