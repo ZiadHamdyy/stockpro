@@ -117,9 +117,9 @@ export const usePermissions = () => {
 
   // Filter menu items by subscription plan, then convert to permission tree
   const permissionTreeData: PermissionNode[] = useMemo(() => {
-    // First filter out subscription, subscription_renewal, and subscription_management pages (super admin only)
+    // First filter out subscription, subscription_requests, and subscription_renewal pages (super admin only)
     const filteredMenuItems = MENU_ITEMS.filter(
-      (item) => item.key !== 'subscription' && item.key !== 'subscription_renewal' && item.key !== 'subscription_management'
+      (item) => item.key !== 'subscription' && item.key !== 'subscription_requests' && item.key !== 'subscription_renewal'
     );
     
     // Only filter when subscription is loaded

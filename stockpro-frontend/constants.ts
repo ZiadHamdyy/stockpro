@@ -30,9 +30,9 @@ import type { MenuItem } from "./types";
 
 export const MENU_ITEMS: MenuItem[] = [
   { key: "dashboard", label: "الرئيسية", icon: HomeIcon },
-  { key: 'subscription', label: 'الاشتراك والتراخيص', icon: ShieldIcon },
+  { key: 'subscription', label: 'إدارة الاشتراكات', icon: ShieldIcon },
+  { key: 'subscription_requests', label: 'طلبات الاشتراك', icon: ShieldIcon },
   { key: 'subscription_renewal', label: 'تجديد الاشتراكات', icon: ShieldIcon },
-  { key: 'subscription_management', label: 'إدارة الاشتراكات', icon: ShieldIcon },
   {
     key: "settings",
     label: "الإعدادات",

@@ -8,8 +8,8 @@ export const getPathFromMenuKey = (key: string): string => {
 
     // Subscription
     subscription: "/subscription",
+    subscription_requests: "/subscription/requests",
     subscription_renewal: "/subscription/renewal",
-    subscription_management: "/subscription/management",
 
     // Settings
     company_data: "/settings/company-data",
@@ -155,8 +155,8 @@ export const getMenuKeyFromPath = (path: string): string => {
   const pathToKeyMap: Record<string, string> = {
     "/dashboard": "dashboard",
     "/subscription": "subscription",
+    "/subscription/requests": "subscription_requests",
     "/subscription/renewal": "subscription_renewal",
-    "/subscription/management": "subscription_management",
     "/settings/company-data": "company_data",
     "/settings/fiscal-years": "fiscal_years",
     "/settings/branches-data": "branches_data",

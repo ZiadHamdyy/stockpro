@@ -471,8 +471,8 @@ const RootRedirect = () => {
   return <Navigate to={isSuperAdmin ? "/subscription" : "/dashboard"} replace />;
 };
 
-// Subscription route wrapper that redirects non-superadmins
-const SubscriptionRoute = () => {
+// Subscription Requests route wrapper that redirects non-superadmins
+const SubscriptionRequestsRoute = () => {
   const currentUser = useAppSelector(selectCurrentUser);
   const isSuperAdmin = currentUser?.role?.name === 'SUPER_ADMIN';
   
@@ -482,7 +482,7 @@ const SubscriptionRoute = () => {
   
   return (
     <ProtectedRoute requiredPermission="subscription-read">
-      <Subscription title="الاشتراك والتراخيص" license={null} />
+      <Subscription title="طلبات الاشتراك" license={null} />
     </ProtectedRoute>
   );
 };
@@ -838,9 +838,9 @@ const AppContent = () => {
             />
 
             {/* Subscription */}
-            <Route path="/subscription" element={<SubscriptionRoute />} />
+            <Route path="/subscription" element={<SubscriptionManagementRoute />} />
+            <Route path="/subscription/requests" element={<SubscriptionRequestsRoute />} />
             <Route path="/subscription/renewal" element={<SubscriptionRenewalRoute />} />
-            <Route path="/subscription/management" element={<SubscriptionManagementRoute />} />
 
             {/* Settings */}
             <Route

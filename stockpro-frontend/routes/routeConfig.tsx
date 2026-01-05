@@ -114,21 +114,21 @@ export const routeConfig = [
   },
   {
     path: "/subscription",
+    component: SubscriptionManagement,
+    requiredPermission: "", // Handled by SubscriptionManagementRoute wrapper
+    label: "إدارة الاشتراكات",
+  },
+  {
+    path: "/subscription/requests",
     component: Subscription,
-    requiredPermission: "", // Handled by SubscriptionRoute wrapper
-    label: "الاشتراك والتراخيص",
+    requiredPermission: "", // Handled by SubscriptionRequestsRoute wrapper
+    label: "طلبات الاشتراك",
   },
   {
     path: "/subscription/renewal",
     component: SubscriptionRenewal,
     requiredPermission: "", // Handled by SubscriptionRenewalRoute wrapper
     label: "تجديد الاشتراكات",
-  },
-  {
-    path: "/subscription/management",
-    component: SubscriptionManagement,
-    requiredPermission: "", // Handled by SubscriptionManagementRoute wrapper
-    label: "إدارة الاشتراكات",
   },
 
   // Settings
