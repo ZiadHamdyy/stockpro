@@ -402,7 +402,7 @@ const VIPCustomersReport: React.FC<VIPCustomersReportProps> = ({ title }) => {
                                 <th className="p-3 text-center w-16">الترتيب</th>
                                 <th className="p-3 text-right">اسم العميل</th>
                                 <th className="p-3 text-center">عدد الفواتير</th>
-                                <th className="p-3 text-center">إجمالي المبيعات (الصافي)</th>
+                                <th className="p-3 text-center">إجمالي المبيعات</th>
                                 <th className="p-3 text-center w-48">نسبة المساهمة</th>
                             </tr>
                         </thead>
