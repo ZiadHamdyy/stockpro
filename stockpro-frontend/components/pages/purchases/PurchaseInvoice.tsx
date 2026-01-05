@@ -402,6 +402,7 @@ const getInvoiceBranchMeta = (invoice: any) => {
     setInvoiceNotes("");
     setIsReadOnly(false);
     setPreviewData(null); // Clear preview data
+    shouldOpenPreviewRef.current = false; // Reset preview flag
   };
 
   useEffect(() => {
@@ -457,6 +458,7 @@ const getInvoiceBranchMeta = (invoice: any) => {
       setInvoiceNotes((inv as any).notes || "");
       setIsReadOnly(true);
       justSavedRef.current = false; // Clear the flag after loading invoice
+      shouldOpenPreviewRef.current = false; // Reset preview flag when loading existing
     } else if (!justSavedRef.current) {
       // Only call handleNew if we haven't just saved
       handleNew();
@@ -470,6 +472,7 @@ const getInvoiceBranchMeta = (invoice: any) => {
   }, [currentIndex, currentUser]);
 
   // Open preview when previewData is set and we have a flag to open it
+  // The flag is only set to true after saving, so this ensures preview opens automatically after save
   useEffect(() => {
     if (shouldOpenPreviewRef.current && previewData && previewData.items.length > 0) {
       setIsPreviewOpen(true);
