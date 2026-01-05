@@ -60,7 +60,7 @@ const AddReceivableAccount: React.FC<Props> = ({ title, editingId, onNavigate })
       }
     } else {
       setAccountPosition(null);
-      setTitle(`تعديل حساب مدين`);
+      setTitle(`إضافة رصيد مدين`);
     }
   }, [accounts, accountId, setTitle, location.pathname]);
 
