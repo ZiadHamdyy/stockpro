@@ -271,7 +271,13 @@ const FinancialSystem: React.FC<FinancialSystemProps> = ({ title }) => {
   // Update local state when data is fetched
   useEffect(() => {
     if (fetchedConfig) {
-      setConfig(fetchedConfig);
+      // Ensure both valuation methods are synchronized (use inventoryValuationMethod as unified value)
+      const unifiedMethod = fetchedConfig.inventoryValuationMethod || ValuationMethod.WEIGHTED_AVERAGE;
+      setConfig({
+        ...fetchedConfig,
+        inventoryValuationMethod: unifiedMethod,
+        cogsMethod: unifiedMethod,
+      });
     }
   }, [fetchedConfig]);
 
@@ -469,24 +475,17 @@ const FinancialSystem: React.FC<FinancialSystemProps> = ({ title }) => {
            {/* Section 2: Valuation */}
            <InteractiveCard title="تقييم المخزون والتكلفة" icon={Box} accentColor="royal">
               <SelectField 
-                  label="تقييم الأصول (الميزانية)"
-                  value={config.inventoryValuationMethod}
-                  onChange={(v: string) => handleChange('inventoryValuationMethod', v)}
-                  help="تؤثر على قيمة المخزون في نهاية الفترة."
+                  label="طريقة التقييم"
+                  value={config.inventoryValuationMethod || ValuationMethod.WEIGHTED_AVERAGE}
+                  onChange={(v: string) => {
+                    // Set both fields to the same unified value
+                    handleChange('inventoryValuationMethod', v);
+                    handleChange('cogsMethod', v);
+                  }}
+                  help="تؤثر على قيمة المخزون في الميزانية وحساب تكلفة البضاعة المباعة في قائمة الدخل."
                   options={[
                     { value: ValuationMethod.WEIGHTED_AVERAGE, label: 'متوسط التكلفة' },
                     { value: ValuationMethod.FIFO, label: 'آخر سعر شراء' },
-                  ]}
-              />
-              
-              <SelectField 
-                  label="حساب التكلفة (قائمة الدخل)"
-                  value={config.cogsMethod}
-                  onChange={(v: string) => handleChange('cogsMethod', v)}
-                  help="تؤثر على حساب تكلفة البضاعة المباعة في قائمة الدخل."
-                  options={[
-                    { value: ValuationMethod.WEIGHTED_AVERAGE, label: 'متوسط التكلفة' },
-                    { value: ValuationMethod.LAST_PURCHASE_PRICE, label: 'سعر السوق الحالي' },
                   ]}
               />
 

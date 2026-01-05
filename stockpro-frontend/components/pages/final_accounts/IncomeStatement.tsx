@@ -73,25 +73,27 @@ const IncomeStatement: React.FC = () => {
   const [startDate, setStartDate] = useState(`${currentYear}-01-01`);
   const [endDate, setEndDate] = useState(`${currentYear}-12-31`);
   
-  // Get COGS valuation method from Redux
+  // Get unified inventory valuation method from Redux
   const { data: financialSettings } = useGetFinancialSettingsQuery();
   
-  // Map COGS method to valuation method string
-  const cogsValuationMethod = useMemo(() => {
-    if (!financialSettings?.cogsMethod) {
+  // Map unified inventory valuation method to valuation method string
+  // Since methods are now unified, use inventoryValuationMethod for consistency
+  const inventoryValuationMethod = useMemo(() => {
+    if (!financialSettings?.inventoryValuationMethod) {
       return "averageCost"; // Default
     }
     
-    if (financialSettings.cogsMethod === ValuationMethod.WEIGHTED_AVERAGE) {
+    if (financialSettings.inventoryValuationMethod === ValuationMethod.WEIGHTED_AVERAGE) {
       return "averageCost";
     }
     
-    if (financialSettings.cogsMethod === ValuationMethod.LAST_PURCHASE_PRICE) {
+    if (financialSettings.inventoryValuationMethod === ValuationMethod.FIFO || 
+        financialSettings.inventoryValuationMethod === ValuationMethod.LAST_PURCHASE_PRICE) {
       return "purchasePrice";
     }
     
     return "averageCost"; // Default fallback
-  }, [financialSettings?.cogsMethod]);
+  }, [financialSettings?.inventoryValuationMethod]);
 
   const {
     data: financialData,
@@ -458,8 +460,8 @@ const IncomeStatement: React.FC = () => {
     const normalizedEndDate = normalizeDate(endDate);
     if (!normalizedEndDate || transformedItems.length === 0) return 0;
 
-    // Use the tracked valuation method (will update when localStorage changes)
-    const valuationMethod = cogsValuationMethod; // Use COGS method from financial system settings
+    // Use the unified valuation method from financial system settings
+    const valuationMethod = inventoryValuationMethod;
 
     const valuationData = transformedItems.map((item) => {
       // Use aggregated opening balance from ALL stores/branches for this item
@@ -578,7 +580,7 @@ const IncomeStatement: React.FC = () => {
     toNumber,
     getLastPurchasePriceBeforeDate,
     calculateWeightedAverageCost,
-    cogsValuationMethod, // Include in dependencies to trigger recalculation when method changes
+    inventoryValuationMethod, // Include in dependencies to trigger recalculation when method changes
     aggregatedOpeningBalances, // Include aggregated opening balances from all stores
   ]);
 

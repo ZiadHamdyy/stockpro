@@ -29,6 +29,8 @@ import { useGetStoreReceiptVouchersQuery } from '../../../store/slices/storeRece
 import { useGetStoreIssueVouchersQuery } from '../../../store/slices/storeIssueVoucher/storeIssueVoucherApi';
 import { useGetStoreTransferVouchersQuery } from '../../../store/slices/storeTransferVoucher/storeTransferVoucherApi';
 import { useGetCompanyQuery } from '../../../store/slices/companyApiSlice';
+import { useGetFinancialSettingsQuery } from '../../../store/slices/financialSettings/financialSettingsApi';
+import { ValuationMethod } from '../../../pages/settings/financial-system/types';
 
 const resolveRecordAmount = (record: any): number => {
     if (!record) return 0;
@@ -467,6 +469,65 @@ const LiquidityReport: React.FC<LiquidityReportProps> = ({ title }) => {
             }));
     }, [storeTransferVouchers]);
 
+    // Get inventory valuation method from financial settings
+    const { data: financialSettings } = useGetFinancialSettingsQuery();
+    
+    // Map inventory valuation method to valuation method string
+    const inventoryValuationMethod = useMemo(() => {
+        if (!financialSettings?.inventoryValuationMethod) {
+            return "averageCost"; // Default
+        }
+        
+        if (financialSettings.inventoryValuationMethod === ValuationMethod.WEIGHTED_AVERAGE) {
+            return "averageCost";
+        }
+        
+        if (financialSettings.inventoryValuationMethod === ValuationMethod.FIFO || 
+            financialSettings.inventoryValuationMethod === ValuationMethod.LAST_PURCHASE_PRICE) {
+            return "purchasePrice";
+        }
+        
+        return "averageCost"; // Default fallback
+    }, [financialSettings?.inventoryValuationMethod]);
+
+    // Helper function to calculate weighted average cost (for all branches)
+    const calculateWeightedAverageCost = useCallback((item: any, referenceDate: string): number | null => {
+        const normalizedReferenceDate = normalizeDate(referenceDate);
+        if (!normalizedReferenceDate) return null;
+
+        const itemCode = item.code;
+        const openingBalance = aggregatedOpeningBalances[itemCode] || 0;
+        const initialPurchasePrice = toNumber(item.initialPurchasePrice ?? item.purchasePrice ?? 0);
+
+        // Get all purchase invoices up to the reference date (no branch filtering - all branches)
+        const relevantInvoices = transformedPurchaseInvoices
+            .filter((inv) => {
+                const txDate = normalizeDate(inv.date) || normalizeDate(inv.invoiceDate);
+                return txDate && txDate <= normalizedReferenceDate;
+            });
+
+        // Start with opening balance at initialPurchasePrice
+        let totalCost = openingBalance > 0 ? openingBalance * initialPurchasePrice : 0;
+        let totalQty = openingBalance;
+
+        // Add purchase invoices to the weighted average
+        for (const inv of relevantInvoices) {
+            for (const invItem of inv.items) {
+                if (invItem.id === itemCode && invItem.total && invItem.qty) {
+                    totalCost += toNumber(invItem.total); // Use total invoice value per item
+                    totalQty += toNumber(invItem.qty);
+                }
+            }
+        }
+
+        // If no purchases and no opening balance, return initialPurchasePrice if it exists
+        if (totalQty === 0) {
+            return initialPurchasePrice > 0 ? initialPurchasePrice : null;
+        }
+        
+        return totalCost / totalQty;
+    }, [transformedPurchaseInvoices, normalizeDate, toNumber, aggregatedOpeningBalances]);
+
     // Helper function to get last purchase price before or on a reference date (for all branches)
     const getLastPurchasePriceBeforeDate = useCallback((itemCode: string, referenceDate: string): number | null => {
         const normalizedReferenceDate = normalizeDate(referenceDate);
@@ -522,7 +583,8 @@ const LiquidityReport: React.FC<LiquidityReportProps> = ({ title }) => {
         const normalizedEndDate = normalizeDate(defaultEndDate);
         if (!normalizedEndDate || transformedItems.length === 0) return 0;
 
-        const valuationMethod = "purchasePrice"; // Use purchase price valuation method
+        // Use the unified valuation method from financial settings
+        const valuationMethod = inventoryValuationMethod;
 
         const valuationData = transformedItems.map((item) => {
             // Use aggregated opening balance from ALL stores/branches for this item
@@ -597,7 +659,16 @@ const LiquidityReport: React.FC<LiquidityReportProps> = ({ title }) => {
             const fallbackPrice =
                 toNumber(item.initialPurchasePrice ?? item.purchasePrice ?? 0);
             
-            if (valuationMethod === "purchasePrice") {
+            if (valuationMethod === "averageCost") {
+                const avgCost = calculateWeightedAverageCost(item, priceReferenceDate);
+                // Fallback to last purchase price if no purchases found
+                if (avgCost === null) {
+                    const lastPurchasePrice = getLastPurchasePriceBeforeDate(item.code, priceReferenceDate);
+                    cost = lastPurchasePrice ?? fallbackPrice;
+                } else {
+                    cost = avgCost;
+                }
+            } else if (valuationMethod === "purchasePrice") {
                 const lastPurchasePrice = getLastPurchasePriceBeforeDate(item.code, priceReferenceDate);
                 cost = lastPurchasePrice ?? fallbackPrice;
             } else {
@@ -631,6 +702,8 @@ const LiquidityReport: React.FC<LiquidityReportProps> = ({ title }) => {
         normalizeDate,
         toNumber,
         getLastPurchasePriceBeforeDate,
+        calculateWeightedAverageCost,
+        inventoryValuationMethod,
         aggregatedOpeningBalances, // Include aggregated opening balances from all stores
     ]);
 
@@ -2119,7 +2192,7 @@ const LiquidityReport: React.FC<LiquidityReportProps> = ({ title }) => {
                             <span className="font-bold">{formatNumber(analysis.totalOtherReceivables)}</span>
                         </div>
                         <div className="flex justify-between text-xs pb-1">
-                            <span className="text-gray-600">قيمة المخزون (بسعر الشراء)</span>
+                            <span className="text-gray-600">قيمة المخزون</span>
                             <span className="font-bold">{formatNumber(analysis.totalInventory)}</span>
                         </div>
                         <div className="flex justify-between text-xs pb-1">
