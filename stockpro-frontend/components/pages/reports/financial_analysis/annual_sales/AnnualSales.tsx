@@ -321,16 +321,16 @@ const AnnualSales: React.FC<AnnualSalesProps> = ({ title }) => {
         </div>
 
         {/* Report Metadata - Print Only */}
-        <div className="px-6 py-4 text-base print:block hidden border-t-2 border-b-2 mt-2 mb-4 bg-gray-50 print:py-2 print:mb-2 print:mt-0 print:px-4 print:border-t print:border-b">
+        <div className="px-6 py-4 text-base print:block hidden border-t-2 border-b-2 mt-2 mb-4 bg-gradient-to-r from-indigo-50 to-blue-50 print:py-2 print:mb-2 print:mt-0 print:px-4 print:border-t print:border-b">
           <div className="flex justify-between items-start">
             <div className="space-y-2 text-right print:space-y-0">
               <p className="text-base text-gray-700 print:text-xs print:mb-0">
-                <span className="font-semibold text-gray-800">السنة:</span> {selectedYear}
+                <span className="font-semibold text-gray-800">السنة:</span> <span className="font-extrabold text-indigo-700 bg-indigo-100 px-3 py-1 rounded-lg inline-block">{selectedYear}</span>
               </p>
             </div>
             <div className="space-y-2 text-right print:space-y-0">
               <p className="text-base text-gray-700 print:text-xs print:mb-0">
-                <span className="font-semibold text-gray-800">التاريخ:</span> {new Date().toLocaleDateString('ar-EG', { year: 'numeric', month: 'long', day: 'numeric' })}
+                <span className="font-semibold text-gray-800">التاريخ:</span> <span className="font-extrabold text-blue-700 bg-blue-100 px-3 py-1 rounded-lg inline-block">{new Date().toLocaleDateString('ar-EG', { year: 'numeric', month: 'long', day: 'numeric' })}</span>
               </p>
             </div>
           </div>
@@ -340,9 +340,10 @@ const AnnualSales: React.FC<AnnualSalesProps> = ({ title }) => {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 print:grid-cols-3 print:gap-2 print:mb-2">
           
           {/* Card 1: Total Sales - Blue/Indigo */}
-          <div className="group relative bg-gradient-to-br from-blue-600 to-indigo-700 p-6 rounded-2xl shadow-lg hover:shadow-2xl hover:-translate-y-1 transition-all duration-300 cursor-default overflow-hidden print:!bg-white print:border-2 print:border-slate-400 print:shadow-none print:p-4 print:rounded-lg print-card-bg">
+          <div className="group relative bg-gradient-to-br from-blue-500 via-indigo-600 to-blue-700 p-6 rounded-2xl shadow-xl hover:shadow-2xl hover:-translate-y-1 transition-all duration-300 cursor-default overflow-hidden print:!bg-white print:border-2 print:border-slate-400 print:shadow-none print:p-4 print:rounded-lg print-card-bg">
             {/* Abstract Shapes - Hidden in Print */}
-            <div className="absolute top-0 right-0 w-32 h-32 bg-white opacity-10 rounded-full -translate-y-1/2 translate-x-1/2 blur-2xl group-hover:opacity-20 transition-opacity print:hidden"></div>
+            <div className="absolute top-0 right-0 w-32 h-32 bg-white opacity-15 rounded-full -translate-y-1/2 translate-x-1/2 blur-2xl group-hover:opacity-25 transition-opacity print:hidden"></div>
+            <div className="absolute bottom-0 left-0 w-24 h-24 bg-indigo-300 opacity-20 rounded-full translate-y-1/2 -translate-x-1/2 blur-xl group-hover:opacity-30 transition-opacity print:hidden"></div>
             
             <div className="flex justify-between items-start mb-4 relative z-10 print:mb-2">
               <div className="p-3 bg-white/10 backdrop-blur-sm rounded-xl text-white border border-white/10 group-hover:scale-110 transition-transform print:hidden">
@@ -361,8 +362,9 @@ const AnnualSales: React.FC<AnnualSalesProps> = ({ title }) => {
           </div>
 
           {/* Card 2: Best Month - Emerald/Teal */}
-          <div className="group relative bg-gradient-to-br from-emerald-500 to-teal-600 p-6 rounded-2xl shadow-lg hover:shadow-2xl hover:-translate-y-1 transition-all duration-300 cursor-default overflow-hidden print:!bg-white print:border-2 print:border-slate-400 print:shadow-none print:p-4 print:rounded-lg print-card-bg">
-             <div className="absolute bottom-0 left-0 w-24 h-24 bg-white opacity-10 rounded-full translate-y-1/2 -translate-x-1/2 blur-2xl group-hover:opacity-20 transition-opacity print:hidden"></div>
+          <div className="group relative bg-gradient-to-br from-emerald-400 via-teal-500 to-emerald-600 p-6 rounded-2xl shadow-xl hover:shadow-2xl hover:-translate-y-1 transition-all duration-300 cursor-default overflow-hidden print:!bg-white print:border-2 print:border-slate-400 print:shadow-none print:p-4 print:rounded-lg print-card-bg">
+             <div className="absolute bottom-0 left-0 w-24 h-24 bg-white opacity-15 rounded-full translate-y-1/2 -translate-x-1/2 blur-2xl group-hover:opacity-25 transition-opacity print:hidden"></div>
+             <div className="absolute top-0 right-0 w-28 h-28 bg-teal-300 opacity-20 rounded-full -translate-y-1/2 translate-x-1/2 blur-xl group-hover:opacity-30 transition-opacity print:hidden"></div>
 
             <div className="flex justify-between items-start mb-4 relative z-10 print:mb-2">
               <div className="p-3 bg-white/10 backdrop-blur-sm rounded-xl text-white border border-white/10 group-hover:scale-110 transition-transform print:hidden">
@@ -382,8 +384,9 @@ const AnnualSales: React.FC<AnnualSalesProps> = ({ title }) => {
           </div>
 
           {/* Card 3: Average - Amber/Orange */}
-          <div className="group relative bg-gradient-to-br from-amber-500 to-orange-600 p-6 rounded-2xl shadow-lg hover:shadow-2xl hover:-translate-y-1 transition-all duration-300 cursor-default overflow-hidden print:!bg-white print:border-2 print:border-slate-400 print:shadow-none print:p-4 print:rounded-lg print-card-bg">
-             <div className="absolute top-1/2 left-1/2 w-40 h-40 bg-white opacity-10 rounded-full -translate-x-1/2 -translate-y-1/2 blur-3xl group-hover:opacity-20 transition-opacity print:hidden"></div>
+          <div className="group relative bg-gradient-to-br from-amber-400 via-orange-500 to-amber-600 p-6 rounded-2xl shadow-xl hover:shadow-2xl hover:-translate-y-1 transition-all duration-300 cursor-default overflow-hidden print:!bg-white print:border-2 print:border-slate-400 print:shadow-none print:p-4 print:rounded-lg print-card-bg">
+             <div className="absolute top-1/2 left-1/2 w-40 h-40 bg-white opacity-15 rounded-full -translate-x-1/2 -translate-y-1/2 blur-3xl group-hover:opacity-25 transition-opacity print:hidden"></div>
+             <div className="absolute top-0 left-0 w-20 h-20 bg-orange-300 opacity-25 rounded-full -translate-y-1/2 -translate-x-1/2 blur-lg group-hover:opacity-35 transition-opacity print:hidden"></div>
 
             <div className="flex justify-between items-start mb-4 relative z-10 print:mb-2">
               <div className="p-3 bg-white/10 backdrop-blur-sm rounded-xl text-white border border-white/10 group-hover:scale-110 transition-transform print:hidden">
@@ -414,7 +417,7 @@ const AnnualSales: React.FC<AnnualSalesProps> = ({ title }) => {
         </div>
 
         {/* Content Grid */}
-        <div className="space-y-8 print:space-y-0 print:w-full">
+        <div className="space-y-4 print:space-y-0 print:w-full">
           {/* Chart Section - Hidden in Print */}
           <section className="print-card break-inside-avoid print:w-full print:[max-width:100%] print:overflow-hidden print:hidden">
             <SalesChart 
