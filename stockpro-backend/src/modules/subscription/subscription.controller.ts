@@ -71,7 +71,7 @@ export class SubscriptionController {
   @Auth({ permissions: ['subscription:read'] })
   async getSubscriptionByCode(
     @Query('code') code: string,
-  ): Promise<SubscriptionResponse> {
+  ): Promise<any> {
     return this.subscriptionService.getSubscriptionByCode(code);
   }
 

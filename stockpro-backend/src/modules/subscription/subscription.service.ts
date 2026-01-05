@@ -404,14 +404,130 @@ export class SubscriptionService {
     // Get subscription for this company
     const subscription = await this.prisma.subscription.findUnique({
       where: { companyId: company.id },
-      include: { company: { select: { id: true, name: true, code: true } } },
+      include: { 
+        company: { 
+          select: { 
+            id: true, 
+            name: true, 
+            code: true,
+            phone: true,
+            address: true,
+            activity: true,
+            taxNumber: true,
+            commercialReg: true,
+          } 
+        } 
+      },
     });
 
     if (!subscription) {
       throw new NotFoundException(`Subscription not found for company code: ${code}`);
     }
 
-    return subscription;
+    // Get all admin users (users with role name "مدير")
+    console.log('🔍 getSubscriptionByCode - Looking for admin role for company:', company.id);
+    const adminRole = await this.prisma.role.findUnique({
+      where: {
+        name_companyId: {
+          name: 'مدير',
+          companyId: company.id,
+        },
+      },
+    });
+
+    console.log('🔍 getSubscriptionByCode - Admin role found:', adminRole ? `YES (id: ${adminRole.id})` : 'NO');
+
+    type AdminUser = {
+      id: string;
+      name: string | null;
+      email: string;
+      code: number;
+      createdAt: Date;
+      role: {
+        name: string;
+      } | null;
+    };
+
+    let admins: AdminUser[] = [];
+    if (adminRole) {
+      console.log('🔍 getSubscriptionByCode - Fetching users with roleId:', adminRole.id);
+      admins = await this.prisma.user.findMany({
+        where: {
+          companyId: company.id,
+          roleId: adminRole.id,
+          active: true, // Only get active admins
+        },
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          code: true,
+          createdAt: true,
+          role: {
+            select: {
+              name: true,
+            }
+          }
+        },
+        orderBy: { createdAt: 'asc' }, // Order by creation date
+      });
+      console.log('🔍 getSubscriptionByCode - Found', admins.length, 'admin users');
+    } else {
+      console.log('🔍 getSubscriptionByCode - No admin role found, checking all users...');
+      // Fallback: if no admin role exists, get all users (in case role name is different)
+      const allUsers = await this.prisma.user.findMany({
+        where: {
+          companyId: company.id,
+          active: true,
+        },
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          code: true,
+          createdAt: true,
+          role: {
+            select: {
+              name: true,
+            }
+          }
+        },
+        orderBy: { createdAt: 'asc' },
+      });
+      console.log('🔍 getSubscriptionByCode - Found', allUsers.length, 'total active users');
+      admins = allUsers; // Return all users as fallback
+    }
+
+    // Construct the response with all company fields and admins array
+    const result = {
+      ...subscription,
+      company: {
+        id: subscription.company.id,
+        name: subscription.company.name,
+        code: subscription.company.code,
+        phone: subscription.company.phone || null,
+        address: subscription.company.address || null,
+        activity: subscription.company.activity || null,
+        taxNumber: subscription.company.taxNumber || null,
+        commercialReg: subscription.company.commercialReg || null,
+        admins: admins || []
+      }
+    };
+
+    // Debug logging
+    console.log('🔍 getSubscriptionByCode - Company from subscription:', JSON.stringify(subscription.company, null, 2));
+    console.log('🔍 getSubscriptionByCode - Admin role found:', adminRole ? `YES (id: ${adminRole.id})` : 'NO');
+    console.log('🔍 getSubscriptionByCode - Number of admins found:', admins.length);
+    if (admins.length > 0) {
+      console.log('🔍 getSubscriptionByCode - Admins data:', JSON.stringify(admins, null, 2));
+    } else {
+      console.log('⚠️ getSubscriptionByCode - No admins found!');
+    }
+    console.log('🔍 getSubscriptionByCode - Final result company keys:', Object.keys(result.company));
+    console.log('🔍 getSubscriptionByCode - Final result company:', JSON.stringify(result.company, null, 2));
+    console.log('🔍 getSubscriptionByCode - Final result (full):', JSON.stringify(result, null, 2));
+
+    return result;
   }
 
   /**
