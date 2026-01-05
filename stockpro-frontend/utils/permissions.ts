@@ -103,8 +103,8 @@ export const hasReadPermissionForKey = (
     return false;
   }
   
-  // Special case: subscription and subscription_renewal are only for SUPER_ADMIN
-  if (menuKey === 'subscription' || menuKey === 'subscription_renewal') {
+  // Special case: subscription, subscription_renewal, and subscription_management are only for SUPER_ADMIN
+  if (menuKey === 'subscription' || menuKey === 'subscription_renewal' || menuKey === 'subscription_management') {
     const isSuperAdmin = currentUser?.role?.name === 'SUPER_ADMIN';
     return isSuperAdmin || false;
   }

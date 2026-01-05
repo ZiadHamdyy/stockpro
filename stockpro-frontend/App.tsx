@@ -111,6 +111,7 @@ import PrintSettingsPage from "./components/pages/settings/PrintSettings";
 import HelpCenter from "./components/pages/support/HelpCenter";
 import Subscription from "./components/pages/subscription/Subscription";
 import SubscriptionRenewal from "./components/pages/subscription/SubscriptionRenewal";
+import SubscriptionManagement from "./components/pages/subscription/SubscriptionManagement";
 
 import {
   initialBranches,
@@ -502,6 +503,22 @@ const SubscriptionRenewalRoute = () => {
   );
 };
 
+// Subscription Management route wrapper that redirects non-superadmins
+const SubscriptionManagementRoute = () => {
+  const currentUser = useAppSelector(selectCurrentUser);
+  const isSuperAdmin = currentUser?.role?.name === 'SUPER_ADMIN';
+  
+  if (!isSuperAdmin) {
+    return <Navigate to="/dashboard" replace />;
+  }
+  
+  return (
+    <ProtectedRoute requiredPermission="subscription-read">
+      <SubscriptionManagement title="إدارة الاشتراكات" />
+    </ProtectedRoute>
+  );
+};
+
 const AppContent = () => {
   const location = useLocation();
   const navigate = useNavigate();
@@ -823,6 +840,7 @@ const AppContent = () => {
             {/* Subscription */}
             <Route path="/subscription" element={<SubscriptionRoute />} />
             <Route path="/subscription/renewal" element={<SubscriptionRenewalRoute />} />
+            <Route path="/subscription/management" element={<SubscriptionManagementRoute />} />
 
             {/* Settings */}
             <Route

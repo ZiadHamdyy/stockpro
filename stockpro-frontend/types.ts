@@ -538,3 +538,28 @@ export interface AiInsight {
   missingEssentials: string[];
   healthTip: string;
 }
+
+// Subscription Management Types
+export type SubscriptionManagementPackageType = 'Starter' | 'Growth' | 'Enterprise' | 'Trial';
+export type SubscriptionManagementStatus = 'active' | 'expired' | 'pending' | 'trial';
+
+export interface SubscriptionManagement {
+  id: string;
+  companyCode: string;
+  companyName: string;
+  contactName: string;
+  phone: string;
+  email: string;
+  package: SubscriptionManagementPackageType;
+  startDate: string;
+  endDate: string;
+  status: SubscriptionManagementStatus;
+  price: number;
+}
+
+export interface SubscriptionManagementStats {
+  totalActive: number;
+  totalTrials: number;
+  expiringSoon: number;
+  totalRevenue: number;
+}
