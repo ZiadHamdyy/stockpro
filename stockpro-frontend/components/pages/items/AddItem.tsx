@@ -244,7 +244,7 @@ const AddItem: React.FC<AddItemProps> = ({ title, editingId, onNavigate }) => {
         showToast(`تم تحديث الصنف "${itemData.name}" بنجاح!`);
         setIsReadOnly(true);
       } else {
-        // Create new item
+        // Create new item (or update if duplicate exists)
         await createItem({
           barcode: itemData.barcode,
           name: itemData.name,
@@ -256,7 +256,7 @@ const AddItem: React.FC<AddItemProps> = ({ title, editingId, onNavigate }) => {
           unitId: itemData.unitId,
           type: itemType,
         }).unwrap();
-        showToast(`تم إنشاء الصنف "${itemData.name}" بنجاح!`);
+        showToast(`تم حفظ الصنف "${itemData.name}" بنجاح!`);
         navigate("/items/list");
       }
     } catch (error: any) {

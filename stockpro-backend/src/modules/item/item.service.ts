@@ -43,11 +43,88 @@ export class ItemService {
       throw new ForbiddenException('لا يمكن إضافة صنف: الفترة المحاسبية مغلقة');
     }
 
-    // Generate next code automatically (company-scoped)
-    const nextCode = await this.generateNextCode(companyId);
-
     // Get user's store from their branch
     const store = await this.storeService.findByBranchId(companyId, currentUser.branchId);
+
+    // Check for duplicate item (same name, group, unit)
+    const existingItem = await this.findDuplicateItem(companyId, data.name, data.groupId, data.unitId);
+
+    if (existingItem) {
+      // Update existing item instead of creating new one
+      const openingStock = data.type === 'SERVICE' ? 0 : data.stock || 0;
+
+      const result = await this.prisma.$transaction(async (tx) => {
+        // Prepare update data - always update required fields, conditionally update optional ones
+        const updateData: any = {
+          salePrice: (data as any).salePrice ?? 0,
+          initialPurchasePrice: data.purchasePrice,
+          purchasePrice: data.purchasePrice,
+        };
+
+        // Update optional fields only if provided
+        if (data.barcode !== undefined && data.barcode !== null) {
+          updateData.barcode = data.barcode;
+        }
+        if (data.reorderLimit !== undefined && data.reorderLimit !== null) {
+          updateData.reorderLimit = data.reorderLimit;
+        }
+        if ((data as any).type !== undefined) {
+          updateData.type = (data as any).type;
+        }
+
+        // Update the existing item
+        const updatedItem = await tx.item.update({
+          where: { id: existingItem.id },
+          data: updateData,
+          include: {
+            group: true,
+            unit: true,
+          },
+        });
+
+        // Handle StoreItem for current branch's store
+        const existingStoreItem = await tx.storeItem.findUnique({
+          where: {
+            storeId_itemId: {
+              storeId: store.id,
+              itemId: existingItem.id,
+            },
+          },
+        });
+
+        if (existingStoreItem) {
+          // Add new stock to existing openingBalance
+          await tx.storeItem.update({
+            where: {
+              storeId_itemId: {
+                storeId: store.id,
+                itemId: existingItem.id,
+              },
+            },
+            data: {
+              openingBalance: existingStoreItem.openingBalance + openingStock,
+            },
+          });
+        } else {
+          // Create StoreItem with new stock as openingBalance
+          await tx.storeItem.create({
+            data: {
+              storeId: store.id,
+              itemId: existingItem.id,
+              openingBalance: openingStock,
+            },
+          });
+        }
+
+        return updatedItem;
+      });
+
+      return this.mapToResponse(result);
+    }
+
+    // No duplicate found, proceed with normal creation
+    // Generate next code automatically (company-scoped)
+    const nextCode = await this.generateNextCode(companyId);
 
     const openingStock = data.type === 'SERVICE' ? 0 : data.stock || 0;
 
@@ -320,6 +397,42 @@ export class ItemService {
       }
       throw error;
     }
+  }
+
+  private async findDuplicateItem(
+    companyId: string,
+    name: string,
+    groupId: string,
+    unitId: string,
+  ): Promise<any | null> {
+    // Use case-insensitive comparison for name using raw SQL
+    // This ensures proper case-insensitive matching in PostgreSQL
+    const results = await this.prisma.$queryRaw<Array<{ id: string }>>`
+      SELECT id
+      FROM "Item"
+      WHERE "companyId" = ${companyId}
+        AND LOWER("name") = LOWER(${name})
+        AND "groupId" = ${groupId}
+        AND "unitId" = ${unitId}
+      LIMIT 1
+    `;
+
+    if (!results || results.length === 0) {
+      return null;
+    }
+
+    const itemId = results[0].id;
+
+    // Fetch the full item with relations using Prisma
+    const existingItem = await this.prisma.item.findUnique({
+      where: { id: itemId },
+      include: {
+        group: true,
+        unit: true,
+      },
+    });
+
+    return existingItem;
   }
 
   private async generateNextCode(companyId: string): Promise<string> {
