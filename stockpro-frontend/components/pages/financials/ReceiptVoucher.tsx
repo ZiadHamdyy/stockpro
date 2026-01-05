@@ -113,6 +113,8 @@ const ReceiptVoucher: React.FC<ReceiptVoucherProps> = ({ title }) => {
   const [shouldResetOnClose, setShouldResetOnClose] = useState(false);
   const [hasInitialized, setHasInitialized] = useState(false);
   const [showInfoBar, setShowInfoBar] = useState(false);
+  const entityBarRef = useRef<HTMLDivElement>(null);
+  const previousEntityIdRef = useRef<string | null>(null);
   const [previewVoucherData, setPreviewVoucherData] = useState<{
     number: string;
     date: string;
@@ -566,12 +568,43 @@ const ReceiptVoucher: React.FC<ReceiptVoucherProps> = ({ title }) => {
 
   // Show/Hide Bar logic
   useEffect(() => {
-    if (voucherData.entity.id && entityStats && !isReadOnly) {
+    if (voucherData.entity.id && entityStats && !isReadOnly && !isPreviewOpen) {
       setShowInfoBar(true);
     } else {
       setShowInfoBar(false);
     }
-  }, [voucherData.entity.id, entityStats, isReadOnly]);
+  }, [voucherData.entity.id, entityStats, isReadOnly, isPreviewOpen]);
+
+  // Reopen bar when a new entity is selected (ensures it reopens even if manually closed)
+  useEffect(() => {
+    const currentEntityId = voucherData.entity.id ? String(voucherData.entity.id) : null;
+    const previousEntityId = previousEntityIdRef.current;
+    
+    // If entity ID changed to a new value and we have stats, always show the bar (if not read-only and preview not open)
+    if (currentEntityId && currentEntityId !== previousEntityId && entityStats && !isReadOnly && !isPreviewOpen) {
+      setShowInfoBar(true);
+    }
+    
+    // Update the ref for next comparison
+    previousEntityIdRef.current = currentEntityId;
+  }, [voucherData.entity.id, entityStats, isReadOnly, isPreviewOpen]);
+
+  // Click-to-close functionality
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (showInfoBar && entityBarRef.current && !entityBarRef.current.contains(event.target as Node)) {
+        setShowInfoBar(false);
+      }
+    };
+
+    if (showInfoBar) {
+      document.addEventListener('click', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('click', handleClickOutside);
+    };
+  }, [showInfoBar]);
 
   if (isLoading) {
     return <div className="text-center p-6">جاري التحميل...</div>;
@@ -800,6 +833,8 @@ const ReceiptVoucher: React.FC<ReceiptVoucherProps> = ({ title }) => {
                 onClick={async () => {
                   const savedVoucher = await handleSave();
                   if (savedVoucher) {
+                    // Close the EntityBottomBar immediately when saving
+                    setShowInfoBar(false);
                     // Update voucher data with saved voucher data
                     setVoucherData({
                       number: savedVoucher.code,
@@ -1005,18 +1040,20 @@ const ReceiptVoucher: React.FC<ReceiptVoucherProps> = ({ title }) => {
         colorTheme="green"
       />
       {/* Entity Bottom Bar */}
-      {showInfoBar && entityStats && (
-        <EntityBottomBar 
-          type={voucherData.entity.type as any}
-          entityName={voucherData.entity.name}
-          balance={entityStats.balance}
-          lastInvoice={entityStats.lastInvoice}
-          lastReceipt={entityStats.lastReceipt}
-          onClose={() => setShowInfoBar(false)}
-          mode="receipt"
-          currentAmount={typeof voucherData.amount === 'number' ? voucherData.amount : (typeof voucherData.amount === 'string' ? parseFloat(voucherData.amount) || 0 : 0)}
-          reverseCalculation={voucherData.entity.type === 'customer' || voucherData.entity.type === 'receivable_account' || voucherData.entity.type === 'vat'}
-        />
+      {showInfoBar && entityStats && !isReadOnly && !isPreviewOpen && (
+        <div ref={entityBarRef}>
+          <EntityBottomBar 
+            type={voucherData.entity.type as any}
+            entityName={voucherData.entity.name}
+            balance={entityStats.balance}
+            lastInvoice={entityStats.lastInvoice}
+            lastReceipt={entityStats.lastReceipt}
+            onClose={() => setShowInfoBar(false)}
+            mode="receipt"
+            currentAmount={typeof voucherData.amount === 'number' ? voucherData.amount : (typeof voucherData.amount === 'string' ? parseFloat(voucherData.amount) || 0 : 0)}
+            reverseCalculation={voucherData.entity.type === 'customer' || voucherData.entity.type === 'receivable_account' || voucherData.entity.type === 'vat'}
+          />
+        </div>
       )}
     </>
   );

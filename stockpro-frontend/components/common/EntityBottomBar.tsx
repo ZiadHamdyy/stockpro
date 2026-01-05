@@ -97,7 +97,10 @@ const EntityBottomBar: React.FC<EntityBottomBarProps> = ({
     : 'shadow-[0_-10px_40px_rgba(30,58,138,0.2)]';
 
   return (
-    <div className={`fixed bottom-0 left-0 right-0 z-50 animate-slide-up ${shadowColor}`}>
+    <div 
+      className={`fixed bottom-0 left-0 right-0 z-50 animate-slide-up ${shadowColor}`}
+      onClick={(e) => e.stopPropagation()}
+    >
       {/* Background with Gradient and Texture - Green for payment, Blue for receipt */}
       <div className={`bg-gradient-to-r ${gradientColors} text-white border-t-4 ${borderColor} relative overflow-hidden`}>
         
