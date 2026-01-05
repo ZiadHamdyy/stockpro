@@ -148,8 +148,8 @@ const InventoryCountPage: React.FC<InventoryCountProps> = ({ title, companyInfo 
         const initialCountItems: InventoryCountItemType[] = stockedItems.map(item => ({
             id: '', // Will be set when saved
             systemStock: item.stock || 0, // This is store-specific stock when storeId is provided
-            actualStock: 0, // Default to 0 for manual entry
-            difference: -(item.stock || 0), // Difference will be negative initially (0 - systemStock)
+            actualStock: undefined as any, // Empty by default for manual entry
+            difference: 0, // Difference will be 0 initially when actualStock is empty
             cost: item.purchasePrice,
             item: item,
             createdAt: new Date().toISOString(),
@@ -170,6 +170,17 @@ const InventoryCountPage: React.FC<InventoryCountProps> = ({ title, companyInfo 
 
     const handleActualChange = (itemId: string, val: string) => {
         if (status === 'POSTED') return; // Read-only if posted
+
+        // If value is empty, set actualStock to undefined
+        if (val === '' || val === null || val === undefined) {
+            setCountItems(prev => prev.map(item => {
+                if (item.item.id === itemId) {
+                    return { ...item, actualStock: undefined as any, difference: 0 };
+                }
+                return item;
+            }));
+            return;
+        }
 
         const actual = parseFloat(val);
         if (isNaN(actual)) return;
@@ -208,13 +219,16 @@ const InventoryCountPage: React.FC<InventoryCountProps> = ({ title, companyInfo 
         let shortageCount = 0;
 
         filteredItems.forEach(item => {
-            const varianceValue = item.difference * item.cost;
-            if (item.difference > 0) {
-                totalSurplusVal += varianceValue;
-                surplusCount++;
-            } else if (item.difference < 0) {
-                totalShortageVal += Math.abs(varianceValue);
-                shortageCount++;
+            // Only calculate if actualStock is defined
+            if (item.actualStock !== undefined && item.actualStock !== null) {
+                const varianceValue = item.difference * item.cost;
+                if (item.difference > 0) {
+                    totalSurplusVal += varianceValue;
+                    surplusCount++;
+                } else if (item.difference < 0) {
+                    totalShortageVal += Math.abs(varianceValue);
+                    shortageCount++;
+                }
             }
         });
 
@@ -412,11 +426,15 @@ const InventoryCountPage: React.FC<InventoryCountProps> = ({ title, companyInfo 
             'اسم الصنف': item.item.name,
             'الوحدة': item.item.unit.name,
             'الرصيد الدفتري': item.systemStock,
-            'الرصيد الفعلي': item.actualStock,
-            'الفرق': item.difference,
-            'الحالة': item.difference > 0 ? 'زيادة' : (item.difference < 0 ? 'عجز' : 'مطابق'),
+            'الرصيد الفعلي': item.actualStock !== undefined && item.actualStock !== null ? item.actualStock : '',
+            'الفرق': item.actualStock !== undefined && item.actualStock !== null ? item.difference : '',
+            'الحالة': item.actualStock !== undefined && item.actualStock !== null 
+                ? (item.difference > 0 ? 'زيادة' : (item.difference < 0 ? 'عجز' : 'مطابق'))
+                : '',
             'سعر التكلفة': item.cost,
-            'قيمة الفرق': (item.difference * item.cost).toFixed(2)
+            'قيمة الفرق': item.actualStock !== undefined && item.actualStock !== null 
+                ? (item.difference * item.cost).toFixed(2)
+                : ''
         }));
         exportToExcel(data, `جرد_مخزون_${selectedStore?.name || 'مخزن'}_${date}`);
     };
@@ -430,11 +448,19 @@ const InventoryCountPage: React.FC<InventoryCountProps> = ({ title, companyInfo 
         const selectedStore = stores.find(s => s.id === selectedStoreId);
         const head = [['قيمة الفرق', 'سعر التكلفة', 'الحالة', 'الفرق', 'الرصيد الفعلي', 'الرصيد الدفتري', 'الوحدة', 'اسم الصنف', 'كود الصنف', 'م']];
         const body = filteredItems.map((item, index) => [
-            (item.difference * item.cost).toFixed(2),
+            item.actualStock !== undefined && item.actualStock !== null 
+                ? (item.difference * item.cost).toFixed(2)
+                : '',
             item.cost.toFixed(2),
-            item.difference !== 0 ? (item.difference > 0 ? 'زيادة' : 'عجز') : 'مطابق',
-            item.difference.toString(),
-            item.actualStock.toString(),
+            item.actualStock !== undefined && item.actualStock !== null
+                ? (item.difference !== 0 ? (item.difference > 0 ? 'زيادة' : 'عجز') : 'مطابق')
+                : '',
+            item.actualStock !== undefined && item.actualStock !== null 
+                ? item.difference.toString()
+                : '',
+            item.actualStock !== undefined && item.actualStock !== null 
+                ? item.actualStock.toString()
+                : '',
             item.systemStock.toString(),
             item.item.unit.name,
             item.item.name,
@@ -468,8 +494,11 @@ const InventoryCountPage: React.FC<InventoryCountProps> = ({ title, companyInfo 
         
         // Build table rows manually to ensure all data is included
         const tableRows = filteredItems.map((item, index) => {
-            const varianceValue = item.difference * item.cost;
-            const statusText = item.difference === 0 ? 'مطابق' : item.difference < 0 ? 'عجز' : 'زيادة';
+            const hasActualStock = item.actualStock !== undefined && item.actualStock !== null;
+            const varianceValue = hasActualStock ? item.difference * item.cost : 0;
+            const statusText = hasActualStock 
+                ? (item.difference === 0 ? 'مطابق' : item.difference < 0 ? 'عجز' : 'زيادة')
+                : '';
             return `
                 <tr>
                     <td>${index + 1}</td>
@@ -477,11 +506,11 @@ const InventoryCountPage: React.FC<InventoryCountProps> = ({ title, companyInfo 
                     <td>${item.item.name}</td>
                     <td>${item.item.unit.name}</td>
                     <td>${item.systemStock}</td>
-                    <td>${item.actualStock || 0}</td>
-                    <td>${item.difference > 0 ? '+' : ''}${item.difference}</td>
+                    <td>${hasActualStock ? item.actualStock : ''}</td>
+                    <td>${hasActualStock ? (item.difference > 0 ? '+' : '') + item.difference : ''}</td>
                     <td>${statusText}</td>
                     <td>${formatNumber(item.cost)}</td>
-                    <td>${formatNumber(varianceValue)}</td>
+                    <td>${hasActualStock ? formatNumber(varianceValue) : ''}</td>
                 </tr>
             `;
         }).join('');
@@ -846,7 +875,8 @@ const InventoryCountPage: React.FC<InventoryCountProps> = ({ title, companyInfo 
                                     </td>
                                 </tr>
                             ) : filteredItems.map((item, index) => {
-                                const varianceValue = item.difference * item.cost;
+                                const hasActualStock = item.actualStock !== undefined && item.actualStock !== null;
+                                const varianceValue = hasActualStock ? item.difference * item.cost : 0;
                                 return (
                                     <tr key={item.item.id} className="hover:bg-gray-50">
                                         <td className="px-4 py-2 text-center text-sm text-gray-500">{index + 1}</td>
@@ -863,36 +893,44 @@ const InventoryCountPage: React.FC<InventoryCountProps> = ({ title, companyInfo 
                                                 fallback={
                                                     <input 
                                                         type="number" 
-                                                        value={item.actualStock || 0} 
+                                                        value={item.actualStock !== undefined && item.actualStock !== null ? item.actualStock : ''} 
                                                         className="w-24 p-1.5 text-center border border-gray-300 rounded bg-gray-100 font-bold text-gray-500 shadow-inner cursor-not-allowed"
                                                         disabled
                                                         readOnly
-                                                        placeholder="0"
+                                                        placeholder=""
                                                     />
                                                 }
                                             >
                                                 <input 
                                                     type="number" 
-                                                    value={item.actualStock || 0} 
+                                                    value={item.actualStock !== undefined && item.actualStock !== null ? item.actualStock : ''} 
                                                     onChange={(e) => handleActualChange(item.item.id, e.target.value)}
                                                     className="w-24 p-1.5 text-center border border-gray-300 rounded bg-white focus:ring-2 focus:ring-brand-green focus:border-brand-green font-bold text-gray-900 shadow-inner"
                                                     onFocus={(e) => e.target.select()}
                                                     disabled={status === 'POSTED'}
-                                                    placeholder="0"
+                                                    placeholder=""
                                                 />
                                             </PermissionWrapper>
                                         </td>
-                                        <td className={`px-4 py-2 text-center font-bold text-sm ${item.difference < 0 ? 'text-red-600' : item.difference > 0 ? 'text-green-600' : 'text-gray-400'}`}>
-                                            {item.difference > 0 ? '+' : ''}{item.difference}
+                                        <td className={`px-4 py-2 text-center font-bold text-sm ${item.actualStock !== undefined && item.actualStock !== null ? (item.difference < 0 ? 'text-red-600' : item.difference > 0 ? 'text-green-600' : 'text-gray-400') : 'text-gray-400'}`}>
+                                            {item.actualStock !== undefined && item.actualStock !== null 
+                                                ? (item.difference > 0 ? '+' : '') + item.difference
+                                                : ''}
                                         </td>
                                         <td className="px-4 py-2 text-center text-xs">
-                                            {item.difference === 0 && <span className="px-2 py-1 bg-gray-100 rounded-full text-gray-600 border border-gray-200">مطابق</span>}
-                                            {item.difference < 0 && <span className="px-2 py-1 bg-red-100 text-red-800 rounded-full border border-red-200">عجز</span>}
-                                            {item.difference > 0 && <span className="px-2 py-1 bg-green-100 text-green-800 rounded-full border border-green-200">زيادة</span>}
+                                            {item.actualStock !== undefined && item.actualStock !== null && (
+                                                <>
+                                                    {item.difference === 0 && <span className="px-2 py-1 bg-gray-100 rounded-full text-gray-600 border border-gray-200">مطابق</span>}
+                                                    {item.difference < 0 && <span className="px-2 py-1 bg-red-100 text-red-800 rounded-full border border-red-200">عجز</span>}
+                                                    {item.difference > 0 && <span className="px-2 py-1 bg-green-100 text-green-800 rounded-full border border-green-200">زيادة</span>}
+                                                </>
+                                            )}
                                         </td>
                                         <td className="px-4 py-2 text-center text-sm text-gray-600 bg-gray-50">{formatNumber(item.cost)}</td>
-                                        <td className={`px-4 py-2 text-center font-bold text-sm bg-gray-50 ${varianceValue < 0 ? 'text-red-600' : varianceValue > 0 ? 'text-green-600' : 'text-gray-400'}`}>
-                                            {formatNumber(varianceValue)}
+                                        <td className={`px-4 py-2 text-center font-bold text-sm bg-gray-50 ${item.actualStock !== undefined && item.actualStock !== null ? (varianceValue < 0 ? 'text-red-600' : varianceValue > 0 ? 'text-green-600' : 'text-gray-400') : 'text-gray-400'}`}>
+                                            {item.actualStock !== undefined && item.actualStock !== null 
+                                                ? formatNumber(varianceValue)
+                                                : ''}
                                         </td>
                                     </tr>
                                 );
