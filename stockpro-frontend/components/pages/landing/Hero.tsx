@@ -64,13 +64,8 @@ const FeatureSummaryCard: React.FC<{
           <div className="text-xl font-bold mb-3 text-brand-dark">
               {feature.title}
           </div>
-          <div className="text-slate-500 leading-relaxed text-sm space-y-2">
-              {feature.description.split('\n').map((line, index) => (
-                  <div key={index} className="flex items-start gap-2">
-                      <span className="text-brand-blue mt-1 flex-shrink-0">•</span>
-                      <span>{line.trim()}</span>
-                  </div>
-              ))}
+          <div className="text-slate-500 leading-relaxed text-sm">
+              {feature.description.split('\n')[0]}
           </div>
       </div>
     </div>
@@ -344,17 +339,13 @@ const HomePage: React.FC<HomePageProps> = ({ setPage, heroBgUrl, dashboardUrl, f
                 </div>
                 
                 <div className="space-y-6">
-                    <p className="text-slate-600 text-lg leading-relaxed">
-                        يتميز هذا القسم بـ {selectedFeature.description}، وهو مصمم خصيصاً لتلبية احتياجات السوق المحلي.
-                    </p>
-                    
                     <div className="bg-slate-50 p-6 rounded-2xl border border-slate-100">
-                        <h4 className="font-bold text-brand-dark mb-4">تفاصيل إضافية:</h4>
-                        <ul className="space-y-3">
-                            {[1, 2, 3].map((_, i) => (
-                                <li key={i} className="flex items-center gap-3 text-slate-700">
-                                    <span className="flex-shrink-0 w-5 h-5 rounded-full bg-brand-green/10 text-brand-green flex items-center justify-center text-xs font-bold">✓</span>
-                                    ميزة تفصيلية رقم {i + 1} تتعلق بـ {selectedFeature.title}.
+                        <h4 className="font-bold text-brand-dark mb-4">تفاصيل القسم:</h4>
+                        <ul className="space-y-3 text-slate-700 text-lg leading-relaxed">
+                            {selectedFeature.description.split('\n').map((line, index) => (
+                                <li key={index} className="flex items-start gap-3">
+                                    <span className="flex-shrink-0 w-5 h-5 rounded-full bg-brand-green/10 text-brand-green flex items-center justify-center text-xs font-bold mt-1">✓</span>
+                                    <span>{line.trim()}</span>
                                 </li>
                             ))}
                         </ul>
