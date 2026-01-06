@@ -430,24 +430,11 @@ const FiscalYearRow: React.FC<{
                incomeStatementData.totalExpenses;
     }, [incomeStatementData, calculatedInventoryValue, calculatedOtherRevenues, calculatedNetPurchases, netSalesAfterDiscount]);
 
-    // Calculate retained earnings with fiscal year logic (same as BalanceSheet.tsx)
+    // Calculate retained earnings for this period only (not accumulated)
+    // This matches what the backend saves when closing a fiscal year
     const calculatedRetainedEarnings = useMemo(() => {
         const normalizedStartDate = normalizeDate(startDate);
         const normalizedEndDate = normalizeDate(endDate);
-        const periodStartDate = new Date(normalizedStartDate);
-
-        // Find all CLOSED fiscal years that ended before the current period start date
-        const previousClosedFiscalYears = fiscalYears.filter((fy) => {
-            if (fy.status !== "CLOSED") return false;
-            const fyEndDate = new Date(normalizeDate(fy.endDate));
-            return fyEndDate < periodStartDate;
-        });
-
-        // Sum retained earnings from all previous closed fiscal years
-        const previousRetainedEarnings = previousClosedFiscalYears.reduce(
-            (sum, fiscalYear) => sum + (fiscalYear.retainedEarnings || 0),
-            0,
-        );
 
         // Use calculated net profit (same calculation as IncomeStatement)
         const currentPeriodNetProfit = calculatedNetProfit || 0;
@@ -469,15 +456,13 @@ const FiscalYearRow: React.FC<{
             })
             .reduce((sum, v) => sum + (v.amount || 0), 0);
 
-        // Return accumulated retained earnings (previous years + current period + P&L vouchers)
+        // Return retained earnings for this period only (current period + P&L vouchers)
         return (
-            previousRetainedEarnings +
             currentPeriodNetProfit +
             profitAndLossReceipts -
             profitAndLossPayments
         );
     }, [
-        fiscalYears,
         calculatedNetProfit,
         normalizeDate,
         startDate,
