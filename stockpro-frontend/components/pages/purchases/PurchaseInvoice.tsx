@@ -622,6 +622,42 @@ const getInvoiceBranchMeta = (invoice: any) => {
     index: number,
     field: "qty" | "price",
   ) => {
+    // Intercept hardware barcode scans that happen while a table field is focused.
+    // Many scanners type the full barcode then send Enter. If that happens here,
+    // we treat the current field value as a barcode and route it through the
+    // normal barcode handling so the item is added safely and the field is cleared.
+    if (
+      e.key === "Enter" &&
+      !isReadOnly &&
+      e.currentTarget &&
+      typeof e.currentTarget.value === "string"
+    ) {
+      const scannedValue = e.currentTarget.value.trim();
+      if (scannedValue.length >= 4) {
+        const matchedItem = allItems.find(
+          (item) =>
+            item.barcode &&
+            item.barcode.trim().toLowerCase() ===
+              scannedValue.toLowerCase(),
+        );
+
+        if (matchedItem) {
+          e.preventDefault();
+          setPurchaseItems((prev) => {
+            const next = [...prev];
+            const current = next[index] || createEmptyItem();
+            next[index] = {
+              ...current,
+              [field]: field === "qty" || field === "price" ? 0 : "",
+            };
+            return next;
+          });
+          handleScanSuccess(scannedValue);
+          return;
+        }
+      }
+    }
+
     if (e.key === "Enter") {
       e.preventDefault();
       if (field === "qty") {
@@ -664,6 +700,43 @@ const getInvoiceBranchMeta = (invoice: any) => {
     e: React.KeyboardEvent<HTMLInputElement>,
   ) => {
     if (!activeItemSearch) return;
+
+    // Intercept hardware barcode scans that happen while the item name field is focused.
+    // If user scans a barcode into the name field, capture it on Enter, add the item,
+    // and clear the field so the barcode text does not remain there.
+    if (
+      e.key === "Enter" &&
+      !isReadOnly &&
+      e.currentTarget &&
+      typeof e.currentTarget.value === "string"
+    ) {
+      const scannedValue = e.currentTarget.value.trim();
+      if (scannedValue.length >= 4) {
+        const matchedItem = allItems.find(
+          (item) =>
+            item.barcode &&
+            item.barcode.trim().toLowerCase() ===
+              scannedValue.toLowerCase(),
+        );
+
+        if (matchedItem) {
+          e.preventDefault();
+          const rowIndex = activeItemSearch.index;
+          setPurchaseItems((prev) => {
+            const next = [...prev];
+            const current = next[rowIndex] || createEmptyItem();
+            next[rowIndex] = {
+              ...current,
+              name: "",
+            };
+            return next;
+          });
+          setActiveItemSearch(null);
+          handleScanSuccess(scannedValue);
+          return;
+        }
+      }
+    }
 
     if (e.key === "Enter") {
       e.preventDefault();
