@@ -534,6 +534,7 @@ export const apiSlice = createApi({
     "Subscription",
     "SubscriptionRequest",
     "AnnualSalesReport",
+    "ItemProfitabilityReport",
     "FinancialSettings",
     "PrintSettings",
   ],

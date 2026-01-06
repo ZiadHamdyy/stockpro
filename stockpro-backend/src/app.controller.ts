@@ -43,4 +43,15 @@ export class AppController {
     const branchIdsArray = branchIds ? branchIds.split(',').filter(Boolean) : undefined;
     return this.appService.getAnnualSalesReport(companyId, yearNum, branchIdsArray);
   }
+
+  @Get('item-profitability-report')
+  @UseGuards(JwtAuthenticationGuard)
+  @Auth({ permissions: ['item_profitability_report:read'] })
+  async getItemProfitabilityReport(
+    @currentCompany('id') companyId: string,
+    @Query('startDate') startDate: string,
+    @Query('endDate') endDate: string,
+  ) {
+    return this.appService.getItemProfitabilityReport(companyId, startDate, endDate);
+  }
 }

@@ -1,6 +1,5 @@
 
 import React, { useState, useMemo } from 'react';
-import type { Item, Invoice } from '../../../../types';
 import { ExcelIcon, PdfIcon, PrintIcon, SearchIcon, TrendingUpIcon } from '../../../icons';
 import PermissionWrapper from '../../../common/PermissionWrapper';
 import ReportHeader from '../ReportHeader';
@@ -10,9 +9,7 @@ import {
     Resources,
     buildPermission,
 } from '../../../../enums/permissions.enum';
-import { useGetItemsQuery } from '../../../store/slices/items/itemsApi';
-import { useGetSalesInvoicesQuery } from '../../../store/slices/salesInvoice/salesInvoiceApiSlice';
-import { useGetSalesReturnsQuery } from '../../../store/slices/salesReturn/salesReturnApiSlice';
+import { useGetItemProfitabilityReportQuery } from '../../../store/slices/itemProfitability/itemProfitabilityApiSlice';
 import { useGetCompanyQuery } from '../../../store/slices/companyApiSlice';
 
 interface ItemProfitabilityReportProps {
@@ -37,196 +34,20 @@ const ItemProfitabilityReport: React.FC<ItemProfitabilityReportProps> = ({ title
     const [endDate, setEndDate] = useState(`${currentYear}-12-31`);
     const [searchTerm, setSearchTerm] = useState('');
 
-    // COMPANY-WIDE DATA FETCHING: All queries use undefined to fetch ALL company data
-    // Backend APIs filter by companyId only, ensuring all branches are included
-    // Fetch data from Redux
-    const { data: apiItems = [], isLoading: itemsLoading } = useGetItemsQuery(undefined);
-    const { data: apiSalesInvoices = [], isLoading: salesLoading } = useGetSalesInvoicesQuery(undefined);
-    const { data: apiSalesReturns = [], isLoading: returnsLoading } = useGetSalesReturnsQuery(undefined);
+    // Fetch profitability data from backend (already filtered and sorted)
+    const { data: profitabilityData = [], isLoading } = useGetItemProfitabilityReportQuery({
+        startDate,
+        endDate,
+    });
     const { data: companyInfo } = useGetCompanyQuery(undefined);
 
-    const isLoading = itemsLoading || salesLoading || returnsLoading;
-
-    // Transform API data to match component expectations
-    // Normalize any date value to yyyy-MM-dd
-    const normalizeDate = useMemo(() => {
-        return (date: any): string => {
-            if (!date) return '';
-            if (typeof date === 'string') {
-                if (/^\d{4}-\d{2}-\d{2}$/.test(date)) return date;
-                return date.substring(0, 10);
-            }
-            if (date instanceof Date) {
-                return date.toISOString().split('T')[0];
-            }
-            try {
-                const parsed = new Date(date);
-                if (!isNaN(parsed.getTime())) {
-                    return parsed.toISOString().split('T')[0];
-                }
-            } catch {
-                // ignore parse errors
-            }
-            return '';
-        };
-    }, []);
-
-    const items = useMemo<Item[]>(() => {
-        return apiItems
-            .filter((item) => {
-                // Exclude service items - check for 'SERVICE' (case-insensitive)
-                const itemType = item.type?.toUpperCase();
-                return itemType !== 'SERVICE';
-            })
-            .map((item) => ({
-                id: parseInt(item.id) || 0,
-                code: item.code,
-                name: item.name,
-                group: item.group?.name || '',
-                unit: item.unit?.name || '',
-                purchasePrice: item.purchasePrice,
-                salePrice: item.salePrice,
-                stock: item.stock,
-                reorderLimit: item.reorderLimit,
-                type: item.type // Preserve type for additional filtering if needed
-            }));
-    }, [apiItems]);
-
-    const salesInvoices = useMemo<Invoice[]>(() => {
-        return apiSalesInvoices.map((inv) => ({
-            id: inv.id,
-            date: normalizeDate((inv as any).date || (inv as any).invoiceDate || (inv as any).transactionDate),
-            customerOrSupplier: inv.customer ? {
-                id: inv.customer.id,
-                name: inv.customer.name
-            } : null,
-            items: inv.items.map((item) => ({
-                id: item.id,
-                name: item.name,
-                unit: item.unit,
-                qty: item.qty,
-                price: item.price,
-                taxAmount: item.taxAmount ?? 0,
-                total: item.total ?? (item.qty * item.price)
-            })),
-            totals: {
-                subtotal: inv.subtotal,
-                discount: inv.discount,
-                tax: inv.tax,
-                net: inv.net
-            },
-            paymentMethod: inv.paymentMethod,
-            paymentTargetType: inv.paymentTargetType,
-            paymentTargetId: inv.paymentTargetId ? parseInt(inv.paymentTargetId) : null,
-            userName: inv.user?.name || '',
-            branchName: inv.branch?.name || ''
-        }));
-    }, [apiSalesInvoices, normalizeDate]);
-
-    const salesReturns = useMemo<Invoice[]>(() => {
-        return apiSalesReturns.map((ret) => ({
-            id: ret.id,
-            date: normalizeDate((ret as any).date || (ret as any).invoiceDate || (ret as any).transactionDate),
-            customerOrSupplier: ret.customer ? {
-                id: ret.customer.id,
-                name: ret.customer.name
-            } : null,
-            items: ret.items.map((item) => ({
-                id: item.id,
-                name: item.name,
-                unit: item.unit,
-                qty: item.qty,
-                price: item.price,
-                taxAmount: item.taxAmount ?? 0,
-                total: item.total ?? (item.qty * item.price)
-            })),
-            totals: {
-                subtotal: ret.subtotal,
-                discount: ret.discount,
-                tax: ret.tax,
-                net: ret.net
-            },
-            paymentMethod: ret.paymentMethod,
-            paymentTargetType: ret.paymentTargetType,
-            paymentTargetId: ret.paymentTargetId ? parseInt(ret.paymentTargetId) : null,
-            userName: ret.user?.name || '',
-            branchName: ret.branch?.name || ''
-        }));
-    }, [apiSalesReturns, normalizeDate]);
-
+    // Filter and search report data (already sorted by backend)
     const reportData = useMemo(() => {
-        return items
-            .filter((item) => {
-                // Double-check: Exclude service items explicitly
-                const itemType = (item as any).type?.toUpperCase();
-                return itemType !== 'SERVICE';
-            })
-            .map(item => {
-                // Sales
-                const itemSales = salesInvoices
-                    .filter(inv => {
-                        const invDate = normalizeDate(inv?.date);
-                        if (!invDate) return false;
-                        return invDate >= startDate && invDate <= endDate;
-                    })
-                    .reduce((acc, inv) => {
-                        const invItem = inv.items?.find(i => i.id === item.code);
-                        if (invItem) {
-                            return {
-                                qty: acc.qty + (invItem.qty ?? 0),
-                                revenue: acc.revenue + ((invItem.qty ?? 0) * (invItem.price ?? 0)) // Using price before tax
-                            };
-                        }
-                        return acc;
-                    }, { qty: 0, revenue: 0 });
-
-                // Returns
-                const itemReturns = salesReturns
-                    .filter(inv => {
-                        const invDate = normalizeDate(inv?.date);
-                        if (!invDate) return false;
-                        return invDate >= startDate && invDate <= endDate;
-                    })
-                    .reduce((acc, inv) => {
-                        const invItem = inv.items?.find(i => i.id === item.code);
-                        if (invItem) {
-                            return {
-                                qty: acc.qty + (invItem.qty ?? 0),
-                                value: acc.value + ((invItem.qty ?? 0) * (invItem.price ?? 0)) // Using price before tax
-                            };
-                        }
-                        return acc;
-                    }, { qty: 0, value: 0 });
-
-                const netQty = itemSales.qty - itemReturns.qty;
-                const netRevenue = itemSales.revenue - itemReturns.value;
-                
-                // COGS (Simplified)
-                const cogs = netQty * (item.purchasePrice ?? 0);
-                
-                const grossProfit = netRevenue - cogs;
-                const marginPercent = netRevenue > 0 ? (grossProfit / netRevenue) * 100 : 0;
-
-                return {
-                    ...item,
-                    netQty,
-                    netRevenue,
-                    cogs,
-                    grossProfit,
-                    marginPercent
-                };
-            })
-            .filter(item => 
-                (item.netQty !== 0) && 
-                ((item.name ?? '').toLowerCase().includes(searchTerm.toLowerCase()) || (item.code ?? '').toLowerCase().includes(searchTerm.toLowerCase()))
-            )
-            .sort((a, b) => {
-                // Robust sorting: handle NaN and ensure descending order by margin %
-                const marginA = isNaN(a.marginPercent) ? -Infinity : a.marginPercent;
-                const marginB = isNaN(b.marginPercent) ? -Infinity : b.marginPercent;
-                return marginB - marginA; // Sort by margin % descending
-            });
-    }, [items, salesInvoices, salesReturns, startDate, endDate, searchTerm, normalizeDate]);
+        return profitabilityData.filter(item => 
+            ((item.name ?? '').toLowerCase().includes(searchTerm.toLowerCase()) || 
+             (item.code ?? '').toLowerCase().includes(searchTerm.toLowerCase()))
+        );
+    }, [profitabilityData, searchTerm]);
 
     const printPages = useMemo(() => {
         const pages: typeof reportData[] = [];

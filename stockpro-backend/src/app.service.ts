@@ -326,4 +326,123 @@ export class AppService {
       months: monthlyData,
     };
   }
+
+  async getItemProfitabilityReport(
+    companyId: string,
+    startDate: string,
+    endDate: string,
+  ) {
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+    end.setHours(23, 59, 59, 999);
+
+    // Get all items excluding SERVICE items
+    const items = await this.prisma.item.findMany({
+      where: {
+        companyId,
+        type: {
+          not: 'SERVICE',
+        },
+      },
+      include: {
+        group: true,
+        unit: true,
+      },
+    });
+
+    // Get all sales invoices in the date range
+    const salesInvoices = await this.prisma.salesInvoice.findMany({
+      where: {
+        companyId,
+        date: {
+          gte: start,
+          lte: end,
+        },
+      },
+      select: {
+        id: true,
+        date: true,
+        items: true,
+      },
+    });
+
+    // Get all sales returns in the date range
+    const salesReturns = await this.prisma.salesReturn.findMany({
+      where: {
+        companyId,
+        date: {
+          gte: start,
+          lte: end,
+        },
+      },
+      select: {
+        id: true,
+        date: true,
+        items: true,
+      },
+    });
+
+    // Calculate profitability for each item
+    const profitabilityData = items.map((item) => {
+      let salesQty = 0;
+      let salesRevenue = 0;
+      let returnsQty = 0;
+      let returnsValue = 0;
+
+      // Process sales invoices
+      salesInvoices.forEach((invoice) => {
+        const invoiceItems = invoice.items as any[];
+        const invoiceItem = invoiceItems.find((i) => i.id === item.code);
+        if (invoiceItem) {
+          salesQty += invoiceItem.qty || 0;
+          salesRevenue += (invoiceItem.qty || 0) * (invoiceItem.price || 0);
+        }
+      });
+
+      // Process sales returns
+      salesReturns.forEach((returnDoc) => {
+        const returnItems = returnDoc.items as any[];
+        const returnItem = returnItems.find((i) => i.id === item.code);
+        if (returnItem) {
+          returnsQty += returnItem.qty || 0;
+          returnsValue += (returnItem.qty || 0) * (returnItem.price || 0);
+        }
+      });
+
+      const netQty = salesQty - returnsQty;
+      const netRevenue = salesRevenue - returnsValue;
+      const cogs = netQty * (item.purchasePrice || 0);
+      const grossProfit = netRevenue - cogs;
+      const marginPercent = netRevenue > 0 ? (grossProfit / netRevenue) * 100 : 0;
+
+      return {
+        id: item.id,
+        code: item.code,
+        name: item.name,
+        group: item.group.name,
+        unit: item.unit.name,
+        purchasePrice: item.purchasePrice,
+        salePrice: item.salePrice,
+        stock: item.stock,
+        reorderLimit: item.reorderLimit,
+        netQty,
+        netRevenue,
+        cogs,
+        grossProfit,
+        marginPercent: parseFloat(marginPercent.toFixed(2)),
+      };
+    });
+
+    // Filter out items with no sales and sort by margin percentage descending
+    const filteredData = profitabilityData
+      .filter((item) => item.netQty !== 0)
+      .sort((a, b) => {
+        // Handle NaN values
+        const marginA = isNaN(a.marginPercent) ? -Infinity : a.marginPercent;
+        const marginB = isNaN(b.marginPercent) ? -Infinity : b.marginPercent;
+        return marginB - marginA;
+      });
+
+    return filteredData;
+  }
 }
