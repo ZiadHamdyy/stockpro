@@ -155,64 +155,77 @@ const ItemProfitabilityReport: React.FC<ItemProfitabilityReportProps> = ({ title
     }, [apiSalesReturns, normalizeDate]);
 
     const reportData = useMemo(() => {
-        return items.map(item => {
-            // Sales
-            const itemSales = salesInvoices
-                .filter(inv => {
-                    const invDate = normalizeDate(inv?.date);
-                    if (!invDate) return false;
-                    return invDate >= startDate && invDate <= endDate;
-                })
-                .reduce((acc, inv) => {
-                    const invItem = inv.items?.find(i => i.id === item.code);
-                    if (invItem) {
-                        return {
-                            qty: acc.qty + (invItem.qty ?? 0),
-                            revenue: acc.revenue + ((invItem.qty ?? 0) * (invItem.price ?? 0)) // Using price before tax
-                        };
-                    }
-                    return acc;
-                }, { qty: 0, revenue: 0 });
+        return items
+            .filter((item) => {
+                // Double-check: Exclude service items explicitly
+                const itemType = (item as any).type?.toUpperCase();
+                return itemType !== 'SERVICE';
+            })
+            .map(item => {
+                // Sales
+                const itemSales = salesInvoices
+                    .filter(inv => {
+                        const invDate = normalizeDate(inv?.date);
+                        if (!invDate) return false;
+                        return invDate >= startDate && invDate <= endDate;
+                    })
+                    .reduce((acc, inv) => {
+                        const invItem = inv.items?.find(i => i.id === item.code);
+                        if (invItem) {
+                            return {
+                                qty: acc.qty + (invItem.qty ?? 0),
+                                revenue: acc.revenue + ((invItem.qty ?? 0) * (invItem.price ?? 0)) // Using price before tax
+                            };
+                        }
+                        return acc;
+                    }, { qty: 0, revenue: 0 });
 
-            // Returns
-            const itemReturns = salesReturns
-                .filter(inv => {
-                    const invDate = normalizeDate(inv?.date);
-                    if (!invDate) return false;
-                    return invDate >= startDate && invDate <= endDate;
-                })
-                .reduce((acc, inv) => {
-                    const invItem = inv.items?.find(i => i.id === item.code);
-                    if (invItem) {
-                        return {
-                            qty: acc.qty + (invItem.qty ?? 0),
-                            value: acc.value + ((invItem.qty ?? 0) * (invItem.price ?? 0)) // Using price before tax
-                        };
-                    }
-                    return acc;
-                }, { qty: 0, value: 0 });
+                // Returns
+                const itemReturns = salesReturns
+                    .filter(inv => {
+                        const invDate = normalizeDate(inv?.date);
+                        if (!invDate) return false;
+                        return invDate >= startDate && invDate <= endDate;
+                    })
+                    .reduce((acc, inv) => {
+                        const invItem = inv.items?.find(i => i.id === item.code);
+                        if (invItem) {
+                            return {
+                                qty: acc.qty + (invItem.qty ?? 0),
+                                value: acc.value + ((invItem.qty ?? 0) * (invItem.price ?? 0)) // Using price before tax
+                            };
+                        }
+                        return acc;
+                    }, { qty: 0, value: 0 });
 
-            const netQty = itemSales.qty - itemReturns.qty;
-            const netRevenue = itemSales.revenue - itemReturns.value;
-            
-            // COGS (Simplified)
-            const cogs = netQty * (item.purchasePrice ?? 0);
-            
-            const grossProfit = netRevenue - cogs;
-            const marginPercent = netRevenue > 0 ? (grossProfit / netRevenue) * 100 : 0;
+                const netQty = itemSales.qty - itemReturns.qty;
+                const netRevenue = itemSales.revenue - itemReturns.value;
+                
+                // COGS (Simplified)
+                const cogs = netQty * (item.purchasePrice ?? 0);
+                
+                const grossProfit = netRevenue - cogs;
+                const marginPercent = netRevenue > 0 ? (grossProfit / netRevenue) * 100 : 0;
 
-            return {
-                ...item,
-                netQty,
-                netRevenue,
-                cogs,
-                grossProfit,
-                marginPercent
-            };
-        }).filter(item => 
-            (item.netQty !== 0) && 
-            ((item.name ?? '').toLowerCase().includes(searchTerm.toLowerCase()) || (item.code ?? '').toLowerCase().includes(searchTerm.toLowerCase()))
-        ).sort((a, b) => b.marginPercent - a.marginPercent); // Sort by margin % descending
+                return {
+                    ...item,
+                    netQty,
+                    netRevenue,
+                    cogs,
+                    grossProfit,
+                    marginPercent
+                };
+            })
+            .filter(item => 
+                (item.netQty !== 0) && 
+                ((item.name ?? '').toLowerCase().includes(searchTerm.toLowerCase()) || (item.code ?? '').toLowerCase().includes(searchTerm.toLowerCase()))
+            )
+            .sort((a, b) => {
+                // Robust sorting: handle NaN and ensure descending order by margin %
+                const marginA = isNaN(a.marginPercent) ? -Infinity : a.marginPercent;
+                const marginB = isNaN(b.marginPercent) ? -Infinity : b.marginPercent;
+                return marginB - marginA; // Sort by margin % descending
+            });
     }, [items, salesInvoices, salesReturns, startDate, endDate, searchTerm, normalizeDate]);
 
     const printPages = useMemo(() => {
