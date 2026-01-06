@@ -22,30 +22,18 @@ interface SidebarProps {
 
 const StockProLogo: React.FC<{ isOpen: boolean }> = ({ isOpen }) => (
   <div className={`flex items-center ${isOpen ? 'gap-2' : 'justify-center'}`}>
-    <svg
-      width="32"
-      height="32"
-      viewBox="0 0 32 32"
-      fill="none"
-      xmlns="http://www.w3.org/2000/svg"
-    >
-      <path
-        d="M6 22.0001L13 26.0001L26 13.3334L19 9.33341L6 22.0001Z"
-        fill="#A3E635"
-      />
-      <path
-        d="M19 9.33325L26 13.3333L13 26L6 22L19 9.33325Z"
-        stroke="#F9FAFB"
-        strokeWidth="1.5"
-      />
-      <path d="M26 10L19 6L6 18.6666L13 22.6666L26 10Z" fill="#1E40AF" />
-      <path
-        d="M13 22.6667L6 18.6667L19 6L26 10L13 22.6667Z"
-        stroke="#F9FAFB"
-        strokeWidth="1.5"
-      />
-    </svg>
-    {isOpen && <span className="text-2xl font-bold text-white">StockPro</span>}
+    <button className="flex items-center space-x-3 space-x-reverse group/logo transition-transform duration-300 hover:scale-105">
+      <div className={`relative rounded-xl bg-gradient-to-br from-white/20 to-white/10 backdrop-blur-md border-2 border-white/30 shadow-lg group-hover/logo:border-white/50 group-hover/logo:shadow-xl transition-all duration-300 ${isOpen ? 'p-2' : 'p-1'}`}>
+        <div className="absolute inset-0 bg-gradient-to-br from-brand-blue/20 via-brand-green/20 to-brand-blue/20 rounded-xl opacity-0 group-hover/logo:opacity-100 transition-opacity duration-300"></div>
+        <img src="/01.png" alt="Stock.Pro Logo" className={`${isOpen ? 'h-10' : 'h-8'} w-auto object-contain brightness-110 drop-shadow-lg relative z-10`} />
+      </div>
+      {isOpen && (
+        <span className="text-3xl font-black tracking-tight relative">
+          <span className="bg-gradient-to-r from-white via-brand-blue-bg to-brand-green-bg bg-clip-text text-transparent drop-shadow-lg">Stock</span>
+          <span className="bg-gradient-to-r from-brand-green/80 via-brand-green/60 to-brand-green/40 bg-clip-text text-transparent">Pro</span>
+        </span>
+      )}
+    </button>
   </div>
 );
 

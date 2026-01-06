@@ -49,7 +49,7 @@ export interface StatItem {
 
 const defaultImages: AppImages = {
   // Blue/Green Professional Icon
-  logo: 'https://cdn-icons-png.flaticon.com/512/2920/2920326.png', 
+  logo: '/01.png', 
   // Office / Finance background
   heroBg: 'https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?q=80&w=2000&auto=format&fit=crop', 
   dashboard: '/Screenshot 2026-01-06 at 9.21.04 AM.jpeg',

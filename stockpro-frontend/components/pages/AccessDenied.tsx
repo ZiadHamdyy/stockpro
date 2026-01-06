@@ -58,7 +58,7 @@ const AccessDenied: React.FC<AccessDeniedProps> = ({ missingPermissions = [] }) 
         {/* Logo at bottom */}
         <div className="mt-8 text-center">
           <img
-            src="/stockpro.jpeg"
+            src="/01.png"
             alt="StockPro"
             className="max-w-xs h-auto mx-auto opacity-50"
           />
