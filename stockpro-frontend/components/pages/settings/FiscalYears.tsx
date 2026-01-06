@@ -174,7 +174,8 @@ const FiscalYearRow: React.FC<{
         if (!normalizedReferenceDate) return null;
 
         const itemCode = item.code;
-        const openingBalance = toNumber((item as any).openingBalance ?? 0);
+        // Use aggregated opening balance from ALL stores/branches (company-wide)
+        const openingBalance = aggregatedOpeningBalances[itemCode] || 0;
         const initialPurchasePrice = toNumber(item.initialPurchasePrice ?? item.purchasePrice ?? 0);
 
         // Get all purchase invoices up to the reference date
@@ -204,7 +205,7 @@ const FiscalYearRow: React.FC<{
         }
         
         return totalCost / totalQty;
-    }, [transformedPurchaseInvoices, normalizeDate, toNumber]);
+    }, [transformedPurchaseInvoices, normalizeDate, toNumber, aggregatedOpeningBalances]);
 
     // Transform store vouchers to match expected format
     const transformedStoreReceiptVouchers = useMemo(() => {
