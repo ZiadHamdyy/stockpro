@@ -51,7 +51,7 @@ const PricingCard: React.FC<PricingCardProps> = ({ plan, planKey, monthlyPrice, 
       )}
       {/* Discount Banner */}
       <div className={`text-center mb-3 ${planKey === 'basic' ? 'bg-blue-500' : planKey === 'pro' ? 'bg-orange-500' : 'bg-blue-800'} text-white py-2 px-4 rounded-lg text-xs font-bold`}>
-        {planKey === 'basic' || planKey === 'pro' ? 'عرض ال 50% خصم' : 'عرض ال 550 خصم'}
+        {planKey === 'basic' || planKey === 'pro' || planKey === 'enterprise' ? 'عرض ال 50% خصم' : 'عرض ال 550 خصم'}
       </div>
       
       <h3 className={`text-2xl font-black text-center mb-2 bg-gradient-to-r ${colors.gradient} bg-clip-text text-transparent`}>{plan}</h3>
@@ -107,7 +107,7 @@ const PricingCard: React.FC<PricingCardProps> = ({ plan, planKey, monthlyPrice, 
               <CheckCircleIcon className="w-4 h-4 text-white" />
             </div>
             <span className="text-sm font-semibold">
-              الفروع: {planKey === 'basic' ? '1' : planKey === 'pro' ? '1-5' : '1-5'}
+              الفروع: {planKey === 'basic' ? '1' : planKey === 'pro' ? '1-5' : '1-15'}
             </span>
           </div>
 
@@ -132,13 +132,13 @@ const PricingCard: React.FC<PricingCardProps> = ({ plan, planKey, monthlyPrice, 
           </div>
 
           {/* Accounts */}
-          {(planKey === 'basic' || planKey === 'enterprise') && (
+          {(planKey === 'basic' || planKey === 'pro' || planKey === 'enterprise') && (
             <div className="flex items-center text-slate-700">
               <div className={`bg-gradient-to-br ${colors.gradient} rounded-full p-1.5 ml-3 flex-shrink-0`}>
                 <CheckCircleIcon className="w-4 h-4 text-white" />
               </div>
               <span className="text-sm font-semibold">
-                الحسابات: {planKey === 'basic' ? 'أساسية' : 'احترافية'}
+                الحسابات: {planKey === 'basic' ? 'أساسية' : planKey === 'pro' ? 'متقدمة' : 'احترافية'}
               </span>
             </div>
           )}
@@ -149,7 +149,7 @@ const PricingCard: React.FC<PricingCardProps> = ({ plan, planKey, monthlyPrice, 
               <CheckCircleIcon className="w-4 h-4 text-white" />
             </div>
             <span className="text-sm font-semibold">
-              التقارير: {planKey === 'basic' ? 'مبيعات ومشتريات' : planKey === 'pro' ? 'متقدمة وتفصيلية - أرياح وحركات صنف' : 'تحليل مالي ومؤشرات أداء'}
+              التقارير: {planKey === 'basic' ? 'مبيعات ومشتريات' : planKey === 'pro' ? 'متقدمة وتفصيلية' : 'تحليل مالي ومؤشرات أداء'}
             </span>
           </div>
 
@@ -171,7 +171,7 @@ const PricingCard: React.FC<PricingCardProps> = ({ plan, planKey, monthlyPrice, 
               <CheckCircleIcon className="w-4 h-4 text-white" />
             </div>
             <span className="text-sm font-semibold">
-              الدعم: {planKey === 'basic' ? 'بريد إلكتروني / تذكرة' : planKey === 'pro' ? 'محادثة مباشرة' : 'أولوية قصوى - محير حساب'}
+              الدعم: {planKey === 'basic' ? 'بريد إلكتروني / تذكرة' : planKey === 'pro' ? 'محادثة مباشرة' : 'أولوية قصوى - مدير حساب'}
             </span>
           </div>
         </div>
