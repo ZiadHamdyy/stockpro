@@ -318,13 +318,11 @@ const TotalExpensesReport: React.FC<TotalExpensesReportProps> = ({
                     #printable-container { overflow: visible !important; }
                     thead { display: table-header-group; }
                     tfoot { display: table-row-group !important; }
-                    table { width: 100%; border-collapse: collapse; font-size: 12px !important; }
-                    th { font-size: 12px !important; font-weight: bold !important; border-left: 1px solid #D1D5DB !important; padding: 6px 8px !important; }
-                    td { font-size: 12px !important; border-left: 1px solid #D1D5DB !important; padding: 6px 8px !important; }
+                    table { width: 100%; border-collapse: collapse; font-size: 12px !important; border: 1px solid #D1D5DB !important; }
+                    th { font-size: 12px !important; font-weight: bold !important; border-left: 1px solid #D1D5DB !important; border-top: 1px solid #D1D5DB !important; border-bottom: 1px solid #D1D5DB !important; padding: 6px 8px !important; }
+                    td { font-size: 12px !important; border-left: 1px solid #D1D5DB !important; border-top: 1px solid #D1D5DB !important; border-bottom: 1px solid #D1D5DB !important; padding: 6px 8px !important; }
                     tbody tr:nth-child(2n+1) { background: #FFFFFF !important; }
                     tbody tr:nth-child(2n+2) { background: #F3F4F6 !important; }
-                    tbody tr:nth-child(2n+1) td.sticky { background: #FFFFFF !important; }
-                    tbody tr:nth-child(2n+2) td.sticky { background: #F3F4F6 !important; }
                     tfoot tr { page-break-inside: avoid !important; break-inside: avoid !important; }
                     tfoot td { padding: 6px 8px !important; }
                     tfoot th { padding: 6px 8px !important; }
@@ -522,7 +520,7 @@ const TotalExpensesReport: React.FC<TotalExpensesReportProps> = ({
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-brand-blue">
               <tr>
-                <th className="px-4 py-3 text-right text-sm font-semibold text-white uppercase sticky right-0 bg-brand-blue z-10 border-l border-gray-300">
+                <th className="px-4 py-3 text-right text-sm font-semibold text-white uppercase border-l border-gray-300">
                   اسم البند
                 </th>
                 {months.map((month) => (
@@ -548,7 +546,7 @@ const TotalExpensesReport: React.FC<TotalExpensesReportProps> = ({
                 const rowBgClass = isEvenRow ? "bg-white" : "bg-gray-100";
                 return (
                   <tr key={idx} className={`hover:bg-brand-blue-bg ${rowBgClass}`}>
-                    <td className={`px-4 py-4 font-medium text-brand-dark whitespace-nowrap sticky right-0 ${rowBgClass} hover:bg-brand-blue-bg z-10 border-l border-gray-300`}>
+                    <td className={`px-4 py-4 font-medium text-brand-dark whitespace-nowrap border-l border-gray-300`}>
                       {item.name}
                     </td>
                     {item.monthly.map((amount, index) => (
@@ -568,7 +566,7 @@ const TotalExpensesReport: React.FC<TotalExpensesReportProps> = ({
             </tbody>
             <tfoot className="bg-brand-blue text-white">
               <tr className="font-bold">
-                <td className="px-2 py-1 text-right text-white sticky right-0 bg-brand-blue z-10 border-l border-gray-300">
+                <td className="px-2 py-1 text-right text-white border-l border-gray-300">
                   الإجمالي الشهري
                 </td>
                 {monthlyTotals.map((total, index) => (
