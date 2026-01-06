@@ -123,25 +123,42 @@ const AddCustomer: React.FC<AddCustomerProps> = ({
   ) => {
     const value = e.target.value;
     // Allow empty string, negative sign, and valid numbers (including decimals)
+    // Keep as string to preserve what user types until save
     if (value === "" || value === "-" || /^-?\d*\.?\d*$/.test(value)) {
       setCustomerData((prev: any) => ({
         ...prev,
-        creditLimit: value === "" || value === "-" ? value : parseFloat(value) || 0,
+        creditLimit: value,
       }));
     }
   };
 
   const onSave = async () => {
+    // Helper function to convert string to number, preserving the actual value entered
+    const parseNumericValue = (value: string | number | undefined): number | undefined => {
+      if (value === undefined || value === null) return undefined;
+      if (typeof value === "number") {
+        // If already a number, return it (including 0)
+        return isNaN(value) ? undefined : value;
+      }
+      if (typeof value === "string") {
+        const trimmed = value.trim();
+        // Empty string or just "-" means no value entered
+        if (trimmed === "" || trimmed === "-") return undefined;
+        const parsed = parseFloat(trimmed);
+        // Return the parsed number (including 0 if user entered 0)
+        // Only return undefined if parsing failed (NaN)
+        return isNaN(parsed) ? undefined : parsed;
+      }
+      return undefined;
+    };
+
     const dataToSave = {
       ...customerData,
       openingBalance:
         typeof customerData.openingBalance === "string"
           ? parseFloat(customerData.openingBalance) || 0
           : customerData.openingBalance,
-      creditLimit:
-        typeof customerData.creditLimit === "string"
-          ? parseFloat(customerData.creditLimit) || 0
-          : customerData.creditLimit,
+      creditLimit: parseNumericValue(customerData.creditLimit),
     };
     await handleSave(dataToSave, editingId || undefined);
     if (!("id" in customerData)) {

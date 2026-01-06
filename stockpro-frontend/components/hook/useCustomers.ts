@@ -111,6 +111,7 @@ export const useCustomers = () => {
               nationalAddress: customerData.nationalAddress,
               phone: customerData.phone,
               openingBalance: customerData.openingBalance,
+              creditLimit: customerData.creditLimit,
             },
           }).unwrap();
           showToast("تم تعديل العميل بنجاح");
@@ -123,6 +124,7 @@ export const useCustomers = () => {
             nationalAddress: customerData.nationalAddress!,
             phone: customerData.phone!,
             openingBalance: customerData.openingBalance || 0,
+            creditLimit: customerData.creditLimit,
           };
           await createCustomer(createData).unwrap();
           showToast("تم إضافة العميل بنجاح");
