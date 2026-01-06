@@ -1087,17 +1087,20 @@ const BalanceSheet: React.FC = () => {
    * Calculate retained earnings - COMPANY-WIDE calculation
    * Includes retained earnings from all previous closed fiscal years
    * Plus current period net profit and P&L vouchers from all branches
+   * 
+   * Note: Retained earnings is affected by inventory valuation method (average cost vs last purchase cost)
+   * through the calculatedNetProfit → calculatedInventoryValue dependency chain.
    */
   const calculatedRetainedEarnings = useMemo(() => {
     const normalizedStartDate = normalizeDate(startDate);
     const normalizedEndDate = normalizeDate(endDate);
-    const periodStartDate = new Date(normalizedStartDate);
+    const periodEndDate = new Date(normalizedEndDate);
 
-    // Find all CLOSED fiscal years that ended before the current period start date
+    // Find all CLOSED fiscal years that ended before the current period end date
     const previousClosedFiscalYears = fiscalYears.filter((fy) => {
       if (fy.status !== "CLOSED") return false;
       const fyEndDate = new Date(normalizeDate(fy.endDate));
-      return fyEndDate < periodStartDate;
+      return fyEndDate < periodEndDate;
     });
 
     // Sum retained earnings from all previous closed fiscal years
@@ -1141,6 +1144,7 @@ const BalanceSheet: React.FC = () => {
     endDate,
     apiReceiptVouchers,
     apiPaymentVouchers,
+    inventoryValuationMethod,
   ]);
 
   const displayData = useMemo(() => {
