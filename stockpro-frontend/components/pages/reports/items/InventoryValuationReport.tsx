@@ -21,6 +21,9 @@ import {
   buildPermission,
 } from "../../../../enums/permissions.enum";
 import { useUserPermissions } from "../../../hook/usePermissions";
+import { calculateCompanyInventoryValuation } from "../../../../utils/inventoryValuation";
+import { useGetFinancialSettingsQuery } from "../../../store/slices/financialSettings/financialSettingsApi";
+import { ValuationMethod } from "../../../pages/settings/financial-system/types";
 
 // Helper function to get user's branch ID
 const getUserBranchId = (user: User | null): string | null => {
@@ -44,6 +47,27 @@ const InventoryValuationReport: React.FC<InventoryValuationReportProps> = ({
   currentUser,
 }) => {
   const { hasPermission } = useUserPermissions();
+  
+  // Get financial settings for inventory valuation method
+  const { data: financialSettings } = useGetFinancialSettingsQuery();
+  
+  // Map inventory valuation method to valuation method string (for company-wide calculation)
+  const systemValuationMethod = useMemo(() => {
+    if (!financialSettings?.inventoryValuationMethod) {
+      return "averageCost"; // Default
+    }
+    
+    if (financialSettings.inventoryValuationMethod === ValuationMethod.WEIGHTED_AVERAGE) {
+      return "averageCost";
+    }
+    
+    if (financialSettings.inventoryValuationMethod === ValuationMethod.FIFO || 
+        financialSettings.inventoryValuationMethod === ValuationMethod.LAST_PURCHASE_PRICE) {
+      return "purchasePrice";
+    }
+    
+    return "averageCost"; // Default fallback
+  }, [financialSettings?.inventoryValuationMethod]);
   
   // Check if user has SEARCH permission to view all branches
   const canSearchAllBranches = useMemo(
@@ -91,17 +115,16 @@ const InventoryValuationReport: React.FC<InventoryValuationReportProps> = ({
     ? null
     : stores.find((store) => store.branchId === selectedBranchId);
   
-  // When "all branches" is selected, fetch items from the first store to get the item list
+  // When "all branches" is selected, fetch all items (no store filter) to get complete item list
   // (we'll aggregate opening balances from all stores separately)
   // Otherwise, fetch items for the selected store
-  const firstStore = stores.length > 0 ? stores[0] : null;
   const { data: apiItemsForSelectedStore = [], isLoading: itemsLoadingForSelectedStore } =
     useGetItemsQuery(
       selectedStore 
         ? { storeId: selectedStore.id } 
-        : (firstStore && selectedBranchId === "all" ? { storeId: firstStore.id } : undefined),
+        : (selectedBranchId === "all" ? undefined : undefined),
       {
-        skip: selectedBranchId === "all" && !firstStore,
+        skip: false,
       }
     );
   
@@ -116,46 +139,40 @@ const InventoryValuationReport: React.FC<InventoryValuationReportProps> = ({
     return Number.isFinite(parsed) ? parsed : 0;
   }, []);
   
+  // Aggregate opening balances from all StoreItems across all stores/branches
+  // This creates a map of item code -> total opening balance (sum across all stores)
+  const aggregatedOpeningBalances = useMemo(() => {
+    const balanceMap: Record<string, number> = {};
+    
+    (allStoreItems as any[]).forEach((storeItem) => {
+      const itemCode = storeItem.item?.code;
+      if (itemCode) {
+        balanceMap[itemCode] = (balanceMap[itemCode] || 0) + toNumber(storeItem.openingBalance || 0);
+      }
+    });
+    
+    return balanceMap;
+  }, [allStoreItems, toNumber]);
+  
   // Aggregate items and opening balances from all stores when "all branches" is selected
   const aggregatedItems = useMemo(() => {
     if (selectedBranchId !== "all") {
       return apiItemsForSelectedStore;
     }
     
-    // Create a map of aggregated opening balances by item code
-    const openingBalanceMap = new Map<string, number>();
-    allStoreItems.forEach((storeItem: any) => {
-      const itemCode = storeItem.item?.code;
-      if (itemCode) {
-        const current = openingBalanceMap.get(itemCode) || 0;
-        openingBalanceMap.set(itemCode, current + toNumber(storeItem.openingBalance ?? 0));
-      }
-    });
-    
-    // Create a set of all item codes that exist in any store
-    const allItemCodes = new Set<string>();
-    allStoreItems.forEach((storeItem: any) => {
-      if (storeItem.item?.code) {
-        allItemCodes.add(storeItem.item.code);
-      }
-    });
-    
-    // Start with items from the first store
+    // When "all branches" is selected, we need to get ALL items from ALL stores
+    // Use apiItemsForSelectedStore as a base, but we should ideally fetch all items
+    // For now, we'll use items from the first store and set their opening balances from aggregatedOpeningBalances
     const itemsMap = new Map<string, any>();
     apiItemsForSelectedStore.forEach((item: any) => {
       itemsMap.set(item.code, {
         ...item,
-        openingBalance: openingBalanceMap.get(item.code) ?? 0,
+        openingBalance: aggregatedOpeningBalances[item.code] ?? 0,
       });
     });
     
-    // Add items that exist in other stores but not in the first store
-    // (We'll use the item structure from the first store as a template, but this is a limitation)
-    // For now, we'll use items from the first store and aggregate opening balances
-    // Items that only exist in other stores won't appear, but their opening balances are aggregated
-    
     return Array.from(itemsMap.values());
-  }, [selectedBranchId, allStoreItems, apiItemsForSelectedStore, toNumber]);
+  }, [selectedBranchId, allStoreItems, apiItemsForSelectedStore, aggregatedOpeningBalances]);
   
   // Use aggregated items when "all branches" is selected, otherwise use selected store items
   const apiItems = selectedBranchId === "all" ? aggregatedItems : apiItemsForSelectedStore;
@@ -348,11 +365,13 @@ const InventoryValuationReport: React.FC<InventoryValuationReportProps> = ({
   >("averageCost");
 
   // Helper function to get last purchase price before or on a reference date
+  // When "all branches" is selected, this doesn't filter by branch (company-wide)
   const getLastPurchasePriceBeforeDate = useCallback((itemCode: string, referenceDate: string): number | null => {
     const normalizedReferenceDate = normalizeDate(referenceDate);
     if (!normalizedReferenceDate) return null;
 
-    // Filter purchase invoices by branch and date
+    // When "all branches" is selected, don't filter by branch (company-wide calculation)
+    // Otherwise, filter by selected branch
     const selectedBranchName = selectedBranchId === "all" 
       ? "all"
       : branches.find(b => b.id === selectedBranchId)?.name || "";
@@ -429,14 +448,21 @@ const InventoryValuationReport: React.FC<InventoryValuationReportProps> = ({
   }, [transformedSalesInvoices, selectedBranchId, branches, normalizeDate]);
 
   // Helper function to calculate weighted average cost up to a reference date
+  // When "all branches" is selected, this uses aggregated opening balance and doesn't filter by branch (company-wide)
   const calculateWeightedAverageCost = useCallback((item: any, referenceDate: string): number | null => {
     const normalizedReferenceDate = normalizeDate(referenceDate);
     if (!normalizedReferenceDate) return null;
 
     const itemCode = item.code;
-    const openingBalance = toNumber((item as any).openingBalance ?? 0);
+    // When "all branches" is selected, use aggregated opening balance from all stores
+    // Otherwise, use the item's opening balance
+    const openingBalance = selectedBranchId === "all"
+      ? (aggregatedOpeningBalances[itemCode] || 0)
+      : toNumber((item as any).openingBalance ?? 0);
     const initialPurchasePrice = toNumber(item.initialPurchasePrice ?? item.purchasePrice ?? 0);
 
+    // When "all branches" is selected, don't filter by branch (company-wide calculation)
+    // Otherwise, filter by selected branch
     const selectedBranchName = selectedBranchId === "all" 
       ? "all"
       : branches.find(b => b.id === selectedBranchId)?.name || "";
@@ -475,13 +501,118 @@ const InventoryValuationReport: React.FC<InventoryValuationReportProps> = ({
     }
     
     return totalCost / totalQty;
-  }, [transformedPurchaseInvoices, selectedBranchId, branches, normalizeDate, toNumber]);
+  }, [transformedPurchaseInvoices, selectedBranchId, branches, normalizeDate, toNumber, aggregatedOpeningBalances]);
 
   const handleViewReport = useCallback(() => {
     if (isLoading) return;
 
     const normalizedEndDate = normalizeDate(endDate);
 
+    // When "all branches" is selected, use the shared company-wide inventory calculation
+    // to ensure consistency with Balance Sheet and Income Statement
+    if (selectedBranchId === "all") {
+      // Use the system valuation method from financial settings for company-wide calculation
+      const effectiveValuationMethod = systemValuationMethod;
+      
+      // Create helper functions that don't filter by branch (company-wide)
+      const getLastPurchasePriceCompanyWide = (itemCode: string, referenceDate: string): number | null => {
+        const normalizedReferenceDate = normalizeDate(referenceDate);
+        if (!normalizedReferenceDate) return null;
+
+        // Get all purchase invoices up to the reference date, sorted by date descending (all branches)
+        const relevantInvoices = transformedPurchaseInvoices
+          .filter((inv) => {
+            const txDate = normalizeDate(inv.date) || normalizeDate(inv.invoiceDate);
+            return txDate && txDate <= normalizedReferenceDate;
+          })
+          .sort((a, b) => {
+            const dateA = normalizeDate(a.date) || normalizeDate(a.invoiceDate) || "";
+            const dateB = normalizeDate(b.date) || normalizeDate(b.invoiceDate) || "";
+            return dateB.localeCompare(dateA); // Descending order
+          });
+
+        // Find the most recent purchase price for this item
+        for (const inv of relevantInvoices) {
+          for (const invItem of inv.items) {
+            if (invItem.id === itemCode && invItem.price) {
+              return invItem.price;
+            }
+          }
+        }
+
+        return null;
+      };
+
+      const calculateWeightedAverageCostCompanyWide = (item: any, referenceDate: string): number | null => {
+        const normalizedReferenceDate = normalizeDate(referenceDate);
+        if (!normalizedReferenceDate) return null;
+
+        const itemCode = item.code;
+        const openingBalance = aggregatedOpeningBalances[itemCode] || 0;
+        const initialPurchasePrice = toNumber(item.initialPurchasePrice ?? item.purchasePrice ?? 0);
+
+        // Get all purchase invoices up to the reference date (no branch filtering - all branches)
+        const relevantInvoices = transformedPurchaseInvoices
+          .filter((inv) => {
+            const txDate = normalizeDate(inv.date) || normalizeDate(inv.invoiceDate);
+            return txDate && txDate <= normalizedReferenceDate;
+          });
+
+        // Start with opening balance at initialPurchasePrice
+        let totalCost = openingBalance > 0 ? openingBalance * initialPurchasePrice : 0;
+        let totalQty = openingBalance;
+
+        // Add purchase invoices to the weighted average
+        for (const inv of relevantInvoices) {
+          for (const invItem of inv.items) {
+            if (invItem.id === itemCode && invItem.total && invItem.qty) {
+              totalCost += invItem.total; // Use total invoice value per item
+              totalQty += invItem.qty;
+            }
+          }
+        }
+
+        // If no purchases and no opening balance, return initialPurchasePrice if it exists
+        if (totalQty === 0) {
+          return initialPurchasePrice > 0 ? initialPurchasePrice : null;
+        }
+        
+        return totalCost / totalQty;
+      };
+
+      // Use the shared company-wide inventory calculation
+      const { results } = calculateCompanyInventoryValuation({
+        items,
+        aggregatedOpeningBalances,
+        purchaseInvoices: transformedPurchaseInvoices,
+        salesInvoices: transformedSalesInvoices,
+        purchaseReturns: transformedPurchaseReturns,
+        salesReturns: transformedSalesReturns,
+        storeReceiptVouchers: transformedStoreReceiptVouchers,
+        storeIssueVouchers: transformedStoreIssueVouchers,
+        storeTransferVouchers: transformedStoreTransferVouchers,
+        stores,
+        endDate,
+        valuationMethod: effectiveValuationMethod,
+        normalizeDate,
+        toNumber,
+        getLastPurchasePriceBeforeDate: getLastPurchasePriceCompanyWide,
+        calculateWeightedAverageCost: calculateWeightedAverageCostCompanyWide,
+      });
+
+      // Transform results to match expected format
+      const valuationData = results.map((result) => ({
+        ...result.item,
+        balance: result.balance,
+        cost: result.cost,
+        value: result.value,
+      }));
+
+      setReportData(valuationData);
+      return;
+    }
+
+    // For branch-specific calculation, use the original logic
     const valuationData = items.map((item) => {
       // Use StoreItem's openingBalance as base, or 0 if not available
       let balance = toNumber((item as any).openingBalance ?? 0);
@@ -624,6 +755,8 @@ const InventoryValuationReport: React.FC<InventoryValuationReportProps> = ({
     calculateWeightedAverageCost,
     startDate,
     toNumber,
+    systemValuationMethod,
+    aggregatedOpeningBalances,
   ]);
 
   useEffect(() => {
@@ -743,11 +876,14 @@ const InventoryValuationReport: React.FC<InventoryValuationReportProps> = ({
             <div className="space-y-2 text-right">
               <p className="text-base text-gray-700">
                 <span className="font-semibold text-gray-800">تقييم حسب سعر:</span> {
-                  valuationMethod === 'purchasePrice' ? 'آخر شراء' :
-                  valuationMethod === 'averageCost' ? 'متوسط التكلفة' :
-                  valuationMethod === 'salePrice' ? 'سعر البيع' :
+                  (selectedBranchId === "all" ? systemValuationMethod : valuationMethod) === 'purchasePrice' ? 'آخر شراء' :
+                  (selectedBranchId === "all" ? systemValuationMethod : valuationMethod) === 'averageCost' ? 'متوسط التكلفة' :
+                  (selectedBranchId === "all" ? systemValuationMethod : valuationMethod) === 'salePrice' ? 'سعر البيع' :
                   'آخر شراء'
                 }
+                {selectedBranchId === "all" && (
+                  <span className="text-sm text-gray-600 mr-2">(من إعدادات النظام - يطابق القوائم المالية)</span>
+                )}
               </p>
               <p className="text-base text-gray-700">
                 <span className="font-semibold text-gray-800">الفرع:</span> {selectedBranchId === "all" ? "جميع الفروع" : branches.find(b => b.id === selectedBranchId)?.name || ""}
@@ -789,13 +925,20 @@ const InventoryValuationReport: React.FC<InventoryValuationReportProps> = ({
             <label className="font-semibold">تقييم حسب سعر:</label>
             <select
               className="p-2 border-2 border-brand-blue rounded-md bg-brand-blue-bg"
-              value={valuationMethod}
+              value={selectedBranchId === "all" ? systemValuationMethod : valuationMethod}
               onChange={(e) => setValuationMethod(e.target.value as any)}
+              disabled={selectedBranchId === "all"}
+              title={selectedBranchId === "all" ? "عند اختيار جميع الفروع، يتم استخدام طريقة التقييم من إعدادات النظام لضمان التطابق مع القوائم المالية" : ""}
             >
               <option value="purchasePrice">آخر شراء</option>
               <option value="averageCost">متوسط التكلفة</option>
               <option value="salePrice">سعر البيع</option>
             </select>
+            {selectedBranchId === "all" && (
+              <span className="text-sm text-gray-600" title="عند اختيار جميع الفروع، يتم استخدام طريقة التقييم من إعدادات النظام لضمان التطابق مع قائمة المركز المالي وقائمة الدخل">
+                (يستخدم إعدادات النظام)
+              </span>
+            )}
             <label className="font-semibold">من:</label>
             <input
               type="date"

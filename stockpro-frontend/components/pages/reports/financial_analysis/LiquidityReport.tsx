@@ -31,6 +31,7 @@ import { useGetStoreTransferVouchersQuery } from '../../../store/slices/storeTra
 import { useGetCompanyQuery } from '../../../store/slices/companyApiSlice';
 import { useGetFinancialSettingsQuery } from '../../../store/slices/financialSettings/financialSettingsApi';
 import { ValuationMethod } from '../../../pages/settings/financial-system/types';
+import { calculateCompanyInventoryValuation } from '../../../../utils/inventoryValuation';
 
 const resolveRecordAmount = (record: any): number => {
     if (!record) return 0;
@@ -579,114 +580,30 @@ const LiquidityReport: React.FC<LiquidityReportProps> = ({ title }) => {
      * All transaction types (purchases, sales, returns, store vouchers) are processed
      * without branch filtering to ensure company-wide inventory calculation.
      */
+    /**
+     * Calculate inventory value - COMPANY-WIDE calculation
+     * Uses the shared calculateCompanyInventoryValuation utility for consistency
+     * with Balance Sheet, Income Statement, and Inventory Valuation Report.
+     */
     const calculatedInventoryValue = useMemo(() => {
-        const normalizedEndDate = normalizeDate(defaultEndDate);
-        if (!normalizedEndDate || transformedItems.length === 0) return 0;
-
-        // Use the unified valuation method from financial settings
-        const valuationMethod = inventoryValuationMethod;
-
-        const valuationData = transformedItems.map((item) => {
-            // Use aggregated opening balance from ALL stores/branches for this item
-            // This ensures company-wide inventory calculation includes all branches
-            const itemCode = item.code;
-            let balance = aggregatedOpeningBalances[itemCode] || 0;
-
-            // Filter transactions up to and including endDate (all branches)
-            const filterByDate = (tx: any) => {
-                if (!normalizedEndDate) return false;
-                const txDate =
-                    normalizeDate(tx.date) ||
-                    normalizeDate(tx.invoiceDate) ||
-                    normalizeDate(tx.transactionDate);
-                if (!txDate) return false;
-                return txDate <= normalizedEndDate;
-            };
-
-            // Calculate balance across all branches (no branch filtering)
-            // All purchase invoices from all branches are included
-            transformedPurchaseInvoices.filter(filterByDate).forEach((inv) =>
-                inv.items.forEach((i) => {
-                    if (i.id === item.code) balance += toNumber(i.qty);
-                }),
-            );
-            transformedSalesReturns.filter(filterByDate).forEach((inv) =>
-                inv.items.forEach((i) => {
-                    if (i.id === item.code) balance += toNumber(i.qty);
-                }),
-            );
-            transformedStoreReceiptVouchers.filter(filterByDate).forEach((v) =>
-                v.items.forEach((i) => {
-                    if (i.id === item.code) balance += toNumber(i.qty);
-                }),
-            );
-
-            // Subtract sales invoices from all branches (no branch filtering)
-            transformedSalesInvoices.filter(filterByDate).forEach((inv) =>
-                inv.items.forEach((i) => {
-                    if (i.id === item.code) balance -= toNumber(i.qty);
-                }),
-            );
-            // Subtract purchase returns from all branches (no branch filtering)
-            transformedPurchaseReturns.filter(filterByDate).forEach((inv) =>
-                inv.items.forEach((i) => {
-                    if (i.id === item.code) balance -= toNumber(i.qty);
-                }),
-            );
-            // Subtract store issue vouchers from all branches (no branch filtering)
-            transformedStoreIssueVouchers.filter(filterByDate).forEach((v) =>
-                v.items.forEach((i) => {
-                    if (i.id === item.code) balance -= toNumber(i.qty);
-                }),
-            );
-
-            // Handle store transfers (all branches)
-            transformedStoreTransferVouchers.filter(filterByDate).forEach((v) => {
-                const fromStore = stores.find((s) => s.name === v.fromStore);
-                const toStore = stores.find((s) => s.name === v.toStore);
-                v.items.forEach((i) => {
-                    if (i.id === item.code) {
-                        const qty = toNumber(i.qty);
-                        // For all branches, transfers between stores don't affect total balance
-                        // Since we're calculating for all branches, transfers are neutral
-                    }
-                });
-            });
-
-            // Calculate cost based on valuation method at end of the period (end date)
-            let cost = 0;
-            const priceReferenceDate = defaultEndDate;
-            const fallbackPrice =
-                toNumber(item.initialPurchasePrice ?? item.purchasePrice ?? 0);
-            
-            if (valuationMethod === "averageCost") {
-                const avgCost = calculateWeightedAverageCost(item, priceReferenceDate);
-                // Fallback to last purchase price if no purchases found
-                if (avgCost === null) {
-                    const lastPurchasePrice = getLastPurchasePriceBeforeDate(item.code, priceReferenceDate);
-                    cost = lastPurchasePrice ?? fallbackPrice;
-                } else {
-                    cost = avgCost;
-                }
-            } else if (valuationMethod === "purchasePrice") {
-                const lastPurchasePrice = getLastPurchasePriceBeforeDate(item.code, priceReferenceDate);
-                cost = lastPurchasePrice ?? fallbackPrice;
-            } else {
-                cost = fallbackPrice;
-            }
-
-            const value = balance * cost;
-
-            return {
-                ...item,
-                balance,
-                cost,
-                value,
-            };
+        const { totalValue } = calculateCompanyInventoryValuation({
+            items: transformedItems,
+            aggregatedOpeningBalances,
+            purchaseInvoices: transformedPurchaseInvoices,
+            salesInvoices: transformedSalesInvoices,
+            purchaseReturns: transformedPurchaseReturns,
+            salesReturns: transformedSalesReturns,
+            storeReceiptVouchers: transformedStoreReceiptVouchers,
+            storeIssueVouchers: transformedStoreIssueVouchers,
+            storeTransferVouchers: transformedStoreTransferVouchers,
+            stores,
+            endDate: defaultEndDate,
+            valuationMethod: inventoryValuationMethod,
+            normalizeDate,
+            toNumber,
+            getLastPurchasePriceBeforeDate,
+            calculateWeightedAverageCost,
         });
-
-        // Calculate total inventory value (same as InventoryValuationReport line 520)
-        const totalValue = valuationData.reduce((acc, item) => acc + item.value, 0);
         return totalValue;
     }, [
         transformedItems,
