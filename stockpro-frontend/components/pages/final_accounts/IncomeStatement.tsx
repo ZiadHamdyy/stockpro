@@ -603,6 +603,67 @@ const IncomeStatement: React.FC = () => {
     return financialData.netSales - allowedDiscount;
   }, [financialData, allowedDiscount]);
 
+  // Calculate beginning inventory using the shared inventory valuation utility
+  // Beginning inventory = inventory value at the day before the start date (company-wide)
+  const calculatedBeginningInventory = useMemo(() => {
+    if (!startDate) return financialData?.beginningInventory || 0;
+
+    const normalizedStartDate = normalizeDate(startDate);
+    if (!normalizedStartDate) return financialData?.beginningInventory || 0;
+
+    const start = new Date(normalizedStartDate);
+    if (Number.isNaN(start.getTime())) return financialData?.beginningInventory || 0;
+
+    // Day before start date
+    const dayBeforeStart = new Date(start);
+    dayBeforeStart.setDate(dayBeforeStart.getDate() - 1);
+    const dayBeforeStartStr = dayBeforeStart.toISOString().split("T")[0];
+
+    const { totalValue } = calculateCompanyInventoryValuation({
+      items: transformedItems,
+      aggregatedOpeningBalances,
+      purchaseInvoices: transformedPurchaseInvoices,
+      salesInvoices: transformedSalesInvoices,
+      purchaseReturns: transformedPurchaseReturns,
+      salesReturns: transformedSalesReturns,
+      storeReceiptVouchers: transformedStoreReceiptVouchers,
+      storeIssueVouchers: transformedStoreIssueVouchers,
+      storeTransferVouchers: transformedStoreTransferVouchers,
+      stores,
+      endDate: dayBeforeStartStr,
+      valuationMethod: inventoryValuationMethod,
+      normalizeDate,
+      toNumber,
+      getLastPurchasePriceBeforeDate,
+      calculateWeightedAverageCost,
+    });
+
+    // Fallback to backend value if shared calculation returns 0 but backend has a value
+    if (totalValue === 0 && (financialData?.beginningInventory || 0) !== 0) {
+      return financialData!.beginningInventory;
+    }
+
+    return totalValue;
+  }, [
+    startDate,
+    transformedItems,
+    transformedSalesInvoices,
+    transformedSalesReturns,
+    transformedPurchaseInvoices,
+    transformedPurchaseReturns,
+    transformedStoreReceiptVouchers,
+    transformedStoreIssueVouchers,
+    transformedStoreTransferVouchers,
+    stores,
+    normalizeDate,
+    toNumber,
+    getLastPurchasePriceBeforeDate,
+    calculateWeightedAverageCost,
+    inventoryValuationMethod,
+    aggregatedOpeningBalances,
+    financialData,
+  ]);
+
   const statementRows = useMemo<StatementRow[]>(() => {
     if (!financialData) return [];
 
@@ -620,14 +681,14 @@ const IncomeStatement: React.FC = () => {
     addRow("صافي المبيعات", undefined, netSalesAfterDiscount);
 
     addRow("تكلفة البضاعة المباعة");
-    addRow("رصيد مخزون أول المدة", financialData.beginningInventory);
+    addRow("رصيد مخزون أول المدة", calculatedBeginningInventory);
     addRow("(+) صافي المشتريات", calculatedNetPurchases);
     addRow(
       "(-) رصيد مخزون آخر المدة",
       asNegative(calculatedEndingInventory),
     );
     const calculatedCogs =
-      financialData.beginningInventory +
+      calculatedBeginningInventory +
       calculatedNetPurchases -
       calculatedEndingInventory;
     addRow(
@@ -964,8 +1025,8 @@ const IncomeStatement: React.FC = () => {
               </tr>
               <tr>
                 <Td>رصيد مخزون أول المدة</Td>
-                <Td className={`font-mono text-left ${getNegativeNumberClass(financialData.beginningInventory)}`}>
-                  {formatNumber(financialData.beginningInventory)}
+                <Td className={`font-mono text-left ${getNegativeNumberClass(calculatedBeginningInventory)}`}>
+                  {formatNumber(calculatedBeginningInventory)}
                 </Td>
                 <Td></Td>
               </tr>
@@ -986,16 +1047,16 @@ const IncomeStatement: React.FC = () => {
               <tr className="font-bold bg-gray-100">
                 <Td>تكلفة البضاعة المباعة</Td>
                 <Td></Td>
-                <Td className={`font-mono text-left text-lg text-red-600 ${getNegativeNumberClass(financialData.beginningInventory + calculatedNetPurchases - calculatedEndingInventory)}`}>
-                  ({formatNumber(financialData.beginningInventory + calculatedNetPurchases - calculatedEndingInventory)})
+                <Td className={`font-mono text-left text-lg text-red-600 ${getNegativeNumberClass(calculatedBeginningInventory + calculatedNetPurchases - calculatedEndingInventory)}`}>
+                  ({formatNumber(calculatedBeginningInventory + calculatedNetPurchases - calculatedEndingInventory)})
                 </Td>
               </tr>
 
               <tr className="font-bold text-xl bg-green-100 text-green-800">
                 <Td>مجمل الربح</Td>
                 <Td></Td>
-                <Td className={`font-mono text-left ${getNegativeNumberClass(netSalesAfterDiscount - (financialData.beginningInventory + calculatedNetPurchases - calculatedEndingInventory))}`}>
-                  {formatNumber(netSalesAfterDiscount - (financialData.beginningInventory + calculatedNetPurchases - calculatedEndingInventory))}
+                <Td className={`font-mono text-left ${getNegativeNumberClass(netSalesAfterDiscount - (calculatedBeginningInventory + calculatedNetPurchases - calculatedEndingInventory))}`}>
+                  {formatNumber(netSalesAfterDiscount - (calculatedBeginningInventory + calculatedNetPurchases - calculatedEndingInventory))}
                 </Td>
               </tr>
 
