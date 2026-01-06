@@ -503,6 +503,77 @@ const InventoryValuationReport: React.FC<InventoryValuationReportProps> = ({
     return totalCost / totalQty;
   }, [transformedPurchaseInvoices, selectedBranchId, branches, normalizeDate, toNumber, aggregatedOpeningBalances]);
 
+  // Helper function to get last purchase price for company-wide calculation (no branch filtering)
+  // This matches the exact logic used in IncomeStatement and BalanceSheet
+  const getLastPurchasePriceCompanyWide = useCallback((itemCode: string, referenceDate: string): number | null => {
+    const normalizedReferenceDate = normalizeDate(referenceDate);
+    if (!normalizedReferenceDate) return null;
+
+    // Get all purchase invoices up to the reference date, sorted by date descending (all branches)
+    // This matches the exact logic in IncomeStatement.tsx and BalanceSheet.tsx
+    const relevantInvoices = transformedPurchaseInvoices
+      .filter((inv) => {
+        const txDate = normalizeDate(inv.date) || normalizeDate(inv.invoiceDate);
+        return txDate && txDate <= normalizedReferenceDate;
+      })
+      .sort((a, b) => {
+        const dateA = normalizeDate(a.date) || normalizeDate(a.invoiceDate) || "";
+        const dateB = normalizeDate(b.date) || normalizeDate(b.invoiceDate) || "";
+        return dateB.localeCompare(dateA); // Descending order
+      });
+
+    // Find the most recent purchase price for this item
+    for (const inv of relevantInvoices) {
+      for (const invItem of inv.items) {
+        if (invItem.id === itemCode && invItem.price) {
+          return invItem.price;
+        }
+      }
+    }
+
+    return null;
+  }, [transformedPurchaseInvoices, normalizeDate]);
+
+  // Helper function to calculate weighted average cost for company-wide calculation (no branch filtering)
+  // This matches the exact logic used in IncomeStatement and BalanceSheet
+  const calculateWeightedAverageCostCompanyWide = useCallback((item: any, referenceDate: string): number | null => {
+    const normalizedReferenceDate = normalizeDate(referenceDate);
+    if (!normalizedReferenceDate) return null;
+
+    const itemCode = item.code;
+    const openingBalance = aggregatedOpeningBalances[itemCode] || 0;
+    const initialPurchasePrice = toNumber(item.initialPurchasePrice ?? item.purchasePrice ?? 0);
+
+    // Get all purchase invoices up to the reference date (no branch filtering - all branches)
+    // This matches the exact logic in IncomeStatement.tsx and BalanceSheet.tsx
+    const relevantInvoices = transformedPurchaseInvoices
+      .filter((inv) => {
+        const txDate = normalizeDate(inv.date) || normalizeDate(inv.invoiceDate);
+        return txDate && txDate <= normalizedReferenceDate;
+      });
+
+    // Start with opening balance at initialPurchasePrice
+    let totalCost = openingBalance > 0 ? openingBalance * initialPurchasePrice : 0;
+    let totalQty = openingBalance;
+
+    // Add purchase invoices to the weighted average
+    for (const inv of relevantInvoices) {
+      for (const invItem of inv.items) {
+        if (invItem.id === itemCode && invItem.total && invItem.qty) {
+          totalCost += invItem.total; // Use total invoice value per item
+          totalQty += invItem.qty;
+        }
+      }
+    }
+
+    // If no purchases and no opening balance, return initialPurchasePrice if it exists
+    if (totalQty === 0) {
+      return initialPurchasePrice > 0 ? initialPurchasePrice : null;
+    }
+    
+    return totalCost / totalQty;
+  }, [transformedPurchaseInvoices, normalizeDate, toNumber, aggregatedOpeningBalances]);
+
   const handleViewReport = useCallback(() => {
     if (isLoading) return;
 
@@ -513,74 +584,9 @@ const InventoryValuationReport: React.FC<InventoryValuationReportProps> = ({
     if (selectedBranchId === "all") {
       // Use the system valuation method from financial settings for company-wide calculation
       const effectiveValuationMethod = systemValuationMethod;
-      
-      // Create helper functions that don't filter by branch (company-wide)
-      const getLastPurchasePriceCompanyWide = (itemCode: string, referenceDate: string): number | null => {
-        const normalizedReferenceDate = normalizeDate(referenceDate);
-        if (!normalizedReferenceDate) return null;
-
-        // Get all purchase invoices up to the reference date, sorted by date descending (all branches)
-        const relevantInvoices = transformedPurchaseInvoices
-          .filter((inv) => {
-            const txDate = normalizeDate(inv.date) || normalizeDate(inv.invoiceDate);
-            return txDate && txDate <= normalizedReferenceDate;
-          })
-          .sort((a, b) => {
-            const dateA = normalizeDate(a.date) || normalizeDate(a.invoiceDate) || "";
-            const dateB = normalizeDate(b.date) || normalizeDate(b.invoiceDate) || "";
-            return dateB.localeCompare(dateA); // Descending order
-          });
-
-        // Find the most recent purchase price for this item
-        for (const inv of relevantInvoices) {
-          for (const invItem of inv.items) {
-            if (invItem.id === itemCode && invItem.price) {
-              return invItem.price;
-            }
-          }
-        }
-
-        return null;
-      };
-
-      const calculateWeightedAverageCostCompanyWide = (item: any, referenceDate: string): number | null => {
-        const normalizedReferenceDate = normalizeDate(referenceDate);
-        if (!normalizedReferenceDate) return null;
-
-        const itemCode = item.code;
-        const openingBalance = aggregatedOpeningBalances[itemCode] || 0;
-        const initialPurchasePrice = toNumber(item.initialPurchasePrice ?? item.purchasePrice ?? 0);
-
-        // Get all purchase invoices up to the reference date (no branch filtering - all branches)
-        const relevantInvoices = transformedPurchaseInvoices
-          .filter((inv) => {
-            const txDate = normalizeDate(inv.date) || normalizeDate(inv.invoiceDate);
-            return txDate && txDate <= normalizedReferenceDate;
-          });
-
-        // Start with opening balance at initialPurchasePrice
-        let totalCost = openingBalance > 0 ? openingBalance * initialPurchasePrice : 0;
-        let totalQty = openingBalance;
-
-        // Add purchase invoices to the weighted average
-        for (const inv of relevantInvoices) {
-          for (const invItem of inv.items) {
-            if (invItem.id === itemCode && invItem.total && invItem.qty) {
-              totalCost += invItem.total; // Use total invoice value per item
-              totalQty += invItem.qty;
-            }
-          }
-        }
-
-        // If no purchases and no opening balance, return initialPurchasePrice if it exists
-        if (totalQty === 0) {
-          return initialPurchasePrice > 0 ? initialPurchasePrice : null;
-        }
-        
-        return totalCost / totalQty;
-      };
 
       // Use the shared company-wide inventory calculation
+      // Use the extracted helper functions that match IncomeStatement and BalanceSheet exactly
       const { results } = calculateCompanyInventoryValuation({
         items,
         aggregatedOpeningBalances,
@@ -753,6 +759,8 @@ const InventoryValuationReport: React.FC<InventoryValuationReportProps> = ({
     getLastPurchasePriceBeforeDate,
     getLastSalePriceBeforeDate,
     calculateWeightedAverageCost,
+    getLastPurchasePriceCompanyWide,
+    calculateWeightedAverageCostCompanyWide,
     startDate,
     toNumber,
     systemValuationMethod,
