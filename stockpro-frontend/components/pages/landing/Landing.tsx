@@ -53,10 +53,10 @@ const defaultImages: AppImages = {
   // Office / Finance background
   heroBg: 'https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?q=80&w=2000&auto=format&fit=crop', 
   dashboard: 'https://i.imgur.com/uRk2BwU.png',
-  featureInventory: 'https://i.imgur.com/gza81Im.png',
-  featureInvoices: 'https://i.imgur.com/GDMg0Et.png',
-  featureReports: 'https://i.imgur.com/GmfA1eF.png',
-  featureCrm: 'https://i.imgur.com/pZqRxR7.png',
+  featureInventory: '/Screenshot 2026-01-06 at 8.37.27 AM.jpeg',
+  featureInvoices: '/Screenshot 2026-01-06 at 8.38.46 AM.jpeg',
+  featureReports: '/Screenshot 2026-01-06 at 8.35.51 AM.jpeg',
+  featureCrm: '/Screenshot 2026-01-06 at 8.38.09 AM.jpeg',
 };
 
 const defaultPrices: AppPrices = {
