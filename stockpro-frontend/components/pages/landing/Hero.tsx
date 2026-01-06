@@ -64,8 +64,13 @@ const FeatureSummaryCard: React.FC<{
           <div className="text-xl font-bold mb-3 text-brand-dark">
               {feature.title}
           </div>
-          <div className="text-slate-500 leading-relaxed text-sm">
-              {feature.description}
+          <div className="text-slate-500 leading-relaxed text-sm space-y-2">
+              {feature.description.split('\n').map((line, index) => (
+                  <div key={index} className="flex items-start gap-2">
+                      <span className="text-brand-blue mt-1 flex-shrink-0">•</span>
+                      <span>{line.trim()}</span>
+                  </div>
+              ))}
           </div>
       </div>
     </div>
@@ -143,11 +148,18 @@ interface HomePageProps {
   stats: StatItem[];
 }
 
-// Updated with VERY PROFESSIONAL corporate backgrounds
+// Helper function to encode image paths for URLs
+const encodeImagePath = (path: string): string => {
+  // Split path and encode each segment
+  const parts = path.split('/');
+  return parts.map(part => encodeURIComponent(part)).join('/');
+};
+
+// Local hero backgrounds from /public
 const animatedBackgrounds = [
-    'https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?q=80&w=2000&auto=format&fit=crop', // Blue Skyscrapers (Corporate/Growth)
-    'https://images.unsplash.com/photo-1497215728101-856f4ea42174?q=80&w=2000&auto=format&fit=crop', // Modern Office Desk (Clean/Professional)
-    'https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?q=80&w=2000&auto=format&fit=crop' // Finance/Numbers (Direct Relevance)
+    encodeImagePath('/Gemini_Generated_Image_rd41lrd41lrd41lr (1).png'),
+    encodeImagePath('/Gemini_Generated_Image_xjqd8txjqd8txjqd (1).png'),
+    encodeImagePath('/Gemini_Generated_Image_zfwjylzfwjylzfwj.png'),
 ];
 
 const colorVariants: Record<string, { container: string, iconBg: string, iconText: string }> = {
@@ -174,7 +186,7 @@ const HomePage: React.FC<HomePageProps> = ({ setPage, heroBgUrl, dashboardUrl, f
   return (
     <>
     {/* HERO SECTION - pb-0 to let image touch bottom */}
-    <section className="relative pt-8 md:pt-12 pb-0 overflow-hidden bg-gradient-to-br from-brand-blue-bg via-brand-blue-bg/50 to-brand-green-bg min-h-[60vh] flex flex-col justify-between">
+    <section className="relative pt-8 md:pt-12 pb-0 overflow-hidden bg-gradient-to-br from-brand-blue-bg via-brand-blue-bg/50 to-brand-green-bg min-h-[95vh] flex flex-col justify-between">
       
       {/* Animated Gradient Overlay */}
       <div className="absolute inset-0 z-0 bg-gradient-to-br from-brand-blue/10 via-brand-green/10 to-brand-blue/10 animate-gradient-xy"></div>
@@ -214,7 +226,7 @@ const HomePage: React.FC<HomePageProps> = ({ setPage, heroBgUrl, dashboardUrl, f
             
             <div className="relative bg-gradient-to-br from-white/20 via-white/10 to-brand-blue-bg/20 p-2 rounded-t-[1.8rem] rounded-b-none border-[3px] border-b-0 border-gradient-to-r from-brand-green via-brand-blue to-brand-blue shadow-2xl backdrop-blur-sm" style={{ borderImage: 'linear-gradient(to right, #16a34a, #1E40AF, #1E40AF) 1' }}>
                  {/* Panoramic Height */}
-                 <div className="rounded-t-2xl rounded-b-none overflow-hidden bg-slate-100 relative h-[240px] md:h-[280px]">
+                 <div className="rounded-t-2xl rounded-b-none overflow-hidden bg-slate-100 relative h-[470px] md:h-[500px]">
                     <img 
                         src={dashboardUrl} 
                         alt="Dashboard Interface"
