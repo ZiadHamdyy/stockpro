@@ -31,7 +31,6 @@ interface StagnantItemsReportProps {
  * The report shows stagnant items analysis aggregated across the entire company.
  */
 const StagnantItemsReport: React.FC<StagnantItemsReportProps> = ({ title }) => {
-    const PRINT_PAGE_SIZE = 20;
     const [thresholdDays, setThresholdDays] = useState(90);
     const [searchTerm, setSearchTerm] = useState('');
 
@@ -174,49 +173,10 @@ const StagnantItemsReport: React.FC<StagnantItemsReportProps> = ({ title }) => {
 
     const totalStagnantValue = reportData.reduce((sum, item) => sum + item.stockValue, 0);
 
-    const printPages = useMemo(() => {
-        const pages: typeof reportData[] = [];
-        // First page has extra headers (company header, date info, alert banner), so reduce items significantly
-        // Headers take up approximately 12-15 rows worth of space, so use only 6 items on first page to be safe
-        const FIRST_PAGE_SIZE = 6;
-        // Subsequent pages also need to account for page header, so use slightly less than full size
-        // Reduce to 15 items to ensure no overflow even with variable content heights
-        const SUBSEQUENT_PAGE_SIZE = PRINT_PAGE_SIZE - 5; // Reduced to 15 to prevent overflow
-        if (reportData.length > 0) {
-            // First page with reduced size
-            pages.push(reportData.slice(0, FIRST_PAGE_SIZE));
-            // Remaining pages with adjusted size to prevent overflow
-            let remaining = reportData.length - FIRST_PAGE_SIZE;
-            let currentIdx = FIRST_PAGE_SIZE;
-            while (remaining > 0) {
-                // For the last page, if it would have very few items (1-3), merge with previous page
-                // BUT only if merging won't make the previous page >= 16 items (which would cause overflow)
-                if (remaining <= 3 && pages.length > 0) {
-                    const lastPage = pages[pages.length - 1];
-                    const mergedSize = lastPage.length + remaining;
-                    // Only merge if the resulting page won't be >= 16 items (SUBSEQUENT_PAGE_SIZE + 1)
-                    if (mergedSize < 16) {
-                        // Merge last few items with previous page
-                        pages[pages.length - 1] = [...lastPage, ...reportData.slice(currentIdx)];
-                        break;
-                    }
-                    // If merging would cause overflow, create a separate small page instead
-                }
-                const pageSize = Math.min(SUBSEQUENT_PAGE_SIZE, remaining);
-                pages.push(reportData.slice(currentIdx, currentIdx + pageSize));
-                currentIdx += pageSize;
-                remaining -= pageSize;
-            }
-        }
-        return pages;
-    }, [reportData]);
-
     const handlePrint = () => {
         const printWindow = window.open("", "_blank", "width=1200,height=800");
         if (!printWindow) return;
 
-        // Since we now prevent pages with >= 16 items in printPages, totalPages should equal printPages.length
-        const totalPages = Math.max(printPages.length, 1);
         const currentDate = new Date().toLocaleDateString('ar-EG', { year: 'numeric', month: 'long', day: 'numeric' });
 
         // Company header HTML
@@ -259,30 +219,27 @@ const StagnantItemsReport: React.FC<StagnantItemsReportProps> = ({ title }) => {
             </div>
         `;
 
-        // Alert banner (only for first page)
-        const alertBanner = (pageIndex: number) => {
-            if (pageIndex !== 0) return '';
-            return `
-                <div style="background: #FEF2F2; border-left: 8px solid #DC2626; padding: 16px; margin-bottom: 24px; border-radius: 0 8px 8px 0; box-shadow: 0 1px 3px rgba(0,0,0,0.1); display: flex; align-items: center; justify-content: space-between;">
-                    <div style="display: flex; align-items: center; gap: 12px;">
-                        <div style="width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; color: #DC2626;">
-                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
-                                <line x1="12" y1="9" x2="12" y2="13"></line>
-                                <line x1="12" y1="17" x2="12.01" y2="17"></line>
-                            </svg>
-                        </div>
-                        <div>
-                            <h3 style="font-size: 18px; font-weight: bold; color: #991B1B; margin: 0 0 4px 0;">قيمة المخزون المجمد (Dead Capital)</h3>
-                            <p style="color: #B91C1C; font-size: 14px; margin: 0;">إجمالي تكلفة الأصناف التي لم تتحرك منذ ${thresholdDays} يوم</p>
-                        </div>
+        // Alert banner (only shown on first page)
+        const alertBanner = `
+            <div style="background: #FEF2F2; border-left: 8px solid #DC2626; padding: 16px; margin-bottom: 24px; border-radius: 0 8px 8px 0; box-shadow: 0 1px 3px rgba(0,0,0,0.1); display: flex; align-items: center; justify-content: space-between;">
+                <div style="display: flex; align-items: center; gap: 12px;">
+                    <div style="width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; color: #DC2626;">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+                            <line x1="12" y1="9" x2="12" y2="13"></line>
+                            <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                        </svg>
                     </div>
-                    <p style="font-size: 32px; font-weight: 900; color: #991B1B; margin: 0; letter-spacing: -0.5px;">
-                        ${formatNumber(totalStagnantValue)} <span style="font-size: 14px; font-weight: 500; color: #DC2626;">SAR</span>
-                    </p>
+                    <div>
+                        <h3 style="font-size: 18px; font-weight: bold; color: #991B1B; margin: 0 0 4px 0;">قيمة المخزون المجمد (Dead Capital)</h3>
+                        <p style="color: #B91C1C; font-size: 14px; margin: 0;">إجمالي تكلفة الأصناف التي لم تتحرك منذ ${thresholdDays} يوم</p>
+                    </div>
                 </div>
-            `;
-        };
+                <p style="font-size: 32px; font-weight: 900; color: #991B1B; margin: 0; letter-spacing: -0.5px;">
+                    ${formatNumber(totalStagnantValue)} <span style="font-size: 14px; font-weight: 500; color: #DC2626;">SAR</span>
+                </p>
+            </div>
+        `;
 
         // Table header
         const tableHeader = `
@@ -296,65 +253,44 @@ const StagnantItemsReport: React.FC<StagnantItemsReportProps> = ({ title }) => {
             </tr>
         `;
 
-        // Generate pages
-        const bodyPages = printPages
+        // Generate table rows for all data
+        const tableRows = reportData.length === 0 ? `
+            <tr>
+                <td colspan="6" style="padding: 32px; text-align: center; color: #6B7280;">
+                    ممتاز! لا توجد أصناف راكدة تتجاوز المدة المحددة.
+                </td>
+            </tr>
+        ` : reportData
             .map(
-                (pageItems, idx) => {
-                    return `
-                <div class="page">
-                    ${idx === 0 ? companyHeader : ''}
-                    ${idx === 0 ? dateInfo : ''}
-                    ${alertBanner(idx)}
-                    <table>
-                        <thead>${tableHeader}</thead>
-                        <tbody>
-                            ${pageItems.length === 0 ? `
-                                <tr>
-                                    <td colspan="6" style="padding: 32px; text-align: center; color: #6B7280;">
-                                        ممتاز! لا توجد أصناف راكدة تتجاوز المدة المحددة.
-                                    </td>
-                                </tr>
-                            ` : pageItems
-                                .map(
-                                    (item) => `
-                                    <tr>
-                                        <td style="padding: 12px; text-align: right; color: #4B5563;">${item.code}</td>
-                                        <td style="padding: 12px; text-align: right; font-weight: bold; color: #1F2937;">${item.name}</td>
-                                        <td style="padding: 12px; text-align: center; font-weight: bold;">${item.stock}</td>
-                                        <td style="padding: 12px; text-align: center; color: #6B7280;">${formatNumber(item.stockValue)}</td>
-                                        <td style="padding: 12px; text-align: center; color: #6B7280;">${item.lastMovementDate}</td>
-                                        <td style="padding: 12px; text-align: center; vertical-align: middle;">
-                                            <span style="padding: 6px 12px; border-radius: 9999px; font-size: 11px; font-weight: bold; ${item.daysDormant >= 180 ? 'background: #FEE2E2; color: #991B1B;' : 'background: #FED7AA; color: #9A3412;'}">
-                                                ${item.daysDormant === 999 ? 'لم يتحرك' : `${item.daysDormant} يوم`}
-                                            </span>
-                                        </td>
-                                    </tr>
-                                `
-                                )
-                                .join("")}
-                        </tbody>
-                    </table>
-                </div>`;
-                }
+                (item) => `
+                <tr>
+                    <td style="padding: 12px; text-align: right; color: #4B5563;">${item.code}</td>
+                    <td style="padding: 12px; text-align: right; font-weight: bold; color: #1F2937;">${item.name}</td>
+                    <td style="padding: 12px; text-align: center; font-weight: bold;">${item.stock}</td>
+                    <td style="padding: 12px; text-align: center; color: #6B7280;">${formatNumber(item.stockValue)}</td>
+                    <td style="padding: 12px; text-align: center; color: #6B7280;">${item.lastMovementDate}</td>
+                    <td style="padding: 12px; text-align: center; vertical-align: middle;">
+                        <span style="padding: 6px 12px; border-radius: 9999px; font-size: 11px; font-weight: bold; ${item.daysDormant >= 180 ? 'background: #FEE2E2; color: #991B1B;' : 'background: #FED7AA; color: #9A3412;'}">
+                            ${item.daysDormant === 999 ? 'لم يتحرك' : `${item.daysDormant} يوم`}
+                        </span>
+                    </td>
+                </tr>
+            `
             )
-            .join("") + 
-            // Overflow page generation should not be needed now since we prevent pages with >= 16 items
-            // But keep it as a safety net
-            (totalPages > printPages.length ? (() => {
-                return Array.from({ length: totalPages - printPages.length }, (_, i) => {
-                    const overflowPageIdx = printPages.length + i;
-                    return `
-                    <div class="page">
-                        <table>
-                            <thead>${tableHeader}</thead>
-                            <tbody>
-                                <!-- Overflow content will be rendered here by browser -->
-                            </tbody>
-                        </table>
-                    </div>
-                `;
-                }).join("");
-            })() : "");
+            .join("");
+
+        // Generate single continuous body structure
+        const bodyContent = `
+            ${companyHeader}
+            ${dateInfo}
+            ${alertBanner}
+            <table>
+                <thead>${tableHeader}</thead>
+                <tbody>
+                    ${tableRows}
+                </tbody>
+            </table>
+        `;
 
         const html = `
             <!DOCTYPE html>
@@ -422,18 +358,10 @@ const StagnantItemsReport: React.FC<StagnantItemsReportProps> = ({ title }) => {
                         page-break-inside: avoid; 
                         break-inside: avoid; 
                     }
-                    .page { 
-                        page-break-after: always; 
-                        break-after: page; 
-                    }
-                    .page:last-of-type { 
-                        page-break-after: auto; 
-                        break-after: auto; 
-                    }
                 </style>
             </head>
             <body>
-                ${bodyPages}
+                ${bodyContent}
             </body>
             </html>
         `;
