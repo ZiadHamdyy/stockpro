@@ -235,6 +235,7 @@ const getInvoiceBranchMeta = (invoice: any) => {
   } | null>(null);
   const [isSupplierDropdownOpen, setIsSupplierDropdownOpen] = useState(false);
   const supplierRef = useRef<HTMLDivElement>(null);
+  const balanceBarRef = useRef<HTMLDivElement>(null);
 
   const [activeItemSearch, setActiveItemSearch] = useState<{
     index: number;
@@ -298,14 +299,12 @@ const getInvoiceBranchMeta = (invoice: any) => {
     return supplier?.currentBalance || 0;
   }, [selectedSupplier, allSuppliers]);
 
-  // Show balance bar when supplier is selected
+  // Hide balance bar when supplier is deselected
   useEffect(() => {
-    if (selectedSupplier && !isReadOnly) {
-      setShowBalanceBar(true);
-    } else {
+    if (!selectedSupplier) {
       setShowBalanceBar(false);
     }
-  }, [selectedSupplier, isReadOnly]);
+  }, [selectedSupplier]);
 
   // Invalidate stock and prices when component mounts or when balance bar is shown
   useEffect(() => {
@@ -541,6 +540,12 @@ const getInvoiceBranchMeta = (invoice: any) => {
         !supplierRef.current.contains(event.target as Node)
       )
         setIsSupplierDropdownOpen(false);
+      if (
+        balanceBarRef.current &&
+        !balanceBarRef.current.contains(event.target as Node) &&
+        !supplierRef.current?.contains(event.target as Node)
+      )
+        setShowBalanceBar(false);
     };
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
@@ -687,6 +692,9 @@ const getInvoiceBranchMeta = (invoice: any) => {
     setSelectedSupplier({ id: supplier.id.toString(), name: supplier.name });
     setSupplierQuery(supplier.name);
     setIsSupplierDropdownOpen(false);
+    if (!isReadOnly) {
+      setShowBalanceBar(true);
+    }
   };
 
   const handleSelectItemFromModal = (selectedItem: SelectableItem) => {
@@ -1158,7 +1166,12 @@ const getInvoiceBranchMeta = (invoice: any) => {
                     setIsSupplierDropdownOpen(true);
                     setSelectedSupplier(null);
                   }}
-                  onFocus={() => setIsSupplierDropdownOpen(true)}
+                  onFocus={() => {
+                    setIsSupplierDropdownOpen(true);
+                    if (selectedSupplier && !isReadOnly) {
+                      setShowBalanceBar(true);
+                    }
+                  }}
                   disabled={isReadOnly}
                 />
                 {isSupplierDropdownOpen && !isReadOnly && (
@@ -1742,13 +1755,15 @@ const getInvoiceBranchMeta = (invoice: any) => {
         onScanSuccess={handleScanSuccess}
       />
       {showBalanceBar && selectedSupplier && (
-        <CreditEntityBalanceBar
-          entityName={selectedSupplier.name}
-          currentBalance={selectedSupplierBalance}
-          theme="green"
-          entityType="supplier"
-          onClose={() => setShowBalanceBar(false)}
-        />
+        <div ref={balanceBarRef}>
+          <CreditEntityBalanceBar
+            entityName={selectedSupplier.name}
+            currentBalance={selectedSupplierBalance}
+            theme="green"
+            entityType="supplier"
+            onClose={() => setShowBalanceBar(false)}
+          />
+        </div>
       )}
     </>
   );
