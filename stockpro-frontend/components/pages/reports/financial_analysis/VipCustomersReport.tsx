@@ -286,11 +286,13 @@ const VIPCustomersReport: React.FC<VIPCustomersReportProps> = ({ title }) => {
                     tfoot { display: table-row-group !important; }
                     table { width: 100%; border-collapse: collapse; font-size: 13px !important; }
                     th { font-size: 13px !important; font-weight: bold !important; padding: 6px 8px !important; }
-                    td { font-size: 13px !important; padding: 6px 8px !important; }
+                    td { font-size: 13px !important; padding: 6px 8px !important; height: 40px !important; vertical-align: middle !important; }
+                    tbody tr { height: 40px !important; }
                     tbody tr:first-child { background: #FFFFFF !important; }
                     tbody tr:nth-child(2n+2) { background: #D1D5DB !important; }
                     tbody tr:nth-child(2n+3) { background: #FFFFFF !important; }
-                    tfoot tr { page-break-inside: avoid !important; break-inside: avoid !important; }
+                    tfoot tr { page-break-inside: avoid !important; break-inside: avoid !important; height: 40px !important; }
+                    tfoot td { height: 40px !important; vertical-align: middle !important; }
                     .bg-brand-blue { background-color: #1E40AF !important; }
                     .text-white { color: white !important; }
                 }
