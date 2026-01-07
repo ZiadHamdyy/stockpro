@@ -112,12 +112,12 @@ const AddReceivableAccount: React.FC<Props> = ({ title, editingId, onNavigate })
     e: React.ChangeEvent<HTMLInputElement>
   ) => {
     const value = e.target.value;
-    // Allow empty string, lone minus, and valid numbers (positive or negative)
+    // Allow empty string, negative sign, and valid numbers (including decimals)
+    // Keep as string to preserve what user types until save
     if (value === "" || value === "-" || /^-?\d*\.?\d*$/.test(value)) {
       setAccountData((prev: any) => ({
         ...prev,
-        openingBalance:
-          value === "" || value === "-" ? value : parseFloat(value) || 0,
+        openingBalance: value,
       }));
     }
   };
