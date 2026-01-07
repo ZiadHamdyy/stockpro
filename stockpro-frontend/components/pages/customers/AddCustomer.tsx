@@ -110,10 +110,11 @@ const AddCustomer: React.FC<AddCustomerProps> = ({
   ) => {
     const value = e.target.value;
     // Allow empty string, negative sign, and valid numbers (including decimals)
+    // Keep as string to preserve what user types until save
     if (value === "" || value === "-" || /^-?\d*\.?\d*$/.test(value)) {
       setCustomerData((prev: any) => ({
         ...prev,
-        openingBalance: value === "" || value === "-" ? value : parseFloat(value) || 0,
+        openingBalance: value,
       }));
     }
   };
@@ -333,7 +334,14 @@ const AddCustomer: React.FC<AddCustomerProps> = ({
               type="text"
               name="openingBalance"
               id="openingBalance"
-              value={customerData.openingBalance}
+              value={
+                typeof customerData.openingBalance === "string"
+                  ? customerData.openingBalance
+                  : customerData.openingBalance === 0 ||
+                    customerData.openingBalance === null
+                  ? ""
+                  : customerData.openingBalance
+              }
               onChange={handleOpeningBalanceChange}
               className={inputStyle}
               disabled={isReadOnly}
@@ -351,7 +359,14 @@ const AddCustomer: React.FC<AddCustomerProps> = ({
               type="text"
               name="creditLimit"
               id="creditLimit"
-              value={customerData.creditLimit}
+              value={
+                typeof customerData.creditLimit === "string"
+                  ? customerData.creditLimit
+                  : customerData.creditLimit === 0 ||
+                    customerData.creditLimit === null
+                  ? ""
+                  : customerData.creditLimit
+              }
               onChange={handleCreditLimitChange}
               className={inputStyle}
               disabled={isReadOnly}
