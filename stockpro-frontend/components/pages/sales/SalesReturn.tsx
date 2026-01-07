@@ -268,6 +268,12 @@ const SalesReturn: React.FC<SalesReturnProps> = ({
   const barcodeInputRef = useRef<HTMLInputElement>(null);
   const [barcodeInput, setBarcodeInput] = useState('');
   const shouldOpenPreviewRef = useRef(false); // Flag to indicate we want to open preview after data is set
+  // Barcode detection state and refs
+  const barcodeBufferRef = useRef<string>("");
+  const barcodeTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const lastKeypressTimeRef = useRef<number>(0);
+  const isBarcodeScanningRef = useRef<boolean>(false);
+  const handleScanSuccessRef = useRef<(barcode: string) => void>(() => {});
   const [previewData, setPreviewData] = useState<{
     companyInfo: CompanyInfo;
     vatRate: number;
@@ -552,6 +558,274 @@ const SalesReturn: React.FC<SalesReturnProps> = ({
       return () => clearTimeout(timer);
     }
   }, [isReadOnly, isPreviewOpen, isSearchModalOpen]);
+
+  // Global keyboard event listener for barcode scanning interception
+  useEffect(() => {
+    // Only activate when not read-only and not in modals
+    if (isReadOnly || isPreviewOpen || isSearchModalOpen || isScannerOpen) {
+      // Clear any pending barcode buffer
+      barcodeBufferRef.current = "";
+      if (barcodeTimerRef.current) {
+        clearTimeout(barcodeTimerRef.current);
+        barcodeTimerRef.current = null;
+      }
+      isBarcodeScanningRef.current = false;
+      return;
+    }
+
+    const handleGlobalKeyDown = (e: KeyboardEvent) => {
+      // Ignore if the target is the hidden barcode input itself
+      if (e.target === barcodeInputRef.current) {
+        return;
+      }
+
+      // Ignore special keys (Arrow keys, Tab, Escape, etc.)
+      const specialKeys = [
+        "ArrowUp",
+        "ArrowDown",
+        "ArrowLeft",
+        "ArrowRight",
+        "Tab",
+        "Escape",
+        "Enter",
+        "Backspace",
+        "Delete",
+        "Home",
+        "End",
+        "PageUp",
+        "PageDown",
+        "Control",
+        "Alt",
+        "Meta",
+        "Shift",
+      ];
+
+      if (specialKeys.includes(e.key)) {
+        // If Enter is pressed and we have a buffer, check if it's a barcode
+        if (e.key === "Enter" && barcodeBufferRef.current.length >= 4) {
+          const scannedValue = barcodeBufferRef.current.trim();
+          const matchedItem = allItems.find(
+            (item) =>
+              item.barcode &&
+              item.barcode.trim().toLowerCase() ===
+                scannedValue.toLowerCase(),
+          );
+
+          if (matchedItem) {
+            e.preventDefault();
+            e.stopPropagation();
+
+            // Clear the focused field if it's an input
+            const activeElement = document.activeElement as HTMLInputElement;
+            if (
+              activeElement &&
+              activeElement.tagName === "INPUT" &&
+              activeElement !== barcodeInputRef.current
+            ) {
+              activeElement.value = "";
+              // Trigger change event to update React state if needed
+              const nativeInputValueSetter = Object.getOwnPropertyDescriptor(
+                window.HTMLInputElement.prototype,
+                "value",
+              )?.set;
+              if (nativeInputValueSetter) {
+                nativeInputValueSetter.call(activeElement, "");
+                const event = new Event("input", { bubbles: true });
+                activeElement.dispatchEvent(event);
+              }
+            }
+
+            // Process the barcode
+            handleScanSuccessRef.current(scannedValue);
+
+            // Clear buffer
+            barcodeBufferRef.current = "";
+            isBarcodeScanningRef.current = false;
+            if (barcodeTimerRef.current) {
+              clearTimeout(barcodeTimerRef.current);
+              barcodeTimerRef.current = null;
+            }
+            return;
+          }
+        }
+
+        // Clear buffer on Escape or other special keys
+        if (
+          e.key === "Escape" ||
+          (e.key === "Enter" && !isBarcodeScanningRef.current)
+        ) {
+          barcodeBufferRef.current = "";
+          isBarcodeScanningRef.current = false;
+          if (barcodeTimerRef.current) {
+            clearTimeout(barcodeTimerRef.current);
+            barcodeTimerRef.current = null;
+          }
+        }
+        return;
+      }
+
+      // Only process printable characters
+      if (e.key.length === 1) {
+        const currentTime = Date.now();
+        const timeSinceLastKey =
+          lastKeypressTimeRef.current > 0
+            ? currentTime - lastKeypressTimeRef.current
+            : 1000; // First character - assume slow typing initially
+
+        // Detect rapid input (barcode scanners type very fast, typically < 50ms between keystrokes)
+        // Strategy: Only prevent input if we're confident it's a barcode scan
+        if (timeSinceLastKey < 50 && barcodeBufferRef.current.length > 0) {
+          // Very rapid input (< 50ms) - definitely a barcode scanner
+          isBarcodeScanningRef.current = true;
+          barcodeBufferRef.current += e.key;
+
+          // Prevent the character from being typed into the focused field
+          e.preventDefault();
+          e.stopPropagation();
+        } else if (
+          timeSinceLastKey < 100 &&
+          isBarcodeScanningRef.current &&
+          barcodeBufferRef.current.length > 0
+        ) {
+          // Continuing a confirmed scan - accumulate and prevent
+          barcodeBufferRef.current += e.key;
+          e.preventDefault();
+          e.stopPropagation();
+        } else if (timeSinceLastKey >= 150) {
+          // Slow input (>= 150ms) - likely normal typing, don't interfere
+          // Clear any existing barcode buffer and let typing proceed normally
+          barcodeBufferRef.current = "";
+          isBarcodeScanningRef.current = false;
+          if (barcodeTimerRef.current) {
+            clearTimeout(barcodeTimerRef.current);
+            barcodeTimerRef.current = null;
+          }
+          lastKeypressTimeRef.current = currentTime;
+          // Let the character through normally - don't prevent
+          return;
+        } else {
+          // Ambiguous timing (50-150ms) or first character
+          // Start/continue tracking but be conservative about preventing
+          if (barcodeBufferRef.current.length === 0) {
+            // First character - let it through but start tracking
+            barcodeBufferRef.current = e.key;
+            // Don't prevent - allow normal typing
+          } else if (isBarcodeScanningRef.current) {
+            // Already confirmed as scan - prevent
+            barcodeBufferRef.current += e.key;
+            e.preventDefault();
+            e.stopPropagation();
+          } else {
+            // Have buffer but not confirmed as scan yet - continue tracking
+            // If this is the second character and timing is ambiguous, start preventing
+            // to avoid the barcode appearing in the field
+            if (barcodeBufferRef.current.length === 1 && timeSinceLastKey < 100) {
+              // Second character came relatively quickly - likely a scan
+              isBarcodeScanningRef.current = true;
+              barcodeBufferRef.current += e.key;
+              e.preventDefault();
+              e.stopPropagation();
+
+              // Clear the first character from the focused field
+              const activeElement = document.activeElement as HTMLInputElement;
+              if (
+                activeElement &&
+                activeElement.tagName === "INPUT" &&
+                activeElement !== barcodeInputRef.current
+              ) {
+                const currentValue = activeElement.value;
+                if (currentValue.length > 0) {
+                  const newValue = currentValue.slice(0, -1);
+                  activeElement.value = newValue;
+                  const nativeInputValueSetter =
+                    Object.getOwnPropertyDescriptor(
+                      window.HTMLInputElement.prototype,
+                      "value",
+                    )?.set;
+                  if (nativeInputValueSetter) {
+                    nativeInputValueSetter.call(activeElement, newValue);
+                    const event = new Event("input", { bubbles: true });
+                    activeElement.dispatchEvent(event);
+                  }
+                }
+              }
+            } else {
+              // Too slow or too many chars - likely normal typing
+              barcodeBufferRef.current = "";
+              isBarcodeScanningRef.current = false;
+              // Let character through
+              return;
+            }
+          }
+        }
+
+        lastKeypressTimeRef.current = currentTime;
+
+        // Clear existing timer
+        if (barcodeTimerRef.current) {
+          clearTimeout(barcodeTimerRef.current);
+        }
+
+        // Set timeout to process or clear buffer if no more input
+        barcodeTimerRef.current = setTimeout(() => {
+          // Only process if we have a buffer and were in scanning mode
+          if (
+            barcodeBufferRef.current.length >= 4 &&
+            isBarcodeScanningRef.current
+          ) {
+            const scannedValue = barcodeBufferRef.current.trim();
+            const matchedItem = allItems.find(
+              (item) =>
+                item.barcode &&
+                item.barcode.trim().toLowerCase() ===
+                  scannedValue.toLowerCase(),
+            );
+
+            if (matchedItem) {
+              // Found a match - process it
+              const activeElement =
+                document.activeElement as HTMLInputElement;
+              if (
+                activeElement &&
+                activeElement.tagName === "INPUT" &&
+                activeElement !== barcodeInputRef.current
+              ) {
+                activeElement.value = "";
+                const nativeInputValueSetter =
+                  Object.getOwnPropertyDescriptor(
+                    window.HTMLInputElement.prototype,
+                    "value",
+                  )?.set;
+                if (nativeInputValueSetter) {
+                  nativeInputValueSetter.call(activeElement, "");
+                  const event = new Event("input", { bubbles: true });
+                  activeElement.dispatchEvent(event);
+                }
+              }
+              handleScanSuccessRef.current(scannedValue);
+            }
+          }
+
+          // Clear buffer
+          barcodeBufferRef.current = "";
+          isBarcodeScanningRef.current = false;
+          barcodeTimerRef.current = null;
+        }, 500); // 500ms timeout - if no input for 500ms, process or clear
+      }
+    };
+
+    document.addEventListener("keydown", handleGlobalKeyDown, true); // Use capture phase
+
+    return () => {
+      document.removeEventListener("keydown", handleGlobalKeyDown, true);
+      if (barcodeTimerRef.current) {
+        clearTimeout(barcodeTimerRef.current);
+        barcodeTimerRef.current = null;
+      }
+      barcodeBufferRef.current = "";
+      isBarcodeScanningRef.current = false;
+    };
+  }, [isReadOnly, isPreviewOpen, isSearchModalOpen, isScannerOpen, allItems]);
 
   useEffect(() => {
     if (currentIndex >= 0) return;
@@ -971,6 +1245,11 @@ const SalesReturn: React.FC<SalesReturnProps> = ({
       showToast(`الصنف غير موجود. الباركود: ${trimmedBarcode}`, 'error');
     }
   };
+
+  // Keep handleScanSuccess ref updated
+  useEffect(() => {
+    handleScanSuccessRef.current = handleScanSuccess;
+  });
 
   const handleSave = async () => {
     const finalItems = returnItems.filter((i) => i.id && i.name && i.qty > 0);
