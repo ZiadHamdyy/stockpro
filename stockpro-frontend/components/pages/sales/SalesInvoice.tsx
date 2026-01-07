@@ -1308,6 +1308,23 @@ const SalesInvoice: React.FC<SalesInvoiceProps> = ({
     }
   };
 
+  const hasItemSelected = (index: number): boolean => {
+    const item = invoiceItems[index];
+    return !!(item?.id && item?.name);
+  };
+
+  const canEditRow = (index: number): boolean => {
+    // First row (index 0) can always be edited
+    if (index === 0) return true;
+    // For other rows, check if all previous rows have items
+    for (let i = 0; i < index; i++) {
+      if (!hasItemSelected(i)) {
+        return false;
+      }
+    }
+    return true;
+  };
+
   const handleAddItemAndFocus = () => {
     const newIndex = invoiceItems.length;
     setInvoiceItems((prevItems) => [...prevItems, createEmptyItem()]);
@@ -1332,6 +1349,9 @@ const SalesInvoice: React.FC<SalesInvoiceProps> = ({
   };
 
   const handleSelectItem = (index: number, selectedItem: SelectableItem) => {
+    if (!canEditRow(index)) {
+      return;
+    }
     const newItems = [...invoiceItems];
     const currentItem = newItems[index];
     const salePriceIncludesTaxValue =
@@ -1433,11 +1453,20 @@ const SalesInvoice: React.FC<SalesInvoiceProps> = ({
       if (field === "id") {
         nameInputRefs.current[index]?.focus();
       } else if (field === "qty") {
+        // Prevent navigation if current row has no item
+        if (!hasItemSelected(index)) {
+          return; // Don't navigate, stay on current field
+        }
         const priceInput = priceInputRefs.current[index];
         priceInput?.focus();
         // Select text after focus to allow immediate typing
         setTimeout(() => priceInput?.select(), 0);
       } else if (field === "price") {
+        // Prevent navigation if current row has no item
+        if (!hasItemSelected(index)) {
+          return; // Don't navigate, stay on current field
+        }
+        // Only navigate to next row's name field if current row has an item
         if (index === invoiceItems.length - 1) {
           handleAddItemAndFocus();
         } else {
@@ -1502,16 +1531,10 @@ const SalesInvoice: React.FC<SalesInvoiceProps> = ({
           qtyInputRefs.current[activeItemSearch.index]?.focus();
           qtyInputRefs.current[activeItemSearch.index]?.select();
         }, 0);
-      } else if (filteredItems.length === 0) {
-        // No search results, move to qty field
-        const qtyInput = qtyInputRefs.current[activeItemSearch.index];
-        qtyInput?.focus();
-        setTimeout(() => qtyInput?.select(), 0);
       } else {
-        // Has results but nothing highlighted, move to qty field
-        const qtyInput = qtyInputRefs.current[activeItemSearch.index];
-        qtyInput?.focus();
-        setTimeout(() => qtyInput?.select(), 0);
+        // No item selected - don't navigate to qty field
+        // Just clear the search or keep focus on name field
+        return;
       }
       return;
     }
@@ -1551,9 +1574,19 @@ const SalesInvoice: React.FC<SalesInvoiceProps> = ({
     });
 
     if (foundItem) {
-      const emptyRowIndex = invoiceItems.findIndex((i) => !i.id && !i.name);
+      // Find first empty row that can be edited (all previous rows have items)
+      const emptyRowIndex = invoiceItems.findIndex((i, idx) => !i.id && !i.name && canEditRow(idx));
       const indexToFill =
         emptyRowIndex !== -1 ? emptyRowIndex : invoiceItems.length;
+      // Only proceed if we found an editable row or we're adding a new row at the end
+      if (emptyRowIndex === -1 && invoiceItems.length > 0) {
+        // Check if the last row can be edited (all previous rows have items)
+        const lastRowIndex = invoiceItems.length - 1;
+        if (!canEditRow(lastRowIndex + 1)) {
+          showToast("الرجاء إكمال الصفوف السابقة أولاً", 'error');
+          return;
+        }
+      }
 
       const newItems = [...invoiceItems];
       if (emptyRowIndex === -1) {
@@ -2402,12 +2435,13 @@ const SalesInvoice: React.FC<SalesInvoiceProps> = ({
                     <input
                       type="text"
                       value={item.id}
-                      onChange={(e) =>
-                        handleItemChange(index, "id", e.target.value)
-                      }
+                      onChange={(e) => {
+                        if (!canEditRow(index)) return;
+                        handleItemChange(index, "id", e.target.value);
+                      }}
                       onKeyDown={(e) => handleTableKeyDown(e, index, "id")}
                       className={tableInputStyle + " w-full"}
-                      disabled={isReadOnly}
+                      disabled={isReadOnly || !canEditRow(index)}
                     />
                   </td>
                   <td className="p-2 align-middle relative border-x border-gray-300">
@@ -2416,27 +2450,32 @@ const SalesInvoice: React.FC<SalesInvoiceProps> = ({
                         type="text"
                         placeholder="ابحث عن صنف..."
                         value={item.name}
-                        onChange={(e) =>
-                          handleItemChange(index, "name", e.target.value)
-                        }
-                        onFocus={() =>
-                          setActiveItemSearch({ index, query: item.name })
-                        }
+                        onChange={(e) => {
+                          if (!canEditRow(index)) return;
+                          handleItemChange(index, "name", e.target.value);
+                        }}
+                        onFocus={() => {
+                          if (!canEditRow(index)) {
+                            return;
+                          }
+                          setActiveItemSearch({ index, query: item.name });
+                        }}
                         onKeyDown={handleItemSearchKeyDown}
                         ref={(el) => {
                           if (el) nameInputRefs.current[index] = el;
                         }}
                         className="bg-transparent w-full focus:outline-none p-1"
-                        disabled={isReadOnly}
+                        disabled={isReadOnly || !canEditRow(index)}
                       />
                       <button
                         type="button"
                         onClick={() => {
+                          if (!canEditRow(index)) return;
                           setEditingItemIndex(index);
                           setIsItemModalOpen(true);
                         }}
                         className="p-1 text-gray-400 hover:text-brand-blue"
-                        disabled={isReadOnly}
+                        disabled={isReadOnly || !canEditRow(index)}
                       >
                         <ListIcon className="w-5 h-5" />
                       </button>
@@ -2493,7 +2532,7 @@ const SalesInvoice: React.FC<SalesInvoiceProps> = ({
                         if (el) qtyInputRefs.current[index] = el;
                       }}
                       className={tableInputStyle}
-                      disabled={isReadOnly}
+                      disabled={isReadOnly || !hasItemSelected(index)}
                     />
                   </td>
                   <td className="p-2 align-middle border-x border-gray-300">
@@ -2514,7 +2553,7 @@ const SalesInvoice: React.FC<SalesInvoiceProps> = ({
                         if (el) priceInputRefs.current[index] = el;
                       }}
                       className={tableInputStyle}
-                      disabled={isReadOnly}
+                      disabled={isReadOnly || !hasItemSelected(index)}
                     />
                   </td>
                   {shouldShowTaxColumn && (
