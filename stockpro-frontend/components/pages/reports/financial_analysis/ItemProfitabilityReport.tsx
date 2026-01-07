@@ -28,7 +28,6 @@ interface ItemProfitabilityReportProps {
  * The report shows item profitability analysis aggregated across the entire company.
  */
 const ItemProfitabilityReport: React.FC<ItemProfitabilityReportProps> = ({ title }) => {
-    const PRINT_PAGE_SIZE = 20;
     const currentYear = new Date().getFullYear();
     const [startDate, setStartDate] = useState(`${currentYear}-01-01`);
     const [endDate, setEndDate] = useState(`${currentYear}-12-31`);
@@ -49,19 +48,10 @@ const ItemProfitabilityReport: React.FC<ItemProfitabilityReportProps> = ({ title
         );
     }, [profitabilityData, searchTerm]);
 
-    const printPages = useMemo(() => {
-        const pages: typeof reportData[] = [];
-        for (let i = 0; i < reportData.length; i += PRINT_PAGE_SIZE) {
-            pages.push(reportData.slice(i, i + PRINT_PAGE_SIZE));
-        }
-        return pages;
-    }, [reportData]);
-
     const handlePrint = () => {
         const printWindow = window.open("", "_blank", "width=1200,height=800");
         if (!printWindow) return;
 
-        const totalPages = Math.max(printPages.length, 1);
         const currentDate = new Date().toLocaleDateString('ar-EG', { year: 'numeric', month: 'long', day: 'numeric' });
         
         // Calculate summary values
@@ -113,38 +103,35 @@ const ItemProfitabilityReport: React.FC<ItemProfitabilityReportProps> = ({ title
             </div>
         `;
 
-        // Summary cards (only for first page)
-        const summaryCards = (pageIndex: number) => {
-            if (pageIndex !== 0) return '';
-            return `
-                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 24px;">
-                    <div style="background: #ECFDF5; border: 1px solid #A7F3D0; padding: 16px; border-radius: 12px;">
-                        <h3 style="color: #065F46; font-weight: bold; margin-bottom: 12px; font-size: 14px; display: flex; align-items: center; gap: 8px;">
-                            <span style="padding: 4px; background: #A7F3D0; border-radius: 50%; width: 16px; height: 16px; display: inline-block;"></span>
-                            الأعلى ربحية (Top 3)
-                        </h3>
-                        ${topPerformers.map((item, idx) => `
-                            <div style="display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 8px; padding-bottom: 8px; border-bottom: 1px solid #A7F3D0; ${idx === topPerformers.length - 1 ? 'border-bottom: none; margin-bottom: 0; padding-bottom: 0;' : ''}">
-                                <span style="font-weight: 500; color: #064E3B;">${idx + 1}. ${item.name}</span>
-                                <span style="font-weight: bold; color: #047857;">${formatNumber(item.grossProfit)}</span>
-                            </div>
-                        `).join('')}
-                    </div>
-                    <div style="background: #EFF6FF; border: 1px solid #93C5FD; padding: 16px; border-radius: 12px; display: flex; flex-direction: column; justify-content: center;">
-                        <h3 style="color: #1E40AF; font-weight: bold; margin-bottom: 8px; font-size: 14px;">إجمالي المبيعات (للفترة)</h3>
-                        <p style="font-size: 32px; font-weight: bold; color: #2563EB; margin: 8px 0 0 0; letter-spacing: -0.5px;">
-                            ${formatNumber(totalRevenue)}
-                        </p>
-                    </div>
-                    <div style="background: #EEF2FF; border: 1px solid #A5B4FC; padding: 16px; border-radius: 12px; display: flex; flex-direction: column; justify-content: center;">
-                        <h3 style="color: #4338CA; font-weight: bold; margin-bottom: 8px; font-size: 14px;">إجمالي الربح (للفترة)</h3>
-                        <p style="font-size: 32px; font-weight: bold; color: #4F46E5; margin: 8px 0 0 0; letter-spacing: -0.5px;">
-                            ${formatNumber(totalProfit)}
-                        </p>
-                    </div>
+        // Summary cards (only shown on first page)
+        const summaryCards = `
+            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 24px;">
+                <div style="background: #ECFDF5; border: 1px solid #A7F3D0; padding: 16px; border-radius: 12px;">
+                    <h3 style="color: #065F46; font-weight: bold; margin-bottom: 12px; font-size: 14px; display: flex; align-items: center; gap: 8px;">
+                        <span style="padding: 4px; background: #A7F3D0; border-radius: 50%; width: 16px; height: 16px; display: inline-block;"></span>
+                        الأعلى ربحية (Top 3)
+                    </h3>
+                    ${topPerformers.map((item, idx) => `
+                        <div style="display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 8px; padding-bottom: 8px; border-bottom: 1px solid #A7F3D0; ${idx === topPerformers.length - 1 ? 'border-bottom: none; margin-bottom: 0; padding-bottom: 0;' : ''}">
+                            <span style="font-weight: 500; color: #064E3B;">${idx + 1}. ${item.name}</span>
+                            <span style="font-weight: bold; color: #047857;">${formatNumber(item.grossProfit)}</span>
+                        </div>
+                    `).join('')}
                 </div>
-            `;
-        };
+                <div style="background: #EFF6FF; border: 1px solid #93C5FD; padding: 16px; border-radius: 12px; display: flex; flex-direction: column; justify-content: center;">
+                    <h3 style="color: #1E40AF; font-weight: bold; margin-bottom: 8px; font-size: 14px;">إجمالي المبيعات (للفترة)</h3>
+                    <p style="font-size: 32px; font-weight: bold; color: #2563EB; margin: 8px 0 0 0; letter-spacing: -0.5px;">
+                        ${formatNumber(totalRevenue)}
+                    </p>
+                </div>
+                <div style="background: #EEF2FF; border: 1px solid #A5B4FC; padding: 16px; border-radius: 12px; display: flex; flex-direction: column; justify-content: center;">
+                    <h3 style="color: #4338CA; font-weight: bold; margin-bottom: 8px; font-size: 14px;">إجمالي الربح (للفترة)</h3>
+                    <p style="font-size: 32px; font-weight: bold; color: #4F46E5; margin: 8px 0 0 0; letter-spacing: -0.5px;">
+                        ${formatNumber(totalProfit)}
+                    </p>
+                </div>
+            </div>
+        `;
 
         // Table header
         const tableHeader = `
@@ -159,48 +146,46 @@ const ItemProfitabilityReport: React.FC<ItemProfitabilityReportProps> = ({ title
             </tr>
         `;
 
-        // Generate pages
-        const bodyPages = printPages
+        // Generate table rows for all data
+        const tableRows = reportData
             .map(
-                (pageItems, idx) => `
-                <div class="page">
-                    ${idx === 0 ? companyHeader : ''}
-                    ${idx === 0 ? dateInfo : ''}
-                    ${summaryCards(idx)}
-                    <table>
-                        <thead>${tableHeader}</thead>
-                        <tbody>
-                            ${pageItems
-                                .map(
-                                    (item) => `
-                                    <tr>
-                                        <td style="padding: 12px; text-align: right; color: #4B5563;">${item.code}</td>
-                                        <td style="padding: 12px; text-align: right; font-weight: bold; color: #1F2937;">${item.name}</td>
-                                        <td style="padding: 12px; text-align: center;">${item.netQty}</td>
-                                        <td style="padding: 12px; text-align: center; font-weight: 500; color: #2563EB;">${formatNumber(item.netRevenue)}</td>
-                                        <td style="padding: 12px; text-align: center; color: #6B7280;">${formatNumber(item.cogs)}</td>
-                                        <td style="padding: 12px; text-align: center; font-weight: bold; color: ${item.grossProfit >= 0 ? '#059669' : '#DC2626'};">
-                                            ${formatNumber(item.grossProfit)}
-                                        </td>
-                                        <td style="padding: 12px; text-align: center; vertical-align: middle;">
-                                            <div style="display: flex; align-items: center; gap: 8px;">
-                                                <span style="font-size: 11px; font-weight: bold; width: 40px; text-align: right;">${item.marginPercent.toFixed(1)}%</span>
-                                                <div style="flex: 1; height: 8px; background: #E5E7EB; border-radius: 9999px; overflow: hidden;">
-                                                    <div 
-                                                        style="height: 100%; border-radius: 9999px; width: ${Math.min(100, Math.max(0, item.marginPercent))}%; background: ${item.marginPercent > 30 ? '#10B981' : item.marginPercent > 10 ? '#FBBF24' : '#EF4444'};"
-                                                    ></div>
-                                                </div>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                `
-                                )
-                                .join("")}
-                        </tbody>
-                    </table>
-                </div>`
+                (item) => `
+                <tr>
+                    <td style="padding: 12px; text-align: right; color: #4B5563;">${item.code}</td>
+                    <td style="padding: 12px; text-align: right; font-weight: bold; color: #1F2937;">${item.name}</td>
+                    <td style="padding: 12px; text-align: center;">${item.netQty}</td>
+                    <td style="padding: 12px; text-align: center; font-weight: 500; color: #2563EB;">${formatNumber(item.netRevenue)}</td>
+                    <td style="padding: 12px; text-align: center; color: #6B7280;">${formatNumber(item.cogs)}</td>
+                    <td style="padding: 12px; text-align: center; font-weight: bold; color: ${item.grossProfit >= 0 ? '#059669' : '#DC2626'};">
+                        ${formatNumber(item.grossProfit)}
+                    </td>
+                    <td style="padding: 12px; text-align: center; vertical-align: middle;">
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <span style="font-size: 11px; font-weight: bold; width: 40px; text-align: right;">${item.marginPercent.toFixed(1)}%</span>
+                            <div style="flex: 1; height: 8px; background: #E5E7EB; border-radius: 9999px; overflow: hidden;">
+                                <div 
+                                    style="height: 100%; border-radius: 9999px; width: ${Math.min(100, Math.max(0, item.marginPercent))}%; background: ${item.marginPercent > 30 ? '#10B981' : item.marginPercent > 10 ? '#FBBF24' : '#EF4444'};"
+                                ></div>
+                            </div>
+                        </div>
+                    </td>
+                </tr>
+            `
             )
             .join("");
+
+        // Generate single continuous body structure
+        const bodyContent = `
+            ${companyHeader}
+            ${dateInfo}
+            ${summaryCards}
+            <table>
+                <thead>${tableHeader}</thead>
+                <tbody>
+                    ${tableRows}
+                </tbody>
+            </table>
+        `;
 
         const html = `
             <!DOCTYPE html>
@@ -268,18 +253,10 @@ const ItemProfitabilityReport: React.FC<ItemProfitabilityReportProps> = ({ title
                         page-break-inside: avoid; 
                         break-inside: avoid; 
                     }
-                    .page { 
-                        page-break-after: always; 
-                        break-after: page; 
-                    }
-                    .page:last-of-type { 
-                        page-break-after: auto; 
-                        break-after: auto; 
-                    }
                 </style>
             </head>
             <body>
-                ${bodyPages}
+                ${bodyContent}
             </body>
             </html>
         `;
