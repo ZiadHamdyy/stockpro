@@ -223,6 +223,7 @@ const PurchaseReturn: React.FC<PurchaseReturnProps> = ({
   const qtyInputRefs = useRef<(HTMLInputElement | null)[]>([]);
   const priceInputRefs = useRef<(HTMLInputElement | null)[]>([]);
   const tableInputSizerRef = useRef<HTMLSpanElement | null>(null);
+  const dropdownItemRefs = useRef<(HTMLDivElement | null)[]>([]);
 
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [isSearchModalOpen, setIsSearchModalOpen] = useState(false);
@@ -475,6 +476,23 @@ const PurchaseReturn: React.FC<PurchaseReturnProps> = ({
   useEffect(() => {
     if (activeItemSearch) setHighlightedIndex(-1);
   }, [activeItemSearch]);
+
+  // Scroll highlighted item into view when navigating item dropdown with arrow keys
+  useEffect(() => {
+    if (
+      activeItemSearch &&
+      highlightedIndex >= 0 &&
+      highlightedIndex < dropdownItemRefs.current.length
+    ) {
+      const highlightedElement = dropdownItemRefs.current[highlightedIndex];
+      if (highlightedElement) {
+        highlightedElement.scrollIntoView({
+          behavior: "smooth",
+          block: "nearest",
+        });
+      }
+    }
+  }, [highlightedIndex, activeItemSearch]);
 
   // Auto-select first bank when payment target type is "bank"
   useEffect(() => {
@@ -1339,6 +1357,9 @@ const PurchaseReturn: React.FC<PurchaseReturnProps> = ({
                           {filteredItems.map((result, idx) => (
                             <div
                               key={result.id}
+                              ref={(el) => {
+                                if (el) dropdownItemRefs.current[idx] = el;
+                              }}
                               onClick={() => handleSelectItem(index, result)}
                               className={`p-2 cursor-pointer ${idx === highlightedIndex ? "bg-brand-green text-white" : "hover:bg-brand-green-bg"}`}
                               onMouseEnter={() => setHighlightedIndex(idx)}
