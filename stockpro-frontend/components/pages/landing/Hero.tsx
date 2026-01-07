@@ -192,8 +192,8 @@ const HomePage: React.FC<HomePageProps> = ({ setPage, heroBgUrl, dashboardUrl, f
             key={index}
             className={`absolute inset-0 z-0 transition-opacity duration-1000 ease-in-out ${index === currentBgIndex ? 'opacity-100' : 'opacity-0'}`}
           >
-              <img src={bg} alt="Office Background" className="w-full h-full object-cover opacity-40" />
-              <div className="absolute inset-0 bg-gradient-to-br from-brand-blue/20 via-transparent to-brand-green/20"></div>
+              <img src={bg} alt="Office Background" className="w-full h-full object-cover opacity-75" />
+              <div className="absolute inset-0 bg-gradient-to-br from-brand-blue/10 via-transparent to-brand-green/10"></div>
           </div>
       ))}
 
@@ -202,7 +202,7 @@ const HomePage: React.FC<HomePageProps> = ({ setPage, heroBgUrl, dashboardUrl, f
            <div className="absolute inset-0 z-0">
              {heroBgUrl ? (
                 <>
-                 <img src={heroBgUrl} alt="Hero Background" className="w-full h-full object-cover opacity-50" />
+                 <img src={heroBgUrl} alt="Hero Background" className="w-full h-full object-cover opacity-75" />
                 </>
              ) : (
                  <div className="w-full h-full bg-grid-pattern"></div>
@@ -221,7 +221,7 @@ const HomePage: React.FC<HomePageProps> = ({ setPage, heroBgUrl, dashboardUrl, f
             
             <div className="relative bg-gradient-to-br from-white/20 via-white/10 to-brand-blue-bg/20 p-2 rounded-t-[1.8rem] rounded-b-none border-[3px] border-b-0 border-gradient-to-r from-brand-green via-brand-blue to-brand-blue shadow-2xl backdrop-blur-sm" style={{ borderImage: 'linear-gradient(to right, #16a34a, #1E40AF, #1E40AF) 1' }}>
                  {/* Panoramic Height */}
-                 <div className="rounded-t-2xl rounded-b-none overflow-hidden bg-slate-100 relative h-[470px] md:h-[500px]">
+                 <div className="rounded-t-2xl rounded-b-none overflow-hidden bg-slate-100 relative h-[320px] md:h-[360px]">
                     <img 
                         src={dashboardUrl} 
                         alt="Dashboard Interface"
