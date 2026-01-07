@@ -385,6 +385,7 @@ const SalesInvoice: React.FC<SalesInvoiceProps> = ({
   } | null>(null);
   const [isCustomerDropdownOpen, setIsCustomerDropdownOpen] = useState(false);
   const customerRef = useRef<HTMLDivElement>(null);
+  const balanceBarRef = useRef<HTMLDivElement>(null);
 
   const [activeItemSearch, setActiveItemSearch] = useState<{
     index: number;
@@ -458,14 +459,12 @@ const SalesInvoice: React.FC<SalesInvoiceProps> = ({
     return customer?.currentBalance || 0;
   }, [selectedCustomer, allCustomers]);
 
-  // Show balance bar when customer is selected
+  // Hide balance bar when customer is deselected
   useEffect(() => {
-    if (selectedCustomer && !isReadOnly) {
-      setShowBalanceBar(true);
-    } else {
+    if (!selectedCustomer) {
       setShowBalanceBar(false);
     }
-  }, [selectedCustomer, isReadOnly]);
+  }, [selectedCustomer]);
 
   // Invalidate stock and prices when component mounts or when balance bar is shown
   useEffect(() => {
@@ -919,6 +918,12 @@ const SalesInvoice: React.FC<SalesInvoiceProps> = ({
         !customerRef.current.contains(event.target as Node)
       )
         setIsCustomerDropdownOpen(false);
+      if (
+        balanceBarRef.current &&
+        !balanceBarRef.current.contains(event.target as Node) &&
+        !customerRef.current?.contains(event.target as Node)
+      )
+        setShowBalanceBar(false);
     };
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
@@ -1059,6 +1064,9 @@ const SalesInvoice: React.FC<SalesInvoiceProps> = ({
     setSelectedCustomer({ id: customer.id.toString(), name: customer.name });
     setCustomerQuery(customer.name);
     setIsCustomerDropdownOpen(false);
+    if (!isReadOnly) {
+      setShowBalanceBar(true);
+    }
   };
 
   const handleSelectItemFromModal = (selectedItem: SelectableItem) => {
@@ -1772,7 +1780,12 @@ const SalesInvoice: React.FC<SalesInvoiceProps> = ({
                     setIsCustomerDropdownOpen(true);
                     setSelectedCustomer(null);
                   }}
-                  onFocus={() => setIsCustomerDropdownOpen(true)}
+                  onFocus={() => {
+                    setIsCustomerDropdownOpen(true);
+                    if (selectedCustomer && !isReadOnly) {
+                      setShowBalanceBar(true);
+                    }
+                  }}
                   disabled={isReadOnly}
                 />
                 {isCustomerDropdownOpen && !isReadOnly && (
@@ -2608,13 +2621,15 @@ const SalesInvoice: React.FC<SalesInvoiceProps> = ({
         </div>
       )}
       {showBalanceBar && selectedCustomer && (
-        <CreditEntityBalanceBar
-          entityName={selectedCustomer.name}
-          currentBalance={selectedCustomerBalance}
-          theme="blue"
-          entityType="customer"
-          onClose={() => setShowBalanceBar(false)}
-        />
+        <div ref={balanceBarRef}>
+          <CreditEntityBalanceBar
+            entityName={selectedCustomer.name}
+            currentBalance={selectedCustomerBalance}
+            theme="blue"
+            entityType="customer"
+            onClose={() => setShowBalanceBar(false)}
+          />
+        </div>
       )}
     </>
   );
