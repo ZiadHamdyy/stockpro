@@ -1248,6 +1248,7 @@ const BalanceSheet: React.FC = () => {
     apiSalesReturns,
     apiReceiptVouchers,
     apiPaymentVouchers,
+    financialSettings,
   ]);
 
   /**
@@ -1343,6 +1344,7 @@ const BalanceSheet: React.FC = () => {
     apiPaymentVouchers,
     inventoryValuationMethod,
     calculateNetProfitForPeriod,
+    financialSettings,
   ]);
 
   const displayData = useMemo(() => {
