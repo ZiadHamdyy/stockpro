@@ -105,10 +105,11 @@ const AddSupplier: React.FC<AddSupplierProps> = ({
   ) => {
     const value = e.target.value;
     // Allow empty string, negative sign, and valid numbers (including decimals)
+    // Keep as string to preserve what user types until save
     if (value === "" || value === "-" || /^-?\d*\.?\d*$/.test(value)) {
       setSupplierData((prev: any) => ({
         ...prev,
-        openingBalance: value === "" || value === "-" ? value : parseFloat(value) || 0,
+        openingBalance: value,
       }));
     }
   };
@@ -293,7 +294,14 @@ const AddSupplier: React.FC<AddSupplierProps> = ({
               type="text"
               name="openingBalance"
               id="openingBalance"
-              value={supplierData.openingBalance}
+              value={
+                typeof supplierData.openingBalance === "string"
+                  ? supplierData.openingBalance
+                  : supplierData.openingBalance === 0 ||
+                    supplierData.openingBalance === null
+                  ? ""
+                  : supplierData.openingBalance
+              }
               onChange={handleOpeningBalanceChange}
               className={inputStyle}
               disabled={isReadOnly}
