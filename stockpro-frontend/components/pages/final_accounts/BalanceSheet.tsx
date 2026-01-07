@@ -1084,12 +1084,180 @@ const BalanceSheet: React.FC = () => {
   }, [incomeStatementData, calculatedInventoryValue, calculatedOtherRevenues, netSalesAfterDiscount, calculatedNetPurchases]);
 
   /**
+   * Helper function to calculate net profit for any date range using the current inventory valuation method
+   * This ensures previous fiscal years are recalculated with the current method (average cost vs last purchase)
+   * instead of using stored values that may have been calculated with a different method
+   */
+  const calculateNetProfitForPeriod = useCallback((
+    periodStartDate: string,
+    periodEndDate: string
+  ): number => {
+    const normalizedPeriodStart = normalizeDate(periodStartDate);
+    const normalizedPeriodEnd = normalizeDate(periodEndDate);
+    
+    if (!normalizedPeriodStart || !normalizedPeriodEnd) return 0;
+
+    // Calculate beginning inventory (at day before period start date)
+    const dayBeforeStart = new Date(normalizedPeriodStart);
+    dayBeforeStart.setDate(dayBeforeStart.getDate() - 1);
+    const dayBeforeStartString = dayBeforeStart.toISOString().split('T')[0];
+    
+    const beginningInventory = calculateCompanyInventoryValuation({
+      items,
+      aggregatedOpeningBalances,
+      purchaseInvoices: transformedPurchaseInvoices,
+      salesInvoices: transformedSalesInvoices,
+      purchaseReturns: transformedPurchaseReturns,
+      salesReturns: transformedSalesReturns,
+      storeReceiptVouchers: transformedStoreReceiptVouchers,
+      storeIssueVouchers: transformedStoreIssueVouchers,
+      storeTransferVouchers: transformedStoreTransferVouchers,
+      stores,
+      endDate: dayBeforeStartString,
+      valuationMethod: inventoryValuationMethod,
+      normalizeDate,
+      toNumber,
+      getLastPurchasePriceBeforeDate,
+      calculateWeightedAverageCost,
+    }).totalValue;
+
+    // Calculate ending inventory (at period end date)
+    const endingInventory = calculateCompanyInventoryValuation({
+      items,
+      aggregatedOpeningBalances,
+      purchaseInvoices: transformedPurchaseInvoices,
+      salesInvoices: transformedSalesInvoices,
+      purchaseReturns: transformedPurchaseReturns,
+      salesReturns: transformedSalesReturns,
+      storeReceiptVouchers: transformedStoreReceiptVouchers,
+      storeIssueVouchers: transformedStoreIssueVouchers,
+      storeTransferVouchers: transformedStoreTransferVouchers,
+      stores,
+      endDate: normalizedPeriodEnd,
+      valuationMethod: inventoryValuationMethod,
+      normalizeDate,
+      toNumber,
+      getLastPurchasePriceBeforeDate,
+      calculateWeightedAverageCost,
+    }).totalValue;
+
+    // Calculate net purchases for the period
+    const isInRange = (date: any) => {
+      const d = normalizeDate(date);
+      if (!d) return false;
+      return d >= normalizedPeriodStart && d <= normalizedPeriodEnd;
+    };
+
+    const { totalPurchasesBeforeTax, totalPurchasesDiscount } = (apiPurchaseInvoices as any[])
+      .filter((inv) => isInRange(inv.date || inv.invoiceDate))
+      .reduce(
+        (acc, inv) => {
+          acc.totalPurchasesBeforeTax += toNumber(inv.subtotal || 0);
+          acc.totalPurchasesDiscount += toNumber(inv.discount || 0);
+          return acc;
+        },
+        { totalPurchasesBeforeTax: 0, totalPurchasesDiscount: 0 },
+      );
+
+    const { totalPurchaseReturnsBeforeTax, totalReturnsDiscount } = (apiPurchaseReturns as any[])
+      .filter((inv) => isInRange(inv.date || inv.invoiceDate))
+      .reduce(
+        (acc, inv) => {
+          acc.totalPurchaseReturnsBeforeTax += toNumber(inv.subtotal || 0);
+          acc.totalReturnsDiscount += toNumber(inv.discount || 0);
+          return acc;
+        },
+        { totalPurchaseReturnsBeforeTax: 0, totalReturnsDiscount: 0 },
+      );
+
+    const netPurchases = 
+      totalPurchasesBeforeTax -
+      totalPurchasesDiscount -
+      totalPurchaseReturnsBeforeTax +
+      totalReturnsDiscount;
+
+    // Calculate net sales for the period
+    const totalSales = (apiSalesInvoices as any[])
+      .filter((inv) => isInRange(inv.date || inv.invoiceDate))
+      .reduce((sum, inv) => sum + toNumber(inv.subtotal || 0), 0);
+
+    const totalSalesReturns = (apiSalesReturns as any[])
+      .filter((inv) => isInRange(inv.date || inv.invoiceDate))
+      .reduce((sum, inv) => sum + toNumber(inv.subtotal || 0), 0);
+
+    const netSales = totalSales - totalSalesReturns;
+
+    // Calculate allowed discount for the period
+    const totalSalesDiscounts = (apiSalesInvoices as any[])
+      .filter((inv) => isInRange(inv.date || inv.invoiceDate))
+      .reduce((sum, inv) => sum + toNumber(inv.discount || 0), 0);
+
+    const totalSalesReturnsDiscounts = (apiSalesReturns as any[])
+      .filter((inv) => isInRange(inv.date || inv.invoiceDate))
+      .reduce((sum, inv) => sum + toNumber(inv.discount || 0), 0);
+
+    const allowedDiscount = totalSalesDiscounts - totalSalesReturnsDiscounts;
+    const netSalesAfterDiscount = netSales - allowedDiscount;
+
+    // Calculate other revenues for the period
+    const otherRevenues = (apiReceiptVouchers as any[])
+      .filter((voucher) => {
+        if (voucher.entityType !== 'revenue') return false;
+        const voucherDate = normalizeDate(voucher.date);
+        if (!voucherDate) return false;
+        return voucherDate >= normalizedPeriodStart && voucherDate <= normalizedPeriodEnd;
+      })
+      .reduce((sum, voucher) => sum + (voucher.amount || 0), 0);
+
+    // Calculate total expenses for the period (from payment vouchers)
+    const totalExpenses = (apiPaymentVouchers as any[])
+      .filter((v) => {
+        const entityType = (v.entityType || '').toString().toLowerCase();
+        const isExpense = entityType === 'expense' || entityType === 'expense-type';
+        if (!isExpense) return false;
+        const vDate = normalizeDate(v.date);
+        if (!vDate) return false;
+        return vDate >= normalizedPeriodStart && vDate <= normalizedPeriodEnd;
+      })
+      .reduce((sum, v) => sum + toNumber(v.amount || 0), 0);
+
+    // Calculate net profit: netSalesAfterDiscount - (beginningInventory + netPurchases - endingInventory) + otherRevenues - totalExpenses
+    return netSalesAfterDiscount - 
+           (beginningInventory + netPurchases - endingInventory) + 
+           otherRevenues - 
+           totalExpenses;
+  }, [
+    items,
+    aggregatedOpeningBalances,
+    transformedPurchaseInvoices,
+    transformedSalesInvoices,
+    transformedPurchaseReturns,
+    transformedSalesReturns,
+    transformedStoreReceiptVouchers,
+    transformedStoreIssueVouchers,
+    transformedStoreTransferVouchers,
+    stores,
+    inventoryValuationMethod,
+    normalizeDate,
+    toNumber,
+    getLastPurchasePriceBeforeDate,
+    calculateWeightedAverageCost,
+    apiPurchaseInvoices,
+    apiPurchaseReturns,
+    apiSalesInvoices,
+    apiSalesReturns,
+    apiReceiptVouchers,
+    apiPaymentVouchers,
+  ]);
+
+  /**
    * Calculate retained earnings - COMPANY-WIDE calculation
    * Includes retained earnings from all previous closed fiscal years
    * Plus current period net profit and P&L vouchers from all branches
    * 
-   * Note: Retained earnings is affected by inventory valuation method (average cost vs last purchase cost)
-   * through the calculatedNetProfit → calculatedInventoryValue dependency chain.
+   * IMPORTANT: Previous fiscal years' retained earnings are recalculated using the current
+   * inventory valuation method (average cost vs last purchase) instead of using stored values.
+   * This ensures consistency when the valuation method changes.
    */
   const calculatedRetainedEarnings = useMemo(() => {
     const normalizedStartDate = normalizeDate(startDate);
@@ -1103,9 +1271,38 @@ const BalanceSheet: React.FC = () => {
       return fyEndDate < periodEndDate;
     });
 
-    // Sum retained earnings from all previous closed fiscal years
+    // Recalculate retained earnings for each previous closed fiscal year using the current inventory valuation method
+    // This ensures consistency when the valuation method changes (e.g., from last purchase to average cost)
     const previousRetainedEarnings = previousClosedFiscalYears.reduce(
-      (sum, fiscalYear) => sum + (fiscalYear.retainedEarnings || 0),
+      (sum, fiscalYear) => {
+        const fyStartDate = normalizeDate(fiscalYear.startDate);
+        const fyEndDate = normalizeDate(fiscalYear.endDate);
+        
+        if (!fyStartDate || !fyEndDate) return sum;
+        
+        // Calculate net profit for this fiscal year using current valuation method
+        const fiscalYearNetProfit = calculateNetProfitForPeriod(fyStartDate, fyEndDate);
+        
+        // Include P&L vouchers for this fiscal year
+        const fiscalYearProfitAndLossReceipts = apiReceiptVouchers
+          .filter((v) => v.entityType === "profit_and_loss")
+          .filter((v) => {
+            const vDate = normalizeDate(v.date);
+            return vDate >= fyStartDate && vDate <= fyEndDate;
+          })
+          .reduce((sum, v) => sum + (v.amount || 0), 0);
+
+        const fiscalYearProfitAndLossPayments = apiPaymentVouchers
+          .filter((v) => v.entityType === "profit_and_loss")
+          .filter((v) => {
+            const vDate = normalizeDate(v.date);
+            return vDate >= fyStartDate && vDate <= fyEndDate;
+          })
+          .reduce((sum, v) => sum + (v.amount || 0), 0);
+        
+        // Return net profit + P&L vouchers for this fiscal year
+        return sum + fiscalYearNetProfit + fiscalYearProfitAndLossReceipts - fiscalYearProfitAndLossPayments;
+      },
       0,
     );
 
@@ -1145,6 +1342,7 @@ const BalanceSheet: React.FC = () => {
     apiReceiptVouchers,
     apiPaymentVouchers,
     inventoryValuationMethod,
+    calculateNetProfitForPeriod,
   ]);
 
   const displayData = useMemo(() => {
