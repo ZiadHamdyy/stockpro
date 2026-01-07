@@ -169,7 +169,7 @@ export const SalesTable: React.FC<SalesTableProps> = ({ data, branches, selected
                   </div>
                 </th>
               ))}
-              <th className="px-6 py-4 whitespace-nowrap bg-gradient-to-br from-indigo-600 to-purple-600 text-white font-extrabold text-center border border-indigo-700 print:px-2 print:py-3 print:text-[11px]" style={{ width: visibleBranches.length > 0 ? `${100 / (visibleBranches.length + 2)}%` : '15%' }}>
+              <th className="px-6 py-4 whitespace-nowrap font-bold border border-blue-700 print:px-2 print:py-3 print:text-[11px]" style={{ color: '#fff', width: visibleBranches.length > 0 ? `${100 / (visibleBranches.length + 2)}%` : '15%' }}>
                 الإجمالي
               </th>
             </tr>
@@ -196,9 +196,7 @@ export const SalesTable: React.FC<SalesTableProps> = ({ data, branches, selected
                     </td>
                   ))}
                   <td
-                    className={`px-6 py-4 font-bold text-indigo-900 tabular-nums text-center border border-slate-300 font-mono tracking-tight print:px-2 print:py-3 print:text-[11px] ${
-                      index % 2 === 0 ? 'bg-indigo-50' : 'bg-indigo-100'
-                    }`}
+                    className="px-6 py-4 text-slate-700 font-bold tabular-nums font-mono tracking-tight border border-slate-300 print:px-2 print:py-3 print:text-[11px] print:text-center"
                   >
                     {formatCurrency(rowTotal)}
                   </td>
@@ -206,7 +204,7 @@ export const SalesTable: React.FC<SalesTableProps> = ({ data, branches, selected
               );
             })}
           </tbody>
-          <tfoot className="hidden print:table-footer-group">
+          <tfoot className="print:table-footer-group">
             <tr className="bg-[#1E40AF] text-white font-bold">
               <td className="px-6 py-4 border border-blue-700 text-white font-bold print:px-2 print:py-3 print:text-[11px]">الإجمالي السنوي</td>
               {visibleBranches.map(branch => (
@@ -217,7 +215,7 @@ export const SalesTable: React.FC<SalesTableProps> = ({ data, branches, selected
                   {formatCurrency(branchTotals[branch.id])}
                 </td>
               ))}
-              <td className="px-6 py-4 tabular-nums text-center font-mono border border-indigo-700 bg-gradient-to-br from-indigo-600 to-purple-600 text-white font-bold print:px-2 print:py-3 print:text-[11px]">
+              <td className="px-6 py-4 tabular-nums font-mono border border-blue-700 text-white font-bold print:px-2 print:py-3 print:text-[11px] print:text-center">
                  {formatCurrency(Object.values(branchTotals).reduce((a, b) => a + b, 0))}
               </td>
             </tr>
