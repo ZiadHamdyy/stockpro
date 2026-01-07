@@ -561,7 +561,57 @@ const SalesInvoice: React.FC<SalesInvoiceProps> = ({
     guardPrint({
       hasData: hasPrintableItems,
       showToast,
-      onAllowed: () => setIsPreviewOpen(true),
+      onAllowed: () => {
+        // Set preview data from current invoice state to ensure it's stable
+        // This prevents preview from closing when state changes
+        if (currentIndex >= 0 && invoices[currentIndex]) {
+          const inv = invoices[currentIndex];
+          const fullCustomer = selectedCustomer
+            ? (customers as any[]).find((c) => c.id === selectedCustomer.id)
+            : null;
+          const printCustomer = selectedCustomer
+            ? {
+                id: selectedCustomer.id,
+                name: selectedCustomer.name,
+                address:
+                  fullCustomer?.nationalAddress ||
+                  fullCustomer?.address ||
+                  undefined,
+                taxNumber: fullCustomer?.taxNumber || undefined,
+                commercialReg: fullCustomer?.commercialReg || undefined,
+              }
+            : customerQuery.trim()
+            ? {
+                id: "",
+                name: customerQuery.trim(),
+              }
+            : null;
+          
+          const previewDataToStore = {
+            companyInfo,
+            vatRate,
+            isVatEnabled: effectiveVatEnabled,
+            items: invoiceItems.filter((i) => i.id && i.name && i.qty > 0),
+            totals,
+            paymentMethod,
+            customer: printCustomer,
+            details: {
+              ...invoiceDetails,
+              userName: currentUser?.name || currentUser?.fullName || "غير محدد",
+              branchName: resolvedBranchName || "غير محدد",
+              notes: invoiceNotes || undefined,
+            },
+            zatcaUuid: inv?.zatcaUuid,
+            zatcaSequentialNumber: inv?.zatcaSequentialNumber,
+            zatcaStatus: inv?.zatcaStatus,
+            zatcaIssueDateTime: inv?.zatcaIssueDateTime,
+            zatcaHash: inv?.zatcaHash,
+            printSettings,
+          };
+          setPreviewData(previewDataToStore);
+        }
+        setIsPreviewOpen(true);
+      },
     });
   };
   const [originalInvoiceVatEnabled, setOriginalInvoiceVatEnabled] = useState<boolean>(false);
@@ -891,6 +941,11 @@ const SalesInvoice: React.FC<SalesInvoiceProps> = ({
   }, [isReadOnly, isPreviewOpen, isSearchModalOpen, isScannerOpen, allItems]);
 
   useEffect(() => {
+    // Don't load invoice data if preview is open - preserve preview state
+    if (isPreviewOpen) {
+      return;
+    }
+    
     if (currentIndex >= 0 && invoices[currentIndex]) {
       const inv = invoices[currentIndex];
       // Convert date to yyyy-MM-dd format for date input
@@ -945,12 +1000,15 @@ const SalesInvoice: React.FC<SalesInvoiceProps> = ({
       setSafeBranchName(branchNameFromInvoice || getUserBranchName(currentUser));
       setIsReadOnly(true);
       justSavedRef.current = false; // Clear the flag after loading invoice
-      shouldOpenPreviewRef.current = false; // Reset preview flag when loading existing
+      // Don't reset preview flag if preview is already open - preserve preview state
+      if (!isPreviewOpen) {
+        shouldOpenPreviewRef.current = false; // Reset preview flag when loading existing
+      }
     } else if (!justSavedRef.current && !isPrefillingFromQuotation) {
       // Only call handleNew if we haven't just saved
       handleNew();
     }
-  }, [currentIndex, invoices, currentUser, isPrefillingFromQuotation]);
+  }, [currentIndex, invoices, currentUser, isPrefillingFromQuotation, isPreviewOpen]);
   useEffect(() => {
     if (!prefillQuotationId || !quotationPrefillData || isQuotationPrefillLoading) {
       return;
@@ -1054,11 +1112,11 @@ const SalesInvoice: React.FC<SalesInvoiceProps> = ({
   // Open preview when previewData is set and we have a flag to open it
   // The flag is only set to true after saving, so this ensures preview opens automatically after save
   useEffect(() => {
-    if (shouldOpenPreviewRef.current && previewData && previewData.items.length > 0) {
+    if (shouldOpenPreviewRef.current && previewData && previewData.items.length > 0 && !isPreviewOpen) {
       setIsPreviewOpen(true);
       shouldOpenPreviewRef.current = false; // Reset flag
     }
-  }, [previewData]);
+  }, [previewData, isPreviewOpen]);
 
   useEffect(() => {
     // Skip recalculation when prefilling from quotation to preserve original prices
@@ -2736,35 +2794,42 @@ const SalesInvoice: React.FC<SalesInvoiceProps> = ({
         colorTheme="blue"
       />
       {(() => {
-        // Use preview data from state if available, otherwise use current state
-        const dataToPreview = (previewData as
-          | {
-              companyInfo: CompanyInfo;
-              vatRate: number;
-              isVatEnabled: boolean;
-              items: InvoiceRow[];
-              totals: { subtotal: number; discount: number; tax: number; net: number };
-              paymentMethod: "cash" | "credit";
-              customer: {
-                id: string;
-                name: string;
-                address?: string;
-                taxNumber?: string;
-                commercialReg?: string;
-              } | null;
-              details: {
-                invoiceNumber: string;
-                invoiceDate: string;
-                userName: string;
-                branchName: string;
-              };
-              zatcaUuid?: string;
-              zatcaSequentialNumber?: number;
-              zatcaStatus?: 'PENDING' | 'ACCEPTED' | 'REJECTED';
-              zatcaIssueDateTime?: string;
-              zatcaHash?: string;
-            }
-          | null) || (() => {
+        // Use preview data from state if available (stable), otherwise compute from current state
+        // This ensures preview data doesn't change when other state updates
+        let dataToPreview: {
+          companyInfo: CompanyInfo;
+          vatRate: number;
+          isVatEnabled: boolean;
+          items: InvoiceRow[];
+          totals: { subtotal: number; discount: number; tax: number; net: number };
+          paymentMethod: "cash" | "credit";
+          customer: {
+            id: string;
+            name: string;
+            address?: string;
+            taxNumber?: string;
+            commercialReg?: string;
+          } | null;
+          details: {
+            invoiceNumber: string;
+            invoiceDate: string;
+            userName: string;
+            branchName: string;
+            notes?: string;
+          };
+          zatcaUuid?: string;
+          zatcaSequentialNumber?: number;
+          zatcaStatus?: 'PENDING' | 'ACCEPTED' | 'REJECTED';
+          zatcaIssueDateTime?: string;
+          zatcaHash?: string;
+          printSettings?: PrintSettings;
+        } | null = null;
+
+        // If previewData exists, use it directly (stable data)
+        if (previewData) {
+          dataToPreview = previewData;
+        } else {
+          // Only compute from current state if previewData is not set (for manual preview opening)
           const fullCustomer = selectedCustomer
             ? (customers as any[]).find((c) => c.id === selectedCustomer.id)
             : null;
@@ -2788,7 +2853,7 @@ const SalesInvoice: React.FC<SalesInvoiceProps> = ({
           // Get current invoice if viewing existing one
           const currentInvoice = currentIndex >= 0 ? invoices[currentIndex] : null;
           
-          return {
+          dataToPreview = {
             companyInfo,
             vatRate,
             isVatEnabled: effectiveVatEnabled,
@@ -2808,10 +2873,11 @@ const SalesInvoice: React.FC<SalesInvoiceProps> = ({
             zatcaStatus: currentInvoice?.zatcaStatus,
             zatcaIssueDateTime: currentInvoice?.zatcaIssueDateTime,
             zatcaHash: currentInvoice?.zatcaHash,
+            printSettings,
           };
-        })();
+        }
         
-        // Only render preview if we have data
+        // Only render preview if we have data and preview is open
         if (!isPreviewOpen || !dataToPreview || dataToPreview.items.length === 0) {
           return null;
         }
