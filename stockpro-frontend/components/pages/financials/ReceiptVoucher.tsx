@@ -396,30 +396,8 @@ const ReceiptVoucher: React.FC<ReceiptVoucherProps> = ({ title }) => {
     if (type === 'customer') {
       const customer = customers.find(c => String(c.id) === idStr);
       if (customer) {
-        // Calculate balance: openingBalance + creditSales - creditReturns - receipts + payments
-        const creditSales = salesInvoices
-          .filter(i => {
-            const invCustomerId = i.customerId || i.customer?.id;
-            return invCustomerId && String(invCustomerId) === idStr && i.paymentMethod === 'credit';
-          })
-          .reduce((sum, i) => sum + (i.net || 0), 0);
-        
-        const creditReturns = salesReturns
-          .filter(i => {
-            const retCustomerId = i.customerId || i.customer?.id;
-            return retCustomerId && String(retCustomerId) === idStr && i.paymentMethod === 'credit';
-          })
-          .reduce((sum, i) => sum + (i.net || 0), 0);
-        
-        const totalReceipts = vouchers
-          .filter(v => v.entityType === 'customer' && String(v.customerId || '') === idStr && String(v.id || '') !== String(currentVoucherId || ''))
-          .reduce((sum, v) => sum + (v.amount || 0), 0);
-        
-        const totalPayments = paymentVouchers
-          .filter(v => v.entityType === 'customer' && String(v.customerId || '') === idStr)
-          .reduce((sum, v) => sum + (v.amount || 0), 0);
-        
-        balance = (customer.openingBalance || 0) + creditSales - creditReturns - totalReceipts + totalPayments;
+        // Use currentBalance directly from database
+        balance = (customer as any).currentBalance ?? customer.openingBalance ?? 0;
         
         // Get Last Invoice
         const sortedInvoices = salesInvoices
@@ -453,7 +431,8 @@ const ReceiptVoucher: React.FC<ReceiptVoucherProps> = ({ title }) => {
     else if (type === 'supplier') {
       const supplier = suppliers.find(s => String(s.id) === idStr);
       if (supplier) {
-        balance = supplier.openingBalance || 0;
+        // Use currentBalance directly from database
+        balance = (supplier as any).currentBalance ?? supplier.openingBalance ?? 0;
         
         const lastTx = vouchers
           .filter(v => v.entityType === 'supplier' && String(v.supplierId || '') === idStr && String(v.id || '') !== String(currentVoucherId || ''))
@@ -471,10 +450,8 @@ const ReceiptVoucher: React.FC<ReceiptVoucherProps> = ({ title }) => {
     else if (type === 'current_account') {
       const account = currentAccounts.find(a => String(a.id) === idStr);
       if (account) {
-        const totalRec = vouchers
-          .filter(v => v.entityType === 'current_account' && String(v.currentAccountId || '') === idStr && String(v.id || '') !== String(currentVoucherId || ''))
-          .reduce((sum, v) => sum + (v.amount || 0), 0);
-        balance = (account.openingBalance || 0) - totalRec; 
+        // Use currentBalance directly from database
+        balance = (account as any).currentBalance ?? account.openingBalance ?? 0;
         
         const lastTx = vouchers
           .filter(v => v.entityType === 'current_account' && String(v.currentAccountId || '') === idStr && String(v.id || '') !== String(currentVoucherId || ''))
@@ -490,6 +467,7 @@ const ReceiptVoucher: React.FC<ReceiptVoucherProps> = ({ title }) => {
     }
     // Logic for Revenue Codes
     else if (type === 'revenue' as AllEntityType) {
+      // Revenue codes don't have currentBalance, so calculate total collected
       const totalCollected = vouchers
         .filter(v => v.entityType === 'revenue' && String(v.revenueCodeId || '') === idStr && String(v.id || '') !== String(currentVoucherId || ''))
         .reduce((sum, v) => sum + (v.amount || 0), 0);
@@ -510,10 +488,8 @@ const ReceiptVoucher: React.FC<ReceiptVoucherProps> = ({ title }) => {
     else if (type === 'receivable_account') {
       const account = receivableAccounts.find((a: any) => String(a.id) === idStr);
       if (account) {
-        const totalRec = vouchers
-          .filter(v => v.entityType === 'receivable_account' && String(v.receivableAccountId || '') === idStr && String(v.id || '') !== String(currentVoucherId || ''))
-          .reduce((sum, v) => sum + (v.amount || 0), 0);
-        balance = (account.openingBalance || 0) - totalRec;
+        // Use currentBalance directly from database
+        balance = (account as any).currentBalance ?? account.openingBalance ?? 0;
         
         const lastTx = vouchers
           .filter(v => v.entityType === 'receivable_account' && String(v.receivableAccountId || '') === idStr && String(v.id || '') !== String(currentVoucherId || ''))
@@ -531,10 +507,8 @@ const ReceiptVoucher: React.FC<ReceiptVoucherProps> = ({ title }) => {
     else if (type === 'payable_account') {
       const account = payableAccounts.find((a: any) => String(a.id) === idStr);
       if (account) {
-        const totalRec = vouchers
-          .filter(v => v.entityType === 'payable_account' && String(v.payableAccountId || '') === idStr && String(v.id || '') !== String(currentVoucherId || ''))
-          .reduce((sum, v) => sum + (v.amount || 0), 0);
-        balance = (account.openingBalance || 0) - totalRec;
+        // Use currentBalance directly from database
+        balance = (account as any).currentBalance ?? account.openingBalance ?? 0;
         
         const lastTx = vouchers
           .filter(v => v.entityType === 'payable_account' && String(v.payableAccountId || '') === idStr && String(v.id || '') !== String(currentVoucherId || ''))
