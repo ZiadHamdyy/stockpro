@@ -794,6 +794,23 @@ const PurchaseReturn: React.FC<PurchaseReturnProps> = ({
     }
   }, [paymentTargetType, banks, paymentTargetId, isReadOnly]);
 
+  const hasItemSelected = (index: number): boolean => {
+    const item = returnItems[index];
+    return !!(item?.id && item?.name);
+  };
+
+  const canEditRow = (index: number): boolean => {
+    // First row (index 0) can always be edited
+    if (index === 0) return true;
+    // For other rows, check if all previous rows have items
+    for (let i = 0; i < index; i++) {
+      if (!hasItemSelected(i)) {
+        return false;
+      }
+    }
+    return true;
+  };
+
   const handleAddItem = () => {
     const newIndex = returnItems.length;
     setReturnItems((prevItems) => [...prevItems, createEmptyItem()]);
@@ -851,6 +868,9 @@ const PurchaseReturn: React.FC<PurchaseReturnProps> = ({
   };
 
   const handleSelectItem = (index: number, selectedItem: SelectableItem) => {
+    if (!canEditRow(index)) {
+      return;
+    }
     // Block selecting items not in the selected invoice
     if (selectedInvoiceId && sourceInvoiceQtyById[selectedItem.id] == null) {
       showToast("هذا الصنف غير موجود في الفاتورة المختارة.");
@@ -945,11 +965,20 @@ const PurchaseReturn: React.FC<PurchaseReturnProps> = ({
     if (e.key === "Enter") {
       e.preventDefault();
       if (field === "qty") {
+        // Prevent navigation if current row has no item
+        if (!hasItemSelected(index)) {
+          return; // Don't navigate, stay on current field
+        }
         const priceInput = priceInputRefs.current[index];
         priceInput?.focus();
         // Select text after focus to allow immediate typing
         setTimeout(() => priceInput?.select(), 0);
       } else if (field === "price") {
+        // Prevent navigation if current row has no item
+        if (!hasItemSelected(index)) {
+          return; // Don't navigate, stay on current field
+        }
+        // Only navigate to next row's name field if current row has an item
         if (index === returnItems.length - 1) {
           handleAddItem();
         } else {
@@ -1030,9 +1059,9 @@ const PurchaseReturn: React.FC<PurchaseReturnProps> = ({
           filteredItems[highlightedIndex],
         );
       } else {
-        const qtyInput = qtyInputRefs.current[activeItemSearch.index];
-        qtyInput?.focus();
-        setTimeout(() => qtyInput?.select(), 0);
+        // No item selected - don't navigate to qty field
+        // Just clear the search or keep focus on name field
+        return;
       }
       return;
     }
@@ -1072,9 +1101,19 @@ const PurchaseReturn: React.FC<PurchaseReturnProps> = ({
     });
 
     if (foundItem) {
-      const emptyRowIndex = returnItems.findIndex((i) => !i.id && !i.name);
+      // Find first empty row that can be edited (all previous rows have items)
+      const emptyRowIndex = returnItems.findIndex((i, idx) => !i.id && !i.name && canEditRow(idx));
       const indexToFill =
         emptyRowIndex !== -1 ? emptyRowIndex : returnItems.length;
+      // Only proceed if we found an editable row or we're adding a new row at the end
+      if (emptyRowIndex === -1 && returnItems.length > 0) {
+        // Check if the last row can be edited (all previous rows have items)
+        const lastRowIndex = returnItems.length - 1;
+        if (!canEditRow(lastRowIndex + 1)) {
+          showToast("الرجاء إكمال الصفوف السابقة أولاً", 'error');
+          return;
+        }
+      }
 
       const newItems = [...returnItems];
       if (emptyRowIndex === -1) {
@@ -1600,11 +1639,12 @@ const PurchaseReturn: React.FC<PurchaseReturnProps> = ({
                     <input
                       type="text"
                       value={item.id}
-                      onChange={(e) =>
-                        handleItemChange(index, "id", e.target.value)
-                      }
+                      onChange={(e) => {
+                        if (!canEditRow(index)) return;
+                        handleItemChange(index, "id", e.target.value);
+                      }}
                       className={tableInputStyle + " w-full"}
-                      disabled={isReadOnly}
+                      disabled={isReadOnly || !canEditRow(index)}
                     />
                   </td>
                   <td className="p-2 align-middle relative border-x border-gray-300">
@@ -1613,27 +1653,32 @@ const PurchaseReturn: React.FC<PurchaseReturnProps> = ({
                         type="text"
                         placeholder="ابحث عن صنف..."
                         value={item.name}
-                        onChange={(e) =>
-                          handleItemChange(index, "name", e.target.value)
-                        }
-                        onFocus={() =>
-                          setActiveItemSearch({ index, query: item.name })
-                        }
+                        onChange={(e) => {
+                          if (!canEditRow(index)) return;
+                          handleItemChange(index, "name", e.target.value);
+                        }}
+                        onFocus={() => {
+                          if (!canEditRow(index)) {
+                            return;
+                          }
+                          setActiveItemSearch({ index, query: item.name });
+                        }}
                         onKeyDown={handleItemSearchKeyDown}
                         ref={(el) => {
                           if (el) nameInputRefs.current[index] = el;
                         }}
                         className="bg-transparent w-full focus:outline-none p-1"
-                        disabled={isReadOnly}
+                        disabled={isReadOnly || !canEditRow(index)}
                       />
                       <button
                         type="button"
                         onClick={() => {
+                          if (!canEditRow(index)) return;
                           setEditingItemIndex(index);
                           setIsItemModalOpen(true);
                         }}
                         className="p-1 text-gray-400 hover:text-brand-green"
-                        disabled={isReadOnly}
+                        disabled={isReadOnly || !canEditRow(index)}
                       >
                         <ListIcon className="w-5 h-5" />
                       </button>
@@ -1687,7 +1732,7 @@ const PurchaseReturn: React.FC<PurchaseReturnProps> = ({
                         if (el) qtyInputRefs.current[index] = el;
                       }}
                       className={tableInputStyle}
-                      disabled={isReadOnly}
+                      disabled={isReadOnly || !hasItemSelected(index)}
                     />
                   </td>
                   <td className="p-2 align-middle border-x border-gray-300">
@@ -1709,7 +1754,7 @@ const PurchaseReturn: React.FC<PurchaseReturnProps> = ({
                         if (el) priceInputRefs.current[index] = el;
                       }}
                       className={tableInputStyle}
-                      disabled={isReadOnly}
+                      disabled={isReadOnly || !hasItemSelected(index)}
                     />
                   </td>
                   {shouldShowTaxColumn && (
