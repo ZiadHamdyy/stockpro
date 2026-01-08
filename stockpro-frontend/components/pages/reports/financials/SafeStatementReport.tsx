@@ -831,6 +831,9 @@ const SafeStatementReport: React.FC<SafeStatementReportProps> = ({
     "p-2 border-2 border-brand-blue rounded-md focus:outline-none focus:ring-2 focus:ring-brand-blue bg-brand-blue-bg";
 
   const handleExcelExport = () => {
+    if (!selectedSafeId) {
+      return;
+    }
     const dataToExport = [
       {
         التاريخ: "رصيد أول المدة",
@@ -861,6 +864,9 @@ const SafeStatementReport: React.FC<SafeStatementReportProps> = ({
   };
 
   const handlePrint = () => {
+    if (!selectedSafeId) {
+      return;
+    }
     const reportContent = document.getElementById("printable-area");
     if (!reportContent) return;
     const printWindow = window.open("", "", "height=800,width=1200");
@@ -1008,8 +1014,8 @@ const SafeStatementReport: React.FC<SafeStatementReportProps> = ({
               className={inputStyle}
               value={selectedSafeId || ""}
               onChange={(e) => setSelectedSafeId(e.target.value)}
+              required
             >
-              <option value="">اختر الخزينة...</option>
               {safes.map((s) => (
                 <option key={s.id} value={s.id}>
                   {s.name}
@@ -1091,7 +1097,14 @@ const SafeStatementReport: React.FC<SafeStatementReportProps> = ({
           </PermissionWrapper>
         </div>
 
-        <div className="overflow-x-auto border-2 border-brand-blue rounded-lg">
+        {!selectedSafeId ? (
+          <div className="flex justify-center items-center h-64 border-2 border-gray-200 rounded-lg bg-gray-50">
+            <div className="text-center">
+              <p className="text-lg text-gray-600 font-semibold">يرجى اختيار الخزينة لعرض التقرير</p>
+            </div>
+          </div>
+        ) : (
+          <div className="overflow-x-auto border-2 border-brand-blue rounded-lg">
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-brand-blue">
               <tr>
@@ -1180,7 +1193,8 @@ const SafeStatementReport: React.FC<SafeStatementReportProps> = ({
               </tr>
             </tfoot>
           </table>
-        </div>
+          </div>
+        )}
       </div>
     </div>
   );
