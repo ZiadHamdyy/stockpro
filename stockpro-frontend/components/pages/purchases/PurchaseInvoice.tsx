@@ -1662,6 +1662,7 @@ const getInvoiceBranchMeta = (invoice: any) => {
                   <td className="p-2 align-middle border-x border-gray-300">
                     <input
                       type="number"
+                      step="any"
                       value={item.qty}
                       onChange={(e) => {
                         handleItemChange(
@@ -1683,6 +1684,7 @@ const getInvoiceBranchMeta = (invoice: any) => {
                   <td className="p-2 align-middle border-x border-gray-300">
                     <input
                       type="number"
+                      step="any"
                       value={item.price}
                       onChange={(e) => {
                         handleItemChange(
