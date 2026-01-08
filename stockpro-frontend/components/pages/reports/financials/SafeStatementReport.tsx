@@ -155,7 +155,20 @@ const SafeStatementReport: React.FC<SafeStatementReportProps> = ({
     });
   }, [rawPaymentVouchers, normalizeDate]);
 
-  // Transform API data to match expected format
+  // Helper function to get user's branch ID
+  const getUserBranchId = (user: any): string | null => {
+    if (!user) return null;
+    if (user.branchId) return user.branchId?.toString() || null;
+    const branch = user?.branch;
+    if (typeof branch === "string") return branch;
+    if (branch && typeof branch === "object") return branch.id?.toString() || null;
+    return null;
+  };
+
+  // Get current user's branch ID
+  const userBranchId = getUserBranchId(currentUser);
+
+  // Transform API data to match expected format (show all safes)
   const safes = useMemo(() => {
     return (apiSafes as any[]).map((safe) => ({
       ...safe,
@@ -170,12 +183,21 @@ const SafeStatementReport: React.FC<SafeStatementReportProps> = ({
   const [endDate, setEndDate] = useState(defaultEndDate);
   const [selectedSafeId, setSelectedSafeId] = useState<string | null>(null);
 
-  // Set initial selected safe when data loads
+  // Set initial selected safe when data loads (prefer first safe from current branch)
   useEffect(() => {
     if (safes.length > 0 && !selectedSafeId) {
+      // Try to find first safe from current branch
+      if (userBranchId) {
+        const branchSafe = safes.find((safe) => safe.branchId?.toString() === userBranchId);
+        if (branchSafe) {
+          setSelectedSafeId(branchSafe.id.toString());
+          return;
+        }
+      }
+      // Fall back to first safe if no branch safe found
       setSelectedSafeId(safes[0].id.toString());
     }
-  }, [safes, selectedSafeId]);
+  }, [safes, selectedSafeId, userBranchId]);
 
   const selectedSafe = useMemo(
     () => safes.find((s) => s.id.toString() === selectedSafeId),
@@ -187,22 +209,13 @@ const SafeStatementReport: React.FC<SafeStatementReportProps> = ({
     if (!selectedSafe) return 0;
     const safeId = selectedSafe.id?.toString() || "";
     const matchesSafeValue = (value: any) => value?.toString() === safeId;
-    const branchId = selectedSafe.branchId?.toString() || "";
-    const matchesBranchValue = (value: any) =>
-      branchId && value?.toString() === branchId;
     const matchesSafeRecord = (record: any) => {
       if (!record) return false;
-      // 1) Explicit link to this safe (legacy / direct safeId usage)
+      // Match by explicit safeId only - invoices have safeId field that links to the specific safe
       if (matchesSafeValue(record.safeId)) return true;
 
-      // 2) For invoices / returns we ONLY consider cash payments that target a safe.
-      //    These records use branchId as the paymentTargetId when paymentTargetType === "safe".
-      if (
-        record.paymentMethod === "cash" &&
-        record.paymentTargetType === "safe" &&
-        (matchesBranchValue(record.paymentTargetId) ||
-          matchesSafeValue(record.paymentTargetId))
-      ) {
+      // For split payments, check splitSafeId
+      if (record.isSplitPayment === true && matchesSafeValue(record.splitSafeId)) {
         return true;
       }
 
@@ -429,22 +442,13 @@ const SafeStatementReport: React.FC<SafeStatementReportProps> = ({
     if (!selectedSafeId) return [];
     const safeId = selectedSafeId.toString();
     const matchesSafeValue = (value: any) => value?.toString() === safeId;
-    const branchId = selectedSafe?.branchId?.toString() || "";
-    const matchesBranchValue = (value: any) =>
-      branchId && value?.toString() === branchId;
     const matchesSafeRecord = (record: any) => {
       if (!record) return false;
-      // 1) Explicit link to this safe (legacy / direct safeId usage)
+      // Match by explicit safeId only - invoices have safeId field that links to the specific safe
       if (matchesSafeValue(record.safeId)) return true;
 
-      // 2) For invoices / returns we ONLY consider cash payments that target a safe.
-      //    These records use branchId as the paymentTargetId when paymentTargetType === "safe".
-      if (
-        record.paymentMethod === "cash" &&
-        record.paymentTargetType === "safe" &&
-        (matchesBranchValue(record.paymentTargetId) ||
-          matchesSafeValue(record.paymentTargetId))
-      ) {
+      // For split payments, check splitSafeId
+      if (record.isSplitPayment === true && matchesSafeValue(record.splitSafeId)) {
         return true;
       }
 
