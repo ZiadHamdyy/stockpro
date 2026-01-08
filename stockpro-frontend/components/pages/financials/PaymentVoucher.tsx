@@ -733,7 +733,7 @@ const PaymentVoucher: React.FC<PaymentVoucherProps> = ({ title }) => {
                 const value = e.target.value;
                 // Allow empty string, negative sign, and valid numbers (including decimals and negatives)
                 if (value === "" || value === "-" || /^-?\d*\.?\d*$/.test(value)) {
-                  const numValue = value === "" || value === "-" ? (value as any) : parseFloat(value) || 0;
+                  const numValue = value === "" || value === "-" || value.endsWith(".") ? (value as any) : parseFloat(value) || (value as any);
                   setVoucherData((prev) => {
                     const newData: any = {
                       ...prev,
@@ -742,7 +742,7 @@ const PaymentVoucher: React.FC<PaymentVoucherProps> = ({ title }) => {
                     
                     // Calculate VAT breakdown if entityType is "expense-Type" and we have a valid amount and VAT is enabled
                     if (prev.entity.type === "expense-Type" && isVatEnabled && companyInfo?.vatRate) {
-                      const amountNum = typeof numValue === "number" ? numValue : (typeof numValue === "string" ? parseFloat(numValue) || 0 : 0);
+                      const amountNum = typeof numValue === "number" ? numValue : (typeof numValue === "string" && numValue !== "" && numValue !== "-" && !numValue.endsWith(".") ? parseFloat(numValue) || 0 : 0);
                       if (amountNum > 0) {
                         const vatRate = companyInfo.vatRate;
                         // Calculate: priceBeforeTax = amount / (1 + vatRate/100)
@@ -769,7 +769,7 @@ const PaymentVoucher: React.FC<PaymentVoucherProps> = ({ title }) => {
               className={inputStyle}
               placeholder="0.00"
               disabled={isReadOnly}
-              inputMode="numeric"
+              inputMode="decimal"
             />
           </div>
 

@@ -255,17 +255,18 @@ const InternalTransfers: React.FC<InternalTransfersProps> = ({ title }) => {
               }
               onChange={(e) => {
                 const value = e.target.value;
-                if (value === "" || /^\d*\.?\d*$/.test(value)) {
+                // Allow empty string, decimal numbers (including partial inputs like "12." or ".5")
+                if (value === "" || /^-?\d*\.?\d*$/.test(value)) {
                   setTransferData((prev) => ({
                     ...prev,
-                    amount: value === "" ? (value as any) : parseFloat(value) || 0,
+                    amount: value === "" ? (value as any) : (value.endsWith(".") || value === "-" ? value : parseFloat(value) || (value as any)),
                   }));
                 }
               }}
               className={inputStyle}
               placeholder="0.00"
               disabled={isReadOnly}
-              inputMode="numeric"
+              inputMode="decimal"
             />
           </div>
 

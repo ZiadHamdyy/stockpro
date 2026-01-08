@@ -638,14 +638,14 @@ const ReceiptVoucher: React.FC<ReceiptVoucherProps> = ({ title }) => {
                 if (value === "" || value === "-" || /^-?\d*\.?\d*$/.test(value)) {
                   setVoucherData((prev) => ({
                     ...prev,
-                    amount: value === "" || value === "-" ? (value as any) : parseFloat(value) || 0,
+                    amount: value === "" || value === "-" || value.endsWith(".") ? (value as any) : parseFloat(value) || (value as any),
                   }));
                 }
               }}
               className={inputStyle}
               placeholder="0.00"
               disabled={isReadOnly}
-              inputMode="numeric"
+              inputMode="decimal"
             />
           </div>
 
