@@ -186,20 +186,16 @@ const TotalCashReport: React.FC<TotalCashReportProps> = ({
     const calculateSafeBalance = (safe: Safe) => {
       const safeId = safe.id?.toString() || "";
       const matchesSafeValue = (value: any) => value?.toString() === safeId;
-      const branchId = safe.branchId?.toString() || "";
-      const matchesBranchValue = (value: any) =>
-        branchId && value?.toString() === branchId;
       const matchesSafeRecord = (record: any) => {
         if (!record) return false;
+        // Match by explicit safeId only - invoices have safeId field that links to the specific safe
         if (matchesSafeValue(record.safeId)) return true;
-        if (
-          record.paymentMethod === "cash" &&
-          record.paymentTargetType === "safe" &&
-          (matchesBranchValue(record.paymentTargetId) ||
-            matchesSafeValue(record.paymentTargetId))
-        ) {
+
+        // For split payments, check splitSafeId
+        if (record.isSplitPayment === true && matchesSafeValue(record.splitSafeId)) {
           return true;
         }
+
         return false;
       };
 
