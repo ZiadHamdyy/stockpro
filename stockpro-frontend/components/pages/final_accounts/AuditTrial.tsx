@@ -402,11 +402,24 @@ const AuditTrial: React.FC = () => {
         }
       }
       
-      // Use calculated values to ensure correctness
+      // Transform opening balance: calculate net balance and split positive to مدين, negative to دائن
+      const netOpening = entry.openingBalanceDebit - entry.openingBalanceCredit;
+      const transformedOpeningDebit = netOpening > 0 ? netOpening : 0;
+      const transformedOpeningCredit = netOpening < 0 ? Math.abs(netOpening) : 0;
+      
+      // Transform closing balance: calculate net balance and split positive to مدين, negative to دائن
+      const netClosing = calculatedClosingDebit - calculatedClosingCredit;
+      const transformedClosingDebit = netClosing > 0 ? netClosing : 0;
+      const transformedClosingCredit = netClosing < 0 ? Math.abs(netClosing) : 0;
+      
+      // Return transformed values
       return {
         ...entry,
-        closingBalanceDebit: calculatedClosingDebit,
-        closingBalanceCredit: calculatedClosingCredit,
+        openingBalanceDebit: transformedOpeningDebit,
+        openingBalanceCredit: transformedOpeningCredit,
+        // periodDebit and periodCredit remain unchanged (already represent totals during the period)
+        closingBalanceDebit: transformedClosingDebit,
+        closingBalanceCredit: transformedClosingCredit,
       };
     });
   }, [auditTrialData?.entries, calculatedInventoryValue]);
