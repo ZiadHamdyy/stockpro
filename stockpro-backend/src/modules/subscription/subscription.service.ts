@@ -7,6 +7,7 @@ import {
   isUnlimited,
   getResourceLimit,
 } from '../../common/constants/plan-limits.constants';
+import { filterPermissionsByPlan } from '../../common/utils/permission-filter.util';
 import { SubscriptionPlanType, SubscriptionStatus } from '@prisma/client';
 
 export interface UsageStats {
@@ -355,10 +356,15 @@ export class SubscriptionService {
       updateData.endDate = endDate;
     }
 
-    return this.prisma.subscription.update({
+    const updatedSubscription = await this.prisma.subscription.update({
       where: { companyId },
       data: updateData,
     });
+
+    // Sync permissions with the new plan
+    await this.syncPermissionsWithPlan(companyId, planType);
+
+    return updatedSubscription;
   }
 
   /**
@@ -371,6 +377,64 @@ export class SubscriptionService {
         planType: SubscriptionPlanType.BASIC,
         status: SubscriptionStatus.ACTIVE,
       },
+    });
+  }
+
+  /**
+   * Sync permissions with subscription plan
+   * Removes permissions not allowed for the plan from all roles
+   * @param companyId - Company ID
+   * @param planType - Current subscription plan type
+   */
+  async syncPermissionsWithPlan(
+    companyId: string,
+    planType: SubscriptionPlanType,
+  ): Promise<void> {
+    await this.prisma.$transaction(async (tx) => {
+      // Get all permissions for the company
+      const allPermissions = await tx.permission.findMany({
+        where: { companyId },
+      });
+
+      // Filter permissions based on plan
+      const allowedPermissions = filterPermissionsByPlan(
+        allPermissions,
+        planType,
+      );
+      const allowedPermissionIds = new Set(
+        allowedPermissions.map((p) => p.id),
+      );
+
+      // Get all roles for the company
+      const roles = await tx.role.findMany({
+        where: { companyId },
+      });
+
+      // For each role, remove permissions not allowed for the plan
+      for (const role of roles) {
+        // Get all current permissions for this role
+        const currentRolePermissions = await tx.rolePermission.findMany({
+          where: { roleId: role.id },
+          include: { permission: true },
+        });
+
+        // Find permissions that should be removed (not in allowed list)
+        const permissionsToRemove = currentRolePermissions.filter(
+          (rp) => !allowedPermissionIds.has(rp.permissionId),
+        );
+
+        // Remove disallowed permissions
+        if (permissionsToRemove.length > 0) {
+          await tx.rolePermission.deleteMany({
+            where: {
+              roleId: role.id,
+              permissionId: {
+                in: permissionsToRemove.map((rp) => rp.permissionId),
+              },
+            },
+          });
+        }
+      }
     });
   }
 

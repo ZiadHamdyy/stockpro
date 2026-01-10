@@ -6,6 +6,7 @@ import {
   base64ToBuffer,
   bufferToDataUri,
 } from '../../common/utils/image-converter';
+import { filterPermissionsByPlan } from '../../common/utils/permission-filter.util';
 import * as bcryptjs from 'bcryptjs';
 
 // Define MENU_ITEMS structure for permission generation
@@ -644,9 +645,6 @@ export class CompanyService {
       },
     });
 
-    // Seed all company data
-    await this.seedCompanyData(company.id, companyCode, company.name);
-
     // Create subscription with selected plan and dates
     await this.prisma.subscription.create({
       data: {
@@ -658,6 +656,9 @@ export class CompanyService {
       },
     });
 
+    // Seed all company data (after subscription is created so planType is available)
+    await this.seedCompanyData(company.id, companyCode, company.name, planType);
+
     return this.mapToResponse(company);
   }
 
@@ -665,6 +666,7 @@ export class CompanyService {
     companyId: string,
     companyCode: string,
     companyName: string,
+    planType: 'BASIC' | 'GROWTH' | 'BUSINESS' = 'BASIC',
   ): Promise<void> {
     // Generate comprehensive permissions for all menu items
     const permissions = generatePermissions();
@@ -731,14 +733,20 @@ export class CompanyService {
     const createdRoles = await this.prisma.role.findMany({
       where: { companyId },
     });
-    const createdPermissions = await this.prisma.permission.findMany({
+    const allPermissions = await this.prisma.permission.findMany({
       where: { companyId },
     });
 
-    // Assign permissions to roles
+    // Filter permissions based on plan
+    const allowedPermissions = filterPermissionsByPlan(
+      allPermissions,
+      planType,
+    );
+
+    // Assign permissions to roles (only allowed permissions)
     const managerRole = createdRoles.find((r) => r.name === 'مدير');
     if (managerRole) {
-      for (const permission of createdPermissions) {
+      for (const permission of allowedPermissions) {
         await this.prisma.rolePermission.upsert({
           where: {
             roleId_permissionId: {
@@ -758,7 +766,7 @@ export class CompanyService {
     // Accountant - financial operations and reports
     const accountantRole = createdRoles.find((r) => r.name === 'محاسب');
     if (accountantRole) {
-      const accountantPermissions = createdPermissions.filter(
+      const accountantPermissions = allowedPermissions.filter(
         (p) =>
           p.resource === 'dashboard' ||
           p.resource === 'sales' ||
@@ -864,7 +872,7 @@ export class CompanyService {
     // Salesperson - sales operations and customers
     const salespersonRole = createdRoles.find((r) => r.name === 'بائع');
     if (salespersonRole) {
-      const salespersonPermissions = createdPermissions.filter(
+      const salespersonPermissions = allowedPermissions.filter(
         (p) =>
           p.resource === 'dashboard' ||
           p.resource === 'sales' ||
@@ -902,7 +910,7 @@ export class CompanyService {
     // Data Entry - warehouse operations and items management
     const dataEntryRole = createdRoles.find((r) => r.name === 'مدخل بيانات');
     if (dataEntryRole) {
-      const dataEntryPermissions = createdPermissions.filter(
+      const dataEntryPermissions = allowedPermissions.filter(
         (p) =>
           p.resource === 'dashboard' ||
           p.resource === 'items' ||
