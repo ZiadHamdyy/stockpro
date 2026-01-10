@@ -18,6 +18,16 @@ import { useGetStoreTransferVouchersQuery } from '../../store/slices/storeTransf
 import { useGetStoresQuery, useGetAllStoreItemsQuery } from '../../store/slices/store/storeApi';
 import { useGetFinancialSettingsQuery } from '../../store/slices/financialSettings/financialSettingsApi';
 import { ValuationMethod } from '../../pages/settings/financial-system/types';
+import { useGetCustomersQuery } from '../../store/slices/customer/customerApiSlice';
+import { useGetSuppliersQuery } from '../../store/slices/supplier/supplierApiSlice';
+import { useGetReceivableAccountsQuery } from '../../store/slices/receivableAccounts/receivableAccountsApi';
+import { useGetPayableAccountsQuery } from '../../store/slices/payableAccounts/payableAccountsApi';
+import { useGetReceiptVouchersQuery } from '../../store/slices/receiptVoucherApiSlice';
+import { useGetPaymentVouchersQuery } from '../../store/slices/paymentVoucherApiSlice';
+import { useGetSafesQuery } from '../../store/slices/safe/safeApiSlice';
+import { useGetBanksQuery } from '../../store/slices/bank/bankApiSlice';
+import { useGetInternalTransfersQuery } from '../../store/slices/internalTransferApiSlice';
+import { useAuth } from '../../hook/Auth';
 
 interface TrialBalanceEntry {
   id: string;
@@ -66,6 +76,21 @@ const AuditTrial: React.FC = () => {
   const { data: stores = [] } = useGetStoresQuery(undefined);
   const { data: allStoreItems = [] } = useGetAllStoreItemsQuery();
   const { data: financialSettings } = useGetFinancialSettingsQuery();
+  
+  // Fetch data for customer balance calculation
+  const { isAuthed } = useAuth();
+  const skip = !isAuthed;
+  const { data: apiCustomers = [] } = useGetCustomersQuery(undefined);
+  const { data: apiSuppliers = [] } = useGetSuppliersQuery(undefined);
+  const { data: apiReceivableAccounts = [] } = useGetReceivableAccountsQuery(undefined);
+  const { data: apiPayableAccounts = [] } = useGetPayableAccountsQuery(undefined);
+  const { data: apiReceiptVouchers = [] } = useGetReceiptVouchersQuery(undefined, { skip });
+  const { data: apiPaymentVouchers = [] } = useGetPaymentVouchersQuery(undefined, { skip });
+  
+  // Fetch data for safe and bank balance calculations
+  const { data: apiSafes = [] } = useGetSafesQuery(undefined);
+  const { data: apiBanks = [] } = useGetBanksQuery(undefined);
+  const { data: apiInternalTransfers = [] } = useGetInternalTransfersQuery();
 
   // Map inventory valuation method to valuation method string
   const inventoryValuationMethod = useMemo(() => {
@@ -114,6 +139,27 @@ const AuditTrial: React.FC = () => {
     return Number.isFinite(parsed) ? parsed : 0;
   }, []);
 
+  // Helper function to resolve record amount (matching SafeStatementReport and BankStatementReport)
+  const resolveRecordAmount = useCallback((record: any): number => {
+    if (!record) return 0;
+    const totals = record.totals;
+    const rawAmount =
+      (totals &&
+        (totals.net ??
+          totals.total ??
+          totals.amount ??
+          totals.debit ??
+          totals.credit)) ??
+      record.net ??
+      record.total ??
+      record.amount ??
+      record.debit ??
+      record.credit ??
+      0;
+    const amountNumber = Number(rawAmount);
+    return Number.isFinite(amountNumber) ? amountNumber : 0;
+  }, []);
+
   // Aggregate opening balances from all StoreItems across all stores/branches
   const aggregatedOpeningBalances = useMemo(() => {
     const balanceMap: Record<string, number> = {};
@@ -147,6 +193,23 @@ const AuditTrial: React.FC = () => {
     return (apiSalesInvoices as any[]).map((invoice) => ({
       ...invoice,
       branchName: invoice.branch?.name || "",
+      customerOrSupplier: invoice.customer
+        ? {
+            id: invoice.customer.id.toString(),
+            name: invoice.customer.name,
+          }
+        : invoice.customerOrSupplier
+        ? {
+            id: invoice.customerOrSupplier.id.toString(),
+            name: invoice.customerOrSupplier.name,
+          }
+        : null,
+      totals: invoice.totals || {
+        subtotal: invoice.subtotal || 0,
+        discount: invoice.discount || 0,
+        tax: invoice.tax || 0,
+        net: invoice.net || 0,
+      },
       items: invoice.items.map((item) => ({
         ...item,
         id: item.id,
@@ -164,6 +227,23 @@ const AuditTrial: React.FC = () => {
     return (apiSalesReturns as any[]).map((invoice) => ({
       ...invoice,
       branchName: invoice.branch?.name || "",
+      customerOrSupplier: invoice.customer
+        ? {
+            id: invoice.customer.id.toString(),
+            name: invoice.customer.name,
+          }
+        : invoice.customerOrSupplier
+        ? {
+            id: invoice.customerOrSupplier.id.toString(),
+            name: invoice.customerOrSupplier.name,
+          }
+        : null,
+      totals: invoice.totals || {
+        subtotal: invoice.subtotal || 0,
+        discount: invoice.discount || 0,
+        tax: invoice.tax || 0,
+        net: invoice.net || 0,
+      },
       items: invoice.items.map((item) => ({
         ...item,
         id: item.id,
@@ -181,6 +261,23 @@ const AuditTrial: React.FC = () => {
     return (apiPurchaseInvoices as any[]).map((invoice) => ({
       ...invoice,
       branchName: invoice.branch?.name || "",
+      customerOrSupplier: invoice.supplier
+        ? {
+            id: invoice.supplier.id.toString(),
+            name: invoice.supplier.name,
+          }
+        : invoice.customerOrSupplier
+        ? {
+            id: invoice.customerOrSupplier.id.toString(),
+            name: invoice.customerOrSupplier.name,
+          }
+        : null,
+      totals: invoice.totals || {
+        subtotal: invoice.subtotal || 0,
+        discount: invoice.discount || 0,
+        tax: invoice.tax || 0,
+        net: invoice.net || 0,
+      },
       items: invoice.items.map((item) => ({
         ...item,
         id: item.id,
@@ -255,6 +352,49 @@ const AuditTrial: React.FC = () => {
         })),
       }));
   }, [storeTransferVouchers]);
+
+  // Transform vouchers for customer balance calculation (matching CustomerBalanceReport format)
+  const receiptVouchers = useMemo(() => {
+    return apiReceiptVouchers.map((voucher: any) => {
+      const entity = voucher.entity || {
+        type: voucher.entityType,
+        id: voucher.customerId || voucher.supplierId || voucher.currentAccountId || "",
+        name: voucher.entityName || "",
+      };
+      
+      return {
+        id: voucher.id,
+        code: voucher.code || voucher.id,
+        date: normalizeDate(voucher.date),
+        entity: entity,
+        amount: voucher.amount,
+        description: voucher.description || "",
+        paymentMethod: voucher.paymentMethod,
+        safeOrBankId: voucher.safeId || voucher.bankId,
+      };
+    });
+  }, [apiReceiptVouchers, normalizeDate]);
+
+  const paymentVouchers = useMemo(() => {
+    return apiPaymentVouchers.map((voucher: any) => {
+      const entity = voucher.entity || {
+        type: voucher.entityType,
+        id: voucher.customerId || voucher.supplierId || voucher.currentAccountId || "",
+        name: voucher.entityName || "",
+      };
+      
+      return {
+        id: voucher.id,
+        code: voucher.code || voucher.id,
+        date: normalizeDate(voucher.date),
+        entity: entity,
+        amount: voucher.amount,
+        description: voucher.description || "",
+        paymentMethod: voucher.paymentMethod,
+        safeOrBankId: voucher.safeId || voucher.bankId,
+      };
+    });
+  }, [apiPaymentVouchers, normalizeDate]);
 
   // Helper function to get last purchase price before or on a reference date
   const getLastPurchasePriceBeforeDate = useCallback((itemCode: string, referenceDate: string): number | null => {
@@ -357,15 +497,1351 @@ const AuditTrial: React.FC = () => {
     aggregatedOpeningBalances,
   ]);
 
+  // Calculate customer balances using the same logic as CustomerBalanceReport
+  const calculatedCustomerBalance = useMemo(() => {
+    const customers = apiCustomers as any[];
+    
+    let totalOpeningDebit = 0;
+    let totalOpeningCredit = 0;
+    let totalPeriodDebit = 0;
+    let totalPeriodCredit = 0;
+
+    customers.forEach((customer) => {
+      const customerIdStr = customer.id.toString();
+      const customerId = customer.id;
+
+      // Calculate opening balance up to start date (matching CustomerBalanceReport logic)
+      const openingSales = transformedSalesInvoices
+        .filter((inv) => {
+          const invDate = normalizeDate(inv.date);
+          const invCustomerId = inv.customerOrSupplier?.id || inv.customerId?.toString() || (inv.customer?.id?.toString());
+          return (invCustomerId === customerIdStr || invCustomerId == customerId) && invDate < fromDate;
+        })
+        .reduce((sum, inv) => sum + (inv.totals?.net || inv.net || 0), 0);
+
+      const openingReturns = transformedSalesReturns
+        .filter((inv) => {
+          const invDate = normalizeDate(inv.date);
+          const invCustomerId = inv.customerOrSupplier?.id || inv.customerId?.toString() || (inv.customer?.id?.toString());
+          return (invCustomerId === customerIdStr || invCustomerId == customerId) && invDate < fromDate;
+        })
+        .reduce((sum, inv) => sum + (inv.totals?.net || inv.net || 0), 0);
+
+      const openingCashReturns = transformedSalesReturns
+        .filter((inv) => {
+          const invDate = normalizeDate(inv.date);
+          const invCustomerId = inv.customerOrSupplier?.id || inv.customerId?.toString() || (inv.customer?.id?.toString());
+          return inv.paymentMethod === "cash" &&
+            (invCustomerId === customerIdStr || invCustomerId == customerId) &&
+            invDate < fromDate;
+        })
+        .reduce((sum, inv) => sum + toNumber(inv.totals?.net || inv.net || 0), 0);
+
+      const openingCashInvoices = transformedSalesInvoices
+        .filter((inv) => {
+          const invDate = normalizeDate(inv.date);
+          const invCustomerId = inv.customerOrSupplier?.id || inv.customerId?.toString() || (inv.customer?.id?.toString());
+          return inv.paymentMethod === "cash" &&
+            (invCustomerId === customerIdStr || invCustomerId == customerId) &&
+            invDate < fromDate;
+        })
+        .reduce((sum, inv) => sum + toNumber(inv.totals?.net || inv.net || 0), 0);
+
+      const openingReceipts = receiptVouchers
+        .filter((v) => {
+          const vDate = normalizeDate(v.date);
+          const voucherCustomerId = v.entity?.id?.toString() || v.entity?.id;
+          return v.entity?.type === "customer" &&
+            (voucherCustomerId === customerIdStr || voucherCustomerId == customerId) &&
+            vDate < fromDate;
+        })
+        .reduce((sum, v) => sum + v.amount, 0);
+
+      const openingPayments = paymentVouchers
+        .filter((v) => {
+          const vDate = normalizeDate(v.date);
+          const voucherCustomerId = v.entity?.id?.toString() || v.entity?.id;
+          return v.entity?.type === "customer" &&
+            (voucherCustomerId === customerIdStr || voucherCustomerId == customerId) &&
+            vDate < fromDate;
+        })
+        .reduce((sum, v) => sum + v.amount, 0);
+
+      // Opening balance = customer.openingBalance + openingDebit - openingCredit
+      const customerOpeningDebit = openingSales + openingCashReturns + openingPayments;
+      const customerOpeningCredit = openingCashInvoices + openingReturns + openingReceipts;
+      const opening = customer.openingBalance + customerOpeningDebit - customerOpeningCredit;
+
+      // Calculate period transactions (between start and end date)
+      const periodSales = transformedSalesInvoices
+        .filter((inv) => {
+          const invDate = normalizeDate(inv.date);
+          const invCustomerId = inv.customerOrSupplier?.id || inv.customerId?.toString() || (inv.customer?.id?.toString());
+          return (invCustomerId === customerIdStr || invCustomerId == customerId) && 
+            invDate >= fromDate && invDate <= toDate;
+        })
+        .reduce((sum, inv) => sum + (inv.totals?.net || inv.net || 0), 0);
+
+      const periodReturns = transformedSalesReturns
+        .filter((inv) => {
+          const invDate = normalizeDate(inv.date);
+          const invCustomerId = inv.customerOrSupplier?.id || inv.customerId?.toString() || (inv.customer?.id?.toString());
+          return (invCustomerId === customerIdStr || invCustomerId == customerId) && 
+            invDate >= fromDate && invDate <= toDate;
+        })
+        .reduce((sum, inv) => sum + (inv.totals?.net || inv.net || 0), 0);
+
+      const periodCashReturns = transformedSalesReturns
+        .filter((inv) => {
+          const invDate = normalizeDate(inv.date);
+          const invCustomerId = inv.customerOrSupplier?.id || inv.customerId?.toString() || (inv.customer?.id?.toString());
+          return inv.paymentMethod === "cash" &&
+            (invCustomerId === customerIdStr || invCustomerId == customerId) &&
+            invDate >= fromDate && invDate <= toDate;
+        })
+        .reduce((sum, inv) => sum + toNumber(inv.totals?.net || inv.net || 0), 0);
+
+      const periodCashInvoices = transformedSalesInvoices
+        .filter((inv) => {
+          const invDate = normalizeDate(inv.date);
+          const invCustomerId = inv.customerOrSupplier?.id || inv.customerId?.toString() || (inv.customer?.id?.toString());
+          return inv.paymentMethod === "cash" &&
+            (invCustomerId === customerIdStr || invCustomerId == customerId) &&
+            invDate >= fromDate && invDate <= toDate;
+        })
+        .reduce((sum, inv) => sum + toNumber(inv.totals?.net || inv.net || 0), 0);
+
+      const periodReceipts = receiptVouchers
+        .filter((v) => {
+          const vDate = normalizeDate(v.date);
+          const voucherCustomerId = v.entity?.id?.toString() || v.entity?.id;
+          return v.entity?.type === "customer" &&
+            (voucherCustomerId === customerIdStr || voucherCustomerId == customerId) &&
+            vDate >= fromDate && vDate <= toDate;
+        })
+        .reduce((sum, v) => sum + v.amount, 0);
+
+      const periodPayments = paymentVouchers
+        .filter((v) => {
+          const vDate = normalizeDate(v.date);
+          const voucherCustomerId = v.entity?.id?.toString() || v.entity?.id;
+          return v.entity?.type === "customer" &&
+            (voucherCustomerId === customerIdStr || voucherCustomerId == customerId) &&
+            vDate >= fromDate && vDate <= toDate;
+        })
+        .reduce((sum, v) => sum + v.amount, 0);
+
+      // Period Debit: all sales invoices, cash sales returns, payment vouchers
+      const customerPeriodDebit = periodSales + periodCashReturns + periodPayments;
+      // Period Credit: cash sales invoices, all sales returns, receipt vouchers
+      const customerPeriodCredit = periodCashInvoices + periodReturns + periodReceipts;
+
+      // Aggregate totals
+      if (opening > 0) {
+        totalOpeningDebit += opening;
+      } else {
+        totalOpeningCredit += Math.abs(opening);
+      }
+      totalPeriodDebit += customerPeriodDebit;
+      totalPeriodCredit += customerPeriodCredit;
+    });
+
+    // Calculate closing balance
+    const netOpening = totalOpeningDebit - totalOpeningCredit;
+    const netClosing = netOpening + totalPeriodDebit - totalPeriodCredit;
+    const closingDebit = netClosing > 0 ? netClosing : 0;
+    const closingCredit = netClosing < 0 ? Math.abs(netClosing) : 0;
+
+    return {
+      openingBalanceDebit: totalOpeningDebit,
+      openingBalanceCredit: totalOpeningCredit,
+      periodDebit: totalPeriodDebit,
+      periodCredit: totalPeriodCredit,
+      closingBalanceDebit: closingDebit,
+      closingBalanceCredit: closingCredit,
+    };
+  }, [
+    apiCustomers,
+    transformedSalesInvoices,
+    transformedSalesReturns,
+    receiptVouchers,
+    paymentVouchers,
+    fromDate,
+    toDate,
+    normalizeDate,
+    toNumber,
+  ]);
+
+  // Calculate supplier balances using the same logic as SupplierBalanceReport
+  const calculatedSupplierBalance = useMemo(() => {
+    const suppliers = apiSuppliers as any[];
+    
+    let totalOpeningDebit = 0;
+    let totalOpeningCredit = 0;
+    let totalPeriodDebit = 0;
+    let totalPeriodCredit = 0;
+
+    suppliers.forEach((supplier) => {
+      const supplierIdStr = supplier.id.toString();
+      const supplierId = supplier.id;
+
+      // Calculate opening balance up to start date (matching SupplierBalanceReport logic)
+      const openingPurchases = transformedPurchaseInvoices
+        .filter((inv) => {
+          const invDate = normalizeDate(inv.date);
+          const invSupplierId = inv.customerOrSupplier?.id || inv.supplierId?.toString() || (inv.supplier?.id?.toString());
+          return (invSupplierId === supplierIdStr || invSupplierId == supplierId) && invDate < fromDate;
+        })
+        .reduce((sum, inv) => sum + (inv.totals?.net || inv.net || 0), 0);
+
+      const openingCashPurchases = transformedPurchaseInvoices
+        .filter((inv) => {
+          const invDate = normalizeDate(inv.date);
+          const invSupplierId = inv.customerOrSupplier?.id || inv.supplierId?.toString() || (inv.supplier?.id?.toString());
+          return inv.paymentMethod === "cash" &&
+            (invSupplierId === supplierIdStr || invSupplierId == supplierId) &&
+            invDate < fromDate;
+        })
+        .reduce((sum, inv) => sum + toNumber(inv.totals?.net || inv.net || 0), 0);
+
+      const openingReturns = transformedPurchaseReturns
+        .filter((inv) => {
+          const invDate = normalizeDate(inv.date);
+          const invSupplierId = inv.customerOrSupplier?.id || inv.supplierId?.toString() || (inv.supplier?.id?.toString());
+          return (invSupplierId === supplierIdStr || invSupplierId == supplierId) && invDate < fromDate;
+        })
+        .reduce((sum, inv) => sum + (inv.totals?.net || inv.net || 0), 0);
+
+      const openingCashReturns = transformedPurchaseReturns
+        .filter((inv) => {
+          const invDate = normalizeDate(inv.date);
+          const invSupplierId = inv.customerOrSupplier?.id || inv.supplierId?.toString() || (inv.supplier?.id?.toString());
+          return inv.paymentMethod === "cash" &&
+            (invSupplierId === supplierIdStr || invSupplierId == supplierId) &&
+            invDate < fromDate;
+        })
+        .reduce((sum, inv) => sum + toNumber(inv.totals?.net || inv.net || 0), 0);
+
+      const openingPayments = paymentVouchers
+        .filter((v) => {
+          const vDate = normalizeDate(v.date);
+          const voucherSupplierId = v.entity?.id?.toString() || v.entity?.id;
+          return v.entity?.type === "supplier" &&
+            (voucherSupplierId === supplierIdStr || voucherSupplierId == supplierId) &&
+            vDate < fromDate;
+        })
+        .reduce((sum, v) => sum + v.amount, 0);
+
+      const openingReceipts = receiptVouchers
+        .filter((v) => {
+          const vDate = normalizeDate(v.date);
+          const voucherSupplierId = v.entity?.id?.toString() || v.entity?.id;
+          return v.entity?.type === "supplier" &&
+            (voucherSupplierId === supplierIdStr || voucherSupplierId == supplierId) &&
+            vDate < fromDate;
+        })
+        .reduce((sum, v) => sum + v.amount, 0);
+
+      // Opening balance = supplier.openingBalance + openingDebit - openingCredit
+      // Debit (decreases what we owe): cash purchases, all purchase returns, payment vouchers
+      // Credit (increases what we owe): all purchase invoices, cash purchase returns, receipt vouchers (refunds from supplier)
+      const supplierOpeningDebit = openingCashPurchases + openingReturns + openingPayments;
+      const supplierOpeningCredit = openingPurchases + openingCashReturns + openingReceipts;
+      const opening = (supplier.openingBalance || 0) + supplierOpeningDebit - supplierOpeningCredit;
+
+      // Calculate period transactions (between start and end date)
+      const periodPurchases = transformedPurchaseInvoices
+        .filter((inv) => {
+          const invDate = normalizeDate(inv.date);
+          const invSupplierId = inv.customerOrSupplier?.id || inv.supplierId?.toString() || (inv.supplier?.id?.toString());
+          return (invSupplierId === supplierIdStr || invSupplierId == supplierId) && 
+            invDate >= fromDate && invDate <= toDate;
+        })
+        .reduce((sum, inv) => sum + (inv.totals?.net || inv.net || 0), 0);
+
+      const periodCashPurchases = transformedPurchaseInvoices
+        .filter((inv) => {
+          const invDate = normalizeDate(inv.date);
+          const invSupplierId = inv.customerOrSupplier?.id || inv.supplierId?.toString() || (inv.supplier?.id?.toString());
+          return inv.paymentMethod === "cash" &&
+            (invSupplierId === supplierIdStr || invSupplierId == supplierId) &&
+            invDate >= fromDate && invDate <= toDate;
+        })
+        .reduce((sum, inv) => sum + toNumber(inv.totals?.net || inv.net || 0), 0);
+
+      const periodReturns = transformedPurchaseReturns
+        .filter((inv) => {
+          const invDate = normalizeDate(inv.date);
+          const invSupplierId = inv.customerOrSupplier?.id || inv.supplierId?.toString() || (inv.supplier?.id?.toString());
+          return (invSupplierId === supplierIdStr || invSupplierId == supplierId) && 
+            invDate >= fromDate && invDate <= toDate;
+        })
+        .reduce((sum, inv) => sum + (inv.totals?.net || inv.net || 0), 0);
+
+      const periodCashReturns = transformedPurchaseReturns
+        .filter((inv) => {
+          const invDate = normalizeDate(inv.date);
+          const invSupplierId = inv.customerOrSupplier?.id || inv.supplierId?.toString() || (inv.supplier?.id?.toString());
+          return inv.paymentMethod === "cash" &&
+            (invSupplierId === supplierIdStr || invSupplierId == supplierId) &&
+            invDate >= fromDate && invDate <= toDate;
+        })
+        .reduce((sum, inv) => sum + toNumber(inv.totals?.net || inv.net || 0), 0);
+
+      const periodPayments = paymentVouchers
+        .filter((v) => {
+          const vDate = normalizeDate(v.date);
+          const voucherSupplierId = v.entity?.id?.toString() || v.entity?.id;
+          return v.entity?.type === "supplier" &&
+            (voucherSupplierId === supplierIdStr || voucherSupplierId == supplierId) &&
+            vDate >= fromDate && vDate <= toDate;
+        })
+        .reduce((sum, v) => sum + v.amount, 0);
+
+      const periodReceipts = receiptVouchers
+        .filter((v) => {
+          const vDate = normalizeDate(v.date);
+          const voucherSupplierId = v.entity?.id?.toString() || v.entity?.id;
+          return v.entity?.type === "supplier" &&
+            (voucherSupplierId === supplierIdStr || voucherSupplierId == supplierId) &&
+            vDate >= fromDate && vDate <= toDate;
+        })
+        .reduce((sum, v) => sum + v.amount, 0);
+
+      // Period Debit: cash purchases, all purchase returns, payment vouchers (all decrease what we owe)
+      const supplierPeriodDebit = periodCashPurchases + periodReturns + periodPayments;
+      // Period Credit: all purchase invoices, cash purchase returns, receipt vouchers (all increase what we owe)
+      const supplierPeriodCredit = periodPurchases + periodCashReturns + periodReceipts;
+
+      // Aggregate totals
+      if (opening > 0) {
+        totalOpeningDebit += opening;
+      } else {
+        totalOpeningCredit += Math.abs(opening);
+      }
+      totalPeriodDebit += supplierPeriodDebit;
+      totalPeriodCredit += supplierPeriodCredit;
+    });
+
+    // Calculate closing balance
+    const netOpening = totalOpeningDebit - totalOpeningCredit;
+    const netClosing = netOpening + totalPeriodDebit - totalPeriodCredit;
+    const closingDebit = netClosing > 0 ? netClosing : 0;
+    const closingCredit = netClosing < 0 ? Math.abs(netClosing) : 0;
+
+    return {
+      openingBalanceDebit: totalOpeningDebit,
+      openingBalanceCredit: totalOpeningCredit,
+      periodDebit: totalPeriodDebit,
+      periodCredit: totalPeriodCredit,
+      closingBalanceDebit: closingDebit,
+      closingBalanceCredit: closingCredit,
+    };
+  }, [
+    apiSuppliers,
+    transformedPurchaseInvoices,
+    transformedPurchaseReturns,
+    receiptVouchers,
+    paymentVouchers,
+    fromDate,
+    toDate,
+    normalizeDate,
+    toNumber,
+  ]);
+
+  // Calculate safe balances using the same logic as SafeStatementReport (aggregated across all safes)
+  const calculatedSafeBalance = useMemo(() => {
+    const safes = apiSafes as any[];
+    
+    let totalOpeningDebit = 0;
+    let totalOpeningCredit = 0;
+    let totalPeriodDebit = 0;
+    let totalPeriodCredit = 0;
+
+    safes.forEach((safe) => {
+      const safeId = safe.id?.toString() || "";
+      const matchesSafeValue = (value: any) => value?.toString() === safeId;
+      const matchesSafeRecord = (record: any) => {
+        if (!record) return false;
+        if (matchesSafeValue(record.safeId)) return true;
+        if (record.isSplitPayment === true && matchesSafeValue(record.splitSafeId)) {
+          return true;
+        }
+        return false;
+      };
+
+      // Opening balance calculations (before fromDate)
+      const receiptsBefore = receiptVouchers
+        .filter((v) => {
+          const vDate = normalizeDate(v.date);
+          return v.paymentMethod === "safe" &&
+            matchesSafeValue(v.safeOrBankId) &&
+            vDate < fromDate;
+        })
+        .reduce((sum, v) => sum + v.amount, 0);
+
+      const paymentsBefore = paymentVouchers
+        .filter((v) => {
+          const vDate = normalizeDate(v.date);
+          return v.paymentMethod === "safe" &&
+            matchesSafeValue(v.safeOrBankId) &&
+            vDate < fromDate;
+        })
+        .reduce((sum, v) => sum + v.amount, 0);
+
+      const salesInvoicesBefore = transformedSalesInvoices
+        .filter((inv) => {
+          const invDate = normalizeDate(inv.date);
+          return inv.paymentMethod === "cash" &&
+            !inv.isSplitPayment &&
+            inv.paymentTargetType === "safe" &&
+            matchesSafeRecord(inv) &&
+            invDate < fromDate;
+        })
+        .reduce((sum, inv) => sum + resolveRecordAmount(inv), 0);
+
+      const splitSalesInvoicesBefore = transformedSalesInvoices
+        .filter((inv) => {
+          const invDate = normalizeDate(inv.date);
+          return inv.paymentMethod === "cash" &&
+            inv.isSplitPayment === true &&
+            matchesSafeValue(inv.splitSafeId) &&
+            invDate < fromDate;
+        })
+        .reduce((sum, inv) => sum + (Number(inv.splitCashAmount) || 0), 0);
+
+      const purchaseInvoicesBefore = transformedPurchaseInvoices
+        .filter((inv) => {
+          const invDate = normalizeDate(inv.date);
+          return inv.paymentMethod === "cash" &&
+            !inv.isSplitPayment &&
+            inv.paymentTargetType === "safe" &&
+            matchesSafeRecord(inv) &&
+            invDate < fromDate;
+        })
+        .reduce((sum, inv) => sum + resolveRecordAmount(inv), 0);
+
+      const splitPurchaseInvoicesBefore = transformedPurchaseInvoices
+        .filter((inv) => {
+          const invDate = normalizeDate(inv.date);
+          return inv.paymentMethod === "cash" &&
+            inv.isSplitPayment === true &&
+            matchesSafeValue(inv.splitSafeId) &&
+            invDate < fromDate;
+        })
+        .reduce((sum, inv) => sum + (Number(inv.splitCashAmount) || 0), 0);
+
+      const salesReturnsBefore = transformedSalesReturns
+        .filter((ret) => {
+          const retDate = normalizeDate(ret.date);
+          return ret.paymentMethod === "cash" &&
+            !ret.isSplitPayment &&
+            ret.paymentTargetType === "safe" &&
+            matchesSafeRecord(ret) &&
+            retDate < fromDate;
+        })
+        .reduce((sum, ret) => sum + resolveRecordAmount(ret), 0);
+
+      const splitSalesReturnsBefore = transformedSalesReturns
+        .filter((ret) => {
+          const retDate = normalizeDate(ret.date);
+          return ret.paymentMethod === "cash" &&
+            ret.isSplitPayment === true &&
+            matchesSafeValue(ret.splitSafeId) &&
+            retDate < fromDate;
+        })
+        .reduce((sum, ret) => sum + (Number(ret.splitCashAmount) || 0), 0);
+
+      const purchaseReturnsBefore = transformedPurchaseReturns
+        .filter((ret) => {
+          const retDate = normalizeDate(ret.date);
+          return ret.paymentMethod === "cash" &&
+            !ret.isSplitPayment &&
+            ret.paymentTargetType === "safe" &&
+            matchesSafeRecord(ret) &&
+            retDate < fromDate;
+        })
+        .reduce((sum, ret) => sum + resolveRecordAmount(ret), 0);
+
+      const splitPurchaseReturnsBefore = transformedPurchaseReturns
+        .filter((ret) => {
+          const retDate = normalizeDate(ret.date);
+          return ret.paymentMethod === "cash" &&
+            ret.isSplitPayment === true &&
+            matchesSafeValue(ret.splitSafeId) &&
+            retDate < fromDate;
+        })
+        .reduce((sum, ret) => sum + (Number(ret.splitCashAmount) || 0), 0);
+
+      const outgoingBefore = apiInternalTransfers
+        .filter((t) => {
+          const tDate = normalizeDate(t.date);
+          return t.fromType === "safe" &&
+            matchesSafeValue(t.fromSafeId) &&
+            tDate < fromDate;
+        })
+        .reduce((sum, t) => sum + t.amount, 0);
+
+      const incomingBefore = apiInternalTransfers
+        .filter((t) => {
+          const tDate = normalizeDate(t.date);
+          return t.toType === "safe" &&
+            matchesSafeValue(t.toSafeId) &&
+            tDate < fromDate;
+        })
+        .reduce((sum, t) => sum + t.amount, 0);
+
+      const opening = safe.openingBalance 
+        + receiptsBefore 
+        + salesInvoicesBefore 
+        + splitSalesInvoicesBefore
+        + purchaseReturnsBefore 
+        + splitPurchaseReturnsBefore
+        + incomingBefore
+        - paymentsBefore 
+        - purchaseInvoicesBefore 
+        - splitPurchaseInvoicesBefore
+        - salesReturnsBefore 
+        - splitSalesReturnsBefore
+        - outgoingBefore;
+
+      // Period calculations (between fromDate and toDate)
+      const receiptsPeriod = receiptVouchers
+        .filter((v) => {
+          const vDate = normalizeDate(v.date);
+          return v.paymentMethod === "safe" &&
+            matchesSafeValue(v.safeOrBankId) &&
+            vDate >= fromDate && vDate <= toDate;
+        })
+        .reduce((sum, v) => sum + v.amount, 0);
+
+      const paymentsPeriod = paymentVouchers
+        .filter((v) => {
+          const vDate = normalizeDate(v.date);
+          return v.paymentMethod === "safe" &&
+            matchesSafeValue(v.safeOrBankId) &&
+            vDate >= fromDate && vDate <= toDate;
+        })
+        .reduce((sum, v) => sum + v.amount, 0);
+
+      const salesInvoicesPeriod = transformedSalesInvoices
+        .filter((inv) => {
+          const invDate = normalizeDate(inv.date);
+          return inv.paymentMethod === "cash" &&
+            !inv.isSplitPayment &&
+            inv.paymentTargetType === "safe" &&
+            matchesSafeRecord(inv) &&
+            invDate >= fromDate && invDate <= toDate;
+        })
+        .reduce((sum, inv) => sum + resolveRecordAmount(inv), 0);
+
+      const splitSalesInvoicesPeriod = transformedSalesInvoices
+        .filter((inv) => {
+          const invDate = normalizeDate(inv.date);
+          return inv.paymentMethod === "cash" &&
+            inv.isSplitPayment === true &&
+            matchesSafeValue(inv.splitSafeId) &&
+            invDate >= fromDate && invDate <= toDate;
+        })
+        .reduce((sum, inv) => sum + (Number(inv.splitCashAmount) || 0), 0);
+
+      const purchaseInvoicesPeriod = transformedPurchaseInvoices
+        .filter((inv) => {
+          const invDate = normalizeDate(inv.date);
+          return inv.paymentMethod === "cash" &&
+            !inv.isSplitPayment &&
+            inv.paymentTargetType === "safe" &&
+            matchesSafeRecord(inv) &&
+            invDate >= fromDate && invDate <= toDate;
+        })
+        .reduce((sum, inv) => sum + resolveRecordAmount(inv), 0);
+
+      const splitPurchaseInvoicesPeriod = transformedPurchaseInvoices
+        .filter((inv) => {
+          const invDate = normalizeDate(inv.date);
+          return inv.paymentMethod === "cash" &&
+            inv.isSplitPayment === true &&
+            matchesSafeValue(inv.splitSafeId) &&
+            invDate >= fromDate && invDate <= toDate;
+        })
+        .reduce((sum, inv) => sum + (Number(inv.splitCashAmount) || 0), 0);
+
+      const salesReturnsPeriod = transformedSalesReturns
+        .filter((ret) => {
+          const retDate = normalizeDate(ret.date);
+          return ret.paymentMethod === "cash" &&
+            !ret.isSplitPayment &&
+            ret.paymentTargetType === "safe" &&
+            matchesSafeRecord(ret) &&
+            retDate >= fromDate && retDate <= toDate;
+        })
+        .reduce((sum, ret) => sum + resolveRecordAmount(ret), 0);
+
+      const splitSalesReturnsPeriod = transformedSalesReturns
+        .filter((ret) => {
+          const retDate = normalizeDate(ret.date);
+          return ret.paymentMethod === "cash" &&
+            ret.isSplitPayment === true &&
+            matchesSafeValue(ret.splitSafeId) &&
+            retDate >= fromDate && retDate <= toDate;
+        })
+        .reduce((sum, ret) => sum + (Number(ret.splitCashAmount) || 0), 0);
+
+      const purchaseReturnsPeriod = transformedPurchaseReturns
+        .filter((ret) => {
+          const retDate = normalizeDate(ret.date);
+          return ret.paymentMethod === "cash" &&
+            !ret.isSplitPayment &&
+            ret.paymentTargetType === "safe" &&
+            matchesSafeRecord(ret) &&
+            retDate >= fromDate && retDate <= toDate;
+        })
+        .reduce((sum, ret) => sum + resolveRecordAmount(ret), 0);
+
+      const splitPurchaseReturnsPeriod = transformedPurchaseReturns
+        .filter((ret) => {
+          const retDate = normalizeDate(ret.date);
+          return ret.paymentMethod === "cash" &&
+            ret.isSplitPayment === true &&
+            matchesSafeValue(ret.splitSafeId) &&
+            retDate >= fromDate && retDate <= toDate;
+        })
+        .reduce((sum, ret) => sum + (Number(ret.splitCashAmount) || 0), 0);
+
+      const outgoingPeriod = apiInternalTransfers
+        .filter((t) => {
+          const tDate = normalizeDate(t.date);
+          return t.fromType === "safe" &&
+            matchesSafeValue(t.fromSafeId) &&
+            tDate >= fromDate && tDate <= toDate;
+        })
+        .reduce((sum, t) => sum + t.amount, 0);
+
+      const incomingPeriod = apiInternalTransfers
+        .filter((t) => {
+          const tDate = normalizeDate(t.date);
+          return t.toType === "safe" &&
+            matchesSafeValue(t.toSafeId) &&
+            tDate >= fromDate && tDate <= toDate;
+        })
+        .reduce((sum, t) => sum + t.amount, 0);
+
+      // Period debit = incoming transactions
+      const safePeriodDebit = receiptsPeriod 
+        + salesInvoicesPeriod 
+        + splitSalesInvoicesPeriod
+        + purchaseReturnsPeriod 
+        + splitPurchaseReturnsPeriod
+        + incomingPeriod;
+
+      // Period credit = outgoing transactions
+      const safePeriodCredit = paymentsPeriod 
+        + purchaseInvoicesPeriod 
+        + splitPurchaseInvoicesPeriod
+        + salesReturnsPeriod 
+        + splitSalesReturnsPeriod
+        + outgoingPeriod;
+
+      // Aggregate totals
+      if (opening > 0) {
+        totalOpeningDebit += opening;
+      } else {
+        totalOpeningCredit += Math.abs(opening);
+      }
+      totalPeriodDebit += safePeriodDebit;
+      totalPeriodCredit += safePeriodCredit;
+    });
+
+    // Calculate closing balance
+    const netOpening = totalOpeningDebit - totalOpeningCredit;
+    const netClosing = netOpening + totalPeriodDebit - totalPeriodCredit;
+    const closingDebit = netClosing > 0 ? netClosing : 0;
+    const closingCredit = netClosing < 0 ? Math.abs(netClosing) : 0;
+
+    return {
+      openingBalanceDebit: totalOpeningDebit,
+      openingBalanceCredit: totalOpeningCredit,
+      periodDebit: totalPeriodDebit,
+      periodCredit: totalPeriodCredit,
+      closingBalanceDebit: closingDebit,
+      closingBalanceCredit: closingCredit,
+    };
+  }, [
+    apiSafes,
+    receiptVouchers,
+    paymentVouchers,
+    transformedSalesInvoices,
+    transformedPurchaseInvoices,
+    transformedSalesReturns,
+    transformedPurchaseReturns,
+    apiInternalTransfers,
+    fromDate,
+    toDate,
+    normalizeDate,
+    resolveRecordAmount,
+  ]);
+
+  // Calculate bank balances using the same logic as BankStatementReport (aggregated across all banks)
+  const calculatedBankBalance = useMemo(() => {
+    const banks = apiBanks as any[];
+    
+    let totalOpeningDebit = 0;
+    let totalOpeningCredit = 0;
+    let totalPeriodDebit = 0;
+    let totalPeriodCredit = 0;
+
+    banks.forEach((bank) => {
+      const bankId = bank.id?.toString() || "";
+
+      // Opening balance calculations (before fromDate)
+      const receiptsBefore = receiptVouchers
+        .filter((v) => {
+          const vDate = normalizeDate(v.date);
+          return v.paymentMethod === "bank" &&
+            v.safeOrBankId?.toString() === bankId &&
+            vDate < fromDate;
+        })
+        .reduce((sum, v) => sum + v.amount, 0);
+
+      const paymentsBefore = paymentVouchers
+        .filter((v) => {
+          const vDate = normalizeDate(v.date);
+          return v.paymentMethod === "bank" &&
+            v.safeOrBankId?.toString() === bankId &&
+            vDate < fromDate;
+        })
+        .reduce((sum, v) => sum + v.amount, 0);
+
+      const salesInvoicesBefore = transformedSalesInvoices
+        .filter((inv) => {
+          const invDate = normalizeDate(inv.date);
+          return inv.paymentMethod === "cash" &&
+            !inv.isSplitPayment &&
+            inv.paymentTargetType === "bank" &&
+            inv.paymentTargetId === bankId &&
+            invDate < fromDate;
+        })
+        .reduce((sum, inv) => sum + resolveRecordAmount(inv), 0);
+
+      const splitSalesInvoicesBefore = transformedSalesInvoices
+        .filter((inv) => {
+          const invDate = normalizeDate(inv.date);
+          return inv.paymentMethod === "cash" &&
+            inv.isSplitPayment === true &&
+            inv.splitBankId?.toString() === bankId &&
+            invDate < fromDate;
+        })
+        .reduce((sum, inv) => sum + (Number(inv.splitBankAmount) || 0), 0);
+
+      const purchaseInvoicesBefore = transformedPurchaseInvoices
+        .filter((inv) => {
+          const invDate = normalizeDate(inv.date);
+          return inv.paymentMethod === "cash" &&
+            !inv.isSplitPayment &&
+            inv.paymentTargetType === "bank" &&
+            inv.paymentTargetId === bankId &&
+            invDate < fromDate;
+        })
+        .reduce((sum, inv) => sum + resolveRecordAmount(inv), 0);
+
+      const splitPurchaseInvoicesBefore = transformedPurchaseInvoices
+        .filter((inv) => {
+          const invDate = normalizeDate(inv.date);
+          return inv.paymentMethod === "cash" &&
+            inv.isSplitPayment === true &&
+            inv.splitBankId?.toString() === bankId &&
+            invDate < fromDate;
+        })
+        .reduce((sum, inv) => sum + (Number(inv.splitBankAmount) || 0), 0);
+
+      const salesReturnsBefore = transformedSalesReturns
+        .filter((ret) => {
+          const retDate = normalizeDate(ret.date);
+          return ret.paymentMethod === "cash" &&
+            !ret.isSplitPayment &&
+            ret.paymentTargetType === "bank" &&
+            ret.paymentTargetId === bankId &&
+            retDate < fromDate;
+        })
+        .reduce((sum, ret) => sum + resolveRecordAmount(ret), 0);
+
+      const splitSalesReturnsBefore = transformedSalesReturns
+        .filter((ret) => {
+          const retDate = normalizeDate(ret.date);
+          return ret.paymentMethod === "cash" &&
+            ret.isSplitPayment === true &&
+            ret.splitBankId?.toString() === bankId &&
+            retDate < fromDate;
+        })
+        .reduce((sum, ret) => sum + (Number(ret.splitBankAmount) || 0), 0);
+
+      const purchaseReturnsBefore = transformedPurchaseReturns
+        .filter((ret) => {
+          const retDate = normalizeDate(ret.date);
+          return ret.paymentMethod === "cash" &&
+            !ret.isSplitPayment &&
+            ret.paymentTargetType === "bank" &&
+            ret.paymentTargetId === bankId &&
+            retDate < fromDate;
+        })
+        .reduce((sum, ret) => sum + resolveRecordAmount(ret), 0);
+
+      const splitPurchaseReturnsBefore = transformedPurchaseReturns
+        .filter((ret) => {
+          const retDate = normalizeDate(ret.date);
+          return ret.paymentMethod === "cash" &&
+            ret.isSplitPayment === true &&
+            ret.splitBankId?.toString() === bankId &&
+            retDate < fromDate;
+        })
+        .reduce((sum, ret) => sum + (Number(ret.splitBankAmount) || 0), 0);
+
+      const outgoingBefore = apiInternalTransfers
+        .filter((t) => {
+          const tDate = normalizeDate(t.date);
+          return t.fromType === "bank" &&
+            t.fromBankId === bankId &&
+            tDate < fromDate;
+        })
+        .reduce((sum, t) => sum + t.amount, 0);
+
+      const incomingBefore = apiInternalTransfers
+        .filter((t) => {
+          const tDate = normalizeDate(t.date);
+          return t.toType === "bank" &&
+            t.toBankId === bankId &&
+            tDate < fromDate;
+        })
+        .reduce((sum, t) => sum + t.amount, 0);
+
+      const opening = bank.openingBalance 
+        + receiptsBefore 
+        + salesInvoicesBefore 
+        + splitSalesInvoicesBefore
+        + purchaseReturnsBefore 
+        + splitPurchaseReturnsBefore
+        + incomingBefore
+        - paymentsBefore 
+        - purchaseInvoicesBefore 
+        - splitPurchaseInvoicesBefore
+        - salesReturnsBefore 
+        - splitSalesReturnsBefore
+        - outgoingBefore;
+
+      // Period calculations (between fromDate and toDate)
+      const receiptsPeriod = receiptVouchers
+        .filter((v) => {
+          const vDate = normalizeDate(v.date);
+          return v.paymentMethod === "bank" &&
+            v.safeOrBankId?.toString() === bankId &&
+            vDate >= fromDate && vDate <= toDate;
+        })
+        .reduce((sum, v) => sum + v.amount, 0);
+
+      const paymentsPeriod = paymentVouchers
+        .filter((v) => {
+          const vDate = normalizeDate(v.date);
+          return v.paymentMethod === "bank" &&
+            v.safeOrBankId?.toString() === bankId &&
+            vDate >= fromDate && vDate <= toDate;
+        })
+        .reduce((sum, v) => sum + v.amount, 0);
+
+      const salesInvoicesPeriod = transformedSalesInvoices
+        .filter((inv) => {
+          const invDate = normalizeDate(inv.date);
+          return inv.paymentMethod === "cash" &&
+            !inv.isSplitPayment &&
+            inv.paymentTargetType === "bank" &&
+            inv.paymentTargetId === bankId &&
+            invDate >= fromDate && invDate <= toDate;
+        })
+        .reduce((sum, inv) => sum + resolveRecordAmount(inv), 0);
+
+      const splitSalesInvoicesPeriod = transformedSalesInvoices
+        .filter((inv) => {
+          const invDate = normalizeDate(inv.date);
+          return inv.paymentMethod === "cash" &&
+            inv.isSplitPayment === true &&
+            inv.splitBankId?.toString() === bankId &&
+            invDate >= fromDate && invDate <= toDate;
+        })
+        .reduce((sum, inv) => sum + (Number(inv.splitBankAmount) || 0), 0);
+
+      const purchaseInvoicesPeriod = transformedPurchaseInvoices
+        .filter((inv) => {
+          const invDate = normalizeDate(inv.date);
+          return inv.paymentMethod === "cash" &&
+            !inv.isSplitPayment &&
+            inv.paymentTargetType === "bank" &&
+            inv.paymentTargetId === bankId &&
+            invDate >= fromDate && invDate <= toDate;
+        })
+        .reduce((sum, inv) => sum + resolveRecordAmount(inv), 0);
+
+      const splitPurchaseInvoicesPeriod = transformedPurchaseInvoices
+        .filter((inv) => {
+          const invDate = normalizeDate(inv.date);
+          return inv.paymentMethod === "cash" &&
+            inv.isSplitPayment === true &&
+            inv.splitBankId?.toString() === bankId &&
+            invDate >= fromDate && invDate <= toDate;
+        })
+        .reduce((sum, inv) => sum + (Number(inv.splitBankAmount) || 0), 0);
+
+      const salesReturnsPeriod = transformedSalesReturns
+        .filter((ret) => {
+          const retDate = normalizeDate(ret.date);
+          return ret.paymentMethod === "cash" &&
+            !ret.isSplitPayment &&
+            ret.paymentTargetType === "bank" &&
+            ret.paymentTargetId === bankId &&
+            retDate >= fromDate && retDate <= toDate;
+        })
+        .reduce((sum, ret) => sum + resolveRecordAmount(ret), 0);
+
+      const splitSalesReturnsPeriod = transformedSalesReturns
+        .filter((ret) => {
+          const retDate = normalizeDate(ret.date);
+          return ret.paymentMethod === "cash" &&
+            ret.isSplitPayment === true &&
+            ret.splitBankId?.toString() === bankId &&
+            retDate >= fromDate && retDate <= toDate;
+        })
+        .reduce((sum, ret) => sum + (Number(ret.splitBankAmount) || 0), 0);
+
+      const purchaseReturnsPeriod = transformedPurchaseReturns
+        .filter((ret) => {
+          const retDate = normalizeDate(ret.date);
+          return ret.paymentMethod === "cash" &&
+            !ret.isSplitPayment &&
+            ret.paymentTargetType === "bank" &&
+            ret.paymentTargetId === bankId &&
+            retDate >= fromDate && retDate <= toDate;
+        })
+        .reduce((sum, ret) => sum + resolveRecordAmount(ret), 0);
+
+      const splitPurchaseReturnsPeriod = transformedPurchaseReturns
+        .filter((ret) => {
+          const retDate = normalizeDate(ret.date);
+          return ret.paymentMethod === "cash" &&
+            ret.isSplitPayment === true &&
+            ret.splitBankId?.toString() === bankId &&
+            retDate >= fromDate && retDate <= toDate;
+        })
+        .reduce((sum, ret) => sum + (Number(ret.splitBankAmount) || 0), 0);
+
+      const outgoingPeriod = apiInternalTransfers
+        .filter((t) => {
+          const tDate = normalizeDate(t.date);
+          return t.fromType === "bank" &&
+            t.fromBankId === bankId &&
+            tDate >= fromDate && tDate <= toDate;
+        })
+        .reduce((sum, t) => sum + t.amount, 0);
+
+      const incomingPeriod = apiInternalTransfers
+        .filter((t) => {
+          const tDate = normalizeDate(t.date);
+          return t.toType === "bank" &&
+            t.toBankId === bankId &&
+            tDate >= fromDate && tDate <= toDate;
+        })
+        .reduce((sum, t) => sum + t.amount, 0);
+
+      // Period debit = incoming transactions
+      const bankPeriodDebit = receiptsPeriod 
+        + salesInvoicesPeriod 
+        + splitSalesInvoicesPeriod
+        + purchaseReturnsPeriod 
+        + splitPurchaseReturnsPeriod
+        + incomingPeriod;
+
+      // Period credit = outgoing transactions
+      const bankPeriodCredit = paymentsPeriod 
+        + purchaseInvoicesPeriod 
+        + splitPurchaseInvoicesPeriod
+        + salesReturnsPeriod 
+        + splitSalesReturnsPeriod
+        + outgoingPeriod;
+
+      // Aggregate totals
+      if (opening > 0) {
+        totalOpeningDebit += opening;
+      } else {
+        totalOpeningCredit += Math.abs(opening);
+      }
+      totalPeriodDebit += bankPeriodDebit;
+      totalPeriodCredit += bankPeriodCredit;
+    });
+
+    // Calculate closing balance
+    const netOpening = totalOpeningDebit - totalOpeningCredit;
+    const netClosing = netOpening + totalPeriodDebit - totalPeriodCredit;
+    const closingDebit = netClosing > 0 ? netClosing : 0;
+    const closingCredit = netClosing < 0 ? Math.abs(netClosing) : 0;
+
+    return {
+      openingBalanceDebit: totalOpeningDebit,
+      openingBalanceCredit: totalOpeningCredit,
+      periodDebit: totalPeriodDebit,
+      periodCredit: totalPeriodCredit,
+      closingBalanceDebit: closingDebit,
+      closingBalanceCredit: closingCredit,
+    };
+  }, [
+    apiBanks,
+    receiptVouchers,
+    paymentVouchers,
+    transformedSalesInvoices,
+    transformedPurchaseInvoices,
+    transformedSalesReturns,
+    transformedPurchaseReturns,
+    apiInternalTransfers,
+    fromDate,
+    toDate,
+    normalizeDate,
+    resolveRecordAmount,
+  ]);
+
+  // Calculate other receivables balances using the same logic as TotalReceivableAccountsReport
+  const calculatedOtherReceivablesBalance = useMemo(() => {
+    const receivableAccounts = apiReceivableAccounts as any[];
+    
+    let totalOpeningDebit = 0;
+    let totalOpeningCredit = 0;
+    let totalPeriodDebit = 0;
+    let totalPeriodCredit = 0;
+
+    receivableAccounts.forEach((account) => {
+      const accountId = account.id;
+      const accountIdStr = accountId.toString();
+
+      // Calculate transactions before start date for opening balance
+      const receiptsBefore = receiptVouchers
+        .filter((v) => {
+          const vDate = normalizeDate(v.date);
+          const voucherAccountId = v.entity?.id?.toString() || v.entity?.id;
+          return (
+            v.entity?.type === "receivable_account" &&
+            (voucherAccountId === accountIdStr || voucherAccountId == accountId) &&
+            vDate < fromDate
+          );
+        })
+        .reduce((sum, v) => sum + v.amount, 0);
+
+      const paymentsBefore = paymentVouchers
+        .filter((v) => {
+          const vDate = normalizeDate(v.date);
+          const voucherAccountId = v.entity?.id?.toString() || v.entity?.id;
+          return (
+            v.entity?.type === "receivable_account" &&
+            (voucherAccountId === accountIdStr || voucherAccountId == accountId) &&
+            vDate < fromDate
+          );
+        })
+        .reduce((sum, v) => sum + v.amount, 0);
+
+      // Opening balance = base opening balance + payments before start date - receipts before start date
+      const opening = (account.openingBalance || 0) + paymentsBefore - receiptsBefore;
+
+      // Calculate transactions within date range
+      const receiptsPeriod = receiptVouchers
+        .filter((v) => {
+          const vDate = normalizeDate(v.date);
+          const voucherAccountId = v.entity?.id?.toString() || v.entity?.id;
+          return (
+            v.entity?.type === "receivable_account" &&
+            (voucherAccountId === accountIdStr || voucherAccountId == accountId) &&
+            vDate >= fromDate && vDate <= toDate
+          );
+        })
+        .reduce((sum, v) => sum + v.amount, 0);
+
+      const paymentsPeriod = paymentVouchers
+        .filter((v) => {
+          const vDate = normalizeDate(v.date);
+          const voucherAccountId = v.entity?.id?.toString() || v.entity?.id;
+          return (
+            v.entity?.type === "receivable_account" &&
+            (voucherAccountId === accountIdStr || voucherAccountId == accountId) &&
+            vDate >= fromDate && vDate <= toDate
+          );
+        })
+        .reduce((sum, v) => sum + v.amount, 0);
+
+      // Period Debit = payment vouchers (increases receivable)
+      // Period Credit = receipt vouchers (decreases receivable)
+      const accountPeriodDebit = paymentsPeriod;
+      const accountPeriodCredit = receiptsPeriod;
+
+      // Aggregate totals
+      if (opening > 0) {
+        totalOpeningDebit += opening;
+      } else {
+        totalOpeningCredit += Math.abs(opening);
+      }
+      totalPeriodDebit += accountPeriodDebit;
+      totalPeriodCredit += accountPeriodCredit;
+    });
+
+    // Calculate closing balance
+    const netOpening = totalOpeningDebit - totalOpeningCredit;
+    const netClosing = netOpening + totalPeriodDebit - totalPeriodCredit;
+    const closingDebit = netClosing > 0 ? netClosing : 0;
+    const closingCredit = netClosing < 0 ? Math.abs(netClosing) : 0;
+
+    return {
+      openingBalanceDebit: totalOpeningDebit,
+      openingBalanceCredit: totalOpeningCredit,
+      periodDebit: totalPeriodDebit,
+      periodCredit: totalPeriodCredit,
+      closingBalanceDebit: closingDebit,
+      closingBalanceCredit: closingCredit,
+    };
+  }, [
+    apiReceivableAccounts,
+    receiptVouchers,
+    paymentVouchers,
+    fromDate,
+    toDate,
+    normalizeDate,
+  ]);
+
+  // Calculate other payables balances using the same logic as TotalPayableAccountsReport
+  const calculatedOtherPayablesBalance = useMemo(() => {
+    const payableAccounts = apiPayableAccounts as any[];
+    
+    let totalOpeningDebit = 0;
+    let totalOpeningCredit = 0;
+    let totalPeriodDebit = 0;
+    let totalPeriodCredit = 0;
+
+    payableAccounts.forEach((account) => {
+      const accountId = account.id;
+      const accountIdStr = accountId.toString();
+
+      // Calculate transactions before start date for opening balance
+      const receiptsBefore = receiptVouchers
+        .filter((v) => {
+          const vDate = normalizeDate(v.date);
+          const voucherAccountId = v.entity?.id?.toString() || v.entity?.id;
+          return (
+            v.entity?.type === "payable_account" &&
+            (voucherAccountId === accountIdStr || voucherAccountId == accountId) &&
+            vDate < fromDate
+          );
+        })
+        .reduce((sum, v) => sum + v.amount, 0);
+
+      const paymentsBefore = paymentVouchers
+        .filter((v) => {
+          const vDate = normalizeDate(v.date);
+          const voucherAccountId = v.entity?.id?.toString() || v.entity?.id;
+          return (
+            v.entity?.type === "payable_account" &&
+            (voucherAccountId === accountIdStr || voucherAccountId == accountId) &&
+            vDate < fromDate
+          );
+        })
+        .reduce((sum, v) => sum + v.amount, 0);
+
+      // Opening balance = base opening balance + payments before start date - receipts before start date
+      const opening = (account.openingBalance || 0) + paymentsBefore - receiptsBefore;
+
+      // Calculate transactions within date range
+      const receiptsPeriod = receiptVouchers
+        .filter((v) => {
+          const vDate = normalizeDate(v.date);
+          const voucherAccountId = v.entity?.id?.toString() || v.entity?.id;
+          return (
+            v.entity?.type === "payable_account" &&
+            (voucherAccountId === accountIdStr || voucherAccountId == accountId) &&
+            vDate >= fromDate && vDate <= toDate
+          );
+        })
+        .reduce((sum, v) => sum + v.amount, 0);
+
+      const paymentsPeriod = paymentVouchers
+        .filter((v) => {
+          const vDate = normalizeDate(v.date);
+          const voucherAccountId = v.entity?.id?.toString() || v.entity?.id;
+          return (
+            v.entity?.type === "payable_account" &&
+            (voucherAccountId === accountIdStr || voucherAccountId == accountId) &&
+            vDate >= fromDate && vDate <= toDate
+          );
+        })
+        .reduce((sum, v) => sum + v.amount, 0);
+
+      // Period Debit = payment vouchers (decreases payable)
+      // Period Credit = receipt vouchers (increases payable)
+      const accountPeriodDebit = paymentsPeriod;
+      const accountPeriodCredit = receiptsPeriod;
+
+      // Aggregate totals
+      if (opening > 0) {
+        totalOpeningDebit += opening;
+      } else {
+        totalOpeningCredit += Math.abs(opening);
+      }
+      totalPeriodDebit += accountPeriodDebit;
+      totalPeriodCredit += accountPeriodCredit;
+    });
+
+    // Calculate closing balance
+    const netOpening = totalOpeningDebit - totalOpeningCredit;
+    const netClosing = netOpening + totalPeriodDebit - totalPeriodCredit;
+    const closingDebit = netClosing > 0 ? netClosing : 0;
+    const closingCredit = netClosing < 0 ? Math.abs(netClosing) : 0;
+
+    return {
+      openingBalanceDebit: totalOpeningDebit,
+      openingBalanceCredit: totalOpeningCredit,
+      periodDebit: totalPeriodDebit,
+      periodCredit: totalPeriodCredit,
+      closingBalanceDebit: closingDebit,
+      closingBalanceCredit: closingCredit,
+    };
+  }, [
+    apiPayableAccounts,
+    receiptVouchers,
+    paymentVouchers,
+    fromDate,
+    toDate,
+    normalizeDate,
+  ]);
+
+  // Calculate other revenues balances using the same logic as TotalRevenueReport/backend
+  // Revenue from receipt vouchers with revenueCodeId in period (period credit only, no opening balance)
+  const calculatedOtherRevenuesBalance = useMemo(() => {
+    // Filter receipt vouchers with revenueCodeId (entity?.type === 'revenue') in period
+    const revenueVouchersPeriod = receiptVouchers.filter((v) => {
+      const vDate = normalizeDate(v.date);
+      return v.entity?.type === "revenue" &&
+        vDate >= fromDate && vDate <= toDate;
+    });
+
+    const periodCredit = revenueVouchersPeriod.reduce((sum, v) => sum + (v.amount || 0), 0);
+
+    return {
+      openingBalanceDebit: 0,
+      openingBalanceCredit: 0,
+      periodDebit: 0,
+      periodCredit: periodCredit,
+      closingBalanceDebit: 0,
+      closingBalanceCredit: periodCredit,
+    };
+  }, [
+    receiptVouchers,
+    fromDate,
+    toDate,
+    normalizeDate,
+  ]);
+
+  // Calculate VAT payable balances using the same logic as backend (simpler than VATStatementReport)
+  // VAT = Sales Tax - Sales Returns Tax - Purchase Tax + Purchase Returns Tax
+  const calculatedVatPayableBalance = useMemo(() => {
+    // Opening VAT (before fromDate)
+    const salesTaxBefore = transformedSalesInvoices
+      .filter((inv) => normalizeDate(inv.date) < fromDate)
+      .reduce((sum, inv) => sum + (inv.tax || inv.totals?.tax || 0), 0);
+
+    const salesReturnsTaxBefore = transformedSalesReturns
+      .filter((inv) => normalizeDate(inv.date) < fromDate)
+      .reduce((sum, inv) => sum + (inv.tax || inv.totals?.tax || 0), 0);
+
+    const purchaseTaxBefore = transformedPurchaseInvoices
+      .filter((inv) => normalizeDate(inv.date) < fromDate)
+      .reduce((sum, inv) => sum + (inv.tax || inv.totals?.tax || 0), 0);
+
+    const purchaseReturnsTaxBefore = transformedPurchaseReturns
+      .filter((inv) => normalizeDate(inv.date) < fromDate)
+      .reduce((sum, inv) => sum + (inv.tax || inv.totals?.tax || 0), 0);
+
+    const openingVat = salesTaxBefore - salesReturnsTaxBefore - purchaseTaxBefore + purchaseReturnsTaxBefore;
+    const openingCredit = openingVat > 0 ? openingVat : 0;
+    const openingDebit = openingVat < 0 ? Math.abs(openingVat) : 0;
+
+    // Period movements
+    const salesTaxPeriod = transformedSalesInvoices
+      .filter((inv) => {
+        const invDate = normalizeDate(inv.date);
+        return invDate >= fromDate && invDate <= toDate;
+      })
+      .reduce((sum, inv) => sum + (inv.tax || inv.totals?.tax || 0), 0);
+
+    const salesReturnsTaxPeriod = transformedSalesReturns
+      .filter((inv) => {
+        const invDate = normalizeDate(inv.date);
+        return invDate >= fromDate && invDate <= toDate;
+      })
+      .reduce((sum, inv) => sum + (inv.tax || inv.totals?.tax || 0), 0);
+
+    const purchaseTaxPeriod = transformedPurchaseInvoices
+      .filter((inv) => {
+        const invDate = normalizeDate(inv.date);
+        return invDate >= fromDate && invDate <= toDate;
+      })
+      .reduce((sum, inv) => sum + (inv.tax || inv.totals?.tax || 0), 0);
+
+    const purchaseReturnsTaxPeriod = transformedPurchaseReturns
+      .filter((inv) => {
+        const invDate = normalizeDate(inv.date);
+        return invDate >= fromDate && invDate <= toDate;
+      })
+      .reduce((sum, inv) => sum + (inv.tax || inv.totals?.tax || 0), 0);
+
+    const periodCredit = salesTaxPeriod - salesReturnsTaxPeriod - purchaseTaxPeriod + purchaseReturnsTaxPeriod;
+    const periodDebit = 0;
+
+    const closingCredit = openingCredit + periodCredit;
+    const closingDebit = 0;
+
+    return {
+      openingBalanceDebit: openingDebit,
+      openingBalanceCredit: openingCredit,
+      periodDebit: periodDebit,
+      periodCredit: periodCredit,
+      closingBalanceDebit: closingDebit,
+      closingBalanceCredit: closingCredit,
+    };
+  }, [
+    transformedSalesInvoices,
+    transformedSalesReturns,
+    transformedPurchaseInvoices,
+    transformedPurchaseReturns,
+    fromDate,
+    toDate,
+    normalizeDate,
+  ]);
+
   // Process and verify entries with correct calculations
   // Based on backend logic:
   // - Assets/Expenses: closingDebit = openingDebit + periodDebit - periodCredit (if negative, becomes closingCredit)
   // - Liabilities/Equity/Revenue: closingCredit = openingCredit + periodCredit - periodDebit (if negative, becomes closingDebit)
   // For inventory account (1301 / مخزون البضاعة), override closing balance with calculated inventory value
+  // For customer account (1201 / العملاء), override with calculated customer balance matching CustomerBalanceReport
   const processedData = useMemo(() => {
     return (auditTrialData?.entries || []).map((entry) => {
       // Check if this is the inventory account
       const isInventoryAccount = entry.accountCode === '1301' || entry.accountName === 'مخزون البضاعة';
+      // Check if this is the customer account
+      const isCustomerAccount = entry.accountCode === '1201' || entry.accountName === 'العملاء';
+      // Check if this is the safe account
+      const isSafeAccount = entry.accountCode === '1101' || entry.accountName === 'النقدية';
+      // Check if this is the bank account
+      const isBankAccount = entry.accountCode === '1102' || entry.accountName === 'البنوك';
+      // Check if this is the supplier account
+      const isSupplierAccount = entry.accountCode === '2101' || entry.accountName === 'الموردين';
+      // Check if this is the other receivables account
+      const isOtherReceivablesAccount = entry.accountCode === '1202' || entry.accountName === 'ارصدة مدينة اخري';
+      // Check if this is the other payables account
+      const isOtherPayablesAccount = entry.accountCode === '2102' || entry.accountName === 'ارصدة دائنة اخري';
+      // Check if this is the other revenues account
+      const isOtherRevenuesAccount = entry.accountCode === '4201' || entry.accountName === 'ايرادات اخري';
+      // Check if this is the VAT payable account
+      const isVatPayableAccount = entry.accountCode === '2201' || entry.accountName === 'ضريبة القيمة المضافة';
       
       let calculatedClosingDebit = 0;
       let calculatedClosingCredit = 0;
@@ -380,6 +1856,30 @@ const AuditTrial: React.FC = () => {
           calculatedClosingDebit = 0;
           calculatedClosingCredit = Math.abs(calculatedInventoryValue);
         }
+      } else if (isCustomerAccount) {
+        // Override customer account with calculated customer balance (matching CustomerBalanceReport)
+        calculatedClosingDebit = calculatedCustomerBalance.closingBalanceDebit;
+        calculatedClosingCredit = calculatedCustomerBalance.closingBalanceCredit;
+      } else if (isSupplierAccount) {
+        // Override supplier account with calculated supplier balance (matching SupplierBalanceReport)
+        calculatedClosingDebit = calculatedSupplierBalance.closingBalanceDebit;
+        calculatedClosingCredit = calculatedSupplierBalance.closingBalanceCredit;
+      } else if (isOtherReceivablesAccount) {
+        // Override other receivables account with calculated balance (matching TotalReceivableAccountsReport)
+        calculatedClosingDebit = calculatedOtherReceivablesBalance.closingBalanceDebit;
+        calculatedClosingCredit = calculatedOtherReceivablesBalance.closingBalanceCredit;
+      } else if (isOtherPayablesAccount) {
+        // Override other payables account with calculated balance (matching TotalPayableAccountsReport)
+        calculatedClosingDebit = calculatedOtherPayablesBalance.closingBalanceDebit;
+        calculatedClosingCredit = calculatedOtherPayablesBalance.closingBalanceCredit;
+      } else if (isOtherRevenuesAccount) {
+        // Override other revenues account with calculated balance (matching backend/TotalRevenueReport)
+        calculatedClosingDebit = calculatedOtherRevenuesBalance.closingBalanceDebit;
+        calculatedClosingCredit = calculatedOtherRevenuesBalance.closingBalanceCredit;
+      } else if (isVatPayableAccount) {
+        // Override VAT payable account with calculated balance (matching backend)
+        calculatedClosingDebit = calculatedVatPayableBalance.closingBalanceDebit;
+        calculatedClosingCredit = calculatedVatPayableBalance.closingBalanceCredit;
       } else if (entry.category === 'Assets' || entry.category === 'Expenses') {
         // Assets and Expenses: closingDebit = openingDebit + periodDebit - periodCredit
         const closingDebit = entry.openingBalanceDebit + entry.periodDebit - entry.periodCredit;
@@ -402,10 +1902,69 @@ const AuditTrial: React.FC = () => {
         }
       }
       
-      // Transform opening balance: calculate net balance and split positive to مدين, negative to دائن
-      const netOpening = entry.openingBalanceDebit - entry.openingBalanceCredit;
-      const transformedOpeningDebit = netOpening > 0 ? netOpening : 0;
-      const transformedOpeningCredit = netOpening < 0 ? Math.abs(netOpening) : 0;
+      // For customer, safe, and bank accounts, use calculated values for opening and period balances
+      let transformedOpeningDebit: number;
+      let transformedOpeningCredit: number;
+      let transformedPeriodDebit: number;
+      let transformedPeriodCredit: number;
+      
+      if (isCustomerAccount) {
+        // Use calculated customer balance values
+        transformedOpeningDebit = calculatedCustomerBalance.openingBalanceDebit;
+        transformedOpeningCredit = calculatedCustomerBalance.openingBalanceCredit;
+        transformedPeriodDebit = calculatedCustomerBalance.periodDebit;
+        transformedPeriodCredit = calculatedCustomerBalance.periodCredit;
+      } else if (isSafeAccount) {
+        // Use calculated safe balance values
+        transformedOpeningDebit = calculatedSafeBalance.openingBalanceDebit;
+        transformedOpeningCredit = calculatedSafeBalance.openingBalanceCredit;
+        transformedPeriodDebit = calculatedSafeBalance.periodDebit;
+        transformedPeriodCredit = calculatedSafeBalance.periodCredit;
+      } else if (isBankAccount) {
+        // Use calculated bank balance values
+        transformedOpeningDebit = calculatedBankBalance.openingBalanceDebit;
+        transformedOpeningCredit = calculatedBankBalance.openingBalanceCredit;
+        transformedPeriodDebit = calculatedBankBalance.periodDebit;
+        transformedPeriodCredit = calculatedBankBalance.periodCredit;
+      } else if (isSupplierAccount) {
+        // Use calculated supplier balance values
+        transformedOpeningDebit = calculatedSupplierBalance.openingBalanceDebit;
+        transformedOpeningCredit = calculatedSupplierBalance.openingBalanceCredit;
+        transformedPeriodDebit = calculatedSupplierBalance.periodDebit;
+        transformedPeriodCredit = calculatedSupplierBalance.periodCredit;
+      } else if (isOtherReceivablesAccount) {
+        // Use calculated other receivables balance values
+        transformedOpeningDebit = calculatedOtherReceivablesBalance.openingBalanceDebit;
+        transformedOpeningCredit = calculatedOtherReceivablesBalance.openingBalanceCredit;
+        transformedPeriodDebit = calculatedOtherReceivablesBalance.periodDebit;
+        transformedPeriodCredit = calculatedOtherReceivablesBalance.periodCredit;
+      } else if (isOtherPayablesAccount) {
+        // Use calculated other payables balance values
+        transformedOpeningDebit = calculatedOtherPayablesBalance.openingBalanceDebit;
+        transformedOpeningCredit = calculatedOtherPayablesBalance.openingBalanceCredit;
+        transformedPeriodDebit = calculatedOtherPayablesBalance.periodDebit;
+        transformedPeriodCredit = calculatedOtherPayablesBalance.periodCredit;
+      } else if (isOtherRevenuesAccount) {
+        // Use calculated other revenues balance values
+        transformedOpeningDebit = calculatedOtherRevenuesBalance.openingBalanceDebit;
+        transformedOpeningCredit = calculatedOtherRevenuesBalance.openingBalanceCredit;
+        transformedPeriodDebit = calculatedOtherRevenuesBalance.periodDebit;
+        transformedPeriodCredit = calculatedOtherRevenuesBalance.periodCredit;
+      } else if (isVatPayableAccount) {
+        // Use calculated VAT payable balance values
+        transformedOpeningDebit = calculatedVatPayableBalance.openingBalanceDebit;
+        transformedOpeningCredit = calculatedVatPayableBalance.openingBalanceCredit;
+        transformedPeriodDebit = calculatedVatPayableBalance.periodDebit;
+        transformedPeriodCredit = calculatedVatPayableBalance.periodCredit;
+      } else {
+        // Transform opening balance: calculate net balance and split positive to مدين, negative to دائن
+        const netOpening = entry.openingBalanceDebit - entry.openingBalanceCredit;
+        transformedOpeningDebit = netOpening > 0 ? netOpening : 0;
+        transformedOpeningCredit = netOpening < 0 ? Math.abs(netOpening) : 0;
+        // periodDebit and periodCredit remain unchanged (already represent totals during the period)
+        transformedPeriodDebit = entry.periodDebit;
+        transformedPeriodCredit = entry.periodCredit;
+      }
       
       // Transform closing balance: calculate net balance and split positive to مدين, negative to دائن
       const netClosing = calculatedClosingDebit - calculatedClosingCredit;
@@ -417,12 +1976,13 @@ const AuditTrial: React.FC = () => {
         ...entry,
         openingBalanceDebit: transformedOpeningDebit,
         openingBalanceCredit: transformedOpeningCredit,
-        // periodDebit and periodCredit remain unchanged (already represent totals during the period)
+        periodDebit: transformedPeriodDebit,
+        periodCredit: transformedPeriodCredit,
         closingBalanceDebit: transformedClosingDebit,
         closingBalanceCredit: transformedClosingCredit,
       };
     });
-  }, [auditTrialData?.entries, calculatedInventoryValue]);
+  }, [auditTrialData?.entries, calculatedInventoryValue, calculatedCustomerBalance, calculatedSafeBalance, calculatedBankBalance, calculatedSupplierBalance, calculatedOtherReceivablesBalance, calculatedOtherPayablesBalance, calculatedOtherRevenuesBalance, calculatedVatPayableBalance]);
 
   const data = processedData;
 
