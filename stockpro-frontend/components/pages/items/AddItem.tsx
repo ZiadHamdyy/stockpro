@@ -182,11 +182,12 @@ const AddItem: React.FC<AddItemProps> = ({ title, editingId, onNavigate }) => {
     fieldName: "salePrice" | "reorderLimit"
   ) => {
     const value = e.target.value;
-    // Allow empty string and valid positive numbers (including decimals, no negatives)
+    // Allow empty string and valid float numbers (including decimals, no negatives)
+    // Pattern allows: digits, optional decimal point, optional more digits
     if (value === "" || /^\d*\.?\d*$/.test(value)) {
       setItemData((prev) => ({
         ...prev,
-        [fieldName]: value === "" ? ("" as any) : parseFloat(value) || 0,
+        [fieldName]: value as any, // Keep as string to allow typing decimals like "1."
       }));
     }
   };
@@ -195,11 +196,12 @@ const AddItem: React.FC<AddItemProps> = ({ title, editingId, onNavigate }) => {
     e: React.ChangeEvent<HTMLInputElement>
   ) => {
     const value = e.target.value;
-    // Allow empty string, negative sign, and valid numbers (including decimals and negatives)
+    // Allow empty string, negative sign, and valid float numbers (including decimals and negatives)
+    // Pattern allows: optional negative sign, digits, optional decimal point, optional more digits
     if (value === "" || value === "-" || /^-?\d*\.?\d*$/.test(value)) {
       setItemData((prev) => ({
         ...prev,
-        stock: value === "" || value === "-" ? (value as any) : parseFloat(value) || 0,
+        stock: value as any, // Keep as string to allow typing decimals like "1." or "-1."
       }));
     }
   };
@@ -518,7 +520,7 @@ const AddItem: React.FC<AddItemProps> = ({ title, editingId, onNavigate }) => {
               onChange={handleStockChange}
               className={inputStyle}
               disabled={isReadOnly || itemType === 'SERVICE'}
-              inputMode="numeric"
+              inputMode="decimal"
               placeholder="سيتم تعيين الرصيد لمخزن الفرع الحالي"
             />
           </div>
@@ -561,7 +563,7 @@ const AddItem: React.FC<AddItemProps> = ({ title, editingId, onNavigate }) => {
               onChange={(e) => handlePositiveNumberChange(e, "salePrice")}
               className={inputStyle}
               disabled={isReadOnly}
-              inputMode="numeric"
+              inputMode="decimal"
             />
           </div>
           {/* FIX: Add input field for 'reorderLimit'. */}
