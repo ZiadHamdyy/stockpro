@@ -50,6 +50,7 @@ const InventoryCountPage: React.FC<InventoryCountProps> = ({ title, companyInfo 
     const [searchTerm, setSearchTerm] = useState('');
     const [notes, setNotes] = useState('');
     const [status, setStatus] = useState<'PENDING' | 'POSTED'>('PENDING');
+    const [varianceFilter, setVarianceFilter] = useState<'ALL' | 'SHORTAGE' | 'SURPLUS' | 'MATCHED'>('ALL');
     
     const [isHistoryOpen, setIsHistoryOpen] = useState(false);
 
@@ -194,10 +195,27 @@ const InventoryCountPage: React.FC<InventoryCountProps> = ({ title, companyInfo 
         }));
     };
 
-    const filteredItems = countItems.filter(item => 
-        item.item.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-        item.item.code.toLowerCase().includes(searchTerm.toLowerCase())
-    );
+    const filteredItems = useMemo(() => {
+        return countItems.filter(item => {
+            // Filter by search term
+            const matchesSearch = item.item.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                item.item.code.toLowerCase().includes(searchTerm.toLowerCase());
+            
+            if (!matchesSearch) return false;
+            
+            // Filter by variance type (only if actualStock is defined)
+            const hasActualStock = item.actualStock !== undefined && item.actualStock !== null;
+            
+            if (varianceFilter === 'ALL') return true;
+            if (!hasActualStock) return false; // Items without actual stock are excluded from variance filters
+            
+            if (varianceFilter === 'SHORTAGE') return item.difference < 0;
+            if (varianceFilter === 'SURPLUS') return item.difference > 0;
+            if (varianceFilter === 'MATCHED') return item.difference === 0;
+            
+            return true;
+        });
+    }, [countItems, searchTerm, varianceFilter]);
 
     // Check if there are printable items
     const hasPrintableItems = useMemo(
@@ -827,8 +845,8 @@ const InventoryCountPage: React.FC<InventoryCountProps> = ({ title, companyInfo 
             </div>
 
             {/* Search & Stats Summary Bar */}
-            <div className="bg-white p-4 rounded-lg shadow flex justify-between items-center flex-shrink-0">
-                 <div className="relative w-1/3">
+            <div className="bg-white p-4 rounded-lg shadow flex justify-between items-center gap-4 flex-shrink-0">
+                <div className="relative flex-1">
                     <SearchIcon className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
                     <input 
                         type="text" 
@@ -838,6 +856,29 @@ const InventoryCountPage: React.FC<InventoryCountProps> = ({ title, companyInfo 
                         onChange={(e) => setSearchTerm(e.target.value)}
                     />
                 </div>
+                
+                {/* Variance Filter Buttons */}
+                <div className="flex gap-2">
+                    {[
+                        { value: 'ALL' as const, label: 'الكل', color: 'bg-blue-600', shadowColor: 'shadow-blue-200' },
+                        { value: 'SHORTAGE' as const, label: 'عجز', color: 'bg-red-600', shadowColor: 'shadow-red-200' },
+                        { value: 'SURPLUS' as const, label: 'زيادة', color: 'bg-green-600', shadowColor: 'shadow-green-200' },
+                        { value: 'MATCHED' as const, label: 'مطابق', color: 'bg-gray-600', shadowColor: 'shadow-gray-200' },
+                    ].map((filter) => (
+                        <button
+                            key={filter.value}
+                            onClick={() => setVarianceFilter(filter.value)}
+                            className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${
+                                varianceFilter === filter.value 
+                                    ? `${filter.color} text-white shadow-lg ${filter.shadowColor}` 
+                                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                            }`}
+                        >
+                            {filter.label}
+                        </button>
+                    ))}
+                </div>
+                
                 <div className="flex gap-6 text-sm">
                     <div className="flex items-center gap-2">
                         <div className="p-2 bg-blue-100 rounded-full text-blue-600"><BoxIcon className="w-4 h-4"/></div>
