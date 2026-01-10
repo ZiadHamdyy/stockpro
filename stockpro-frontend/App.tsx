@@ -902,7 +902,7 @@ const AppContent = () => {
             <Route
               path="/settings/audit-log"
               element={
-                <ProtectedRoute requiredPermission="audit_log-read">
+                <ProtectedRoute requiredPermission="audit_log-read" requiresSubscription="BUSINESS">
                   <AuditLog
                     title={currentPageTitle}
                   />

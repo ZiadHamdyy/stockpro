@@ -27,6 +27,7 @@ const RESTRICTED_MENU_KEYS: Record<string, string[]> = {
   income_statement: ['GROWTH', 'BUSINESS'],
   balance_sheet: ['GROWTH', 'BUSINESS'],
   audit_trail: ['GROWTH', 'BUSINESS'],
+  audit_log: ['BUSINESS'], // Only BUSINESS plan
   
   // Financial Analysis section - GROWTH Plan - Hide (requires BUSINESS)
   financial_analysis: ['BUSINESS'],
