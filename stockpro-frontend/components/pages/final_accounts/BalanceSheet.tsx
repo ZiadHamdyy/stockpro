@@ -116,9 +116,9 @@ const BalanceSheet: React.FC = () => {
 
   // Fiscal year and income statement data for retained earnings calculation
   const { data: fiscalYears = [] } = useGetFiscalYearsQuery();
-  const { data: incomeStatementData } = useGetIncomeStatementQuery(
+  const { data: incomeStatementData, isFetching: isIncomeStatementFetching } = useGetIncomeStatementQuery(
     { startDate, endDate },
-    { skip: !startDate || !endDate }
+    { skip: !startDate || !endDate, refetchOnMountOrArgChange: true }
   );
 
   // COMPANY-WIDE DATA: Inventory calculation data (same as InventoryValuationReport)
@@ -143,6 +143,9 @@ const BalanceSheet: React.FC = () => {
     isLoading,
     error,
   } = useBalanceSheet(startDate, endDate);
+
+  // Combine loading states - show loading when either query is fetching
+  const isDataLoading = isLoading || isIncomeStatementFetching;
 
   // Get current user for print
   const { User: currentUser } = useAuth();
@@ -1884,22 +1887,8 @@ const BalanceSheet: React.FC = () => {
     </td>
   );
 
-  // Show loading state
-  if (isLoading) {
-    return (
-      <div className="bg-white p-6 rounded-lg shadow">
-        <div className="flex justify-center items-center h-64">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand-blue mx-auto mb-4"></div>
-            <p className="text-gray-600">جاري تحميل البيانات...</p>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  // Show error state
-  if (error || !displayData || !companyInfo) {
+  // Show error state (only for initial load error, not for loading state)
+  if ((error || !displayData || !companyInfo) && !isDataLoading) {
     return (
       <div className="bg-white p-6 rounded-lg shadow">
         <div className="flex justify-center items-center h-64">
@@ -1920,20 +1909,22 @@ const BalanceSheet: React.FC = () => {
 
   // Calculate balance discrepancy using the actual displayed totals (including VAT)
   // This matches what's shown in the table
-  const displayedTotalAssets =
-    displayData.cashInSafes +
-    displayData.cashInBanks +
-    displayData.receivables +
-    displayData.otherReceivables +
-    displayData.inventory +
-    vatAsset;
-  const displayedTotalLiabilitiesAndEquity =
-    displayData.payables +
-    displayData.otherPayables +
-    vatLiability +
-    displayData.capital +
-    displayData.partnersBalance +
-    displayData.retainedEarnings;
+  const displayedTotalAssets = displayData
+    ? displayData.cashInSafes +
+      displayData.cashInBanks +
+      displayData.receivables +
+      displayData.otherReceivables +
+      displayData.inventory +
+      vatAsset
+    : 0;
+  const displayedTotalLiabilitiesAndEquity = displayData
+    ? displayData.payables +
+      displayData.otherPayables +
+      vatLiability +
+      displayData.capital +
+      displayData.partnersBalance +
+      displayData.retainedEarnings
+    : 0;
   const discrepancy = Math.abs(displayedTotalAssets - displayedTotalLiabilitiesAndEquity);
   const hasDiscrepancy = discrepancy > 0.01; // Allow for small rounding differences
 
@@ -2021,7 +2012,7 @@ const BalanceSheet: React.FC = () => {
         </div>
 
         {/* Balance Discrepancy Warning */}
-        {hasDiscrepancy && (
+        {!isDataLoading && displayData && hasDiscrepancy && (
           <div className="mb-4 p-4 bg-yellow-50 border-2 border-yellow-400 rounded-lg no-print">
             <div className="flex items-center gap-2">
               <svg
@@ -2055,6 +2046,7 @@ const BalanceSheet: React.FC = () => {
           </div>
         )}
 
+        {!isDataLoading && displayData && (
         <div className="overflow-x-auto border border-gray-300 rounded-lg mt-3">
           <table className="min-w-full text-sm">
             <tbody className="divide-y divide-gray-200">
@@ -2234,6 +2226,7 @@ const BalanceSheet: React.FC = () => {
             </tbody>
           </table>
         </div>
+        )}
       </div>
     </div>
   );

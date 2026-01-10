@@ -7,12 +7,14 @@ export const useBalanceSheet = (startDate: string, endDate: string) => {
   const {
     data: balanceSheetData,
     isLoading: isLoadingData,
+    isFetching: isFetchingData,
     error: dataError,
     refetch,
   } = useGetBalanceSheetQuery(
     { startDate, endDate },
     {
       skip: !startDate || !endDate,
+      refetchOnMountOrArgChange: true,
     },
   );
 
@@ -38,7 +40,7 @@ export const useBalanceSheet = (startDate: string, endDate: string) => {
   return {
     data: balanceSheetData,
     companyInfo,
-    isLoading: isLoadingData,
+    isLoading: isLoadingData || isFetchingData,
     error: dataError,
     refetch,
   };
