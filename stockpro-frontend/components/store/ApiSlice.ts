@@ -537,6 +537,7 @@ export const apiSlice = createApi({
     "ItemProfitabilityReport",
     "FinancialSettings",
     "PrintSettings",
+    "RevenueCode",
   ],
   endpoints: () => ({}),
 });

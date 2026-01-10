@@ -1400,22 +1400,24 @@ const InvoicePrintPreview: React.FC<InvoicePrintPreviewProps> = ({
   const [selectedElement, setSelectedElement] = React.useState<string | null>(null);
   const [showEpsonControls, setShowEpsonControls] = React.useState(false);
 
-  // Update preview settings when settings change
+  // Update preview settings when settings change - memoize to prevent infinite loops
+  const memoizedEpsonSettings = React.useMemo(() => settings.epsonSettings, [printSettings?.epsonSettings]);
+  const memoizedTemplate = React.useMemo(() => template, [printSettings?.template]);
   React.useEffect(() => {
-    if (template === 'epson' && settings.epsonSettings) {
+    if (memoizedTemplate === 'epson' && memoizedEpsonSettings) {
       // Merge with defaults to ensure visibility and columnOrder are always present
       const merged = {
         ...getDefaultEpsonSettings(),
-        ...settings.epsonSettings,
+        ...memoizedEpsonSettings,
         visibility: {
           ...getDefaultEpsonSettings().visibility,
-          ...(settings.epsonSettings.visibility || {}),
+          ...(memoizedEpsonSettings.visibility || {}),
         },
-        columnOrder: settings.epsonSettings.columnOrder || getDefaultEpsonSettings().columnOrder,
+        columnOrder: memoizedEpsonSettings.columnOrder || getDefaultEpsonSettings().columnOrder,
       };
       setEpsonPreviewSettings(merged);
     }
-  }, [settings.epsonSettings, template]);
+  }, [memoizedEpsonSettings, memoizedTemplate]);
 
   // Render epson template with preview settings - Optimized for page fitting
   const renderEpsonTemplateWithPreview = () => {
@@ -1585,10 +1587,17 @@ const InvoicePrintPreview: React.FC<InvoicePrintPreviewProps> = ({
       if (!updated.visibility) {
         updated.visibility = { ...getDefaultEpsonSettings().visibility };
       }
+      // Deep clone nested objects as we traverse the path
       let current: any = updated;
       for (let i = 0; i < path.length - 1; i++) {
-        if (!current[path[i]]) current[path[i]] = {};
-        current = current[path[i]];
+        const key = path[i];
+        // Clone the nested object to make it writable
+        if (!current[key]) {
+          current[key] = {};
+        } else {
+          current[key] = { ...current[key] };
+        }
+        current = current[key];
       }
       current[path[path.length - 1]] = value;
       
