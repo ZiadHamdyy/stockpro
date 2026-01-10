@@ -914,7 +914,7 @@ const InventoryCountPage: React.FC<InventoryCountProps> = ({ title, companyInfo 
                                         </td>
                                         <td className={`px-4 py-2 text-center font-bold text-sm ${item.actualStock !== undefined && item.actualStock !== null ? (item.difference < 0 ? 'text-red-600' : item.difference > 0 ? 'text-green-600' : 'text-gray-400') : 'text-gray-400'}`}>
                                             {item.actualStock !== undefined && item.actualStock !== null 
-                                                ? (item.difference > 0 ? '+' : '') + item.difference
+                                                ? (item.difference > 0 ? '+' : '') + item.difference.toFixed(2)
                                                 : ''}
                                         </td>
                                         <td className="px-4 py-2 text-center text-xs">
