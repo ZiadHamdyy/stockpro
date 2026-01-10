@@ -63,11 +63,12 @@ const SafeModal: React.FC<SafeModalProps> = ({
     e: React.ChangeEvent<HTMLInputElement>
   ) => {
     const value = e.target.value;
-    // Allow empty string and valid positive numbers (including decimals, no negatives)
+    // Allow empty string and valid float numbers (including decimals, no negatives)
+    // Pattern allows: digits, optional decimal point, optional more digits
     if (value === "" || /^\d*\.?\d*$/.test(value)) {
       setSafeData((prev) => ({
         ...prev,
-        openingBalance: value === "" ? "" : parseFloat(value) || 0,
+        openingBalance: value, // Keep as string to allow typing decimals like "1."
       }));
     }
   };
@@ -183,7 +184,7 @@ const SafeModal: React.FC<SafeModalProps> = ({
                 }
                 onChange={handleOpeningBalanceChange}
                 className={inputStyle}
-                inputMode="numeric"
+                inputMode="decimal"
               />
             </div>
           </div>
