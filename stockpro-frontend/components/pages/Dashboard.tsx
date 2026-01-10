@@ -58,8 +58,8 @@ const Dashboard: React.FC<{ title: string }> = ({ title }) => {
   const doughnutChartRef = useRef<HTMLCanvasElement>(null);
   const chartInstances = useRef<{ bar?: any; doughnut?: any }>({});
 
-  // Get style variant from location state, default to 'default'
-  const styleVariant = (location.state as { style?: string })?.style || 'default';
+  // Get style variant from location state, default to 'alternative'
+  const styleVariant = (location.state as { style?: string })?.style || 'alternative';
 
   // Fetch company data for currency
   const { data: company } = useGetCompanyQuery();
@@ -286,12 +286,12 @@ const Dashboard: React.FC<{ title: string }> = ({ title }) => {
     };
   }, [styleVariant]);
 
-  // Render alternative style
-  if (styleVariant === 'alternative') {
+  // Render alternative style by default
+  if (styleVariant !== 'default') {
     return <AlternativeDashboard title={title} />;
   }
 
-  // Render default style (current dashboard content)
+  // Render old default style (only when explicitly requested)
   return (
     <div>
       <h1 className="text-2xl font-bold mb-6 text-brand-dark">{title}</h1>
