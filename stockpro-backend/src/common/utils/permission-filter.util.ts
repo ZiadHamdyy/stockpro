@@ -7,7 +7,7 @@ export interface Permission {
   id: string;
   resource: string;
   action: string;
-  description: string;
+  description: string | null;
   companyId: string;
   createdAt?: Date;
   updatedAt?: Date;
