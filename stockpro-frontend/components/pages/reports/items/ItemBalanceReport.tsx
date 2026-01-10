@@ -262,6 +262,7 @@ const ItemBalanceReport: React.FC<ItemBalanceReportProps> = ({
   const { start: defaultStartDate, end: defaultEndDate } = getCurrentYearRange();
   const [startDate, setStartDate] = useState(defaultStartDate);
   const [endDate, setEndDate] = useState(defaultEndDate);
+  const [hideZeroBalance, setHideZeroBalance] = useState(false);
 
   const handleViewReport = useCallback(() => {
     if (isLoading) return;
@@ -450,8 +451,15 @@ const ItemBalanceReport: React.FC<ItemBalanceReportProps> = ({
     handleViewReport();
   }, [handleViewReport]);
 
+  const filteredReportData = useMemo(() => {
+    if (hideZeroBalance) {
+      return reportData.filter((item) => Math.abs(item.balance) > 0.01);
+    }
+    return reportData;
+  }, [reportData, hideZeroBalance]);
+
   const handleExcelExport = () => {
-    const dataToExport = reportData.map((item) => ({
+    const dataToExport = filteredReportData.map((item) => ({
       الكود: item.code,
       الاسم: item.name,
       "مجموعة الأصناف": item.group,
@@ -625,6 +633,15 @@ const ItemBalanceReport: React.FC<ItemBalanceReportProps> = ({
               <SearchIcon className="w-5 h-5" />
               <span>عرض التقرير</span>
             </button>
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={hideZeroBalance}
+                onChange={(e) => setHideZeroBalance(e.target.checked)}
+                className="w-4 h-4 text-brand-blue border-2 border-gray-300 rounded focus:ring-2 focus:ring-brand-blue"
+              />
+              <span className="font-semibold text-gray-700">إخفاء الصنف برصيد صفر</span>
+            </label>
           </div>
           <PermissionWrapper
             requiredPermission={buildPermission(
@@ -713,7 +730,7 @@ const ItemBalanceReport: React.FC<ItemBalanceReportProps> = ({
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {reportData.map((item) => (
+              {filteredReportData.map((item) => (
                 <tr key={item.id} className="hover:bg-brand-blue-bg">
                   <td className="px-4 py-4 w-28">{item.code}</td>
                   <td className="px-6 py-4 font-medium text-brand-dark w-80">
