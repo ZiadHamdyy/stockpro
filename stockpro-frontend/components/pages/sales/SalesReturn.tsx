@@ -390,7 +390,46 @@ const SalesReturn: React.FC<SalesReturnProps> = ({
     guardPrint({
       hasData: hasPrintableItems,
       showToast,
-      onAllowed: () => setIsPreviewOpen(true),
+      onAllowed: () => {
+        // Set preview data from current return state to ensure it's stable
+        // This prevents preview from closing when state changes
+        if (currentIndex >= 0 && returns[currentIndex]) {
+          const ret = returns[currentIndex];
+          const fullCustomer = selectedCustomer
+            ? (customers as any[]).find((c) => c.id === selectedCustomer.id)
+            : null;
+          const printCustomer = selectedCustomer
+            ? {
+                id: selectedCustomer.id,
+                name: selectedCustomer.name,
+                address:
+                  fullCustomer?.nationalAddress ||
+                  fullCustomer?.address ||
+                  undefined,
+                taxNumber: fullCustomer?.taxNumber || undefined,
+                commercialReg: fullCustomer?.commercialReg || undefined,
+              }
+            : null;
+          
+          const previewDataToStore = {
+            companyInfo,
+            vatRate,
+            isVatEnabled: effectiveVatEnabled,
+            items: returnItems.filter((i) => i.id && i.name && i.qty > 0),
+            totals,
+            paymentMethod,
+            customer: printCustomer,
+            details: {
+              ...invoiceDetails,
+              userName: currentUser?.fullName || "غير محدد",
+              branchName: resolvedBranchName || "غير محدد",
+              notes: invoiceNotes || undefined,
+            },
+          };
+          setPreviewData(previewDataToStore);
+        }
+        setIsPreviewOpen(true);
+      },
     });
   };
 
@@ -503,12 +542,15 @@ const SalesReturn: React.FC<SalesReturnProps> = ({
       setInvoiceNotes((ret as any).notes || "");
       setIsReadOnly(true);
       justSavedRef.current = false; // Clear the flag after loading return
-      shouldOpenPreviewRef.current = false; // Reset preview flag when loading existing
+      // Don't reset preview flag if preview is already open - preserve preview state
+      if (!isPreviewOpen) {
+        shouldOpenPreviewRef.current = false; // Reset preview flag when loading existing
+      }
     } else if (!justSavedRef.current) {
       // Only call handleNew if we haven't just saved
       handleNew();
     }
-  }, [currentIndex, returns]);
+  }, [currentIndex, returns, isPreviewOpen]);
 
   useEffect(() => {
     const sizer = document.createElement("span");
@@ -543,11 +585,11 @@ const SalesReturn: React.FC<SalesReturnProps> = ({
   // Open preview when previewData is set and we have a flag to open it
   // The flag is only set to true after saving, so this ensures preview opens automatically after save
   useEffect(() => {
-    if (shouldOpenPreviewRef.current && previewData && previewData.items.length > 0) {
+    if (shouldOpenPreviewRef.current && previewData && previewData.items.length > 0 && !isPreviewOpen) {
       setIsPreviewOpen(true);
       shouldOpenPreviewRef.current = false; // Reset flag
     }
-  }, [previewData]);
+  }, [previewData, isPreviewOpen]);
 
   // Auto-focus barcode input field
   useEffect(() => {
