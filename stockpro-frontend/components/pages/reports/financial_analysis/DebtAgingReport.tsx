@@ -16,6 +16,7 @@ import { useGetSalesReturnsQuery } from '../../../store/slices/salesReturn/sales
 import { useGetReceiptVouchersQuery } from '../../../store/slices/receiptVoucherApiSlice';
 import { useGetPaymentVouchersQuery } from '../../../store/slices/paymentVoucherApiSlice';
 import { useAuth } from '../../../hook/Auth';
+import { formatDate } from '../dateUtils';
 
 interface DebtAgingReportProps {
     title: string;
@@ -453,7 +454,7 @@ const DebtAgingReport: React.FC<DebtAgingReportProps> = ({ title }) => {
             <div id="printable-area">
                 <ReportHeader title={title} />
                 <div className="text-right mb-2">
-                    <span className="font-semibold text-gray-800">التاريخ:</span> {new Date().toLocaleDateString('ar-EG', { year: 'numeric', month: 'long', day: 'numeric' })}
+                    <span className="font-semibold text-gray-800">التاريخ:</span> {formatDate(new Date())}
                 </div>
                 
                 <div className="flex justify-between items-center my-6 bg-gray-50 p-4 rounded-lg border border-gray-200 no-print">

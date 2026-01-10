@@ -21,6 +21,7 @@ import {
   buildPermission,
 } from '../../../../enums/permissions.enum';
 import { useUserPermissions } from '../../../hook/usePermissions';
+import { formatDate } from '../dateUtils';
 
 // Helper function to get user's branch ID
 const getUserBranchId = (user: User | null): string | null => {
@@ -586,7 +587,7 @@ const VATStatementReport: React.FC<VATStatementReportProps> = ({ title, companyI
                         </div>
                         <div className="space-y-2 text-right">
                             <p className="text-base text-gray-700">
-                                <span className="font-semibold text-gray-800">التاريخ:</span> {new Date().toLocaleDateString('ar-EG', { year: 'numeric', month: 'long', day: 'numeric' })}
+                                <span className="font-semibold text-gray-800">التاريخ:</span> {formatDate(new Date())}
                             </p>
                             <p className="text-base text-gray-700">
                                 <span className="font-semibold text-gray-800">المستخدم:</span> {currentUser?.fullName || currentUser?.name || 'غير محدد'}

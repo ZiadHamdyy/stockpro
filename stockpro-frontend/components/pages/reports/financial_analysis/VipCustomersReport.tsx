@@ -13,6 +13,7 @@ import {
 import { useGetCustomersQuery } from '../../../store/slices/customer/customerApiSlice';
 import { useGetSalesInvoicesQuery } from '../../../store/slices/salesInvoice/salesInvoiceApiSlice';
 import { useGetSalesReturnsQuery } from '../../../store/slices/salesReturn/salesReturnApiSlice';
+import { formatDate } from '../dateUtils';
 
 interface VIPCustomersReportProps {
     title: string;
@@ -300,7 +301,7 @@ const VIPCustomersReport: React.FC<VIPCustomersReportProps> = ({ title }) => {
             <div id="printable-area">
                 <ReportHeader title={title} />
                 <div className="text-right mb-2">
-                    <span className="font-semibold text-gray-800">التاريخ:</span> {new Date().toLocaleDateString('ar-EG', { year: 'numeric', month: 'long', day: 'numeric' })}
+                    <span className="font-semibold text-gray-800">التاريخ:</span> {formatDate(new Date())}
                 </div>
                 
                 <div className="flex justify-between items-center my-6 bg-gray-50 p-4 rounded-lg border border-gray-200 no-print">

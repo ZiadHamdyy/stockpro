@@ -18,7 +18,7 @@ import { useGetBranchesQuery } from "../../../store/slices/branch/branchApi";
 import { useGetReceiptVouchersQuery } from "../../../store/slices/receiptVoucherApiSlice";
 import { useGetPaymentVouchersQuery } from "../../../store/slices/paymentVoucherApiSlice";
 import { useAuth } from "../../../hook/Auth";
-import { getCurrentYearRange } from "../dateUtils";
+import { getCurrentYearRange, formatDate } from "../dateUtils";
 import {
   Actions,
   Resources,
@@ -558,10 +558,10 @@ const SupplierBalanceReport: React.FC<SupplierBalanceReportProps> = ({
         <div className="px-6 py-4 text-base print:block hidden border-t-2 border-b-2 mt-2 mb-4 bg-gray-50">
           <div className="space-y-2 text-right">
             <p className="text-base text-gray-700">
-              <span className="font-semibold text-gray-800">تاريخ التقرير:</span> {new Date().toLocaleDateString('ar-EG', { year: 'numeric', month: 'long', day: 'numeric' })}
+              <span className="font-semibold text-gray-800">تاريخ التقرير:</span> {formatDate(new Date())}
             </p>
             <p className="text-base text-gray-700">
-              <span className="font-semibold text-gray-800">الفترة:</span> من {new Date(startDate).toLocaleDateString('ar-EG', { year: 'numeric', month: 'long', day: 'numeric' })} إلى {new Date(endDate).toLocaleDateString('ar-EG', { year: 'numeric', month: 'long', day: 'numeric' })}
+              <span className="font-semibold text-gray-800">الفترة:</span> من {formatDate(startDate)} إلى {formatDate(endDate)}
             </p>
           </div>
         </div>

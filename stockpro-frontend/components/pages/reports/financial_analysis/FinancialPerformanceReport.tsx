@@ -14,6 +14,7 @@ import { useGetSalesInvoicesQuery } from '../../../store/slices/salesInvoice/sal
 import { useGetPurchaseInvoicesQuery } from '../../../store/slices/purchaseInvoice/purchaseInvoiceApiSlice';
 import { useGetPaymentVouchersQuery } from '../../../store/slices/paymentVoucherApiSlice';
 import { useAuth } from '../../../hook/Auth';
+import { formatDate } from '../dateUtils';
 
 declare var Chart: any;
 
@@ -394,7 +395,7 @@ const FinancialPerformanceReport: React.FC<FinancialPerformanceReportProps> = ({
                         <span className="font-semibold text-gray-800">المستخدم:</span> {User?.name || 'غير محدد'}
                     </div>
                     <div>
-                        <span className="font-semibold text-gray-800">التاريخ:</span> {new Date().toLocaleDateString('ar-EG', { year: 'numeric', month: 'long', day: 'numeric' })}
+                        <span className="font-semibold text-gray-800">التاريخ:</span> {formatDate(new Date())}
                     </div>
                 </div>
                 

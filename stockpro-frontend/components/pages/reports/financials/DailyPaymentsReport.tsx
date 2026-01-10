@@ -12,7 +12,7 @@ import { formatNumber, getNegativeNumberClass, getNegativeNumberClassForTotal, e
 import { useGetPaymentVouchersQuery } from "../../../store/slices/paymentVoucherApiSlice";
 import { useGetBranchesQuery } from "../../../store/slices/branch/branchApi";
 import { useAuth } from "../../../hook/Auth";
-import { getCurrentYearRange } from "../dateUtils";
+import { getCurrentYearRange, formatDate } from "../dateUtils";
 import { useUserPermissions } from "../../../hook/usePermissions";
 
 // Helper function to get user's branch ID
@@ -351,7 +351,7 @@ const DailyPaymentsReport: React.FC<DailyPaymentsReportProps> = ({
             </div>
             <div className="space-y-2 text-right">
               <p className="text-base text-gray-700">
-                <span className="font-semibold text-gray-800">التاريخ:</span> {new Date().toLocaleDateString('ar-EG', { year: 'numeric', month: 'long', day: 'numeric' })}
+                <span className="font-semibold text-gray-800">التاريخ:</span> {formatDate(new Date())}
               </p>
             </div>
           </div>

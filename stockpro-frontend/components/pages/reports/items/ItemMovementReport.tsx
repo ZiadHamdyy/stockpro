@@ -14,7 +14,7 @@ import { useGetPurchaseReturnsQuery } from "../../../store/slices/purchaseReturn
 import { useGetStoreReceiptVouchersQuery } from "../../../store/slices/storeReceiptVoucher/storeReceiptVoucherApi";
 import { useGetStoreIssueVouchersQuery } from "../../../store/slices/storeIssueVoucher/storeIssueVoucherApi";
 import { useGetStoreTransferVouchersQuery } from "../../../store/slices/storeTransferVoucher/storeTransferVoucherApi";
-import { getCurrentYearRange } from "../dateUtils";
+import { getCurrentYearRange, formatDate } from "../dateUtils";
 import {
   Actions,
   Resources,
@@ -754,7 +754,7 @@ const ItemMovementReport: React.FC<ItemMovementReportProps> = ({
             </div>
             <div className="space-y-2 text-right">
               <p className="text-base text-gray-700">
-                <span className="font-semibold text-gray-800">التاريخ:</span> {new Date().toLocaleDateString('ar-EG', { year: 'numeric', month: 'long', day: 'numeric' })}
+                <span className="font-semibold text-gray-800">التاريخ:</span> {formatDate(new Date())}
               </p>
             </div>
           </div>

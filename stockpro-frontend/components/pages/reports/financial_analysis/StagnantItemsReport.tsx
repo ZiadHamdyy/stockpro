@@ -14,6 +14,7 @@ import { useGetItemsQuery } from '../../../store/slices/items/itemsApi';
 import { useGetSalesInvoicesQuery } from '../../../store/slices/salesInvoice/salesInvoiceApiSlice';
 import { useGetStoreIssueVouchersQuery } from '../../../store/slices/storeIssueVoucher/storeIssueVoucherApi';
 import { useGetCompanyQuery } from '../../../store/slices/companyApiSlice';
+import { formatDate } from '../dateUtils';
 
 interface StagnantItemsReportProps {
     title: string;
@@ -177,7 +178,7 @@ const StagnantItemsReport: React.FC<StagnantItemsReportProps> = ({ title }) => {
         const printWindow = window.open("", "_blank", "width=1200,height=800");
         if (!printWindow) return;
 
-        const currentDate = new Date().toLocaleDateString('ar-EG', { year: 'numeric', month: 'long', day: 'numeric' });
+        const currentDate = formatDate(new Date());
 
         // Company header HTML
         const companyHeader = companyInfo ? `
@@ -406,7 +407,7 @@ const StagnantItemsReport: React.FC<StagnantItemsReportProps> = ({ title }) => {
             <div id="printable-area">
                 <ReportHeader title={title} />
                 <div className="text-right mb-2">
-                    <span className="font-semibold text-gray-800">التاريخ:</span> {new Date().toLocaleDateString('ar-EG', { year: 'numeric', month: 'long', day: 'numeric' })}
+                    <span className="font-semibold text-gray-800">التاريخ:</span> {formatDate(new Date())}
                 </div>
                 
                 <div className="flex justify-between items-center my-6 bg-gray-50 p-4 rounded-lg border border-gray-200 no-print">

@@ -32,6 +32,7 @@ import { useGetCompanyQuery } from '../../../store/slices/companyApiSlice';
 import { useGetFinancialSettingsQuery } from '../../../store/slices/financialSettings/financialSettingsApi';
 import { ValuationMethod } from '../../../pages/settings/financial-system/types';
 import { calculateCompanyInventoryValuation } from '../../../../utils/inventoryValuation';
+import { formatDate } from '../dateUtils';
 
 const resolveRecordAmount = (record: any): number => {
     if (!record) return 0;
@@ -2005,7 +2006,7 @@ const LiquidityReport: React.FC<LiquidityReportProps> = ({ title }) => {
             <div id="printable-area">
                 <ReportHeader title={title} />
                 <div className="text-right mb-2">
-                    <span className="font-semibold text-gray-800">التاريخ:</span> {new Date().toLocaleDateString('ar-EG', { year: 'numeric', month: 'long', day: 'numeric' })}
+                    <span className="font-semibold text-gray-800">التاريخ:</span> {formatDate(new Date())}
                 </div>
                 <div className="flex justify-end items-center mb-2 no-print">
                 <PermissionWrapper

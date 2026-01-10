@@ -7,6 +7,7 @@ import { BarChartIcon, BuildingIcon, CalendarIcon, PrintIcon, TrendingUpIcon, Do
 import { useGetBranchesQuery } from '../../../../store/slices/branch/branchApi';
 import { useGetAnnualSalesReportQuery } from '../../../../store/slices/annualSales/annualSalesApiSlice';
 import ReportHeader from '../../ReportHeader';
+import { formatDate } from '../../dateUtils';
 
 interface AnnualSalesProps {
   title?: string;
@@ -330,7 +331,7 @@ const AnnualSales: React.FC<AnnualSalesProps> = ({ title }) => {
             </div>
             <div className="space-y-2 text-right print:space-y-0">
               <p className="text-base text-gray-700 print:text-xs print:mb-0">
-                <span className="font-semibold text-gray-800">التاريخ:</span> <span className="font-extrabold text-blue-700 bg-blue-100 px-3 py-1 rounded-lg inline-block">{new Date().toLocaleDateString('ar-EG', { year: 'numeric', month: 'long', day: 'numeric' })}</span>
+                <span className="font-semibold text-gray-800">التاريخ:</span> <span className="font-extrabold text-blue-700 bg-blue-100 px-3 py-1 rounded-lg inline-block">{formatDate(new Date())}</span>
               </p>
             </div>
           </div>

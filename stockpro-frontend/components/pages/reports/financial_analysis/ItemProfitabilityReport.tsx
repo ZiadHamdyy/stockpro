@@ -11,6 +11,7 @@ import {
 } from '../../../../enums/permissions.enum';
 import { useGetItemProfitabilityReportQuery } from '../../../store/slices/itemProfitability/itemProfitabilityApiSlice';
 import { useGetCompanyQuery } from '../../../store/slices/companyApiSlice';
+import { formatDate } from '../dateUtils';
 
 interface ItemProfitabilityReportProps {
     title: string;
@@ -52,7 +53,7 @@ const ItemProfitabilityReport: React.FC<ItemProfitabilityReportProps> = ({ title
         const printWindow = window.open("", "_blank", "width=1200,height=800");
         if (!printWindow) return;
 
-        const currentDate = new Date().toLocaleDateString('ar-EG', { year: 'numeric', month: 'long', day: 'numeric' });
+        const currentDate = formatDate(new Date());
         
         // Calculate summary values
         const totalRevenue = reportData.reduce((sum, i) => sum + i.netRevenue, 0);
@@ -302,7 +303,7 @@ const ItemProfitabilityReport: React.FC<ItemProfitabilityReportProps> = ({ title
             <div id="printable-area">
                 <ReportHeader title={title} />
                 <div className="text-right mb-2">
-                    <span className="font-semibold text-gray-800">التاريخ:</span> {new Date().toLocaleDateString('ar-EG', { year: 'numeric', month: 'long', day: 'numeric' })}
+                    <span className="font-semibold text-gray-800">التاريخ:</span> {formatDate(new Date())}
                 </div>
                 
                 <div className="flex justify-between items-center my-6 bg-gray-50 p-4 rounded-lg border border-gray-200 no-print">
