@@ -1,6 +1,7 @@
 
 import React from 'react';
-import { TwitterIcon, FacebookIcon, LinkedInIcon, InstagramIcon } from './icons/IconCollection';
+import { FacebookIcon } from './icons/IconCollection';
+import { YoutubeIcon, WhatsappIcon } from '../../icons';
 import { Page } from './Landing';
 
 interface FooterProps {
@@ -31,9 +32,33 @@ const Footer: React.FC<FooterProps> = ({ logoUrl, setPage }) => {
                     نظام محاسبي سحابي متكامل يجمع بين السهولة والقوة. صمم خصيصاً لتمكين الشركات الصغيرة والمتوسطة من النمو بثقة.
                 </p>
                 <div className="flex space-x-4 space-x-reverse">
-                    <a href="#" className="w-10 h-10 rounded-full bg-white border border-brand-blue-bg flex items-center justify-center text-slate-400 hover:bg-brand-blue hover:text-white hover:border-brand-blue transition duration-300 shadow-sm"><TwitterIcon className="w-5 h-5" /></a>
-                    <a href="#" className="w-10 h-10 rounded-full bg-white border border-brand-blue-bg flex items-center justify-center text-slate-400 hover:bg-brand-blue hover:text-white hover:border-brand-blue transition duration-300 shadow-sm"><FacebookIcon className="w-5 h-5" /></a>
-                    <a href="#" className="w-10 h-10 rounded-full bg-white border border-brand-blue-bg flex items-center justify-center text-slate-400 hover:bg-brand-blue hover:text-white hover:border-brand-blue transition duration-300 shadow-sm"><LinkedInIcon className="w-5 h-5" /></a>
+                    <a 
+                        href="https://www.facebook.com/profile.php?id=61583833056151" 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="w-10 h-10 rounded-full bg-white border border-brand-blue-bg flex items-center justify-center text-slate-400 hover:bg-brand-blue hover:text-white hover:border-brand-blue transition duration-300 shadow-sm"
+                        title="Facebook"
+                    >
+                        <FacebookIcon className="w-5 h-5" />
+                    </a>
+                    <a 
+                        href="https://www.youtube.com/@stockpro83" 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="w-10 h-10 rounded-full bg-white border border-brand-blue-bg flex items-center justify-center text-slate-400 hover:bg-brand-blue hover:text-white hover:border-brand-blue transition duration-300 shadow-sm"
+                        title="YouTube"
+                    >
+                        <YoutubeIcon className="w-5 h-5" />
+                    </a>
+                    <a 
+                        href="https://wa.me/966552403483" 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="w-10 h-10 rounded-full bg-white border border-brand-blue-bg flex items-center justify-center text-slate-400 hover:bg-brand-blue hover:text-white hover:border-brand-blue transition duration-300 shadow-sm"
+                        title="WhatsApp"
+                    >
+                        <WhatsappIcon className="w-5 h-5" />
+                    </a>
                 </div>
             </div>
 
