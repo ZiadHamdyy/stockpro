@@ -40,6 +40,13 @@ export interface LimitCheckResult {
 export class SubscriptionService {
   constructor(private readonly prisma: DatabaseService) {}
 
+  // Plan hierarchy for detecting downgrades
+  private readonly PLAN_HIERARCHY: Record<SubscriptionPlanType, number> = {
+    BASIC: 1,
+    GROWTH: 2,
+    BUSINESS: 3,
+  };
+
   /**
    * Get company's current subscription
    */
@@ -347,6 +354,15 @@ export class SubscriptionService {
       });
     }
 
+    // Check if this is a downgrade (comparing plan hierarchy)
+    const isDowngrade =
+      this.PLAN_HIERARCHY[planType] < this.PLAN_HIERARCHY[subscription.planType];
+
+    // Validate downgrade if it's a downgrade
+    if (isDowngrade) {
+      await this.validateDowngrade(companyId, planType);
+    }
+
     // Update existing subscription
     const updateData: any = { planType };
     if (startDate !== undefined) {
@@ -365,6 +381,74 @@ export class SubscriptionService {
     await this.syncPermissionsWithPlan(companyId, planType);
 
     return updatedSubscription;
+  }
+
+  /**
+   * Validate if downgrade is allowed based on current resource usage
+   * @param companyId - Company ID
+   * @param newPlanType - The plan type to downgrade to
+   * @throws BadRequestException if any resources exceed the new plan's limits
+   */
+  private async validateDowngrade(
+    companyId: string,
+    newPlanType: SubscriptionPlanType,
+  ): Promise<void> {
+    const currentUsage = await this.getUsageStats(companyId);
+    const newPlanLimits = PLAN_LIMITS[newPlanType];
+
+    // List of static resources to check (excluding monthly rolling limits and boolean flags)
+    const resourcesToCheck: (keyof PlanLimits)[] = [
+      'users',
+      'branches',
+      'stores',
+      'safes',
+      'banks',
+      'customers',
+      'suppliers',
+      'items',
+      'currentAccounts',
+      'receivableAccounts',
+      'payableAccounts',
+    ];
+
+    const exceededResources: Array<{
+      resource: string;
+      current: number;
+      limit: number;
+    }> = [];
+
+    for (const resource of resourcesToCheck) {
+      const limit = newPlanLimits[resource] as number;
+
+      // Skip unlimited resources (-1)
+      if (isUnlimited(limit)) {
+        continue;
+      }
+
+      const current = currentUsage[resource as keyof UsageStats] as number;
+
+      if (current > limit) {
+        exceededResources.push({
+          resource,
+          current,
+          limit,
+        });
+      }
+    }
+
+    // If any resources exceed limits, throw error
+    if (exceededResources.length > 0) {
+      const resourceDetails = exceededResources
+        .map((r) => `${r.resource}: ${r.current} (limit: ${r.limit})`)
+        .join(', ');
+
+      throw new BadRequestException({
+        message: `Cannot downgrade to ${newPlanType} plan. The following resources exceed the plan limits: ${resourceDetails}. Please reduce these resources before downgrading.`,
+        error: 'DOWNGRADE_NOT_ALLOWED',
+        exceededResources,
+        newPlanType,
+      });
+    }
   }
 
   /**
