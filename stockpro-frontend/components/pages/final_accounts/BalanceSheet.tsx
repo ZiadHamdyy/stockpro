@@ -1255,12 +1255,62 @@ const BalanceSheet: React.FC = () => {
   ]);
 
   /**
+   * Helper function to calculate retained earnings for a single period
+   * Uses the EXACT same logic as FiscalYears.tsx:
+   * - Calculates net profit using calculateNetProfitForPeriod
+   * - Adds P&L receipts and subtracts P&L payments
+   * - Returns retained earnings for that single period only
+   */
+  const calculateRetainedEarningsForPeriod = useCallback((
+    periodStartDate: string,
+    periodEndDate: string
+  ): number => {
+    const normalizedPeriodStart = normalizeDate(periodStartDate);
+    const normalizedPeriodEnd = normalizeDate(periodEndDate);
+    
+    if (!normalizedPeriodStart || !normalizedPeriodEnd) return 0;
+
+    // Calculate net profit for this period using the current inventory valuation method
+    const periodNetProfit = calculateNetProfitForPeriod(periodStartDate, periodEndDate);
+
+    // Include profit_and_loss vouchers in retained earnings calculation (same as FiscalYears)
+    const profitAndLossReceipts = apiReceiptVouchers
+      .filter((v) => v.entityType === "profit_and_loss")
+      .filter((v) => {
+        const vDate = normalizeDate(v.date);
+        return vDate >= normalizedPeriodStart && vDate <= normalizedPeriodEnd;
+      })
+      .reduce((sum, v) => sum + (v.amount || 0), 0);
+
+    const profitAndLossPayments = apiPaymentVouchers
+      .filter((v) => v.entityType === "profit_and_loss")
+      .filter((v) => {
+        const vDate = normalizeDate(v.date);
+        return vDate >= normalizedPeriodStart && vDate <= normalizedPeriodEnd;
+      })
+      .reduce((sum, v) => sum + (v.amount || 0), 0);
+
+    // Return retained earnings for this period only (net profit + P&L vouchers)
+    return periodNetProfit + profitAndLossReceipts - profitAndLossPayments;
+  }, [
+    calculateNetProfitForPeriod,
+    normalizeDate,
+    apiReceiptVouchers,
+    apiPaymentVouchers,
+  ]);
+
+  /**
    * Calculate retained earnings - COMPANY-WIDE calculation
    * Includes retained earnings from all previous closed fiscal years
-   * Plus current period net profit and P&L vouchers from all branches
+   * Plus current period retained earnings
    * 
-   * IMPORTANT: Previous fiscal years' retained earnings are recalculated using the current
-   * inventory valuation method (average cost vs last purchase) instead of using stored values.
+   * Uses the EXACT same calculation logic as FiscalYears.tsx for each period:
+   * - Sum of all previous closed fiscal years' retained earnings (calculated using calculateRetainedEarningsForPeriod)
+   * - Plus current period's retained earnings (calculated using calculateRetainedEarningsForPeriod)
+   * 
+   * IMPORTANT: All periods use the same calculation method (from scratch) for consistency.
+   * Previous fiscal years' retained earnings are recalculated using the current inventory valuation
+   * method (average cost vs last purchase) instead of using stored values.
    * This ensures consistency when the valuation method changes.
    */
   const calculatedRetainedEarnings = useMemo(() => {
@@ -1275,8 +1325,7 @@ const BalanceSheet: React.FC = () => {
       return fyEndDate < periodEndDate;
     });
 
-    // Recalculate retained earnings for each previous closed fiscal year using the current inventory valuation method
-    // This ensures consistency when the valuation method changes (e.g., from last purchase to average cost)
+    // Calculate retained earnings for each previous closed fiscal year using the same logic as FiscalYears
     const previousRetainedEarnings = previousClosedFiscalYears.reduce(
       (sum, fiscalYear) => {
         const fyStartDate = normalizeDate(fiscalYear.startDate);
@@ -1284,70 +1333,25 @@ const BalanceSheet: React.FC = () => {
         
         if (!fyStartDate || !fyEndDate) return sum;
         
-        // Calculate net profit for this fiscal year using current valuation method
-        const fiscalYearNetProfit = calculateNetProfitForPeriod(fyStartDate, fyEndDate);
-        
-        // Include P&L vouchers for this fiscal year
-        const fiscalYearProfitAndLossReceipts = apiReceiptVouchers
-          .filter((v) => v.entityType === "profit_and_loss")
-          .filter((v) => {
-            const vDate = normalizeDate(v.date);
-            return vDate >= fyStartDate && vDate <= fyEndDate;
-          })
-          .reduce((sum, v) => sum + (v.amount || 0), 0);
-
-        const fiscalYearProfitAndLossPayments = apiPaymentVouchers
-          .filter((v) => v.entityType === "profit_and_loss")
-          .filter((v) => {
-            const vDate = normalizeDate(v.date);
-            return vDate >= fyStartDate && vDate <= fyEndDate;
-          })
-          .reduce((sum, v) => sum + (v.amount || 0), 0);
-        
-        // Return net profit + P&L vouchers for this fiscal year
-        return sum + fiscalYearNetProfit + fiscalYearProfitAndLossReceipts - fiscalYearProfitAndLossPayments;
+        // Use calculateRetainedEarningsForPeriod for consistency with FiscalYears
+        const fiscalYearRetainedEarnings = calculateRetainedEarningsForPeriod(fyStartDate, fyEndDate);
+        return sum + fiscalYearRetainedEarnings;
       },
       0,
     );
 
-    // Use calculated net profit (same calculation as IncomeStatement)
-    const currentPeriodNetProfit = calculatedNetProfit;
+    // Calculate retained earnings for current period using the same logic as FiscalYears
+    const currentPeriodRetainedEarnings = calculateRetainedEarningsForPeriod(startDate, endDate);
 
-    // Include profit_and_loss vouchers in retained earnings calculation
-    const profitAndLossReceipts = apiReceiptVouchers
-      .filter((v) => v.entityType === "profit_and_loss")
-      .filter((v) => {
-        const vDate = normalizeDate(v.date);
-        return vDate >= normalizedStartDate && vDate <= normalizedEndDate;
-      })
-      .reduce((sum, v) => sum + (v.amount || 0), 0);
-
-    const profitAndLossPayments = apiPaymentVouchers
-      .filter((v) => v.entityType === "profit_and_loss")
-      .filter((v) => {
-        const vDate = normalizeDate(v.date);
-        return vDate >= normalizedStartDate && vDate <= normalizedEndDate;
-      })
-      .reduce((sum, v) => sum + (v.amount || 0), 0);
-
-    // Return accumulated retained earnings (previous years + current period + P&L vouchers)
-    return (
-      previousRetainedEarnings +
-      currentPeriodNetProfit +
-      profitAndLossReceipts -
-      profitAndLossPayments
-    );
+    // Return accumulated retained earnings (sum of all previous periods + current period)
+    return previousRetainedEarnings + currentPeriodRetainedEarnings;
   }, [
     fiscalYears,
-    calculatedNetProfit,
     normalizeDate,
     startDate,
     endDate,
-    apiReceiptVouchers,
-    apiPaymentVouchers,
+    calculateRetainedEarningsForPeriod,
     inventoryValuationMethod,
-    calculateNetProfitForPeriod,
-    financialSettings,
   ]);
 
   const displayData = useMemo(() => {
