@@ -2092,28 +2092,28 @@ const LiquidityReport: React.FC<LiquidityReportProps> = ({ title }) => {
                         <span className="font-mono font-bold text-blue-700 text-base">{formatNumber(analysis.currentAssets)}</span>
                     </div>
                     <div className="p-3 space-y-1.5">
-                        <div className="flex justify-between text-xs border-b border-gray-100 pb-1">
-                            <span className="text-gray-600">النقدية بالخزينة</span>
+                        <div className="flex justify-between text-sm border-b border-gray-100 pb-1">
+                            <span className="text-gray-700 font-bold">النقدية بالخزينة</span>
                             <span className="font-bold">{formatNumber(analysis.totalCash)}</span>
                         </div>
-                        <div className="flex justify-between text-xs border-b border-gray-100 pb-1">
-                            <span className="text-gray-600">الأرصدة البنكية</span>
+                        <div className="flex justify-between text-sm border-b border-gray-100 pb-1">
+                            <span className="text-gray-700 font-bold">الأرصدة البنكية</span>
                             <span className="font-bold">{formatNumber(analysis.totalBank)}</span>
                         </div>
-                        <div className="flex justify-between text-xs border-b border-gray-100 pb-1">
-                            <span className="text-gray-600">الذمم المدينة (العملاء)</span>
+                        <div className="flex justify-between text-sm border-b border-gray-100 pb-1">
+                            <span className="text-gray-700 font-bold">الذمم المدينة (العملاء)</span>
                             <span className="font-bold">{formatNumber(analysis.totalReceivables)}</span>
                         </div>
-                        <div className="flex justify-between text-xs border-b border-gray-100 pb-1">
-                            <span className="text-gray-600">أرصدة مدينة أخرى</span>
+                        <div className="flex justify-between text-sm border-b border-gray-100 pb-1">
+                            <span className="text-gray-700 font-bold">أرصدة مدينة أخرى</span>
                             <span className="font-bold">{formatNumber(analysis.totalOtherReceivables)}</span>
                         </div>
-                        <div className="flex justify-between text-xs pb-1">
-                            <span className="text-gray-600">قيمة المخزون</span>
+                        <div className="flex justify-between text-sm pb-1">
+                            <span className="text-gray-700 font-bold">قيمة المخزون</span>
                             <span className="font-bold">{formatNumber(analysis.totalInventory)}</span>
                         </div>
-                        <div className="flex justify-between text-xs pb-1">
-                            <span className="text-gray-600">ضريبة القيمة المضافة المدفوعة</span>
+                        <div className="flex justify-between text-sm pb-1">
+                            <span className="text-gray-700 font-bold">ضريبة القيمة المضافة المدفوعة</span>
                             <span className="font-bold">{formatNumber(analysis.vatAsset)}</span>
                         </div>
                     </div>
@@ -2125,16 +2125,16 @@ const LiquidityReport: React.FC<LiquidityReportProps> = ({ title }) => {
                         <span className="font-mono font-bold text-red-700 text-lg">{formatNumber(analysis.currentLiabilities)}</span>
                     </div>
                     <div className="p-4 space-y-2">
-                        <div className="flex justify-between text-sm border-b border-gray-100 pb-2">
-                            <span className="text-gray-600">الذمم الدائنة (الموردين)</span>
+                        <div className="flex justify-between text-base border-b border-gray-100 pb-2">
+                            <span className="text-gray-700 font-bold">الذمم الدائنة (الموردين)</span>
                             <span className="font-bold">{formatNumber(analysis.totalPayables)}</span>
                         </div>
-                        <div className="flex justify-between text-sm border-b border-gray-100 pb-2">
-                            <span className="text-gray-600">أرصدة دائنة أخرى</span>
+                        <div className="flex justify-between text-base border-b border-gray-100 pb-2">
+                            <span className="text-gray-700 font-bold">أرصدة دائنة أخرى</span>
                             <span className="font-bold">{formatNumber(analysis.totalOtherPayables)}</span>
                         </div>
-                        <div className="flex justify-between text-sm pb-2">
-                            <span className="text-gray-600">الضريبة المستحقة</span>
+                        <div className="flex justify-between text-base pb-2">
+                            <span className="text-gray-700 font-bold">الضريبة المستحقة</span>
                             <span className="font-bold">{formatNumber(analysis.vatLiability)}</span>
                         </div>
                     </div>
