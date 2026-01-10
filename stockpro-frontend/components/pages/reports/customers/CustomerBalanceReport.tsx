@@ -527,7 +527,13 @@ const CustomerBalanceReport: React.FC<CustomerBalanceReportProps> = ({
         <div className="px-6 py-4 text-base print:block hidden border-t-2 border-b-2 mt-2 mb-4 bg-gray-50">
           <div className="space-y-2 text-right">
             <p className="text-base text-gray-700">
-              <span className="font-semibold text-gray-800">تاريخ التقرير:</span> {new Date().toLocaleDateString('ar-EG', { year: 'numeric', month: 'long', day: 'numeric' })}
+              <span className="font-semibold text-gray-800">تاريخ التقرير:</span> {(() => {
+                const date = new Date();
+                const day = String(date.getDate()).padStart(2, '0');
+                const month = String(date.getMonth() + 1).padStart(2, '0');
+                const year = date.getFullYear();
+                return `${day}-${month}-${year}`;
+              })()}
             </p>
             <p className="text-base text-gray-700">
               <span className="font-semibold text-gray-800">الفترة:</span> من {new Date(startDate).toLocaleDateString('ar-EG', { year: 'numeric', month: 'long', day: 'numeric' })} إلى {new Date(endDate).toLocaleDateString('ar-EG', { year: 'numeric', month: 'long', day: 'numeric' })}
