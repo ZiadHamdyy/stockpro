@@ -858,22 +858,8 @@ const IncomeStatement: React.FC = () => {
     </td>
   );
 
-  // Show loading state
-  if (isLoading) {
-    return (
-      <div className="bg-white p-6 rounded-lg shadow">
-        <div className="flex justify-center items-center h-64">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand-blue mx-auto mb-4"></div>
-            <p className="text-gray-600">جاري تحميل البيانات...</p>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  // Show error state
-  if (error || !financialData || !companyInfo) {
+  // Show error state (only for initial load error, not for loading state)
+  if ((error || !financialData || !companyInfo) && !isLoading) {
     return (
       <div className="bg-white p-6 rounded-lg shadow">
         <div className="flex justify-center items-center h-64">
@@ -969,6 +955,19 @@ const IncomeStatement: React.FC = () => {
           </div>
         </div>
 
+        {/* Loading State - Show only on data area */}
+        {isLoading && (
+          <div className="mt-3 p-8 bg-white border-2 border-gray-200 rounded-lg">
+            <div className="flex justify-center items-center">
+              <div className="text-center">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand-blue mx-auto mb-4"></div>
+                <p className="text-gray-600">جاري تحميل البيانات...</p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {!isLoading && financialData && (
         <div className="overflow-x-auto border border-brand-blue rounded-lg mt-3">
           <table className="min-w-full text-sm">
             <thead>
@@ -1107,6 +1106,7 @@ const IncomeStatement: React.FC = () => {
             </tbody>
           </table>
         </div>
+        )}
       </div>
     </div>
   );

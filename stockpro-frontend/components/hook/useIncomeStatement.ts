@@ -7,12 +7,14 @@ export const useIncomeStatement = (startDate: string, endDate: string) => {
   const {
     data: incomeStatementData,
     isLoading: isLoadingData,
+    isFetching: isFetchingData,
     error: dataError,
     refetch,
   } = useGetIncomeStatementQuery(
     { startDate, endDate },
     {
       skip: !startDate || !endDate,
+      refetchOnMountOrArgChange: true,
     },
   );
 
@@ -38,7 +40,7 @@ export const useIncomeStatement = (startDate: string, endDate: string) => {
   return {
     data: incomeStatementData,
     companyInfo,
-    isLoading: isLoadingData,
+    isLoading: isLoadingData || isFetchingData,
     error: dataError,
     refetch,
   };
