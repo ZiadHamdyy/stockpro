@@ -1149,10 +1149,11 @@ const BalanceSheet: React.FC = () => {
 
   /**
    * Helper function to calculate retained earnings for a single fiscal year period
-   * This matches the calculation approach in FiscalYears.tsx exactly:
+   * This matches the calculation approach in FiscalYears.tsx with the addition of VAT:
    * 1. Calculate net profit for the period (using same formula as IncomeStatement)
    * 2. Add P&L vouchers for that period
-   * 3. Return retained earnings for that single period (not accumulated)
+   * 3. Subtract period VAT (VAT reduces retained earnings when it's a liability)
+   * 4. Return retained earnings for that single period (not accumulated)
    * 
    * IMPORTANT: Uses the CURRENT inventory valuation method from financialSettings
    * (WEIGHTED_AVERAGE → averageCost, FIFO/LAST_PURCHASE_PRICE → purchasePrice)
@@ -1315,9 +1316,99 @@ const BalanceSheet: React.FC = () => {
       })
       .reduce((sum, v) => sum + (v.amount || 0), 0);
 
-    // Return retained earnings for this period only (net profit + P&L vouchers)
-    // This matches what FiscalYears.tsx calculates for a single period
-    return netProfit + profitAndLossReceipts - profitAndLossPayments;
+    // Calculate VAT for this period (if VAT is enabled)
+    let periodVat = 0;
+    if (companyInfo?.isVatEnabled) {
+      // Calculate VAT net for this period using the same logic as vatNetFromStatement
+      let periodDebit = 0;
+      let periodCredit = 0;
+
+      // Debit (مدين): Sales Invoices + Purchase Returns
+      (apiSalesInvoices as any[])
+        .filter((inv) => {
+          const invDate = normalizeDate(inv.date) || normalizeDate(inv.invoiceDate);
+          return invDate && invDate >= normalizedPeriodStart && invDate <= normalizedPeriodEnd;
+        })
+        .forEach((inv) => {
+          const tax = inv.tax || 0;
+          periodDebit += tax;
+        });
+
+      (apiPurchaseReturns as any[])
+        .filter((inv) => {
+          const invDate = normalizeDate(inv.date) || normalizeDate(inv.invoiceDate);
+          return invDate && invDate >= normalizedPeriodStart && invDate <= normalizedPeriodEnd;
+        })
+        .forEach((inv) => {
+          const tax = inv.tax || 0;
+          periodDebit += tax;
+        });
+
+      // Credit (دائن): Purchase Invoices + Sales Returns + Expense-Type Tax from Payment Vouchers
+      (apiPurchaseInvoices as any[])
+        .filter((inv) => {
+          const invDate = normalizeDate(inv.date) || normalizeDate(inv.invoiceDate);
+          return invDate && invDate >= normalizedPeriodStart && invDate <= normalizedPeriodEnd;
+        })
+        .forEach((inv) => {
+          const tax = inv.tax || 0;
+          periodCredit += tax;
+        });
+
+      (apiSalesReturns as any[])
+        .filter((inv) => {
+          const invDate = normalizeDate(inv.date) || normalizeDate(inv.invoiceDate);
+          return invDate && invDate >= normalizedPeriodStart && invDate <= normalizedPeriodEnd;
+        })
+        .forEach((inv) => {
+          const tax = inv.tax || 0;
+          periodCredit += tax;
+        });
+
+      (apiPaymentVouchers as PaymentVoucher[])
+        .filter((v) => v.entityType === "expense-Type" && v.taxPrice && v.taxPrice > 0)
+        .filter((v) => {
+          const vDate = normalizeDate(v.date);
+          return vDate && vDate >= normalizedPeriodStart && vDate <= normalizedPeriodEnd;
+        })
+        .forEach((v) => {
+          const tax = v.taxPrice || 0;
+          periodCredit += tax;
+        });
+
+      // VAT from Receipt Vouchers (Debit - VAT collected)
+      (apiReceiptVouchers as ReceiptVoucher[])
+        .filter((v) => v.entityType === "vat" && v.amount && v.amount > 0)
+        .filter((v) => {
+          const vDate = normalizeDate(v.date);
+          return vDate && vDate >= normalizedPeriodStart && vDate <= normalizedPeriodEnd;
+        })
+        .forEach((v) => {
+          const tax = v.amount || 0;
+          periodDebit += tax;
+        });
+
+      // VAT from Payment Vouchers (Credit - VAT paid)
+      (apiPaymentVouchers as PaymentVoucher[])
+        .filter((v) => v.entityType === "vat" && v.amount && v.amount > 0)
+        .filter((v) => {
+          const vDate = normalizeDate(v.date);
+          return vDate && vDate >= normalizedPeriodStart && vDate <= normalizedPeriodEnd;
+        })
+        .forEach((v) => {
+          const tax = v.amount || 0;
+          periodCredit += tax;
+        });
+
+      // Period VAT net = Credit - Debit (positive means payable/liability, negative means receivable/asset)
+      periodVat = periodCredit - periodDebit;
+      // If VAT is a liability (positive), it reduces retained earnings
+      // If VAT is an asset (negative), it increases retained earnings
+    }
+
+    // Return retained earnings for this period only (net profit + P&L vouchers - period VAT)
+    // This matches what FiscalYears.tsx calculates for a single period, plus VAT adjustment
+    return netProfit + profitAndLossReceipts - profitAndLossPayments - periodVat;
   }, [
     items,
     aggregatedOpeningBalances,
@@ -1341,6 +1432,7 @@ const BalanceSheet: React.FC = () => {
     apiReceiptVouchers,
     apiPaymentVouchers,
     financialSettings,
+    companyInfo,
   ]);
 
   /**
@@ -1416,7 +1508,97 @@ const BalanceSheet: React.FC = () => {
       })
       .reduce((sum, v) => sum + (v.amount || 0), 0);
 
-    const currentPeriodRetainedEarnings = currentPeriodNetProfit + profitAndLossReceipts - profitAndLossPayments;
+    // Calculate VAT for current period (if VAT is enabled)
+    let currentPeriodVat = 0;
+    if (companyInfo?.isVatEnabled) {
+      // Use the same VAT calculation logic as calculateRetainedEarningsForPeriod but only for current period
+      let periodDebit = 0;
+      let periodCredit = 0;
+
+      // Debit (مدين): Sales Invoices + Purchase Returns
+      (apiSalesInvoices as any[])
+        .filter((inv) => {
+          const invDate = normalizeDate(inv.date) || normalizeDate(inv.invoiceDate);
+          return invDate && invDate >= normalizedStartDate && invDate <= normalizedEndDate;
+        })
+        .forEach((inv) => {
+          const tax = inv.tax || 0;
+          periodDebit += tax;
+        });
+
+      (apiPurchaseReturns as any[])
+        .filter((inv) => {
+          const invDate = normalizeDate(inv.date) || normalizeDate(inv.invoiceDate);
+          return invDate && invDate >= normalizedStartDate && invDate <= normalizedEndDate;
+        })
+        .forEach((inv) => {
+          const tax = inv.tax || 0;
+          periodDebit += tax;
+        });
+
+      // Credit (دائن): Purchase Invoices + Sales Returns + Expense-Type Tax from Payment Vouchers
+      (apiPurchaseInvoices as any[])
+        .filter((inv) => {
+          const invDate = normalizeDate(inv.date) || normalizeDate(inv.invoiceDate);
+          return invDate && invDate >= normalizedStartDate && invDate <= normalizedEndDate;
+        })
+        .forEach((inv) => {
+          const tax = inv.tax || 0;
+          periodCredit += tax;
+        });
+
+      (apiSalesReturns as any[])
+        .filter((inv) => {
+          const invDate = normalizeDate(inv.date) || normalizeDate(inv.invoiceDate);
+          return invDate && invDate >= normalizedStartDate && invDate <= normalizedEndDate;
+        })
+        .forEach((inv) => {
+          const tax = inv.tax || 0;
+          periodCredit += tax;
+        });
+
+      (apiPaymentVouchers as PaymentVoucher[])
+        .filter((v) => v.entityType === "expense-Type" && v.taxPrice && v.taxPrice > 0)
+        .filter((v) => {
+          const vDate = normalizeDate(v.date);
+          return vDate && vDate >= normalizedStartDate && vDate <= normalizedEndDate;
+        })
+        .forEach((v) => {
+          const tax = v.taxPrice || 0;
+          periodCredit += tax;
+        });
+
+      // VAT from Receipt Vouchers (Debit - VAT collected)
+      (apiReceiptVouchers as ReceiptVoucher[])
+        .filter((v) => v.entityType === "vat" && v.amount && v.amount > 0)
+        .filter((v) => {
+          const vDate = normalizeDate(v.date);
+          return vDate && vDate >= normalizedStartDate && vDate <= normalizedEndDate;
+        })
+        .forEach((v) => {
+          const tax = v.amount || 0;
+          periodDebit += tax;
+        });
+
+      // VAT from Payment Vouchers (Credit - VAT paid)
+      (apiPaymentVouchers as PaymentVoucher[])
+        .filter((v) => v.entityType === "vat" && v.amount && v.amount > 0)
+        .filter((v) => {
+          const vDate = normalizeDate(v.date);
+          return vDate && vDate >= normalizedStartDate && vDate <= normalizedEndDate;
+        })
+        .forEach((v) => {
+          const tax = v.amount || 0;
+          periodCredit += tax;
+        });
+
+      // Period VAT net = Credit - Debit (positive means payable/liability, negative means receivable/asset)
+      currentPeriodVat = periodCredit - periodDebit;
+      // If VAT is a liability (positive), it reduces retained earnings
+      // If VAT is an asset (negative), it increases retained earnings
+    }
+
+    const currentPeriodRetainedEarnings = currentPeriodNetProfit + profitAndLossReceipts - profitAndLossPayments - currentPeriodVat;
 
     // Return accumulated retained earnings (sum of all previous periods + current period)
     return previousRetainedEarnings + currentPeriodRetainedEarnings;
@@ -1431,6 +1613,11 @@ const BalanceSheet: React.FC = () => {
     inventoryValuationMethod,
     calculateRetainedEarningsForPeriod,
     financialSettings,
+    companyInfo,
+    apiSalesInvoices,
+    apiPurchaseInvoices,
+    apiSalesReturns,
+    apiPurchaseReturns,
   ]);
 
   const displayData = useMemo(() => {
