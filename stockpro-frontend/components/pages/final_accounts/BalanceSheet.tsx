@@ -80,24 +80,30 @@ const BalanceSheet: React.FC = () => {
   const [endDate, setEndDate] = useState(`${currentYear}-12-31`);
   
   // Get inventory valuation method from Redux
-  const { data: financialSettings } = useGetFinancialSettingsQuery();
+  const { data: financialSettings, isLoading: isFinancialSettingsLoading, error: financialSettingsError } = useGetFinancialSettingsQuery();
   
   // Map inventory valuation method to valuation method string
+  // This ensures retained earnings calculations use the current valuation method from settings
   const inventoryValuationMethod = useMemo(() => {
+    // Ensure settings are loaded and have the valuation method set
     if (!financialSettings?.inventoryValuationMethod) {
-      return "averageCost"; // Default
+      // Default to weighted average if settings not loaded or missing valuation method
+      return "averageCost";
     }
     
+    // Map WEIGHTED_AVERAGE to averageCost
     if (financialSettings.inventoryValuationMethod === ValuationMethod.WEIGHTED_AVERAGE) {
       return "averageCost";
     }
     
+    // Map FIFO or LAST_PURCHASE_PRICE to purchasePrice (last purchase cost)
     if (financialSettings.inventoryValuationMethod === ValuationMethod.FIFO || 
         financialSettings.inventoryValuationMethod === ValuationMethod.LAST_PURCHASE_PRICE) {
       return "purchasePrice";
     }
     
-    return "averageCost"; // Default fallback
+    // Default fallback to weighted average
+    return "averageCost";
   }, [financialSettings?.inventoryValuationMethod]);
 
   // COMPANY-WIDE DATA FETCHING: All queries use undefined to fetch ALL company data
@@ -1093,7 +1099,9 @@ const BalanceSheet: React.FC = () => {
    * 2. Add P&L vouchers for that period
    * 3. Return retained earnings for that single period (not accumulated)
    * 
-   * Uses current inventory valuation method (average cost vs last purchase) for all calculations
+   * IMPORTANT: Uses the CURRENT inventory valuation method from financialSettings
+   * (WEIGHTED_AVERAGE → averageCost, FIFO/LAST_PURCHASE_PRICE → purchasePrice)
+   * This ensures calculations respect the current financial system settings
    */
   const calculateRetainedEarningsForPeriod = useCallback((
     periodStartDate: string,
@@ -1285,14 +1293,18 @@ const BalanceSheet: React.FC = () => {
    * Includes retained earnings from all previous closed fiscal years
    * Plus current period retained earnings
    * 
-   * IMPORTANT: Previous fiscal years' retained earnings are recalculated using the current
-   * inventory valuation method (average cost vs last purchase) instead of using stored values.
-   * This ensures consistency when the valuation method changes.
+   * IMPORTANT: All retained earnings calculations (previous fiscal years and current period)
+   * use the CURRENT inventory valuation method from financialSettings
+   * (WEIGHTED_AVERAGE → averageCost, FIFO/LAST_PURCHASE_PRICE → purchasePrice).
+   * Previous fiscal years' retained earnings are recalculated using the current method
+   * instead of using stored values. This ensures consistency when the valuation method changes.
    * 
    * This calculation matches the approach in FiscalYears.tsx exactly:
    * - Each previous fiscal year's retained earnings is calculated individually using calculateRetainedEarningsForPeriod
    * - All previous periods are summed together
    * - Current period retained earnings is added (using same calculation approach)
+   * 
+   * DEPENDS ON: financialSettings.inventoryValuationMethod - changes to settings trigger recalculation
    */
   const calculatedRetainedEarnings = useMemo(() => {
     const normalizedStartDate = normalizeDate(startDate);
@@ -1904,12 +1916,16 @@ const BalanceSheet: React.FC = () => {
   );
 
   // Show error state (only for initial load error, not for loading state)
-  if ((error || !displayData || !companyInfo) && !isDataLoading) {
+  // Include financial settings error in error check
+  if ((error || financialSettingsError || !displayData || !companyInfo) && !isDataLoading) {
     return (
       <div className="bg-white p-6 rounded-lg shadow">
         <div className="flex justify-center items-center h-64">
           <div className="text-center text-red-600">
             <p>حدث خطأ أثناء تحميل البيانات</p>
+            {financialSettingsError && (
+              <p className="text-sm mt-2">خطأ في تحميل إعدادات النظام المالي</p>
+            )}
           </div>
         </div>
       </div>
