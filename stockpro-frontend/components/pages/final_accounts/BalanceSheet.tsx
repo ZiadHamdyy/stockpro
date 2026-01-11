@@ -1081,16 +1081,71 @@ const BalanceSheet: React.FC = () => {
     return incomeStatementData.netSales - allowedDiscount;
   }, [incomeStatementData, allowedDiscount]);
 
-  // Calculate net profit exactly as in IncomeStatement
+  // Calculate beginning inventory for current period using current valuation method
+  // This ensures consistency with previous years' calculations and uses the current financial settings
+  const calculatedBeginningInventory = useMemo(() => {
+    const normalizedStartDate = normalizeDate(startDate);
+    if (!normalizedStartDate) return 0;
+
+    const start = new Date(normalizedStartDate);
+    if (Number.isNaN(start.getTime())) return 0;
+
+    // Day before start date
+    const dayBeforeStart = new Date(start);
+    dayBeforeStart.setDate(dayBeforeStart.getDate() - 1);
+    const dayBeforeStartString = dayBeforeStart.toISOString().split('T')[0];
+
+    const { totalValue } = calculateCompanyInventoryValuation({
+      items,
+      aggregatedOpeningBalances,
+      purchaseInvoices: transformedPurchaseInvoices,
+      salesInvoices: transformedSalesInvoices,
+      purchaseReturns: transformedPurchaseReturns,
+      salesReturns: transformedSalesReturns,
+      storeReceiptVouchers: transformedStoreReceiptVouchers,
+      storeIssueVouchers: transformedStoreIssueVouchers,
+      storeTransferVouchers: transformedStoreTransferVouchers,
+      stores,
+      endDate: dayBeforeStartString,
+      valuationMethod: inventoryValuationMethod,
+      normalizeDate,
+      toNumber,
+      getLastPurchasePriceBeforeDate,
+      calculateWeightedAverageCost,
+    });
+
+    return totalValue;
+  }, [
+    startDate,
+    items,
+    aggregatedOpeningBalances,
+    transformedPurchaseInvoices,
+    transformedSalesInvoices,
+    transformedPurchaseReturns,
+    transformedSalesReturns,
+    transformedStoreReceiptVouchers,
+    transformedStoreIssueVouchers,
+    transformedStoreTransferVouchers,
+    stores,
+    inventoryValuationMethod,
+    normalizeDate,
+    toNumber,
+    getLastPurchasePriceBeforeDate,
+    calculateWeightedAverageCost,
+  ]);
+
+  // Calculate net profit using calculated beginning inventory (consistent with previous years)
   // Formula: netSalesAfterDiscount - (beginningInventory + calculatedNetPurchases - calculatedEndingInventory) + calculatedOtherRevenues - totalExpenses
+  // IMPORTANT: Uses calculatedBeginningInventory (with current valuation method) instead of incomeStatementData.beginningInventory
+  // This ensures consistency with previous years' calculations in calculateRetainedEarningsForPeriod
   const calculatedNetProfit = useMemo(() => {
     if (!incomeStatementData) return 0;
     
     return netSalesAfterDiscount - 
-           (incomeStatementData.beginningInventory + calculatedNetPurchases - calculatedInventoryValue) + 
+           (calculatedBeginningInventory + calculatedNetPurchases - calculatedInventoryValue) + 
            calculatedOtherRevenues - 
            incomeStatementData.totalExpenses;
-  }, [incomeStatementData, calculatedInventoryValue, calculatedOtherRevenues, netSalesAfterDiscount, calculatedNetPurchases]);
+  }, [incomeStatementData, calculatedBeginningInventory, calculatedInventoryValue, calculatedOtherRevenues, netSalesAfterDiscount, calculatedNetPurchases]);
 
   /**
    * Helper function to calculate retained earnings for a single fiscal year period
