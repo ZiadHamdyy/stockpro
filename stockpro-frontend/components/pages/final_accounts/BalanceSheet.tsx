@@ -1344,114 +1344,6 @@ const BalanceSheet: React.FC = () => {
   ]);
 
   /**
-   * Calculate cumulative VAT up to endDate - COMPANY-WIDE calculation
-   * This calculates all VAT transactions up to the balance sheet end date
-   * Used for adding to retained earnings calculation
-   * Includes all VAT types: sales invoices, purchase invoices, payment vouchers (taxPrice), etc.
-   */
-  const cumulativeVatUpToEndDate = useMemo(() => {
-    // Check if VAT is enabled
-    const isVatEnabled = companyInfo?.isVatEnabled || false;
-    if (!isVatEnabled) {
-      return 0;
-    }
-    
-    const normalizedEndDate = normalizeDate(endDate);
-    if (!normalizedEndDate) return 0;
-
-    // Filter for all transactions up to endDate
-    const filterUpToEndDate = (inv: any) => {
-      const invDate = normalizeDate(inv.date);
-      return invDate && invDate <= normalizedEndDate;
-    };
-
-    const filterVoucherUpToEndDate = (v: PaymentVoucher) => {
-      const vDate = normalizeDate(v.date);
-      return vDate && vDate <= normalizedEndDate;
-    };
-
-    const filterReceiptVoucherUpToEndDate = (v: ReceiptVoucher) => {
-      const vDate = normalizeDate(v.date);
-      return vDate && vDate <= normalizedEndDate;
-    };
-
-    // Calculate cumulative debit and credit up to endDate
-    let totalDebit = 0;
-    let totalCredit = 0;
-
-    // Debit (مدين): Sales Invoices + Purchase Returns
-    (apiSalesInvoices as any[])
-      .filter(filterUpToEndDate)
-      .forEach((inv) => {
-        const tax = inv.tax || 0;
-        totalDebit += tax;
-      });
-
-    (apiPurchaseReturns as any[])
-      .filter(filterUpToEndDate)
-      .forEach((inv) => {
-        const tax = inv.tax || 0;
-        totalDebit += tax;
-      });
-
-    // Credit (دائن): Purchase Invoices + Sales Returns + Expense-Type Tax from Payment Vouchers
-    (apiPurchaseInvoices as any[])
-      .filter(filterUpToEndDate)
-      .forEach((inv) => {
-        const tax = inv.tax || 0;
-        totalCredit += tax;
-      });
-
-    (apiSalesReturns as any[])
-      .filter(filterUpToEndDate)
-      .forEach((inv) => {
-        const tax = inv.tax || 0;
-        totalCredit += tax;
-      });
-
-    (apiPaymentVouchers as PaymentVoucher[])
-      .filter(
-        (v) => v.entityType === "expense-Type" && v.taxPrice && v.taxPrice > 0,
-      )
-      .filter(filterVoucherUpToEndDate)
-      .forEach((v) => {
-        const tax = v.taxPrice || 0;
-        totalCredit += tax;
-      });
-
-    // VAT from Receipt Vouchers (Debit - VAT collected)
-    (apiReceiptVouchers as ReceiptVoucher[])
-      .filter((v) => v.entityType === "vat" && v.amount && v.amount > 0)
-      .filter(filterReceiptVoucherUpToEndDate)
-      .forEach((v) => {
-        const tax = v.amount || 0;
-        totalDebit += tax;
-      });
-
-    // VAT from Payment Vouchers (Credit - VAT paid)
-    (apiPaymentVouchers as PaymentVoucher[])
-      .filter((v) => v.entityType === "vat" && v.amount && v.amount > 0)
-      .filter(filterVoucherUpToEndDate)
-      .forEach((v) => {
-        const tax = v.amount || 0;
-        totalCredit += tax;
-      });
-
-    // Calculate cumulative net VAT: Credit - Debit
-    return totalCredit - totalDebit;
-  }, [
-    apiSalesInvoices,
-    apiSalesReturns,
-    apiPurchaseInvoices,
-    apiPurchaseReturns,
-    apiPaymentVouchers,
-    apiReceiptVouchers,
-    normalizeDate,
-    endDate,
-    companyInfo,
-  ]);
-
-  /**
    * Calculate retained earnings - COMPANY-WIDE calculation
    * Includes retained earnings from all previous closed fiscal years
    * Plus current period retained earnings
@@ -1526,8 +1418,17 @@ const BalanceSheet: React.FC = () => {
 
     const currentPeriodRetainedEarnings = currentPeriodNetProfit + profitAndLossReceipts - profitAndLossPayments;
 
-    // Return accumulated retained earnings (sum of all previous periods + current period + cumulative VAT up to endDate)
-    return previousRetainedEarnings + currentPeriodRetainedEarnings + cumulativeVatUpToEndDate;
+    // Calculate VAT from previous years (taxPrice from payment vouchers before startDate)
+    // This matches the calculation in DailyPaymentsReport
+    const previousYearVat = (apiPaymentVouchers as any[])
+      .filter((v) => {
+        const vDate = normalizeDate(v.date);
+        return vDate < normalizedStartDate;
+      })
+      .reduce((sum, v) => sum + (v.taxPrice || 0), 0);
+
+    // Return accumulated retained earnings (sum of all previous periods + current period + previous year VAT)
+    return previousRetainedEarnings + currentPeriodRetainedEarnings + previousYearVat;
   }, [
     fiscalYears,
     calculatedNetProfit,
@@ -1539,7 +1440,6 @@ const BalanceSheet: React.FC = () => {
     inventoryValuationMethod,
     calculateRetainedEarningsForPeriod,
     financialSettings,
-    cumulativeVatUpToEndDate,
   ]);
 
   const displayData = useMemo(() => {
