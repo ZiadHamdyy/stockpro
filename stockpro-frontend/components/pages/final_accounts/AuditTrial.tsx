@@ -2194,24 +2194,24 @@ const AuditTrial: React.FC = () => {
                       
                       {/* Financial Data Columns */}
                       <td className="px-3 py-1.5 text-center border-l border-slate-300/30 text-blue-700 group-hover:text-white">
-                        {item.openingBalanceDebit > 0 ? item.openingBalanceDebit.toLocaleString('ar-SA', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '—'}
+                        {item.openingBalanceDebit > 0 ? item.openingBalanceDebit.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '—'}
                       </td>
                       <td className="px-3 py-1.5 text-center border-l-[3px] border-white text-rose-700 group-hover:text-white shadow-[3px_0_0_white]">
-                        {item.openingBalanceCredit > 0 ? item.openingBalanceCredit.toLocaleString('ar-SA', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '—'}
+                        {item.openingBalanceCredit > 0 ? item.openingBalanceCredit.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '—'}
                       </td>
                       
                       <td className="px-3 py-1.5 text-center border-l border-slate-300/30 text-blue-800 bg-blue-50/10 group-hover:bg-transparent group-hover:text-white">
-                        {item.periodDebit > 0 ? item.periodDebit.toLocaleString('ar-SA', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '—'}
+                        {item.periodDebit > 0 ? item.periodDebit.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '—'}
                       </td>
                       <td className="px-3 py-1.5 text-center border-l-[3px] border-white text-rose-800 bg-rose-50/10 group-hover:bg-transparent group-hover:text-white shadow-[3px_0_0_white]">
-                        {item.periodCredit > 0 ? item.periodCredit.toLocaleString('ar-SA', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '—'}
+                        {item.periodCredit > 0 ? item.periodCredit.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '—'}
                       </td>
                       
                       <td className="px-3 py-1.5 text-center border-l border-slate-300/30 text-blue-900 bg-blue-100/20 group-hover:bg-transparent group-hover:text-white">
-                        {item.closingBalanceDebit > 0 ? item.closingBalanceDebit.toLocaleString('ar-SA', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '—'}
+                        {item.closingBalanceDebit > 0 ? item.closingBalanceDebit.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '—'}
                       </td>
                       <td className="px-3 py-1.5 text-center text-rose-900 bg-rose-100/20 group-hover:bg-transparent group-hover:text-white">
-                        {item.closingBalanceCredit > 0 ? item.closingBalanceCredit.toLocaleString('ar-SA', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '—'}
+                        {item.closingBalanceCredit > 0 ? item.closingBalanceCredit.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '—'}
                       </td>
                     </tr>
                   ))
@@ -2222,22 +2222,22 @@ const AuditTrial: React.FC = () => {
                 <tr className="bg-[#001a4d] text-white border-t-4 border-white">
                   <td colSpan={2} className="px-6 py-4 text-base font-black text-left pr-8 border-l border-white/10 uppercase italic">إجماليات الميزان النهائية</td>
                   <td className="px-3 py-4 text-center border-l border-white/10 text-sm font-black text-blue-300">
-                    {summary.totalOpeningDebit.toLocaleString('ar-SA', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    {summary.totalOpeningDebit.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </td>
                   <td className="px-3 py-4 text-center border-l-[3px] border-white/10 text-sm font-black text-rose-300">
-                    {summary.totalOpeningCredit.toLocaleString('ar-SA', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    {summary.totalOpeningCredit.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </td>
                   <td className="px-3 py-4 text-center border-l border-white/10 text-sm font-black text-blue-300">
-                    {summary.totalPeriodDebit.toLocaleString('ar-SA', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    {summary.totalPeriodDebit.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </td>
                   <td className="px-3 py-4 text-center border-l-[3px] border-white/10 text-sm font-black text-rose-300">
-                    {summary.totalPeriodCredit.toLocaleString('ar-SA', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    {summary.totalPeriodCredit.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </td>
                   <td className="px-3 py-4 text-center border-l border-white/10 text-lg font-black text-blue-200 bg-blue-950 underline decoration-double">
-                    {summary.totalClosingDebit.toLocaleString('ar-SA', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    {summary.totalClosingDebit.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </td>
                   <td className="px-3 py-4 text-center text-lg font-black text-rose-200 bg-rose-950 underline decoration-double">
-                    {summary.totalClosingCredit.toLocaleString('ar-SA', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    {summary.totalClosingCredit.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </td>
                 </tr>
               </tfoot>
@@ -2265,7 +2265,7 @@ const AuditTrial: React.FC = () => {
                   <div className="bg-rose-50 px-6 py-2.5 rounded-xl border-2 border-rose-100 flex flex-col items-center">
                     <span className="text-[10px] font-black text-rose-400 uppercase tracking-widest">قيمة الفارق الإجمالي</span>
                     <span className="text-2xl font-black text-rose-600 font-mono italic">
-                      {closingBalanceDifference.toLocaleString('ar-SA', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      {closingBalanceDifference.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </span>
                   </div>
                 )}
@@ -2280,19 +2280,19 @@ const AuditTrial: React.FC = () => {
                     <div className={`p-3 rounded-lg border-2 ${isOpeningBalanced ? 'border-emerald-300 bg-emerald-50' : 'border-rose-300 bg-rose-50'}`}>
                       <div className="font-black text-xs text-slate-600 mb-1">الأرصدة الافتتاحية</div>
                       <div className={`font-bold ${isOpeningBalanced ? 'text-emerald-700' : 'text-rose-700'}`}>
-                        {isOpeningBalanced ? '✓ متوازن' : `✗ فارق: ${openingBalanceDifference.toLocaleString('ar-SA', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+                        {isOpeningBalanced ? '✓ متوازن' : `✗ فارق: ${openingBalanceDifference.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
                       </div>
                     </div>
                     <div className={`p-3 rounded-lg border-2 ${isPeriodBalanced ? 'border-emerald-300 bg-emerald-50' : 'border-rose-300 bg-rose-50'}`}>
                       <div className="font-black text-xs text-slate-600 mb-1">حركات الفترة</div>
                       <div className={`font-bold ${isPeriodBalanced ? 'text-emerald-700' : 'text-rose-700'}`}>
-                        {isPeriodBalanced ? '✓ متوازن' : `✗ فارق: ${periodBalanceDifference.toLocaleString('ar-SA', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+                        {isPeriodBalanced ? '✓ متوازن' : `✗ فارق: ${periodBalanceDifference.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
                       </div>
                     </div>
                     <div className={`p-3 rounded-lg border-2 ${isClosingBalanced ? 'border-emerald-300 bg-emerald-50' : 'border-rose-300 bg-rose-50'}`}>
                       <div className="font-black text-xs text-slate-600 mb-1">الأرصدة الختامية</div>
                       <div className={`font-bold ${isClosingBalanced ? 'text-emerald-700' : 'text-rose-700'}`}>
-                        {isClosingBalanced ? '✓ متوازن' : `✗ فارق: ${closingBalanceDifference.toLocaleString('ar-SA', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+                        {isClosingBalanced ? '✓ متوازن' : `✗ فارق: ${closingBalanceDifference.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
                       </div>
                     </div>
                   </div>
