@@ -1743,16 +1743,26 @@ const getInvoiceBranchMeta = (invoice: any) => {
                   </td>
                   <td className="p-2 align-middle border-x border-gray-300">
                     <input
-                      type="number"
-                      step="any"
-                      value={item.qty}
+                      type="text"
+                      value={
+                        typeof item.qty === "string"
+                          ? item.qty
+                          : item.qty === 0 || item.qty === null
+                          ? ""
+                          : item.qty
+                      }
                       onChange={(e) => {
-                        handleItemChange(
-                          index,
-                          "qty",
-                          parseFloat(e.target.value),
-                        );
-                        autosizeInput(e.target);
+                        const value = e.target.value;
+                        // Allow empty string, decimal numbers (including partial inputs like "12." or ".5")
+                        if (value === "" || /^-?\d*\.?\d*$/.test(value)) {
+                          const qtyValue = value === "" ? (value as any) : (value.endsWith(".") || value === "-" ? value : parseFloat(value) || (value as any));
+                          handleItemChange(
+                            index,
+                            "qty",
+                            qtyValue,
+                          );
+                          autosizeInput(e.target);
+                        }
                       }}
                       onFocus={(e) => e.target.select()}
                       onKeyDown={(e) => handleTableKeyDown(e, index, "qty")}
@@ -1761,20 +1771,31 @@ const getInvoiceBranchMeta = (invoice: any) => {
                       }}
                       className={tableInputStyle}
                       disabled={isReadOnly || !hasItemSelected(index)}
+                      inputMode="decimal"
                     />
                   </td>
                   <td className="p-2 align-middle border-x border-gray-300">
                     <input
-                      type="number"
-                      step="any"
-                      value={item.price}
+                      type="text"
+                      value={
+                        typeof item.price === "string"
+                          ? item.price
+                          : item.price === 0 || item.price === null
+                          ? ""
+                          : item.price
+                      }
                       onChange={(e) => {
-                        handleItemChange(
-                          index,
-                          "price",
-                          parseFloat(e.target.value),
-                        );
-                        autosizeInput(e.target);
+                        const value = e.target.value;
+                        // Allow empty string, decimal numbers (including partial inputs like "12." or ".5")
+                        if (value === "" || /^-?\d*\.?\d*$/.test(value)) {
+                          const priceValue = value === "" ? (value as any) : (value.endsWith(".") || value === "-" ? value : parseFloat(value) || (value as any));
+                          handleItemChange(
+                            index,
+                            "price",
+                            priceValue,
+                          );
+                          autosizeInput(e.target);
+                        }
                       }}
                       onFocus={(e) => e.target.select()}
                       onKeyDown={(e) => handleTableKeyDown(e, index, "price")}
@@ -1783,6 +1804,7 @@ const getInvoiceBranchMeta = (invoice: any) => {
                       }}
                       className={tableInputStyle}
                       disabled={isReadOnly || !hasItemSelected(index)}
+                      inputMode="decimal"
                     />
                   </td>
                   {shouldShowTaxColumn && (
