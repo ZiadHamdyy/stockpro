@@ -1842,6 +1842,8 @@ const AuditTrial: React.FC = () => {
       const isOtherRevenuesAccount = entry.accountCode === '4201' || entry.accountName === 'ايرادات اخري';
       // Check if this is the VAT payable account
       const isVatPayableAccount = entry.accountCode === '2201' || entry.accountName === 'ضريبة القيمة المضافة';
+      // Check if this is the partners account
+      const isPartnersAccount = entry.accountCode === '3201' || entry.accountName === 'جاري الشركاء';
       
       let calculatedClosingDebit = 0;
       let calculatedClosingCredit = 0;
@@ -1880,6 +1882,18 @@ const AuditTrial: React.FC = () => {
         // Override VAT payable account with calculated balance (matching backend)
         calculatedClosingDebit = calculatedVatPayableBalance.closingBalanceDebit;
         calculatedClosingCredit = calculatedVatPayableBalance.closingBalanceCredit;
+      } else if (isPartnersAccount) {
+        // For partners account: calculate net balance and transform
+        // Net = closingCredit - closingDebit (since it's Equity, credit is typically positive)
+        // If positive → show in debit (مدين), if negative → show in credit (دائن)
+        const netBalance = entry.closingBalanceCredit - entry.closingBalanceDebit;
+        if (netBalance > 0) {
+          calculatedClosingDebit = netBalance;
+          calculatedClosingCredit = 0;
+        } else {
+          calculatedClosingDebit = 0;
+          calculatedClosingCredit = Math.abs(netBalance);
+        }
       } else if (entry.category === 'Assets' || entry.category === 'Expenses') {
         // Assets and Expenses: closingDebit = openingDebit + periodDebit - periodCredit
         const closingDebit = entry.openingBalanceDebit + entry.periodDebit - entry.periodCredit;
@@ -1956,6 +1970,16 @@ const AuditTrial: React.FC = () => {
         transformedOpeningCredit = calculatedVatPayableBalance.openingBalanceCredit;
         transformedPeriodDebit = calculatedVatPayableBalance.periodDebit;
         transformedPeriodCredit = calculatedVatPayableBalance.periodCredit;
+      } else if (isPartnersAccount) {
+        // For partners account: transform based on sign
+        // Opening: net = openingCredit - openingDebit, positive → debit, negative → credit
+        const netOpening = entry.openingBalanceCredit - entry.openingBalanceDebit;
+        transformedOpeningDebit = netOpening > 0 ? netOpening : 0;
+        transformedOpeningCredit = netOpening < 0 ? Math.abs(netOpening) : 0;
+        // Period: net = periodCredit - periodDebit, positive → debit, negative → credit
+        const netPeriod = entry.periodCredit - entry.periodDebit;
+        transformedPeriodDebit = netPeriod > 0 ? netPeriod : 0;
+        transformedPeriodCredit = netPeriod < 0 ? Math.abs(netPeriod) : 0;
       } else {
         // Transform opening balance: calculate net balance and split positive to مدين, negative to دائن
         const netOpening = entry.openingBalanceDebit - entry.openingBalanceCredit;
@@ -1967,9 +1991,18 @@ const AuditTrial: React.FC = () => {
       }
       
       // Transform closing balance: calculate net balance and split positive to مدين, negative to دائن
-      const netClosing = calculatedClosingDebit - calculatedClosingCredit;
-      const transformedClosingDebit = netClosing > 0 ? netClosing : 0;
-      const transformedClosingCredit = netClosing < 0 ? Math.abs(netClosing) : 0;
+      // For partners account, the transformation is already done above, so use calculated values directly
+      let transformedClosingDebit: number;
+      let transformedClosingCredit: number;
+      if (isPartnersAccount) {
+        // Use the already transformed values from above
+        transformedClosingDebit = calculatedClosingDebit;
+        transformedClosingCredit = calculatedClosingCredit;
+      } else {
+        const netClosing = calculatedClosingDebit - calculatedClosingCredit;
+        transformedClosingDebit = netClosing > 0 ? netClosing : 0;
+        transformedClosingCredit = netClosing < 0 ? Math.abs(netClosing) : 0;
+      }
       
       // Return transformed values
       return {
