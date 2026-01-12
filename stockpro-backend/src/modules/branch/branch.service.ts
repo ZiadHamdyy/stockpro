@@ -40,21 +40,21 @@ export class BranchService {
       },
     });
 
-    // Automatically create Safe with the same name as the branch
-    try {
-      await this.safeService.create(companyId, {
-        name: createBranchDto.name,
-        branchId: branch.id,
-        openingBalance: 0,
-      });
-      this.logger.log(`Safe created automatically for branch: ${branch.name}`);
-    } catch (error) {
-      this.logger.error(
-        `Failed to create Safe for branch ${branch.name}: ${error.message}`,
-        error.stack,
-      );
-      // Continue even if Safe creation fails
-    }
+    // // Automatically create Safe with the same name as the branch
+    // try {
+    //   await this.safeService.create(companyId, {
+    //     name: createBranchDto.name,
+    //     branchId: branch.id,
+    //     openingBalance: 0,
+    //   });
+    //   this.logger.log(`Safe created automatically for branch: ${branch.name}`);
+    // } catch (error) {
+    //   this.logger.error(
+    //     `Failed to create Safe for branch ${branch.name}: ${error.message}`,
+    //     error.stack,
+    //   );
+    //   // Continue even if Safe creation fails
+    // }
 
     // Automatically create Store with the same name as the branch
     try {
