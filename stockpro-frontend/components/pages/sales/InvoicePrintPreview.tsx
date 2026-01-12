@@ -77,27 +77,27 @@ const InvoicePrintPreview: React.FC<InvoicePrintPreviewProps> = ({
       marginRight: 1,
       sectionGap: 2,
     },
-    alignment: {
-      branchName: 'center' as const,
-      date: 'center' as const,
-      customerType: 'center' as const,
-      customerName: 'center' as const,
-      employeeName: 'center' as const,
-      itemName: 'right' as const,
-      itemQty: 'right' as const,
-      itemPrice: 'right' as const,
-      itemTaxable: 'right' as const,
-      itemDiscount: 'right' as const,
-      itemTaxRate: 'right' as const,
-      itemTax: 'right' as const,
-      itemTotal: 'right' as const,
-      totalsSubtotal: 'right' as const,
-      totalsDiscount: 'right' as const,
-      totalsTax: 'right' as const,
-      totalsNet: 'right' as const,
-      qrCode: 'center' as const,
-      footerText: 'center' as const,
-      tafqeet: 'center' as const,
+    horizontalPositioning: {
+      branchName: 0,
+      date: 0,
+      customerType: 0,
+      customerName: 0,
+      employeeName: 0,
+      itemName: 0,
+      itemQty: 0,
+      itemPrice: 0,
+      itemTaxable: 0,
+      itemDiscount: 0,
+      itemTaxRate: 0,
+      itemTax: 0,
+      itemTotal: 0,
+      totalsSubtotal: 0,
+      totalsDiscount: 0,
+      totalsTax: 0,
+      totalsNet: 0,
+      qrCode: 0,
+      footerText: 0,
+      tafqeet: 0,
     },
     positioning: {
       branchName: 0,
@@ -305,20 +305,14 @@ const InvoicePrintPreview: React.FC<InvoicePrintPreviewProps> = ({
       ? `${epson.pageWidth}mm ${epson.pageHeight}mm`
       : `${epson.pageWidth}mm auto`;
 
-    const getAlignment = (element: keyof NonNullable<typeof epson.alignment>) => {
-      const align = epson.alignment[element];
-      // Default alignment based on element type if not set
-      if (!align) {
-        if (element.includes('item') || element.includes('total')) return 'right';
-        if (element === 'qrCode' || element === 'footerText' || element === 'tafqeet') return 'center';
-        return 'center';
-      }
-      return align === 'left' ? 'left' : align === 'center' ? 'center' : 'right';
-    };
-
-    const getPosition = (key: keyof typeof epson.positioning) => {
-      const offset = epson.positioning[key];
-      return offset !== 0 ? `transform: translateY(${offset}px);` : '';
+    const getTransform = (key: keyof typeof epson.positioning) => {
+      const hOffset = epson.horizontalPositioning[key] || 0;
+      const vOffset = epson.positioning[key] || 0;
+      if (hOffset === 0 && vOffset === 0) return '';
+      const transforms = [];
+      if (hOffset !== 0) transforms.push(`translateX(${hOffset}px)`);
+      if (vOffset !== 0) transforms.push(`translateY(${vOffset}px)`);
+      return `transform: ${transforms.join(' ')};`;
     };
 
     const getVisibility = (key: keyof NonNullable<typeof epson.visibility>) => {
@@ -342,23 +336,23 @@ const InvoicePrintPreview: React.FC<InvoicePrintPreviewProps> = ({
       
       switch (colType) {
         case 'itemCode':
-          return `<td style="text-align: ${getAlignment('itemName')}; ${width}">${item.id}</td>`;
+          return `<td style="${getTransform('itemName')} ${width}">${item.id}</td>`;
         case 'itemName':
-          return getVisibility('itemName') ? `<td style="text-align: ${getAlignment('itemName')}; ${getPosition('itemName')}; ${width}">${item.name}</td>` : '';
+          return getVisibility('itemName') ? `<td style="${getTransform('itemName')} ${width}">${item.name}</td>` : '';
         case 'itemQty':
-          return getVisibility('itemQty') ? `<td style="text-align: ${getAlignment('itemQty')}; ${getPosition('itemQty')}; ${width}">${item.qty}</td>` : '';
+          return getVisibility('itemQty') ? `<td style="${getTransform('itemQty')} ${width}">${item.qty}</td>` : '';
         case 'itemPrice':
-          return getVisibility('itemPrice') ? `<td style="text-align: ${getAlignment('itemPrice')}; ${getPosition('itemPrice')}; ${width}">${item.price.toFixed(2)}</td>` : '';
+          return getVisibility('itemPrice') ? `<td style="${getTransform('itemPrice')} ${width}">${item.price.toFixed(2)}</td>` : '';
         case 'itemTaxable':
-          return getVisibility('itemTaxable') ? `<td style="text-align: ${getAlignment('itemTaxable')}; ${getPosition('itemTaxable')}; ${width}">${(item.price * item.qty).toFixed(2)}</td>` : '';
+          return getVisibility('itemTaxable') ? `<td style="${getTransform('itemTaxable')} ${width}">${(item.price * item.qty).toFixed(2)}</td>` : '';
         case 'itemDiscount':
-          return getVisibility('itemDiscount') ? `<td style="text-align: ${getAlignment('itemDiscount')}; ${getPosition('itemDiscount')}; ${width}">0.00</td>` : '';
+          return getVisibility('itemDiscount') ? `<td style="${getTransform('itemDiscount')} ${width}">0.00</td>` : '';
         case 'itemTaxRate':
-          return getVisibility('itemTaxRate') ? `<td style="text-align: ${getAlignment('itemTaxRate')}; ${getPosition('itemTaxRate')}; ${width}">${isVatEnabled ? `${vatRate}%` : '0%'}</td>` : '';
+          return getVisibility('itemTaxRate') ? `<td style="${getTransform('itemTaxRate')} ${width}">${isVatEnabled ? `${vatRate}%` : '0%'}</td>` : '';
         case 'itemTax':
-          return isVatEnabled && getVisibility('itemTax') ? `<td style="text-align: ${getAlignment('itemTax')}; ${getPosition('itemTax')}; ${width}">${(item.taxAmount || 0).toFixed(2)}</td>` : '';
+          return isVatEnabled && getVisibility('itemTax') ? `<td style="${getTransform('itemTax')} ${width}">${(item.taxAmount || 0).toFixed(2)}</td>` : '';
         case 'itemTotal':
-          return getVisibility('itemTotal') ? `<td style="text-align: ${getAlignment('itemTotal')}; ${getPosition('itemTotal')}; ${width}">${item.total.toFixed(2)}</td>` : '';
+          return getVisibility('itemTotal') ? `<td style="${getTransform('itemTotal')} ${width}">${item.total.toFixed(2)}</td>` : '';
         default:
           return '';
       }
@@ -392,20 +386,20 @@ const InvoicePrintPreview: React.FC<InvoicePrintPreviewProps> = ({
         .items-table td { padding: 2px 0; font-size: ${epson.fonts.items}px; overflow-wrap: break-word; word-wrap: break-word; }
         .totals { margin-top: ${epson.spacing.sectionGap}px; padding-top: 3px; }
         .total-row { display: flex; justify-content: space-between; font-weight: bold; font-size: ${epson.fonts.totals}px; margin-top: 3px; }
-        .qr-container { text-align: ${getAlignment('qrCode')}; margin-top: ${epson.spacing.sectionGap}px; }
+        .qr-container { margin-top: ${epson.spacing.sectionGap}px; }
         .qr-container img { max-width: 80px; height: auto; }
       </style>
     </head>
     <body>
-      <div style="text-align: ${getAlignment('branchName')}; ${getPosition('branchName')}; margin-bottom: 1px; font-size: ${epson.fonts.body}px;">
+      <div style="${getTransform('branchName')} margin-bottom: 1px; font-size: ${epson.fonts.body}px;">
         ${details.invoiceNumber}
         ${getVisibility('branchName') ? `<div style="margin-top: 1px;">${details.branchName || "الفرع الرئيسي"}</div>` : ''}
       </div>
-      ${getVisibility('date') ? `<div style="text-align: ${getAlignment('date')}; ${getPosition('date')}; margin-bottom: 1px; font-size: ${epson.fonts.body}px;">${details.invoiceDate}</div>` : ''}
-      ${getVisibility('customerType') ? `<div style="text-align: ${getAlignment('customerType')}; ${getPosition('customerType')}; margin-bottom: 1px; font-size: ${epson.fonts.body}px;">${paymentMethod === "cash" ? "نقدا" : "اجل"}</div>` : ''}
-      ${getVisibility('customerName') ? `<div style="text-align: ${getAlignment('customerName')}; ${getPosition('customerName')}; margin-bottom: 1px; font-size: ${epson.fonts.body}px;">${customer?.name || "عميل نقدا"}</div>` : ''}
-      ${getVisibility('employeeName') ? `<div style="text-align: ${getAlignment('employeeName')}; ${getPosition('employeeName')}; margin-bottom: 1px; font-size: ${epson.fonts.body}px;">${details.userName || "غير محدد"}</div>` : ''}
-      ${details.notes ? `<div style="text-align: ${getAlignment('employeeName')}; ${getPosition('employeeName')}; margin-bottom: 1px; font-size: ${epson.fonts.body}px;">ملاحظات: ${details.notes}</div>` : ''}
+      ${getVisibility('date') ? `<div style="${getTransform('date')} margin-bottom: 1px; font-size: ${epson.fonts.body}px;">${details.invoiceDate}</div>` : ''}
+      ${getVisibility('customerType') ? `<div style="${getTransform('customerType')} margin-bottom: 1px; font-size: ${epson.fonts.body}px;">${paymentMethod === "cash" ? "نقدا" : "اجل"}</div>` : ''}
+      ${getVisibility('customerName') ? `<div style="${getTransform('customerName')} margin-bottom: 1px; font-size: ${epson.fonts.body}px;">${customer?.name || "عميل نقدا"}</div>` : ''}
+      ${getVisibility('employeeName') ? `<div style="${getTransform('employeeName')} margin-bottom: 1px; font-size: ${epson.fonts.body}px;">${details.userName || "غير محدد"}</div>` : ''}
+      ${details.notes ? `<div style="${getTransform('employeeName')} margin-bottom: 1px; font-size: ${epson.fonts.body}px;">ملاحظات: ${details.notes}</div>` : ''}
       <table class="items-table">
         <tbody>
           ${items
@@ -420,19 +414,19 @@ const InvoicePrintPreview: React.FC<InvoicePrintPreviewProps> = ({
         </tbody>
       </table>
       <div class="totals">
-        ${getVisibility('totalsSubtotal') ? `<div style="text-align: ${getAlignment('totalsSubtotal')}; ${getPosition('totalsSubtotal')}; font-size: ${epson.fonts.totals}px; margin-top: 3px;">${totals.subtotal.toFixed(2)}</div>` : ''}
-        ${getVisibility('totalsDiscount') ? `<div style="text-align: ${getAlignment('totalsDiscount')}; ${getPosition('totalsDiscount')}; font-size: ${epson.fonts.totals}px; margin-top: 3px;">${totals.discount.toFixed(2)}</div>` : ''}
+        ${getVisibility('totalsSubtotal') ? `<div style="${getTransform('totalsSubtotal')} font-size: ${epson.fonts.totals}px; margin-top: 3px;">${totals.subtotal.toFixed(2)}</div>` : ''}
+        ${getVisibility('totalsDiscount') ? `<div style="${getTransform('totalsDiscount')} font-size: ${epson.fonts.totals}px; margin-top: 3px;">${totals.discount.toFixed(2)}</div>` : ''}
         ${
           isVatEnabled && getVisibility('totalsTax')
-            ? `<div style="text-align: ${getAlignment('totalsTax')}; ${getPosition('totalsTax')}; font-size: ${epson.fonts.totals}px; margin-top: 3px;">${totals.tax.toFixed(2)}</div>`
+            ? `<div style="${getTransform('totalsTax')} font-size: ${epson.fonts.totals}px; margin-top: 3px;">${totals.tax.toFixed(2)}</div>`
             : ""
         }
-        ${getVisibility('totalsNet') ? `<div style="text-align: ${getAlignment('totalsNet')}; ${getPosition('totalsNet')}; font-weight: bold; font-size: ${epson.fonts.totals}px; margin-top: 3px;">${totals.net.toFixed(2)}</div>` : ''}
+        ${getVisibility('totalsNet') ? `<div style="${getTransform('totalsNet')} font-weight: bold; font-size: ${epson.fonts.totals}px; margin-top: 3px;">${totals.net.toFixed(2)}</div>` : ''}
       </div>
-      ${getVisibility('qrCode') ? `<div class="qr-container" style="${getPosition('qrCode')}">
+      ${getVisibility('qrCode') ? `<div class="qr-container" style="${getTransform('qrCode')}">
         ${isVatEnabled ? `<img src="${qrCodeUrl}" width="80" height="80"/>` : ""}
       </div>` : ''}
-      ${getVisibility('tafqeet') ? `<div style="text-align: ${getAlignment('tafqeet')}; ${getPosition('tafqeet')}; margin-top: ${epson.spacing.sectionGap}px; font-weight: bold; font-size: ${epson.fonts.body}px;">
+      ${getVisibility('tafqeet') ? `<div style="${getTransform('tafqeet')} margin-top: ${epson.spacing.sectionGap}px; font-weight: bold; font-size: ${epson.fonts.body}px;">
         ${tafqeet(totals.net, companyInfo.currency)}
       </div>` : ''}
     </body>
@@ -1387,13 +1381,17 @@ const InvoicePrintPreview: React.FC<InvoicePrintPreviewProps> = ({
   // Interactive controls state for epson template
   const [epsonPreviewSettings, setEpsonPreviewSettings] = React.useState(() => {
     const base = settings.epsonSettings || getDefaultEpsonSettings();
-    // Ensure visibility is always present
+    // Ensure visibility and horizontalPositioning are always present
     return {
       ...getDefaultEpsonSettings(),
       ...base,
       visibility: {
         ...getDefaultEpsonSettings().visibility,
         ...(base.visibility || {}),
+      },
+      horizontalPositioning: {
+        ...getDefaultEpsonSettings().horizontalPositioning,
+        ...(base.horizontalPositioning || {}),
       },
     };
   });
@@ -1405,13 +1403,17 @@ const InvoicePrintPreview: React.FC<InvoicePrintPreviewProps> = ({
   const memoizedTemplate = React.useMemo(() => template, [printSettings?.template]);
   React.useEffect(() => {
     if (memoizedTemplate === 'epson' && memoizedEpsonSettings) {
-      // Merge with defaults to ensure visibility and columnOrder are always present
+      // Merge with defaults to ensure visibility, horizontalPositioning, and columnOrder are always present
       const merged = {
         ...getDefaultEpsonSettings(),
         ...memoizedEpsonSettings,
         visibility: {
           ...getDefaultEpsonSettings().visibility,
           ...(memoizedEpsonSettings.visibility || {}),
+        },
+        horizontalPositioning: {
+          ...getDefaultEpsonSettings().horizontalPositioning,
+          ...(memoizedEpsonSettings.horizontalPositioning || {}),
         },
         columnOrder: memoizedEpsonSettings.columnOrder || getDefaultEpsonSettings().columnOrder,
       };
@@ -1426,20 +1428,14 @@ const InvoicePrintPreview: React.FC<InvoicePrintPreviewProps> = ({
       ? `${epson.pageWidth}mm ${epson.pageHeight}mm`
       : `${epson.pageWidth}mm auto`;
 
-    const getAlignment = (element: keyof NonNullable<typeof epson.alignment>) => {
-      const align = epson.alignment[element];
-      // Default alignment based on element type if not set
-      if (!align) {
-        if (element.includes('item') || element.includes('total')) return 'right';
-        if (element === 'qrCode' || element === 'footerText' || element === 'tafqeet') return 'center';
-        return 'center';
-      }
-      return align === 'left' ? 'left' : align === 'center' ? 'center' : 'right';
-    };
-
-    const getPosition = (key: keyof typeof epson.positioning) => {
-      const offset = epson.positioning[key];
-      return offset !== 0 ? `transform: translateY(${offset}px);` : '';
+    const getTransform = (key: keyof typeof epson.positioning) => {
+      const hOffset = epson.horizontalPositioning[key] || 0;
+      const vOffset = epson.positioning[key] || 0;
+      if (hOffset === 0 && vOffset === 0) return '';
+      const transforms = [];
+      if (hOffset !== 0) transforms.push(`translateX(${hOffset}px)`);
+      if (vOffset !== 0) transforms.push(`translateY(${vOffset}px)`);
+      return `transform: ${transforms.join(' ')};`;
     };
 
     const getVisibility = (key: keyof NonNullable<typeof epson.visibility>) => {
@@ -1463,23 +1459,23 @@ const InvoicePrintPreview: React.FC<InvoicePrintPreviewProps> = ({
       
       switch (colType) {
         case 'itemCode':
-          return `<td style="text-align: ${getAlignment('itemName')}; ${width}">${item.id}</td>`;
+          return `<td style="${getTransform('itemName')} ${width}">${item.id}</td>`;
         case 'itemName':
-          return getVisibility('itemName') ? `<td style="text-align: ${getAlignment('itemName')}; ${getPosition('itemName')}; ${width}">${item.name}</td>` : '';
+          return getVisibility('itemName') ? `<td style="${getTransform('itemName')} ${width}">${item.name}</td>` : '';
         case 'itemQty':
-          return getVisibility('itemQty') ? `<td style="text-align: ${getAlignment('itemQty')}; ${getPosition('itemQty')}; ${width}">${item.qty}</td>` : '';
+          return getVisibility('itemQty') ? `<td style="${getTransform('itemQty')} ${width}">${item.qty}</td>` : '';
         case 'itemPrice':
-          return getVisibility('itemPrice') ? `<td style="text-align: ${getAlignment('itemPrice')}; ${getPosition('itemPrice')}; ${width}">${item.price.toFixed(2)}</td>` : '';
+          return getVisibility('itemPrice') ? `<td style="${getTransform('itemPrice')} ${width}">${item.price.toFixed(2)}</td>` : '';
         case 'itemTaxable':
-          return getVisibility('itemTaxable') ? `<td style="text-align: ${getAlignment('itemTaxable')}; ${getPosition('itemTaxable')}; ${width}">${(item.price * item.qty).toFixed(2)}</td>` : '';
+          return getVisibility('itemTaxable') ? `<td style="${getTransform('itemTaxable')} ${width}">${(item.price * item.qty).toFixed(2)}</td>` : '';
         case 'itemDiscount':
-          return getVisibility('itemDiscount') ? `<td style="text-align: ${getAlignment('itemDiscount')}; ${getPosition('itemDiscount')}; ${width}">0.00</td>` : '';
+          return getVisibility('itemDiscount') ? `<td style="${getTransform('itemDiscount')} ${width}">0.00</td>` : '';
         case 'itemTaxRate':
-          return getVisibility('itemTaxRate') ? `<td style="text-align: ${getAlignment('itemTaxRate')}; ${getPosition('itemTaxRate')}; ${width}">${isVatEnabled ? `${vatRate}%` : '0%'}</td>` : '';
+          return getVisibility('itemTaxRate') ? `<td style="${getTransform('itemTaxRate')} ${width}">${isVatEnabled ? `${vatRate}%` : '0%'}</td>` : '';
         case 'itemTax':
-          return isVatEnabled && getVisibility('itemTax') ? `<td style="text-align: ${getAlignment('itemTax')}; ${getPosition('itemTax')}; ${width}">${(item.taxAmount || 0).toFixed(2)}</td>` : '';
+          return isVatEnabled && getVisibility('itemTax') ? `<td style="${getTransform('itemTax')} ${width}">${(item.taxAmount || 0).toFixed(2)}</td>` : '';
         case 'itemTotal':
-          return getVisibility('itemTotal') ? `<td style="text-align: ${getAlignment('itemTotal')}; ${getPosition('itemTotal')}; ${width}">${item.total.toFixed(2)}</td>` : '';
+          return getVisibility('itemTotal') ? `<td style="${getTransform('itemTotal')} ${width}">${item.total.toFixed(2)}</td>` : '';
         default:
           return '';
       }
@@ -1513,20 +1509,20 @@ const InvoicePrintPreview: React.FC<InvoicePrintPreviewProps> = ({
         .items-table td { padding: 2px 0; font-size: ${epson.fonts.items}px; overflow-wrap: break-word; word-wrap: break-word; }
         .totals { margin-top: ${epson.spacing.sectionGap}px; padding-top: 3px; }
         .total-row { display: flex; justify-content: space-between; font-weight: bold; font-size: ${epson.fonts.totals}px; margin-top: 3px; }
-        .qr-container { text-align: ${getAlignment('qrCode')}; margin-top: ${epson.spacing.sectionGap}px; }
+        .qr-container { margin-top: ${epson.spacing.sectionGap}px; }
         .qr-container img { max-width: 80px; height: auto; }
       </style>
     </head>
     <body>
-      <div style="text-align: ${getAlignment('branchName')}; ${getPosition('branchName')}; margin-bottom: 1px; font-size: ${epson.fonts.body}px;">
+      <div style="${getTransform('branchName')} margin-bottom: 1px; font-size: ${epson.fonts.body}px;">
         ${details.invoiceNumber}
         ${getVisibility('branchName') ? `<div style="margin-top: 1px;">${details.branchName || "الفرع الرئيسي"}</div>` : ''}
       </div>
-      ${getVisibility('date') ? `<div style="text-align: ${getAlignment('date')}; ${getPosition('date')}; margin-bottom: 1px; font-size: ${epson.fonts.body}px;">${details.invoiceDate}</div>` : ''}
-      ${getVisibility('customerType') ? `<div style="text-align: ${getAlignment('customerType')}; ${getPosition('customerType')}; margin-bottom: 1px; font-size: ${epson.fonts.body}px;">${paymentMethod === "cash" ? "نقدا" : "اجل"}</div>` : ''}
-      ${getVisibility('customerName') ? `<div style="text-align: ${getAlignment('customerName')}; ${getPosition('customerName')}; margin-bottom: 1px; font-size: ${epson.fonts.body}px;">${customer?.name || "عميل نقدا"}</div>` : ''}
-      ${getVisibility('employeeName') ? `<div style="text-align: ${getAlignment('employeeName')}; ${getPosition('employeeName')}; margin-bottom: 1px; font-size: ${epson.fonts.body}px;">${details.userName || "غير محدد"}</div>` : ''}
-      ${details.notes ? `<div style="text-align: ${getAlignment('employeeName')}; ${getPosition('employeeName')}; margin-bottom: 1px; font-size: ${epson.fonts.body}px;">ملاحظات: ${details.notes}</div>` : ''}
+      ${getVisibility('date') ? `<div style="${getTransform('date')} margin-bottom: 1px; font-size: ${epson.fonts.body}px;">${details.invoiceDate}</div>` : ''}
+      ${getVisibility('customerType') ? `<div style="${getTransform('customerType')} margin-bottom: 1px; font-size: ${epson.fonts.body}px;">${paymentMethod === "cash" ? "نقدا" : "اجل"}</div>` : ''}
+      ${getVisibility('customerName') ? `<div style="${getTransform('customerName')} margin-bottom: 1px; font-size: ${epson.fonts.body}px;">${customer?.name || "عميل نقدا"}</div>` : ''}
+      ${getVisibility('employeeName') ? `<div style="${getTransform('employeeName')} margin-bottom: 1px; font-size: ${epson.fonts.body}px;">${details.userName || "غير محدد"}</div>` : ''}
+      ${details.notes ? `<div style="${getTransform('employeeName')} margin-bottom: 1px; font-size: ${epson.fonts.body}px;">ملاحظات: ${details.notes}</div>` : ''}
       <table class="items-table">
         <tbody>
           ${items
@@ -1541,19 +1537,19 @@ const InvoicePrintPreview: React.FC<InvoicePrintPreviewProps> = ({
         </tbody>
       </table>
       <div class="totals">
-        ${getVisibility('totalsSubtotal') ? `<div style="text-align: ${getAlignment('totalsSubtotal')}; ${getPosition('totalsSubtotal')}; font-size: ${epson.fonts.totals}px; margin-top: 3px;">${totals.subtotal.toFixed(2)}</div>` : ''}
-        ${getVisibility('totalsDiscount') ? `<div style="text-align: ${getAlignment('totalsDiscount')}; ${getPosition('totalsDiscount')}; font-size: ${epson.fonts.totals}px; margin-top: 3px;">${totals.discount.toFixed(2)}</div>` : ''}
+        ${getVisibility('totalsSubtotal') ? `<div style="${getTransform('totalsSubtotal')} font-size: ${epson.fonts.totals}px; margin-top: 3px;">${totals.subtotal.toFixed(2)}</div>` : ''}
+        ${getVisibility('totalsDiscount') ? `<div style="${getTransform('totalsDiscount')} font-size: ${epson.fonts.totals}px; margin-top: 3px;">${totals.discount.toFixed(2)}</div>` : ''}
         ${
           isVatEnabled && getVisibility('totalsTax')
-            ? `<div style="text-align: ${getAlignment('totalsTax')}; ${getPosition('totalsTax')}; font-size: ${epson.fonts.totals}px; margin-top: 3px;">${totals.tax.toFixed(2)}</div>`
+            ? `<div style="${getTransform('totalsTax')} font-size: ${epson.fonts.totals}px; margin-top: 3px;">${totals.tax.toFixed(2)}</div>`
             : ""
         }
-        ${getVisibility('totalsNet') ? `<div style="text-align: ${getAlignment('totalsNet')}; ${getPosition('totalsNet')}; font-weight: bold; font-size: ${epson.fonts.totals}px; margin-top: 3px;">${totals.net.toFixed(2)}</div>` : ''}
+        ${getVisibility('totalsNet') ? `<div style="${getTransform('totalsNet')} font-weight: bold; font-size: ${epson.fonts.totals}px; margin-top: 3px;">${totals.net.toFixed(2)}</div>` : ''}
       </div>
-      ${getVisibility('qrCode') ? `<div class="qr-container" style="${getPosition('qrCode')}">
+      ${getVisibility('qrCode') ? `<div class="qr-container" style="${getTransform('qrCode')}">
         ${isVatEnabled ? `<img src="${qrCodeUrl}" width="80" height="80"/>` : ""}
       </div>` : ''}
-      ${getVisibility('tafqeet') ? `<div style="text-align: ${getAlignment('tafqeet')}; ${getPosition('tafqeet')}; margin-top: ${epson.spacing.sectionGap}px; font-weight: bold; font-size: ${epson.fonts.body}px;">
+      ${getVisibility('tafqeet') ? `<div style="${getTransform('tafqeet')} margin-top: ${epson.spacing.sectionGap}px; font-weight: bold; font-size: ${epson.fonts.body}px;">
         ${tafqeet(totals.net, companyInfo.currency)}
       </div>` : ''}
     </body>
@@ -1583,9 +1579,12 @@ const InvoicePrintPreview: React.FC<InvoicePrintPreviewProps> = ({
   const updateEpsonPreviewSetting = (path: string[], value: any) => {
     setEpsonPreviewSettings(prev => {
       const updated = { ...prev };
-      // Ensure visibility object exists
+      // Ensure visibility and horizontalPositioning objects exist
       if (!updated.visibility) {
         updated.visibility = { ...getDefaultEpsonSettings().visibility };
+      }
+      if (!updated.horizontalPositioning) {
+        updated.horizontalPositioning = { ...getDefaultEpsonSettings().horizontalPositioning };
       }
       // Deep clone nested objects as we traverse the path
       let current: any = updated;
@@ -1765,31 +1764,41 @@ const InvoicePrintPreview: React.FC<InvoicePrintPreviewProps> = ({
                     <p className="text-xs text-gray-500 mt-1">قيمة موجبة للأعلى، سالبة للأسفل</p>
                   </div>
 
-                  {['branchName', 'date', 'customerType', 'customerName', 'employeeName', 'itemName', 'itemQty', 'itemPrice', 'itemTaxable', 'itemDiscount', 'itemTaxRate', 'itemTax', 'itemTotal', 'totalsSubtotal', 'totalsDiscount', 'totalsTax', 'totalsNet', 'qrCode', 'footerText', 'tafqeet'].includes(selectedElement) && (
-                    <div>
-                      <label className="block text-sm font-semibold text-gray-700 mb-2">
-                        محاذاة النص
-                      </label>
-                      <div className="flex gap-2">
-                        {(['right', 'center', 'left'] as const).map((align) => {
-                          const currentAlign = (epsonPreviewSettings.alignment || {})[selectedElement as keyof typeof epsonPreviewSettings.alignment];
-                          return (
-                            <button
-                              key={align}
-                              onClick={() => updateEpsonPreviewSetting(['alignment', selectedElement], align)}
-                              className={`flex-1 p-2 rounded text-sm ${
-                                currentAlign === align
-                                  ? 'bg-blue-500 text-white'
-                                  : 'bg-gray-200 hover:bg-gray-300'
-                              }`}
-                            >
-                              {align === 'right' ? 'يمين' : align === 'center' ? 'وسط' : 'يسار'}
-                            </button>
-                          );
-                        })}
-                      </div>
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">
+                      الموضع الأفقي (بكسل)
+                    </label>
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => {
+                          const current = epsonPreviewSettings.horizontalPositioning[selectedElement as keyof typeof epsonPreviewSettings.horizontalPositioning];
+                          updateEpsonPreviewSetting(['horizontalPositioning', selectedElement], current - 1);
+                        }}
+                        className="px-3 py-1 bg-gray-200 hover:bg-gray-300 rounded text-sm"
+                      >
+                        ←
+                      </button>
+                      <input
+                        type="number"
+                        className="flex-1 p-2 border border-gray-300 rounded text-sm"
+                        value={epsonPreviewSettings.horizontalPositioning[selectedElement as keyof typeof epsonPreviewSettings.horizontalPositioning]}
+                        onChange={(e) => updateEpsonPreviewSetting(['horizontalPositioning', selectedElement], parseFloat(e.target.value) || 0)}
+                        min="-50"
+                        max="50"
+                        step="1"
+                      />
+                      <button
+                        onClick={() => {
+                          const current = epsonPreviewSettings.horizontalPositioning[selectedElement as keyof typeof epsonPreviewSettings.horizontalPositioning];
+                          updateEpsonPreviewSetting(['horizontalPositioning', selectedElement], current + 1);
+                        }}
+                        className="px-3 py-1 bg-gray-200 hover:bg-gray-300 rounded text-sm"
+                      >
+                        →
+                      </button>
                     </div>
-                  )}
+                    <p className="text-xs text-gray-500 mt-1">قيمة موجبة لليمين، سالبة لليسار</p>
+                  </div>
 
                   {/* Visibility Toggle */}
                   {['branchName', 'date', 'customerType', 'customerName', 'employeeName', 'itemName', 'itemQty', 'itemPrice', 'itemTaxable', 'itemDiscount', 'itemTaxRate', 'itemTax', 'itemTotal', 'totalsSubtotal', 'totalsDiscount', 'totalsTax', 'totalsNet', 'qrCode', 'footerText', 'tafqeet'].includes(selectedElement) && (

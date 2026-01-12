@@ -173,27 +173,27 @@ const getDefaultEpsonSettings = (): EpsonSettings => ({
         marginRight: 5,
         sectionGap: 5,
     },
-    alignment: {
-        branchName: 'center',
-        date: 'center',
-        customerType: 'center',
-        customerName: 'center',
-        employeeName: 'center',
-        itemName: 'right',
-        itemQty: 'right',
-        itemPrice: 'right',
-        itemTaxable: 'right',
-        itemDiscount: 'right',
-        itemTaxRate: 'right',
-        itemTax: 'right',
-        itemTotal: 'right',
-        totalsSubtotal: 'right',
-        totalsDiscount: 'right',
-        totalsTax: 'right',
-        totalsNet: 'right',
-        qrCode: 'center',
-        footerText: 'center',
-        tafqeet: 'center',
+    horizontalPositioning: {
+        branchName: 0,
+        date: 0,
+        customerType: 0,
+        customerName: 0,
+        employeeName: 0,
+        itemName: 0,
+        itemQty: 0,
+        itemPrice: 0,
+        itemTaxable: 0,
+        itemDiscount: 0,
+        itemTaxRate: 0,
+        itemTax: 0,
+        itemTotal: 0,
+        totalsSubtotal: 0,
+        totalsDiscount: 0,
+        totalsTax: 0,
+        totalsNet: 0,
+        qrCode: 0,
+        footerText: 0,
+        tafqeet: 0,
     },
     positioning: {
         branchName: 0,
@@ -266,6 +266,11 @@ const PrintSettings: React.FC<PrintSettingsProps> = ({ title }) => {
             const base = { ...fetchedSettings };
             if (base.template === 'epson' && !base.epsonSettings) {
                 base.epsonSettings = getDefaultEpsonSettings();
+            } else if (base.template === 'epson' && base.epsonSettings) {
+                // Ensure horizontalPositioning exists for backward compatibility
+                if (!base.epsonSettings.horizontalPositioning) {
+                    base.epsonSettings.horizontalPositioning = getDefaultEpsonSettings().horizontalPositioning;
+                }
             }
             setLocalSettings(base);
         } else if (!isLoading && !fetchedSettings) {
@@ -534,11 +539,11 @@ const PrintSettings: React.FC<PrintSettingsProps> = ({ title }) => {
                                         </div>
                                     </div>
 
-                                    {/* Alignment */}
+                                    {/* Horizontal Positioning */}
                                     <div className="border-b border-gray-200 pb-6">
-                                        <h3 className="text-lg font-bold text-gray-700 mb-4">محاذاة النص</h3>
+                                        <h3 className="text-lg font-bold text-gray-700 mb-4">المواضع الأفقية (بكسل - موجب لليمين، سالب لليسار)</h3>
                                         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                                            {Object.entries(epson.alignment || {}).map(([key, value]) => (
+                                            {Object.entries(epson.horizontalPositioning || getDefaultEpsonSettings().horizontalPositioning || {}).map(([key, value]) => (
                                                 <div key={key}>
                                                     <label className={labelStyle}>
                                                         {key === 'branchName' ? 'اسم الفرع' :
@@ -562,15 +567,15 @@ const PrintSettings: React.FC<PrintSettingsProps> = ({ title }) => {
                                                          key === 'footerText' ? 'نص التذييل' :
                                                          key === 'tafqeet' ? 'المبلغ كتابة' : key}
                                                     </label>
-                                                    <select 
+                                                    <input 
+                                                        type="number" 
                                                         className={inputStyle}
-                                                        value={value || 'right'}
-                                                        onChange={(e) => handleEpsonSettingsChange(['alignment', key], e.target.value as 'left' | 'center' | 'right')}
-                                                    >
-                                                        <option value="right">يمين</option>
-                                                        <option value="center">وسط</option>
-                                                        <option value="left">يسار</option>
-                                                    </select>
+                                                        value={value}
+                                                        onChange={(e) => handleEpsonSettingsChange(['horizontalPositioning', key], parseFloat(e.target.value) || 0)}
+                                                        min="-50"
+                                                        max="50"
+                                                        step="1"
+                                                    />
                                                 </div>
                                             ))}
                                         </div>
