@@ -1816,6 +1816,68 @@ const AuditTrial: React.FC = () => {
     normalizeDate,
   ]);
 
+  // Calculate earned discount (خصم مكتسب) - Revenue category, Account code 4202
+  // periodDebit: discounts from purchase invoices, periodCredit: discounts from purchase returns
+  const calculatedEarnedDiscount = useMemo(() => {
+    const purchaseInvoicesDiscount = transformedPurchaseInvoices
+      .filter((inv) => {
+        const invDate = normalizeDate(inv.date);
+        return invDate >= fromDate && invDate <= toDate;
+      })
+      .reduce((sum, inv) => sum + toNumber(inv.totals?.discount || inv.discount || 0), 0);
+
+    const purchaseReturnsDiscount = transformedPurchaseReturns
+      .filter((inv) => {
+        const invDate = normalizeDate(inv.date);
+        return invDate >= fromDate && invDate <= toDate;
+      })
+      .reduce((sum, inv) => sum + toNumber(inv.totals?.discount || inv.discount || 0), 0);
+
+    const periodDebit = purchaseInvoicesDiscount;
+    const periodCredit = purchaseReturnsDiscount;
+    const netClosing = periodCredit - periodDebit; // Revenue: credit - debit
+
+    return {
+      openingBalanceDebit: 0,
+      openingBalanceCredit: 0,
+      periodDebit: periodDebit,
+      periodCredit: periodCredit,
+      closingBalanceDebit: netClosing < 0 ? Math.abs(netClosing) : 0,
+      closingBalanceCredit: netClosing > 0 ? netClosing : 0,
+    };
+  }, [transformedPurchaseInvoices, transformedPurchaseReturns, fromDate, toDate, normalizeDate, toNumber]);
+
+  // Calculate allowed discount (خصم مسموح به) - Expenses category, Account code 5205
+  // periodDebit: discounts from sales invoices, periodCredit: discounts from sales returns
+  const calculatedAllowedDiscount = useMemo(() => {
+    const salesInvoicesDiscount = transformedSalesInvoices
+      .filter((inv) => {
+        const invDate = normalizeDate(inv.date);
+        return invDate >= fromDate && invDate <= toDate;
+      })
+      .reduce((sum, inv) => sum + toNumber(inv.totals?.discount || inv.discount || 0), 0);
+
+    const salesReturnsDiscount = transformedSalesReturns
+      .filter((inv) => {
+        const invDate = normalizeDate(inv.date);
+        return invDate >= fromDate && invDate <= toDate;
+      })
+      .reduce((sum, inv) => sum + toNumber(inv.totals?.discount || inv.discount || 0), 0);
+
+    const periodDebit = salesInvoicesDiscount;
+    const periodCredit = salesReturnsDiscount;
+    const netClosing = periodDebit - periodCredit;
+
+    return {
+      openingBalanceDebit: 0,
+      openingBalanceCredit: 0,
+      periodDebit: periodDebit,
+      periodCredit: periodCredit,
+      closingBalanceDebit: netClosing > 0 ? netClosing : 0,
+      closingBalanceCredit: netClosing < 0 ? Math.abs(netClosing) : 0,
+    };
+  }, [transformedSalesInvoices, transformedSalesReturns, fromDate, toDate, normalizeDate, toNumber]);
+
   // Process and verify entries with correct calculations
   // Based on backend logic:
   // - Assets/Expenses: closingDebit = openingDebit + periodDebit - periodCredit (if negative, becomes closingCredit)
@@ -2030,7 +2092,72 @@ const AuditTrial: React.FC = () => {
     });
   }, [auditTrialData?.entries, calculatedInventoryValue, calculatedCustomerBalance, calculatedSafeBalance, calculatedBankBalance, calculatedSupplierBalance, calculatedOtherReceivablesBalance, calculatedOtherPayablesBalance, calculatedOtherRevenuesBalance, calculatedVatPayableBalance]);
 
-  const data = processedData;
+  // Insert discount entries after their parent accounts
+  const processedDataWithDiscounts = useMemo(() => {
+    const result = [...processedData];
+    
+    // Find index of Other Revenues account (4201) to insert earned discount after it
+    const otherRevenuesIndex = result.findIndex(
+      (entry) => entry.accountCode === '4201' || entry.accountName === 'ايرادات اخري' || entry.accountName === 'الإيرادات الاخري'
+    );
+
+    // Find the last expense type entry (highest account code starting with 52) to insert allowed discount after it
+    let lastExpenseTypeIndex = -1;
+    let highestExpenseCode = -1;
+    result.forEach((entry, index) => {
+      const codeNum = parseInt(entry.accountCode, 10);
+      if (codeNum >= 5201 && codeNum < 5300 && codeNum > highestExpenseCode) {
+        highestExpenseCode = codeNum;
+        lastExpenseTypeIndex = index;
+      }
+    });
+
+    // Create earned discount entry (خصم مكتسب) - Account code 4202, Revenue category
+    const earnedDiscountEntry: TrialBalanceEntry = {
+      id: '4202',
+      accountCode: '4202',
+      accountName: 'خصم مكتسب',
+      category: 'Revenue',
+      openingBalanceDebit: calculatedEarnedDiscount.openingBalanceDebit,
+      openingBalanceCredit: calculatedEarnedDiscount.openingBalanceCredit,
+      periodDebit: calculatedEarnedDiscount.periodDebit,
+      periodCredit: calculatedEarnedDiscount.periodCredit,
+      closingBalanceDebit: calculatedEarnedDiscount.closingBalanceDebit,
+      closingBalanceCredit: calculatedEarnedDiscount.closingBalanceCredit,
+    };
+
+    // Create allowed discount entry (خصم مسموح به) - Account code 5205, Expenses category
+    const allowedDiscountEntry: TrialBalanceEntry = {
+      id: '5205',
+      accountCode: '5205',
+      accountName: 'خصم مسموح به',
+      category: 'Expenses',
+      openingBalanceDebit: calculatedAllowedDiscount.openingBalanceDebit,
+      openingBalanceCredit: calculatedAllowedDiscount.openingBalanceCredit,
+      periodDebit: calculatedAllowedDiscount.periodDebit,
+      periodCredit: calculatedAllowedDiscount.periodCredit,
+      closingBalanceDebit: calculatedAllowedDiscount.closingBalanceDebit,
+      closingBalanceCredit: calculatedAllowedDiscount.closingBalanceCredit,
+    };
+
+    // Insert earned discount after Other Revenues (4201)
+    if (otherRevenuesIndex !== -1) {
+      result.splice(otherRevenuesIndex + 1, 0, earnedDiscountEntry);
+      // Adjust expense type index if Other Revenues comes before expense types
+      if (lastExpenseTypeIndex !== -1 && otherRevenuesIndex < lastExpenseTypeIndex) {
+        lastExpenseTypeIndex++;
+      }
+    }
+
+    // Insert allowed discount after the last expense type
+    if (lastExpenseTypeIndex !== -1) {
+      result.splice(lastExpenseTypeIndex + 1, 0, allowedDiscountEntry);
+    }
+
+    return result;
+  }, [processedData, calculatedAllowedDiscount, calculatedEarnedDiscount]);
+
+  const data = processedDataWithDiscounts;
 
   const summary = useMemo((): FinancialSummary => {
     return data.reduce((acc, curr) => ({
