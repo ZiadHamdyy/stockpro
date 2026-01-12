@@ -933,8 +933,14 @@ const InventoryCountPage: React.FC<InventoryCountProps> = ({ title, companyInfo 
                                                 )}
                                                 fallback={
                                                     <input 
-                                                        type="number" 
-                                                        value={item.actualStock !== undefined && item.actualStock !== null ? item.actualStock : ''} 
+                                                        type="text" 
+                                                        value={
+                                                            typeof item.actualStock === "string"
+                                                              ? item.actualStock
+                                                              : item.actualStock !== undefined && item.actualStock !== null
+                                                              ? item.actualStock
+                                                              : ""
+                                                        }
                                                         className="w-24 p-1.5 text-center border border-gray-300 rounded bg-gray-100 font-bold text-gray-500 shadow-inner cursor-not-allowed"
                                                         disabled
                                                         readOnly
@@ -943,13 +949,26 @@ const InventoryCountPage: React.FC<InventoryCountProps> = ({ title, companyInfo 
                                                 }
                                             >
                                                 <input 
-                                                    type="number" 
-                                                    value={item.actualStock !== undefined && item.actualStock !== null ? item.actualStock : ''} 
-                                                    onChange={(e) => handleActualChange(item.item.id, e.target.value)}
+                                                    type="text" 
+                                                    value={
+                                                        typeof item.actualStock === "string"
+                                                          ? item.actualStock
+                                                          : item.actualStock !== undefined && item.actualStock !== null
+                                                          ? item.actualStock
+                                                          : ""
+                                                    }
+                                                    onChange={(e) => {
+                                                        const value = e.target.value;
+                                                        // Allow empty string, decimal numbers (including partial inputs like "12." or ".5")
+                                                        if (value === "" || /^-?\d*\.?\d*$/.test(value)) {
+                                                            handleActualChange(item.item.id, value);
+                                                        }
+                                                    }}
                                                     className="w-24 p-1.5 text-center border border-gray-300 rounded bg-white focus:ring-2 focus:ring-brand-green focus:border-brand-green font-bold text-gray-900 shadow-inner"
                                                     onFocus={(e) => e.target.select()}
                                                     disabled={status === 'POSTED'}
                                                     placeholder=""
+                                                    inputMode="decimal"
                                                 />
                                             </PermissionWrapper>
                                         </td>
