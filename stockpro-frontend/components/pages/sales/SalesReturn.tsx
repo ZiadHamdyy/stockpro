@@ -1018,29 +1018,37 @@ const SalesReturn: React.FC<SalesReturnProps> = ({
     }
 
     if (field === "qty" || field === "price") {
-      let qty = parseFloat(item.qty as any) || 0;
-      const price = parseFloat(item.price as any) || 0;
+      // Preserve string values for partial inputs (e.g., "12." or "-")
+      // The value passed in might be a string for partial inputs or a number for complete values
+      
       // Clamp quantity to max allowed from source invoice
       // Check sum of all rows with the same item ID
-      if (selectedInvoiceId && item.id) {
-        const maxAllowed = sourceInvoiceQtyById[item.id] ?? Number.POSITIVE_INFINITY;
-        // Calculate sum of quantities for all other rows with the same item ID
-        const sumOfOtherRowsWithSameItem = newItems.reduce((sum, it, idx) => {
-          if (idx !== index && it.id === item.id && it.id) {
-            return sum + (parseFloat(it.qty as any) || 0);
+      // Only validate if qty is a complete number (not a partial string)
+      if (field === "qty" && selectedInvoiceId && item.id) {
+        // Check if the qty value is a complete number (not a partial string)
+        const qtyNum = typeof item.qty === "string" 
+          ? (item.qty === "" || item.qty === "-" || item.qty.endsWith(".") ? null : parseFloat(item.qty))
+          : item.qty;
+        
+        if (qtyNum !== null && !isNaN(qtyNum)) {
+          const maxAllowed = sourceInvoiceQtyById[item.id] ?? Number.POSITIVE_INFINITY;
+          // Calculate sum of quantities for all other rows with the same item ID
+          const sumOfOtherRowsWithSameItem = newItems.reduce((sum, it, idx) => {
+            if (idx !== index && it.id === item.id && it.id) {
+              const otherQty = typeof it.qty === "string" ? (parseFloat(it.qty) || 0) : (it.qty || 0);
+              return sum + otherQty;
+            }
+            return sum;
+          }, 0);
+          // Calculate remaining allowed quantity
+          const remainingAllowed = maxAllowed - sumOfOtherRowsWithSameItem;
+          if (qtyNum > remainingAllowed) {
+            const clampedQty = Math.max(0, remainingAllowed);
+            item.qty = clampedQty;
+            showToast("لا يمكن إرجاع كمية أكبر من الموجودة في الفاتورة.", 'error');
           }
-          return sum;
-        }, 0);
-        // Calculate remaining allowed quantity
-        const remainingAllowed = maxAllowed - sumOfOtherRowsWithSameItem;
-        if (qty > remainingAllowed) {
-          qty = Math.max(0, remainingAllowed);
-          item.qty = qty;
-          showToast("لا يمكن إرجاع كمية أكبر من الموجودة في الفاتورة.", 'error');
         }
       }
-      item.qty = qty;
-      item.price = price;
       item = assignLineAmounts(item);
     }
     newItems[index] = item;
@@ -1965,7 +1973,7 @@ const SalesReturn: React.FC<SalesReturnProps> = ({
                       value={
                         typeof item.price === "string"
                           ? item.price
-                          : item.price === 0 || item.price === null
+                          : item.price === 0 || item.price === null || item.price === undefined
                           ? ""
                           : item.price
                       }
