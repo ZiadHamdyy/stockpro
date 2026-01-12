@@ -1923,9 +1923,11 @@ const AuditTrial: React.FC = () => {
       let transformedPeriodCredit: number;
       
       if (isCustomerAccount) {
-        // Use calculated customer balance values
-        transformedOpeningDebit = calculatedCustomerBalance.openingBalanceDebit;
-        transformedOpeningCredit = calculatedCustomerBalance.openingBalanceCredit;
+        // For customer account opening balance: combine debit and credit, show total in one column
+        // If positive → show in مدين (debit), if negative → show in دائن (credit)
+        const netOpening = calculatedCustomerBalance.openingBalanceDebit - calculatedCustomerBalance.openingBalanceCredit;
+        transformedOpeningDebit = netOpening > 0 ? netOpening : 0;
+        transformedOpeningCredit = netOpening < 0 ? Math.abs(netOpening) : 0;
         transformedPeriodDebit = calculatedCustomerBalance.periodDebit;
         transformedPeriodCredit = calculatedCustomerBalance.periodCredit;
       } else if (isSafeAccount) {
@@ -1941,9 +1943,11 @@ const AuditTrial: React.FC = () => {
         transformedPeriodDebit = calculatedBankBalance.periodDebit;
         transformedPeriodCredit = calculatedBankBalance.periodCredit;
       } else if (isSupplierAccount) {
-        // Use calculated supplier balance values
-        transformedOpeningDebit = calculatedSupplierBalance.openingBalanceDebit;
-        transformedOpeningCredit = calculatedSupplierBalance.openingBalanceCredit;
+        // For supplier account opening balance: combine debit and credit, show total in one column
+        // If positive → show in مدين (debit), if negative → show in دائن (credit)
+        const netOpening = calculatedSupplierBalance.openingBalanceDebit - calculatedSupplierBalance.openingBalanceCredit;
+        transformedOpeningDebit = netOpening > 0 ? netOpening : 0;
+        transformedOpeningCredit = netOpening < 0 ? Math.abs(netOpening) : 0;
         transformedPeriodDebit = calculatedSupplierBalance.periodDebit;
         transformedPeriodCredit = calculatedSupplierBalance.periodCredit;
       } else if (isOtherReceivablesAccount) {
