@@ -999,34 +999,56 @@ const StoreReceiptVoucher: React.FC<StoreReceiptVoucherProps> = ({ title }) => {
                   </td>
                   <td className="p-2 align-middle">
                     <input
-                      type="number"
-                      value={item.qty}
-                      onChange={(e) =>
-                        handleItemChange(index, "qty", e.target.value)
+                      type="text"
+                      value={
+                        typeof item.qty === "string"
+                          ? item.qty
+                          : item.qty === 0 || item.qty === null
+                          ? ""
+                          : item.qty
                       }
+                      onChange={(e) => {
+                        const value = e.target.value;
+                        // Allow empty string, decimal numbers (including partial inputs like "12." or ".5")
+                        if (value === "" || /^-?\d*\.?\d*$/.test(value)) {
+                          const qtyValue = value === "" ? (value as any) : (value.endsWith(".") || value === "-" ? value : parseFloat(value) || (value as any));
+                          handleItemChange(index, "qty", qtyValue);
+                        }
+                      }}
                       onKeyDown={(e) => handleTableKeyDown(e, index, "qty")}
                       ref={(el) => {
                         if (el) qtyInputRefs.current[index] = el;
                       }}
                       className={tableInputStyle}
                       disabled={isReadOnly}
+                      inputMode="decimal"
                     />
                   </td>
                   <td className="p-2 align-middle">
                     <input
-                      type="number"
-                      min="0"
-                      step="0.01"
-                      value={item.price ?? 0}
-                      onChange={(e) =>
-                        handleItemChange(index, "price", e.target.value)
+                      type="text"
+                      value={
+                        typeof item.price === "string"
+                          ? item.price
+                          : item.price === 0 || item.price === null || item.price === undefined
+                          ? ""
+                          : item.price
                       }
+                      onChange={(e) => {
+                        const value = e.target.value;
+                        // Allow empty string, decimal numbers (including partial inputs like "12." or ".5")
+                        if (value === "" || /^-?\d*\.?\d*$/.test(value)) {
+                          const priceValue = value === "" ? (value as any) : (value.endsWith(".") || value === "-" ? value : parseFloat(value) || (value as any));
+                          handleItemChange(index, "price", priceValue);
+                        }
+                      }}
                       onKeyDown={(e) => handleTableKeyDown(e, index, "price")}
                       ref={(el) => {
                         if (el) priceInputRefs.current[index] = el;
                       }}
                       className={tableInputStyle}
                       disabled={isReadOnly}
+                      inputMode="decimal"
                     />
                   </td>
                   <td className="p-2 align-middle text-center font-semibold text-brand-dark">
