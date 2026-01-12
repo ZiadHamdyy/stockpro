@@ -367,7 +367,7 @@ const InternalTransfers: React.FC<InternalTransfersProps> = ({ title }) => {
                       setTransferData((prev) => ({
                         ...prev,
                         toType: "safe",
-                        toId: visibleBranchSafes.length > 0 ? visibleBranchSafes[0].id : null,
+                        toId: null,
                       }))
                     }
                     className={`w-1/2 py-2 rounded ${

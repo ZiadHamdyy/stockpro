@@ -133,17 +133,7 @@ export const useInternalTransfers = () => {
     }
   }, [branchSafes, transferData.fromType, transferData.fromId]);
 
-  useEffect(() => {
-    if (transferData.toType !== "safe") return;
-    const defaultSafeId = branchSafes[0]?.id || null;
-    const hasCurrentSafe = branchSafes.some(
-      (safe) => safe.id === transferData.toId,
-    );
-
-    if (!hasCurrentSafe && transferData.toId !== defaultSafeId) {
-      setTransferData((prev) => ({ ...prev, toId: defaultSafeId }));
-    }
-  }, [branchSafes, transferData.toType, transferData.toId]);
+  // Removed useEffect for "to" section to allow selecting any safe, not just branch safes
 
   const handleSave = useCallback(async () => {
     // Normalize amount to number before validation
