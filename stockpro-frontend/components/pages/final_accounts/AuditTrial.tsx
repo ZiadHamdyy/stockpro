@@ -1980,6 +1980,15 @@ const AuditTrial: React.FC = () => {
         const netPeriod = entry.periodCredit - entry.periodDebit;
         transformedPeriodDebit = netPeriod > 0 ? netPeriod : 0;
         transformedPeriodCredit = netPeriod < 0 ? Math.abs(netPeriod) : 0;
+      } else if (isInventoryAccount) {
+        // For inventory account: set period movements to zero
+        // Transform opening balance: calculate net balance and split positive to مدين, negative to دائن
+        const netOpening = entry.openingBalanceDebit - entry.openingBalanceCredit;
+        transformedOpeningDebit = netOpening > 0 ? netOpening : 0;
+        transformedOpeningCredit = netOpening < 0 ? Math.abs(netOpening) : 0;
+        // Period movements are set to zero for inventory account
+        transformedPeriodDebit = 0;
+        transformedPeriodCredit = 0;
       } else {
         // Transform opening balance: calculate net balance and split positive to مدين, negative to دائن
         const netOpening = entry.openingBalanceDebit - entry.openingBalanceCredit;
