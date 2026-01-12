@@ -1397,6 +1397,8 @@ const InvoicePrintPreview: React.FC<InvoicePrintPreviewProps> = ({
   });
   const [selectedElement, setSelectedElement] = React.useState<string | null>(null);
   const [showEpsonControls, setShowEpsonControls] = React.useState(false);
+  const [verticalInputValue, setVerticalInputValue] = React.useState<string>('');
+  const [horizontalInputValue, setHorizontalInputValue] = React.useState<string>('');
 
   // Update preview settings when settings change - memoize to prevent infinite loops
   const memoizedEpsonSettings = React.useMemo(() => settings.epsonSettings, [printSettings?.epsonSettings]);
@@ -1737,24 +1739,50 @@ const InvoicePrintPreview: React.FC<InvoicePrintPreviewProps> = ({
                         onClick={() => {
                           const current = epsonPreviewSettings.positioning[selectedElement as keyof typeof epsonPreviewSettings.positioning];
                           updateEpsonPreviewSetting(['positioning', selectedElement], current - 1);
+                          setVerticalInputValue(String(current - 1));
                         }}
                         className="px-3 py-1 bg-gray-200 hover:bg-gray-300 rounded text-sm"
                       >
                         ↑
                       </button>
                       <input
-                        type="number"
+                        type="text"
+                        inputMode="numeric"
                         className="flex-1 p-2 border border-gray-300 rounded text-sm"
-                        value={epsonPreviewSettings.positioning[selectedElement as keyof typeof epsonPreviewSettings.positioning]}
-                        onChange={(e) => updateEpsonPreviewSetting(['positioning', selectedElement], parseFloat(e.target.value) || 0)}
-                        min="-50"
-                        max="50"
-                        step="1"
+                        value={verticalInputValue !== '' ? verticalInputValue : epsonPreviewSettings.positioning[selectedElement as keyof typeof epsonPreviewSettings.positioning]}
+                        onFocus={(e) => {
+                          setVerticalInputValue(String(epsonPreviewSettings.positioning[selectedElement as keyof typeof epsonPreviewSettings.positioning]));
+                        }}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          // Allow typing "-", empty, or valid number patterns
+                          if (val === '' || val === '-' || /^-?\d*\.?\d*$/.test(val)) {
+                            setVerticalInputValue(val);
+                            if (val !== '' && val !== '-') {
+                              const num = parseFloat(val);
+                              if (!isNaN(num)) {
+                                updateEpsonPreviewSetting(['positioning', selectedElement], num);
+                              }
+                            }
+                          }
+                        }}
+                        onBlur={(e) => {
+                          const val = e.target.value.trim();
+                          const num = parseFloat(val);
+                          if (isNaN(num) || val === '' || val === '-') {
+                            updateEpsonPreviewSetting(['positioning', selectedElement], 0);
+                            setVerticalInputValue('');
+                          } else {
+                            updateEpsonPreviewSetting(['positioning', selectedElement], num);
+                            setVerticalInputValue('');
+                          }
+                        }}
                       />
                       <button
                         onClick={() => {
                           const current = epsonPreviewSettings.positioning[selectedElement as keyof typeof epsonPreviewSettings.positioning];
                           updateEpsonPreviewSetting(['positioning', selectedElement], current + 1);
+                          setVerticalInputValue(String(current + 1));
                         }}
                         className="px-3 py-1 bg-gray-200 hover:bg-gray-300 rounded text-sm"
                       >
@@ -1773,24 +1801,50 @@ const InvoicePrintPreview: React.FC<InvoicePrintPreviewProps> = ({
                         onClick={() => {
                           const current = epsonPreviewSettings.horizontalPositioning[selectedElement as keyof typeof epsonPreviewSettings.horizontalPositioning];
                           updateEpsonPreviewSetting(['horizontalPositioning', selectedElement], current - 1);
+                          setHorizontalInputValue(String(current - 1));
                         }}
                         className="px-3 py-1 bg-gray-200 hover:bg-gray-300 rounded text-sm"
                       >
                         ←
                       </button>
                       <input
-                        type="number"
+                        type="text"
+                        inputMode="numeric"
                         className="flex-1 p-2 border border-gray-300 rounded text-sm"
-                        value={epsonPreviewSettings.horizontalPositioning[selectedElement as keyof typeof epsonPreviewSettings.horizontalPositioning]}
-                        onChange={(e) => updateEpsonPreviewSetting(['horizontalPositioning', selectedElement], parseFloat(e.target.value) || 0)}
-                        min="-50"
-                        max="50"
-                        step="1"
+                        value={horizontalInputValue !== '' ? horizontalInputValue : epsonPreviewSettings.horizontalPositioning[selectedElement as keyof typeof epsonPreviewSettings.horizontalPositioning]}
+                        onFocus={(e) => {
+                          setHorizontalInputValue(String(epsonPreviewSettings.horizontalPositioning[selectedElement as keyof typeof epsonPreviewSettings.horizontalPositioning]));
+                        }}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          // Allow typing "-", empty, or valid number patterns
+                          if (val === '' || val === '-' || /^-?\d*\.?\d*$/.test(val)) {
+                            setHorizontalInputValue(val);
+                            if (val !== '' && val !== '-') {
+                              const num = parseFloat(val);
+                              if (!isNaN(num)) {
+                                updateEpsonPreviewSetting(['horizontalPositioning', selectedElement], num);
+                              }
+                            }
+                          }
+                        }}
+                        onBlur={(e) => {
+                          const val = e.target.value.trim();
+                          const num = parseFloat(val);
+                          if (isNaN(num) || val === '' || val === '-') {
+                            updateEpsonPreviewSetting(['horizontalPositioning', selectedElement], 0);
+                            setHorizontalInputValue('');
+                          } else {
+                            updateEpsonPreviewSetting(['horizontalPositioning', selectedElement], num);
+                            setHorizontalInputValue('');
+                          }
+                        }}
                       />
                       <button
                         onClick={() => {
                           const current = epsonPreviewSettings.horizontalPositioning[selectedElement as keyof typeof epsonPreviewSettings.horizontalPositioning];
                           updateEpsonPreviewSetting(['horizontalPositioning', selectedElement], current + 1);
+                          setHorizontalInputValue(String(current + 1));
                         }}
                         className="px-3 py-1 bg-gray-200 hover:bg-gray-300 rounded text-sm"
                       >

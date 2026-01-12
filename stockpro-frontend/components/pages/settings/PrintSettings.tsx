@@ -572,8 +572,6 @@ const PrintSettings: React.FC<PrintSettingsProps> = ({ title }) => {
                                                         className={inputStyle}
                                                         value={value}
                                                         onChange={(e) => handleEpsonSettingsChange(['horizontalPositioning', key], parseFloat(e.target.value) || 0)}
-                                                        min="-50"
-                                                        max="50"
                                                         step="1"
                                                     />
                                                 </div>
@@ -609,8 +607,6 @@ const PrintSettings: React.FC<PrintSettingsProps> = ({ title }) => {
                                                         className={inputStyle}
                                                         value={value}
                                                         onChange={(e) => handleEpsonSettingsChange(['positioning', key], parseFloat(e.target.value) || 0)}
-                                                        min="-50"
-                                                        max="50"
                                                         step="1"
                                                     />
                                                 </div>
