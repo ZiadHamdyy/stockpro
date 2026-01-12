@@ -162,7 +162,7 @@ const Header: React.FC<HeaderProps> = ({
           </button>
 
           {isDropdownOpen && (
-            <div className="absolute left-0 mt-2 w-80 bg-white rounded-lg shadow-xl border z-20">
+            <div className="absolute left-0 mt-2 w-80 bg-white rounded-lg shadow-xl border z-50">
               <div className="p-3 font-bold text-brand-dark border-b flex justify-between items-center">
                 <span>الإشعارات</span>
                 {unreadCount > 0 && (
