@@ -497,6 +497,59 @@ const AuditTrial: React.FC = () => {
     aggregatedOpeningBalances,
   ]);
 
+  // Calculate beginning inventory for current period using current valuation method
+  // This mirrors BalanceSheet: inventory as of the day before fromDate
+  const calculatedBeginningInventory = useMemo(() => {
+    const normalizedStartDate = normalizeDate(fromDate);
+    if (!normalizedStartDate) return 0;
+
+    const start = new Date(normalizedStartDate);
+    if (Number.isNaN(start.getTime())) return 0;
+
+    // Day before start date
+    const dayBeforeStart = new Date(start);
+    dayBeforeStart.setDate(dayBeforeStart.getDate() - 1);
+    const dayBeforeStartString = dayBeforeStart.toISOString().split('T')[0];
+
+    const { totalValue } = calculateCompanyInventoryValuation({
+      items: transformedItems,
+      aggregatedOpeningBalances,
+      purchaseInvoices: transformedPurchaseInvoices,
+      salesInvoices: transformedSalesInvoices,
+      purchaseReturns: transformedPurchaseReturns,
+      salesReturns: transformedSalesReturns,
+      storeReceiptVouchers: transformedStoreReceiptVouchers,
+      storeIssueVouchers: transformedStoreIssueVouchers,
+      storeTransferVouchers: transformedStoreTransferVouchers,
+      stores,
+      endDate: dayBeforeStartString,
+      valuationMethod: inventoryValuationMethod,
+      normalizeDate,
+      toNumber,
+      getLastPurchasePriceBeforeDate,
+      calculateWeightedAverageCost,
+    });
+
+    return totalValue;
+  }, [
+    fromDate,
+    transformedItems,
+    aggregatedOpeningBalances,
+    transformedPurchaseInvoices,
+    transformedSalesInvoices,
+    transformedPurchaseReturns,
+    transformedSalesReturns,
+    transformedStoreReceiptVouchers,
+    transformedStoreIssueVouchers,
+    transformedStoreTransferVouchers,
+    stores,
+    inventoryValuationMethod,
+    normalizeDate,
+    toNumber,
+    getLastPurchasePriceBeforeDate,
+    calculateWeightedAverageCost,
+  ]);
+
   // Calculate customer balances using the same logic as CustomerBalanceReport
   const calculatedCustomerBalance = useMemo(() => {
     const customers = apiCustomers as any[];
@@ -2047,9 +2100,10 @@ const AuditTrial: React.FC = () => {
         transformedPeriodDebit = netPeriod > 0 ? netPeriod : 0;
         transformedPeriodCredit = netPeriod < 0 ? Math.abs(netPeriod) : 0;
       } else if (isInventoryAccount) {
-        // For inventory account: set period movements to zero
-        // Transform opening balance: calculate net balance and split positive to مدين, negative to دائن
-        const netOpening = entry.openingBalanceDebit - entry.openingBalanceCredit;
+        // For inventory account:
+        // - Opening balance: use calculatedBeginningInventory (valuation-based, as of day before fromDate)
+        // - Period movements: set to zero (inventory movement reflected only in closing balance)
+        const netOpening = calculatedBeginningInventory;
         transformedOpeningDebit = netOpening > 0 ? netOpening : 0;
         transformedOpeningCredit = netOpening < 0 ? Math.abs(netOpening) : 0;
         // Period movements are set to zero for inventory account
@@ -2090,7 +2144,7 @@ const AuditTrial: React.FC = () => {
         closingBalanceCredit: transformedClosingCredit,
       };
     });
-  }, [auditTrialData?.entries, calculatedInventoryValue, calculatedCustomerBalance, calculatedSafeBalance, calculatedBankBalance, calculatedSupplierBalance, calculatedOtherReceivablesBalance, calculatedOtherPayablesBalance, calculatedOtherRevenuesBalance, calculatedVatPayableBalance]);
+  }, [auditTrialData?.entries, calculatedInventoryValue, calculatedBeginningInventory, calculatedCustomerBalance, calculatedSafeBalance, calculatedBankBalance, calculatedSupplierBalance, calculatedOtherReceivablesBalance, calculatedOtherPayablesBalance, calculatedOtherRevenuesBalance, calculatedVatPayableBalance]);
 
   // Insert discount entries after their parent accounts
   const processedDataWithDiscounts = useMemo(() => {
