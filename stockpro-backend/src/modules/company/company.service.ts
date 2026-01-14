@@ -1069,37 +1069,37 @@ export class CompanyService {
         }
 
         // Create default safe
-        const existingSafe = await this.prisma.safe.findUnique({
-          where: { branchId: existingBranch.id },
-        });
+        // const existingSafe = await this.prisma.safe.findUnique({
+        //   where: { branchId: existingBranch.id },
+        // });
 
-        if (!existingSafe) {
-          const lastSafeWithCode = await this.prisma.safe.findFirst({
-            where: { companyId },
-            select: { code: true },
-            orderBy: { code: 'desc' },
-          });
+        // if (!existingSafe) {
+        //   const lastSafeWithCode = await this.prisma.safe.findFirst({
+        //     where: { companyId },
+        //     select: { code: true },
+        //     orderBy: { code: 'desc' },
+        //   });
 
-          let nextSafeCode = 'SF-001';
-          if (lastSafeWithCode?.code) {
-            const match = lastSafeWithCode.code.match(/SF-(\d+)/);
-            if (match) {
-              const nextNumber = parseInt(match[1], 10) + 1;
-              nextSafeCode = `SF-${String(nextNumber).padStart(3, '0')}`;
-            }
-          }
+        //   let nextSafeCode = 'SF-001';
+        //   if (lastSafeWithCode?.code) {
+        //     const match = lastSafeWithCode.code.match(/SF-(\d+)/);
+        //     if (match) {
+        //       const nextNumber = parseInt(match[1], 10) + 1;
+        //       nextSafeCode = `SF-${String(nextNumber).padStart(3, '0')}`;
+        //     }
+        //   }
 
-          await this.prisma.safe.create({
-            data: {
-              code: nextSafeCode,
-              name: 'الخزنة الرئيسية',
-              branchId: existingBranch.id,
-              openingBalance: 0,
-              currentBalance: 0,
-              companyId,
-            },
-          });
-        }
+        //   await this.prisma.safe.create({
+        //     data: {
+        //       code: nextSafeCode,
+        //       name: 'الخزنة الرئيسية',
+        //       branchId: existingBranch.id,
+        //       openingBalance: 0,
+        //       currentBalance: 0,
+        //       companyId,
+        //     },
+        //   });
+        // }
       }
     }
   }
