@@ -358,7 +358,7 @@ const AuditTrial: React.FC = () => {
     return apiReceiptVouchers.map((voucher: any) => {
       const entity = voucher.entity || {
         type: voucher.entityType,
-        id: voucher.customerId || voucher.supplierId || voucher.currentAccountId || "",
+        id: voucher.customerId || voucher.supplierId || voucher.currentAccountId || voucher.receivableAccountId || voucher.payableAccountId || "",
         name: voucher.entityName || "",
       };
       
@@ -379,7 +379,7 @@ const AuditTrial: React.FC = () => {
     return apiPaymentVouchers.map((voucher: any) => {
       const entity = voucher.entity || {
         type: voucher.entityType,
-        id: voucher.customerId || voucher.supplierId || voucher.currentAccountId || "",
+        id: voucher.customerId || voucher.supplierId || voucher.currentAccountId || voucher.receivableAccountId || voucher.payableAccountId || "",
         name: voucher.entityName || "",
       };
       
