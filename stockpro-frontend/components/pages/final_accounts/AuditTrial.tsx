@@ -1792,10 +1792,11 @@ const AuditTrial: React.FC = () => {
     normalizeDate,
   ]);
 
-  // Calculate VAT payable balances using the same logic as backend (simpler than VATStatementReport)
+  // Calculate VAT payable balances using the same logic as backend and BalanceSheet
   // VAT = Sales Tax - Sales Returns Tax - Purchase Tax + Purchase Returns Tax
+  // + VAT from Receipt Vouchers (debit) - VAT from Payment Vouchers (credit) - Expense-Type Tax (credit)
   const calculatedVatPayableBalance = useMemo(() => {
-    // Opening VAT (before fromDate)
+    // Opening VAT from invoices (before fromDate)
     const salesTaxBefore = transformedSalesInvoices
       .filter((inv) => normalizeDate(inv.date) < fromDate)
       .reduce((sum, inv) => sum + (inv.tax || inv.totals?.tax || 0), 0);
@@ -1812,11 +1813,44 @@ const AuditTrial: React.FC = () => {
       .filter((inv) => normalizeDate(inv.date) < fromDate)
       .reduce((sum, inv) => sum + (inv.tax || inv.totals?.tax || 0), 0);
 
-    const openingVat = salesTaxBefore - salesReturnsTaxBefore - purchaseTaxBefore + purchaseReturnsTaxBefore;
-    const openingCredit = openingVat > 0 ? openingVat : 0;
-    const openingDebit = openingVat < 0 ? Math.abs(openingVat) : 0;
+    // Opening VAT from vouchers (before fromDate)
+    // Receipt vouchers with entityType === 'vat' (debit - VAT collected)
+    const receiptVatBefore = (apiReceiptVouchers as any[])
+      .filter((v) => {
+        const vDate = normalizeDate(v.date);
+        return v.entityType === 'vat' && v.amount && v.amount > 0 && vDate < fromDate;
+      })
+      .reduce((sum, v) => sum + (v.amount || 0), 0);
 
-    // Period movements
+    // Payment vouchers with entityType === 'vat' (credit - VAT paid)
+    const paymentVatBefore = (apiPaymentVouchers as any[])
+      .filter((v) => {
+        const vDate = normalizeDate(v.date);
+        return v.entityType === 'vat' && v.amount && v.amount > 0 && vDate < fromDate;
+      })
+      .reduce((sum, v) => sum + (v.amount || 0), 0);
+
+    // Payment vouchers with entityType === 'expense-Type' and taxPrice > 0 (credit)
+    const expenseTaxBefore = (apiPaymentVouchers as any[])
+      .filter((v) => {
+        const vDate = normalizeDate(v.date);
+        return v.entityType === 'expense-Type' && v.taxPrice && v.taxPrice > 0 && vDate < fromDate;
+      })
+      .reduce((sum, v) => sum + (v.taxPrice || 0), 0);
+
+    // Calculate opening balance following VATStatementReport convention:
+    // Opening Debit (مدين) = Sales Tax + Purchase Returns Tax + Receipt VAT vouchers
+    // Opening Credit (دائن) = Purchase Tax + Sales Returns Tax + Payment VAT vouchers + Expense-Type Tax
+    // Opening Balance = Credit - Debit (positive = we owe VAT, negative = we're owed VAT)
+    const openingDebit = salesTaxBefore + purchaseReturnsTaxBefore + receiptVatBefore;
+    const openingCredit = purchaseTaxBefore + salesReturnsTaxBefore + paymentVatBefore + expenseTaxBefore;
+    
+    // Net opening VAT (positive = credit balance, negative = debit balance)
+    const netOpeningVat = openingCredit - openingDebit;
+    const finalOpeningDebit = netOpeningVat < 0 ? Math.abs(netOpeningVat) : 0;
+    const finalOpeningCredit = netOpeningVat > 0 ? netOpeningVat : 0;
+
+    // Period movements from invoices
     const salesTaxPeriod = transformedSalesInvoices
       .filter((inv) => {
         const invDate = normalizeDate(inv.date);
@@ -1845,15 +1879,47 @@ const AuditTrial: React.FC = () => {
       })
       .reduce((sum, inv) => sum + (inv.tax || inv.totals?.tax || 0), 0);
 
-    const periodCredit = salesTaxPeriod - salesReturnsTaxPeriod - purchaseTaxPeriod + purchaseReturnsTaxPeriod;
-    const periodDebit = 0;
+    // Period movements from vouchers
+    // Receipt vouchers with entityType === 'vat' (debit - VAT collected, increases VAT payable)
+    const receiptVatPeriod = (apiReceiptVouchers as any[])
+      .filter((v) => {
+        const vDate = normalizeDate(v.date);
+        return v.entityType === 'vat' && v.amount && v.amount > 0 && vDate >= fromDate && vDate <= toDate;
+      })
+      .reduce((sum, v) => sum + (v.amount || 0), 0);
 
-    const closingCredit = openingCredit + periodCredit;
-    const closingDebit = 0;
+    // Payment vouchers with entityType === 'vat' (credit - VAT paid, decreases VAT payable)
+    const paymentVatPeriod = (apiPaymentVouchers as any[])
+      .filter((v) => {
+        const vDate = normalizeDate(v.date);
+        return v.entityType === 'vat' && v.amount && v.amount > 0 && vDate >= fromDate && vDate <= toDate;
+      })
+      .reduce((sum, v) => sum + (v.amount || 0), 0);
+
+    // Payment vouchers with entityType === 'expense-Type' and taxPrice > 0 (credit - decreases VAT payable)
+    const expenseTaxPeriod = (apiPaymentVouchers as any[])
+      .filter((v) => {
+        const vDate = normalizeDate(v.date);
+        return v.entityType === 'expense-Type' && v.taxPrice && v.taxPrice > 0 && vDate >= fromDate && vDate <= toDate;
+      })
+      .reduce((sum, v) => sum + (v.taxPrice || 0), 0);
+
+    // Following VATStatementReport convention:
+    // Period Debit (مدين) = Sales Tax + Purchase Returns Tax + Receipt VAT vouchers (increases VAT payable)
+    // Period Credit (دائن) = Purchase Tax + Sales Returns Tax + Payment VAT vouchers + Expense-Type Tax (decreases VAT payable)
+    const periodDebit = salesTaxPeriod + purchaseReturnsTaxPeriod + receiptVatPeriod;
+    const periodCredit = purchaseTaxPeriod + salesReturnsTaxPeriod + paymentVatPeriod + expenseTaxPeriod;
+
+    // Calculate closing balance following VATStatementReport: closing = opening + credit - debit
+    // Where opening is the net opening balance (credit - debit)
+    const netOpening = finalOpeningCredit - finalOpeningDebit;
+    const netClosing = netOpening + periodCredit - periodDebit;
+    const closingDebit = netClosing < 0 ? Math.abs(netClosing) : 0;
+    const closingCredit = netClosing > 0 ? netClosing : 0;
 
     return {
-      openingBalanceDebit: openingDebit,
-      openingBalanceCredit: openingCredit,
+      openingBalanceDebit: finalOpeningDebit,
+      openingBalanceCredit: finalOpeningCredit,
       periodDebit: periodDebit,
       periodCredit: periodCredit,
       closingBalanceDebit: closingDebit,
@@ -1864,6 +1930,8 @@ const AuditTrial: React.FC = () => {
     transformedSalesReturns,
     transformedPurchaseInvoices,
     transformedPurchaseReturns,
+    apiReceiptVouchers,
+    apiPaymentVouchers,
     fromDate,
     toDate,
     normalizeDate,
@@ -2085,10 +2153,13 @@ const AuditTrial: React.FC = () => {
         transformedPeriodCredit = calculatedOtherRevenuesBalance.periodCredit;
       } else if (isVatPayableAccount) {
         // Use calculated VAT payable balance values
+        // Note: For VAT, the columns are reversed to match VATStatementReport convention:
+        // Green column (مدين) shows credit transactions, Red column (دائن) shows debit transactions
         transformedOpeningDebit = calculatedVatPayableBalance.openingBalanceDebit;
         transformedOpeningCredit = calculatedVatPayableBalance.openingBalanceCredit;
-        transformedPeriodDebit = calculatedVatPayableBalance.periodDebit;
-        transformedPeriodCredit = calculatedVatPayableBalance.periodCredit;
+        // Swap period movements to match VATStatementReport display convention
+        transformedPeriodDebit = calculatedVatPayableBalance.periodCredit;
+        transformedPeriodCredit = calculatedVatPayableBalance.periodDebit;
       } else if (isPartnersAccount) {
         // For partners account: transform based on sign
         // Opening: net = openingCredit - openingDebit, positive → debit, negative → credit
@@ -2127,6 +2198,11 @@ const AuditTrial: React.FC = () => {
         // Use the already transformed values from above
         transformedClosingDebit = calculatedClosingDebit;
         transformedClosingCredit = calculatedClosingCredit;
+      } else if (isVatPayableAccount) {
+        // For VAT account, swap closing balances to match VATStatementReport display convention
+        // Green column (مدين) shows credit balance, Red column (دائن) shows debit balance
+        transformedClosingDebit = calculatedClosingCredit;
+        transformedClosingCredit = calculatedClosingDebit;
       } else {
         const netClosing = calculatedClosingDebit - calculatedClosingCredit;
         transformedClosingDebit = netClosing > 0 ? netClosing : 0;
