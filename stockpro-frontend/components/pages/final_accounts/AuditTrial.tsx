@@ -27,6 +27,7 @@ import { useGetPaymentVouchersQuery } from '../../store/slices/paymentVoucherApi
 import { useGetSafesQuery } from '../../store/slices/safe/safeApiSlice';
 import { useGetBanksQuery } from '../../store/slices/bank/bankApiSlice';
 import { useGetInternalTransfersQuery } from '../../store/slices/internalTransferApiSlice';
+import { useGetExpenseCodesQuery, useGetExpenseTypesQuery } from '../../store/slices/expense/expenseApiSlice';
 import { useAuth } from '../../hook/Auth';
 
 interface TrialBalanceEntry {
@@ -91,6 +92,10 @@ const AuditTrial: React.FC = () => {
   const { data: apiSafes = [] } = useGetSafesQuery(undefined);
   const { data: apiBanks = [] } = useGetBanksQuery(undefined);
   const { data: apiInternalTransfers = [] } = useGetInternalTransfersQuery();
+  
+  // Fetch data for expense calculations
+  const { data: apiExpenseCodes = [] } = useGetExpenseCodesQuery(undefined);
+  const { data: apiExpenseTypes = [] } = useGetExpenseTypesQuery();
 
   // Map inventory valuation method to valuation method string
   const inventoryValuationMethod = useMemo(() => {
@@ -1999,6 +2004,88 @@ const AuditTrial: React.FC = () => {
     };
   }, [transformedSalesInvoices, transformedSalesReturns, fromDate, toDate, normalizeDate, toNumber]);
 
+  // Target expense types that should exclude tax
+  const targetExpenseTypeNames = useMemo(() => [
+    'مصروفات أخري',
+    'مصروفات إدارية',
+    'مصروفات تسويقية',
+    'مصروفات تشغيلية',
+  ], []);
+
+  // Create mapping from expense type names to expense code IDs
+  const expenseTypeToCodeIdsMap = useMemo(() => {
+    const map: Record<string, string[]> = {};
+    
+    (apiExpenseTypes as any[]).forEach((expenseType) => {
+      if (targetExpenseTypeNames.includes(expenseType.name)) {
+        const codeIds = (apiExpenseCodes as any[])
+          .filter((code) => code.expenseTypeId === expenseType.id)
+          .map((code) => code.id);
+        map[expenseType.name] = codeIds;
+      }
+    });
+    
+    return map;
+  }, [apiExpenseTypes, apiExpenseCodes, targetExpenseTypeNames]);
+
+  // Calculate expense amounts without tax for target expense types
+  const expenseAmountsWithoutTax = useMemo(() => {
+    const amounts: Record<string, { opening: number; period: number }> = {};
+    
+    // Initialize amounts for each target expense type
+    targetExpenseTypeNames.forEach((typeName) => {
+      amounts[typeName] = { opening: 0, period: 0 };
+    });
+
+    // Process payment vouchers
+    (apiPaymentVouchers as any[]).forEach((voucher) => {
+      if (!voucher.expenseCodeId) return;
+      
+      // Find which expense type this voucher belongs to
+      const expenseCode = (apiExpenseCodes as any[]).find(
+        (code) => code.id === voucher.expenseCodeId
+      );
+      
+      if (!expenseCode) return;
+      
+      const expenseType = (apiExpenseTypes as any[]).find(
+        (type) => type.id === expenseCode.expenseTypeId
+      );
+      
+      if (!expenseType || !targetExpenseTypeNames.includes(expenseType.name)) return;
+      
+      // Calculate amount without tax
+      let amountWithoutTax = voucher.amount || 0;
+      
+      if (voucher.entityType === 'expense-Type' && voucher.priceBeforeTax !== null && voucher.priceBeforeTax !== undefined) {
+        // For expense-Type vouchers, use priceBeforeTax if available
+        amountWithoutTax = voucher.priceBeforeTax;
+      } else if (voucher.taxPrice !== null && voucher.taxPrice !== undefined && voucher.taxPrice > 0) {
+        // For regular expense vouchers, subtract taxPrice if available
+        amountWithoutTax = (voucher.amount || 0) - voucher.taxPrice;
+      }
+      
+      const voucherDate = normalizeDate(voucher.date);
+      
+      // Categorize as opening (before fromDate) or period (between fromDate and toDate)
+      if (voucherDate && voucherDate < fromDate) {
+        amounts[expenseType.name].opening += amountWithoutTax;
+      } else if (voucherDate && voucherDate >= fromDate && voucherDate <= toDate) {
+        amounts[expenseType.name].period += amountWithoutTax;
+      }
+    });
+    
+    return amounts;
+  }, [
+    apiPaymentVouchers,
+    apiExpenseCodes,
+    apiExpenseTypes,
+    targetExpenseTypeNames,
+    fromDate,
+    toDate,
+    normalizeDate,
+  ]);
+
   // Process and verify entries with correct calculations
   // Based on backend logic:
   // - Assets/Expenses: closingDebit = openingDebit + periodDebit - periodCredit (if negative, becomes closingCredit)
@@ -2027,6 +2114,9 @@ const AuditTrial: React.FC = () => {
       const isVatPayableAccount = entry.accountCode === '2201' || entry.accountName === 'ضريبة القيمة المضافة';
       // Check if this is the partners account
       const isPartnersAccount = entry.accountCode === '3201' || entry.accountName === 'جاري الشركاء';
+      
+      // Check if this is a target expense account that should exclude tax
+      const isTargetExpenseAccount = targetExpenseTypeNames.includes(entry.accountName);
       
       let calculatedClosingDebit = 0;
       let calculatedClosingCredit = 0;
@@ -2076,6 +2166,18 @@ const AuditTrial: React.FC = () => {
         } else {
           calculatedClosingDebit = 0;
           calculatedClosingCredit = Math.abs(netBalance);
+        }
+      } else if (isTargetExpenseAccount) {
+        // For target expense accounts: calculate closing balance using amounts without tax
+        const expenseAmounts = expenseAmountsWithoutTax[entry.accountName] || { opening: 0, period: 0 };
+        // Closing debit = opening + period (expenses typically have no credit)
+        const closingDebit = expenseAmounts.opening + expenseAmounts.period;
+        if (closingDebit > 0) {
+          calculatedClosingDebit = closingDebit;
+          calculatedClosingCredit = 0;
+        } else {
+          calculatedClosingDebit = 0;
+          calculatedClosingCredit = Math.abs(closingDebit);
         }
       } else if (entry.category === 'Assets' || entry.category === 'Expenses') {
         // Assets and Expenses: closingDebit = openingDebit + periodDebit - periodCredit
@@ -2180,6 +2282,15 @@ const AuditTrial: React.FC = () => {
         // Period movements are set to zero for inventory account
         transformedPeriodDebit = 0;
         transformedPeriodCredit = 0;
+      } else if (isTargetExpenseAccount) {
+        // For target expense accounts: use amounts without tax
+        const expenseAmounts = expenseAmountsWithoutTax[entry.accountName] || { opening: 0, period: 0 };
+        // Opening balance is typically 0 for expenses, but use calculated if available
+        transformedOpeningDebit = expenseAmounts.opening > 0 ? expenseAmounts.opening : 0;
+        transformedOpeningCredit = expenseAmounts.opening < 0 ? Math.abs(expenseAmounts.opening) : 0;
+        // Period debit is the amount without tax
+        transformedPeriodDebit = expenseAmounts.period;
+        transformedPeriodCredit = 0;
       } else {
         // Transform opening balance: calculate net balance and split positive to مدين, negative to دائن
         const netOpening = entry.openingBalanceDebit - entry.openingBalanceCredit;
@@ -2220,7 +2331,7 @@ const AuditTrial: React.FC = () => {
         closingBalanceCredit: transformedClosingCredit,
       };
     });
-  }, [auditTrialData?.entries, calculatedInventoryValue, calculatedBeginningInventory, calculatedCustomerBalance, calculatedSafeBalance, calculatedBankBalance, calculatedSupplierBalance, calculatedOtherReceivablesBalance, calculatedOtherPayablesBalance, calculatedOtherRevenuesBalance, calculatedVatPayableBalance]);
+  }, [auditTrialData?.entries, calculatedInventoryValue, calculatedBeginningInventory, calculatedCustomerBalance, calculatedSafeBalance, calculatedBankBalance, calculatedSupplierBalance, calculatedOtherReceivablesBalance, calculatedOtherPayablesBalance, calculatedOtherRevenuesBalance, calculatedVatPayableBalance, targetExpenseTypeNames, expenseAmountsWithoutTax]);
 
   // Insert discount entries after their parent accounts
   const processedDataWithDiscounts = useMemo(() => {
