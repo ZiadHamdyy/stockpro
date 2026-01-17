@@ -2268,10 +2268,11 @@ const AuditTrial: React.FC = () => {
         const netOpening = entry.openingBalanceCredit - entry.openingBalanceDebit;
         transformedOpeningDebit = netOpening > 0 ? netOpening : 0;
         transformedOpeningCredit = netOpening < 0 ? Math.abs(netOpening) : 0;
-        // Period: net = periodCredit - periodDebit, positive → debit, negative → credit
-        const netPeriod = entry.periodCredit - entry.periodDebit;
-        transformedPeriodDebit = netPeriod > 0 ? netPeriod : 0;
-        transformedPeriodCredit = netPeriod < 0 ? Math.abs(netPeriod) : 0;
+        // Period: show both debit and credit separately (like TotalCurrentAccountsReport)
+        // Note: backend has periodDebit=receipts, periodCredit=payments, but we need to swap to match TotalCurrentAccountsReport
+        // where debit column shows payments and credit column shows receipts
+        transformedPeriodDebit = entry.periodCredit; // payments go to debit column
+        transformedPeriodCredit = entry.periodDebit; // receipts go to credit column
       } else if (isInventoryAccount) {
         // For inventory account:
         // - Opening balance: use calculatedBeginningInventory (valuation-based, as of day before fromDate)
