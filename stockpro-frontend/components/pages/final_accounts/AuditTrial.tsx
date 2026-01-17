@@ -2114,6 +2114,8 @@ const AuditTrial: React.FC = () => {
       const isVatPayableAccount = entry.accountCode === '2201' || entry.accountName === 'ضريبة القيمة المضافة';
       // Check if this is the partners account
       const isPartnersAccount = entry.accountCode === '3201' || entry.accountName === 'جاري الشركاء';
+      // Check if this is the earned discount account
+      const isEarnedDiscountAccount = entry.accountCode === '4202' || entry.accountName === 'خصم مكتسب';
       
       // Check if this is a target expense account that should exclude tax
       const isTargetExpenseAccount = targetExpenseTypeNames.includes(entry.accountName);
@@ -2292,6 +2294,15 @@ const AuditTrial: React.FC = () => {
         // Period debit is the amount without tax
         transformedPeriodDebit = expenseAmounts.period;
         transformedPeriodCredit = 0;
+      } else if (isEarnedDiscountAccount) {
+        // For earned discount account: swap period debit/credit (opposite of allowed discount)
+        // Opening balance transformation
+        const netOpening = entry.openingBalanceDebit - entry.openingBalanceCredit;
+        transformedOpeningDebit = netOpening > 0 ? netOpening : 0;
+        transformedOpeningCredit = netOpening < 0 ? Math.abs(netOpening) : 0;
+        // Period: swap debit and credit (show in دائن column, opposite of allowed discount)
+        transformedPeriodDebit = entry.periodCredit;
+        transformedPeriodCredit = entry.periodDebit;
       } else {
         // Transform opening balance: calculate net balance and split positive to مدين, negative to دائن
         const netOpening = entry.openingBalanceDebit - entry.openingBalanceCredit;
