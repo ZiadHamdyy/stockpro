@@ -29,6 +29,8 @@ import { useGetBanksQuery } from '../../store/slices/bank/bankApiSlice';
 import { useGetInternalTransfersQuery } from '../../store/slices/internalTransferApiSlice';
 import { useGetExpenseCodesQuery, useGetExpenseTypesQuery } from '../../store/slices/expense/expenseApiSlice';
 import { useAuth } from '../../hook/Auth';
+import { useGetFiscalYearsQuery } from '../../store/slices/fiscalYear/fiscalYearApiSlice';
+import { useGetIncomeStatementQuery } from '../../store/slices/incomeStatement/incomeStatementApiSlice';
 
 interface TrialBalanceEntry {
   id: string;
@@ -77,6 +79,13 @@ const AuditTrial: React.FC = () => {
   const { data: stores = [] } = useGetStoresQuery(undefined);
   const { data: allStoreItems = [] } = useGetAllStoreItemsQuery();
   const { data: financialSettings } = useGetFinancialSettingsQuery();
+  
+  // Fetch data for retained earnings calculation
+  const { data: fiscalYears = [] } = useGetFiscalYearsQuery();
+  const { data: incomeStatementData } = useGetIncomeStatementQuery(
+    { startDate: fromDate, endDate: toDate },
+    { skip: !fromDate || !toDate, refetchOnMountOrArgChange: true }
+  );
   
   // Fetch data for customer balance calculation
   const { isAuthed } = useAuth();
@@ -2086,6 +2095,400 @@ const AuditTrial: React.FC = () => {
     normalizeDate,
   ]);
 
+  // Calculate net purchases for retained earnings calculation
+  const calculatedNetPurchases = useMemo(() => {
+    const normalizedStartDate = normalizeDate(fromDate);
+    const normalizedEndDate = normalizeDate(toDate);
+
+    if (!normalizedStartDate || !normalizedEndDate) return 0;
+
+    const isInRange = (date: any) => {
+      const d = normalizeDate(date);
+      if (!d) return false;
+      return d >= normalizedStartDate && d <= normalizedEndDate;
+    };
+
+    const { totalPurchasesBeforeTax, totalPurchasesDiscount } = (apiPurchaseInvoices as any[])
+      .filter((inv) => isInRange(inv.date || inv.invoiceDate))
+      .reduce(
+        (acc, inv) => {
+          acc.totalPurchasesBeforeTax += toNumber(inv.subtotal || 0);
+          acc.totalPurchasesDiscount += toNumber(inv.discount || 0);
+          return acc;
+        },
+        { totalPurchasesBeforeTax: 0, totalPurchasesDiscount: 0 },
+      );
+
+    const { totalPurchaseReturnsBeforeTax, totalReturnsDiscount } = (apiPurchaseReturns as any[])
+      .filter((inv) => isInRange(inv.date || inv.invoiceDate))
+      .reduce(
+        (acc, inv) => {
+          acc.totalPurchaseReturnsBeforeTax += toNumber(inv.subtotal || 0);
+          acc.totalReturnsDiscount += toNumber(inv.discount || 0);
+          return acc;
+        },
+        { totalPurchaseReturnsBeforeTax: 0, totalReturnsDiscount: 0 },
+      );
+
+    return (
+      totalPurchasesBeforeTax -
+      totalPurchasesDiscount -
+      totalPurchaseReturnsBeforeTax +
+      totalReturnsDiscount
+    );
+  }, [apiPurchaseInvoices, apiPurchaseReturns, fromDate, toDate, normalizeDate, toNumber]);
+
+  // Calculate allowed discount for retained earnings calculation
+  const allowedDiscount = useMemo(() => {
+    const normalizedStartDate = normalizeDate(fromDate);
+    const normalizedEndDate = normalizeDate(toDate);
+
+    if (!normalizedStartDate || !normalizedEndDate) return 0;
+
+    const isInRange = (date: any) => {
+      const d = normalizeDate(date);
+      if (!d) return false;
+      return d >= normalizedStartDate && d <= normalizedEndDate;
+    };
+
+    const totalSalesDiscounts = (apiSalesInvoices as any[])
+      .filter((inv) => isInRange(inv.date || inv.invoiceDate))
+      .reduce((sum, inv) => sum + toNumber(inv.discount || 0), 0);
+
+    const totalSalesReturnsDiscounts = (apiSalesReturns as any[])
+      .filter((inv) => isInRange(inv.date || inv.invoiceDate))
+      .reduce((sum, inv) => sum + toNumber(inv.discount || 0), 0);
+
+    return totalSalesDiscounts - totalSalesReturnsDiscounts;
+  }, [apiSalesInvoices, apiSalesReturns, fromDate, toDate, normalizeDate, toNumber]);
+
+  // Calculate net sales after discount
+  const netSalesAfterDiscount = useMemo(() => {
+    if (!incomeStatementData) return 0;
+    return incomeStatementData.netSales - allowedDiscount;
+  }, [incomeStatementData, allowedDiscount]);
+
+  // Calculate other revenues for net profit calculation (not balance)
+  const calculatedOtherRevenues = useMemo(() => {
+    const normalizedStartDate = normalizeDate(fromDate);
+    const normalizedEndDate = normalizeDate(toDate);
+    
+    if (!normalizedStartDate || !normalizedEndDate) return 0;
+
+    return (apiReceiptVouchers as any[])
+      .filter((voucher) => {
+        if (voucher.entityType !== 'revenue') return false;
+        const voucherDate = normalizeDate(voucher.date);
+        if (!voucherDate) return false;
+        return voucherDate >= normalizedStartDate && voucherDate <= normalizedEndDate;
+      })
+      .reduce((sum, voucher) => sum + (voucher.amount || 0), 0);
+  }, [apiReceiptVouchers, fromDate, toDate, normalizeDate]);
+
+  // Calculate net profit for current period using same formula as IncomeStatement
+  const calculatedNetProfit = useMemo(() => {
+    if (!incomeStatementData) return 0;
+    
+    return netSalesAfterDiscount - 
+           (calculatedBeginningInventory + calculatedNetPurchases - calculatedInventoryValue) + 
+           calculatedOtherRevenues - 
+           incomeStatementData.totalExpenses;
+  }, [incomeStatementData, calculatedBeginningInventory, calculatedInventoryValue, calculatedOtherRevenues, netSalesAfterDiscount, calculatedNetPurchases]);
+
+  /**
+   * Helper function to calculate retained earnings for a single fiscal year period
+   * This matches the calculation approach in BalanceSheet.tsx and FiscalYears.tsx exactly:
+   * 1. Calculate net profit for the period (using same formula as IncomeStatement)
+   * 2. Add P&L vouchers for that period
+   * 3. Return retained earnings for that single period (not accumulated)
+   * 
+   * IMPORTANT: Uses the CURRENT inventory valuation method from financialSettings
+   * (WEIGHTED_AVERAGE → averageCost, FIFO/LAST_PURCHASE_PRICE → purchasePrice)
+   * This ensures calculations respect the current financial system settings
+   */
+  const calculateRetainedEarningsForPeriod = useCallback((
+    periodStartDate: string,
+    periodEndDate: string
+  ): number => {
+    const normalizedPeriodStart = normalizeDate(periodStartDate);
+    const normalizedPeriodEnd = normalizeDate(periodEndDate);
+    
+    if (!normalizedPeriodStart || !normalizedPeriodEnd) return 0;
+
+    // Calculate beginning inventory (at day before period start date)
+    const dayBeforeStart = new Date(normalizedPeriodStart);
+    dayBeforeStart.setDate(dayBeforeStart.getDate() - 1);
+    const dayBeforeStartString = dayBeforeStart.toISOString().split('T')[0];
+    
+    const beginningInventory = calculateCompanyInventoryValuation({
+      items: transformedItems,
+      aggregatedOpeningBalances,
+      purchaseInvoices: transformedPurchaseInvoices,
+      salesInvoices: transformedSalesInvoices,
+      purchaseReturns: transformedPurchaseReturns,
+      salesReturns: transformedSalesReturns,
+      storeReceiptVouchers: transformedStoreReceiptVouchers,
+      storeIssueVouchers: transformedStoreIssueVouchers,
+      storeTransferVouchers: transformedStoreTransferVouchers,
+      stores,
+      endDate: dayBeforeStartString,
+      valuationMethod: inventoryValuationMethod,
+      normalizeDate,
+      toNumber,
+      getLastPurchasePriceBeforeDate,
+      calculateWeightedAverageCost,
+    }).totalValue;
+
+    // Calculate ending inventory (at period end date)
+    const endingInventory = calculateCompanyInventoryValuation({
+      items: transformedItems,
+      aggregatedOpeningBalances,
+      purchaseInvoices: transformedPurchaseInvoices,
+      salesInvoices: transformedSalesInvoices,
+      purchaseReturns: transformedPurchaseReturns,
+      salesReturns: transformedSalesReturns,
+      storeReceiptVouchers: transformedStoreReceiptVouchers,
+      storeIssueVouchers: transformedStoreIssueVouchers,
+      storeTransferVouchers: transformedStoreTransferVouchers,
+      stores,
+      endDate: normalizedPeriodEnd,
+      valuationMethod: inventoryValuationMethod,
+      normalizeDate,
+      toNumber,
+      getLastPurchasePriceBeforeDate,
+      calculateWeightedAverageCost,
+    }).totalValue;
+
+    // Calculate net purchases for the period
+    const isInRange = (date: any) => {
+      const d = normalizeDate(date);
+      if (!d) return false;
+      return d >= normalizedPeriodStart && d <= normalizedPeriodEnd;
+    };
+
+    const { totalPurchasesBeforeTax, totalPurchasesDiscount } = (apiPurchaseInvoices as any[])
+      .filter((inv) => isInRange(inv.date || inv.invoiceDate))
+      .reduce(
+        (acc, inv) => {
+          acc.totalPurchasesBeforeTax += toNumber(inv.subtotal || 0);
+          acc.totalPurchasesDiscount += toNumber(inv.discount || 0);
+          return acc;
+        },
+        { totalPurchasesBeforeTax: 0, totalPurchasesDiscount: 0 },
+      );
+
+    const { totalPurchaseReturnsBeforeTax, totalReturnsDiscount } = (apiPurchaseReturns as any[])
+      .filter((inv) => isInRange(inv.date || inv.invoiceDate))
+      .reduce(
+        (acc, inv) => {
+          acc.totalPurchaseReturnsBeforeTax += toNumber(inv.subtotal || 0);
+          acc.totalReturnsDiscount += toNumber(inv.discount || 0);
+          return acc;
+        },
+        { totalPurchaseReturnsBeforeTax: 0, totalReturnsDiscount: 0 },
+      );
+
+    const netPurchases = 
+      totalPurchasesBeforeTax -
+      totalPurchasesDiscount -
+      totalPurchaseReturnsBeforeTax +
+      totalReturnsDiscount;
+
+    // Calculate net sales for the period
+    const totalSales = (apiSalesInvoices as any[])
+      .filter((inv) => isInRange(inv.date || inv.invoiceDate))
+      .reduce((sum, inv) => sum + toNumber(inv.subtotal || 0), 0);
+
+    const totalSalesReturns = (apiSalesReturns as any[])
+      .filter((inv) => isInRange(inv.date || inv.invoiceDate))
+      .reduce((sum, inv) => sum + toNumber(inv.subtotal || 0), 0);
+
+    const netSales = totalSales - totalSalesReturns;
+
+    // Calculate allowed discount for the period
+    const totalSalesDiscounts = (apiSalesInvoices as any[])
+      .filter((inv) => isInRange(inv.date || inv.invoiceDate))
+      .reduce((sum, inv) => sum + toNumber(inv.discount || 0), 0);
+
+    const totalSalesReturnsDiscounts = (apiSalesReturns as any[])
+      .filter((inv) => isInRange(inv.date || inv.invoiceDate))
+      .reduce((sum, inv) => sum + toNumber(inv.discount || 0), 0);
+
+    const allowedDiscount = totalSalesDiscounts - totalSalesReturnsDiscounts;
+    const netSalesAfterDiscount = netSales - allowedDiscount;
+
+    // Calculate other revenues for the period
+    const otherRevenues = (apiReceiptVouchers as any[])
+      .filter((voucher) => {
+        if (voucher.entityType !== 'revenue') return false;
+        const voucherDate = normalizeDate(voucher.date);
+        if (!voucherDate) return false;
+        return voucherDate >= normalizedPeriodStart && voucherDate <= normalizedPeriodEnd;
+      })
+      .reduce((sum, voucher) => sum + (voucher.amount || 0), 0);
+
+    // Calculate total expenses for the period (from payment vouchers)
+    const totalExpenses = (apiPaymentVouchers as any[])
+      .filter((v) => {
+        const entityType = (v.entityType || '').toString().toLowerCase();
+        const isExpense = entityType === 'expense' || entityType === 'expense-type';
+        if (!isExpense) return false;
+        const vDate = normalizeDate(v.date);
+        if (!vDate) return false;
+        return vDate >= normalizedPeriodStart && vDate <= normalizedPeriodEnd;
+      })
+      .reduce((sum, v) => sum + toNumber(v.amount || 0), 0);
+
+    // Calculate net profit using the same formula as FiscalYears.tsx:
+    // netSalesAfterDiscount - (beginningInventory + netPurchases - endingInventory) + otherRevenues - totalExpenses
+    const netProfit = netSalesAfterDiscount - 
+                      (beginningInventory + netPurchases - endingInventory) + 
+                      otherRevenues - 
+                      totalExpenses;
+
+    // Include profit_and_loss vouchers for this period
+    const profitAndLossReceipts = (apiReceiptVouchers as any[])
+      .filter((v) => v.entityType === "profit_and_loss")
+      .filter((v) => {
+        const vDate = normalizeDate(v.date);
+        return vDate >= normalizedPeriodStart && vDate <= normalizedPeriodEnd;
+      })
+      .reduce((sum, v) => sum + (v.amount || 0), 0);
+
+    const profitAndLossPayments = (apiPaymentVouchers as any[])
+      .filter((v) => v.entityType === "profit_and_loss")
+      .filter((v) => {
+        const vDate = normalizeDate(v.date);
+        return vDate >= normalizedPeriodStart && vDate <= normalizedPeriodEnd;
+      })
+      .reduce((sum, v) => sum + (v.amount || 0), 0);
+
+    // Return retained earnings for this period only (net profit + P&L vouchers)
+    return netProfit + profitAndLossReceipts - profitAndLossPayments;
+  }, [
+    transformedItems,
+    aggregatedOpeningBalances,
+    transformedPurchaseInvoices,
+    transformedSalesInvoices,
+    transformedPurchaseReturns,
+    transformedSalesReturns,
+    transformedStoreReceiptVouchers,
+    transformedStoreIssueVouchers,
+    transformedStoreTransferVouchers,
+    stores,
+    inventoryValuationMethod,
+    normalizeDate,
+    toNumber,
+    getLastPurchasePriceBeforeDate,
+    calculateWeightedAverageCost,
+    apiPurchaseInvoices,
+    apiPurchaseReturns,
+    apiSalesInvoices,
+    apiSalesReturns,
+    apiReceiptVouchers,
+    apiPaymentVouchers,
+    financialSettings,
+  ]);
+
+  /**
+   * Calculate retained earnings - COMPANY-WIDE calculation
+   * Includes retained earnings from all previous closed fiscal years
+   * Plus current period retained earnings
+   * 
+   * IMPORTANT: All retained earnings calculations (previous fiscal years and current period)
+   * use the CURRENT inventory valuation method from financialSettings
+   * (WEIGHTED_AVERAGE → averageCost, FIFO/LAST_PURCHASE_PRICE → purchasePrice).
+   * Previous fiscal years' retained earnings are recalculated using the current method
+   * instead of using stored values. This ensures consistency when the valuation method changes.
+   * 
+   * This calculation matches the approach in BalanceSheet.tsx exactly:
+   * - Each previous fiscal year's retained earnings is calculated individually using calculateRetainedEarningsForPeriod
+   * - All previous periods are summed together
+   * - Current period retained earnings is added (using same calculation approach)
+   * 
+   * DEPENDS ON: financialSettings.inventoryValuationMethod - changes to settings trigger recalculation
+   */
+  const calculatedRetainedEarnings = useMemo(() => {
+    const normalizedStartDate = normalizeDate(fromDate);
+    const normalizedEndDate = normalizeDate(toDate);
+    
+    if (!normalizedStartDate || !normalizedEndDate) return 0;
+
+    const periodEndDate = new Date(normalizedEndDate);
+
+    // Find all CLOSED fiscal years that ended before the current period end date
+    const previousClosedFiscalYears = fiscalYears.filter((fy) => {
+      if (fy.status !== "CLOSED") return false;
+      const fyEndDate = new Date(normalizeDate(fy.endDate));
+      return fyEndDate < periodEndDate;
+    });
+
+    // Calculate retained earnings for each previous closed fiscal year using the current inventory valuation method
+    // This ensures consistency when the valuation method changes (e.g., from last purchase to average cost)
+    // Each period's retained earnings is calculated using the same approach as FiscalYears.tsx
+    const previousRetainedEarnings = previousClosedFiscalYears.reduce(
+      (sum, fiscalYear) => {
+        const fyStartDate = normalizeDate(fiscalYear.startDate);
+        const fyEndDate = normalizeDate(fiscalYear.endDate);
+        
+        if (!fyStartDate || !fyEndDate) return sum;
+        
+        // Calculate retained earnings for this fiscal year period (includes net profit + P&L vouchers)
+        // This matches exactly what FiscalYears.tsx calculates for each period
+        const fiscalYearRetainedEarnings = calculateRetainedEarningsForPeriod(fyStartDate, fyEndDate);
+        
+        return sum + fiscalYearRetainedEarnings;
+      },
+      0,
+    );
+
+    // Calculate current period retained earnings using the same approach
+    // Use calculated net profit (same calculation as IncomeStatement)
+    const currentPeriodNetProfit = calculatedNetProfit || 0;
+
+    // Include profit_and_loss vouchers in retained earnings calculation for current period
+    const profitAndLossReceipts = (apiReceiptVouchers as any[])
+      .filter((v) => v.entityType === "profit_and_loss")
+      .filter((v) => {
+        const vDate = normalizeDate(v.date);
+        return vDate >= normalizedStartDate && vDate <= normalizedEndDate;
+      })
+      .reduce((sum, v) => sum + (v.amount || 0), 0);
+
+    const profitAndLossPayments = (apiPaymentVouchers as any[])
+      .filter((v) => v.entityType === "profit_and_loss")
+      .filter((v) => {
+        const vDate = normalizeDate(v.date);
+        return vDate >= normalizedStartDate && vDate <= normalizedEndDate;
+      })
+      .reduce((sum, v) => sum + (v.amount || 0), 0);
+
+    const currentPeriodRetainedEarnings = currentPeriodNetProfit + profitAndLossReceipts - profitAndLossPayments;
+
+    // Calculate VAT from previous years (taxPrice from payment vouchers before startDate)
+    // This matches the calculation in DailyPaymentsReport
+    const previousYearVat = (apiPaymentVouchers as any[])
+      .filter((v) => {
+        const vDate = normalizeDate(v.date);
+        return vDate < normalizedStartDate;
+      })
+      .reduce((sum, v) => sum + (v.taxPrice || 0), 0);
+
+    // Return accumulated retained earnings (sum of all previous periods + current period + previous year VAT)
+    return previousRetainedEarnings + currentPeriodRetainedEarnings + previousYearVat;
+  }, [
+    fiscalYears,
+    calculatedNetProfit,
+    normalizeDate,
+    fromDate,
+    toDate,
+    apiReceiptVouchers,
+    apiPaymentVouchers,
+    inventoryValuationMethod,
+    calculateRetainedEarningsForPeriod,
+    financialSettings,
+  ]);
+
   // Process and verify entries with correct calculations
   // Based on backend logic:
   // - Assets/Expenses: closingDebit = openingDebit + periodDebit - periodCredit (if negative, becomes closingCredit)
@@ -2116,6 +2519,8 @@ const AuditTrial: React.FC = () => {
       const isPartnersAccount = entry.accountCode === '3201' || entry.accountName === 'جاري الشركاء';
       // Check if this is the earned discount account
       const isEarnedDiscountAccount = entry.accountCode === '4202' || entry.accountName === 'خصم مكتسب';
+      // Check if this is the retained earnings account
+      const isRetainedEarningsAccount = entry.accountCode === '3301' || entry.accountName === 'الارباح و الخسائر المبقاه' || entry.accountName === 'الأرباح ( الخسائر ) المبقاة';
       
       // Check if this is a target expense account that should exclude tax
       const isTargetExpenseAccount = targetExpenseTypeNames.includes(entry.accountName);
@@ -2169,6 +2574,67 @@ const AuditTrial: React.FC = () => {
           calculatedClosingDebit = 0;
           calculatedClosingCredit = Math.abs(netBalance);
         }
+      } else if (isRetainedEarningsAccount) {
+        // Override retained earnings account with calculated retained earnings (matching BalanceSheet)
+        // Retained earnings is Equity, so positive value goes to credit, negative to debit
+        const normalizedStartDate = normalizeDate(fromDate);
+        const normalizedEndDate = normalizeDate(toDate);
+        
+        // Calculate opening balance: retained earnings from all previous closed fiscal years (before fromDate)
+        const periodStartDate = new Date(normalizedStartDate);
+        const previousClosedFiscalYears = fiscalYears.filter((fy) => {
+          if (fy.status !== "CLOSED") return false;
+          const fyEndDate = new Date(normalizeDate(fy.endDate));
+          return fyEndDate < periodStartDate;
+        });
+        
+        const previousRetainedEarnings = previousClosedFiscalYears.reduce(
+          (sum, fiscalYear) => {
+            const fyStartDate = normalizeDate(fiscalYear.startDate);
+            const fyEndDate = normalizeDate(fiscalYear.endDate);
+            if (!fyStartDate || !fyEndDate) return sum;
+            const fiscalYearRetainedEarnings = calculateRetainedEarningsForPeriod(fyStartDate, fyEndDate);
+            return sum + fiscalYearRetainedEarnings;
+          },
+          0,
+        );
+        
+        // Calculate period movements: current period retained earnings (net profit + P&L vouchers)
+        const currentPeriodNetProfit = calculatedNetProfit || 0;
+        const profitAndLossReceipts = (apiReceiptVouchers as any[])
+          .filter((v) => v.entityType === "profit_and_loss")
+          .filter((v) => {
+            const vDate = normalizeDate(v.date);
+            return vDate >= normalizedStartDate && vDate <= normalizedEndDate;
+          })
+          .reduce((sum, v) => sum + (v.amount || 0), 0);
+        const profitAndLossPayments = (apiPaymentVouchers as any[])
+          .filter((v) => v.entityType === "profit_and_loss")
+          .filter((v) => {
+            const vDate = normalizeDate(v.date);
+            return vDate >= normalizedStartDate && vDate <= normalizedEndDate;
+          })
+          .reduce((sum, v) => sum + (v.amount || 0), 0);
+        const currentPeriodRetainedEarnings = currentPeriodNetProfit + profitAndLossReceipts - profitAndLossPayments;
+        
+        // Calculate previous year VAT
+        const previousYearVat = (apiPaymentVouchers as any[])
+          .filter((v) => {
+            const vDate = normalizeDate(v.date);
+            return vDate < normalizedStartDate;
+          })
+          .reduce((sum, v) => sum + (v.taxPrice || 0), 0);
+        
+        // Opening balance = previous retained earnings + previous year VAT
+        const openingRetainedEarnings = previousRetainedEarnings + previousYearVat;
+        
+        // Closing balance = opening + period movements
+        const closingRetainedEarnings = openingRetainedEarnings + currentPeriodRetainedEarnings;
+        
+        // Transform for Equity account: both positive and negative → credit (دائن)
+        // Negative values are shown as positive numbers in the credit column
+        calculatedClosingDebit = 0;
+        calculatedClosingCredit = Math.abs(closingRetainedEarnings);
       } else if (isTargetExpenseAccount) {
         // For target expense accounts: calculate closing balance using amounts without tax
         const expenseAmounts = expenseAmountsWithoutTax[entry.accountName] || { opening: 0, period: 0 };
@@ -2275,6 +2741,66 @@ const AuditTrial: React.FC = () => {
         // where debit column shows payments and credit column shows receipts
         transformedPeriodDebit = entry.periodCredit; // payments go to debit column
         transformedPeriodCredit = entry.periodDebit; // receipts go to credit column
+      } else if (isRetainedEarningsAccount) {
+        // For retained earnings account: use calculated values matching BalanceSheet
+        const normalizedStartDate = normalizeDate(fromDate);
+        const normalizedEndDate = normalizeDate(toDate);
+        
+        // Calculate opening balance: previous closed fiscal years + previous year VAT
+        const periodStartDate = new Date(normalizedStartDate);
+        const previousClosedFiscalYears = fiscalYears.filter((fy) => {
+          if (fy.status !== "CLOSED") return false;
+          const fyEndDate = new Date(normalizeDate(fy.endDate));
+          return fyEndDate < periodStartDate;
+        });
+        
+        const previousRetainedEarnings = previousClosedFiscalYears.reduce(
+          (sum, fiscalYear) => {
+            const fyStartDate = normalizeDate(fiscalYear.startDate);
+            const fyEndDate = normalizeDate(fiscalYear.endDate);
+            if (!fyStartDate || !fyEndDate) return sum;
+            const fiscalYearRetainedEarnings = calculateRetainedEarningsForPeriod(fyStartDate, fyEndDate);
+            return sum + fiscalYearRetainedEarnings;
+          },
+          0,
+        );
+        
+        const previousYearVat = (apiPaymentVouchers as any[])
+          .filter((v) => {
+            const vDate = normalizeDate(v.date);
+            return vDate < normalizedStartDate;
+          })
+          .reduce((sum, v) => sum + (v.taxPrice || 0), 0);
+        
+        const openingRetainedEarnings = previousRetainedEarnings + previousYearVat;
+        
+        // Calculate period movements: current period retained earnings
+        const currentPeriodNetProfit = calculatedNetProfit || 0;
+        const profitAndLossReceipts = (apiReceiptVouchers as any[])
+          .filter((v) => v.entityType === "profit_and_loss")
+          .filter((v) => {
+            const vDate = normalizeDate(v.date);
+            return vDate >= normalizedStartDate && vDate <= normalizedEndDate;
+          })
+          .reduce((sum, v) => sum + (v.amount || 0), 0);
+        const profitAndLossPayments = (apiPaymentVouchers as any[])
+          .filter((v) => v.entityType === "profit_and_loss")
+          .filter((v) => {
+            const vDate = normalizeDate(v.date);
+            return vDate >= normalizedStartDate && vDate <= normalizedEndDate;
+          })
+          .reduce((sum, v) => sum + (v.amount || 0), 0);
+        const currentPeriodRetainedEarnings = currentPeriodNetProfit + profitAndLossReceipts - profitAndLossPayments;
+        
+        // Transform opening balance for Equity account: both positive and negative → credit (دائن)
+        // Negative values are shown as positive numbers in the credit column
+        transformedOpeningDebit = 0;
+        transformedOpeningCredit = Math.abs(openingRetainedEarnings);
+        
+        // Transform period movements for Equity account: both positive and negative → credit (دائن)
+        // Negative values are shown as positive numbers in the credit column
+        transformedPeriodDebit = 0;
+        transformedPeriodCredit = Math.abs(currentPeriodRetainedEarnings);
       } else if (isInventoryAccount) {
         // For inventory account:
         // - Opening balance: use calculatedBeginningInventory (valuation-based, as of day before fromDate)
@@ -2321,6 +2847,10 @@ const AuditTrial: React.FC = () => {
         // Use the already transformed values from above
         transformedClosingDebit = calculatedClosingDebit;
         transformedClosingCredit = calculatedClosingCredit;
+      } else if (isRetainedEarningsAccount) {
+        // Use the already calculated values from above
+        transformedClosingDebit = calculatedClosingDebit;
+        transformedClosingCredit = calculatedClosingCredit;
       } else if (isVatPayableAccount) {
         // For VAT account, swap closing balances to match VATStatementReport display convention
         // Green column (مدين) shows credit balance, Red column (دائن) shows debit balance
@@ -2343,7 +2873,7 @@ const AuditTrial: React.FC = () => {
         closingBalanceCredit: transformedClosingCredit,
       };
     });
-  }, [auditTrialData?.entries, calculatedInventoryValue, calculatedBeginningInventory, calculatedCustomerBalance, calculatedSafeBalance, calculatedBankBalance, calculatedSupplierBalance, calculatedOtherReceivablesBalance, calculatedOtherPayablesBalance, calculatedOtherRevenuesBalance, calculatedVatPayableBalance, targetExpenseTypeNames, expenseAmountsWithoutTax]);
+  }, [auditTrialData?.entries, calculatedInventoryValue, calculatedBeginningInventory, calculatedCustomerBalance, calculatedSafeBalance, calculatedBankBalance, calculatedSupplierBalance, calculatedOtherReceivablesBalance, calculatedOtherPayablesBalance, calculatedOtherRevenuesBalance, calculatedVatPayableBalance, targetExpenseTypeNames, expenseAmountsWithoutTax, calculatedRetainedEarnings, calculatedNetProfit, calculateRetainedEarningsForPeriod, fiscalYears, normalizeDate, fromDate, toDate, apiReceiptVouchers, apiPaymentVouchers]);
 
   // Insert discount entries after their parent accounts
   const processedDataWithDiscounts = useMemo(() => {
