@@ -22,6 +22,7 @@ import { useGetCustomersQuery } from '../../store/slices/customer/customerApiSli
 import { useGetSuppliersQuery } from '../../store/slices/supplier/supplierApiSlice';
 import { useGetReceivableAccountsQuery } from '../../store/slices/receivableAccounts/receivableAccountsApi';
 import { useGetPayableAccountsQuery } from '../../store/slices/payableAccounts/payableAccountsApi';
+import { useGetCurrentAccountsQuery } from '../../store/slices/currentAccounts/currentAccountsApi';
 import { useGetReceiptVouchersQuery } from '../../store/slices/receiptVoucherApiSlice';
 import { useGetPaymentVouchersQuery } from '../../store/slices/paymentVoucherApiSlice';
 import { useGetSafesQuery } from '../../store/slices/safe/safeApiSlice';
@@ -94,6 +95,7 @@ const AuditTrial: React.FC = () => {
   const { data: apiSuppliers = [] } = useGetSuppliersQuery(undefined);
   const { data: apiReceivableAccounts = [] } = useGetReceivableAccountsQuery(undefined);
   const { data: apiPayableAccounts = [] } = useGetPayableAccountsQuery(undefined);
+  const { data: apiCurrentAccounts = [] } = useGetCurrentAccountsQuery(undefined);
   const { data: apiReceiptVouchers = [] } = useGetReceiptVouchersQuery(undefined, { skip });
   const { data: apiPaymentVouchers = [] } = useGetPaymentVouchersQuery(undefined, { skip });
   
@@ -914,6 +916,106 @@ const AuditTrial: React.FC = () => {
     toDate,
     normalizeDate,
     toNumber,
+  ]);
+
+  // Calculate current accounts (partners) balances using the same logic as TotalCurrentAccountsReport
+  const calculatedCurrentAccountsBalance = useMemo(() => {
+    const currentAccounts = apiCurrentAccounts as any[];
+    
+    let totalOpeningDebit = 0;
+    let totalOpeningCredit = 0;
+    let totalPeriodDebit = 0;
+    let totalPeriodCredit = 0;
+
+    currentAccounts.forEach((account) => {
+      const accountId = account.id;
+      const accountIdStr = accountId.toString();
+
+      // Calculate transactions before start date for opening balance
+      const receiptsBefore = receiptVouchers
+        .filter((v) => {
+          const vDate = normalizeDate(v.date);
+          const voucherAccountId = v.entity?.id?.toString() || v.entity?.id;
+          return (
+            v.entity?.type === "current_account" &&
+            (voucherAccountId === accountIdStr || voucherAccountId == accountId) &&
+            vDate < fromDate
+          );
+        })
+        .reduce((sum, v) => sum + v.amount, 0);
+
+      const paymentsBefore = paymentVouchers
+        .filter((v) => {
+          const vDate = normalizeDate(v.date);
+          const voucherAccountId = v.entity?.id?.toString() || v.entity?.id;
+          return (
+            v.entity?.type === "current_account" &&
+            (voucherAccountId === accountIdStr || voucherAccountId == accountId) &&
+            vDate < fromDate
+          );
+        })
+        .reduce((sum, v) => sum + v.amount, 0);
+
+      // Calculate transactions within date range
+      const relevantReceipts = receiptVouchers.filter((v) => {
+        const vDate = normalizeDate(v.date);
+        const voucherAccountId = v.entity?.id?.toString() || v.entity?.id;
+        return (
+          v.entity?.type === "current_account" &&
+          (voucherAccountId === accountIdStr || voucherAccountId == accountId) &&
+          vDate >= fromDate &&
+          vDate <= toDate
+        );
+      });
+
+      const relevantPayments = paymentVouchers.filter((v) => {
+        const vDate = normalizeDate(v.date);
+        const voucherAccountId = v.entity?.id?.toString() || v.entity?.id;
+        return (
+          v.entity?.type === "current_account" &&
+          (voucherAccountId === accountIdStr || voucherAccountId == accountId) &&
+          vDate >= fromDate &&
+          vDate <= toDate
+        );
+      });
+
+      const receipts = relevantReceipts.reduce((sum, v) => sum + v.amount, 0);
+      const payments = relevantPayments.reduce((sum, v) => sum + v.amount, 0);
+
+      // Opening balance = base opening balance + payments before start date - receipts before start date
+      const opening = (account.openingBalance || 0) + paymentsBefore - receiptsBefore;
+
+      // Aggregate totals
+      if (opening > 0) {
+        totalOpeningDebit += opening;
+      } else {
+        totalOpeningCredit += Math.abs(opening);
+      }
+      totalPeriodDebit += payments;
+      totalPeriodCredit += receipts;
+    });
+
+    // Calculate closing balance
+    const netOpening = totalOpeningDebit - totalOpeningCredit;
+    const netClosing = netOpening + totalPeriodDebit - totalPeriodCredit;
+    const closingDebit = netClosing > 0 ? netClosing : 0;
+    const closingCredit = netClosing < 0 ? Math.abs(netClosing) : 0;
+
+    return {
+      openingBalanceDebit: totalOpeningDebit,
+      openingBalanceCredit: totalOpeningCredit,
+      periodDebit: totalPeriodDebit,
+      periodCredit: totalPeriodCredit,
+      closingBalanceDebit: closingDebit,
+      closingBalanceCredit: closingCredit,
+    };
+  }, [
+    apiCurrentAccounts,
+    receiptVouchers,
+    paymentVouchers,
+    fromDate,
+    toDate,
+    normalizeDate,
   ]);
 
   // Calculate safe balances using the same logic as SafeStatementReport (aggregated across all safes)
@@ -2563,17 +2665,9 @@ const AuditTrial: React.FC = () => {
         calculatedClosingDebit = calculatedVatPayableBalance.closingBalanceDebit;
         calculatedClosingCredit = calculatedVatPayableBalance.closingBalanceCredit;
       } else if (isPartnersAccount) {
-        // For partners account: calculate net balance and transform
-        // Net = closingCredit - closingDebit (since it's Equity, credit is typically positive)
-        // If positive → show in debit (مدين), if negative → show in credit (دائن)
-        const netBalance = entry.closingBalanceCredit - entry.closingBalanceDebit;
-        if (netBalance > 0) {
-          calculatedClosingDebit = netBalance;
-          calculatedClosingCredit = 0;
-        } else {
-          calculatedClosingDebit = 0;
-          calculatedClosingCredit = Math.abs(netBalance);
-        }
+        // Override partners account with calculated balance (matching TotalCurrentAccountsReport)
+        calculatedClosingDebit = calculatedCurrentAccountsBalance.closingBalanceDebit;
+        calculatedClosingCredit = calculatedCurrentAccountsBalance.closingBalanceCredit;
       } else if (isRetainedEarningsAccount) {
         // Override retained earnings account with calculated retained earnings (matching BalanceSheet)
         // Retained earnings is Equity, so positive value goes to credit, negative to debit
