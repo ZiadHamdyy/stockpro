@@ -2054,7 +2054,7 @@ const AuditTrial: React.FC = () => {
   ]);
 
   // Calculate earned discount (خصم مكتسب) - Revenue category, Account code 4202
-  // periodDebit: discounts from purchase invoices, periodCredit: discounts from purchase returns
+  // Like purchase returns: discounts from purchases reduce cost → credit, discounts from returns → debit
   const calculatedEarnedDiscount = useMemo(() => {
     const purchaseInvoicesDiscount = transformedPurchaseInvoices
       .filter((inv) => {
@@ -2070,8 +2070,9 @@ const AuditTrial: React.FC = () => {
       })
       .reduce((sum, inv) => sum + toNumber(inv.totals?.discount || inv.discount || 0), 0);
 
-    const periodDebit = purchaseInvoicesDiscount;
-    const periodCredit = purchaseReturnsDiscount;
+    // Earned discount should be like purchase returns - reduces purchase cost
+    const periodCredit = purchaseInvoicesDiscount; // الخصم من المشتريات → credit (يقلل التكلفة)
+    const periodDebit = purchaseReturnsDiscount;   // الخصم من المرتجعات → debit (يقلل الخصم المكتسب)
     const netClosing = periodCredit - periodDebit; // Revenue: credit - debit
 
     return {
@@ -2915,14 +2916,13 @@ const AuditTrial: React.FC = () => {
         transformedPeriodDebit = expenseAmounts.period;
         transformedPeriodCredit = 0;
       } else if (isEarnedDiscountAccount) {
-        // For earned discount account: swap period debit/credit (opposite of allowed discount)
-        // Opening balance transformation
+        // For earned discount account: same treatment as normal revenue accounts (like purchase returns)
         const netOpening = entry.openingBalanceDebit - entry.openingBalanceCredit;
         transformedOpeningDebit = netOpening > 0 ? netOpening : 0;
         transformedOpeningCredit = netOpening < 0 ? Math.abs(netOpening) : 0;
-        // Period: swap debit and credit (show in دائن column, opposite of allowed discount)
-        transformedPeriodDebit = entry.periodCredit;
-        transformedPeriodCredit = entry.periodDebit;
+        // Period: use values as calculated (discounts from purchases → credit, discounts from returns → debit)
+        transformedPeriodDebit = entry.periodDebit;
+        transformedPeriodCredit = entry.periodCredit;
       } else {
         // Transform opening balance: calculate net balance and split positive to مدين, negative to دائن
         const netOpening = entry.openingBalanceDebit - entry.openingBalanceCredit;
