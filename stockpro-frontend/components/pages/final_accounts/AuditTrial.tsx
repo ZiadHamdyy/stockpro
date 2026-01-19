@@ -3197,41 +3197,45 @@ const AuditTrial: React.FC = () => {
                     </td>
                   </tr>
                 ) : (
-                  data.map((item, idx) => (
-                    <tr 
-                      key={item.id} 
-                      className={`
-                        group transition-all duration-75
-                        ${idx % 2 === 0 ? 'bg-white' : 'bg-slate-200/80'} 
-                        hover:bg-blue-600 hover:text-white
-                      `}
-                    >
-                      <td className="px-4 py-1.5 font-mono text-slate-500 border-l border-slate-300/30 group-hover:text-blue-100">{item.accountCode}</td>
-                      <td className="px-6 py-1.5 text-slate-800 border-l border-slate-300/30 group-hover:text-white">{item.accountName}</td>
-                      
-                      {/* Financial Data Columns */}
-                      <td className="px-3 py-1.5 text-center border-l border-slate-300/30 text-blue-700 group-hover:text-white">
-                        {item.openingBalanceDebit > 0 ? item.openingBalanceDebit.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '—'}
-                      </td>
-                      <td className="px-3 py-1.5 text-center border-l-[3px] border-white text-rose-700 group-hover:text-white shadow-[3px_0_0_white]">
-                        {item.openingBalanceCredit > 0 ? item.openingBalanceCredit.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '—'}
-                      </td>
-                      
-                      <td className="px-3 py-1.5 text-center border-l border-slate-300/30 text-blue-800 bg-blue-50/10 group-hover:bg-transparent group-hover:text-white">
-                        {item.periodDebit > 0 ? item.periodDebit.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '—'}
-                      </td>
-                      <td className="px-3 py-1.5 text-center border-l-[3px] border-white text-rose-800 bg-rose-50/10 group-hover:bg-transparent group-hover:text-white shadow-[3px_0_0_white]">
-                        {item.periodCredit > 0 ? item.periodCredit.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '—'}
-                      </td>
-                      
-                      <td className="px-3 py-1.5 text-center border-l border-slate-300/30 text-blue-900 bg-blue-100/20 group-hover:bg-transparent group-hover:text-white">
-                        {item.closingBalanceDebit > 0 ? item.closingBalanceDebit.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '—'}
-                      </td>
-                      <td className="px-3 py-1.5 text-center text-rose-900 bg-rose-100/20 group-hover:bg-transparent group-hover:text-white">
-                        {item.closingBalanceCredit > 0 ? item.closingBalanceCredit.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '—'}
-                      </td>
-                    </tr>
-                  ))
+                  data.map((item, idx) => {
+                    const isRetainedEarnings = item.accountCode === '3301' || item.accountName === 'الارباح و الخسائر المبقاه' || item.accountName === 'الأرباح ( الخسائر ) المبقاة';
+                    
+                    return (
+                      <tr 
+                        key={item.id} 
+                        className={`
+                          group transition-all duration-75
+                          ${idx % 2 === 0 ? 'bg-white' : 'bg-slate-200/80'} 
+                          hover:bg-blue-600 hover:text-white
+                        `}
+                      >
+                        <td className="px-4 py-1.5 font-mono text-slate-500 border-l border-slate-300/30 group-hover:text-blue-100">{item.accountCode}</td>
+                        <td className="px-6 py-1.5 text-slate-800 border-l border-slate-300/30 group-hover:text-white">{item.accountName}</td>
+                        
+                        {/* Financial Data Columns */}
+                        <td className="px-3 py-1.5 text-center border-l border-slate-300/30 text-blue-700 group-hover:text-white">
+                          {item.openingBalanceDebit > 0 ? item.openingBalanceDebit.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '—'}
+                        </td>
+                        <td className="px-3 py-1.5 text-center border-l-[3px] border-white text-rose-700 group-hover:text-white shadow-[3px_0_0_white]">
+                          {item.openingBalanceCredit > 0 ? item.openingBalanceCredit.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '—'}
+                        </td>
+                        
+                        <td className="px-3 py-1.5 text-center border-l border-slate-300/30 text-blue-800 bg-blue-50/10 group-hover:bg-transparent group-hover:text-white">
+                          {isRetainedEarnings ? '—' : (item.periodDebit > 0 ? item.periodDebit.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '—')}
+                        </td>
+                        <td className="px-3 py-1.5 text-center border-l-[3px] border-white text-rose-800 bg-rose-50/10 group-hover:bg-transparent group-hover:text-white shadow-[3px_0_0_white]">
+                          {isRetainedEarnings ? '—' : (item.periodCredit > 0 ? item.periodCredit.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '—')}
+                        </td>
+                        
+                        <td className="px-3 py-1.5 text-center border-l border-slate-300/30 text-blue-900 bg-blue-100/20 group-hover:bg-transparent group-hover:text-white">
+                          {item.closingBalanceDebit > 0 ? item.closingBalanceDebit.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '—'}
+                        </td>
+                        <td className="px-3 py-1.5 text-center text-rose-900 bg-rose-100/20 group-hover:bg-transparent group-hover:text-white">
+                          {item.closingBalanceCredit > 0 ? item.closingBalanceCredit.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '—'}
+                        </td>
+                      </tr>
+                    );
+                  })
                 )}
               </tbody>
 
